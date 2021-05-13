@@ -81,7 +81,7 @@ public:
         const TypePtr& type,
         const std::string& package,
         bool readOnly = false,
-        bool readOnlyParam = false,
+        bool param = false,
         bool streamParam = false);
 
 protected:

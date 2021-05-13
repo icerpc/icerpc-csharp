@@ -171,7 +171,7 @@ namespace IceRpc
         }
 
         /// <summary>The features of the connection.</summary>
-        public FeatureCollection Features { get; set; } = new();
+        public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>The connection idle timeout. This timeout is used to monitor the connection. If the connection
         /// is idle within this timeout period, the connection is gracefully closed. It can't be 0 and the default

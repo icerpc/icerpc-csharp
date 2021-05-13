@@ -21,9 +21,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
             await using var pool = new Communicator();
-            pool.Use(Interceptors.CreateCompressor(Enum.Parse<CompressionLevel>(compressionLevel),
-                                                  compressionMinSize));
-            pool.Use(Interceptors.Decompressor);
+            pool.Use(Interceptors.CustomCompressor(
+                new Interceptors.CompressorOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }));
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
@@ -51,9 +54,13 @@ namespace IceRpc.Tests.ClientServer
                         throw;
                     }
                 }));
-            router.Use(Middleware.CreateCompressor(Enum.Parse<CompressionLevel>(compressionLevel),
-                                                   compressionMinSize));
-            router.Use(Middleware.Decompressor);
+            router.Use(Middleware.CustomCompressor(
+                new Middleware.CompressorOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }));
+
             await using var server = new Server
             {
                 Invoker = pool,

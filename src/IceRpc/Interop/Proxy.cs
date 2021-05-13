@@ -109,5 +109,22 @@ namespace IceRpc.Interop
             }
             return sb.ToString();
         }
+
+        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
+        /// <typeparam name="T">The proxy type.</typeparam>
+        /// <param name="proxyFactory">A factory used to create the proxy.</param>
+        /// <param name="identity">The proxy identity.</param>
+        /// <param name="facet">The proxy facet.</param>
+        /// <returns>A proxy with the given identity and facet.</returns>
+        internal static T Create<T>(
+            this ProxyFactory<T> proxyFactory,
+            Identity identity,
+            string facet) where T : class, IServicePrx
+        {
+            T proxy = proxyFactory(identity.ToPath(), Protocol.Ice1);
+            proxy.Impl.Identity = identity;
+            proxy.Impl.Facet = facet;
+            return proxy;
+        }
     }
 }

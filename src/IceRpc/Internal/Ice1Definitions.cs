@@ -95,13 +95,13 @@ namespace IceRpc.Internal
         internal static ArraySegment<byte> GetEmptyArgsPayload(Encoding encoding) =>
             GetVoidReturnValuePayload(encoding).Slice(1);
 
-        internal static string GetFacet(string[] facetPath)
+        internal static string GetFacet(IList<string> facetPath)
         {
-            if (facetPath.Length > 1)
+            if (facetPath.Count > 1)
             {
-                throw new InvalidDataException($"read ice1 facet path with {facetPath.Length} elements");
+                throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
             }
-            return facetPath.Length == 1 ? facetPath[0] : "";
+            return facetPath.Count == 1 ? facetPath[0] : "";
         }
 
         internal static RetryPolicy GetRetryPolicy(IncomingResponse response, ServicePrx proxy)

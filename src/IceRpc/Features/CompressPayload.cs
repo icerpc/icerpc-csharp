@@ -18,4 +18,20 @@ namespace IceRpc.Features
         {
         }
     }
+
+    public static class CompressPayloadExtensions
+    {
+        public static FeatureCollection CompressPayload(this FeatureCollection features)
+        {
+            if (features[typeof(Features.CompressPayload)] != Features.CompressPayload.Yes)
+            {
+                if (features.IsReadOnly)
+                {
+                    features = new FeatureCollection(features);
+                }
+                features.Set(Features.CompressPayload.Yes);
+            }
+            return features;
+        }
+    }
 }

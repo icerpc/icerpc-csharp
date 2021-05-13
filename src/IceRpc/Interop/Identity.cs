@@ -144,7 +144,7 @@ namespace IceRpc.Interop
                 $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
                 $"/{Uri.EscapeDataString(Name)}";
 
-            Debug.Assert(IceRpc.Internal.UriParser.IsValidPath(path));
+            Debug.Assert(Internal.UriParser.IsValidPath(path));
             return path;
         }
 

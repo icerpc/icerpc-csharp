@@ -524,6 +524,12 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            // TODO: temporary, not thread-safe
+            if (_state == ConnectionState.NotConnected)
+            {
+                await ConnectAsync(cancel).ConfigureAwait(false);
+            }
+
             if (Activity.Current?.Id != null)
             {
                 request.WriteActivityContext(Activity.Current);

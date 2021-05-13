@@ -318,8 +318,12 @@ namespace IceRpc.Tests.Api
         {
             internal IProxyTestPrx? Proxy { get; set; }
 
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(dispatch.Server!.CreateEndpointlessProxy<IProxyTestPrx>(dispatch.Path));
+            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel)
+            {
+                var prx = IProxyTestPrx.FromPath(dispatch.Path, dispatch.Server!.Protocol);
+                prx.Invoker = dispatch.Server.Invoker;
+                return new(prx);
+            }
 
             public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {

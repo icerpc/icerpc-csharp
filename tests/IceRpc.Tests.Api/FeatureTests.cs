@@ -22,6 +22,18 @@ namespace IceRpc.Tests.Api
             string? s = features.Get<string>();
             Assert.That(s, Is.Not.Null);
             Assert.AreEqual("foo", s!);
+
+            // Test defaults
+            var features2 = new FeatureCollection(features);
+
+            Assert.AreEqual("foo", features2.Get<string>());
+            features2.Set("bar");
+            Assert.AreEqual("foo", features.Get<string>());
+            Assert.AreEqual("bar", features2.Get<string>());
+
+            features2.Set<string>(null);
+            Assert.AreEqual("foo", features.Get<string>());
+            Assert.AreEqual("foo", features2.Get<string>());
         }
 
         [Test]
@@ -50,6 +62,10 @@ namespace IceRpc.Tests.Api
                     if (request.BinaryContext.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
                         Multiplier multiplier = value.Read(istr => InputStream.IceReaderIntoInt(istr));
+                        if (request.Features.IsReadOnly)
+                        {
+                            request.Features = new FeatureCollection(request.Features);
+                        }
                         request.Features.Set(multiplier);
                     }
 
@@ -61,7 +77,7 @@ namespace IceRpc.Tests.Api
                     }
                     catch (RemoteException remoteException)
                     {
-                        responseFeature = remoteException.Features?.Get<bool>();
+                        responseFeature = remoteException.Features.Get<bool>();
                         throw;
                     }
                 }));
@@ -111,6 +127,10 @@ namespace IceRpc.Tests.Api
         {
             if (dispatch.RequestFeatures.Get<Multiplier>() is Multiplier multiplier)
             {
+                if (dispatch.ResponseFeatures.IsReadOnly)
+                {
+                    dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
+                }
                 dispatch.ResponseFeatures.Set(true);
                 return new(value * multiplier);
             }
@@ -119,6 +139,10 @@ namespace IceRpc.Tests.Api
 
         public ValueTask FailWithRemoteAsync(Dispatch dispatch, CancellationToken cancel)
         {
+            if (dispatch.ResponseFeatures.IsReadOnly)
+            {
+                dispatch.ResponseFeatures = new FeatureCollection(dispatch.ResponseFeatures);
+            }
             dispatch.ResponseFeatures.Set(true);
             throw new DispatchException();
         }

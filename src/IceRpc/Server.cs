@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -135,21 +134,6 @@ namespace IceRpc
 
         private Task? _shutdownTask;
         private CancellationTokenSource? _shutdownCancelSource;
-
-        /// <summary>Creates an endpointless proxy for a service hosted by this server.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="path">The path of the service.</param>
-        /// <returns>A new proxy.</returns>
-        public T CreateEndpointlessProxy<T>(string path) where T : class, IServicePrx
-        {
-            return Proxy.GetFactory<T>().Create(path,
-                                                Protocol,
-                                                Protocol.GetEncoding(),
-                                                endpoint: null,
-                                                altEndpoints: ImmutableList<Endpoint>.Empty,
-                                                connection: null,
-                                                Invoker);
-        }
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to

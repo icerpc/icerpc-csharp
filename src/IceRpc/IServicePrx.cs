@@ -19,6 +19,13 @@ namespace IceRpc
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseReader<T>(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection);
 
+    /// <summary>A delegate that creates a proxy from a path and a protocol.</summary>
+    /// <typeparam name="T">The proxy type</typeparam>
+    /// <param name="path">The proxy path.</param>
+    /// <param name="protocol">The proxy protocol</param>
+    /// <returns>The new created proxy.</returns>
+    public delegate T ProxyFactory<T>(string path, Protocol protocol) where T : class, IServicePrx;
+
     /// <summary>Base interface of all service proxies.</summary>
     public interface IServicePrx : IEquatable<IServicePrx>
     {
@@ -59,12 +66,14 @@ namespace IceRpc
         /// </summary>
         public const string DefaultPath = "/Ice.Object";
 
-        /// <summary>Factory for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IProxyFactory<IServicePrx> Factory = new ServicePrxFactory();
+        /// <summary>Factory for <see cref="IServicePrx"/> proxies from path and protocol arguments.</summary>
+        public static readonly ProxyFactory<IServicePrx> Factory =
+            (path, protocol) => new ServicePrx(path, protocol);
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IServicePrx> IceReader = istr => Factory.Read(istr);
+        public static readonly InputStreamReader<IServicePrx> IceReader =
+            istr => Proxy.Read(Factory, istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection for the proxy. If the connection is an outgoing connection,
@@ -74,14 +83,14 @@ namespace IceRpc
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
-            Factory.Create(
-                path ?? DefaultPath,
-                connection.Protocol,
-                connection.Protocol.GetEncoding(),
-                endpoint: connection.IsIncoming ? null : connection.RemoteEndpoint,
-                altEndpoints: ImmutableList<Endpoint>.Empty,
-                connection,
-                invoker: null);
+            new ServicePrx(path ?? DefaultPath, connection.Protocol)
+            {
+                Identity = connection.Protocol == Protocol.Ice1 ?
+                    Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
+                Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,
+                Connection = connection,
+                // TODO set the Invoker
+            };
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
@@ -89,14 +98,10 @@ namespace IceRpc
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
-            Factory.Create(
-                path ?? DefaultPath,
-                protocol,
-                protocol.GetEncoding(),
-                endpoint: null,
-                altEndpoints: ImmutableList<Endpoint>.Empty,
-                connection: null,
-                invoker: null);
+            new ServicePrx(path ?? DefaultPath, protocol)
+            {
+                Identity = protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty
+            };
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
         /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
@@ -111,20 +116,18 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
             }
 
-            return Factory.Create(
-                path ?? DefaultPath,
-                server.Protocol,
-                server.Protocol.GetEncoding(),
-                endpoint: server.ProxyEndpoint,
-                altEndpoints: ImmutableList<Endpoint>.Empty,
-                connection: null,
-                invoker: server.Invoker);
+            return new ServicePrx(path ?? DefaultPath, server.Protocol)
+            {
+                Identity = server.Protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
+                Endpoint = server.ProxyEndpoint,
+                Invoker = server.Invoker
+            };
         }
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly InputStreamReader<IServicePrx?> IceReaderIntoNullable =
-            istr => Factory.ReadNullable(istr);
+            istr => Proxy.ReadNullable(Factory, istr);
 
         /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -153,7 +156,7 @@ namespace IceRpc
         public Endpoint? Endpoint { get; set; }
 
         /// <summary>The invoker of this proxy.</summary>
-        public IInvoker Invoker { get; set; }
+        public IInvoker? Invoker { get; set; }
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
         public string Path { get; }
@@ -189,7 +192,7 @@ namespace IceRpc
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IServicePrx Parse(string s, IInvoker invoker) => Factory.Parse(s, invoker);
+        public static IServicePrx Parse(string s, IInvoker invoker) => Proxy.Parse<IServicePrx>(s, invoker);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
@@ -201,7 +204,7 @@ namespace IceRpc
         {
             try
             {
-                proxy = Factory.Parse(s, invoker);
+                proxy = Proxy.Parse<IServicePrx>(s, invoker);
             }
             catch
             {
@@ -334,29 +337,6 @@ namespace IceRpc
                      await responseTask.ConfigureAwait(false);
                 responsePayload.ToVoidReturnValue(this, connection);
             }
-        }
-
-        private class ServicePrxFactory : IProxyFactory<IServicePrx>
-        {
-            public IServicePrx Create(
-                string path,
-                Protocol protocol,
-                Encoding encoding,
-                Endpoint? endpoint,
-                IEnumerable<Endpoint> altEndpoints,
-                Connection? connection,
-                IInvoker? invoker) =>
-                new ServicePrx(path, protocol, encoding, endpoint, altEndpoints, connection, invoker);
-
-            public IServicePrx Create(
-                Identity identity,
-                string facet,
-                Encoding encoding,
-                Endpoint? endpoint,
-                IEnumerable<Endpoint> altEndpoints,
-                Connection? connection,
-                IInvoker? invoker) =>
-                new ServicePrx(identity, facet, encoding, endpoint, altEndpoints, connection, invoker);
         }
     }
 }

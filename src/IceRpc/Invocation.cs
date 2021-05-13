@@ -36,10 +36,10 @@ namespace IceRpc
         public IProgress<bool>? Progress { get; set; }
 
         /// <summary>Gets or sets the features carried by the request.</summary>
-        public FeatureCollection RequestFeatures { get; set; } = new FeatureCollection();
+        public FeatureCollection RequestFeatures { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the features carried by the response.</summary>
-        public FeatureCollection ResponseFeatures { get; set; } = new FeatureCollection();
+        public FeatureCollection ResponseFeatures { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Gets or sets the timeout of this invocation. The conversion of this invocation into an
         /// <see cref="OutgoingRequest"/> creates a deadline from this timeout when <see cref="Deadline"/> is null or
