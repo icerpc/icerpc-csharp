@@ -18,7 +18,7 @@ namespace IceRpc
             return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                    System.Diagnostics.Debug.Assert(false);
+                    using IDisposable? socketScope = request.Connection?.StartScope();
                     logger.LogSentRequest(request);
                     try
                     {
@@ -31,7 +31,6 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        using IDisposable? socketScope = request.Connection?.StartScope();
                         logger.LogRequestException(request, ex);
                         throw;
                     }
