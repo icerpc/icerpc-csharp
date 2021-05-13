@@ -2345,23 +2345,23 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name << "\"/> "
          << "equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
-    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy</param>";
+    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
     _out << nl << "/// <returns>The new proxy</returns>";
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
-    _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker invoker) => "
+    _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker? invoker) => "
          << "IceRpc.Proxy.Parse<" << name << ">(s, invoker);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
          << "\"/> equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
-    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy</param>";
+    _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
     _out << nl << "/// <param name=\"proxy\">When this method returns it contains the new proxy, if the conversion "
          << "succeeded or null if the conversion failed.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
-    _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker invoker, out "
+    _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker? invoker, out "
         << name << "? proxy)";
     _out << sb;
     _out << nl << "try";
