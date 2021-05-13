@@ -81,13 +81,13 @@ namespace IceRpc
 
         /// <summary>Reads a remote exception from a response payload.</summary>
         /// <param name="payload">The response's payload.</param>
-        /// <param name="proxy">The proxy that sent the request.</param>
         /// <param name="connection">The connection that received this response.</param>
+        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The remote exception.</returns>
         public static RemoteException ToRemoteException(
             this ReadOnlyMemory<byte> payload,
-            IServicePrx proxy,
-            Connection connection)
+            Connection connection,
+            IInvoker? invoker)
         {
             if (payload.Length == 0 || (ResultType)payload.Span[0] == ResultType.Success)
             {
@@ -104,7 +104,7 @@ namespace IceRpc
                 istr = new InputStream(payload.Slice(1),
                                        protocol.GetEncoding(),
                                        connection,
-                                       proxy.Invoker,
+                                       invoker,
                                        startEncapsulation: true);
 
                 if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
@@ -136,15 +136,15 @@ namespace IceRpc
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="reader">An input stream reader used to read the return value.</param>
-        /// <param name="proxy">The proxy that sent the request.</param>
         /// <param name="connection">The connection that received this response.</param>
+        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
         /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             InputStreamReader<T> reader,
-            IServicePrx proxy,
-            Connection connection)
+            Connection connection,
+            IInvoker? invoker)
         {
             if (payload.Length == 0)
             {
@@ -155,19 +155,19 @@ namespace IceRpc
                 payload.Slice(1).ReadEncapsulation(connection.Protocol.GetEncoding(),
                                                    reader,
                                                    connection,
-                                                   proxy.Invoker) :
-                throw payload.ToRemoteException(proxy, connection);
+                                                   invoker) :
+                throw payload.ToRemoteException(connection, invoker);
         }
 
         /// <summary>Reads a response payload and converts it into a void return value or a remote exception.</summary>
         /// <param name="payload">The response payload.</param>
-        /// <param name="proxy">The proxy that sent the request.</param>
         /// <param name="connection">The connection that received this response.</param>
+        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
         public static void ToVoidReturnValue(
             this ReadOnlyMemory<byte> payload,
-            IServicePrx proxy,
-            Connection connection)
+            Connection connection,
+            IInvoker? invoker)
         {
             if (payload.Length == 0)
             {
@@ -180,7 +180,7 @@ namespace IceRpc
             }
             else
             {
-                throw payload.ToRemoteException(proxy, connection);
+                throw payload.ToRemoteException(connection, invoker);
             }
         }
 
@@ -387,5 +387,38 @@ namespace IceRpc
             Connection connection) =>
             payload.ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
 
+        /// <summary>Reads an empty encapsulation from the buffer.</summary>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="encoding">The encoding of encapsulation header.</param>
+        /// <exception name="InvalidDataException">Thrown when the buffer is not an empty encapsulation, for example
+        /// when buffer contains an encapsulation that does not have only tagged parameters.</exception>
+        private static void ReadEmptyEncapsulation(this ReadOnlyMemory<byte> buffer, Encoding encoding) =>
+            new InputStream(buffer,
+                            encoding,
+                            startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
+
+        /// <summary>Reads the contents of an encapsulation from the buffer.</summary>
+        /// <typeparam name="T">The type of the contents.</typeparam>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="encoding">The encoding of encapsulation header in the buffer.</param>
+        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
+        /// encapsulation using an <see cref="InputStream"/>.</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <returns>The contents of the encapsulation read from the buffer.</returns>
+        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
+        /// <c>payloadReader</c> finds invalid data.</exception>
+        private static T ReadEncapsulation<T>(
+            this ReadOnlyMemory<byte> buffer,
+            Encoding encoding,
+            InputStreamReader<T> payloadReader,
+            Connection connection,
+            IInvoker? invoker)
+        {
+            var istr = new InputStream(buffer, encoding, connection, invoker, startEncapsulation: true);
+            T result = payloadReader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            return result;
+        }
     }
 }

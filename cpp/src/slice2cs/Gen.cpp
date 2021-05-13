@@ -2233,7 +2233,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                          << "of operation " << operation->name() << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                     _out << "(global::System.ReadOnlyMemory<byte> payload, ";
-                    _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
+                    _out << "IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                     _out.inc();
                     _out << nl << "IceRpc.Payload.ToReturnValue(";
                     _out.inc();
@@ -2241,8 +2241,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl;
                     writeIncomingResponseReader(operation);
                     _out << ",";
-                    _out << nl << "proxy,";
-                    _out << nl << "connection);";
+                    _out << nl << "connection,";
+                    _out << nl << "invoker);";
                     _out.dec();
                     _out.dec();
                 }
