@@ -252,7 +252,7 @@ namespace IceRpc
         }
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
-        public static T Parse<T>(string s, IInvoker? invoker) where T : class, IServicePrx
+        public static T Parse<T>(string s, IInvoker? invoker = null) where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)

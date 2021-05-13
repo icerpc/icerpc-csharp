@@ -170,7 +170,7 @@ namespace IceRpc
         /// <returns>The new proxy.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of a proxy.
         /// </exception>
-        public static IServicePrx Parse(string s, IInvoker? invoker) => Proxy.Parse<IServicePrx>(s, invoker);
+        public static IServicePrx Parse(string s, IInvoker? invoker = null) => Proxy.Parse<IServicePrx>(s, invoker);
 
         /// <summary>Converts the string representation of a proxy to its <see cref="IServicePrx"/> equivalent.</summary>
         /// <param name="s">The proxy string representation.</param>
