@@ -124,15 +124,16 @@ namespace IceRpc.Tests.CodeGeneration
             Protocol protocol,
             Func<IEnumOperationsPrx, Task> closure)
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Dispatcher = new EnumOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
-            IEnumOperationsPrx? prx = IEnumOperationsPrx.FromServer(server, "/test");
+            await using var connetion = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            // TODO: temporary
+            connetion.ConnectAsync().Wait();
+            IEnumOperationsPrx? prx = IEnumOperationsPrx.FromConnection(connetion);
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);
         }

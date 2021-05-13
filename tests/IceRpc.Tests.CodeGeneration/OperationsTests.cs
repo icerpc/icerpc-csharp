@@ -27,9 +27,10 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
-
-            _prx = IOperationsPrx.FromServer(_server, "/test");
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            // TODO: temporary
+            _connection.ConnectAsync().Wait();
+            _prx = IOperationsPrx.FromConnection(_connection);
             _derivedPrx = _prx.As<IDerivedOperationsPrx>();
 
             Assert.AreEqual(protocol, _prx.Protocol);

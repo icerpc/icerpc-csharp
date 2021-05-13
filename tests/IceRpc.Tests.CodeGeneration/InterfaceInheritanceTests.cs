@@ -22,7 +22,7 @@ namespace IceRpc.Tests.CodeGeneration
             var router = new Router();
             router.Map<IMyInterfaceBase>(new Base());
             router.Map<IMyInterfaceDerived>(new Derived());
-            router.Map<IMyInterfaceDerived>(new MostDerived());
+            router.Map<IMyInterfaceMostDerived>(new MostDerived());
 
             _server = new Server
             {
@@ -30,8 +30,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
-
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            // TODO: temporary
+            _connection.ConnectAsync().Wait();
             _basePrx = IMyInterfaceBasePrx.FromConnection(_connection);
             _derivedPrx = IMyInterfaceDerivedPrx.FromConnection(_connection);
             _mostDerivedPrx = IMyInterfaceMostDerivedPrx.FromConnection(_connection);
