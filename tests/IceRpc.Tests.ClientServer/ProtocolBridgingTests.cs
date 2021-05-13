@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
-        public ProtocolBridgingTests() => _pool = new ConnectionPool();
+        public ProtocolBridgingTests() => _pool = new ConnectionPool { IsInvoker = false };
 
         [TearDown]
         public async Task TearDownAsync()
@@ -38,8 +38,11 @@ namespace IceRpc.Tests.ClientServer
         {
             // TODO: add context testing
 
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Binder(_pool));
+
             IProtocolBridgingServicePrx forwarderService =
-                SetupForwarderServer(forwarderProtocol, targetProtocol, colocated);
+                SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
 
@@ -91,26 +94,27 @@ namespace IceRpc.Tests.ClientServer
         private IProtocolBridgingServicePrx SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,
-            bool colocated)
+            bool colocated,
+            Pipeline pipeline)
         {
-            _targetServer = CreateServer(targetProtocol, port: 0, colocated);
+            _targetServer = CreateServer(targetProtocol, port: 0, colocated, pipeline);
 
             _router.Map("/target", new ProtocolBridgingService());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
             var targetService = IProtocolBridgingServicePrx.FromServer(_targetServer, "/target");
 
-            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
+            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated, pipeline);
             _router.Map("/forward", new Forwarder(targetService));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
             var forwardService = IProtocolBridgingServicePrx.FromServer(_forwarderServer, "/forward");
             return forwardService;
 
-            Server CreateServer(Protocol protocol, int port, bool colocated) =>
+            Server CreateServer(Protocol protocol, int port, bool colocated, Pipeline pipeline) =>
                 new Server
                 {
-                    Invoker = _pool,
+                    Invoker = pipeline,
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
