@@ -19,8 +19,8 @@ namespace IceRpc
         /// <param name="encoding">The encoding of the data in the buffer.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (can be null).</param>
-        /// <param name="invoker">The invoker (can be null).</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
@@ -43,8 +43,8 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (can be null).</param>
-        /// <param name="invoker">The invoker (can be null).</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
         /// unread data in the buffer.</exception>
