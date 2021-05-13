@@ -784,10 +784,6 @@ namespace IceRpc
                 request.Connection = this;
                 request.StreamId = stream.Id;
 
-                // It is important to start the activity above before logging in case the logger has been configured to
-                // include the activity tracking options.
-                _socket!.Logger.LogReceivedRequest(request);
-
                 OutgoingResponse? response = null;
                 if (Dispatcher is IDispatcher dispatcher)
                 {
@@ -841,7 +837,6 @@ namespace IceRpc
                         // This can occur if the response exceeds the peer's incoming frame max size.
                         await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
                     }
-                    _socket.Logger.LogSentResponse(response);
                 }
             }
             catch (Exception ex)
@@ -850,7 +845,6 @@ namespace IceRpc
             }
             finally
             {
-                activity?.Stop();
                 stream?.Release();
             }
         }

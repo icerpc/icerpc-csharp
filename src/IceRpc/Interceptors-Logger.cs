@@ -8,12 +8,17 @@ namespace IceRpc
 {
     public static partial class Interceptors
     {
-        public static Func<IInvoker, IInvoker> Logger(LoggerFactory loggerFactory)
+        /// <summary>An interceptor that logs request and response messages using IceRpc logger.
+        /// </summary>
+        /// <param name="loggerFactory">A logger factory used to create the IceRpc logger.</param>
+        /// <returns>The Logger interceptor.</returns>
+        public static Func<IInvoker, IInvoker> Logger(ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
             return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
+                    System.Diagnostics.Debug.Assert(false);
                     logger.LogSentRequest(request);
                     try
                     {

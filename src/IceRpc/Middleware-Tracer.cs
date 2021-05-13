@@ -22,9 +22,17 @@ namespace IceRpc
             public ILoggerFactory? LoggerFactory { get; set; }
         }
 
-        /// <summary>Creates a middleware that starts a dispatch <see cref="Activity"/> per each request.</summary>
-        /// <returns>The new tracer middleware.</returns>
-        public static Func<IDispatcher, IDispatcher> Tracer(TracerOptions tracerOptions)
+        /// <summary>An middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
+        /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
+        /// <returns>The Tracer interceptor.</returns>
+        public static Func<IDispatcher, IDispatcher> Tracer { get; } = CustomTracer(new());
+
+        /// <summary>An middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
+        /// conventions. The Activity is started if the ActivitySource has any active listeners,
+        /// if <see cref="Activity.Current"/> is not null or if IceRpc logger is enabled.</summary>
+        /// <param name="tracerOptions">Options to configure the tracer interceptor.</param>
+        /// <returns>The CustomTracer interceptor.</returns>
+        public static Func<IDispatcher, IDispatcher> CustomTracer(TracerOptions tracerOptions)
         {
             ILogger logger = (tracerOptions.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
             return next => new InlineDispatcher(

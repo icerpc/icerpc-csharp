@@ -9,7 +9,7 @@ namespace IceRpc
 {
     public static partial class Interceptors
     {
-        /// <summary>Options class to configure Tracer interceptor.</summary>
+        /// <summary>Options class to configure CustomTracer interceptor.</summary>
         public class TracerOptions
         {
             /// <summary>If set to a non null object the ActivitySource is used to start the request Activity.
@@ -21,14 +21,18 @@ namespace IceRpc
         }
 
         /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
+        /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
+        public static Func<IInvoker, IInvoker> Tracer { get; } = CustomTracer(new());
+
+        /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
         /// conventions. The Activity is started if the ActivitySource has any active listeners,
         /// if <see cref="Activity.Current"/> is not null or if IceRpc logger is enabled.</summary>
         /// <param name="tracerOptions">Options to configure the tracer interceptor.</param>
-        /// <returns></returns>
-        public static Func<IInvoker, IInvoker> Tracer(TracerOptions tracerOptions)
+        /// <returns>The CustomTracer interceptor.</returns>
+        public static Func<IInvoker, IInvoker> CustomTracer(TracerOptions tracerOptions)
         {
             ILogger logger = (tracerOptions.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
-            
+
             return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
