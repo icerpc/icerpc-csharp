@@ -12,9 +12,8 @@ namespace IceRpc.Tests.Encoding
     {
         [TestCase((byte)1, (byte)1)]
         [TestCase((byte)2, (byte)0)]
-        public async Task Slicing_Classes(byte encodingMajor, byte encodingMinor)
+        public void Slicing_Classes(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
@@ -65,9 +64,8 @@ namespace IceRpc.Tests.Encoding
         }
 
         [TestCase((byte)1, (byte)1)]
-        public async Task Slicing_Classes_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        public void Slicing_Classes_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
@@ -138,9 +136,8 @@ namespace IceRpc.Tests.Encoding
 
         [TestCase((byte)1, (byte)1)]
         [TestCase((byte)2, (byte)0)]
-        public async Task Slicing_Exceptions(byte encodingMajor, byte encodingMinor)
+        public void Slicing_Exceptions(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
@@ -226,9 +223,8 @@ namespace IceRpc.Tests.Encoding
 
         [TestCase((byte)1, (byte)1)]
         [TestCase((byte)2, (byte)0)]
-        public async Task Slicing_PreservedClasses(byte encodingMajor, byte encodingMinor)
+        public void Slicing_PreservedClasses(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
@@ -288,9 +284,8 @@ namespace IceRpc.Tests.Encoding
         }
 
         [TestCase((byte)1, (byte)1)]
-        public async Task Slicing_PreservedClasses_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        public void Slicing_PreservedClasses_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
         {
-            await using var communicator = new Communicator();
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };

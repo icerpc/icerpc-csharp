@@ -15,12 +15,12 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Middleware_Throw_AbortsDispatch()
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
             var service = new TestService();
 
@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = IMiddlewareTestServicePrx.FromServer(server, "/test");
+            var prx = IMiddlewareTestServicePrx.FromConnection(connection, "/test");
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
             Assert.IsFalse(service.Called);
@@ -41,46 +41,47 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Middleware_CallOrder()
         {
-            await using var communicator = new Communicator();
             await using var server = new Server
             {
-                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
-            var interceptorCalls = new List<string>();
+            var middlewareCalls = new List<string>();
 
             var router = new Router();
 
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
-                    interceptorCalls.Add("Middlewares -> 0");
+                    middlewareCalls.Add("Middlewares -> 0");
                     var result = await next.DispatchAsync(request, cancel);
-                    interceptorCalls.Add("Middlewares <- 0");
+                    middlewareCalls.Add("Middlewares <- 0");
                     return result;
                 }));
 
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
-                    interceptorCalls.Add("Middlewares -> 1");
+                    middlewareCalls.Add("Middlewares -> 1");
                     var result = await next.DispatchAsync(request, cancel);
-                    interceptorCalls.Add("Middlewares <- 1");
+                    middlewareCalls.Add("Middlewares <- 1");
                     return result;
                 }));
 
             router.Map("/test", new TestService());
             server.Dispatcher = router;
             server.Listen();
-            var prx = IServicePrx.FromServer(server, "/test");
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+
+            var prx = IServicePrx.FromConnection(connection, "/test");
             await prx.IcePingAsync();
 
-            Assert.AreEqual("Middlewares -> 0", interceptorCalls[0]);
-            Assert.AreEqual("Middlewares -> 1", interceptorCalls[1]);
-            Assert.AreEqual("Middlewares <- 1", interceptorCalls[2]);
-            Assert.AreEqual("Middlewares <- 0", interceptorCalls[3]);
-            Assert.AreEqual(4, interceptorCalls.Count);
+            Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);
+            Assert.AreEqual("Middlewares -> 1", middlewareCalls[1]);
+            Assert.AreEqual("Middlewares <- 1", middlewareCalls[2]);
+            Assert.AreEqual("Middlewares <- 0", middlewareCalls[3]);
+            Assert.AreEqual(4, middlewareCalls.Count);
         }
 
         public class TestService : IMiddlewareTestService
