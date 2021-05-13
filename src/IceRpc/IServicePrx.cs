@@ -83,17 +83,7 @@ namespace IceRpc
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
-<<<<<<< HEAD
-            new ServicePrx(path ?? DefaultPath, connection.Protocol)
-            {
-                Identity = connection.Protocol == Protocol.Ice1 ?
-                    Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
-                Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,
-                Connection = connection,
-            };
-=======
             Factory.Create(connection, path ?? DefaultPath);
->>>>>>> origin/main
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
