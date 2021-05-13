@@ -1262,8 +1262,6 @@ Slice::CsGenerator::sequenceMarshalCode(
     TypePtr type = seq->type();
     ostringstream out;
 
-    assert(!readOnlyParam || readOnly);
-
     bool hasCustomType = seq->hasMetadataWithPrefix("cs:generic");
 
     if (isFixedSizeNumericSequence(seq) && (readOnly || !hasCustomType))

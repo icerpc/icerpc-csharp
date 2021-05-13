@@ -13,22 +13,22 @@ namespace IceRpc.Tests.CodeGeneration
     [TestFixture(Protocol.Ice2)]
     public class Exception
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly IExceptionOperationsPrx _prx;
 
         public Exception(Protocol protocol)
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = new ExceptionOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-
-            _prx = IExceptionOperationsPrx.FromServer(_server, "/test");
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            // TODO: temporary
+            _connection.ConnectAsync().Wait();
+            _prx = IExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]

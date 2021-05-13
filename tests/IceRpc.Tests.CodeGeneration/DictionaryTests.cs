@@ -16,21 +16,22 @@ namespace IceRpc.Tests.CodeGeneration
     [TestFixture(Protocol.Ice2)]
     public class DictionaryTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly IDictionaryOperationsPrx _prx;
 
         public DictionaryTests(Protocol protocol)
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = new DictionaryOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-            _prx = IDictionaryOperationsPrx.FromServer(_server, "/test");
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            // TODO: temporary
+            _connection.ConnectAsync().Wait();
+            _prx = IDictionaryOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 
@@ -38,7 +39,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]
@@ -266,7 +267,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}", _communicator);
+            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}", _connection);
 
             AnotherStruct GetAnotherStruct(int i)
             {
