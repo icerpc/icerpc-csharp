@@ -47,7 +47,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             var ostr = new OutputStream(encoding, _data, startAt: default);
 
-            var prx = IServicePrx.Parse(str, invoker: null);
+            var prx = IServicePrx.Parse(str);
             ostr.WriteProxy(prx);
             ostr.Finish();
 
