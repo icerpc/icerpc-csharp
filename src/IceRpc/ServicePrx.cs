@@ -120,7 +120,11 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public IInvoker? Invoker { get; set; }
+        public IInvoker? Invoker
+        {
+            get => _invoker ?? _connection;
+            set => _invoker = value;
+        }
 
         /// <inheritdoc/>
         public string Path { get; } = "";
@@ -150,6 +154,8 @@ namespace IceRpc
         private Endpoint? _endpoint;
 
         private Identity _identity = Identity.Empty;
+
+        private IInvoker? _invoker;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>

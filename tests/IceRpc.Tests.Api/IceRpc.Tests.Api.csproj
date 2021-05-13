@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\ColocatedTest.cs" Link="ColocatedTest.cs" />
     <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
     <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
     <Compile Update="generated\SliceDefinitions.cs">

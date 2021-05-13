@@ -9,37 +9,48 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationInterceptorTests : ColocTest
+    public class InvocationInterceptorTests
     {
-        private IInvocationInterceptorTestServicePrx Prx { get; }
+        private readonly Connection _connection;
+        private readonly IInvocationInterceptorTestServicePrx _prx;
+        private readonly Server _server;
 
         public InvocationInterceptorTests()
         {
-            Server.Dispatcher = new TestService();
-            Server.Listen();
-            Prx = IInvocationInterceptorTestServicePrx.FromServer(Server, "/");
+            _server = new Server
+            {
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                Dispatcher = new TestService()
+            };
+            _server.Listen();
+
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _prx = IInvocationInterceptorTestServicePrx.FromConnection(_connection);
+
+            // TODO: temporary, to ensure the connection is not "activated" concurrently
+            _connection.ConnectAsync().Wait();
         }
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>
         [Test]
-        public async Task InvocationInterceptor_Throws_ArgumentExceptionAsync()
+        public void InvocationInterceptor_Throws_ArgumentException()
         {
-            var prx = Prx.Clone();
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
+            var prx = _prx.Clone();
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
         [Test]
-        public async Task InvocationInterceptor_Timeout_OperationCanceledExceptionAsync()
+        public void InvocationInterceptor_Timeout_OperationCanceledException()
         {
-            var prx = Prx.Clone();
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(next => new InlineInvoker(async (request, cancel) =>
+            var prx = _prx.Clone();
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 await Task.Delay(100, default);
                 return await next.InvokeAsync(request, cancel);
@@ -54,10 +65,10 @@ namespace IceRpc.Tests.Api
         public async Task InvocationInterceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
-            var prx = Prx.Clone();
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(
+            var prx = _prx.Clone();
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
                     interceptorCalls.Add("ProxyInvocationInterceptors -> 0");
@@ -88,10 +99,10 @@ namespace IceRpc.Tests.Api
         public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponse? response = null;
-            var prx = Prx.Clone();
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(next => new InlineInvoker(async (request, cancel) =>
+            var prx = _prx.Clone();
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 if (response == null)
                 {
@@ -111,11 +122,11 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task InvocationInterceptor_Overwrite_RequestContext()
         {
-            var prx = Prx.Clone();
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
+            var prx = _prx.Clone();
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
 
-            pool.Use(next => new InlineInvoker(async (request, cancel) =>
+            pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 request.Context = new Dictionary<string, string> { ["foo"] = "bar" };
                 return await next.InvokeAsync(request, cancel);
@@ -124,6 +135,13 @@ namespace IceRpc.Tests.Api
             var ctx = await prx.OpContextAsync();
             Assert.AreEqual("bar", ctx["foo"]);
             Assert.AreEqual(1, ctx.Count);
+        }
+
+        [OneTimeTearDown]
+        public async Task ShutdownAsync()
+        {
+            await _server.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         internal class TestService : IInvocationInterceptorTestService
