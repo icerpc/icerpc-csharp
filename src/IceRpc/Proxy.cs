@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Proxy provides extension methods for IServicePrx.</summary>
+    /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
     public static class Proxy
     {
         /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
@@ -57,6 +57,71 @@ namespace IceRpc
         /// <param name="proxy">The source proxy.</param>
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
+
+        /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
+        /// methods.</summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="connection">The connection</param>
+        /// <param name="path">The path</param>
+        /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, Connection connection, string path)
+            where T : class, IServicePrx
+        {
+            T proxy = factory(path, connection.Protocol);
+
+            ServicePrx impl = proxy.Impl;
+            if (connection.Protocol == Protocol.Ice1)
+            {
+                impl.Identity = Identity.FromPath(path);
+            }
+            impl.Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint;
+            impl.Connection = connection;
+            impl.Invoker = connection.Server?.Invoker;
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a path and protocol, like the generated <c>FromPath</c> static methods.
+        /// </summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="path">The path</param>
+        /// <param name="protocol">The protocol</param>
+        /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol = Protocol.Ice2)
+            where T : class, IServicePrx
+        {
+            T proxy = factory(path, protocol);
+            if (protocol == Protocol.Ice1)
+            {
+                proxy.Impl.Identity = Identity.FromPath(path);
+            }
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a server and a path, like the generated <c>FromServer</c> static
+        /// methods.</summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="server">The server</param>
+        /// <param name="path">The path</param>
+         /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, Server server, string path)
+            where T : class, IServicePrx
+        {
+            if (server.ProxyEndpoint == null)
+            {
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
+            }
+
+            T proxy = factory(path, server.Protocol);
+
+            ServicePrx impl = proxy.Impl;
+            if (server.Protocol == Protocol.Ice1)
+            {
+                impl.Identity = Identity.FromPath(path);
+            }
+            impl.Endpoint = server.ProxyEndpoint;
+            impl.Invoker = server.Invoker;
+            return proxy;
+        }
 
         /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
         /// <returns>The proxy factory.</returns>

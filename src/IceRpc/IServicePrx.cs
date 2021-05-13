@@ -83,14 +83,7 @@ namespace IceRpc
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
-            new ServicePrx(path ?? DefaultPath, connection.Protocol)
-            {
-                Identity = connection.Protocol == Protocol.Ice1 ?
-                    Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
-                Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,
-                Connection = connection,
-                // TODO set the Invoker
-            };
+            Factory.Create(connection, path ?? DefaultPath);
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
@@ -98,10 +91,7 @@ namespace IceRpc
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
-            new ServicePrx(path ?? DefaultPath, protocol)
-            {
-                Identity = protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty
-            };
+           Factory.Create(path ?? DefaultPath, protocol);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
         /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
@@ -109,20 +99,8 @@ namespace IceRpc
         /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
         /// </param>
         /// <returns>The new proxy.</returns>
-        public static IServicePrx FromServer(Server server, string? path = null)
-        {
-            if (server.ProxyEndpoint == null)
-            {
-                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
-            }
-
-            return new ServicePrx(path ?? DefaultPath, server.Protocol)
-            {
-                Identity = server.Protocol == Protocol.Ice1 ? Identity.FromPath(path ?? DefaultPath) : Identity.Empty,
-                Endpoint = server.ProxyEndpoint,
-                Invoker = server.Invoker
-            };
-        }
+        public static IServicePrx FromServer(Server server, string? path = null) =>
+            Factory.Create(server, path ?? DefaultPath);
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

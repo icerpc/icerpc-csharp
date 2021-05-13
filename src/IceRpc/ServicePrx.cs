@@ -103,22 +103,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The identity of this proxy. Used only with the ice1 protocol.</summary>
-        public Identity Identity
-        {
-            get => _identity;
-            set
-            {
-                Debug.Assert(Protocol == Protocol.Ice1 || value == Identity.Empty);
-                if (Protocol == Protocol.Ice1 && value.Name.Length == 0)
-                {
-                    throw new ArgumentException("identity name of ice1 service cannot be empty",
-                                                nameof(Identity));
-                }
-                _identity = value;
-            }
-        }
-
         /// <inheritdoc/>
         public IInvoker? Invoker
         {
@@ -139,6 +123,22 @@ namespace IceRpc
         {
             get => FacetPath.Count == 0 ? "" : FacetPath[0];
             set => FacetPath = value.Length > 0 ? ImmutableList.Create(value) : ImmutableList<string>.Empty;
+        }
+
+        /// <summary>The identity of this proxy. Used only with the ice1 protocol.</summary>
+        internal Identity Identity
+        {
+            get => _identity;
+            set
+            {
+                Debug.Assert(Protocol == Protocol.Ice1 || value == Identity.Empty);
+                if (Protocol == Protocol.Ice1 && value.Name.Length == 0)
+                {
+                    throw new ArgumentException("identity name of ice1 service cannot be empty",
+                                                nameof(Identity));
+                }
+                _identity = value;
+            }
         }
 
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
