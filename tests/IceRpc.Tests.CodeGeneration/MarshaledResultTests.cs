@@ -47,7 +47,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://host/foo", _connection),
+                                              IOperationsPrx.FromConnection(_connection),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
@@ -60,7 +60,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://host/foo", _connection),
+                                              IOperationsPrx.FromConnection(_connection),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
