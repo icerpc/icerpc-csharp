@@ -45,9 +45,10 @@ namespace IceRpc.Tests.CodeGeneration
         [Test]
         public async Task Invocation_MarshalledResultAsync()
         {
+            // TODO Parse below should not use a connection with a different endpoint
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
-                                              IOperationsPrx.FromConnection(_connection),
+                                              IOperationsPrx.Parse("ice+tcp://foo/bar", _connection),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
@@ -60,7 +61,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.FromConnection(_connection),
+                                              IOperationsPrx.Parse("ice+tcp://foo/bar", _connection),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 

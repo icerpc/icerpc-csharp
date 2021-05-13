@@ -161,6 +161,11 @@ namespace IceRpc
             bool oneway = false,
             CancellationToken cancel = default)
         {
+            if (proxy.Invoker == null)
+            {
+                throw new InvalidOperationException("cannot make invocations with a proxy without a invoker");
+            }
+
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
