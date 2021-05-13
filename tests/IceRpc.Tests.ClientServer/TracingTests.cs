@@ -29,6 +29,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IGreeterTestServicePrx.FromServer(server, "/");
             Activity? invocationActivity = null;
             bool called = false;
+            communicator.Use(Interceptors.Tracer);
             communicator.Use(next => new InlineInvoker((request, cancel) =>
             {
                 called = true;
@@ -47,6 +48,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var pool = new Communicator();
             prx.Invoker = pool;
+            pool.Use(Interceptors.Tracer);
             pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;
@@ -68,6 +70,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             Activity? dispatchActivity = null;
             bool called = false;
+            router.Use(Middleware.Tracer);
             router.Use(next => new InlineDispatcher(
                 async (current, cancel) =>
                 {
@@ -112,7 +115,22 @@ namespace IceRpc.Tests.ClientServer
             };
             ActivitySource.AddActivityListener(listener);
 
-            // Now configure the server with an ActivitySource to trigger the creation of the Dispatch activity.
+            router = new Router();
+            // Now configure the CustomTracer with an ActivitySource to trigger the creation of the Dispatch activity.
+            router.Use(Middleware.CustomTracer(new Middleware.TracerOptions
+            {
+                ActivitySource = activitySource
+            }));
+            router.Use(next => new InlineDispatcher(
+                async (current, cancel) =>
+                {
+                    called = true;
+                    dispatchActivity = Activity.Current;
+                    return await next.DispatchAsync(current, cancel);
+                }));
+            router.Map("/", new GreeterService());
+
+            
             await using var server2 = new Server
             {
                 Invoker = communicator,
@@ -142,16 +160,8 @@ namespace IceRpc.Tests.ClientServer
         {
             await using var communicator = new Communicator();
 
-            var router = new Router();
             Activity? invocationActivity = null;
             Activity? dispatchActivity = null;
-            router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
-                {
-                    dispatchActivity = Activity.Current;
-                    return await next.DispatchAsync(current, cancel);
-                }));
-            router.Map("/test", new GreeterService());
 
             using var activitySource = new ActivitySource("TracingTestActivitySource");
             // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
@@ -171,6 +181,19 @@ namespace IceRpc.Tests.ClientServer
             };
             ActivitySource.AddActivityListener(listener);
 
+            var router = new Router();
+            router.Use(Middleware.CustomTracer(new Middleware.TracerOptions
+            {
+                ActivitySource = activitySource
+            }));
+            router.Use(next => new InlineDispatcher(
+                async (current, cancel) =>
+                {
+                    dispatchActivity = Activity.Current;
+                    return await next.DispatchAsync(current, cancel);
+                }));
+            router.Map("/test", new GreeterService());
+
             await using var server = new Server
             {
                 Invoker = communicator,
@@ -189,6 +212,7 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
+            communicator.Use(Interceptors.Tracer);
             communicator.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;

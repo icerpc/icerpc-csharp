@@ -142,6 +142,8 @@ namespace IceRpc.Internal
 
                 if (exception != null)
                 {
+                    // TODO this doesn't seems correct we need to log request exceptions even if there isn't
+                    // a retry invoker
                     using IDisposable? socketScope = request.Connection?.StartScope();
                     _logger.LogRequestException(request, exception);
                 }

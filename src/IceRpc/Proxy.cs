@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Proxy provides extension methods for IServicePrx.</summary>
+    /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
     public static class Proxy
     {
         /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
@@ -57,6 +57,71 @@ namespace IceRpc
         /// <param name="proxy">The source proxy.</param>
         /// <returns>A clone of the source proxy.</returns>
         public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
+
+        /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
+        /// methods.</summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="connection">The connection</param>
+        /// <param name="path">The path</param>
+        /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, Connection connection, string path)
+            where T : class, IServicePrx
+        {
+            T proxy = factory(path, connection.Protocol);
+
+            ServicePrx impl = proxy.Impl;
+            if (connection.Protocol == Protocol.Ice1)
+            {
+                impl.Identity = Identity.FromPath(path);
+            }
+            impl.Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint;
+            impl.Connection = connection;
+            impl.Invoker = connection.Server?.Invoker;
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a path and protocol, like the generated <c>FromPath</c> static methods.
+        /// </summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="path">The path</param>
+        /// <param name="protocol">The protocol</param>
+        /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol = Protocol.Ice2)
+            where T : class, IServicePrx
+        {
+            T proxy = factory(path, protocol);
+            if (protocol == Protocol.Ice1)
+            {
+                proxy.Impl.Identity = Identity.FromPath(path);
+            }
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a server and a path, like the generated <c>FromServer</c> static
+        /// methods.</summary>
+        /// <param name="factory">The proxy factory</param>
+        /// <param name="server">The server</param>
+        /// <param name="path">The path</param>
+         /// <returns>The new proxy</returns>
+        public static T Create<T>(this ProxyFactory<T> factory, Server server, string path)
+            where T : class, IServicePrx
+        {
+            if (server.ProxyEndpoint == null)
+            {
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
+            }
+
+            T proxy = factory(path, server.Protocol);
+
+            ServicePrx impl = proxy.Impl;
+            if (server.Protocol == Protocol.Ice1)
+            {
+                impl.Identity = Identity.FromPath(path);
+            }
+            impl.Endpoint = server.ProxyEndpoint;
+            impl.Invoker = server.Invoker;
+            return proxy;
+        }
 
         /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
         /// <returns>The proxy factory.</returns>
@@ -139,11 +204,7 @@ namespace IceRpc
                                                   oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
-
-                // TODO: should be simply
-                // Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
-                Task<IncomingResponse> responseTask = ServicePrx.InvokeAsync(request, cancel);
-
+                Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
                 return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
             catch
@@ -308,21 +369,22 @@ namespace IceRpc
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
                     }
 
-                    Connection? connection = null;
-                    if (endpoint == null)
-                    {
-                        // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                        connection = istr.Connection;
-                    }
-
                     try
                     {
-                        T proxy = proxyFactory(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
+                        T proxy;
+
+                        if (endpoint == null && istr.Connection is Connection connection)
+                        {
+                            proxy = proxyFactory.Create(connection, identity.ToPath());
+                        }
+                        else
+                        {
+                            proxy = proxyFactory(identity.ToPath(), proxyData.Protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                        }
+
                         proxy.Encoding = proxyData.Encoding;
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Connection = connection;
                         proxy.Invoker = istr.Invoker;
                         return proxy;
                     }
@@ -384,21 +446,22 @@ namespace IceRpc
                 }
                 else
                 {
-                    Connection? connection = null;
-                    if (endpoint == null)
-                    {
-                        // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                        connection = istr.Connection;
-                    }
-
                     try
                     {
-                        T proxy = proxyFactory(proxyData.Path, connection?.Protocol ?? protocol);
+                        T proxy;
+
+                        if (endpoint == null && istr.Connection is Connection connection)
+                        {
+                            proxy = proxyFactory.Create(connection, proxyData.Path);
+                        }
+                        else
+                        {
+                            proxy = proxyFactory(proxyData.Path, protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints;
+                        }
+
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints;
-                        proxy.Connection = connection;
                         proxy.Invoker = istr.Invoker;
                         return proxy;
                     }

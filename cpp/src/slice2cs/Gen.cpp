@@ -2301,15 +2301,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromConnection(IceRpc.Connection connection, string? path = null) =>";
     _out.inc();
-    _out << nl << "new " << impl << "(path ?? DefaultPath, connection.Protocol)";
-    _out << sb;
-    _out << nl << "Identity = connection.Protocol == IceRpc.Protocol.Ice1 ?";
-    _out.inc();
-    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
-    _out.dec();
-    _out << nl << "Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint,";
-    _out << nl << "Connection = connection";
-    _out << eb << ";";
+    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path ?? DefaultPath);";
     _out.dec();
 
     _out << sp;
@@ -2323,13 +2315,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromPath(string? path = null, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
     _out.inc();
-    _out << nl << "new " << impl << "(path ?? DefaultPath, protocol)";
-    _out << sb;
-    _out << nl << "Identity = protocol == IceRpc.Protocol.Ice1 ?";
-    _out.inc();
-    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
-    _out.dec();
-    _out << eb << ";";
+    _out << nl << "IceRpc.Proxy.Create(Factory, path ?? DefaultPath, protocol);";
     _out.dec();
 
     _out << sp;
@@ -2342,24 +2328,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
-    _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null)";
-    _out << sb;
-    _out << nl << "if (server.ProxyEndpoint == null)";
-    _out << sb;
-    _out << nl << "throw new global::System.InvalidOperationException("
-         << "\"cannot create a proxy using a server with no endpoint\");";
-    _out << eb;
-
-    _out << nl << "return new " << impl << "(path ?? DefaultPath, server.Protocol)";
-    _out << sb;
-    _out << nl << "Identity = server.Protocol == IceRpc.Protocol.Ice1 ?";
+    _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null) =>";
     _out.inc();
-    _out << nl << "IceRpc.Interop.Identity.FromPath(path ?? DefaultPath) : IceRpc.Interop.Identity.Empty,";
+    _out << nl << "IceRpc.Proxy.Create(Factory, server, path ?? DefaultPath);";
     _out.dec();
-    _out << nl << "Endpoint = server.ProxyEndpoint,";
-    _out << nl << "Invoker = server.Invoker";
-    _out << eb << ";";
-    _out << eb;
 
     _out << sp;
     _out << nl << "// <summary>An <see cref=\"InputStreamReader{T}\"/> used to read <see cref=\"" << name
