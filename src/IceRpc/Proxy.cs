@@ -60,10 +60,10 @@ namespace IceRpc
 
         /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
         /// methods.</summary>
-        /// <param name="factory">The proxy factory</param>
-        /// <param name="connection">The connection</param>
-        /// <param name="path">The path</param>
-        /// <returns>The new proxy</returns>
+        /// <param name="factory">The proxy factory.</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="path">The path.</param>
+        /// <returns>The new proxy.</returns>
         public static T Create<T>(this ProxyFactory<T> factory, Connection connection, string path)
             where T : class, IServicePrx
         {
@@ -82,10 +82,10 @@ namespace IceRpc
 
         /// <summary>Creates a proxy from a path and protocol, like the generated <c>FromPath</c> static methods.
         /// </summary>
-        /// <param name="factory">The proxy factory</param>
-        /// <param name="path">The path</param>
-        /// <param name="protocol">The protocol</param>
-        /// <returns>The new proxy</returns>
+        /// <param name="factory">The proxy factory.</param>
+        /// <param name="path">The path.</param>
+        /// <param name="protocol">The protocol.</param>
+        /// <returns>The new proxy.</returns>
         public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol = Protocol.Ice2)
             where T : class, IServicePrx
         {
@@ -99,10 +99,10 @@ namespace IceRpc
 
         /// <summary>Creates a proxy from a server and a path, like the generated <c>FromServer</c> static
         /// methods.</summary>
-        /// <param name="factory">The proxy factory</param>
-        /// <param name="server">The server</param>
-        /// <param name="path">The path</param>
-         /// <returns>The new proxy</returns>
+        /// <param name="factory">The proxy factory.</param>
+        /// <param name="server">The server.</param>
+        /// <param name="path">The path.</param>
+         /// <returns>The new proxy.</returns>
         public static T Create<T>(this ProxyFactory<T> factory, Server server, string path)
             where T : class, IServicePrx
         {
@@ -250,8 +250,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Creates a proxy from a string and proxy options.</summary>
-        public static T Parse<T>(string s, IInvoker invoker) where T : class, IServicePrx
+        /// <summary>Creates a proxy from a string and an invoker.</summary>
+        public static T Parse<T>(string s, IInvoker? invoker) where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
