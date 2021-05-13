@@ -12,46 +12,50 @@ namespace IceRpc.Tests.Encoding
     [TestFixture(Protocol.Ice2)]
     public class ClassTests
     {
-        private readonly Communicator _communicator;
         private readonly Server _server;
         private readonly ISlicedFormatOperationsPrx _sliced;
         private readonly ICompactFormatOperationsPrx _compact;
         private readonly IClassFormatOperationsPrx _classformat;
 
+        private readonly Connection _connection;
+
         public ClassTests(Protocol protocol)
         {
-            _communicator = new Communicator();
             var router = new Router();
-            router.Map("/sliced", new SlicedFormatOperatinos());
-            router.Map("/compact", new CompactFormatOperations());
-            router.Map("/classformat", new ClassFormatOperations());
+            router.Map<ISlicedFormatOperations>(new SlicedFormatOperations());
+            router.Map<ICompactFormatOperations>(new CompactFormatOperations());
+            router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
             _server = new Server()
             {
                 Dispatcher = router,
-                Invoker = _communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-            _sliced = ISlicedFormatOperationsPrx.FromServer(_server, "/sliced");
-            _compact = ICompactFormatOperationsPrx.FromServer(_server, "/compact");
-            _classformat = IClassFormatOperationsPrx.FromServer(_server, "/classformat");
+
+            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            // TODO: temporary
+            _connection.ConnectAsync().Wait();
+
+            _sliced = ISlicedFormatOperationsPrx.FromConnection(_connection);
+            _compact = ICompactFormatOperationsPrx.FromConnection(_connection);
+            _classformat = IClassFormatOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
         public async Task TearDown()
         {
             await _server.ShutdownAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]
         public async Task Class_FormatMetadata()
         {
             var prx1 = _sliced.Clone();
-            await using var pool1 = new Communicator();
-            prx1.Invoker = pool1;
-            pool1.Use(next => new InlineInvoker(async (request, cancel) =>
+            var pipeline1 = new Pipeline();
+            prx1.Invoker = pipeline1;
+            pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx1.Encoding);
@@ -85,9 +89,9 @@ namespace IceRpc.Tests.Encoding
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
             var prx2 = _compact.Clone();
-            await using var pool2 = new Communicator();
-            prx2.Invoker = pool2;
-            pool2.Use(next => new InlineInvoker(async (request, cancel) =>
+            var pipeline2 = new Pipeline();
+            prx2.Invoker = pipeline2;
+            pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx2.Encoding);
@@ -120,9 +124,9 @@ namespace IceRpc.Tests.Encoding
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
             var prx3 = _classformat.Clone();
-            await using var pool3 = new Communicator();
-            prx3.Invoker = pool3;
-            pool3.Use(next => new InlineInvoker(async (request, cancel) =>
+            var pipeline3 = new Pipeline();
+            prx3.Invoker = pipeline3;
+            pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
@@ -154,9 +158,9 @@ namespace IceRpc.Tests.Encoding
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            await using var pool4 = new Communicator();
-            prx3.Invoker = pool4;
-            pool4.Use(next => new InlineInvoker(async (request, cancel) =>
+            var pipeline4 = new Pipeline();
+            prx3.Invoker = pipeline4;
+            pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
@@ -245,7 +249,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class SlicedFormatOperatinos : ISlicedFormatOperations
+        class SlicedFormatOperations : ISlicedFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
