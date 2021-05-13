@@ -373,21 +373,22 @@ namespace IceRpc
                             $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
                     }
 
-                    Connection? connection = null;
-                    if (endpoint == null)
-                    {
-                        // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                        connection = istr.Connection;
-                    }
-
                     try
                     {
-                        T proxy = proxyFactory(identity.ToPath(), connection?.Protocol ?? proxyData.Protocol);
+                        T proxy;
+
+                        if (endpoint == null && istr.Connection is Connection connection)
+                        {
+                            proxy = proxyFactory.Create(connection, identity.ToPath());
+                        }
+                        else
+                        {
+                            proxy = proxyFactory(identity.ToPath(), proxyData.Protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                        }
+
                         proxy.Encoding = proxyData.Encoding;
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Connection = connection;
                         proxy.Invoker = istr.Invoker;
                         return proxy;
                     }
@@ -449,21 +450,22 @@ namespace IceRpc
                 }
                 else
                 {
-                    Connection? connection = null;
-                    if (endpoint == null)
-                    {
-                        // Use the connection endpoint if the connection is an outgoing connection
-                        endpoint = istr.Connection?.IsIncoming ?? true ? null : istr.Connection.RemoteEndpoint;
-                        connection = istr.Connection;
-                    }
-
                     try
                     {
-                        T proxy = proxyFactory(proxyData.Path, connection?.Protocol ?? protocol);
+                        T proxy;
+
+                        if (endpoint == null && istr.Connection is Connection connection)
+                        {
+                            proxy = proxyFactory.Create(connection, proxyData.Path);
+                        }
+                        else
+                        {
+                            proxy = proxyFactory(proxyData.Path, protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints;
+                        }
+
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
-                        proxy.Endpoint = endpoint;
-                        proxy.AltEndpoints = altEndpoints;
-                        proxy.Connection = connection;
                         proxy.Invoker = istr.Invoker;
                         return proxy;
                     }
