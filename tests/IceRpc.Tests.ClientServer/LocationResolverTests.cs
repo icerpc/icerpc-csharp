@@ -13,7 +13,7 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public class LocationResolverTests
     {
-        private Communicator? _communicator;
+        private ConnectionPool? _pool;
         private Server? _server;
 
         [TestCase("ice+loc://testlocation/test", "ice+loc://unknown-location/test", "test", "test @ testlocation")]
@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _communicator = new Communicator { IsInvoker = false };
+            _pool = new ConnectionPool { IsInvoker = false };
             var pipeline = new Pipeline();
 
             var indirect = IGreeterTestServicePrx.Parse(proxy, pipeline);
@@ -31,13 +31,13 @@ namespace IceRpc.Tests.ClientServer
             if (indirect.Endpoint is Endpoint locEndpoint)
             {
                 pipeline.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
-                             Interceptors.Binder(_communicator));
+                             Interceptors.Binder(_pool));
             }
             else
             {
                 var identity = indirect.GetIdentity();
                 pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
-                                  Interceptors.Binder(_communicator));
+                                  Interceptors.Binder(_pool));
             }
 
             await indirect.SayHelloAsync();
@@ -57,9 +57,9 @@ namespace IceRpc.Tests.ClientServer
             {
                 await _server.ShutdownAsync();
             }
-            if (_communicator != null)
+            if (_pool != null)
             {
-                await _communicator.ShutdownAsync();
+                await _pool.ShutdownAsync();
             }
         }
 

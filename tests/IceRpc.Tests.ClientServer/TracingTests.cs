@@ -15,57 +15,64 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Tracing_InvocationActivityAsync()
         {
-            await using var communicator = new Communicator();
-
             await using var server = new Server
             {
-                Invoker = communicator,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = new GreeterService()
             };
             server.Listen();
 
-            // The invocation activity is only created if the logger is enabled or Activity.Current is set.
-            var prx = IGreeterTestServicePrx.FromServer(server, "/");
-            Activity? invocationActivity = null;
-            bool called = false;
-            communicator.Use(Interceptors.Tracer);
-            communicator.Use(next => new InlineInvoker((request, cancel) =>
             {
-                called = true;
-                invocationActivity = Activity.Current;
-                return next.InvokeAsync(request, cancel);
-            }));
-            await prx.IcePingAsync();
-            Assert.IsTrue(called);
-            Assert.IsNull(invocationActivity);
+                await using var connection = new Connection{ RemoteEndpoint = server.ProxyEndpoint };
+                var pipeline = new Pipeline();
+                // The invocation activity is only created if the logger is enabled or Activity.Current is set.
+                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                Activity? invocationActivity = null;
+                bool called = false;
+                pipeline.Use(Interceptors.Tracer);
+                pipeline.Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    called = true;
+                    invocationActivity = Activity.Current;
+                    return next.InvokeAsync(request, cancel);
+                }));
+                prx.Invoker = pipeline;
+                await prx.IcePingAsync();
+                Assert.IsTrue(called);
+                Assert.IsNull(invocationActivity);
+            }
 
-            // Starting the test activity ensures that Activity.Current is not null which in turn will
-            // trigger the creation of the Invocation activity.
-            Activity testActivity = new Activity("TestActivity");
-            testActivity.Start();
-            Assert.IsNotNull(Activity.Current);
-
-            await using var pool = new Communicator();
-            prx.Invoker = pool;
-            pool.Use(Interceptors.Tracer);
-            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
-                invocationActivity = Activity.Current;
-                return next.InvokeAsync(request, cancel);
-            }));
-            await prx.IcePingAsync();
-            Assert.IsNotNull(invocationActivity);
-            Assert.AreEqual("//ice_ping", invocationActivity.DisplayName);
-            Assert.AreEqual(testActivity, invocationActivity.Parent);
-            Assert.AreEqual(testActivity, Activity.Current);
-            testActivity.Stop();
+                // Starting the test activity ensures that Activity.Current is not null which in turn will
+                // trigger the creation of the Invocation activity.
+                Activity testActivity = new Activity("TestActivity");
+                testActivity.Start();
+                Assert.IsNotNull(Activity.Current);
+
+                Activity? invocationActivity = null;
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var pipeline = new Pipeline();
+                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                prx.Invoker = pipeline;
+                pipeline.Use(Interceptors.Tracer);
+                pipeline.Use(next => new InlineInvoker((request, cancel) =>
+                {
+                    invocationActivity = Activity.Current;
+                    return next.InvokeAsync(request, cancel);
+                }));
+                await prx.IcePingAsync();
+                Assert.IsNotNull(invocationActivity);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.GreeterTestService/ice_ping", invocationActivity.DisplayName);
+                Assert.AreEqual(testActivity, invocationActivity.Parent);
+                Assert.AreEqual(testActivity, Activity.Current);
+                testActivity.Stop();
+            }
         }
 
         [Test]
         public async Task Tracing_DispatchActivityAsync()
         {
-            await using var communicator = new Communicator();
+            await using var pool = new ConnectionPool();
 
             var router = new Router();
             Activity? dispatchActivity = null;
@@ -82,7 +89,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server1 = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router
             };
@@ -133,7 +140,7 @@ namespace IceRpc.Tests.ClientServer
             
             await using var server2 = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
                 Dispatcher = router,
                 ActivitySource = activitySource
@@ -158,7 +165,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Tracing_ActivityPropagationAsync(Protocol protocol)
         {
-            await using var communicator = new Communicator();
+            await using var pool = new ConnectionPool();
 
             Activity? invocationActivity = null;
             Activity? dispatchActivity = null;
@@ -196,7 +203,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
                 Dispatcher = router,
                 ActivitySource = activitySource
@@ -212,8 +219,8 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            communicator.Use(Interceptors.Tracer);
-            communicator.Use(next => new InlineInvoker((request, cancel) =>
+            pool.Use(Interceptors.Tracer);
+            pool.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;
                 // Add some entries to the baggage to ensure that it is correctly propagated

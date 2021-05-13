@@ -15,14 +15,14 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("foo:coloc -h coloc_connection_refused")]
         public async Task Coloc_ConnectionRefusedAsync(string colocProxy)
         {
-            await using var communicator = new Communicator();
-            var greeter = IGreeterTestServicePrx.Parse(colocProxy, communicator);
+            await using var pool = new ConnectionPool();
+            var greeter = IGreeterTestServicePrx.Parse(colocProxy, pool);
 
             Assert.ThrowsAsync<ConnectionRefusedException>(async () => await greeter.IcePingAsync());
 
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = new Greeter(),
                 Endpoint = greeter.Endpoint
             };
@@ -39,10 +39,10 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("tcp -h 127.0.0.1 -p 0", false)]
         public async Task Coloc_OptimizationAsync(string endpoint, bool hasColocEndpoint)
         {
-            await using var communicator = new Communicator();
+            await using var pool = new ConnectionPool();
             await using var server = new Server
             {
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
                 HasColocEndpoint = hasColocEndpoint,
