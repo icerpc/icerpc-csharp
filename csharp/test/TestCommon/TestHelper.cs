@@ -17,7 +17,7 @@ namespace IceRpc.Test
     {
         private TextWriter? _writer;
 
-        public Communicator Communicator { get; private init; } = null!;
+        public ConnectionPool ConnectionPool { get; private init; } = null!;
 
         public TextWriter Output
         {
@@ -67,7 +67,7 @@ namespace IceRpc.Test
             Environment.Exit(1);
         }
 
-        public static Communicator CreateCommunicator()
+        public static ConnectionPool CreateCommunicator()
         {
             var loggerFactory = LoggerFactory.Create(
                 builder =>
@@ -75,17 +75,17 @@ namespace IceRpc.Test
                     // builder.AddSimpleConsole(configure => configure.IncludeScopes = true);
                     // builder.SetMinimumLevel(LogLevel.Debug);
                 });
-            return new Communicator { LoggerFactory = loggerFactory };
+            return new ConnectionPool { LoggerFactory = loggerFactory };
         }
 
         public abstract Task RunAsync(string[] args);
 
-        public static async Task<int> RunTestAsync<T>(Communicator communicator, string[] args)
+        public static async Task<int> RunTestAsync<T>(ConnectionPool communicator, string[] args)
             where T : TestHelper, new()
         {
             try
             {
-                var helper = new T() { Communicator = communicator };
+                var helper = new T() { ConnectionPool = communicator };
                 await helper.RunAsync(args);
                 return 0;
             }

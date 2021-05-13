@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
     [Timeout(30000)]
     public class StressTests : ClientServerBaseTest
     {
-        private Communicator Communicator { get; }
+        private ConnectionPool ConnectionPool { get; }
         private Server Server { get; }
         private Protocol Protocol { get; }
         private string Transport { get; }
@@ -28,11 +28,11 @@ namespace IceRpc.Tests.ClientServer
         {
             Protocol = protocol;
             Transport = transport;
-            Communicator = new Communicator();
+            ConnectionPool = new ConnectionPool();
             Servant = new TestService();
             Server = new Server
             {
-                Invoker = Communicator,
+                Invoker = ConnectionPool,
                 HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task DisposeAsync()
         {
             await Server.DisposeAsync();
-            await Communicator.DisposeAsync();
+            await ConnectionPool.DisposeAsync();
         }
 
         [Test]

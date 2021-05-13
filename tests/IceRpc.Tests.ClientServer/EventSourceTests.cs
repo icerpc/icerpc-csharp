@@ -31,7 +31,7 @@ namespace IceRpc.Tests.ClientServer
                     ("total-requests", "10"),
                     ("current-requests", "10"),
                 });
-            await using var pool = new Communicator();
+            await using var pool = new ConnectionPool();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
                     ("canceled-requests", "10")
                 });
 
-            await using var pool = new Communicator();
+            await using var pool = new ConnectionPool();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
@@ -149,7 +149,7 @@ namespace IceRpc.Tests.ClientServer
                     ("failed-requests", "10")
                 });
 
-            await using var pool = new Communicator();
+            await using var pool = new ConnectionPool();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
             pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
             var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);

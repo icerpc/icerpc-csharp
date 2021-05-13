@@ -22,8 +22,8 @@ namespace IceRpc.Tests.Internal
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            await using var pool = new ConnectionPool();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
 
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
@@ -50,8 +50,8 @@ namespace IceRpc.Tests.Internal
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            await using var pool = new ConnectionPool();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
@@ -77,8 +77,8 @@ namespace IceRpc.Tests.Internal
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            await using var pool = new ConnectionPool();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
@@ -104,8 +104,8 @@ namespace IceRpc.Tests.Internal
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var communicator = new Communicator();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", communicator);
+            await using var pool = new ConnectionPool();
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),

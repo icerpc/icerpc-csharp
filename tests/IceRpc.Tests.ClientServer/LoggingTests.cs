@@ -28,7 +28,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
-            await using var communicator = new Communicator
+            await using var pool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -37,10 +37,10 @@ namespace IceRpc.Tests.ClientServer
                 },
                 LoggerFactory = loggerFactory
             };
-            communicator.Use(Interceptors.Logger(loggerFactory));
+            pool.Use(Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pool).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
-            await using var communicator = new Communicator
+            await using var pool = new ConnectionPool
             {
                 ConnectionOptions = new()
                 {
@@ -89,10 +89,10 @@ namespace IceRpc.Tests.ClientServer
                 },
                 LoggerFactory = loggerFactory
             };
-            communicator.Use(Interceptors.Logger(loggerFactory));
+            pool.Use(Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", communicator).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pool).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);
@@ -114,13 +114,13 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
-            await using var communicator = new Communicator { LoggerFactory = loggerFactory };
-            communicator.Use(Interceptors.Logger(loggerFactory));
+            await using var pool = new ConnectionPool { LoggerFactory = loggerFactory };
+            pool.Use(Interceptors.Logger(loggerFactory));
 
             var router = new Router();
             router.Use(Middleware.Logger(loggerFactory));
             router.Map("/", new TestService());
-            await using var server = CreateServer(communicator, colocated, portNumber: 1);
+            await using var server = CreateServer(pool, colocated, portNumber: 1);
             server.Dispatcher = router;
             server.Listen();
 
@@ -141,11 +141,11 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
-            await using var communicator = new Communicator { LoggerFactory = loggerFactory };
-            communicator.Use(Interceptors.Logger(loggerFactory));
+            await using var pool = new ConnectionPool { LoggerFactory = loggerFactory };
+            pool.Use(Interceptors.Logger(loggerFactory));
 
             var router = new Router();
-            await using Server server = CreateServer(communicator, colocated, portNumber: 2);
+            await using Server server = CreateServer(pool, colocated, portNumber: 2);
             router.Use(Middleware.Logger(loggerFactory));
             server.Listen();
 
@@ -271,12 +271,12 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("Client", scope.GetProperty("InitiatedBy").GetString());
             Assert.AreEqual("Bidirectional", scope.GetProperty("Kind").GetString());
         }
-        private Server CreateServer(Communicator communicator, bool colocated, int portNumber) =>
+        private Server CreateServer(ConnectionPool pool, bool colocated, int portNumber) =>
 
             new Server
             {
                 HasColocEndpoint = false,
-                Invoker = communicator,
+                Invoker = pool,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
                 ProxyHost = "localhost"

@@ -102,7 +102,7 @@ public class Client : TestHelper
 
         await using var server = new IceRpc.Server
         {
-            Invoker = Communicator,
+            Invoker = ConnectionPool,
             Dispatcher = router,
             Endpoint = $"ice+coloc://{Guid.NewGuid()}"
         };

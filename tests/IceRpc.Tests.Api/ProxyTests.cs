@@ -461,7 +461,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection, greeter.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
 
-            await using var pool = new Communicator { IsInvoker = false };
+            await using var pool = new ConnectionPool { IsInvoker = false };
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Binder(pool));
 
