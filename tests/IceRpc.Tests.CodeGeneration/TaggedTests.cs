@@ -12,28 +12,27 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     public class TaggedTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly ITaggedOperationsPrx _prx;
 
         public TaggedTests()
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = new TaggedOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _prx = ITaggedOperationsPrx.FromServer(_server, "/");
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
+            _prx = ITaggedOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]
@@ -71,7 +70,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiTagged.MMyEnum = MyEnum.enum1;
             multiTagged.MAnotherStruct = new AnotherStruct(
                 "hello",
-                IOperationsPrx.Parse("ice+tcp://localhost/hello", _communicator),
+                IOperationsPrx.Parse("ice+tcp://localhost/hello", _connection),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -335,7 +334,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    IOperationsPrx.Parse("ice+tcp://localhost/hello", _communicator),
+                    IOperationsPrx.Parse("ice+tcp://localhost/hello", _connection),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -559,7 +558,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello", _communicator),
+                        IOperationsPrx.Parse("ice+tcp://localhost/hello", _connection),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -577,7 +576,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello", _communicator),
+                        IOperationsPrx.Parse("ice+tcp://localhost/hello", _connection),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };

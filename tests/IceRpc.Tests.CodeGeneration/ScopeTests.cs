@@ -9,7 +9,7 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     public class ScopeTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly Scope.IOperationsPrx _prx1;
         private readonly Scope.Inner.IOperationsPrx _prx2;
@@ -18,34 +18,31 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ScopeTests()
         {
-            _communicator = new Communicator();
-
             var router = new Router();
-            router.Map("/test1", new Scope.Operations());
-            router.Map("/test2", new Scope.Inner.Operations());
-            router.Map("/test3", new Scope.Inner.Inner2.Operations());
-            router.Map("/test4", new Scope.Inner.Test.Inner2.Operations());
+            router.Map<Scope.IOperations>(new Scope.Operations());
+            router.Map<Scope.Inner.IOperations>(new Scope.Inner.Operations());
+            router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
+            router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
 
             _server = new Server()
             {
-                Invoker = _communicator,
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
-
-            _prx1 = Scope.IOperationsPrx.FromServer(_server, "/test1");
-            _prx2 = Scope.Inner.IOperationsPrx.FromServer(_server, "/test2");
-            _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromServer(_server, "/test3");
-            _prx4 = Scope.Inner.Test.Inner2.IOperationsPrx.FromServer(_server, "/test4");
-
             _server.Listen();
+
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
+            _prx1 = Scope.IOperationsPrx.FromConnection(_connection);
+            _prx2 = Scope.Inner.IOperationsPrx.FromConnection(_connection);
+            _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromConnection(_connection);
+            _prx4 = Scope.Inner.Test.Inner2.IOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]

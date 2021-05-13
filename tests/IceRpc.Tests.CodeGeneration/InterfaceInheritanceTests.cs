@@ -9,7 +9,7 @@ namespace IceRpc.Tests.CodeGeneration
     [Timeout(30000)]
     public class InterfaceInheritanceTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly IMyInterfaceBasePrx _basePrx;
         private readonly IMyInterfaceDerivedPrx _derivedPrx;
@@ -17,31 +17,31 @@ namespace IceRpc.Tests.CodeGeneration
 
         public InterfaceInheritanceTests()
         {
-            _communicator = new Communicator();
+            _connection = new Connection();
 
             var router = new Router();
-            router.Map("/base", new Base());
-            router.Map("/derived", new Derived());
-            router.Map("/mostderived", new MostDerived());
+            router.Map<IMyInterfaceBase>(new Base());
+            router.Map<IMyInterfaceDerived>(new Derived());
+            router.Map<IMyInterfaceDerived>(new MostDerived());
 
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
 
-            _basePrx = IMyInterfaceBasePrx.FromServer(_server, "/base");
-            _derivedPrx = IMyInterfaceDerivedPrx.FromServer(_server, "/derived");
-            _mostDerivedPrx = IMyInterfaceMostDerivedPrx.FromServer(_server, "/mostderived");
+            _basePrx = IMyInterfaceBasePrx.FromConnection(_connection);
+            _derivedPrx = IMyInterfaceDerivedPrx.FromConnection(_connection);
+            _mostDerivedPrx = IMyInterfaceMostDerivedPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

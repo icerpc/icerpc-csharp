@@ -36,36 +36,35 @@ namespace IceRpc.Tests.CodeGeneration
     [TestFixture(Protocol.Ice2)]
     public class ClassTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly IClassOperationsPrx _prx;
         private readonly IClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
 
         public ClassTests(Protocol protocol)
         {
-            _communicator = new Communicator();
-
             var router = new Router();
-            router.Map("/test", new ClassOperations());
-            router.Map("/test1", new ClassOperationsUnexpectedClass());
+            router.Map<IClassOperations>(new ClassOperations());
+            router.Map<IClassOperationsUnexpectedClass>(new ClassOperationsUnexpectedClass());
 
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
 
-            _prx = IClassOperationsPrx.FromServer(_server, "/test");
-            _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromServer(_server, "/test1");
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
+
+            _prx = IClassOperationsPrx.FromConnection(_connection);
+            _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]

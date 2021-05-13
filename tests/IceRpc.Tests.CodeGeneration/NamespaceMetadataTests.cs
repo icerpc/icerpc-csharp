@@ -12,22 +12,21 @@ namespace IceRpc.Tests.CodeGeneration
     [Timeout(10000)]
     public class NamespaceMetadataTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly INamespaceMDOperationsPrx _prx;
 
         public NamespaceMetadataTests()
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = new NamespaceMDOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
 
             };
             _server.Listen();
-            _prx = INamespaceMDOperationsPrx.FromServer(_server, "/");
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
+            _prx = INamespaceMDOperationsPrx.FromConnection(_connection);
         }
 
         [Test]
@@ -47,7 +46,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
     }
 

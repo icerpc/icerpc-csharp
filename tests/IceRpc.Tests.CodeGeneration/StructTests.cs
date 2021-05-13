@@ -14,20 +14,19 @@ namespace IceRpc.Tests.CodeGeneration
     [TestFixture(Protocol.Ice2)]
     public class StructTests
     {
-        private readonly Communicator _communicator;
+        private readonly Connection _connection;
         private readonly Server _server;
         private readonly IStructOperationsPrx _prx;
 
         public StructTests(Protocol protocol)
         {
-            _communicator = new Communicator();
             _server = new Server
             {
-                Invoker = _communicator,
                 Dispatcher = new StructOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
+            _connection = new Connection{ RemoteEndpoint = _server.ProxyEndpoint };
             _prx = IStructOperationsPrx.FromServer(_server, "/test");
             Assert.AreEqual(protocol, _prx.Protocol);
         }
@@ -36,7 +35,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task TearDownAsync()
         {
             await _server.DisposeAsync();
-            await _communicator.DisposeAsync();
+            await _connection.ShutdownAsync();
         }
 
         [Test]
@@ -45,11 +44,11 @@ namespace IceRpc.Tests.CodeGeneration
             await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://host/foo", _communicator),
+                                              IOperationsPrx.Parse("ice+tcp://host/foo", _connection),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
-                                              IOperationsPrx.Parse("ice+tcp://host/bar", _communicator),
+                                              IOperationsPrx.Parse("ice+tcp://host/bar", _connection),
                                               MyEnum.enum2,
                                               new MyStruct(3, 4)));
 
