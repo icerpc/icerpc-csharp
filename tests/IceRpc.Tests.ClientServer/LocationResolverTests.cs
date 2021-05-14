@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _pool = new ConnectionPool { IsInvoker = false };
+            _pool = new ConnectionPool();
             var pipeline = new Pipeline();
 
             var indirect = IGreeterTestServicePrx.Parse(proxy, pipeline);

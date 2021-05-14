@@ -38,9 +38,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task Coloc_OptimizationAsync(string endpoint, bool hasColocEndpoint)
         {
             await using var pool = new ConnectionPool();
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Coloc, Interceptors.Binder(pool));
             await using var server = new Server
             {
-                Invoker = pool,
+                Invoker = pipeline,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
                 HasColocEndpoint = hasColocEndpoint,
