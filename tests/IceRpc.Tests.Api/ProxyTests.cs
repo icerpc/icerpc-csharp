@@ -374,7 +374,7 @@ namespace IceRpc.Tests.Api
                 "SayHello",
                 Payload.FromEmptyArgs(prx));
 
-            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, responseConnection));
+            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(responseConnection, prx.Invoker));
         }
 
         [Test]
