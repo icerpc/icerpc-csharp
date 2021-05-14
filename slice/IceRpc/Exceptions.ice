@@ -40,13 +40,6 @@ module IceRpc
     {
     }
 
-    /// One of the arguments to the operation has an invalid value.
-    exception InvalidArgumentException
-    {
-        /// The name of the corresponding parameter.
-        string paramName;
-    }
-
     /// A dispatch exception is thrown when an implementation error occured. This can occur for example if the
     /// response can't be sent because it's larger than the peer's incoming frame maximum size.
     exception DispatchException
