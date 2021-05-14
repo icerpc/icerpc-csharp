@@ -94,6 +94,7 @@ namespace IceRpc
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
 
+        /*
         /// <summary>Reads a single stream argument from the request.</summary>
         /// <param name="reader">The delegate used to read the argument.</param>
         /// <returns>The request argument.</returns>
@@ -136,6 +137,7 @@ namespace IceRpc
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return value;
         }
+        */
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
