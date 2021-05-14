@@ -124,6 +124,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             var greeter = IGreeterTestServicePrx.FromConnection(connection);
             greeter.Invoker = pipeline;
+            await connection.ConnectAsync();
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
