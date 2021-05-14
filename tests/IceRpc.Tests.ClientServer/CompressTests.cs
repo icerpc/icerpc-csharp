@@ -72,8 +72,7 @@ namespace IceRpc.Tests.ClientServer
 
             router.Map<ICompressService>(new CompressService());
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            ICompressServicePrx prx = ICompressServicePrx.FromConnection(connection);
-            prx.Invoker = pipeline;
+            ICompressServicePrx prx = ICompressServicePrx.FromConnection(connection, invoker: pipeline);
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);

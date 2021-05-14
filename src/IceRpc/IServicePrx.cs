@@ -69,16 +69,19 @@ namespace IceRpc
             istr => Proxy.Read(Factory, istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
-        /// <param name="connection">The connection for the proxy. If the connection is an outgoing connection,
-        /// <see cref="Connection.RemoteEndpoint"/> is used as the <see cref="Endpoint"/> for the proxy,
-        /// otherwise an endpointless proxy is created.</param>
-        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
-        /// </param>
+        /// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
+        /// <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
+        /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
+        /// the server's invoker.</param>
         /// <returns>The new proxy.</returns>
-        public static IServicePrx FromConnection(Connection connection, string? path = null) =>
-            Factory.Create(connection, path);
+        public static IServicePrx FromConnection(
+            Connection connection,
+            string? path = null,
+            IInvoker? invoker = null) =>
+            Factory.Create(connection, path, invoker);
 
-        /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
+        /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy from the given path and protocol.</summary>
         /// <param name="path">The path of the proxy.</param>
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>

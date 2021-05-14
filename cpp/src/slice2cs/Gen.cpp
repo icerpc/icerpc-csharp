@@ -2288,19 +2288,23 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "/// <summary>Creates an <see cref=\"" << name
          << "\"/> proxy from the given connection and path.</summary>";
-    _out << nl << "/// <param name=\"connection\">The connection for the proxy. If the connection is an outgoing "
-         << "connection,";
-    _out << nl << "/// <see cref=\"IceRpc.Connection.RemoteEndpoint\"/> is used as the <see cref=\"Endpoint\"/> for "
-         << "the proxy,";
-    _out << nl << "/// otherwise an endpointless proxy is created.</param>";
-    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "is used.";
-    _out << nl << "/// </param>";
+    _out << nl << "/// <param name=\"connection\">The connection. If it's an outgoing connection, the endpoint of the "
+        << "new proxy is";
+    _out << nl << "/// <see cref=\"Connection.RemoteEndpoint\"/>; otherwise, the new proxy has no endpoint.</param>";
+    _out << nl << "/// <param name=\"path\">The path of the proxy. If null, the path is set to "
+        << "<see cref=\"DefaultPath\"/>.</param>";
+    _out << nl << "/// <param name=\"invoker\">The invoker. If null and connection is an incoming connection, the "
+        << "invoker is set to";
+    _out << nl << "/// the server's invoker.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
+
     _out << nl << "public static new "
-         << name << " FromConnection(IceRpc.Connection connection, string? path = null) =>";
+         << name << " FromConnection(";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path);";
+    _out << nl << "IceRpc.Connection connection,";
+    _out << nl << "string? path = null,";
+    _out << nl << "IceRpc.IInvoker? invoker = null) =>";
+    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path, invoker);";
     _out.dec();
 
     _out << sp;
