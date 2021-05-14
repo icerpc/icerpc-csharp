@@ -423,20 +423,14 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_FactoryMethodsAsync()
         {
             Assert.AreEqual("/Ice.Object", IServicePrx.DefaultPath);
-            IServicePrx? service = IServicePrx.FromPath();
-            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
-            Assert.IsNull(service.Endpoint);
 
-            service = IServicePrx.FromPath("/test");
+            var service = IServicePrx.FromPath("/test");
             Assert.AreEqual("/test", service.Path);
             Assert.IsNull(service.Endpoint);
 
             Assert.AreEqual("/IceRpc.Tests.Api.GreeterService", IGreeterServicePrx.DefaultPath);
-            IGreeterServicePrx? greeter = IGreeterServicePrx.FromPath();
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
-            Assert.IsNull(greeter.Endpoint);
 
-            greeter = IGreeterServicePrx.FromPath("/test");
+            var greeter = IGreeterServicePrx.FromPath("/test");
             Assert.AreEqual("/test", greeter.Path);
             Assert.IsNull(greeter.Endpoint);
 

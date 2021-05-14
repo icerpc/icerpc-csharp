@@ -318,23 +318,6 @@ Slice::fixId(const string& name, unsigned int baseTypes)
     return os.str();
 }
 
-// Convert a scoped name like ::IceRpc::Service into a path like /IceRpc.Service
-string Slice::defaultPath(const string& name)
-{
-    vector<string> ids = splitScopedName(name);
-    ostringstream os;
-    os << '/';
-    for(vector<string>::const_iterator i = ids.begin(); i != ids.end();)
-    {
-        os << *i;
-        if(++i != ids.end())
-        {
-            os << ".";
-        }
-    }
-    return os.str();
-}
-
 string
 Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, bool readOnly, bool isParam, bool streamParam)
 {

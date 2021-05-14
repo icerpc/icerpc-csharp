@@ -23,7 +23,7 @@ namespace IceRpc
         /// <returns>A proxy with the desired type.</returns>
         public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
         {
-            T newProxy = GetFactory<T>()(proxy.Path, proxy.Protocol);
+            T newProxy = GetFactory<T>().Create(proxy.Path, proxy.Protocol);
             if (proxy.Protocol == Protocol.Ice1)
             {
                 newProxy.Impl.Identity = proxy.Impl.Identity;
@@ -62,12 +62,14 @@ namespace IceRpc
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
         /// <param name="connection">The connection.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="path">The path. Null uses the default path.</param>
         /// <returns>The new proxy.</returns>
-        public static T Create<T>(this ProxyFactory<T> factory, Connection connection, string path)
+        public static T Create<T>(this ProxyFactory<T> factory, Connection connection, string? path = null)
             where T : class, IServicePrx
         {
-            T proxy = factory(path, connection.Protocol);
+            path ??= factory.DefaultPath;
+
+            T proxy = factory.Create(path, connection.Protocol);
 
             ServicePrx impl = proxy.Impl;
             if (connection.Protocol == Protocol.Ice1)
@@ -85,12 +87,13 @@ namespace IceRpc
         /// <param name="factory">The proxy factory.</param>
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
+        /// <param name="setIdentity">When true, sets the identity of a new ice1 proxy.</param>
         /// <returns>The new proxy.</returns>
-        public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol = Protocol.Ice2)
+        public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol, bool setIdentity)
             where T : class, IServicePrx
         {
-            T proxy = factory(path, protocol);
-            if (protocol == Protocol.Ice1)
+            T proxy = factory.Create(path, protocol);
+            if (setIdentity && protocol == Protocol.Ice1)
             {
                 proxy.Impl.Identity = Identity.FromPath(path);
             }
@@ -101,17 +104,19 @@ namespace IceRpc
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
         /// <param name="server">The server.</param>
-        /// <param name="path">The path.</param>
+        /// <param name="path">The path. Null uses the default path.</param>
          /// <returns>The new proxy.</returns>
-        public static T Create<T>(this ProxyFactory<T> factory, Server server, string path)
+        public static T Create<T>(this ProxyFactory<T> factory, Server server, string? path = null)
             where T : class, IServicePrx
         {
+            path ??= factory.DefaultPath;
+
             if (server.ProxyEndpoint == null)
             {
                 throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
             }
 
-            T proxy = factory(path, server.Protocol);
+            T proxy = factory.Create(path, server.Protocol);
 
             ServicePrx impl = proxy.Impl;
             if (server.Protocol == Protocol.Ice1)
@@ -268,7 +273,7 @@ namespace IceRpc
             {
                 string path;
                 (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
-                proxy = GetFactory<T>()(path, endpoint?.Protocol ?? Protocol.Ice2);
+                proxy = GetFactory<T>().Create(path, endpoint?.Protocol ?? Protocol.Ice2);
             }
             else
             {
@@ -384,7 +389,7 @@ namespace IceRpc
                         }
                         else
                         {
-                            proxy = proxyFactory(identity.ToPath(), proxyData.Protocol);
+                            proxy = proxyFactory.Create(identity.ToPath(), proxyData.Protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         }
@@ -461,7 +466,7 @@ namespace IceRpc
                         }
                         else
                         {
-                            proxy = proxyFactory(proxyData.Path, protocol);
+                            proxy = proxyFactory.Create(proxyData.Path, protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints;
                         }
@@ -490,7 +495,7 @@ namespace IceRpc
 
                 try
                 {
-                    T proxy = proxyFactory(identity.ToPath(), Protocol.Ice1);
+                    T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
                     proxy.Impl.Identity = identity;
                     proxy.Impl.FacetPath = facetPath;
                     proxy.Encoding = encoding;
@@ -535,23 +540,21 @@ namespace IceRpc
                 return newProxy;
             }
 
-            newProxy = GetFactory<T>()(path, proxy.Protocol);
+            newProxy = GetFactory<T>().Create(path, proxy.Protocol, setIdentity: true);
             if (proxy.Protocol == Protocol.Ice1)
             {
-                newProxy.Impl.Identity = Identity.FromPath(path);
                 newProxy.Impl.Facet = proxy.GetFacet();
-                newProxy.Endpoint = proxy.Endpoint;
                 // clear cached connection of well-known proxy
-                newProxy.Connection = proxy.Impl.IsWellKnown ? null : proxy.Connection;
+                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
             }
             else
             {
-                newProxy = GetFactory<T>()(path, proxy.Protocol);
-                newProxy.Endpoint = proxy.Endpoint;
                 newProxy.Connection = proxy.Connection;
             }
-            newProxy.Encoding = proxy.Encoding;
+
             newProxy.AltEndpoints = proxy.AltEndpoints;
+            newProxy.Encoding = proxy.Encoding;
+            newProxy.Endpoint = proxy.Endpoint;
             newProxy.Invoker = proxy.Invoker;
             return newProxy;
         }

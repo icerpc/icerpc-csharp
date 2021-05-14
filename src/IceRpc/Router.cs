@@ -75,7 +75,7 @@ namespace IceRpc
         public void Map<T>(IService service) where T : IService
         {
             _pipeline ??= CreatePipeline();
-            _exactMatchRoutes[GetDefaultPath<T>()] = service;
+            _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
         }
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
@@ -123,7 +123,7 @@ namespace IceRpc
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         public bool Unmap<T>() where T : IService =>
-            _exactMatchRoutes.Remove(GetDefaultPath<T>());
+            _exactMatchRoutes.Remove(typeof(T).GetDefaultPath());
 
         /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
         /// <param name="prefix">The prefix of the route.</param>
@@ -150,21 +150,6 @@ namespace IceRpc
         }
 
         public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
-
-        // Computes the service default path from the service typeId
-        private static string GetDefaultPath<T>() where T : IService
-        {
-            if (typeof(T).GetIceTypeId() is string typeId)
-            {
-                Debug.Assert(typeId.StartsWith("::", StringComparison.InvariantCulture));
-                return "/" + typeId[2..].Replace("::", ".");
-            }
-            else
-            {
-                throw new ArgumentException($"{typeof(T).FullName} doesn't have an IceRpc.TypeId attribute",
-                                            nameof(T));
-            }
-        }
 
         // Trim trailing slashes but keep the leading slash.
         private static string NormalizePrefix(string prefix)
