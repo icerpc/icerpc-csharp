@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
@@ -9,7 +8,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
     internal class ColocSocket : MultiStreamSocket, IColocSocket

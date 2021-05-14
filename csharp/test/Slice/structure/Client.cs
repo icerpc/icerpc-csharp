@@ -32,7 +32,7 @@ namespace IceRpc.Slice.Test.Structure
             {
                 { "abc", "def" }
             };
-            var def_prx = IServicePrx.Parse("test", ConnectionPool);
+            var def_prx = IServicePrx.Parse("test");
             _ = new S2(true, 98, 99, 100, 101, 1.0f, 2.0, "string", def_ss, def_il, def_sd, def_s, def_cls, def_prx);
 
             // Compare default-constructed structures.
@@ -51,8 +51,7 @@ namespace IceRpc.Slice.Test.Structure
 
         public static async Task<int> Main(string[] args)
         {
-            await using var communicator = CreateCommunicator();
-            return await RunTestAsync<Client>(communicator, args);
+            return await RunTestAsync<Client>(args);
         }
     }
 }

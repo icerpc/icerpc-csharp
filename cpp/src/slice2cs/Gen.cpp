@@ -2233,7 +2233,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                          << "of operation " << operation->name() << ".</summary>";
                     _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                     _out << "(global::System.ReadOnlyMemory<byte> payload, ";
-                    _out << "IceRpc.IServicePrx proxy, IceRpc.Connection connection) =>";
+                    _out << "IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                     _out.inc();
                     _out << nl << "IceRpc.Payload.ToReturnValue(";
                     _out.inc();
@@ -2241,8 +2241,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl;
                     writeIncomingResponseReader(operation);
                     _out << ",";
-                    _out << nl << "proxy,";
-                    _out << nl << "connection);";
+                    _out << nl << "connection,";
+                    _out << nl << "invoker);";
                     _out.dec();
                     _out.dec();
                 }
@@ -2269,13 +2269,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "/// <summary>The path for proxies of <see cref=\"" << name
          << "\"/> type when the path is not explicitly specified.</summary>";
-    _out << nl << "public new const string DefaultPath = \"" << defaultPath(p->scoped()) << "\";";
-
+    _out << nl << "public static new string DefaultPath => Factory.DefaultPath;";
     _out << sp;
     _out << nl << "/// <summary>Factory for <see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.ProxyFactory<" << name << "> Factory =";
     _out.inc();
-    _out << nl << "(path, protocol) => new " << impl << "(path, protocol);";
+    _out << nl << "new((path, protocol) => new " << impl << "(path, protocol));";
     _out.dec();
 
     _out << sp;
@@ -2301,21 +2300,19 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromConnection(IceRpc.Connection connection, string? path = null) =>";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path ?? DefaultPath);";
+    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path);";
     _out.dec();
 
     _out << sp;
     _out << nl << "/// <summary>Creates an <see cref=\"" << name
          << "\"/> endpointless proxy with the given path and protocol.</summary>";
-    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "is used.";
-    _out << nl << "/// </param>";
+    _out << nl << "/// <param name=\"path\">The path for the proxy.</param>";
     _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static new "
-         << name << " FromPath(string? path = null, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
+         << name << " FromPath(string path, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, path ?? DefaultPath, protocol);";
+    _out << nl << "IceRpc.Proxy.Create(Factory, path, protocol, setIdentity: true);";
     _out.dec();
 
     _out << sp;
@@ -2330,7 +2327,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null) =>";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, server, path ?? DefaultPath);";
+    _out << nl << "IceRpc.Proxy.Create(Factory, server, path);";
     _out.dec();
 
     _out << sp;
