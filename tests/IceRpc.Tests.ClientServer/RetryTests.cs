@@ -424,9 +424,7 @@ namespace IceRpc.Tests.ClientServer
         private static Pipeline CreatePipeline(ConnectionPool pool)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: pool.LoggerFactory),
-                         Interceptors.Coloc, // TODO: do we need it here?
-                         Interceptors.Binder(pool));
+            pipeline.Use(Interceptors.Retry(5, loggerFactory: pool.LoggerFactory), Interceptors.Binder(pool));
             return pipeline;
         }
 
