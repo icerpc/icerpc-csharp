@@ -131,9 +131,9 @@ namespace IceRpc
             return _prefixMatchRoutes.Remove(prefix);
         }
 
-        /// <summary>Installs one or more middleware in this router. Middlewares must be installed calling
-        /// DispatchAsync.</summary>
-        /// <param name="middleware">One or more middlewares.</param>
+        /// <summary>Installs one or more middleware in this router. A middleware must be installed calling
+        /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
+        /// <param name="middleware">One or more middleware.</param>
         /// <exception name="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was called on
         /// this router.</exception>
         public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
