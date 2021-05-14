@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -60,7 +58,7 @@ namespace IceRpc
                         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                         request.RestoreActivityContext(activity);
                     }
-                    
+
                     try
                     {
                         return await next.DispatchAsync(request, cancel).ConfigureAwait(false);

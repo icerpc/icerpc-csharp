@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             {
-                await using var connection = new Connection{ RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
                 var pipeline = new Pipeline();
                 // The invocation activity is only created if the logger is enabled or Activity.Current is set.
                 var prx = IGreeterTestServicePrx.FromConnection(connection);
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
             router.Map("/", new GreeterService());
 
-            
+
             await using var server2 = new Server
             {
                 Invoker = pool,

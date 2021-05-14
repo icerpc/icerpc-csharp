@@ -7,7 +7,7 @@ using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The BufferedReceiveOverSingleStreamSocket is a wrapper around SingleStreamSocket to provide
     /// buffered data receive. This helps to limit the number of operating system Receive calls when the user
