@@ -461,16 +461,8 @@ namespace IceRpc.Tests.ClientServer
                 pipeline = CreatePipeline(pool);
             }
 
-            var service = new RetryService();
-            var server = new Server
-            {
-                Invoker = pipeline,
-                HasColocEndpoint = false,
-                Endpoint = GetTestEndpoint(protocol: protocol),
-                ProxyHost = "localhost"
-            };
-
             var router = new Router();
+            var service = new RetryService();
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
@@ -479,8 +471,17 @@ namespace IceRpc.Tests.ClientServer
                     return await next.DispatchAsync(request, cancel);
                 }));
             router.Map("/retry", service);
-            server.Dispatcher = router;
+
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Invoker = pipeline,
+                HasColocEndpoint = false,
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ProxyHost = "localhost"
+            };
             server.Listen();
+
             var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
         }
