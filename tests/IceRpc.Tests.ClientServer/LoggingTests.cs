@@ -28,6 +28,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
+
             await using var pool = new ConnectionPool
             {
                 ConnectionOptions = new()
@@ -37,10 +38,14 @@ namespace IceRpc.Tests.ClientServer
                 },
                 LoggerFactory = loggerFactory
             };
-            pool.Use(Interceptors.Logger(loggerFactory));
+
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
+                         Interceptors.Binder(pool),
+                         Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pool).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
@@ -80,6 +85,7 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
+
             await using var pool = new ConnectionPool
             {
                 ConnectionOptions = new()
@@ -89,10 +95,14 @@ namespace IceRpc.Tests.ClientServer
                 },
                 LoggerFactory = loggerFactory
             };
-            pool.Use(Interceptors.Logger(loggerFactory));
+
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
+                         Interceptors.Binder(pool),
+                         Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pool).IcePingAsync());
+                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);

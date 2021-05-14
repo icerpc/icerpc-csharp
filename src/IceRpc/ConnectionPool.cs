@@ -13,24 +13,11 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A connection pool manages a pool of outgoing connections and is a connection provider for the
-    /// <see cref="Interceptors.Binder"/> interceptor. By default, a connection pool is also usable as an invoker and
-    /// pipeline; when playing this role, it installs automatically the <see cref="Interceptors.Retry"/>,
-    /// <see cref="Interceptors.Coloc"/> and <see cref="Interceptors.Binder"/> interceptors before all other
-    /// interceptors. Retry is installed with max attempts set to 5 and this connection pool's logger factory; and
-    /// Binder is installed with this connection pool as connection provider.</summary>
-    public sealed partial class ConnectionPool : Pipeline, IConnectionProvider, IAsyncDisposable
+    /// <see cref="Interceptors.Binder"/> interceptor.</summary>
+    public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
         /// <summary>The connection options.</summary>
         public OutgoingConnectionOptions? ConnectionOptions { get; set; }
-
-        /// <summary>Indicates whether or not this connection pool can be used as an invoker.</summary>
-        /// <value>When <c>true</c> (the default) this connection pool can be used an invoker and implements
-        /// <see cref="IInvoker.InvokeAsync"/> using its base class. When <c>false</c>, calling InvokeAsync on this
-        /// connection pool throws <see cref="InvalidOperationException"/>.</value>
-        /// <remarks>Setting this value to false prevents you from using this connection pool as an invoker by
-        /// accident when you want to use it only as a connection provider for the <see cref="Interceptors.Binder"/>
-        /// interceptor.</remarks>
-        public bool IsInvoker { get; set; } = true;
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
         /// its logger using <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
@@ -217,25 +204,6 @@ namespace IceRpc
                 // Ensure all the outgoing connections were removed
                 Debug.Assert(_outgoingConnections.Count == 0);
                 _cancellationTokenSource.Dispose();
-            }
-        }
-
-        protected override IInvoker CreateInvoker(IInvoker lastInvoker)
-        {
-            if (IsInvoker)
-            {
-                IInvoker pipeline = base.CreateInvoker(lastInvoker);
-
-                // Add default interceptors in reverse order of execution.
-                pipeline = Interceptors.Binder(this)(pipeline);
-                pipeline = Interceptors.Coloc(pipeline);
-                pipeline = Interceptors.Retry(maxAttempts: 5, loggerFactory: LoggerFactory)(pipeline);
-
-                return pipeline;
-            }
-            else
-            {
-                throw new InvalidOperationException("this connection pool is not usable as an invoker");
             }
         }
 

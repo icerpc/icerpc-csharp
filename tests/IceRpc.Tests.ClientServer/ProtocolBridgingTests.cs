@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
-        public ProtocolBridgingTests() => _pool = new ConnectionPool { IsInvoker = false };
+        public ProtocolBridgingTests() => _pool = new ConnectionPool();
 
         [TearDown]
         public async Task TearDownAsync()

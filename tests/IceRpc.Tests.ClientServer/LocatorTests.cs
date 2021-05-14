@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
     public class LocatorTests
     {
         private bool _called;
-        private readonly ConnectionPool _pool = new() { IsInvoker = false };
+        private readonly ConnectionPool _pool = new();
         private readonly IGreeterTestServicePrx _greeter;
 
         private readonly Pipeline _pipeline = new();
