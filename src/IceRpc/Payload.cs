@@ -176,7 +176,9 @@ namespace IceRpc
 
             if ((ResultType)payload.Span[0] == ResultType.Success)
             {
-                payload.Slice(1).ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
+                new InputStream(payload.Slice(1),
+                                connection.Protocol.GetEncoding(),
+                                startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
             }
             else
             {
@@ -382,19 +384,9 @@ namespace IceRpc
         /// unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="connection">The connection the payload was received on.</param>
-        public static void ToEmptyArgs(
-            this ReadOnlyMemory<byte> payload,
-            Connection connection) =>
-            payload.ReadEmptyEncapsulation(connection.Protocol.GetEncoding());
-
-        /// <summary>Reads an empty encapsulation from the buffer.</summary>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of encapsulation header.</param>
-        /// <exception name="InvalidDataException">Thrown when the buffer is not an empty encapsulation, for example
-        /// when buffer contains an encapsulation that does not have only tagged parameters.</exception>
-        private static void ReadEmptyEncapsulation(this ReadOnlyMemory<byte> buffer, Encoding encoding) =>
-            new InputStream(buffer,
-                            encoding,
+        public static void ToEmptyArgs(this ReadOnlyMemory<byte> payload, Connection connection) =>
+            new InputStream(payload,
+                            connection.Protocol.GetEncoding(),
                             startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
 
         /// <summary>Reads the contents of an encapsulation from the buffer.</summary>
