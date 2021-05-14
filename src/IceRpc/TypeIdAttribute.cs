@@ -111,8 +111,16 @@ namespace IceRpc
         {
             if (type.GetIceTypeId() is string typeId)
             {
-                Debug.Assert(typeId.StartsWith("::", StringComparison.InvariantCulture));
-                return "/" + typeId[2..].Replace("::", ".");
+                Debug.Assert(typeId.StartsWith("::", StringComparison.Ordinal));
+
+                if (typeId == "::Ice::Object")
+                {
+                    return "/IceRpc.Service";
+                }
+                else
+                {
+                    return "/" + typeId[2..].Replace("::", ".");
+                }
             }
             else
             {

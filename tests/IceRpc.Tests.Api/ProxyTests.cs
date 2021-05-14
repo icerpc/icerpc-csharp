@@ -422,7 +422,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Proxy_FactoryMethodsAsync()
         {
-            Assert.AreEqual("/Ice.Object", IServicePrx.DefaultPath);
+            Assert.AreEqual("/IceRpc.Service", IServicePrx.DefaultPath);
 
             var service = IServicePrx.FromPath("/test");
             Assert.AreEqual("/test", service.Path);
