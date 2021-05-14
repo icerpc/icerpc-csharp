@@ -90,8 +90,8 @@ namespace IceRpc
             _prefixMatchRoutes[prefix] = dispatcher;
         }
 
-        /// <summary>Creates a sub-router then configures this sub-router and mounts it (with <see cref="Mount"/>"/> at
-        /// the given <c>prefix</c>.</summary>
+        /// <summary>Creates a sub-router, configures this sub-router and mounts it (with <see cref="Mount"/>"/> at the
+        /// given <c>prefix</c>.</summary>
         /// <param name="prefix">The prefix of the route to the sub-router.</param>
         /// <param name="configure">A delegate that configures the new sub-router.</param>
         /// <returns>The new sub-router.</returns>
@@ -145,7 +145,6 @@ namespace IceRpc
             _middlewareList = _middlewareList.AddRange(middleware);
         }
 
-        /// <inheritdoc/>
         public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
 
         // Trim trailing slashes but keep the leading slash.
