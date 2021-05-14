@@ -3,27 +3,25 @@
 using NUnit.Framework;
 using System;
 using System.Diagnostics.Tracing;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class InvocationEventSourceTests
     {
-        private InvocationEventSource _eventSource;
+        private readonly InvocationEventSource _eventSource;
 
         public InvocationEventSourceTests() =>
             _eventSource = new InvocationEventSource(Guid.NewGuid().ToString());
 
         [Test]
-        public async Task InvocationEventSource_RequestStartAsync()
+        public void InvocationEventSource_RequestStart()
         {
             var expectedEventId = 1;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var pool = new ConnectionPool();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -41,14 +39,13 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task InvocationEventSource_RequestStopAsync()
+        public void InvocationEventSource_RequestStop()
         {
             var expectedEventId = 2;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var pool = new ConnectionPool();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -66,14 +63,13 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task InvocationEventSource_RequestCanceledAsync()
+        public void InvocationEventSource_RequestCanceled()
         {
             var expectedEventId = 3;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var pool = new ConnectionPool();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -91,14 +87,13 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task InvocationEventSource_RequestFailedAsync()
+        public void InvocationEventSource_RequestFailed()
         {
             var expectedEventId = 4;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            await using var pool = new ConnectionPool();
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service", pool);
+            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),

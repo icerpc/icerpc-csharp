@@ -31,10 +31,11 @@ namespace IceRpc.Tests.ClientServer
                     ("total-requests", "10"),
                     ("current-requests", "10"),
                 });
-            await using var pool = new ConnectionPool();
+
+            var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
+            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
+
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
@@ -62,15 +63,19 @@ namespace IceRpc.Tests.ClientServer
                     await Task.Delay(TimeSpan.FromSeconds(1), cancel);
                     return await next.DispatchAsync(request, cancel);
                 }));
-            router.Map("/test", new Greeter1());
+            router.Map<IGreeterTestService>(new Greeter1());
             await using var server = new Server
             {
-                Invoker = pool,
+                Invoker = pipeline,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
-
             server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var greeter = IGreeterTestServicePrx.FromConnection(connection);
+            greeter.Invoker = pipeline;
+
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
             {
@@ -102,21 +107,23 @@ namespace IceRpc.Tests.ClientServer
                     ("canceled-requests", "10")
                 });
 
-            await using var pool = new ConnectionPool();
+            var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
+            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
-            router.Map("/test", new Greeter2());
+            router.Map<IGreeterTestService>(new Greeter2());
             await using var server = new Server
             {
-                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
             server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var greeter = IGreeterTestServicePrx.FromConnection(connection);
+            greeter.Invoker = pipeline;
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -149,22 +156,24 @@ namespace IceRpc.Tests.ClientServer
                     ("failed-requests", "10")
                 });
 
-            await using var pool = new ConnectionPool();
+            var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pool.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
-            var greeter = IGreeterTestServicePrx.Parse("ice+coloc://event_source/test", pool);
+            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
-            router.Map("/test", new Greeter3());
+            router.Map<IGreeterTestService>(new Greeter3());
             await using var server = new Server
             {
-                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
-
             server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var greeter = IGreeterTestServicePrx.FromConnection(connection);
+            greeter.Invoker = pipeline;
+
             for (int i = 0; i < 10; ++i)
             {
                 Assert.ThrowsAsync<DispatchException>(async () => await greeter.SayHelloAsync());

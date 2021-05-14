@@ -102,7 +102,7 @@ namespace IceRpc
         /// <param name="factory">The proxy factory.</param>
         /// <param name="server">The server.</param>
         /// <param name="path">The path.</param>
-         /// <returns>The new proxy.</returns>
+        /// <returns>The new proxy.</returns>
         public static T Create<T>(this ProxyFactory<T> factory, Server server, string path)
             where T : class, IServicePrx
         {

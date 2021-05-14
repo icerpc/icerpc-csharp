@@ -15,7 +15,7 @@ namespace IceRpc
             /// <summary>If set to a non null object the ActivitySource is used to start the request Activity.
             /// </summary>
             public ActivitySource? ActivitySource { get; set; }
-            
+
             /// <summary>The logger factory used to create the IceRpc logger.</summary>
             public ILoggerFactory? LoggerFactory { get; set; }
         }
@@ -44,7 +44,7 @@ namespace IceRpc
                         activity = new Activity($"{request.Path}/{request.Operation}");
                         activity.Start();
                     }
-                    
+
                     if (activity != null)
                     {
                         activity.AddTag("rpc.system", "icerpc");
