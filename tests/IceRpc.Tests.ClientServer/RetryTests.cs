@@ -475,7 +475,6 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = router,
-                Invoker = pipeline,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 ProxyHost = "localhost"
