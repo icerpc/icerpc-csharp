@@ -1,13 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The Ice1 network socket implements a multi-stream transport using the Ice1 protocol. A new incoming
     /// stream is created for each incoming Ice1 request and an outgoing stream is created for outgoing requests.

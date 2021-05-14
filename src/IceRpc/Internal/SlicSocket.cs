@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slic;
 using System;
 using System.Buffers;
@@ -9,7 +8,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The Slic socket implements a multi-stream transport on top of a single-stream transport such
     /// as TCP. It supports the same set of features as Quic.</summary>

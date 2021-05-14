@@ -4,7 +4,7 @@ using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>An abstract multi-stream socket which is using a single stream socket for receiving and sending
     /// data.</summary>
