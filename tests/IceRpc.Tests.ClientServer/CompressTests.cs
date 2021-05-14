@@ -20,8 +20,8 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2048, 2048, "Fastest")]
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
-            await using var pool = new ConnectionPool();
-            pool.Use(Interceptors.CustomCompressor(
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.CustomCompressor(
                 new Interceptors.CompressorOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
@@ -63,7 +63,6 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Invoker = pool,
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
@@ -71,8 +70,10 @@ namespace IceRpc.Tests.ClientServer
             server.Dispatcher = router;
             server.Listen();
 
-            router.Map("/compress", new CompressService());
-            ICompressServicePrx prx = ICompressServicePrx.FromServer(server, "/compress");
+            router.Map<ICompressService>(new CompressService());
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            ICompressServicePrx prx = ICompressServicePrx.FromConnection(connection);
+            prx.Invoker = pipeline;
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);

@@ -374,7 +374,7 @@ namespace IceRpc.Tests.Api
                 "SayHello",
                 Payload.FromEmptyArgs(prx));
 
-            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(prx, responseConnection));
+            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(responseConnection, prx.Invoker));
         }
 
         [Test]
@@ -423,24 +423,38 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_FactoryMethodsAsync()
         {
             Assert.AreEqual("/Ice.Object", IServicePrx.DefaultPath);
-            IServicePrx? service = IServicePrx.FromPath();
-            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
-            Assert.IsNull(service.Endpoint);
 
-            service = IServicePrx.FromPath("/test");
+            var service = IServicePrx.FromPath("/test");
             Assert.AreEqual("/test", service.Path);
             Assert.IsNull(service.Endpoint);
 
             Assert.AreEqual("/IceRpc.Tests.Api.GreeterService", IGreeterServicePrx.DefaultPath);
-            IGreeterServicePrx? greeter = IGreeterServicePrx.FromPath();
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
-            Assert.IsNull(greeter.Endpoint);
 
-            greeter = IGreeterServicePrx.FromPath("/test");
+            var greeter = IGreeterServicePrx.FromPath("/test");
             Assert.AreEqual("/test", greeter.Path);
             Assert.IsNull(greeter.Endpoint);
 
-            var connection = new Connection { RemoteEndpoint = "ice+tcp://localhost:10000" };
+            dynamic? capture = null;
+            var router = new Router();
+            router.Use(next => new InlineDispatcher((request, cancel) =>
+            {
+                capture = new
+                {
+                    IncomingConnection = request.Connection,
+                    Service = IServicePrx.FromConnection(request.Connection),
+                    Greeter = IGreeterServicePrx.FromConnection(request.Connection)
+                };
+                return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
+            }));
+
+            await using var server = new Server
+            {
+                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
+                ProxyHost = "localhost",
+                Dispatcher = router
+            };
+            server.Listen();
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
             service = IServicePrx.FromConnection(connection);
             Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
@@ -452,28 +466,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection, greeter.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
 
-            await using var pool = new ConnectionPool { IsInvoker = false };
-            var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Binder(pool));
-
-            var router = new Router();
-            router.Use(next => new InlineDispatcher((request, cancel) =>
-                {
-                    connection = request.Connection;
-                    service = IServicePrx.FromConnection(request.Connection);
-                    greeter = IGreeterServicePrx.FromConnection(request.Connection);
-                    return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
-                }));
-
-            await using var server = new Server
-            {
-                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
-                ProxyHost = "localhost",
-                Invoker = pipeline,
-                Dispatcher = router
-            };
-            server.Listen();
-
             service = IServicePrx.FromServer(server);
             Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
             Assert.IsNull(service.Connection);
@@ -484,20 +476,17 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(greeter.Connection);
             Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
 
-            service = null;
-            greeter = null;
+            await IServicePrx.FromConnection(connection).IcePingAsync();
 
-            await IServicePrx.FromServer(server).IcePingAsync();
-
-            Assert.IsNotNull(service);
-            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
-            Assert.AreEqual(connection, service.Connection);
-            Assert.IsNull(service.Endpoint);
+            Assert.IsNotNull(capture);
+            Assert.AreEqual(IServicePrx.DefaultPath, capture.Service.Path);
+            Assert.AreEqual(capture.IncomingConnection, capture.Service.Connection);
+            Assert.IsNull(capture.Service.Endpoint);
 
             Assert.IsNotNull(greeter);
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
-            Assert.AreEqual(connection, greeter.Connection);
-            Assert.IsNull(greeter.Endpoint);
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, capture.Greeter.Path);
+            Assert.AreEqual(capture.IncomingConnection, capture.Greeter.Connection);
+            Assert.IsNull(capture.Greeter.Endpoint);
         }
 
         public class GreeterService : IGreeterService

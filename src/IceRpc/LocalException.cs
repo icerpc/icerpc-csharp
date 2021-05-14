@@ -26,19 +26,19 @@ namespace IceRpc
         }
     }
 
-    /// <summary>This exception reports an attempt to use a destroyed communicator.</summary>
-    public class CommunicatorDisposedException : ObjectDisposedException
+    /// <summary>This exception reports an attempt to use a destroyed <see cref="ConnectionPool"/>.</summary>
+    public class ConnectionPoolDisposedException : ObjectDisposedException
     {
-        /// <summary>Constructs a new instance of the <see cref="CommunicatorDisposedException"/> class.</summary>
-        public CommunicatorDisposedException()
+        /// <summary>Constructs a new instance of the <see cref="ConnectionPoolDisposedException"/> class.</summary>
+        public ConnectionPoolDisposedException()
             : base(objectName: null, message: "communicator shutdown")
         {
         }
 
-        /// <summary>Constructs a new instance of the <see cref="CommunicatorDisposedException"/> class with a
+        /// <summary>Constructs a new instance of the <see cref="ConnectionPoolDisposedException"/> class with a
         /// reference to the inner exception that is the cause of this exception.</summary>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public CommunicatorDisposedException(Exception innerException)
+        public ConnectionPoolDisposedException(Exception innerException)
             : base($"{typeof(ConnectionPool).FullName}", innerException)
         {
         }

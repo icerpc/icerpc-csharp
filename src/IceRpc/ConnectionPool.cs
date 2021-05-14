@@ -63,7 +63,7 @@ namespace IceRpc
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    throw new CommunicatorDisposedException(ex);
+                    throw new ConnectionPoolDisposedException(ex);
                 }
             }
         }
@@ -252,7 +252,7 @@ namespace IceRpc
                 {
                     if (_shutdownTask != null)
                     {
-                        throw new CommunicatorDisposedException();
+                        throw new ConnectionPoolDisposedException();
                     }
 
                     // Check if there is an active connection that we can use according to the endpoint settings.

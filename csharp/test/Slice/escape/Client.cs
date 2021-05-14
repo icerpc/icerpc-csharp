@@ -102,27 +102,29 @@ public class Client : TestHelper
 
         await using var server = new IceRpc.Server
         {
-            Invoker = ConnectionPool,
             Dispatcher = router,
             Endpoint = $"ice+coloc://{Guid.NewGuid()}"
         };
 
         server.Listen();
 
+        await using var connection = new IceRpc.Connection { RemoteEndpoint = server.ProxyEndpoint };
+
         Output.Write("testing operation name... ");
         Output.Flush();
-        IdecimalPrx p = IdecimalPrx.FromServer(server, "/test");
+
+        IdecimalPrx p = IdecimalPrx.FromConnection(connection, "/test");
         await p.defaultAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.FromServer(server, "/test1");
+            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.FromConnection(connection, "/test1");
         await t1.opAsync();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            IceRpc.Slice.Test.Escape.System.ITestPrx.FromServer(server, "/test2");
+            IceRpc.Slice.Test.Escape.System.ITestPrx.FromConnection(connection, "/test2");
         await t2.opAsync();
         Output.WriteLine("ok");
 
@@ -134,7 +136,6 @@ public class Client : TestHelper
 
     public static async Task<int> Main(string[] args)
     {
-        await using var communicator = CreateCommunicator();
-        return await RunTestAsync<Client>(communicator, args);
+        return await RunTestAsync<Client>(args);
     }
 }

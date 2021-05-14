@@ -19,7 +19,7 @@ namespace IceRpc
         /// <param name="encoding">The encoding of the data in the buffer.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (optional).</param>
+        /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
@@ -43,7 +43,7 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
         /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (optional).</param>
+        /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <returns>The value read from the buffer.</returns>
         /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
@@ -55,78 +55,9 @@ namespace IceRpc
             IInvoker? invoker = null) =>
             buffer.Read(Encoding.V20, reader, connection, invoker);
 
-        /// <summary>Reads an empty encapsulation from the buffer.</summary>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of encapsulation header.</param>
-        /// <exception name="InvalidDataException">Thrown when the buffer is not an empty encapsulation, for example
-        /// when buffer contains an encapsulation that does not have only tagged parameters.</exception>
-        public static void ReadEmptyEncapsulation(this ReadOnlyMemory<byte> buffer, Encoding encoding) =>
-            new InputStream(buffer,
-                            encoding,
-                            startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
-
-        /// <summary>Reads an empty encapsulation from the buffer, with the encapsulation header encoded using the 2.0
-        /// encoding.</summary>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <exception name="InvalidDataException">Thrown when the buffer is not an empty encapsulation, for example
-        /// when buffer contains an encapsulation that does not have only tagged parameters.</exception>
-        public static void ReadEmptyEncapsulation(this ReadOnlyMemory<byte> buffer) =>
-            buffer.ReadEmptyEncapsulation(Encoding.V20);
-
-        /// <summary>Reads the contents of an encapsulation from the buffer.</summary>
-        /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of encapsulation header in the buffer.</param>
-        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
-        /// encapsulation using an <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The contents of the encapsulation read from the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
-        /// <c>payloadReader</c> finds invalid data.</exception>
-        public static T ReadEncapsulation<T>(
-            this ReadOnlyMemory<byte> buffer,
-            Encoding encoding,
-            InputStreamReader<T> payloadReader,
-            Connection? connection = null,
-            IInvoker? invoker = null)
-        {
-            var istr = new InputStream(buffer, encoding, connection, invoker, startEncapsulation: true);
-            T result = payloadReader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
-        }
-
-        /// <summary>Reads the contents of an encapsulation from the buffer, with the encapsulation header encoded
-        /// using the 2.0 encoding.</summary>
-        /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
-        /// encapsulation using an <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection (optional).</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The contents of the encapsulation read from the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
-        /// <c>payloadReader</c> finds invalid data.</exception>
-        public static T ReadEncapsulation<T>(
-            this ReadOnlyMemory<byte> buffer,
-            InputStreamReader<T> payloadReader,
-            Connection? connection = null,
-            IInvoker? invoker = null) =>
-            buffer.ReadEncapsulation(Encoding.V20, payloadReader, connection, invoker);
-
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
 
-        internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment, int start) =>
-            segment.AsMemory(start);
-
-        internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment, int start, int length) =>
-            segment.AsMemory(start, length);
-
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment) => segment;
-
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start) =>
-            segment.AsSpan(start);
 
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start, int length) =>
             segment.AsSpan(start, length);

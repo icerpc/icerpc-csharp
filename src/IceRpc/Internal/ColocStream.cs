@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>The SocketStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledSocketStream<(object, bool)>
