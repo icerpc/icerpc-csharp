@@ -66,7 +66,6 @@ namespace IceRpc.Tests.ClientServer
             router.Map<IGreeterTestService>(new Greeter1());
             await using var server = new Server
             {
-                Invoker = pipeline,
                 Dispatcher = router,
                 Endpoint = "ice+coloc://event_source"
             };
@@ -124,6 +123,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             var greeter = IGreeterTestServicePrx.FromConnection(connection);
             greeter.Invoker = pipeline;
+            // TODO temporary until auto-connect is reliable
             await connection.ConnectAsync();
 
             var tasks = new List<Task>();

@@ -31,7 +31,6 @@ namespace IceRpc.Tests.ClientServer
             Servant = new TestService();
             Server = new Server
             {
-                Invoker = Connection,
                 HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),

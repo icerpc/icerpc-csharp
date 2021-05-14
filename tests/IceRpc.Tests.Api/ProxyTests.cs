@@ -440,13 +440,16 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("/test", greeter.Path);
             Assert.IsNull(greeter.Endpoint);
 
-            Connection? incomingConnection = null;
+            dynamic? capture = null;
             var router = new Router();
             router.Use(next => new InlineDispatcher((request, cancel) =>
             {
-                incomingConnection = request.Connection;
-                service = IServicePrx.FromConnection(request.Connection);
-                greeter = IGreeterServicePrx.FromConnection(request.Connection);
+                capture = new
+                {
+                    IncomingConnection = request.Connection,
+                    Service = IServicePrx.FromConnection(request.Connection),
+                    Greeter = IGreeterServicePrx.FromConnection(request.Connection)
+                };
                 return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
             }));
 
@@ -479,20 +482,17 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(greeter.Connection);
             Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
 
-            service = null;
-            greeter = null;
-
             await IServicePrx.FromConnection(connection).IcePingAsync();
 
-            Assert.IsNotNull(service);
-            Assert.AreEqual(IServicePrx.DefaultPath, service.Path);
-            Assert.AreEqual(incomingConnection, service.Connection);
-            Assert.IsNull(service.Endpoint);
+            Assert.IsNotNull(capture);
+            Assert.AreEqual(IServicePrx.DefaultPath, capture.Service.Path);
+            Assert.AreEqual(capture.IncomingConnection, capture.Service.Connection);
+            Assert.IsNull(capture.Service.Endpoint);
 
             Assert.IsNotNull(greeter);
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
-            Assert.AreEqual(incomingConnection, greeter.Connection);
-            Assert.IsNull(greeter.Endpoint);
+            Assert.AreEqual(IGreeterServicePrx.DefaultPath, capture.Greeter.Path);
+            Assert.AreEqual(capture.IncomingConnection, capture.Greeter.Connection);
+            Assert.IsNull(capture.Greeter.Endpoint);
         }
 
         public class GreeterService : IGreeterService

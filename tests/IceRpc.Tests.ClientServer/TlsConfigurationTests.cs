@@ -60,7 +60,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(prx.Connection!.IsSecure);
+            Assert.IsTrue(connection.IsSecure);
         }
 
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12")]
@@ -106,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(prx.Connection!.IsSecure);
+            Assert.IsTrue(connection.IsSecure);
             Assert.IsTrue(clientValidationCallbackCalled);
             Assert.IsTrue(serverValidationCallbackCalled);
         }
@@ -161,7 +161,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(prx.Connection!.IsSecure);
+            Assert.IsTrue(connection.IsSecure);
         }
 
         // The client doesn't have a CA certificate to verify the server
@@ -315,7 +315,7 @@ namespace IceRpc.Tests.ClientServer
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
                 Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-                Assert.IsTrue(prx.Connection!.IsSecure);
+                Assert.IsTrue(connection.IsSecure);
             }
             else
             {
