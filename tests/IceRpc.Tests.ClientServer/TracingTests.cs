@@ -72,90 +72,92 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Tracing_DispatchActivityAsync()
         {
-            await using var pool = new ConnectionPool();
+            {
+                var router = new Router();
+                Activity? dispatchActivity = null;
+                bool called = false;
+                router.Use(Middleware.Tracer);
+                router.Use(next => new InlineDispatcher(
+                    async (current, cancel) =>
+                    {
+                        called = true;
+                        dispatchActivity = Activity.Current;
+                        return await next.DispatchAsync(current, cancel);
+                    }));
+                router.Map<IGreeterTestService>(new GreeterService());
 
-            var router = new Router();
-            Activity? dispatchActivity = null;
-            bool called = false;
-            router.Use(Middleware.Tracer);
-            router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                await using var server = new Server
                 {
-                    called = true;
-                    dispatchActivity = Activity.Current;
-                    return await next.DispatchAsync(current, cancel);
-                }));
-            router.Map("/", new GreeterService());
+                    Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                    Dispatcher = router
+                };
+                server.Listen();
 
-            await using var server1 = new Server
+                // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
+                // the server has an ActivitySource with listeners.
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                await prx.IcePingAsync();
+                Assert.IsTrue(called);
+                Assert.IsNull(dispatchActivity);
+                await server.ShutdownAsync();
+            }
+
             {
-                Invoker = pool,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = router
-            };
-            server1.Listen();
+                Activity? dispatchActivity = null;
+                using var activitySource = new ActivitySource("TracingTestActivitySource");
 
-            // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
-            // the server has an ActivitySource with listeners.
-            var prx = IGreeterTestServicePrx.FromServer(server1, "/");
-            await prx.IcePingAsync();
-            Assert.IsTrue(called);
-            Assert.IsNull(dispatchActivity);
-            await server1.ShutdownAsync();
-
-            using var activitySource = new ActivitySource("TracingTestActivitySource");
-
-            // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
-            var dispatchStartedActivities = new List<Activity>();
-            var dispatchStoppedActivities = new List<Activity>();
-            var waitForStopSemaphore = new SemaphoreSlim(0);
-            using var listener = new ActivityListener
-            {
-                ShouldListenTo = source => source == activitySource,
-                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-                ActivityStarted = activity => dispatchStartedActivities.Add(activity),
-                ActivityStopped = activity =>
+                // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
+                var dispatchStartedActivities = new List<Activity>();
+                var dispatchStoppedActivities = new List<Activity>();
+                var waitForStopSemaphore = new SemaphoreSlim(0);
+                using var listener = new ActivityListener
+                {
+                    ShouldListenTo = source => source == activitySource,
+                    Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+                    ActivityStarted = activity => dispatchStartedActivities.Add(activity),
+                    ActivityStopped = activity =>
                     {
                         dispatchStoppedActivities.Add(activity);
                         waitForStopSemaphore.Release();
                     }
-            };
-            ActivitySource.AddActivityListener(listener);
+                };
+                ActivitySource.AddActivityListener(listener);
 
-            router = new Router();
-            // Now configure the CustomTracer with an ActivitySource to trigger the creation of the Dispatch activity.
-            router.Use(Middleware.CustomTracer(new Middleware.TracerOptions
-            {
-                ActivitySource = activitySource
-            }));
-            router.Use(next => new InlineDispatcher(
-                async (current, cancel) =>
+                var router = new Router();
+                // Now configure the CustomTracer with an ActivitySource to trigger the creation of the Dispatch activity.
+                router.Use(Middleware.CustomTracer(new Middleware.TracerOptions
                 {
-                    called = true;
-                    dispatchActivity = Activity.Current;
-                    return await next.DispatchAsync(current, cancel);
+                    ActivitySource = activitySource
                 }));
-            router.Map("/", new GreeterService());
+                router.Use(next => new InlineDispatcher(
+                    async (current, cancel) =>
+                    {
+                        dispatchActivity = Activity.Current;
+                        return await next.DispatchAsync(current, cancel);
+                    }));
+                router.Map<IGreeterTestService>(new GreeterService());
 
 
-            await using var server2 = new Server
-            {
-                Invoker = pool,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = router,
-                ActivitySource = activitySource
-            };
-
-            server2.Listen();
-            prx = IGreeterTestServicePrx.FromServer(server2, "/");
-            await prx.IcePingAsync();
-            // Await the server shutdown to ensure the dispatch has finish
-            await server2.ShutdownAsync();
-            Assert.IsNotNull(dispatchActivity);
-            Assert.AreEqual("//ice_ping", dispatchActivity.DisplayName);
-            // Wait to receive the dispatch activity stop event
-            Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
-            CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
+                await using var server = new Server
+                {
+                    Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                    Dispatcher = router,
+                    ActivitySource = activitySource,
+                };
+                server.Listen();
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                await prx.IcePingAsync();
+                // Await the server shutdown to ensure the dispatch has finish
+                await server.ShutdownAsync();
+                Assert.IsNotNull(dispatchActivity);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.GreeterTestService/ice_ping",
+                                dispatchActivity.DisplayName);
+                // Wait to receive the dispatch activity stop event
+                Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
+                CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
+            }
         }
 
         /// <summary>Ensure that the Invocation activity is restored in the server side and used as the
@@ -165,8 +167,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Tracing_ActivityPropagationAsync(Protocol protocol)
         {
-            await using var pool = new ConnectionPool();
-
             Activity? invocationActivity = null;
             Activity? dispatchActivity = null;
 
@@ -199,19 +199,20 @@ namespace IceRpc.Tests.ClientServer
                     dispatchActivity = Activity.Current;
                     return await next.DispatchAsync(current, cancel);
                 }));
-            router.Map("/test", new GreeterService());
+            router.Map<IGreeterTestService>(new GreeterService());
 
             await using var server = new Server
             {
-                Invoker = pool,
                 Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
                 Dispatcher = router,
-                ActivitySource = activitySource
+                ActivitySource = activitySource,
+                ProxyHost = "localhost"
             };
 
             server.Listen();
 
-            var prx = IGreeterTestServicePrx.FromServer(server, "/test");
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = IGreeterTestServicePrx.FromConnection(connection);
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.
@@ -219,8 +220,9 @@ namespace IceRpc.Tests.ClientServer
             testActivity.Start();
             Assert.IsNotNull(Activity.Current);
 
-            pool.Use(Interceptors.Tracer);
-            pool.Use(next => new InlineInvoker((request, cancel) =>
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Tracer);
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;
                 // Add some entries to the baggage to ensure that it is correctly propagated
@@ -230,6 +232,7 @@ namespace IceRpc.Tests.ClientServer
                 invocationActivity?.AddBaggage("TraceLevel", "Information");
                 return next.InvokeAsync(request, cancel);
             }));
+            prx.Invoker = pipeline;
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();

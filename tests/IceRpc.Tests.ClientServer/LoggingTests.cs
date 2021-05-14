@@ -114,17 +114,24 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
-            await using var pool = new ConnectionPool { LoggerFactory = loggerFactory };
-            pool.Use(Interceptors.Logger(loggerFactory));
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Logger(loggerFactory));
 
             var router = new Router();
             router.Use(Middleware.Logger(loggerFactory));
-            router.Map("/", new TestService());
-            await using var server = CreateServer(pool, colocated, portNumber: 1);
+            router.Map<IService>(new TestService());
+            await using var server = CreateServer(colocated, portNumber: 1);
             server.Dispatcher = router;
             server.Listen();
 
-            IServicePrx service = IServicePrx.FromServer(server, "/");
+            await using var connection = new Connection
+            {
+                LoggerFactory = loggerFactory,
+                RemoteEndpoint = server.ProxyEndpoint,
+            };
+
+            IServicePrx service = IServicePrx.FromConnection(connection);
+            service.Invoker = pipeline;
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -141,15 +148,21 @@ namespace IceRpc.Tests.ClientServer
             using var loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
-            await using var pool = new ConnectionPool { LoggerFactory = loggerFactory };
-            pool.Use(Interceptors.Logger(loggerFactory));
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.Logger(loggerFactory));
 
             var router = new Router();
-            await using Server server = CreateServer(pool, colocated, portNumber: 2);
+            await using Server server = CreateServer(colocated, portNumber: 2);
             router.Use(Middleware.Logger(loggerFactory));
             server.Listen();
 
-            IServicePrx service = IServicePrx.FromServer(server, "/");
+            await using var connection = new Connection
+            {
+                LoggerFactory = loggerFactory,
+                RemoteEndpoint = server.ProxyEndpoint,
+            };
+            IServicePrx service = IServicePrx.FromConnection(connection);
+            service.Invoker = pipeline;
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();
@@ -271,12 +284,11 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("Client", scope.GetProperty("InitiatedBy").GetString());
             Assert.AreEqual("Bidirectional", scope.GetProperty("Kind").GetString());
         }
-        private Server CreateServer(ConnectionPool pool, bool colocated, int portNumber) =>
+        private Server CreateServer(bool colocated, int portNumber) =>
 
             new Server
             {
                 HasColocEndpoint = false,
-                Invoker = pool,
                 Dispatcher = new TestService(),
                 Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
                 ProxyHost = "localhost"

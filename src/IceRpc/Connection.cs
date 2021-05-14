@@ -745,7 +745,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => _socket!.StartScope();
+        internal IDisposable? StartScope() => _socket?.StartScope();
 
         private async ValueTask AcceptStreamAsync()
         {
