@@ -44,7 +44,7 @@ namespace IceRpc.Interop
             }
             else if (proxy.Protocol == Protocol.Ice1)
             {
-                var prx = IceRpc.Proxy.GetFactory<T>()(proxy.Path, Protocol.Ice1);
+                var prx = IceRpc.Proxy.GetFactory<T>().Create(proxy.Path, Protocol.Ice1);
                 prx.Impl.Identity = proxy.GetIdentity();
                 prx.Impl.Facet = facet;
                 return prx;

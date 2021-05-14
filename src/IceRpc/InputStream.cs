@@ -108,9 +108,10 @@ namespace IceRpc
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
+        /// <summary>Connection used when unmarshaling proxies.</summary>
         internal Connection? Connection { get; }
 
-        /// <summary>Invoker used when unmarshaling proxies using Connection.</summary>
+        /// <summary>Invoker used when unmarshaling proxies.</summary>
         internal IInvoker? Invoker { get; }
 
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
@@ -979,6 +980,7 @@ namespace IceRpc
         {
             Connection = connection;
             Invoker = invoker;
+
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
 
             Pos = 0;

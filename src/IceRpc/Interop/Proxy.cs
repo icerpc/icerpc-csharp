@@ -121,7 +121,7 @@ namespace IceRpc.Interop
             Identity identity,
             string facet) where T : class, IServicePrx
         {
-            T proxy = proxyFactory(identity.ToPath(), Protocol.Ice1);
+            T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
             proxy.Impl.Identity = identity;
             proxy.Impl.Facet = facet;
             return proxy;

@@ -12,20 +12,14 @@ namespace IceRpc
     /// <summary>A delegate that reads the return value from a response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="payload">The response payload.</param>
-    /// <param name="proxy">The proxy used to send the request.</param>
     /// <param name="connection">The connection that received this response.</param>
+    /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
-    public delegate T ResponseReader<T>(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection);
-
-    /// <summary>A delegate that creates a proxy from a path and a protocol.</summary>
-    /// <typeparam name="T">The proxy type</typeparam>
-    /// <param name="path">The proxy path.</param>
-    /// <param name="protocol">The proxy protocol</param>
-    /// <returns>The new created proxy.</returns>
-    public delegate T ProxyFactory<T>(string path, Protocol protocol) where T : class, IServicePrx;
+    public delegate T ResponseReader<T>(ReadOnlyMemory<byte> payload, Connection connection, IInvoker? invoker);
 
     /// <summary>Base interface of all service proxies.</summary>
+    [TypeId("::Ice::Object")]
     public interface IServicePrx : IEquatable<IServicePrx>
     {
         /// <summary>Converts the arguments of each operation that takes arguments into a request payload.</summary>
@@ -45,29 +39,29 @@ namespace IceRpc
         {
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
             /// </summary>
-            public static string IceId(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
-                payload.ToReturnValue(InputStream.IceReaderIntoString, proxy, connection);
+            public static string IceId(ReadOnlyMemory<byte> payload, Connection connection, IInvoker? invoker) =>
+                payload.ToReturnValue(InputStream.IceReaderIntoString, connection, invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
-            public static string[] IceIds(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
+            public static string[] IceIds(ReadOnlyMemory<byte> payload, Connection connection, IInvoker? invoker) =>
                 payload.ToReturnValue(istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
-                                      proxy,
-                                      connection);
+                                      connection,
+                                      invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
             /// </summary>
-            public static bool IceIsA(ReadOnlyMemory<byte> payload, IServicePrx proxy, Connection connection) =>
-                payload.ToReturnValue(InputStream.IceReaderIntoBool, proxy, connection);
+            public static bool IceIsA(ReadOnlyMemory<byte> payload, Connection connection, IInvoker? invoker) =>
+                payload.ToReturnValue(InputStream.IceReaderIntoBool, connection, invoker);
         }
 
         /// <summary>The path for proxies of <see cref="IServicePrx"/> type when the path is not explicitly specified.
         /// </summary>
-        public const string DefaultPath = "/Ice.Object";
+        public static string DefaultPath => Factory.DefaultPath;
 
         /// <summary>Factory for <see cref="IServicePrx"/> proxies from path and protocol arguments.</summary>
         public static readonly ProxyFactory<IServicePrx> Factory =
-            (path, protocol) => new ServicePrx(path, protocol);
+            new((path, protocol) => new ServicePrx(path, protocol));
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -82,15 +76,14 @@ namespace IceRpc
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(Connection connection, string? path = null) =>
-            Factory.Create(connection, path ?? DefaultPath);
+            Factory.Create(connection, path);
 
         /// <summary>Creates an <see cref="IServicePrx"/> endpointless proxy with the given path and protocol.</summary>
-        /// <param name="path">The optional path for the proxy, if null the <see cref="DefaultPath"/> is used.
-        /// </param>
+        /// <param name="path">The path of the proxy.</param>
         /// <param name="protocol">The proxy protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static IServicePrx FromPath(string? path = null, Protocol protocol = Protocol.Ice2) =>
-           Factory.Create(path ?? DefaultPath, protocol);
+        public static IServicePrx FromPath(string path, Protocol protocol = Protocol.Ice2) =>
+           Factory.Create(path, protocol, setIdentity: true);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given server and path.</summary>
         /// <param name="server">The created proxy uses the <see cref="Server.ProxyEndpoint"/> as its
@@ -99,7 +92,7 @@ namespace IceRpc
         /// </param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromServer(Server server, string? path = null) =>
-            Factory.Create(server, path ?? DefaultPath);
+            Factory.Create(server, path);
 
         /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -277,7 +270,7 @@ namespace IceRpc
             {
                 (ReadOnlyMemory<byte> responsePayload, Connection connection) =
                     await responseTask.ConfigureAwait(false);
-                return responseReader(responsePayload, this, connection);
+                return responseReader(responsePayload, connection, Invoker);
             }
         }
 
@@ -312,7 +305,7 @@ namespace IceRpc
             {
                 (ReadOnlyMemory<byte> responsePayload, Connection connection) =
                      await responseTask.ConfigureAwait(false);
-                responsePayload.ToVoidReturnValue(this, connection);
+                responsePayload.ToVoidReturnValue(connection, Invoker);
             }
         }
     }
