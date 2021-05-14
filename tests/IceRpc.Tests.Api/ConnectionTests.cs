@@ -70,34 +70,36 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Connection_DispatcherAsync()
         {
-            var router = new Router();
-            router.Use(next => new InlineDispatcher(async (request, cancel) =>
+            // there are two greeter objects, one in the server an another in the client. The clients
+            // ping the server object and the server pings back the client object from the middleware.
+            var serverRouter = new Router();
+            serverRouter.Use(next => new InlineDispatcher(async (request, cancel) =>
             {
                 await IGreeterServicePrx.FromConnection(request.Connection).IcePingAsync(cancel: cancel);
-                return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
+                return await next.DispatchAsync(request, cancel);
             }));
-            router.Map<IGreeterService>(new GreeterService());
+            serverRouter.Map<IGreeterService>(new GreeterService());
 
             await using var server = new Server
             {
                 Endpoint = "ice+coloc://connection_dispatcher:1000",
-                Dispatcher = router
+                Dispatcher = serverRouter
             };
             server.Listen();
 
-            router = new Router();
+            var clientRouter = new Router();
             IncomingRequest? bidirRequest = null;
-            router.Use(next => new InlineDispatcher((request, cancel) =>
+            clientRouter.Use(next => new InlineDispatcher((request, cancel) =>
             {
                 bidirRequest = request;
-                return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
+                return next.DispatchAsync(request, cancel);
             }));
-            router.Map<IGreeterService>(new GreeterService());
+            clientRouter.Map<IGreeterService>(new GreeterService());
 
             await using var connection = new Connection
             {
                 RemoteEndpoint = server.ProxyEndpoint,
-                Dispatcher = router
+                Dispatcher = clientRouter
             };
 
             var prx = IGreeterServicePrx.FromConnection(connection);
