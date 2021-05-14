@@ -11,7 +11,6 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
-
         // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
         // and the first segment has always at least 2 bytes.
         private static readonly OutputStream.Position _responseEncapsulationStart = new(0, 1);

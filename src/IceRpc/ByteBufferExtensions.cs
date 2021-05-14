@@ -37,7 +37,7 @@ namespace IceRpc
             return result;
         }
 
-        /// <summary>Reads a value from the buffer that uses Ice 2.0 encoding. This value cannot contain classes or
+        /// <summary>Reads a value from the buffer that uses the Ice 2.0 encoding. This value cannot contain classes or
         /// exceptions.</summary>
         /// <typeparam name="T">The type of the value.</typeparam>
         /// <param name="buffer">The byte buffer.</param>
