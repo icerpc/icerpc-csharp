@@ -9,13 +9,13 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InvocationInterceptorTests
+    public class InterceptorTests
     {
         private readonly Connection _connection;
-        private readonly IInvocationInterceptorTestServicePrx _prx;
+        private readonly IInterceptorTestServicePrx _prx;
         private readonly Server _server;
 
-        public InvocationInterceptorTests()
+        public InterceptorTests()
         {
             _server = new Server
             {
@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Api
             _server.Listen();
 
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IInvocationInterceptorTestServicePrx.FromConnection(_connection);
+            _prx = IInterceptorTestServicePrx.FromConnection(_connection);
 
             // TODO: temporary, to ensure the connection is not "activated" concurrently
             _connection.ConnectAsync().Wait();
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Api
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
         /// receives the exception.</summary>
         [Test]
-        public void InvocationInterceptor_Throws_ArgumentException()
+        public void Interceptor_Throws_ArgumentException()
         {
             var prx = _prx.Clone();
             var pipeline = new Pipeline();
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Ensure that invocation timeout is triggered if the interceptor takes too much time.</summary>
         [Test]
-        public void InvocationInterceptor_Timeout_OperationCanceledException()
+        public void Interceptor_Timeout_OperationCanceledException()
         {
             var prx = _prx.Clone();
             var pipeline = new Pipeline();
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Ensure that invocation interceptors are called in the expected order.</summary>
         [Test]
-        public async Task InvocationInterceptor_CallOrder()
+        public async Task Interceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
             var prx = _prx.Clone();
@@ -71,32 +71,32 @@ namespace IceRpc.Tests.Api
             pipeline.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
-                    interceptorCalls.Add("ProxyInvocationInterceptors -> 0");
+                    interceptorCalls.Add("ProxyInterceptors -> 0");
                     var result = await next.InvokeAsync(request, cancel);
-                    interceptorCalls.Add("ProxyInvocationInterceptors <- 0");
+                    interceptorCalls.Add("ProxyInterceptors <- 0");
                     return result;
                 }),
                 next => new InlineInvoker(async (request, cancel) =>
                 {
-                    interceptorCalls.Add("ProxyInvocationInterceptors -> 1");
+                    interceptorCalls.Add("ProxyInterceptors -> 1");
                     var result = await next.InvokeAsync(request, cancel);
-                    interceptorCalls.Add("ProxyInvocationInterceptors <- 1");
+                    interceptorCalls.Add("ProxyInterceptors <- 1");
                     return result;
                 }));
 
             await prx.IcePingAsync();
 
-            Assert.AreEqual("ProxyInvocationInterceptors -> 0", interceptorCalls[0]);
-            Assert.AreEqual("ProxyInvocationInterceptors -> 1", interceptorCalls[1]);
-            Assert.AreEqual("ProxyInvocationInterceptors <- 1", interceptorCalls[2]);
-            Assert.AreEqual("ProxyInvocationInterceptors <- 0", interceptorCalls[3]);
+            Assert.AreEqual("ProxyInterceptors -> 0", interceptorCalls[0]);
+            Assert.AreEqual("ProxyInterceptors -> 1", interceptorCalls[1]);
+            Assert.AreEqual("ProxyInterceptors <- 1", interceptorCalls[2]);
+            Assert.AreEqual("ProxyInterceptors <- 0", interceptorCalls[3]);
             Assert.AreEqual(4, interceptorCalls.Count);
         }
 
         /// <summary>Ensure that invocation interceptors can bypass the remote call and directly return a result.
         /// </summary>
         [TestCase(0, 1)]
-        public async Task InvocationInterceptor_Bypass_RemoteCall(int p1, int p2)
+        public async Task Interceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponse? response = null;
             var prx = _prx.Clone();
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public async Task InvocationInterceptor_Overwrite_RequestContext()
+        public async Task Interceptor_Overwrite_RequestContext()
         {
             var prx = _prx.Clone();
             var pipeline = new Pipeline();
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Api
             await _connection.ShutdownAsync();
         }
 
-        internal class TestService : IInvocationInterceptorTestService
+        internal class TestService : IInterceptorTestService
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
                 new(dispatch.Context);

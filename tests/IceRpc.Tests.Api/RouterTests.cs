@@ -144,23 +144,34 @@ namespace IceRpc.Tests.Api
         public async Task Router_RouteAsync(string prefix, string path, string subpath)
         {
             Assert.IsEmpty(_router.AbsolutePrefix);
-            bool called = false;
+            bool mainRouterMiddlewareCalled = false;
+            bool subRouterMiddlewareCalled = false;
+
+            _router.Use(next => new InlineDispatcher(
+                (request, cancel) =>
+                {
+                    mainRouterMiddlewareCalled = true;
+                    Assert.AreEqual(path, request.Path);
+                    return next.DispatchAsync(request, cancel);
+                }));
+
             _router.Route(prefix, r =>
                 {
                     Assert.AreEqual(prefix.TrimEnd('/'), r.AbsolutePrefix);
                     r.Map(subpath, new InlineDispatcher(
-                        async (current, cancel) =>
+                        (request, cancel) =>
                         {
-                            called = true;
-                            Assert.AreEqual(path, current.Path);
-                            Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", current.Path);
-                            return await _service.DispatchAsync(current, cancel);
+                            subRouterMiddlewareCalled = true;
+                            Assert.AreEqual(path, request.Path);
+                            Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", request.Path);
+                            return _service.DispatchAsync(request, cancel);
                         }));
                 });
 
             var greeter = IGreeterServicePrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.IsTrue(called);
+            Assert.IsTrue(mainRouterMiddlewareCalled);
+            Assert.IsTrue(subRouterMiddlewareCalled);
         }
 
         // Same test as above with one more level of nesting
@@ -169,7 +180,18 @@ namespace IceRpc.Tests.Api
         public async Task Router_RouteNestedAsync(string prefix, string subprefix, string path, string subpath)
         {
             Assert.IsEmpty(_router.AbsolutePrefix);
-            bool called = false;
+
+            bool mainRouterMiddlewareCalled = false;
+            bool nestedRouterMiddlewareCalled = false;
+
+            _router.Use(next => new InlineDispatcher(
+                (request, cancel) =>
+                {
+                    mainRouterMiddlewareCalled = true;
+                    Assert.AreEqual(path, request.Path);
+                    return next.DispatchAsync(request, cancel);
+                }));
+
             _router.Route(prefix, r =>
                 {
                     Assert.AreEqual(prefix.TrimEnd('/'), r.AbsolutePrefix);
@@ -178,7 +200,7 @@ namespace IceRpc.Tests.Api
                         r.Map(subpath, new InlineDispatcher(
                             async (current, cancel) =>
                             {
-                                called = true;
+                                nestedRouterMiddlewareCalled = true;
                                 Assert.AreEqual(path, current.Path);
                                 Assert.AreEqual($"{r.AbsolutePrefix}{subpath}", current.Path);
                                 return await _service.DispatchAsync(current, cancel);
@@ -188,7 +210,8 @@ namespace IceRpc.Tests.Api
 
             var greeter = IGreeterServicePrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.IsTrue(called);
+            Assert.IsTrue(mainRouterMiddlewareCalled);
+            Assert.IsTrue(nestedRouterMiddlewareCalled);
         }
 
         [Test]
