@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -28,9 +29,10 @@ namespace IceRpc
         private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
 
-        private readonly List<Func<IDispatcher, IDispatcher>> _middlewareList = new();
+        private ImmutableList<Func<IDispatcher, IDispatcher>> _middlewareList =
+            ImmutableList<Func<IDispatcher, IDispatcher>>.Empty;
 
-        private IDispatcher? _pipeline;
+        private IDispatcher? _dispatcher;
 
         private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes =
             new ConcurrentDictionary<string, IDispatcher>();
@@ -51,7 +53,7 @@ namespace IceRpc
 
         /// <inherit-doc/>
         ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
-            (_pipeline ??= CreatePipeline()).DispatchAsync(request, cancel);
+            (_dispatcher ??= CreateDispatchPipeline()).DispatchAsync(request, cancel);
 
         /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
         /// </summary>
@@ -63,7 +65,6 @@ namespace IceRpc
         public void Map(string path, IDispatcher dispatcher)
         {
             Internal.UriParser.CheckPath(path, nameof(path));
-            _pipeline ??= CreatePipeline();
             _exactMatchRoutes[path] = dispatcher;
         }
 
@@ -72,11 +73,8 @@ namespace IceRpc
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IService service) where T : IService
-        {
-            _pipeline ??= CreatePipeline();
+        public void Map<T>(IService service) where T : IService =>
             _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
-        }
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>
@@ -89,8 +87,6 @@ namespace IceRpc
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
-
-            _pipeline ??= CreatePipeline();
             _prefixMatchRoutes[prefix] = dispatcher;
         }
 
@@ -135,18 +131,18 @@ namespace IceRpc
             return _prefixMatchRoutes.Remove(prefix);
         }
 
-        /// <summary>Installs one or more middleware in this router. Middlewares must be installed before any route is
-        /// registered.</summary>
-        /// <param name="middleware">One or more middlewares.</param>
-        /// <exception name="InvalidOperationException">Raised if a route was already registered, or if
-        /// <see cref="IDispatcher.DispatchAsync"/> was called on this router.</exception>
+        /// <summary>Installs one or more middleware in this router. A middleware must be installed calling
+        /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
+        /// <param name="middleware">One or more middleware.</param>
+        /// <exception name="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was called on
+        /// this router.</exception>
         public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
         {
-            if (_pipeline != null)
+            if (_dispatcher != null)
             {
-                throw new InvalidOperationException("all middlewares must be registered before routes");
+                throw new InvalidOperationException("all middleware must be registered before calling DispatchAsync");
             }
-            _middlewareList.AddRange(middleware);
+            _middlewareList = _middlewareList.AddRange(middleware);
         }
 
         public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
@@ -165,10 +161,10 @@ namespace IceRpc
             return prefix;
         }
 
-        private IDispatcher CreatePipeline()
+        private IDispatcher CreateDispatchPipeline()
         {
             // The last dispatcher of the pipeline:
-            IDispatcher pipeline = new InlineDispatcher(
+            IDispatcher dispatchPipeline = new InlineDispatcher(
                 (request, cancel) =>
                 {
                     string path = request.Path;
@@ -240,9 +236,9 @@ namespace IceRpc
             IEnumerable<Func<IDispatcher, IDispatcher>> middlewareEnumerable = _middlewareList;
             foreach (Func<IDispatcher, IDispatcher> middleware in middlewareEnumerable.Reverse())
             {
-                pipeline = middleware(pipeline);
+                dispatchPipeline = middleware(dispatchPipeline);
             }
-            return pipeline;
+            return dispatchPipeline;
         }
     }
 }

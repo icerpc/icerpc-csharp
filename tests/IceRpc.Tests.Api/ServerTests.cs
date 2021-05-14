@@ -60,10 +60,23 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                // Cannot add a middleware to a router after adding a route
-                var router = new Router();
-                router.Map("/test", new ProxyTest());
+                // Cannot add a middleware to a router after calling DispatchAsync
 
+                var router = new Router();
+                router.Map<IProxyTest>(new ProxyTest());
+
+                await using var server = new Server
+                {
+                    Dispatcher = router,
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var proxy = IProxyTestPrx.FromConnection(connection);
+                server.Listen();
+
+                Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
+                Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
                 Assert.Throws<InvalidOperationException>(() => router.Use(next => next));
             }
 
