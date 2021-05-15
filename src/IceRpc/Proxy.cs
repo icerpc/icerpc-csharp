@@ -264,7 +264,12 @@ namespace IceRpc
         }
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
-        public static T Parse<T>(string s, IInvoker? invoker = null) where T : class, IServicePrx
+        /// <param name="proxyFactory">The proxy factory.</param>
+        /// <param name="s">The string to parse.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
+        /// <returns>The parsed proxy.</returns>
+        public static T Parse<T>(this ProxyFactory<T> proxyFactory, string s, IInvoker? invoker = null)
+            where T : class, IServicePrx
         {
             string proxyString = s.Trim();
             if (proxyString.Length == 0)
@@ -280,14 +285,14 @@ namespace IceRpc
             {
                 string path;
                 (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
-                proxy = GetFactory<T>().Create(path, endpoint?.Protocol ?? Protocol.Ice2);
+                proxy = proxyFactory.Create(path, endpoint?.Protocol ?? Protocol.Ice2);
             }
             else
             {
                 Identity identity;
                 string facet;
                 (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
-                proxy = GetFactory<T>().Create(identity, facet);
+                proxy = proxyFactory.Create(identity, facet);
             }
             proxy.Encoding = encoding;
             proxy.Endpoint = endpoint;
@@ -309,11 +314,11 @@ namespace IceRpc
 
         /// <summary>Reads a nullable proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
+        /// <param name="proxyFactory">The factory used to create the proxy.</param>
         /// <param name="istr">The input stream to read from.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadNullable<T>(
-            ProxyFactory<T> proxyFactory,
+            this ProxyFactory<T> proxyFactory,
             InputStream istr) where T : class, IServicePrx
         {
             if (istr.Encoding == Encoding.V11)
@@ -367,11 +372,25 @@ namespace IceRpc
                             $"received proxy with {proxyData.FacetPath.Count} elements in its facet path");
                     }
 
-                    return CreateIce1Proxy(proxyData.Encoding,
-                                           endpoint,
-                                           altEndpoints,
-                                           proxyData.FacetPath,
-                                           identity);
+                    try
+                    {
+                        T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
+                        proxy.Impl.Identity = identity;
+                        proxy.Impl.FacetPath = proxyData.FacetPath;
+                        proxy.Encoding = proxyData.Encoding;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                        proxy.Invoker = istr.Invoker;
+                        return proxy;
+                    }
+                    catch (InvalidDataException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
                 }
                 else
                 {
@@ -392,17 +411,17 @@ namespace IceRpc
 
                         if (endpoint == null && istr.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, identity.ToPath());
+                            proxy = proxyFactory.Create(connection, identity.ToPath(), istr.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(identity.ToPath(), proxyData.Protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                            proxy.Invoker = istr.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding;
-                        proxy.Invoker = istr.Invoker;
                         return proxy;
                     }
                     catch (Exception ex)
@@ -436,30 +455,38 @@ namespace IceRpc
                 if (protocol == Protocol.Ice1)
                 {
                     ImmutableList<string> facetPath;
-                    Identity identity;
+                    string path;
 
                     int hashIndex = proxyData.Path.IndexOf('#');
                     if (hashIndex == -1)
                     {
-                        identity = Identity.FromPath(proxyData.Path);
+                        path = proxyData.Path;
                         facetPath = ImmutableList<string>.Empty;
                     }
                     else
                     {
-                        identity = Identity.FromPath(proxyData.Path[0..hashIndex]);
+                        path = proxyData.Path[0..hashIndex];
                         facetPath = ImmutableList.Create(proxyData.Path[(hashIndex + 1)..]);
                     }
 
-                    if (identity.Name.Length == 0)
+                    try
                     {
-                        throw new InvalidDataException($"received invalid ice1 identity '{proxyData.Path}'");
+                        T proxy = proxyFactory.Create(path, Protocol.Ice1, setIdentity: true);
+                        proxy.Impl.FacetPath = facetPath;
+                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints;
+                        proxy.Invoker = istr.Invoker;
+                        return proxy;
                     }
-
-                    return CreateIce1Proxy(proxyData.Encoding ?? Encoding.V20,
-                                           endpoint,
-                                           altEndpoints,
-                                           facetPath,
-                                           identity);
+                    catch (InvalidDataException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
                 }
                 else
                 {
@@ -469,17 +496,18 @@ namespace IceRpc
 
                         if (endpoint == null && istr.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, proxyData.Path);
+                            proxy = proxyFactory.Create(connection, proxyData.Path, istr.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(proxyData.Path, protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints;
+                            proxy.Invoker = istr.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
-                        proxy.Invoker = istr.Invoker;
+
                         return proxy;
                     }
                     catch (Exception ex)
@@ -488,48 +516,16 @@ namespace IceRpc
                     }
                 }
             }
-
-            // Creates an ice1 proxy
-            T CreateIce1Proxy(
-                Encoding encoding,
-                Endpoint? endpoint,
-                IEnumerable<Endpoint> altEndpoints,
-                IList<string> facetPath,
-                Identity identity)
-            {
-                // For interop with ZeroC Ice, an ice1 endpointless proxy is unmarshaled as an endpointless and
-                // connectionless proxy - a "well-known proxy".
-
-                try
-                {
-                    T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
-                    proxy.Impl.Identity = identity;
-                    proxy.Impl.FacetPath = facetPath;
-                    proxy.Encoding = encoding;
-                    proxy.Endpoint = endpoint;
-                    proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                    proxy.Invoker = istr.Invoker;
-                    return proxy;
-                }
-                catch (InvalidDataException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidDataException("received invalid proxy", ex);
-                }
-            }
         }
 
         /// <summary>Reads a tagged proxy from the input stream.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
+        /// <param name="proxyFactory">The factory used to create the proxy.</param>
         /// <param name="istr">The input stream to read from.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(
-            ProxyFactory<T> proxyFactory,
+            this ProxyFactory<T> proxyFactory,
             InputStream istr,
             int tag)
             where T : class, IServicePrx =>

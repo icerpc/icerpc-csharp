@@ -2351,7 +2351,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker? invoker = null) => "
-         << "IceRpc.Proxy.Parse<" << name << ">(s, invoker);";
+         << "IceRpc.Proxy.Parse(Factory, s, invoker);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name
@@ -2367,7 +2367,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sb;
     _out << nl << "try";
     _out << sb;
-    _out << nl << "proxy = IceRpc.Proxy.Parse<" << name << ">(s, invoker);";
+    _out << nl << "proxy = Parse(s, invoker);";
     _out << eb;
     _out << nl << "catch";
     _out << sb;
