@@ -15,7 +15,7 @@ module IceRpc::Tests::Api
     }
 
     dictionary<string, string> Context;
-    interface InvocationInterceptorTestService
+    interface InterceptorTestService
     {
         Context opContext();
         int opInt(int value);

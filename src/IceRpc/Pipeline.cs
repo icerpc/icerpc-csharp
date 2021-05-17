@@ -24,7 +24,7 @@ namespace IceRpc
                     throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
 
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
-            (_invoker ??= CreateInvoker(_lastInvoker)).InvokeAsync(request, cancel);
+            (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
 
         /// <summary>Installs one or more interceptors.</summary>
         /// <param name="interceptor">One or more interceptors.</param>
@@ -40,14 +40,20 @@ namespace IceRpc
             _interceptorList = _interceptorList.AddRange(interceptor);
         }
 
+        /// <summary>Creates a new pipeline with this pipeline's interceptor stack plus the specified interceptors.
+        /// </summary>
+        /// <param name="interceptor">One or more interceptors.</param>
+        /// <remarks>This method can be called after calling <see cref="InvokeAsync"/>.</remarks>
+        public Pipeline With(params Func<IInvoker, IInvoker>[] interceptor) =>
+            new() { _interceptorList = _interceptorList.AddRange(interceptor) };
+
         /// <summary>Creates a pipeline of invokers by starting with the last invoker and applying all interceptors in
         /// reverse order of installation. This method is called by the first call to <see cref="InvokeAsync"/>.
         /// </summary>
-        /// <param name="lastInvoker">The last invoker in the pipeline.</param>
         /// <returns>The pipeline of invokers.</returns>
-        private IInvoker CreateInvoker(IInvoker lastInvoker)
+        private IInvoker CreateInvokerPipeline()
         {
-            IInvoker pipeline = lastInvoker;
+            IInvoker pipeline = _lastInvoker;
 
             IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
             foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())
