@@ -8,32 +8,56 @@ namespace IceRpc
     public static class TransportEventIds
     {
         public static readonly EventId AcceptingConnectionFailed =
-            new(BaseEventId + 0, nameof(AcceptingConnectionFailed));
-        public static readonly EventId ConnectionAccepted = new(BaseEventId + 1, nameof(ConnectionAccepted));
-        public static readonly EventId ConnectionAcceptFailed = new(BaseEventId + 2, nameof(ConnectionAcceptFailed));
+            GetEventId(TransportEvent.AcceptingConnectionFailed);
+        public static readonly EventId ConnectionAccepted = GetEventId(TransportEvent.ConnectionAccepted);
+        public static readonly EventId ConnectionAcceptFailed = GetEventId(TransportEvent.ConnectionAcceptFailed);
         public static readonly EventId ConnectionEventHandlerException =
-            new(BaseEventId + 3, nameof(ConnectionEventHandlerException));
-        public static readonly EventId ConnectionClosed = new(BaseEventId + 4, nameof(ConnectionClosed));
-        public static readonly EventId ConnectionConnectFailed = new(BaseEventId + 5, nameof(ConnectionConnectFailed));
-        public static readonly EventId ConnectionEstablished = new(BaseEventId + 6, nameof(ConnectionEstablished));
-        public static readonly EventId ReceiveBufferSizeAdjusted = new(BaseEventId + 7, nameof(ReceiveBufferSizeAdjusted));
-        public static readonly EventId ReceivedData = new(BaseEventId + 8, nameof(ReceivedData));
-        public static readonly EventId ReceivedInvalidDatagram = new(BaseEventId + 9, nameof(ReceivedInvalidDatagram));
-        public static readonly EventId SendBufferSizeAdjusted = new(BaseEventId + 10, nameof(SendBufferSizeAdjusted));
-        public static readonly EventId SentData = new(BaseEventId + 11, nameof(SentData));
+            GetEventId(TransportEvent.ConnectionEventHandlerException);
+        public static readonly EventId ConnectionClosed = GetEventId(TransportEvent.ConnectionClosed);
+        public static readonly EventId ConnectionConnectFailed = GetEventId(TransportEvent.ConnectionConnectFailed);
+        public static readonly EventId ConnectionEstablished = GetEventId(TransportEvent.ConnectionEstablished);
+        public static readonly EventId ReceiveBufferSizeAdjusted =
+            GetEventId(TransportEvent.ReceiveBufferSizeAdjusted);
+        public static readonly EventId ReceivedData = GetEventId(TransportEvent.ReceivedData);
+        public static readonly EventId ReceivedInvalidDatagram = GetEventId(TransportEvent.ReceivedInvalidDatagram);
+        public static readonly EventId SendBufferSizeAdjusted = GetEventId(TransportEvent.SendBufferSizeAdjusted);
+        public static readonly EventId SentData = GetEventId(TransportEvent.SentData);
         public static readonly EventId StartAcceptingConnections =
-            new(BaseEventId + 12, nameof(StartAcceptingConnections));
-        public static readonly EventId StartReceivingDatagrams =
-            new(BaseEventId + 13, nameof(StartReceivingDatagrams));
+            GetEventId(TransportEvent.StartAcceptingConnections);
+        public static readonly EventId StartReceivingDatagrams = GetEventId(TransportEvent.StartReceivingDatagrams);
         public static readonly EventId StartReceivingDatagramsFailed =
-            new(BaseEventId + 14, nameof(StartReceivingDatagramsFailed));
-        public static readonly EventId StartSendingDatagrams = new(BaseEventId + 15, nameof(StartSendingDatagrams));
+            GetEventId(TransportEvent.StartReceivingDatagramsFailed);
+        public static readonly EventId StartSendingDatagrams = GetEventId(TransportEvent.StartSendingDatagrams);
         public static readonly EventId StartSendingDatagramsFailed =
-            new(BaseEventId + 16, nameof(StartSendingDatagramsFailed));
-        public static readonly EventId StopAcceptingConnections =
-            new(BaseEventId + 17, nameof(StopAcceptingConnections));
-        public static readonly EventId StopReceivingDatagrams = new(BaseEventId + 18, nameof(StopReceivingDatagrams));
+            GetEventId(TransportEvent.StartSendingDatagramsFailed);
+        public static readonly EventId StopAcceptingConnections = GetEventId(TransportEvent.StopAcceptingConnections);
+        public static readonly EventId StopReceivingDatagrams = GetEventId(TransportEvent.StopReceivingDatagrams);
 
         private const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;
+
+        enum TransportEvent
+        {
+            AcceptingConnectionFailed = BaseEventId,
+            ConnectionAccepted,
+            ConnectionAcceptFailed,
+            ConnectionEventHandlerException,
+            ConnectionClosed,
+            ConnectionConnectFailed,
+            ConnectionEstablished,
+            ReceiveBufferSizeAdjusted,
+            ReceivedData,
+            ReceivedInvalidDatagram,
+            SendBufferSizeAdjusted,
+            SentData,
+            StartAcceptingConnections,
+            StartReceivingDatagrams,
+            StartReceivingDatagramsFailed,
+            StartSendingDatagrams,
+            StartSendingDatagramsFailed,
+            StopAcceptingConnections,
+            StopReceivingDatagrams
+        }
+        
+        private static EventId GetEventId(TransportEvent e) => new((int)e, e.ToString());
     }
 }
