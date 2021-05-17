@@ -24,7 +24,7 @@ namespace IceRpc.Features
     public static class CompressPayloadExtensions
     {
         /// <summary>Sets the <see cref="CompressPayload"/> feature with the value <see cref="CompressPayload.Yes"/> on
-        /// this features collection.</summary>
+        /// this feature collection.</summary>
         /// <param name="features">The feature collection to update.</param>
         /// <returns>The updated feature collection.</returns>
         public static FeatureCollection CompressPayload(this FeatureCollection features)
