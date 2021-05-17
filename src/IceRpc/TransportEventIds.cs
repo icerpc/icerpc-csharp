@@ -57,7 +57,7 @@ namespace IceRpc
             StopAcceptingConnections,
             StopReceivingDatagrams
         }
-        
+
         private static EventId GetEventId(TransportEvent e) => new((int)e, e.ToString());
     }
 }
