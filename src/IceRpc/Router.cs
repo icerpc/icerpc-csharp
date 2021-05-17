@@ -179,7 +179,7 @@ namespace IceRpc
                             if (path.Length == AbsolutePrefix.Length)
                             {
                                 // We consume everything so there is nothing left to match.
-                                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                                return Connection.NullDispatcher.DispatchAsync(request, cancel);
                             }
                             else
                             {
@@ -215,7 +215,7 @@ namespace IceRpc
 
                             if (prefix == "/")
                             {
-                                throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                                return Connection.NullDispatcher.DispatchAsync(request, cancel);
                             }
 
                             // Cut last segment

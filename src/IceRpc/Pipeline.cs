@@ -18,11 +18,6 @@ namespace IceRpc
         private ImmutableList<Func<IInvoker, IInvoker>> _interceptorList =
             ImmutableList<Func<IInvoker, IInvoker>>.Empty;
 
-        private readonly IInvoker _lastInvoker =
-            new InlineInvoker((request, cancel) =>
-                request.Connection?.InvokeAsync(request, cancel) ??
-                    throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
-
         /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
             (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
@@ -54,7 +49,7 @@ namespace IceRpc
         /// <returns>The pipeline of invokers.</returns>
         private IInvoker CreateInvokerPipeline()
         {
-            IInvoker pipeline = _lastInvoker;
+            IInvoker pipeline = Proxy.NullInvoker;
 
             IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
             foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())

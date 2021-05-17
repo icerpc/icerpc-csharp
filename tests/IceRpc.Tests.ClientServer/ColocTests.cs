@@ -17,7 +17,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var greeter = IGreeterTestServicePrx.Parse(colocProxy);
             await using var connection = new Connection { RemoteEndpoint = greeter.Endpoint };
-            greeter.Invoker = connection;
+            greeter.Connection = connection;
 
             await using var server = new Server
             {

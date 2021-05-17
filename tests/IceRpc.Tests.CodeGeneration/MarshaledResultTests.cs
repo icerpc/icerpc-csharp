@@ -48,7 +48,7 @@ namespace IceRpc.Tests.CodeGeneration
             // TODO Parse below should not use a connection with a different endpoint
             await Test1Async(p1 => _prx.OpAnotherStruct1Async(p1),
                              new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://foo/bar", _connection),
+                                              IOperationsPrx.Parse("ice+tcp://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             await Test2Async(p1 => _prx.OpAnotherStruct2Async(p1),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://foo/bar", _connection),
+                                              IOperationsPrx.Parse("ice+tcp://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)));
 
