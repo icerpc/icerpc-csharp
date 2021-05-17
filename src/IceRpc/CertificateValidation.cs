@@ -6,6 +6,8 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc
 {
+    /// <summary>This class allows creating certificate validation callback to validate client and server certificates.
+    /// </summary>
     public static class CertificateValidaton
     {
         /// <summary>Returns a certificate validation callback that can be used to validate server certificates.

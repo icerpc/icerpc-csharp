@@ -54,6 +54,7 @@ namespace IceRpc
         /// <summary>Returns True if the stream is a control stream, False otherwise.</summary>
         public bool IsControl { get; }
 
+        /// <summary>Returns <c>true</c> if end of stream was received.</summary>
         protected internal abstract bool ReceivedEndOfStream { get; }
 
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
@@ -167,6 +168,7 @@ namespace IceRpc
                 cancel);
         }
 
+        /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
         /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>

@@ -145,6 +145,7 @@ namespace IceRpc
             _middlewareList = _middlewareList.AddRange(middleware);
         }
 
+        /// <inheritdoc/>
         public override string ToString() => AbsolutePrefix.Length > 0 ? $"router({AbsolutePrefix})" : "router";
 
         // Trim trailing slashes but keep the leading slash.

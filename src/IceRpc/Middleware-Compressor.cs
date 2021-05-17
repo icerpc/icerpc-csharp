@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
+    /// <summary>This class contains IceRpc built-in middleware.</summary>
     public static partial class Middleware
     {
         /// <summary>Options class to configure CustomCompressor middleware.</summary>

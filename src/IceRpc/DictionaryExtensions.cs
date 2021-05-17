@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
+    /// <summary>This class contains extensions methods to compute dictionary equality and hash code.</summary>
     public static class DictionaryExtensions
     {
         /// <summary>Compares two dictionaries for equality. <see

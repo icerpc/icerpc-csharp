@@ -10,7 +10,9 @@ namespace IceRpc
     /// <summary>The retry policy that can be specified when constructing a remote exception.</summary>
     public readonly struct RetryPolicy : IEquatable<RetryPolicy>
     {
+        /// <summary>The retry policy ability for retrying.</summary>
         public readonly Retryable Retryable;
+        /// <summary>The retry policy delay to apply for retries.</summary>
         public readonly TimeSpan Delay;
 
         /// <summary>The NoRetry policy specifies that the exception cannot be retried. This is the default policy
@@ -168,11 +170,14 @@ namespace IceRpc
 
     public partial struct RemoteExceptionOrigin
     {
+        /// <summary>With the Ice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
+        /// other than <see cref="ServiceNotFoundException"/> and <see cref="OperationNotFoundException"/>.</summary>
         public static readonly RemoteExceptionOrigin Unknown = new("", "");
     }
 
     public partial class ServiceNotFoundException
     {
+        /// <summary>The service facet.</summary>
         protected internal string Facet { get; init; } = "";
 
         /// <inheritdoc/>
@@ -206,6 +211,7 @@ namespace IceRpc
 
     public partial class OperationNotFoundException
     {
+        /// <summary>The service facet.</summary>
         protected internal string Facet { get; init; } = "";
 
         /// <inheritdoc/>
@@ -253,6 +259,7 @@ namespace IceRpc
         {
         }
 
+        /// <inheritdoc/>
         protected override string? DefaultMessage
         {
             get

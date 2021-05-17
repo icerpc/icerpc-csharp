@@ -15,6 +15,7 @@ namespace IceRpc
         TraceContext = -2
     }
 
+    /// <summary>Helper class for unmarshaling the binary context.</summary>
     public static class BinaryContextHelper
     {
         /// <summary>Reads a binary context from the stream.</summary>

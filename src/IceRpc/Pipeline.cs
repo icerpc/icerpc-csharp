@@ -23,6 +23,7 @@ namespace IceRpc
                 request.Connection?.InvokeAsync(request, cancel) ??
                     throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
 
+        /// <inheritdoc/>
         public Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel) =>
             (_invoker ??= CreateInvokerPipeline()).InvokeAsync(request, cancel);
 

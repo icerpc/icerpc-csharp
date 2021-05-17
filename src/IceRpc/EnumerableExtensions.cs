@@ -5,6 +5,7 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
+    /// <summary>This class contains extensions methods to compute sequences hash code.</summary>
     public static class EnumerableExtensions
     {
         /// <summary>Computes the hash code for a sequence, using each element's default comparer.</summary>

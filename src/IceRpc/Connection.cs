@@ -312,6 +312,7 @@ namespace IceRpc
         private volatile ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
+        /// <summary>Constructs a new outgoing connection.</summary>
         public Connection()
         {
         }
@@ -330,6 +331,13 @@ namespace IceRpc
                 new ConnectionClosedException(message ?? "connection closed forcefully", isClosedByPeer: false));
         }
 
+        /// <summary>For an outgoing connection it attempts to connect to the remote endpoint, it is an error to call
+        /// <c>ConnectAsync</c> on an incoming connection.</summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A task that indicates the completion of the connect operation.</returns>
+        /// <exception cref="ObjectDisposedException">If the connection is already closed.</exception>
+        /// <exception cref="InvalidOperationException">If the connection is an incoming connection, or the
+        /// <see cref="RemoteEndpoint"/> of an outgoing connection is not set.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             ValueTask connectTask = new();
