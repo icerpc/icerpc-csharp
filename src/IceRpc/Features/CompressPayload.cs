@@ -19,11 +19,12 @@ namespace IceRpc.Features
         }
     }
 
-    /// <summary>Extension methods for setting <see cref="CompressPayload"/> feature.</summary>
+    /// <summary>Provides an extension method for FeatureCollection to set the <see cref="CompressPayload"/> feature.
+    /// </summary>
     public static class CompressPayloadExtensions
     {
-        /// <summary>Add the <see cref="CompressPayload"/> feature with the value <see cref="CompressPayload.Yes"/> to
-        /// the given features collection.</summary>
+        /// <summary>Sets the <see cref="CompressPayload"/> feature with the value <see cref="CompressPayload.Yes"/> on
+        /// this features collection.</summary>
         /// <param name="features">The feature collection to update.</param>
         /// <returns>The updated feature collection.</returns>
         public static FeatureCollection CompressPayload(this FeatureCollection features)
