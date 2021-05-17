@@ -12,9 +12,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The implementation of <see cref="Interceptors.Locator(ILocatorPrx, Interceptors.LocatorOptions)"/>.
-    /// </summary>
-    internal sealed class LocatorInvoker : IInvoker
+    /// <summary>Provides the implementation of
+    /// <see cref="Interceptors.Locator(ILocatorPrx, Interceptors.LocatorOptions)"/>.</summary>
+    internal sealed class LocatorClient
     {
         private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;
         private readonly bool _background;
@@ -34,14 +34,43 @@ namespace IceRpc.Internal
         // _mutex protects _cacheKeys, _requests and updates to _cache
         private readonly object _mutex = new();
 
-        private readonly IInvoker _next;
-
         private readonly Dictionary<(string Location, string? Category), Task<(Endpoint?, ImmutableList<Endpoint>)>> _requests =
             new();
 
         private readonly TimeSpan _ttl;
 
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <summary>Constructs a locator invoker.</summary>
+        internal LocatorClient(ILocatorPrx locator, Interceptors.LocatorOptions options)
+        {
+            if (locator.Endpoint == null || locator.Endpoint.Transport == Transport.Loc)
+            {
+                throw new ArgumentException($"{nameof(locator)} needs a non-loc endpoint", nameof(locator));
+            }
+
+            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
+            {
+                throw new ArgumentException(
+                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}", nameof(options));
+            }
+
+            _locator = locator;
+            _background = options.Background;
+            _cacheMaxSize = options.CacheMaxSize;
+            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
+            _justRefreshedAge = options.JustRefreshedAge;
+            _logger = options.LoggerFactory.CreateLogger("IceRpc");
+            _ttl = options.Ttl;
+        }
+
+        /// <summary>Updates the endpoints of the request (as appropriate) then call InvokeAsync on next.</summary>
+        /// <param name="request">The outgoing request.</param>
+        /// <param name="next">The next invoker in the pipeline.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The response.</returns>
+        internal async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            IInvoker next,
+            CancellationToken cancel)
         {
             if (request.Connection == null)
             {
@@ -104,25 +133,9 @@ namespace IceRpc.Internal
                 }
             }
 
-            return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+            return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
 
-        /// <summary>Constructs a locator invoker.</summary>
-        internal LocatorInvoker(ILocatorPrx locator, Interceptors.LocatorOptions options, IInvoker next)
-        {
-            _locator = locator;
-            _background = options.Background;
-            _cacheMaxSize = options.CacheMaxSize;
-            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
-            _justRefreshedAge = options.JustRefreshedAge;
-            _logger = options.LoggerFactory.CreateLogger("IceRpc");
-            _ttl = options.Ttl;
-            _next = next;
-
-            // See Interceptors.Locator
-            Debug.Assert(_locator.Endpoint != null && _locator.Endpoint.Transport != Transport.Loc);
-            Debug.Assert(_ttl == Timeout.InfiniteTimeSpan || _justRefreshedAge < _ttl);
-        }
 
         private void ClearCache(string location, string? category)
         {
