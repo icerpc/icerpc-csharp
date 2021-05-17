@@ -17,6 +17,12 @@ namespace IceRpc
     /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
     public static class Proxy
     {
+        /// <summary>The invoker that a proxy calls when its invoker is null.</summary>
+        internal static IInvoker NullInvoker { get; } =
+            new InlineInvoker((request, cancel) =>
+                request.Connection?.InvokeAsync(request, cancel) ??
+                    throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
+
         /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxy">The proxy being copied.</param>
@@ -173,11 +179,6 @@ namespace IceRpc
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            if (proxy.Invoker == null)
-            {
-                throw new InvalidOperationException("cannot make invocations with a proxy without a invoker");
-            }
-
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
@@ -221,7 +222,7 @@ namespace IceRpc
                                                   oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
-                Task<IncomingResponse> responseTask = proxy.Invoker.InvokeAsync(request, cancel);
+                Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
                 return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
             }
             catch

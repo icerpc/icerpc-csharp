@@ -424,7 +424,7 @@ namespace IceRpc.Tests.CodeGeneration
                 new Custom<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
                 new Custom<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}", _connection);
+            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
