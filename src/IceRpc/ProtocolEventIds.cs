@@ -8,39 +8,64 @@ namespace IceRpc
     public static class ProtocolEventIds
     {
         public static readonly EventId DatagramConnectionReceiveCloseConnectionFrame =
-            new(BaseEventId + 0, nameof(DatagramConnectionReceiveCloseConnectionFrame));
+            GetEventId(ProtocolEvent.DatagramConnectionReceiveCloseConnectionFrame);
         public static readonly EventId DatagramSizeExceededIncomingFrameMaxSize =
-            new(BaseEventId + 1, nameof(DatagramSizeExceededIncomingFrameMaxSize));
+            GetEventId(ProtocolEvent.DatagramSizeExceededIncomingFrameMaxSize);
         public static readonly EventId DatagramMaximumSizeExceeded =
-            new(BaseEventId + 2, nameof(DatagramMaximumSizeExceeded));
+            GetEventId(ProtocolEvent.DatagramMaximumSizeExceeded);
 
         public static readonly EventId ReceivedIce1CloseConnectionFrame =
-            new(BaseEventId + 3, nameof(ReceivedIce1CloseConnectionFrame));
+            GetEventId(ProtocolEvent.ReceivedIce1CloseConnectionFrame);
         public static readonly EventId ReceivedIce1RequestBatchFrame =
-            new(BaseEventId + 4, nameof(ReceivedIce1RequestBatchFrame));
+            GetEventId(ProtocolEvent.ReceivedIce1RequestBatchFrame);
         public static readonly EventId ReceivedIce1ValidateConnectionFrame =
-            new(BaseEventId + 5, nameof(ReceivedIce1ValidateConnectionFrame));
+            GetEventId(ProtocolEvent.ReceivedIce1ValidateConnectionFrame);
 
-        public static readonly EventId ReceivedGoAwayFrame = new(BaseEventId + 6, nameof(ReceivedGoAwayFrame));
+        public static readonly EventId ReceivedGoAwayFrame = GetEventId(ProtocolEvent.ReceivedGoAwayFrame);
         public static readonly EventId ReceivedInitializeFrame =
-            new(BaseEventId + 7, nameof(ReceivedInitializeFrame));
-        public static readonly EventId ReceivedRequestFrame = new(BaseEventId + 8, nameof(ReceivedRequestFrame));
-        public static readonly EventId ReceivedResponseFrame = new(BaseEventId + 9, nameof(ReceivedResponseFrame));
-        public static readonly EventId RequestException = new(BaseEventId + 10, nameof(RequestException));
+            GetEventId(ProtocolEvent.ReceivedInitializeFrame);
+        public static readonly EventId ReceivedRequestFrame = GetEventId(ProtocolEvent.ReceivedRequestFrame);
+        public static readonly EventId ReceivedResponseFrame = GetEventId(ProtocolEvent.ReceivedResponseFrame);
+        public static readonly EventId RequestException = GetEventId(ProtocolEvent.RequestException);
         public static readonly EventId RetryRequestRetryableException =
-            new(BaseEventId + 11, nameof(RetryRequestRetryableException));
+            GetEventId(ProtocolEvent.RetryRequestRetryableException);
         public static readonly EventId RetryRequestConnectionException =
-            new(BaseEventId + 12, nameof(RetryRequestConnectionException));
+            GetEventId(ProtocolEvent.RetryRequestConnectionException);
 
         public static readonly EventId SentIce1ValidateConnectionFrame =
-            new(BaseEventId + 13, nameof(SentIce1ValidateConnectionFrame));
+            GetEventId(ProtocolEvent.SentIce1ValidateConnectionFrame);
         public static readonly EventId SentIce1CloseConnectionFrame =
-            new(BaseEventId + 14, nameof(SentIce1CloseConnectionFrame));
-        public static readonly EventId SentGoAwayFrame = new(BaseEventId + 15, nameof(SentGoAwayFrame));
-        public static readonly EventId SentInitializeFrame = new(BaseEventId + 16, nameof(SentInitializeFrame));
-        public static readonly EventId SentRequestFrame = new(BaseEventId + 17, nameof(SentRequestFrame));
-        public static readonly EventId SentResponseFrame = new(BaseEventId + 18, nameof(SentResponseFrame));
+            GetEventId(ProtocolEvent.SentIce1CloseConnectionFrame);
+        public static readonly EventId SentGoAwayFrame = GetEventId(ProtocolEvent.SentGoAwayFrame);
+        public static readonly EventId SentInitializeFrame = GetEventId(ProtocolEvent.SentInitializeFrame);
+        public static readonly EventId SentRequestFrame = GetEventId(ProtocolEvent.SentRequestFrame);
+        public static readonly EventId SentResponseFrame = GetEventId(ProtocolEvent.SentResponseFrame);
 
         private const int BaseEventId = Internal.LoggerExtensions.ProtocolBaseEventId;
+
+        private enum ProtocolEvent
+        {
+            DatagramConnectionReceiveCloseConnectionFrame = BaseEventId,
+            DatagramSizeExceededIncomingFrameMaxSize,
+            DatagramMaximumSizeExceeded,
+            ReceivedIce1CloseConnectionFrame,
+            ReceivedIce1RequestBatchFrame,
+            ReceivedIce1ValidateConnectionFrame,
+            ReceivedGoAwayFrame,
+            ReceivedInitializeFrame,
+            ReceivedRequestFrame,
+            ReceivedResponseFrame,
+            RequestException,
+            RetryRequestRetryableException,
+            RetryRequestConnectionException,
+            SentIce1ValidateConnectionFrame,
+            SentIce1CloseConnectionFrame,
+            SentGoAwayFrame,
+            SentInitializeFrame,
+            SentRequestFrame,
+            SentResponseFrame
+        }
+
+        private static EventId GetEventId(ProtocolEvent e) => new((int)e, e.ToString());
     }
 }

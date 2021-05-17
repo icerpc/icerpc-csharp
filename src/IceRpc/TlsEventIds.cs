@@ -7,12 +7,18 @@ namespace IceRpc
     /// <summary>This class contains event ID constants used for Tls logging.</summary>
     public static class TlsEventIds
     {
-        public static readonly EventId TlsAuthenticationSucceeded =
-            new(BaseEventId + 0, nameof(TlsAuthenticationSucceeded));
+        public static readonly EventId TlsAuthenticationSucceeded = GetEventId(TlsEvent.TlsAuthenticationSucceeded);
 
-        public static readonly EventId TlsAuthenticationFailed =
-            new(BaseEventId + 1, nameof(TlsAuthenticationFailed));
+        public static readonly EventId TlsAuthenticationFailed = GetEventId(TlsEvent.TlsAuthenticationFailed);
 
         private const int BaseEventId = Internal.LoggerExtensions.TlsBaseEventId;
+
+        private enum TlsEvent
+        {
+            TlsAuthenticationSucceeded = BaseEventId,
+            TlsAuthenticationFailed
+        }
+
+        private static EventId GetEventId(TlsEvent e) => new((int)e, e.ToString());
     }
 }

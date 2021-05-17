@@ -8,16 +8,23 @@ namespace IceRpc
     public static class WebSocketEventIds
     {
         public static readonly EventId HttpUpgradeRequestAccepted =
-            new(BaseEventId + 0, nameof(HttpUpgradeRequestAccepted));
-        public static readonly EventId HttpUpgradeRequestFailed =
-            new(BaseEventId + 1, nameof(HttpUpgradeRequestFailed));
+            GetEventId(WebSocketEvent.HttpUpgradeRequestAccepted);
+        public static readonly EventId HttpUpgradeRequestFailed = GetEventId(WebSocketEvent.HttpUpgradeRequestFailed);
         public static readonly EventId HttpUpgradeRequestSucceed =
-            new(BaseEventId + 2, nameof(HttpUpgradeRequestSucceed));
-        public static readonly EventId ReceivedWebSocketFrame =
-            new(BaseEventId + 3, nameof(ReceivedWebSocketFrame));
-        public static readonly EventId SendingWebSocketFrame =
-            new(BaseEventId + 4, nameof(SendingWebSocketFrame));
+            GetEventId(WebSocketEvent.HttpUpgradeRequestSucceed);
+        public static readonly EventId ReceivedWebSocketFrame = GetEventId(WebSocketEvent.ReceivedWebSocketFrame);
+        public static readonly EventId SendingWebSocketFrame = GetEventId(WebSocketEvent.SendingWebSocketFrame);
 
         private const int BaseEventId = Internal.LoggerExtensions.WebSocketBaseEventId;
+        private enum WebSocketEvent
+        {
+            HttpUpgradeRequestAccepted = BaseEventId,
+            HttpUpgradeRequestFailed,
+            HttpUpgradeRequestSucceed,
+            ReceivedWebSocketFrame,
+            SendingWebSocketFrame
+        }
+
+        private static EventId GetEventId(WebSocketEvent e) => new((int)e, e.ToString());
     }
 }
