@@ -38,16 +38,16 @@ namespace IceRpc.Interop
         /// <returns>A proxy with the specified facet and type.</returns>
         public static T WithFacet<T>(this IServicePrx proxy, string facet) where T : class, IServicePrx
         {
-            if (facet == proxy.GetFacet() && proxy is T t)
+            if (facet == proxy.Impl.Facet && proxy is T t)
             {
                 return t;
             }
             else if (proxy.Protocol == Protocol.Ice1)
             {
-                var prx = IceRpc.Proxy.GetFactory<T>().Create(proxy.Path, Protocol.Ice1);
-                prx.Impl.Identity = proxy.GetIdentity();
-                prx.Impl.Facet = facet;
-                return prx;
+                T newProxy = proxy.As<T>();
+                newProxy.Impl.Facet = facet;
+                // keeps endpoint, connection, invoker etc.
+                return newProxy;
             }
             else
             {

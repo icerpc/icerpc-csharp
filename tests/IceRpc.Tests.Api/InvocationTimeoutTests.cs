@@ -51,9 +51,9 @@ namespace IceRpc.Tests.Api
 
             await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
 
-            IServicePrx prx = IServicePrx.FromConnection(connection, "/test");
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            var prx = IServicePrx.FromConnection(connection, "/test", pipeline);
+
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationDeadline = request.Deadline;
