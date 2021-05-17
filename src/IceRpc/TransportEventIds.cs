@@ -7,9 +7,13 @@ namespace IceRpc
     /// <summary>This class contains event ID constants used for transport logging.</summary>
     public static class TransportEventIds
     {
+        /// <summary>The transport failed to accept a connection.</summary>
         public static readonly EventId AcceptingConnectionFailed =
             GetEventId(TransportEvent.AcceptingConnectionFailed);
+
+        /// <summary>The transport accepted a new connection.</summary>
         public static readonly EventId ConnectionAccepted = GetEventId(TransportEvent.ConnectionAccepted);
+
         public static readonly EventId ConnectionAcceptFailed = GetEventId(TransportEvent.ConnectionAcceptFailed);
         public static readonly EventId ConnectionEventHandlerException =
             GetEventId(TransportEvent.ConnectionEventHandlerException);
