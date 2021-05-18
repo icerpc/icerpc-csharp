@@ -72,35 +72,6 @@ extern FILE* slice_in;
 extern int slice_debug;
 extern int slice__flex_debug;
 
-namespace
-{
-    bool
-    isMutableAfterReturnType(const TypePtr& type)
-    {
-        // Returns true if the type contains data types which can be referenced by user code
-        // and mutated after a dispatch returns.
-
-        if (auto optional = OptionalPtr::dynamicCast(type))
-        {
-            return isMutableAfterReturnType(optional->underlying());
-        }
-
-        if (ClassDeclPtr::dynamicCast(type) || StructPtr::dynamicCast(type) || SequencePtr::dynamicCast(type)
-            || DictionaryPtr::dynamicCast(type))
-        {
-            return true;
-        }
-
-        BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-        if (builtin && builtin->usesClasses())
-        {
-            return true;
-        }
-
-        return false;
-    }
-}
-
 namespace Slice
 {
     Unit* unit;
@@ -4193,17 +4164,7 @@ Slice::Operation::hasMarshaledResult() const
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(container());
     assert(interface);
-    if (interface->hasMetadata("marshaled-result") || hasMetadata("marshaled-result"))
-    {
-        for (const auto& returnValue : _returnType)
-        {
-            if (isMutableAfterReturnType(returnValue->type()))
-            {
-                return true;
-            }
-        }
-    }
-    return false;
+    return interface->hasMetadata("marshaled-result") || hasMetadata("marshaled-result");
 }
 
 MemberPtr
