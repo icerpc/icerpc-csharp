@@ -115,7 +115,8 @@ namespace IceRpc
 
         private IAcceptor? _acceptor;
         private IAcceptor? _colocAcceptor;
-        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
+
+        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
         private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
             new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
 
@@ -198,10 +199,10 @@ namespace IceRpc
                     _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocAcceptor));
 
-                    RegisterColocEndpoint(_endpoint, colocEndpoint);
+                    _colocRegistry.Add(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
                     {
-                        RegisterColocEndpoint(ProxyEndpoint!, colocEndpoint);
+                        _colocRegistry.Add(ProxyEndpoint!, colocEndpoint);
                     }
                 }
 
