@@ -336,12 +336,12 @@ namespace IceRpc
         }
 
         /// <summary>For an outgoing connection it attempts to connect to the remote endpoint, it is an error to call
-        /// <c>ConnectAsync</c> on an incoming connection.</summary>
+        /// <c>ConnectAsync</c> on an incoming connection only the <see cref="Server"/> should do that.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ObjectDisposedException">If the connection is already closed.</exception>
-        /// <exception cref="InvalidOperationException">If the connection is an incoming connection, or the
-        /// <see cref="RemoteEndpoint"/> of an outgoing connection is not set.</exception>
+        /// <exception cref="InvalidOperationException">If the <see cref="RemoteEndpoint"/> of an outgoing connection
+        /// is not set.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             ValueTask connectTask = new();
