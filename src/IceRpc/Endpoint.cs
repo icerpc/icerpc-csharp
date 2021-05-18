@@ -305,17 +305,6 @@ namespace IceRpc
 
     public static class EndpointExtensions
     {
-        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
-        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
-            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
-
-        /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
-        /// <param name="endpoint">The endpoint to check.</param>
-        /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
-        public static Endpoint? GetColocCounterPart(this Endpoint endpoint) =>
-            endpoint.Transport == Transport.Coloc ? endpoint :
-                (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
-
         /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
         /// <param name="data">The endpoint's data.</param>
         /// <param name="protocol">The endpoint's protocol.</param>
@@ -388,19 +377,6 @@ namespace IceRpc
             }
             return sb;
         }
-
-        internal static void RegisterColocEndpoint(Endpoint endpoint, ColocEndpoint colocEndpoint)
-        {
-            Debug.Assert(endpoint.Transport != Transport.Coloc);
-            if (!_colocRegistry.TryAdd(endpoint, colocEndpoint))
-            {
-                Debug.Assert(false);
-                throw new TransportException($"endpoint '{endpoint}' is already registered for coloc");
-            }
-        }
-
-        internal static void UnregisterColocEndpoint(Endpoint endpoint) =>
-            _colocRegistry.Remove(endpoint);
     }
 
     internal abstract class EndpointComparer : EqualityComparer<Endpoint>
