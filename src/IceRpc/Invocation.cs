@@ -13,9 +13,6 @@ namespace IceRpc
         /// <summary>Gets or sets the marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
 
-        // temporary
-        public bool CompressRequestPayload { get; set; }
-
         /// <summary>Gets or sets the context dictionary carried by the request.</summary>
         public IDictionary<string, string> Context { get; set; } = ImmutableSortedDictionary<string, string>.Empty;
 

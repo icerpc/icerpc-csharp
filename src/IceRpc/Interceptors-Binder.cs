@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    /// <summary>This class contains IceRPC built-in interceptors.</summary>
     public static partial class Interceptors
     {
         /// <summary>Creates a binder interceptor. A binder is no-op when the request carries a connection; otherwise

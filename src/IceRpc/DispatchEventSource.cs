@@ -10,7 +10,9 @@ namespace IceRpc
     /// <summary>An <see cref="EventSource"/> implementation used to log request dispatch events.</summary>
     public sealed class DispatchEventSource : EventSource
     {
-        public static readonly DispatchEventSource Log = new DispatchEventSource("IceRpc.Dispatch");
+        /// <summary>The default <c>DispatchEventSource</c> used by <see cref="Middleware.MetricsPublisher"/>.
+        /// </summary>
+        public static readonly DispatchEventSource Log = new("IceRpc.Dispatch");
 #pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
         private PollingCounter? _canceledRequestsCounter;
         private long _canceledRequests;
@@ -82,6 +84,7 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         protected override void OnEventCommand(EventCommandEventArgs command)
         {
             if (command.Command == EventCommand.Enable)

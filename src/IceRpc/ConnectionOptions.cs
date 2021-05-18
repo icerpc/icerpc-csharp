@@ -9,6 +9,8 @@ namespace IceRpc
     /// <summary>The options interface for configuring transports.</summary>
     public interface ITransportOptions
     {
+        /// <summary>Creates a shallow copy of the current object.</summary>
+        /// <returns>A shallow copy of the current object.</returns>
         public abstract ITransportOptions Clone();
     }
 
@@ -79,6 +81,9 @@ namespace IceRpc
                throw new ArgumentException($"{nameof(SlicStreamBufferMaxSize)} cannot be less than 1KB", nameof(value));
         }
 
+        /// <inheritdoc/>
+        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
+
         internal static TcpOptions Default = new();
 
         private int _listenerBackLog = 511;
@@ -86,8 +91,6 @@ namespace IceRpc
         private int? _sendBufferSize;
         private int _slicPacketMaxSize = 32 * 1024;
         private int? _slicStreamBufferMaxSize;
-
-        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
     }
 
     /// <summary>An options class for configuring UDP based transports.</summary>
@@ -123,12 +126,13 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
+        /// <inheritdoc/>
+        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
+
         internal static UdpOptions Default = new();
 
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
-
-        public ITransportOptions Clone() => (ITransportOptions)MemberwiseClone();
     }
 
     /// <summary>An options base class for configuring IceRPC connections.</summary>
@@ -229,6 +233,7 @@ namespace IceRpc
         private int _incomingFrameMaxSize = 1024 * 1024;
         private int _unidirectionalStreamMaxCount = 100;
 
+        /// <inheritdoc/>
         protected internal ConnectionOptions Clone()
         {
             var options = (ConnectionOptions)MemberwiseClone();
@@ -240,10 +245,6 @@ namespace IceRpc
     /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
     public sealed class OutgoingConnectionOptions : ConnectionOptions
     {
-        public OutgoingConnectionOptions()
-        {
-        }
-
         /// <summary>The SSL authentication options to configure TLS client connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslClientAuthenticationOptions? AuthenticationOptions
@@ -266,6 +267,7 @@ namespace IceRpc
         private SslClientAuthenticationOptions? _authenticationOptions;
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
 
+        /// <inheritdoc/>
         public new OutgoingConnectionOptions Clone()
         {
             var options = (OutgoingConnectionOptions)base.Clone();
@@ -301,6 +303,7 @@ namespace IceRpc
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;
 
+        /// <inheritdoc/>
         public new IncomingConnectionOptions Clone()
         {
             var options = (IncomingConnectionOptions)base.Clone();

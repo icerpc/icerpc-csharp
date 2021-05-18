@@ -55,7 +55,7 @@ namespace IceRpc.Internal
         private static readonly Action<ILogger, Exception> _connectionEstablished =
             LoggerMessage.Define(
                 LogLevel.Debug,
-                TransportEventIds.ConnectionEstablished,
+                TransportEventIds.ConnectionConnected,
                 "established connection");
 
         private static readonly Action<ILogger, string, Exception> _connectionEventHandlerException =

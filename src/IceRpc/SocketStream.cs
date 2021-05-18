@@ -45,15 +45,16 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Returns True if the stream is an incoming stream, False otherwise.</summary>
+        /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
         public bool IsIncoming => _id != -1 && _id % 2 == (_socket.IsIncoming ? 0 : 1);
 
-        /// <summary>Returns True if the stream is a bidirectional stream, False otherwise.</summary>
+        /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }
 
-        /// <summary>Returns True if the stream is a control stream, False otherwise.</summary>
+        /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
         public bool IsControl { get; }
 
+        /// <summary>Returns <c>true</c> if the end of stream has been reached, <c>false</c> otherwise.</summary>
         protected internal abstract bool ReceivedEndOfStream { get; }
 
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
@@ -167,6 +168,7 @@ namespace IceRpc
                 cancel);
         }
 
+        /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
         /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>

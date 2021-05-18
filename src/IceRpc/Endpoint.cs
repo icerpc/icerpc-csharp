@@ -303,6 +303,7 @@ namespace IceRpc
         }
     }
 
+    /// <summary>This class contains <see cref="Endpoint"/> extension methods.</summary>
     public static class EndpointExtensions
     {
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by ToColocEndpoint.</summary>
