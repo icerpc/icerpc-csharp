@@ -16,10 +16,10 @@ namespace IceRpc
             next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if (request.Connection == null)
+                    if (request.Connection == null && request.Endpoint != null)
                     {
-                        request.Endpoint = request.Endpoint?.GetColocCounterPart() ?? request.Endpoint;
-                        request.AltEndpoints = request.AltEndpoints.Select(e => e.GetColocCounterPart() ?? e);
+                        request.Endpoint = Server.GetColocEndpoint(request.Endpoint) ?? request.Endpoint;
+                        request.AltEndpoints = request.AltEndpoints.Select(e => Server.GetColocEndpoint(e) ?? e);
                     }
                     return next.InvokeAsync(request, cancel);
                 });

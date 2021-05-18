@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -115,6 +116,10 @@ namespace IceRpc
         private IAcceptor? _acceptor;
         private IAcceptor? _colocAcceptor;
 
+        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
+        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
+            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
+
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
@@ -194,10 +199,10 @@ namespace IceRpc
                     _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocAcceptor));
 
-                    EndpointExtensions.RegisterColocEndpoint(_endpoint, colocEndpoint);
+                    _colocRegistry.Add(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
                     {
-                        EndpointExtensions.RegisterColocEndpoint(ProxyEndpoint!, colocEndpoint);
+                        _colocRegistry.Add(ProxyEndpoint!, colocEndpoint);
                     }
                 }
 
@@ -247,10 +252,10 @@ namespace IceRpc
                     // No longer available for coloc connections (may not be registered at all)
                     if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
                     {
-                        EndpointExtensions.UnregisterColocEndpoint(endpoint);
+                        _colocRegistry.Remove(endpoint);
                         if (ProxyEndpoint != _endpoint)
                         {
-                            EndpointExtensions.UnregisterColocEndpoint(ProxyEndpoint!);
+                            _colocRegistry.Remove(ProxyEndpoint!);
                         }
                     }
 
@@ -289,6 +294,13 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
+
+        /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
+        /// <param name="endpoint">The endpoint to check.</param>
+        /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
+        internal static Endpoint? GetColocEndpoint(Endpoint endpoint) =>
+            endpoint.Transport == Transport.Coloc ? endpoint :
+                (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 
         private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
 
