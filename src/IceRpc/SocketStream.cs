@@ -579,9 +579,10 @@ namespace IceRpc
             {
                 if (frame is OutgoingRequest)
                 {
-                    throw new InvalidOperationException(
+                    throw new ArgumentException(
                         $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameSizeMax ({
-                        _socket.PeerIncomingFrameMaxSize} bytes)");
+                        _socket.PeerIncomingFrameMaxSize} bytes)",
+                        nameof(frame));
                 }
                 else
                 {
