@@ -4,28 +4,6 @@ using System;
 
 namespace IceRpc
 {
-    /// <summary>This exception reports incorrect or missing Ice configuration.</summary>
-    public class InvalidConfigurationException : Exception
-    {
-        /// <summary>Constructs a new instance of the <see cref="InvalidConfigurationException"/> class with a
-        /// specified error message.</summary>
-        /// <param name="message">The message that describes the error.</param>
-        public InvalidConfigurationException(string message)
-            : base(message)
-        {
-        }
-
-        /// <summary>Constructs a new instance of the <see cref="InvalidConfigurationException"/> class with a
-        /// specified error message and a reference to the inner exception that is the cause of this exception.
-        /// </summary>
-        /// <param name="message">The message that describes the error.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public InvalidConfigurationException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-    }
-
     /// <summary>This exception reports an attempt to use a destroyed <see cref="ConnectionPool"/>.</summary>
     public class ConnectionPoolDisposedException : ObjectDisposedException
     {
@@ -206,27 +184,6 @@ namespace IceRpc
         /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception.</param>
         public InvalidDataException(string message, Exception innerException)
-            : base(message, innerException)
-        {
-        }
-    }
-
-    /// <summary>This exception indicates that a limit was exceeded.</summary>
-    public class LimitExceededException : Exception
-    {
-        /// <summary>Constructs a new instance of the <see cref="LimitExceededException"/> class with a specified
-        /// error message.</summary>
-        /// <param name="message">The message that describes the error.</param>
-        public LimitExceededException(string message)
-            : base(message)
-        {
-        }
-
-        /// <summary>Constructs a new instance of the <see cref="LimitExceededException"/> class with a specified error
-        /// message and a reference to the inner exception that is the cause of this exception.</summary>
-        /// <param name="message">The message that describes the error.</param>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public LimitExceededException(string message, Exception innerException)
             : base(message, innerException)
         {
         }
