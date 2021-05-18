@@ -85,16 +85,43 @@ namespace
             return isMutableAfterReturnType(optional->underlying());
         }
 
-        if (ClassDeclPtr::dynamicCast(type) || StructPtr::dynamicCast(type) || SequencePtr::dynamicCast(type)
-            || DictionaryPtr::dynamicCast(type))
+        if (ClassDeclPtr::dynamicCast(type) ||
+            InterfaceDeclPtr::dynamicCast(type) ||
+            SequencePtr::dynamicCast(type) ||
+            DictionaryPtr::dynamicCast(type))
         {
             return true;
         }
 
-        BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-        if (builtin && builtin->usesClasses())
+        StructPtr st = StructPtr::dynamicCast(type);
+        if (st)
         {
-            return true;
+            MemberList members = st->dataMembers();
+            for (MemberList::const_iterator it = members.begin(); it != members.end(); it++)
+            {
+                if (isMutableAfterReturnType((*it)->type()))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
+        if (builtin)
+        {
+            switch(builtin->kind())
+            {
+                case Builtin::KindObject:
+                case Builtin::KindAnyClass:
+                {
+                    return true;
+                }
+                default:
+                {
+                    return false;
+                }
+            }
         }
 
         return false;

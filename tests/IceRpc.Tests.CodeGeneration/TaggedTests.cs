@@ -321,11 +321,15 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
-                MyStruct? r1 = await _prx.OpMyStructMarshaledResultAsync(null);
+                AnotherStruct? r1 = await _prx.OpAnotherStructMarshaledResultAsync(null);
                 Assert.IsNull(r1);
 
-                var p1 = new MyStruct(1, 1);
-                r1 = await _prx.OpMyStructMarshaledResultAsync(p1);
+                var p1 = new AnotherStruct(
+                    "hello",
+                    IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    MyEnum.enum1,
+                    new MyStruct(1, 1));
+                r1 = await _prx.OpAnotherStructMarshaledResultAsync(p1);
                 Assert.AreEqual(p1, r1);
             }
 
@@ -787,11 +791,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
-            MyStruct? p1,
+        public ValueTask<ITaggedOperations.OpAnotherStructMarshaledResultMarshaledReturnValue> OpAnotherStructMarshaledResultAsync(
+            AnotherStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new ITaggedOperations.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
+            new(new ITaggedOperations.OpAnotherStructMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
             MyStruct[]? p1,

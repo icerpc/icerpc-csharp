@@ -116,7 +116,7 @@ module IceRpc::Tests::CodeGeneration
         (IntDict? r1, IntDict? r2) opIntDict(IntDict? p1);
         (StringDict? r1, StringDict? r2) opStringDict(StringDict? p1);
 
-        [marshaled-result] MyStruct? opMyStructMarshaledResult(MyStruct? p1);
+        [marshaled-result] AnotherStruct? opAnotherStructMarshaledResult(AnotherStruct? p1);
         [marshaled-result] StringSeq? opStringSeqMarshaledResult(StringSeq? p1);
         [marshaled-result] IntDict? opIntDictMarshaledResult(IntDict? p1);
     }

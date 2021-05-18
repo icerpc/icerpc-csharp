@@ -177,7 +177,7 @@ module IceRpc::Tests::CodeGeneration
 
         void opVoid();
 
-        [marshaled-result] tag(1) MyStruct? opMyStructMarshaledResult(tag(1) MyStruct? p1);
+        [marshaled-result] tag(1) AnotherStruct? opAnotherStructMarshaledResult(tag(1) AnotherStruct? p1);
         [marshaled-result] tag(1) StringSeq? opStringSeqMarshaledResult(tag(1) StringSeq? p1);
         [marshaled-result] tag(1) IntDict? opIntDictMarshaledResult(tag(1) IntDict? p1);
     }
