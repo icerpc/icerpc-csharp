@@ -7,7 +7,7 @@ namespace IceRpc.Interop
     /// <summary>This class contains event ID constants used for locator interceptor logging.</summary>
     public static class LocatorEventIds
     {
-        /// <summary>A locator cache entry was clear.</summary>
+        /// <summary>A locator cache entry was cleared.</summary>
         public static readonly EventId ClearCacheEntry = GetEventId(LocatorEvent.ClearCacheEntry);
 
         /// <summary>The locator could not resolve an endpoint.</summary>
@@ -16,7 +16,7 @@ namespace IceRpc.Interop
         /// <summary>The locator found an entry in its cache.</summary>
         public static readonly EventId FoundEntryInCache = GetEventId(LocatorEvent.FoundEntryInCache);
 
-        /// <summary>The locator received and invalid proxy.</summary>
+        /// <summary>The locator received an invalid proxy.</summary>
         public static readonly EventId ReceivedInvalidProxy = GetEventId(LocatorEvent.ReceivedInvalidProxy);
 
         /// <summary>There was a failure resolving an endpoint.</summary>

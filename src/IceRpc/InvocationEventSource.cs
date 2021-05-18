@@ -10,7 +10,7 @@ namespace IceRpc
     /// <summary>An <see cref="EventSource"/> implementation used to log invocation dispatch events.</summary>
     public sealed class InvocationEventSource : EventSource
     {
-        /// <summary>The default <c>InvocationEventSource</c> used by <see cref="Interceptors.MetricsPublisher"/>.
+        /// <summary>The default <c>InvocationEventSource</c> used by <see cref="Interceptors.Metrics"/>.
         /// </summary>
         public static readonly InvocationEventSource Log = new("IceRpc.Invocation");
 #pragma warning disable IDE0052 // Remove unread private members, IDE is wrong here counters are used in OnEventCommand
