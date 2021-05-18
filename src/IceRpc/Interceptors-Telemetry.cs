@@ -7,10 +7,10 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    public static partial class Middleware
+    public static partial class Interceptors
     {
-        /// <summary>Options class to configure Tracer middleware.</summary>
-        public class TracerOptions
+        /// <summary>Options class to configure <see cref="CustomTelemetry"/> interceptor.</summary>
+        public class TelemetryOptions
         {
             /// <summary>If set to a non null object the ActivitySource is used to start the request Activity.
             /// </summary>
@@ -20,32 +20,28 @@ namespace IceRpc
             public ILoggerFactory? LoggerFactory { get; set; }
         }
 
-        /// <summary>A middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
+        /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
         /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
-        /// <returns>The Tracer interceptor.</returns>
-        public static Func<IDispatcher, IDispatcher> Tracer { get; } = CustomTracer(new());
+        public static Func<IInvoker, IInvoker> Telemetry { get; } = CustomTelemetry(new());
 
-        /// <summary>A middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
+        /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
         /// conventions. The Activity is started if the ActivitySource has any active listeners,
         /// if <see cref="Activity.Current"/> is not null or if IceRpc logger is enabled.</summary>
         /// <param name="tracerOptions">Options to configure the tracer interceptor.</param>
         /// <returns>The CustomTracer interceptor.</returns>
-        public static Func<IDispatcher, IDispatcher> CustomTracer(TracerOptions tracerOptions)
+        public static Func<IInvoker, IInvoker> CustomTelemetry(TelemetryOptions tracerOptions)
         {
             ILogger logger = (tracerOptions.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
-            return next => new InlineDispatcher(
+
+            return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                    // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
-                    // before we restore its context.
                     Activity? activity = tracerOptions.ActivitySource?.StartActivity(
                         $"{request.Path}/{request.Operation}",
-                        ActivityKind.Server);
+                        ActivityKind.Client);
                     if (activity == null && (logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                     {
                         activity = new Activity($"{request.Path}/{request.Operation}");
-                        // TODO we should start the activity after restoring its context, we should update this once
-                        // we move to CreateActivity in .NET 6
                         activity.Start();
                     }
 
@@ -56,12 +52,11 @@ namespace IceRpc
                         activity.AddTag("rpc.method", request.Operation);
                         // TODO add additional attributes
                         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                        request.RestoreActivityContext(activity);
                     }
 
                     try
                     {
-                        return await next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                        return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     }
                     finally
                     {

@@ -6,10 +6,14 @@ namespace IceRpc
 {
     public static partial class Interceptors
     {
+        /// <summary>A interceptor that publishes invocation metrics, using the default invocation event source
+        /// instance <see cref="InvocationEventSource.Log"/> .</summary>
+        public static Func<IInvoker, IInvoker> Metrics { get; } = CustomMetrics(InvocationEventSource.Log);
+
         /// <summary>Creates an interceptor that publishes invocation metrics using an invocation event source
         /// <see cref="InvocationEventSource"/>.</summary>
         /// <param name="invocationEventSource">The invocation event source used to publish the metrics events.</param>
-        public static Func<IInvoker, IInvoker> CreateMetricsPublisher(InvocationEventSource invocationEventSource) =>
+        public static Func<IInvoker, IInvoker> CustomMetrics(InvocationEventSource invocationEventSource) =>
             next => new InlineInvoker(
                 async (request, cancel) =>
                 {
@@ -38,10 +42,5 @@ namespace IceRpc
                         invocationEventSource.RequestStop(request);
                     }
                 });
-
-        /// <summary>A interceptor that publishes invocation metrics, using the default invocation event source
-        /// instance <see cref="InvocationEventSource.Log"/> .</summary>
-        public static Func<IInvoker, IInvoker> MetricsPublisher { get; } =
-            CreateMetricsPublisher(InvocationEventSource.Log);
     }
 }

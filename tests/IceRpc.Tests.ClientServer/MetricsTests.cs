@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.ClientServer
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class EventSourceTests
+    public class MetricsTests
     {
         [Test]
-        public async Task EventSource_RequestsAsync()
+        public async Task Metrics_RequestsAsync()
         {
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation.Test",
@@ -34,11 +34,11 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
+            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
 
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Use(Middleware.CustomMetrics(dispatchEventSource));
             int dispatchRequests = 0;
             var mutex = new object();
             var dispatchSemaphore = new SemaphoreSlim(0);
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task EventSource_RequestsCanceledAsync()
+        public async Task Metrics_RequestsCanceledAsync()
         {
             using var invocationEventListener = new TestEventListener(
                 "IceRpc.Invocation.Test",
@@ -107,10 +107,10 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
+            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Use(Middleware.CustomMetrics(dispatchEventSource));
             router.Map<IGreeterTestService>(new Greeter2());
             await using var server = new Server
             {
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        public async Task EventSource_RequestsFailedAsync()
+        public async Task Metrics_RequestsFailedAsync()
         {
             using var invocationEventListener = new TestEventListener(
                "IceRpc.Invocation.Test",
@@ -157,10 +157,10 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CreateMetricsPublisher(invocationEventSource));
+            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CreateMetricsPublisher(dispatchEventSource));
+            router.Use(Middleware.CustomMetrics(dispatchEventSource));
             router.Map<IGreeterTestService>(new Greeter3());
             await using var server = new Server
             {
