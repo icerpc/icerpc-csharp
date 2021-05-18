@@ -2,20 +2,16 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <IceRpc/Context.ice>
+
 module IceRpc::Tests::Api
 {
-    interface GreeterService
+    interface Greeter
     {
         void SayHello();
     }
 
-    interface MiddlewareTestService
-    {
-        void Op();
-    }
-
-    dictionary<string, string> Context;
-    interface InterceptorTestService
+    interface InterceptorTest
     {
         Context opContext();
         int opInt(int value);
@@ -27,7 +23,7 @@ module IceRpc::Tests::Api
         void sendProxy(ProxyTest proxy);
     }
 
-    interface FeatureService
+    interface FeatureTest
     {
         int compute(int value);
         void failWithRemote();

@@ -70,9 +70,9 @@ namespace IceRpc.Tests.ClientServer
             server.Dispatcher = router;
             server.Listen();
 
-            router.Map<ICompressService>(new CompressService());
+            router.Map<ICompressTest>(new CompressTest());
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            ICompressServicePrx prx = ICompressServicePrx.FromConnection(connection, invoker: pipeline);
+            ICompressTestPrx prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.IsFalse(compressedResponse);
         }
 
-        internal class CompressService : ICompressService
+        internal class CompressTest : ICompressTest
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
                 byte[] p1,

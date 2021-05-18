@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = new GreeterService()
+                Dispatcher = new Greeter()
             };
             server.Listen();
 
@@ -26,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
                 var pipeline = new Pipeline();
                 // The invocation activity is only created if the logger is enabled or Activity.Current is set.
-                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                var prx = IGreeterPrx.FromConnection(connection);
                 Activity? invocationActivity = null;
                 bool called = false;
                 pipeline.Use(Interceptors.Telemetry);
@@ -52,7 +52,7 @@ namespace IceRpc.Tests.ClientServer
                 Activity? invocationActivity = null;
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
                 var pipeline = new Pipeline();
-                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                var prx = IGreeterPrx.FromConnection(connection);
                 prx.Invoker = pipeline;
                 pipeline.Use(Interceptors.Telemetry);
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
                 await prx.IcePingAsync();
                 Assert.IsNotNull(invocationActivity);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.GreeterTestService/ice_ping", invocationActivity.DisplayName);
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", invocationActivity.DisplayName);
                 Assert.AreEqual(testActivity, invocationActivity.Parent);
                 Assert.AreEqual(testActivity, Activity.Current);
                 testActivity.Stop();
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.ClientServer
                         dispatchActivity = Activity.Current;
                         return await next.DispatchAsync(current, cancel);
                     }));
-                router.Map<IGreeterTestService>(new GreeterService());
+                router.Map<IGreeter>(new Greeter());
 
                 await using var server = new Server
                 {
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.ClientServer
                 // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
                 // the server has an ActivitySource with listeners.
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                var prx = IGreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 Assert.IsTrue(called);
                 Assert.IsNull(dispatchActivity);
@@ -136,7 +136,7 @@ namespace IceRpc.Tests.ClientServer
                         dispatchActivity = Activity.Current;
                         return await next.DispatchAsync(current, cancel);
                     }));
-                router.Map<IGreeterTestService>(new GreeterService());
+                router.Map<IGreeter>(new Greeter());
 
 
                 await using var server = new Server
@@ -147,12 +147,12 @@ namespace IceRpc.Tests.ClientServer
                 };
                 server.Listen();
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var prx = IGreeterTestServicePrx.FromConnection(connection);
+                var prx = IGreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
                 await server.ShutdownAsync();
                 Assert.IsNotNull(dispatchActivity);
-                Assert.AreEqual("/IceRpc.Tests.ClientServer.GreeterTestService/ice_ping",
+                Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping",
                                 dispatchActivity.DisplayName);
                 // Wait to receive the dispatch activity stop event
                 Assert.That(await waitForStopSemaphore.WaitAsync(TimeSpan.FromSeconds(30)), Is.True);
@@ -199,7 +199,7 @@ namespace IceRpc.Tests.ClientServer
                     dispatchActivity = Activity.Current;
                     return await next.DispatchAsync(current, cancel);
                 }));
-            router.Map<IGreeterTestService>(new GreeterService());
+            router.Map<IGreeter>(new Greeter());
 
             await using var server = new Server
             {
@@ -212,7 +212,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IGreeterTestServicePrx.FromConnection(connection);
+            var prx = IGreeterPrx.FromConnection(connection);
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.
@@ -252,7 +252,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
-        public class GreeterService : IGreeterTestService
+        public class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

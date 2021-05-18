@@ -11,7 +11,7 @@ module IceRpc::Tests::ClientServer
         IceRpc::ByteSeq bytes;
     }
 
-    interface CompressService
+    interface CompressTest
     {
         [compress(args)] void opCompressArgs(int size, IceRpc::ByteSeq p1);
         [compress(return)] IceRpc::ByteSeq opCompressReturn(int size);

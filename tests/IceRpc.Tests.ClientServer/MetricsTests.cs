@@ -63,7 +63,7 @@ namespace IceRpc.Tests.ClientServer
                     await Task.Delay(TimeSpan.FromSeconds(1), cancel);
                     return await next.DispatchAsync(request, cancel);
                 }));
-            router.Map<IGreeterTestService>(new Greeter1());
+            router.Map<IGreeter>(new Greeter1());
             await using var server = new Server
             {
                 Dispatcher = router,
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             // TODO temporary until auto-connect is reliable
             await connection.ConnectAsync();
-            var greeter = IGreeterTestServicePrx.FromConnection(connection, invoker: pipeline);
+            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CustomMetrics(dispatchEventSource));
-            router.Map<IGreeterTestService>(new Greeter2());
+            router.Map<IGreeter>(new Greeter2());
             await using var server = new Server
             {
                 Dispatcher = router,
@@ -122,7 +122,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterTestServicePrx.FromConnection(connection, invoker: pipeline);
+            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
             // TODO temporary until auto-connect is reliable
             await connection.ConnectAsync();
 
@@ -163,7 +163,7 @@ namespace IceRpc.Tests.ClientServer
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
             router.Use(Middleware.CustomMetrics(dispatchEventSource));
-            router.Map<IGreeterTestService>(new Greeter3());
+            router.Map<IGreeter>(new Greeter3());
             await using var server = new Server
             {
                 Dispatcher = router,
@@ -174,7 +174,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             // TODO temporary until auto-connect is reliable
             await connection.ConnectAsync();
-            var greeter = IGreeterTestServicePrx.FromConnection(connection, invoker: pipeline);
+            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
 
             for (int i = 0; i < 10; ++i)
             {
@@ -185,18 +185,18 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
         }
 
-        private class Greeter1 : IGreeterTestService
+        private class Greeter1 : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        private class Greeter2 : IGreeterTestService
+        private class Greeter2 : IGreeter
         {
             public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
-        private class Greeter3 : IGreeterTestService
+        private class Greeter3 : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new DispatchException("failed");

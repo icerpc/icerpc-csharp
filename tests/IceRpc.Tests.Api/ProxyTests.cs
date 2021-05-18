@@ -17,29 +17,29 @@ namespace IceRpc.Tests.Api
         {
             await using var server = new Server
             {
-                Dispatcher = new GreeterService(),
+                Dispatcher = new Greeter(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var prx = IGreeterServicePrx.FromConnection(connection);
+            var prx = IGreeterPrx.FromConnection(connection);
 
             await prx.IcePingAsync();
 
-            Assert.AreEqual("::IceRpc::Tests::Api::GreeterService", await prx.IceIdAsync());
+            Assert.AreEqual("::IceRpc::Tests::Api::Greeter", await prx.IceIdAsync());
 
             string[] ids = new string[]
             {
                 "::Ice::Object",
-                "::IceRpc::Tests::Api::GreeterService",
+                "::IceRpc::Tests::Api::Greeter",
             };
             CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
 
-            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService"), Is.True);
+            Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
             Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
 
-            Assert.IsNotNull(await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>());
+            Assert.IsNotNull(await prx.As<IServicePrx>().CheckedCastAsync<IGreeterPrx>());
 
             // Test that builtin operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
@@ -47,9 +47,9 @@ namespace IceRpc.Tests.Api
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdAsync(cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(
-                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", cancel: canceled));
+                async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(
-                async () => await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(cancel: canceled));
+                async () => await prx.As<IServicePrx>().CheckedCastAsync<IGreeterPrx>(cancel: canceled));
 
             // Test that builtin operation correctly forward the context
             var invocation = new Invocation
@@ -68,15 +68,15 @@ namespace IceRpc.Tests.Api
             await prx.IcePingAsync(invocation);
             await prx.IceIdAsync(invocation);
             await prx.IceIdsAsync(invocation);
-            await prx.IceIsAAsync("::IceRpc::Tests::Api::GreeterService", invocation);
-            await prx.As<IServicePrx>().CheckedCastAsync<IGreeterServicePrx>(invocation);
+            await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
+            await prx.As<IServicePrx>().CheckedCastAsync<IGreeterPrx>(invocation);
         }
 
         [TestCase("ice+tcp://localhost:10000/test")]
         [TestCase("test:tcp -h localhost -p 10000")]
         public void Proxy_SetProperty(string s)
         {
-            var prx = IGreeterServicePrx.Parse(s);
+            var prx = IGreeterPrx.Parse(s);
 
             prx.Encoding = Encoding.V11;
             Assert.AreEqual(prx.Encoding, Encoding.V11);
@@ -85,39 +85,38 @@ namespace IceRpc.Tests.Api
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                var prx2 = IGreeterServicePrx.Parse("test:tcp -h localhost -p 10001");
+                var prx2 = IGreeterPrx.Parse("test:tcp -h localhost -p 10001");
                 prx.Endpoint = prx2.Endpoint;
                 Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
             else
             {
-                var prx2 = IGreeterServicePrx.Parse("ice+tcp://localhost:10001/test");
+                var prx2 = IGreeterPrx.Parse("ice+tcp://localhost:10001/test");
                 prx.Endpoint = prx2.Endpoint;
                 Assert.AreEqual(prx.Endpoint, prx2.Endpoint);
             }
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                Assert.AreEqual("facet", prx.WithFacet<IGreeterServicePrx>("facet").GetFacet());
+                Assert.AreEqual("facet", prx.WithFacet<IGreeterPrx>("facet").GetFacet());
             }
 
             if (prx.Protocol == Protocol.Ice1)
             {
-                prx = IGreeterServicePrx.Parse(s);
+                prx = IGreeterPrx.Parse(s);
 
-                IGreeterServicePrx other =
-                    prx.WithPath<IGreeterServicePrx>("/test").WithFacet<IGreeterServicePrx>("facet");
+                IGreeterPrx other = prx.WithPath<IGreeterPrx>("/test").WithFacet<IGreeterPrx>("facet");
 
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
 
-                other = other.WithPath<IGreeterServicePrx>("/category/test");
+                other = other.WithPath<IGreeterPrx>("/category/test");
                 Assert.AreEqual("facet", other.GetFacet());
                 Assert.AreEqual("test", other.GetIdentity().Name);
                 Assert.AreEqual("category", other.GetIdentity().Category);
 
-                other = prx.WithPath<IGreeterServicePrx>("/foo").WithFacet<IGreeterServicePrx>("facet1");
+                other = prx.WithPath<IGreeterPrx>("/foo").WithFacet<IGreeterPrx>("facet1");
                 Assert.AreEqual("facet1", other.GetFacet());
                 Assert.AreEqual("foo", other.GetIdentity().Name);
                 Assert.AreEqual("", other.GetIdentity().Category);
@@ -362,13 +361,13 @@ namespace IceRpc.Tests.Api
         {
             await using var server = new Server
             {
-                Dispatcher = new GreeterService(),
+                Dispatcher = new Greeter(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IGreeterServicePrx.FromConnection(connection);
+            var prx = IGreeterPrx.FromConnection(connection);
 
             (ReadOnlyMemory<byte> responsePayload, Connection responseConnection) = await prx.InvokeAsync(
                 "SayHello",
@@ -401,7 +400,7 @@ namespace IceRpc.Tests.Api
         public void Proxy_NotSupportedEncoding(string encoding)
         {
             var pipeline = new Pipeline();
-            var prx = IGreeterServicePrx.Parse("/test", pipeline);
+            var prx = IGreeterPrx.Parse("/test", pipeline);
             prx.Encoding = Encoding.Parse(encoding);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
@@ -415,7 +414,7 @@ namespace IceRpc.Tests.Api
                 RemoteEndpoint = $"ice+universal://localhost?transport=tcp&protocol={protocol}"
             };
 
-            var prx = IGreeterServicePrx.FromConnection(connection);
+            var prx = IGreeterPrx.FromConnection(connection);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
 
@@ -428,9 +427,9 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual("/test", service.Path);
             Assert.IsNull(service.Endpoint);
 
-            Assert.AreEqual("/IceRpc.Tests.Api.GreeterService", IGreeterServicePrx.DefaultPath);
+            Assert.AreEqual("/IceRpc.Tests.Api.Greeter", IGreeterPrx.DefaultPath);
 
-            var greeter = IGreeterServicePrx.FromPath("/test");
+            var greeter = IGreeterPrx.FromPath("/test");
             Assert.AreEqual("/test", greeter.Path);
             Assert.IsNull(greeter.Endpoint);
 
@@ -442,7 +441,7 @@ namespace IceRpc.Tests.Api
                 {
                     IncomingConnection = request.Connection,
                     Service = IServicePrx.FromConnection(request.Connection),
-                    Greeter = IGreeterServicePrx.FromConnection(request.Connection)
+                    Greeter = IGreeterPrx.FromConnection(request.Connection)
                 };
                 return new(new OutgoingResponse(request, Payload.FromVoidReturnValue(request)));
             }));
@@ -461,8 +460,8 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(connection, service.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, service.Endpoint);
 
-            greeter = IGreeterServicePrx.FromConnection(connection);
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            greeter = IGreeterPrx.FromConnection(connection);
+            Assert.AreEqual(IGreeterPrx.DefaultPath, greeter.Path);
             Assert.AreEqual(connection, greeter.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Endpoint);
 
@@ -471,8 +470,8 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(service.Connection);
             Assert.AreEqual(server.ProxyEndpoint, service.Endpoint);
 
-            greeter = IGreeterServicePrx.FromServer(server);
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, greeter.Path);
+            greeter = IGreeterPrx.FromServer(server);
+            Assert.AreEqual(IGreeterPrx.DefaultPath, greeter.Path);
             Assert.IsNull(greeter.Connection);
             Assert.AreEqual(server.ProxyEndpoint, greeter.Endpoint);
 
@@ -484,12 +483,12 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(capture.Service.Endpoint);
 
             Assert.IsNotNull(greeter);
-            Assert.AreEqual(IGreeterServicePrx.DefaultPath, capture.Greeter.Path);
+            Assert.AreEqual(IGreeterPrx.DefaultPath, capture.Greeter.Path);
             Assert.AreEqual(capture.IncomingConnection, capture.Greeter.Connection);
             Assert.IsNull(capture.Greeter.Endpoint);
         }
 
-        public class GreeterService : IGreeterService
+        public class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 default;

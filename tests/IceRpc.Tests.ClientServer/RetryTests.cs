@@ -43,12 +43,9 @@ namespace IceRpc.Tests.ClientServer
             await using var pool = new ConnectionPool();
             var pipeline = CreatePipeline(pool);
 
-            var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/retry", port: 0, protocol: protocol),
-                                                        pipeline);
-            var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/retry", port: 1, protocol: protocol),
-                                                        pipeline);
-            var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/retry", port: 2, protocol: protocol),
-                                                        pipeline);
+            var prx1 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 0, protocol: protocol), pipeline);
+            var prx2 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 1, protocol: protocol), pipeline);
+            var prx3 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 2, protocol: protocol), pipeline);
 
             // Check that we can still connect using a service proxy with 3 endpoints when only one
             // of the target servers is active.
@@ -58,7 +55,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     HasColocEndpoint = false,
-                    Dispatcher = new RetryService(),
+                    Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
                     ProxyHost = "localhost"
                 };
@@ -83,10 +80,10 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            var proxy = IRetryBidirServicePrx.FromServer(server, "/");
+            var proxy = IRetryBidirTestPrx.FromServer(server, "/");
             await proxy.IcePingAsync();
             proxy.Connection!.Dispatcher = server.Dispatcher;
-            IRetryBidirServicePrx bidir = proxy.Clone(); // keeps Connection
+            IRetryBidirTestPrx bidir = proxy.Clone(); // keeps Connection
             bidir.Endpoint = null; // endpointless proxy with a connection
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
@@ -277,8 +274,8 @@ namespace IceRpc.Tests.ClientServer
                     routers[0].Map("/replicated", new Replicated(fail: true));
                     routers[1].Map("/replicated", new Replicated(fail: false));
 
-                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 0), pipeline);
-                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 1), pipeline);
+                    var prx1 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 0), pipeline);
+                    var prx2 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 1), pipeline);
 
                     // The service proxy has 2 endpoints, the request fails using the first endpoint with a retryable
                     //  exception that has OtherReplica retry policy, it then retries the second endpoint and succeed.
@@ -327,9 +324,9 @@ namespace IceRpc.Tests.ClientServer
                         servers[i].Dispatcher = routers[i];
                         servers[i].Listen();
                     }
-                    var prx1 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 0), pipeline);
-                    var prx2 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 1), pipeline);
-                    var prx3 = IRetryReplicatedServicePrx.Parse(GetTestProxy("/replicated", port: 2), pipeline);
+                    var prx1 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 0), pipeline);
+                    var prx2 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 1), pipeline);
+                    var prx3 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/replicated", port: 2), pipeline);
 
                     // The first replica fails with ServiceNotFoundException exception the second replica fails with
                     // RetrySystemFailure the last failure should be reported.
@@ -447,7 +444,7 @@ namespace IceRpc.Tests.ClientServer
         private async Task WithRetryServiceAsync(
             Protocol protocol,
             Action<Pipeline, IConnectionProvider>? configure,
-            Func<RetryService, IRetryServicePrx, Task> closure)
+            Func<RetryTest, IRetryTestPrx, Task> closure)
         {
             await using var pool = new ConnectionPool();
             Pipeline pipeline;
@@ -462,7 +459,7 @@ namespace IceRpc.Tests.ClientServer
             }
 
             var router = new Router();
-            var service = new RetryService();
+            var service = new RetryTest();
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
@@ -481,19 +478,19 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            var retry = IRetryServicePrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
+            var retry = IRetryTestPrx.Parse(GetTestProxy("/retry", protocol: protocol), pipeline);
             await closure(service, retry);
         }
 
-        private Task WithRetryServiceAsync(Func<RetryService, IRetryServicePrx, Task> closure) =>
+        private Task WithRetryServiceAsync(Func<RetryTest, IRetryTestPrx, Task> closure) =>
             WithRetryServiceAsync(Protocol.Ice2, null, closure);
 
         private Task WithRetryServiceAsync(
             Action<Pipeline, IConnectionProvider> configure,
-            Func<RetryService, IRetryServicePrx, Task> closure) =>
+            Func<RetryTest, IRetryTestPrx, Task> closure) =>
             WithRetryServiceAsync(Protocol.Ice2, configure, closure);
 
-        internal class RetryService : IRetryService
+        internal class RetryTest : IRetryTest
         {
             internal int Attempts;
             internal Connection? Connection;
@@ -570,7 +567,7 @@ namespace IceRpc.Tests.ClientServer
         }
     }
 
-    public class Bidir : IRetryBidirService
+    public class Bidir : IRetryBidirTest
     {
         private int _n;
 
@@ -588,7 +585,7 @@ namespace IceRpc.Tests.ClientServer
             throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
     }
 
-    public class Replicated : IRetryReplicatedService
+    public class Replicated : IRetryReplicatedTest
     {
         private readonly bool _fail;
         public Replicated(bool fail) => _fail = fail;

@@ -22,14 +22,14 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Dispatcher = new GreeterService(),
+                Dispatcher = new Greeter(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var prx = IGreeterServicePrx.FromConnection(connection);
+            var prx = IGreeterPrx.FromConnection(connection);
             prx.Invoker = pipeline;
 
             Assert.AreEqual(0, value);
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Api
             });
 
         // TODO: move to shared location?
-        public class GreeterService : IGreeterService
+        public class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

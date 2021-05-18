@@ -21,14 +21,14 @@ namespace IceRpc.Tests.ClientServer
         private Server Server { get; }
         private Protocol Protocol { get; }
         private string Transport { get; }
-        private IStressTestServicePrx Prx { get; }
-        private TestService Servant { get; }
+        private IStressTestPrx Prx { get; }
+        private StressTest Servant { get; }
 
         public StressTests(Protocol protocol, string transport)
         {
             Protocol = protocol;
             Transport = transport;
-            Servant = new TestService();
+            Servant = new StressTest();
             Server = new Server
             {
                 HasColocEndpoint = false,
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
                 ProxyHost = "localhost"
             };
             Connection = new Connection { RemoteEndpoint = Server.ProxyEndpoint };
-            Prx = IStressTestServicePrx.FromConnection(Connection);
+            Prx = IStressTestPrx.FromConnection(Connection);
             Server.Listen();
         }
 
@@ -63,9 +63,9 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);
         }
 
-        public class TestService : IStressTestService
+        public class StressTest : IStressTest
         {
-            public TestService()
+            public StressTest()
             {
                 OpReceiveByteSeqData = Array.Empty<byte>();
                 OpSendByteSeqData = Array.Empty<byte>();

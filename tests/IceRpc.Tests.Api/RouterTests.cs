@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
                     return await _service!.DispatchAsync(current, cancel);
                 });
 
-        private static IDispatcher _service = new GreeterService();
+        private static IDispatcher _service = new Greeter();
 
         private Connection _connection;
 
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Api
         {
             _router.Mount("/", _failDispatcher);
             string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
-            var greeter = IGreeterServicePrx.FromConnection(_connection, badPath);
+            var greeter = IGreeterPrx.FromConnection(_connection, badPath);
             Assert.ThrowsAsync<DispatchException>(async () => await greeter.IcePingAsync());
 
             Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Api
 
             _router.Mount(path, _failDispatcher);
 
-            IGreeterServicePrx greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            IGreeterPrx greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.AreEqual(1, value);
 
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.Api
         public void Router_MapNotFound(string registered, string path)
         {
             _router.Map(registered, _failDispatcher);
-            var greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
         }
 
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Api
                     return await _service.DispatchAsync(current, cancel);
                 }));
 
-            var greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.IsTrue(called);
         }
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Api
         public void Router_MountNotFound(string registered, string path)
         {
             _router.Mount(registered, _failDispatcher);
-            var greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
         }
 
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Api
                         }));
                 });
 
-            var greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.IsTrue(mainRouterMiddlewareCalled);
             Assert.IsTrue(subRouterMiddlewareCalled);
@@ -208,7 +208,7 @@ namespace IceRpc.Tests.Api
                     });
                 });
 
-            var greeter = IGreeterServicePrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.IsTrue(mainRouterMiddlewareCalled);
             Assert.IsTrue(nestedRouterMiddlewareCalled);
@@ -220,9 +220,9 @@ namespace IceRpc.Tests.Api
             Assert.IsEmpty(_router.AbsolutePrefix);
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await IGreeterServicePrx.FromConnection(_connection).IcePingAsync());
-            _router.Map<IGreeterService>(new GreeterService());
-            await IGreeterServicePrx.FromConnection(_connection).IcePingAsync();
+                async () => await IGreeterPrx.FromConnection(_connection).IcePingAsync());
+            _router.Map<IGreeter>(new Greeter());
+            await IGreeterPrx.FromConnection(_connection).IcePingAsync();
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await IBaseAPrx.FromConnection(_connection).IcePingAsync());
@@ -277,7 +277,7 @@ namespace IceRpc.Tests.Api
             await _connection.ShutdownAsync();
         }
 
-        public class GreeterService : IGreeterService
+        public class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

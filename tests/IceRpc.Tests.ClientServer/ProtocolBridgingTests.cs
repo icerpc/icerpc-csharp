@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Binder(_pool));
 
-            IProtocolBridgingServicePrx forwarderService =
+            IProtocolBridgingTestPrx forwarderService =
                 SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
 
             var newPrx = await TestProxyAsync(forwarderService, direct: false);
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
 
             _ = await TestProxyAsync(newPrx, direct: true);
 
-            async Task<IProtocolBridgingServicePrx> TestProxyAsync(IProtocolBridgingServicePrx prx, bool direct)
+            async Task<IProtocolBridgingTestPrx> TestProxyAsync(IProtocolBridgingTestPrx prx, bool direct)
             {
                 Assert.AreEqual(prx.Path, direct ? "/target" : "/forward");
 
@@ -91,7 +91,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private IProtocolBridgingServicePrx SetupForwarderServer(
+        private IProtocolBridgingTestPrx SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,
             bool colocated,
@@ -99,16 +99,16 @@ namespace IceRpc.Tests.ClientServer
         {
             _targetServer = CreateServer(targetProtocol, port: 0, colocated, invoker);
 
-            _router.Map("/target", new ProtocolBridgingService());
+            _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = IProtocolBridgingServicePrx.FromServer(_targetServer, "/target");
+            var targetService = IProtocolBridgingTestPrx.FromServer(_targetServer, "/target");
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated, invoker);
             _router.Map("/forward", new Forwarder(targetService));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = IProtocolBridgingServicePrx.FromServer(_forwarderServer, "/forward");
+            var forwardService = IProtocolBridgingTestPrx.FromServer(_forwarderServer, "/forward");
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated, IInvoker invoker) =>
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.ClientServer
                 };
         }
 
-        internal class ProtocolBridgingService : IProtocolBridgingService
+        internal class ProtocolBridgingTest : IProtocolBridgingTest
         {
             public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);
@@ -131,9 +131,9 @@ namespace IceRpc.Tests.ClientServer
             public ValueTask OpExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ProtocolBridgingException(42);
 
-            public ValueTask<IProtocolBridgingServicePrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
+            public ValueTask<IProtocolBridgingTestPrx> OpNewProxyAsync(Dispatch dispatch, CancellationToken cancel)
             {
-                var proxy = IProtocolBridgingServicePrx.FromServer(dispatch.Server!, dispatch.Path);
+                var proxy = IProtocolBridgingTestPrx.FromServer(dispatch.Server!, dispatch.Path);
                 proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(proxy);
             }
