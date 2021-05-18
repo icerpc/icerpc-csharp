@@ -335,13 +335,12 @@ namespace IceRpc
                 new ConnectionClosedException(message ?? "connection closed forcefully", isClosedByPeer: false));
         }
 
-        /// <summary>For an outgoing connection it attempts to connect to the remote endpoint, it is an error to call
-        /// <c>ConnectAsync</c> on an incoming connection only the <see cref="Server"/> should do that.</summary>
+        /// <summary>Establishes the connection to the <see cref="RemoteEndpoint"/>.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that indicates the completion of the connect operation.</returns>
-        /// <exception cref="ObjectDisposedException">If the connection is already closed.</exception>
-        /// <exception cref="InvalidOperationException">If the <see cref="RemoteEndpoint"/> of an outgoing connection
-        /// is not set.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set or if
+        /// <see cref="Options"/> is set to an <see cref="IncomingConnectionOptions"/> instance</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             ValueTask connectTask = new();

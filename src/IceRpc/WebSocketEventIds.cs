@@ -21,7 +21,7 @@ namespace IceRpc
         /// <summary>A WebSocket frame was received.</summary>
         public static readonly EventId ReceivedWebSocketFrame = GetEventId(WebSocketEvent.ReceivedWebSocketFrame);
 
-        /// <summary>A WebSocket frame is being send.</summary>
+        /// <summary>A WebSocket frame is being sent.</summary>
         public static readonly EventId SendingWebSocketFrame = GetEventId(WebSocketEvent.SendingWebSocketFrame);
 
         private const int BaseEventId = Internal.LoggerExtensions.WebSocketBaseEventId;

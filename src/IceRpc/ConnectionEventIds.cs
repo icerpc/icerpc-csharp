@@ -7,7 +7,7 @@ namespace IceRpc
     /// <summary>This class contains event ID constants used for connection logging.</summary>
     public static class ConnectionEventIds
     {
-        /// <summary>A dispatch operation throw an unexpected exception.</summary>
+        /// <summary>A dispatch operation thrown an unexpected exception.</summary>
         public static readonly EventId DispatchException = GetEventId(ConnectionEvent.DispatchException);
 
         /// <summary>A dispatch operation was canceled by the client.</summary>

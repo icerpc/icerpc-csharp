@@ -7,7 +7,7 @@ namespace IceRpc
     /// <summary>This class contains event ID constants used for server logging.</summary>
     public static class ServerEventIds
     {
-        /// <summary>The server start listening for requests.</summary>
+        /// <summary>The server starts listening for new connections.</summary>
         /// <seealso cref="Server.Listen"/>
         public static readonly EventId ServerListening = GetEventId(ServerEvent.ServerListening);
 

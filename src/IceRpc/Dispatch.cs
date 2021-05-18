@@ -58,6 +58,7 @@ namespace IceRpc
 
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
+        
         internal Dispatch(IncomingRequest request) => IncomingRequest = request;
     }
 }

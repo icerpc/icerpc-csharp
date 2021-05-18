@@ -48,11 +48,11 @@ namespace IceRpc
         /// <summary>A request failed with an exception.</summary>
         public static readonly EventId RequestException = GetEventId(ProtocolEvent.RequestException);
 
-        /// <summary>A request will be retry because of a retryable exception.</summary>
+        /// <summary>A request will be retried because of a retryable exception.</summary>
         public static readonly EventId RetryRequestRetryableException =
             GetEventId(ProtocolEvent.RetryRequestRetryableException);
 
-        /// <summary>A connection establishment will be retry because of a retryable exception.</summary>
+        /// <summary>A connection establishment will be retried because of a retryable exception.</summary>
         public static readonly EventId RetryRequestConnectionException =
             GetEventId(ProtocolEvent.RetryRequestConnectionException);
 

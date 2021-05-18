@@ -56,24 +56,24 @@ namespace IceRpc
         public static readonly EventId StartAcceptingConnections =
             GetEventId(TransportEvent.StartAcceptingConnections);
 
-        /// <summary>The transport start receiving datagram messages.</summary>
+        /// <summary>The transport starts receiving datagram messages.</summary>
         public static readonly EventId StartReceivingDatagrams = GetEventId(TransportEvent.StartReceivingDatagrams);
 
         /// <summary>The transport failed to start receiving datagram messages.</summary>
         public static readonly EventId StartReceivingDatagramsFailed =
             GetEventId(TransportEvent.StartReceivingDatagramsFailed);
 
-        /// <summary>The transport start sending datagram messages.</summary>
+        /// <summary>The transport starts sending datagram messages.</summary>
         public static readonly EventId StartSendingDatagrams = GetEventId(TransportEvent.StartSendingDatagrams);
 
         /// <summary>The transport failed to start sending datagram messages.</summary>
         public static readonly EventId StartSendingDatagramsFailed =
             GetEventId(TransportEvent.StartSendingDatagramsFailed);
 
-        /// <summary>The transport stop accepting connections.</summary>
+        /// <summary>The transport stops accepting connections.</summary>
         public static readonly EventId StopAcceptingConnections = GetEventId(TransportEvent.StopAcceptingConnections);
 
-        /// <summary>The transport stop receiving datagram messages.</summary>
+        /// <summary>The transport stops receiving datagram messages.</summary>
         public static readonly EventId StopReceivingDatagrams = GetEventId(TransportEvent.StopReceivingDatagrams);
 
         private const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;

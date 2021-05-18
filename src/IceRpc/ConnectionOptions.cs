@@ -226,6 +226,13 @@ namespace IceRpc
                     nameof(value));
         }
 
+        private int _bidirectionalStreamMaxCount = 100;
+        private int _classGraphMaxDepth = 100;
+        private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
+        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
+        private int _incomingFrameMaxSize = 1024 * 1024;
+        private int _unidirectionalStreamMaxCount = 100;
+
         /// <inheritdoc/>
         protected internal ConnectionOptions Clone()
         {
@@ -233,13 +240,6 @@ namespace IceRpc
             options.TransportOptions = TransportOptions?.Clone();
             return options;
         }
-
-        private int _bidirectionalStreamMaxCount = 100;
-        private int _classGraphMaxDepth = 100;
-        private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
-        private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
-        private int _incomingFrameMaxSize = 1024 * 1024;
-        private int _unidirectionalStreamMaxCount = 100;
     }
 
     /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
@@ -262,6 +262,11 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
+        internal static OutgoingConnectionOptions Default = new();
+
+        private SslClientAuthenticationOptions? _authenticationOptions;
+        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
+
         /// <inheritdoc/>
         public new OutgoingConnectionOptions Clone()
         {
@@ -269,11 +274,6 @@ namespace IceRpc
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
-
-        internal static OutgoingConnectionOptions Default = new();
-
-        private SslClientAuthenticationOptions? _authenticationOptions;
-        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
     }
 
     /// <summary>An options class for configuring incoming IceRPC connections.</summary>
@@ -298,6 +298,11 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
 
+        internal static OutgoingConnectionOptions Default = new();
+
+        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
+        private SslServerAuthenticationOptions? _authenticationOptions;
+
         /// <inheritdoc/>
         public new IncomingConnectionOptions Clone()
         {
@@ -305,10 +310,5 @@ namespace IceRpc
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
-
-        internal static OutgoingConnectionOptions Default = new();
-
-        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
-        private SslServerAuthenticationOptions? _authenticationOptions;
     }
 }
