@@ -298,7 +298,7 @@ namespace IceRpc
         /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
         /// <param name="endpoint">The endpoint to check.</param>
         /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
-        internal static Endpoint? GetColocCounterPart(Endpoint endpoint) =>
+        internal static Endpoint? GetColocEndpoint(Endpoint endpoint) =>
             endpoint.Transport == Transport.Coloc ? endpoint :
                 (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 
@@ -378,16 +378,6 @@ namespace IceRpc
                 catch
                 {
                 }
-            }
-        }
-
-        private static void RegisterColocEndpoint(Endpoint endpoint, ColocEndpoint colocEndpoint)
-        {
-            Debug.Assert(endpoint.Transport != Transport.Coloc);
-            if (!_colocRegistry.TryAdd(endpoint, colocEndpoint))
-            {
-                Debug.Assert(false);
-                throw new TransportException($"endpoint '{endpoint}' is already registered for coloc");
             }
         }
     }

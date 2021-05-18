@@ -18,8 +18,8 @@ namespace IceRpc
                 {
                     if (request.Connection == null && request.Endpoint != null)
                     {
-                        request.Endpoint = Server.GetColocCounterPart(request.Endpoint) ?? request.Endpoint;
-                        request.AltEndpoints = request.AltEndpoints.Select(e => Server.GetColocCounterPart(e) ?? e);
+                        request.Endpoint = Server.GetColocEndpoint(request.Endpoint) ?? request.Endpoint;
+                        request.AltEndpoints = request.AltEndpoints.Select(e => Server.GetColocEndpoint(e) ?? e);
                     }
                     return next.InvokeAsync(request, cancel);
                 });
