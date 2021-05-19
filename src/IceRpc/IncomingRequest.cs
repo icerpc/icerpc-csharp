@@ -249,69 +249,40 @@ namespace IceRpc
 
         internal void RestoreActivityContext(Activity activity)
         {
-            if (Protocol == Protocol.Ice1)
+            Debug.Assert(Protocol == Protocol.Ice2);
+            if (BinaryContext.TryGetValue((int)BinaryContextKey.TraceContext, out ReadOnlyMemory<byte> buffer))
             {
-                if (Context != null && Context.TryGetValue("traceparent", out string? parentId))
+                // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
+                // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
+                int i = 0;
+                byte traceIdVersion = buffer.Span[i++];
+                var traceId = ActivityTraceId.CreateFromBytes(buffer.Span.Slice(i, 16));
+                i += 16;
+                var spanId = ActivitySpanId.CreateFromBytes(buffer.Span.Slice(i, 8));
+                i += 8;
+                var traceFlags = (ActivityTraceFlags)buffer.Span[i++];
+
+                activity.SetParentId(traceId, spanId, traceFlags);
+
+                // Read tracestate encoded as a string
+                var istr = new InputStream(buffer[i..], Encoding.V20);
+                activity.TraceStateString = istr.ReadString();
+
+                // The min element size is 2 bytes for a struct with two empty strings.
+                IEnumerable<(string key, string value)> baggage = istr.ReadSequence(
+                    minElementSize: 2,
+                    istr =>
+                    {
+                        string key = istr.ReadString();
+                        string value = istr.ReadString();
+                        return (key, value);
+                    });
+
+                // Restore in reverse order to keep the order in witch the peer add baggage entries,
+                // this is important when there are duplicate keys.
+                foreach ((string key, string value) in baggage.Reverse())
                 {
-                    activity.SetParentId(parentId);
-                    if (Context.TryGetValue("tracestate", out string? traceState))
-                    {
-                        activity.TraceStateString = traceState;
-                    }
-
-                    if (Context.TryGetValue("baggage", out string? baggage))
-                    {
-                        string[] baggageItems = baggage.Split(",", StringSplitOptions.RemoveEmptyEntries);
-                        for (int i = baggageItems.Length - 1; i >= 0; i--)
-                        {
-                            if (NameValueHeaderValue.TryParse(baggageItems[i], out NameValueHeaderValue? baggageItem))
-                            {
-                                if (baggageItem.Value?.Length > 0)
-                                {
-                                    activity.AddBaggage(baggageItem.Name.ToString(),
-                                                        HttpUtility.UrlDecode(baggageItem.Value));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (BinaryContext.TryGetValue((int)BinaryContextKey.TraceContext, out ReadOnlyMemory<byte> buffer))
-                {
-                    // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
-                    // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                    int i = 0;
-                    byte traceIdVersion = buffer.Span[i++];
-                    var traceId = ActivityTraceId.CreateFromBytes(buffer.Span.Slice(i, 16));
-                    i += 16;
-                    var spanId = ActivitySpanId.CreateFromBytes(buffer.Span.Slice(i, 8));
-                    i += 8;
-                    var traceFlags = (ActivityTraceFlags)buffer.Span[i++];
-
-                    activity.SetParentId(traceId, spanId, traceFlags);
-
-                    // Read tracestate encoded as a string
-                    var istr = new InputStream(buffer[i..], Encoding.V20);
-                    activity.TraceStateString = istr.ReadString();
-
-                    // The min element size is 2 bytes for a struct with two empty strings.
-                    IEnumerable<(string key, string value)> baggage = istr.ReadSequence(
-                        minElementSize: 2,
-                        istr =>
-                        {
-                            string key = istr.ReadString();
-                            string value = istr.ReadString();
-                            return (key, value);
-                        });
-
-                    // Restore in reverse order to keep the order in witch the peer add baggage entries,
-                    // this is important when there are duplicate keys.
-                    foreach ((string key, string value) in baggage.Reverse())
-                    {
-                        activity.AddBaggage(key, value);
-                    }
+                    activity.AddBaggage(key, value);
                 }
             }
         }

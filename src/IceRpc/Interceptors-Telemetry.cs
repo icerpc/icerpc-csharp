@@ -36,31 +36,40 @@ namespace IceRpc
             return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                    Activity? activity = tracerOptions.ActivitySource?.StartActivity(
-                        $"{request.Path}/{request.Operation}",
-                        ActivityKind.Client);
-                    if (activity == null && (logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                    if (request.Protocol == Protocol.Ice2)
                     {
-                        activity = new Activity($"{request.Path}/{request.Operation}");
-                        activity.Start();
-                    }
+                        Activity? activity = tracerOptions.ActivitySource?.StartActivity(
+                            $"{request.Path}/{request.Operation}",
+                            ActivityKind.Client);
+                        if (activity == null && (logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
+                        {
+                            activity = new Activity($"{request.Path}/{request.Operation}");
+                            activity.Start();
+                        }
 
-                    if (activity != null)
-                    {
-                        activity.AddTag("rpc.system", "icerpc");
-                        activity.AddTag("rpc.service", request.Path);
-                        activity.AddTag("rpc.method", request.Operation);
-                        // TODO add additional attributes
-                        // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
-                    }
+                        if (activity != null)
+                        {
+                            activity.AddTag("rpc.system", "icerpc");
+                            activity.AddTag("rpc.service", request.Path);
+                            activity.AddTag("rpc.method", request.Operation);
+                            // TODO add additional attributes
+                            // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
+                        }
 
-                    try
+                        request.WriteActivityContext();
+
+                        try
+                        {
+                            return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            activity?.Stop();
+                        }
+                    }
+                    else
                     {
                         return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        activity?.Stop();
                     }
                 });
         }

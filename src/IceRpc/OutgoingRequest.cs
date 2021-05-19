@@ -262,50 +262,21 @@ namespace IceRpc
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
-        internal void WriteActivityContext(Activity activity)
+        internal void WriteActivityContext()
         {
-            if (activity.IdFormat != ActivityIdFormat.W3C)
+            Debug.Assert(Protocol == Protocol.Ice2);
+            if (Activity.Current is Activity activity && activity.Id != null)
             {
-                throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
-            }
-
-            if (activity.Id == null)
-            {
-                throw new ArgumentException("invalid null activity ID", nameof(activity));
-            }
-
-            if (Protocol == Protocol.Ice1)
-            {
-                // For Ice1 the Activity context is write to the request Context using the standard keys
-                // traceparent, tracestate and baggage.
-
-                if (Context.IsReadOnly)
+                if (activity.IdFormat != ActivityIdFormat.W3C)
                 {
-                    // Upgrade to read-write copy
-                    Context = new SortedDictionary<string, string>(Context);
+                    throw new ArgumentException("only W3C ID format is supported with IceRpc", nameof(activity));
                 }
 
-                Context["traceparent"] = activity.Id;
-                if (activity.TraceStateString != null)
+                if (activity.Id == null)
                 {
-                    Context["tracestate"] = activity.TraceStateString;
+                    throw new ArgumentException("invalid null activity ID", nameof(activity));
                 }
 
-                using IEnumerator<KeyValuePair<string, string?>> e = activity.Baggage.GetEnumerator();
-                if (e.MoveNext())
-                {
-                    var baggage = new List<string>();
-                    do
-                    {
-                        baggage.Add(new NameValueHeaderValue(HttpUtility.UrlEncode(e.Current.Key),
-                                                             HttpUtility.UrlEncode(e.Current.Value)).ToString());
-                    }
-                    while (e.MoveNext());
-                    Context["baggage"] = string.Join(',', baggage);
-                }
-            }
-            else
-            {
                 // For Ice2 the activity context is written to the binary context as if it has the following Slice
                 // definition
                 //
