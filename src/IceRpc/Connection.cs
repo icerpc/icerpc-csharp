@@ -562,14 +562,6 @@ namespace IceRpc
 
                 using IDisposable? streamSocket = stream.StartScope();
 
-                // The request is sent, notify the progress callback.
-                // TODO: Get rid of the sentSynchronously parameter which is always false now?
-                if (request.Progress is IProgress<bool> progress)
-                {
-                    progress.Report(false);
-                    request.Progress = null; // Only call the progress callback once (TODO: revisit this?)
-                }
-
                 // Wait for the reception of the response.
                 IncomingResponse response = request.IsOneway ?
                     new IncomingResponse(this, request.PayloadEncoding) :

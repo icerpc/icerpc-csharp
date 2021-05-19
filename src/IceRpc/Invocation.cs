@@ -29,9 +29,6 @@ namespace IceRpc
         /// a twoway request unless the operation is marked oneway in its Slice definition.</value>
         public bool IsOneway { get; set; }
 
-        /// <summary>Gets or sets the progress provider.</summary>
-        public IProgress<bool>? Progress { get; set; }
-
         /// <summary>Gets or sets the features carried by the request.</summary>
         public FeatureCollection RequestFeatures { get; set; } = FeatureCollection.Empty;
 

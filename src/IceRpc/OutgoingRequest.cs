@@ -112,9 +112,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The progress provider.</summary>
-        public IProgress<bool>? Progress { get; set; }
-
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
 
@@ -260,7 +257,6 @@ namespace IceRpc
             IsOneway = oneway || (invocation?.IsOneway ?? false);
             IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
             Payload = args;
-            Progress = invocation?.Progress;
         }
 
         /// <inheritdoc/>
