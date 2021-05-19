@@ -89,8 +89,6 @@ private:
     IceUtilInternal::Output _out;
     std::vector<std::string> _includePaths;
 
-    void printHeader();
-
     class UnitVisitor : public CsVisitor
     {
     public:
