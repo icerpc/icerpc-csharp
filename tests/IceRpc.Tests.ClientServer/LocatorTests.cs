@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private bool _called;
         private readonly ConnectionPool _pool = new();
-        private readonly IGreeterTestServicePrx _greeter;
+        private readonly IGreeterPrx _greeter;
 
         private readonly Pipeline _pipeline = new();
         private Server _server;
@@ -26,8 +26,8 @@ namespace IceRpc.Tests.ClientServer
         public LocatorTests()
         {
             var router = new Router();
-            string path = $"/{System.Guid.NewGuid()}";
-            router.Map(path, new GreeterTestService());
+            string path = $"/{Guid.NewGuid()}";
+            router.Map(path, new Greeter());
             _server = new Server
             {
                 Invoker = _pipeline,
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = IGreeterTestServicePrx.FromServer(_server, path);
+            _greeter = IGreeterPrx.FromServer(_server, path);
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -50,8 +50,8 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_AdapterResolveAsync(string adapter, string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = IGreeterTestServicePrx.Parse(proxy, _pipeline);
-            var indirectGreeter = IGreeterTestServicePrx.Parse($"{greeter.GetIdentity()} @ {adapter}", _pipeline);
+            var greeter = IGreeterPrx.Parse(proxy, _pipeline);
+            var indirectGreeter = IGreeterPrx.Parse($"{greeter.GetIdentity()} @ {adapter}", _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
             _pipeline.Use(Interceptors.Locator(locator));
@@ -93,8 +93,8 @@ namespace IceRpc.Tests.ClientServer
         /// <summary>Makes sure a locator interceptor caches resolutions.</summary>
         public async Task Locator_Cache(int cacheMaxSize)
         {
-            var indirectGreeter = IGreeterTestServicePrx.Parse($"{_greeter.GetIdentity()} @ adapt", _pipeline);
-            var wellKnownGreeter = IGreeterTestServicePrx.Parse(_greeter.GetIdentity().ToString(), _pipeline);
+            var indirectGreeter = IGreeterPrx.Parse($"{_greeter.GetIdentity()} @ adapt", _pipeline);
+            var wellKnownGreeter = IGreeterPrx.Parse(_greeter.GetIdentity().ToString(), _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
             _pipeline.Use(Interceptors.Retry(2));
@@ -184,10 +184,10 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_WellKnownProxyResolveAsync(string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = IGreeterTestServicePrx.Parse(proxy, _pipeline);
+            var greeter = IGreeterPrx.Parse(proxy, _pipeline);
             Identity identity = greeter.GetIdentity();
 
-            var wellKnownGreeter = IGreeterTestServicePrx.Parse(identity.ToString(), _pipeline);
+            var wellKnownGreeter = IGreeterPrx.Parse(identity.ToString(), _pipeline);
             Assert.That(wellKnownGreeter.Endpoint, Is.Null);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
-            var indirectGreeter = IGreeterTestServicePrx.Parse($"{identity} @ '{adapter}'", _pipeline);
+            var indirectGreeter = IGreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline);
             Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Endpoint?.ToString());
 
             await locator.RegisterAdapterAsync(adapter, greeter);
@@ -314,7 +314,7 @@ namespace IceRpc.Tests.ClientServer
                 new(_identityMap.Remove(identity));
         }
 
-        private class GreeterTestService : IGreeterTestService
+        private class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {

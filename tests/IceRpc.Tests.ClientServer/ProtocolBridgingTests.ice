@@ -10,7 +10,7 @@ module IceRpc::Tests::ClientServer
         int number;
     }
 
-    interface ProtocolBridgingService
+    interface ProtocolBridgingTest
     {
         // Simple operations
         int op(int x);
@@ -29,6 +29,6 @@ module IceRpc::Tests::ClientServer
         void opServiceNotFoundException();
 
         // Operation that returns a new proxy
-        ProtocolBridgingService opNewProxy();
+        ProtocolBridgingTest opNewProxy();
     }
 }

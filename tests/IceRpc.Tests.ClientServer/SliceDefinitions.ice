@@ -6,19 +6,12 @@
 
 module IceRpc::Tests::ClientServer
 {
-    // TODO: eliminate Service suffix?
-
-    interface GreeterTestService
+    interface Greeter
     {
         void sayHello();
     }
 
-    interface LoggingTestService
-    {
-        void op();
-    }
-
-    interface StressTestService
+    interface StressTest
     {
         void opSendByteSeq(IceRpc::ByteSeq data);
         IceRpc::ByteSeq opReceiveByteSeq(int size);

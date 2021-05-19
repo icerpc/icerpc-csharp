@@ -22,22 +22,22 @@ namespace IceRpc.Tests.Api
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var service = new TestService();
+            var service = new Greeter();
 
             var router = new Router();
             router.Use(next => new InlineDispatcher((request, cancel) => throw new ArgumentException("message")));
-            router.Map("/test", service);
+            router.Map<IGreeter>(service);
 
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = IMiddlewareTestServicePrx.FromConnection(connection, "/test");
+            var prx = IGreeterPrx.FromConnection(connection);
 
-            Assert.ThrowsAsync<UnhandledException>(() => prx.OpAsync());
+            Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
             Assert.IsFalse(service.Called);
         }
 
-        /// <summary>Ensure that middlewares are called in the expected order.</summary>
+        /// <summary>Ensure that middleware are called in the expected order.</summary>
         [Test]
         public async Task Middleware_CallOrder()
         {
@@ -68,13 +68,13 @@ namespace IceRpc.Tests.Api
                     return result;
                 }));
 
-            router.Map("/test", new TestService());
+            router.Map<IGreeter>(new Greeter());
             server.Dispatcher = router;
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var prx = IServicePrx.FromConnection(connection, "/test");
+            var prx = IGreeterPrx.FromConnection(connection);
             await prx.IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);
@@ -84,10 +84,11 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, middlewareCalls.Count);
         }
 
-        public class TestService : IMiddlewareTestService
+        public class Greeter : IGreeter
         {
             public bool Called { get; private set; }
-            public ValueTask OpAsync(Dispatch dispatch, CancellationToken cancel)
+
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Called = true;
                 return default;

@@ -15,7 +15,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("foo:coloc -h coloc_connection_refused")]
         public async Task Coloc_ConnectionRefusedAsync(string colocProxy)
         {
-            var greeter = IGreeterTestServicePrx.Parse(colocProxy);
+            var greeter = IGreeterPrx.Parse(colocProxy);
             await using var connection = new Connection { RemoteEndpoint = greeter.Endpoint };
             greeter.Connection = connection;
 
@@ -50,7 +50,7 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            var greeter = IGreeterTestServicePrx.FromServer(server, "/foo");
+            var greeter = IGreeterPrx.FromServer(server, "/foo");
             Assert.AreEqual(Transport.TCP, greeter.Endpoint!.Transport);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        internal class Greeter : IGreeterTestService
+        internal class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

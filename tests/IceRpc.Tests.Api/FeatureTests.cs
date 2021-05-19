@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Api
                         throw;
                     }
                 }));
-            router.Mount("/test", new FeatureService());
+            router.Map<IFeatureTest>(new FeatureTest());
 
             await using var server = new Server
             {
@@ -92,7 +92,7 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IFeatureServicePrx.FromConnection(connection, "/test");
+            var prx = IFeatureTestPrx.FromConnection(connection);
 
             Multiplier multiplier = 10;
 
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Api
         }
     }
 
-    public class FeatureService : IFeatureService
+    public class FeatureTest : IFeatureTest
     {
         public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {

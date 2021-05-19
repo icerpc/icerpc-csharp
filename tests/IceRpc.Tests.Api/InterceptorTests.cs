@@ -12,7 +12,7 @@ namespace IceRpc.Tests.Api
     public class InterceptorTests
     {
         private readonly Connection _connection;
-        private readonly IInterceptorTestServicePrx _prx;
+        private readonly IInterceptorTestPrx _prx;
         private readonly Server _server;
 
         public InterceptorTests()
@@ -20,12 +20,12 @@ namespace IceRpc.Tests.Api
             _server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                Dispatcher = new TestService()
+                Dispatcher = new InterceptorTest()
             };
             _server.Listen();
 
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IInterceptorTestServicePrx.FromConnection(_connection);
+            _prx = IInterceptorTestPrx.FromConnection(_connection);
 
             // TODO: temporary, to ensure the connection is not "activated" concurrently
             _connection.ConnectAsync().Wait();
@@ -132,9 +132,12 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            var ctx = await prx.OpContextAsync();
-            Assert.AreEqual("bar", ctx["foo"]);
-            Assert.AreEqual(1, ctx.Count);
+            var ctx = await prx.OpContextAsync(
+                new Invocation
+                { 
+                    Context = new Dictionary<string, string> { ["foo"] = "baz" }
+                });
+            CollectionAssert.AreEqual(ctx, new Dictionary<string, string> { ["foo"] = "bar" });
         }
 
         [OneTimeTearDown]
@@ -144,9 +147,11 @@ namespace IceRpc.Tests.Api
             await _connection.ShutdownAsync();
         }
 
-        internal class TestService : IInterceptorTestService
+        internal class InterceptorTest : IInterceptorTest
         {
-            public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
+                Dispatch dispatch,
+                CancellationToken cancel) =>
                 new(dispatch.Context);
             public ValueTask<int> OpIntAsync(int value, Dispatch dispatch, CancellationToken cancel) => new(value);
         }

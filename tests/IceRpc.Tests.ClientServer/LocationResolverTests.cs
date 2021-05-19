@@ -24,8 +24,8 @@ namespace IceRpc.Tests.ClientServer
             _pool = new ConnectionPool();
             var pipeline = new Pipeline();
 
-            var indirect = IGreeterTestServicePrx.Parse(proxy, pipeline);
-            IGreeterTestServicePrx direct = SetupServer(indirect.Protocol, indirect.Path, pipeline);
+            var indirect = IGreeterPrx.Parse(proxy, pipeline);
+            IGreeterPrx direct = SetupServer(indirect.Protocol, indirect.Path, pipeline);
             Assert.That(direct.Endpoint, Is.Not.Null);
 
             if (indirect.Endpoint is Endpoint locEndpoint)
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
 
             foreach (string badProxy in badProxies)
             {
-                var badGreeter = IGreeterTestServicePrx.Parse(badProxy, pipeline);
+                var badGreeter = IGreeterPrx.Parse(badProxy, pipeline);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
             }
         }
@@ -63,13 +63,13 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private IGreeterTestServicePrx SetupServer(Protocol protocol, string path, IInvoker invoker)
+        private IGreeterPrx SetupServer(Protocol protocol, string path, IInvoker invoker)
         {
             _server = new Server
             {
                 Invoker = invoker,
                 HasColocEndpoint = false,
-                Dispatcher = new GreeterTestService(),
+                Dispatcher = new Greeter(),
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
                 ProxyHost = "localhost"
             };
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            var greeter = IGreeterTestServicePrx.FromServer(_server, path);
+            var greeter = IGreeterPrx.FromServer(_server, path);
             Assert.AreNotEqual(0, greeter.Endpoint!.Port);
             return greeter;
         }
@@ -109,7 +109,7 @@ namespace IceRpc.Tests.ClientServer
                     return next.InvokeAsync(request, cancel);
                 });
 
-        private class GreeterTestService : IGreeterTestService
+        private class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

@@ -45,14 +45,14 @@ namespace IceRpc.Tests.Api
                         return await next.DispatchAsync(current, cancel);
                     }));
 
-            router.Map("/test", new TestService());
+            router.Map<IGreeter>(new Greeter());
             _server.Dispatcher = router;
             _server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
 
             var pipeline = new Pipeline();
-            var prx = IServicePrx.FromConnection(connection, "/test", pipeline);
+            var prx = IServicePrx.FromConnection(connection, invoker: pipeline);
 
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Api
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
-        public class TestService : IGreeterService
+        public class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

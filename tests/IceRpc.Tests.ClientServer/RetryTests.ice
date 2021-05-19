@@ -10,13 +10,13 @@ module IceRpc::Tests::ClientServer
 
     sequence<byte> RetryByteSeq;
 
-    interface RetryBidirService
+    interface RetryBidirTest
     {
         void otherReplica();
         void afterDelay(int n);
     }
 
-    interface RetryService
+    interface RetryTest
     {
         idempotent void opIdempotent(int failedAttempts, bool killConnection);
         void opNotIdempotent(int failedAttempts, bool killConnection);
@@ -25,7 +25,7 @@ module IceRpc::Tests::ClientServer
         void opRetryNo();
     }
 
-    interface RetryReplicatedService
+    interface RetryReplicatedTest
     {
         void otherReplica();
     }
