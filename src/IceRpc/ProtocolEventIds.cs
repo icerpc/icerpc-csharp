@@ -10,7 +10,7 @@ namespace IceRpc
         /// <summary>A datagram connection received a close connection frame.</summary>
         public static readonly EventId DatagramConnectionReceiveCloseConnectionFrame =
             GetEventId(ProtocolEvent.DatagramConnectionReceiveCloseConnectionFrame);
-        
+
         /// <summary>A datagram message that exceeded the <see cref="ConnectionOptions.IncomingFrameMaxSize"/> was
         /// received.</summary>
         public static readonly EventId DatagramSizeExceededIncomingFrameMaxSize =

@@ -16,7 +16,7 @@ namespace IceRpc
 
         /// <summary>The transport failed to accept a connection.</summary>
         public static readonly EventId ConnectionAcceptFailed = GetEventId(TransportEvent.ConnectionAcceptFailed);
-        
+
         /// <summary>A <see cref="Connection"/> event handler thrown an exception.</summary>
         public static readonly EventId ConnectionEventHandlerException =
             GetEventId(TransportEvent.ConnectionEventHandlerException);
@@ -37,7 +37,7 @@ namespace IceRpc
         /// <seealso cref="UdpOptions.ReceiveBufferSize"/>
         public static readonly EventId ReceiveBufferSizeAdjusted =
             GetEventId(TransportEvent.ReceiveBufferSizeAdjusted);
-        
+
         /// <summary>The transport received data.</summary>
         public static readonly EventId ReceivedData = GetEventId(TransportEvent.ReceivedData);
 

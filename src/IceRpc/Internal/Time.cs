@@ -11,6 +11,6 @@ namespace IceRpc.Internal
         internal static TimeSpan Elapsed => _stopwatch.Elapsed;
         static Time() => _stopwatch.Start();
 
-        private static readonly Stopwatch _stopwatch = new Stopwatch();
+        private static readonly Stopwatch _stopwatch = new();
     }
 }

@@ -541,11 +541,6 @@ namespace IceRpc
                 await ConnectAsync(cancel).ConfigureAwait(false);
             }
 
-            if (Activity.Current?.Id != null)
-            {
-                request.WriteActivityContext(Activity.Current);
-            }
-
             SocketStream? stream = null;
             try
             {
