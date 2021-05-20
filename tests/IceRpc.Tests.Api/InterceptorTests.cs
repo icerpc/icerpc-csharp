@@ -134,7 +134,7 @@ namespace IceRpc.Tests.Api
 
             var ctx = await prx.OpContextAsync(
                 new Invocation
-                { 
+                {
                     Context = new Dictionary<string, string> { ["foo"] = "baz" }
                 });
             CollectionAssert.AreEqual(ctx, new Dictionary<string, string> { ["foo"] = "bar" });
