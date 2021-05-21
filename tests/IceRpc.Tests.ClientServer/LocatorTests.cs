@@ -30,7 +30,6 @@ namespace IceRpc.Tests.ClientServer
             router.Map(path, new Greeter());
             _server = new Server
             {
-                Invoker = _pipeline,
                 HasColocEndpoint = false,
                 Dispatcher = router,
                 Endpoint = "tcp -h 127.0.0.1 -p 0",
@@ -41,6 +40,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Must be created after Listen to get the port number.
             _greeter = IGreeterPrx.FromServer(_server, path);
+            _greeter.Invoker = _pipeline;
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -259,7 +259,10 @@ namespace IceRpc.Tests.ClientServer
         {
             string path = $"/{Guid.NewGuid()}";
             (_server.Dispatcher as Router)!.Map(path, new Locator());
-            return ISimpleLocatorTestPrx.FromServer(_server, path);
+
+            var locator = ISimpleLocatorTestPrx.FromServer(_server, path);
+            locator.Invoker = _pipeline;
+            return locator;
         }
 
         private class Locator : ISimpleLocatorTest
