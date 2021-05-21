@@ -72,7 +72,6 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                Invoker = pipeline,
                 HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
                 Endpoint = GetTestEndpoint(),
@@ -81,6 +80,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             var proxy = IRetryBidirTestPrx.FromServer(server, "/");
+            proxy.Invoker = pipeline;
             await proxy.IcePingAsync();
             proxy.Connection!.Dispatcher = server.Dispatcher;
             IRetryBidirTestPrx bidir = proxy.Clone(); // keeps Connection

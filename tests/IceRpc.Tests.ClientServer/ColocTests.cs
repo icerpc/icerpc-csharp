@@ -42,7 +42,6 @@ namespace IceRpc.Tests.ClientServer
             pipeline.Use(Interceptors.Coloc, Interceptors.Binder(pool));
             await using var server = new Server
             {
-                Invoker = pipeline,
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
                 HasColocEndpoint = hasColocEndpoint,
@@ -51,6 +50,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             var greeter = IGreeterPrx.FromServer(server, "/foo");
+            greeter.Invoker = pipeline;
             Assert.AreEqual(Transport.TCP, greeter.Endpoint!.Transport);
             Assert.DoesNotThrowAsync(async () => await greeter.IcePingAsync());
 

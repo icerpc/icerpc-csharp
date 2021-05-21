@@ -97,24 +97,25 @@ namespace IceRpc.Tests.ClientServer
             bool colocated,
             IInvoker invoker)
         {
-            _targetServer = CreateServer(targetProtocol, port: 0, colocated, invoker);
+            _targetServer = CreateServer(targetProtocol, port: 0, colocated);
 
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
             var targetService = IProtocolBridgingTestPrx.FromServer(_targetServer, "/target");
+            targetService.Invoker = invoker;
 
-            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated, invoker);
+            _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
             var forwardService = IProtocolBridgingTestPrx.FromServer(_forwarderServer, "/forward");
+            forwardService.Invoker = invoker;
             return forwardService;
 
-            Server CreateServer(Protocol protocol, int port, bool colocated, IInvoker invoker) =>
+            Server CreateServer(Protocol protocol, int port, bool colocated) =>
                 new Server
                 {
-                    Invoker = invoker,
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),

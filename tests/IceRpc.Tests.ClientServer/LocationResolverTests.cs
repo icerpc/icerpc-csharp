@@ -67,7 +67,6 @@ namespace IceRpc.Tests.ClientServer
         {
             _server = new Server
             {
-                Invoker = invoker,
                 HasColocEndpoint = false,
                 Dispatcher = new Greeter(),
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
@@ -78,6 +77,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
             var greeter = IGreeterPrx.FromServer(_server, path);
+            greeter.Invoker = invoker;
             Assert.AreNotEqual(0, greeter.Endpoint!.Port);
             return greeter;
         }
