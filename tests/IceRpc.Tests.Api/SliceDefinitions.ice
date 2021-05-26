@@ -19,7 +19,7 @@ module IceRpc::Tests::Api
 
     interface ProxyTest
     {
-        ProxyTest receiveProxy();
+        ProxyTest? receiveProxy();
         void sendProxy(ProxyTest proxy);
     }
 

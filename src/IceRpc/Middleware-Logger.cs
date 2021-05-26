@@ -8,10 +8,9 @@ namespace IceRpc
 {
     public static partial class Middleware
     {
-        /// <summary>An interceptor that logs request and response messages using IceRpc logger.
-        /// </summary>
+        /// <summary>Creates a middleware that logs requests and responses.</summary>
         /// <param name="loggerFactory">A logger factory used to create the IceRpc logger.</param>
-        /// <returns>The Logger interceptor.</returns>
+        /// <returns>The Logger middleware.</returns>
         public static Func<IDispatcher, IDispatcher> Logger(ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
