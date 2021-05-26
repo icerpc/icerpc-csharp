@@ -357,11 +357,11 @@ namespace IceRpc
         public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
             new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
-        /// <summary>Reads a request payload and converts it into the request arguments.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
+        /// <summary>Converts a request payload into a list of arguments.</summary>
+        /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">An input stream reader used to read the arguments.</param>
+        /// <param name="reader">An input stream reader used to read the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
@@ -379,8 +379,7 @@ namespace IceRpc
                                              dispatch.ProxyInvoker);
         }
 
-        /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
-        /// unknown tagged arguments.</summary>
+        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
         public static void ToEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
