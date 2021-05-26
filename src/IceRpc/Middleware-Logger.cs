@@ -10,7 +10,7 @@ namespace IceRpc
     {
         /// <summary>Returns a middleware that logs requests and responses.</summary>
         /// <param name="loggerFactory">A logger factory used to create the IceRpc logger.</param>
-        /// <returns>The Logger middleware.</returns>
+        /// <returns>A Logger middleware.</returns>
         public static Func<IDispatcher, IDispatcher> Logger(ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
