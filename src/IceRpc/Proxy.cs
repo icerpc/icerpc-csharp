@@ -91,7 +91,7 @@ namespace IceRpc
             }
             impl.Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint;
             impl.Connection = connection;
-            impl.Invoker = invoker ?? connection.Server?.Invoker;
+            impl.Invoker = invoker;
             return proxy;
         }
 
@@ -137,7 +137,6 @@ namespace IceRpc
                 impl.Identity = Identity.FromPath(path);
             }
             impl.Endpoint = server.ProxyEndpoint;
-            impl.Invoker = server.Invoker;
             return proxy;
         }
 

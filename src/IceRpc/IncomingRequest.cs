@@ -65,13 +65,16 @@ namespace IceRpc
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
-        public Priority Priority { get; }
+        public Priority Priority { get; set; }
+
+        /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
+        public IInvoker? ProxyInvoker { get; set; }
 
         /// <summary>The facet of the target service. ice1 only.</summary>
-        public string Facet { get; } = "";
+        internal string Facet { get; } = "";
 
         /// <summary>The identity of the target service. ice1 only.</summary>
-        public Identity Identity { get; } = Identity.Empty;
+        internal Identity Identity { get; } = Identity.Empty;
 
         /// <summary>Id of the stream used to create this request.</summary>
         internal long StreamId

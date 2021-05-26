@@ -188,7 +188,7 @@ namespace IceRpc
         /// <summary>Creates the payload of a response from the request's dispatch and response argument.
         /// Use this method when the operation returns a single value.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
         /// </param>
@@ -221,7 +221,7 @@ namespace IceRpc
         /// <summary>Creates the payload of a response from the request's dispatch and response arguments.
         /// Use this method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="dispatch">The dispatch for the request.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
         /// </param>
@@ -358,34 +358,34 @@ namespace IceRpc
             new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
         /// <summary>Reads a request payload and converts it into the request arguments.</summary>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="reader">An input stream reader used to read the arguments.</param>
-        /// <param name="connection">The connection the payload was received on.</param>
         /// <paramtype name="T">The type of the arguments.</paramtype>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="reader">An input stream reader used to read the arguments.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
-            InputStreamReader<T> reader,
-            Connection connection)
+            Dispatch dispatch,
+            InputStreamReader<T> reader)
         {
             if (payload.Length == 0)
             {
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
 
-            return payload.ReadEncapsulation(connection.Protocol.GetEncoding(),
+            return payload.ReadEncapsulation(dispatch.Protocol.GetEncoding(),
                                              reader,
-                                             connection: connection,
-                                             invoker: connection.Server?.Invoker);
+                                             dispatch.Connection,
+                                             dispatch.ProxyInvoker);
         }
 
         /// <summary>Reads the arguments from the request and makes sure this request carries no argument or only
         /// unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="connection">The connection the payload was received on.</param>
-        public static void ToEmptyArgs(this ReadOnlyMemory<byte> payload, Connection connection) =>
+        /// <param name="dispatch">The dispatch properties.</param>
+        public static void ToEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
             new InputStream(payload,
-                            connection.Protocol.GetEncoding(),
+                            dispatch.Protocol.GetEncoding(),
                             startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
 
         /// <summary>Reads the contents of an encapsulation from the buffer.</summary>

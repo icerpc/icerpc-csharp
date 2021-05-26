@@ -7,32 +7,24 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A delegate that reads the request parameters from a request frame.</summary>
-    /// <typeparam name="T">The type of the request parameters to read.</typeparam>
-    /// <param name="request">The request frame to read the parameters from.</param>
-    /// <returns>The request parameters.</returns>
-    public delegate T RequestReader<T>(IncomingRequest request);
-
     /// <summary>The base interface for all services.</summary>
     [TypeId("::Ice::Object")]
     public interface IService : IDispatcher
     {
         // The following are helper classes and methods for generated servants.
 
-        /// <summary>Holds a <see cref="RequestReader{T}"/> for each remote operation with parameter(s) defined in
-        /// the pseudo-interface Service.</summary>
+        /// <summary>Provides static methods that read the arguments of requests.</summary>
         public static class Request
         {
-            /// <summary>The <see cref="RequestReader{T}"/> for the parameter of operation ice_isA.</summary>
-            /// <param name="payload">The request payload.</param>
-            /// <param name="connection">The connection that received this request.</param>
-            /// <returns>The return value decoded from the frame.</returns>
-            public static string IceIsA(ReadOnlyMemory<byte> payload, Connection connection) =>
-                payload.ToArgs(InputStream.IceReaderIntoString, connection);
+            /// <summary>Reads the argument of operation ice_isA.</summary>
+            /// <param name="payload">The payload of the incoming request.</param>
+            /// <param name="dispatch">The dispatch properties.</param>
+            /// <returns>The argument carried by the payload.</returns>
+            public static string IceIsA(ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
+                payload.ToArgs(dispatch, InputStream.IceReaderIntoString);
         }
 
-        /// <summary>Provides a response payload factory method for each non-void remote operation
-        /// defined in the pseudo-interface Service.</summary>
+        /// <summary>Provides static methods that create response payloads.</summary>
         public static class Response
         {
             /// <summary>Creates a response payload for operation ice_id.</summary>
@@ -126,7 +118,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
 
-            payload.ToEmptyArgs(dispatch.Connection);
+            payload.ToEmptyArgs(dispatch);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceId(dispatch, returnValue);
         }
@@ -142,7 +134,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ToEmptyArgs(dispatch.Connection);
+            payload.ToEmptyArgs(dispatch);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceIds(dispatch, returnValue);
         }
@@ -158,7 +150,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            string id = Request.IceIsA(payload, dispatch.Connection);
+            string id = Request.IceIsA(payload, dispatch);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return Response.IceIsA(dispatch, returnValue);
         }
@@ -174,7 +166,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ToEmptyArgs(dispatch.Connection);
+            payload.ToEmptyArgs(dispatch);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return Payload.FromVoidReturnValue(dispatch);
         }
