@@ -2909,7 +2909,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "IceRpc.Payload.ToEmptyArgs(payload, dispatch.Connection);";
+        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch.Connection);";
     }
     else if(params.size() == 1 && params.front()->stream())
     {

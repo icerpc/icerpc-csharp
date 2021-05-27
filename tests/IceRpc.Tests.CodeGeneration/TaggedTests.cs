@@ -203,7 +203,7 @@ namespace IceRpc.Tests.CodeGeneration
                 "opVoid",
                 requestPayload);
 
-            Assert.DoesNotThrow(() => responsePayload.ToVoidReturnValue(connection, _prx.Invoker));
+            Assert.DoesNotThrow(() => responsePayload.CheckVoidReturnValue(connection, _prx.Invoker));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.IsFalse(b.MInt2.HasValue);

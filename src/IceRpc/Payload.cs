@@ -163,7 +163,7 @@ namespace IceRpc
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
-        public static void ToVoidReturnValue(
+        public static void CheckVoidReturnValue(
             this ReadOnlyMemory<byte> payload,
             Connection connection,
             IInvoker? invoker)
@@ -383,7 +383,7 @@ namespace IceRpc
         /// unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="connection">The connection the payload was received on.</param>
-        public static void ToEmptyArgs(this ReadOnlyMemory<byte> payload, Connection connection) =>
+        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Connection connection) =>
             new InputStream(payload,
                             connection.Protocol.GetEncoding(),
                             startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
