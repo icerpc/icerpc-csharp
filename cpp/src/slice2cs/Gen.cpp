@@ -2599,9 +2599,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if (generateRequestClass)
     {
-        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.InputStreamReader{T}\"/> for each remote operation "
-             << "with parameter(s)";
-        _out << nl << "/// defined in <see cref=\"" << name << "\"/>.</summary>";
+        _out << nl << "/// <summary>Provides static methods that read the arguments of requests.</summary>";
         _out << nl << "public static new class Request";
         _out << sb;
 
@@ -2612,20 +2610,19 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 string propertyName = fixId(operationName(operation));
                 _out << sp;
-                _out << nl << "/// <summary>The <see cref=\"IceRpc.RequestReader{T}\"/> for the parameter"
-                     << (params.size() > 1 ? "s " : " ")
+                _out << nl << "/// <summary>Reads the argument" << (params.size() > 1 ? "s " : " ")
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Connection connection) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToArgs(";
                 _out.inc();
                 _out << nl << "payload,";
+                _out << nl << "dispatch,";
                 _out << nl;
                 writeIncomingRequestReader(operation);
-                _out << ",";
-                _out << nl << "connection);";
+                _out << ");";
                 _out.dec();
                 _out.dec();
             }
@@ -2636,9 +2633,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if (generateResponseClass)
     {
-        _out << nl << "/// <summary>Provides a response payload factory method "
-             << "for each non-void remote operation";
-        _out << nl << "/// defined in the <see cref=\"" << name << "\"/>.</summary>";
+        _out << nl << "/// <summary>Provides static methods that create response payloads.</summary>";
         _out << nl << "public static new class Response";
         _out << sb;
         for (auto operation : operationList)
@@ -2649,10 +2644,9 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             if (returnCount > 0)
             {
                 _out << sp;
-                _out << nl << "/// <summary>Creates response payload for operation "
+                _out << nl << "/// <summary>Creates a response payload for operation "
                      << fixId(operationName(operation)) << ".</summary>";
-                _out << nl << "/// <param name=\"dispatch\">Holds decoded header data and other information about the "
-                     << "current request.</param>";
+                _out << nl << "/// <param name=\"dispatch\">The dispatch properties.</param>";
                 if (returns.size() == 1)
                 {
                     _out << nl << "/// <param name=\"returnValue\">The return value to write into the new response payload.</param>";
@@ -2909,7 +2903,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch.Connection);";
+        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch);";
     }
     else if(params.size() == 1 && params.front()->stream())
     {
@@ -2920,7 +2914,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     else
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(payload, dispatch.Connection);";
+            << " = Request." << fixId(opName) << "(payload, dispatch);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)

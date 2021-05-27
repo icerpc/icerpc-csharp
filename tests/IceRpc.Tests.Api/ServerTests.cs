@@ -43,12 +43,12 @@ namespace IceRpc.Tests.Api
             {
                 await using var server = new Server
                 {
-                    Dispatcher = new ProxyTest(),
+                    Dispatcher = new Greeter(),
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var proxy = IProxyTestPrx.FromConnection(connection);
+                var proxy = IGreeterPrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Api
                 // Cannot add a middleware to a router after calling DispatchAsync
 
                 var router = new Router();
-                router.Map<IProxyTest>(new ProxyTest());
+                router.Map<IGreeter>(new Greeter());
 
                 await using var server = new Server
                 {
@@ -72,7 +72,7 @@ namespace IceRpc.Tests.Api
                 };
 
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var proxy = IProxyTestPrx.FromConnection(connection);
+                var proxy = IGreeterPrx.FromConnection(connection);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.Api
 
                 var prx = IServicePrx.FromConnection(connection);
 
-                IDispatcher dispatcher = new ProxyTest();
+                IDispatcher dispatcher = new Greeter();
 
                 // We can set Dispatcher on an outgoing connection
                 Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
@@ -238,7 +238,7 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var proxy = IProxyTestPrx.FromConnection(connection);
+            var proxy = IGreeterPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -281,7 +281,7 @@ namespace IceRpc.Tests.Api
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var proxy = IProxyTestPrx.FromConnection(connection);
+            var proxy = IGreeterPrx.FromConnection(connection);
 
             Task task = proxy.IcePingAsync();
             semaphore.Wait(); // Wait for the dispatch
@@ -308,19 +308,10 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
         }
 
-        // TODO: the test does not call any of ProxyTest operations!
-        private class ProxyTest : IProxyTest
+        private class Greeter : IGreeter
         {
-            internal IProxyTestPrx? Proxy { get; set; }
-
-            public ValueTask<IProxyTestPrx> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
-                new(IProxyTestPrx.FromPath(dispatch.Path, dispatch.Connection.Protocol));
-
-            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
-            {
-                Proxy = proxy;
-                return default;
-            }
+            public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
+                default;
         }
     }
 }

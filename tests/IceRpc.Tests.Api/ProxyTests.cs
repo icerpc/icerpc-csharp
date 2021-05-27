@@ -377,6 +377,75 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
+        public async Task Proxy_ReceiveProxyAsync()
+        {
+            var service = new ProxyTest();
+
+            await using var server = new Server
+            {
+                Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = IProxyTestPrx.FromConnection(connection);
+
+            IProxyTestPrx? received = await prx.ReceiveProxyAsync();
+            Assert.That(received, Is.Null);
+
+            // Check that the received proxy "inherits" the invoker of the caller.
+            service.Proxy = IProxyTestPrx.FromPath("/foo");
+            received = await prx.ReceiveProxyAsync();
+            Assert.That(received!.Invoker, Is.Null);
+
+            var pipeline = new Pipeline();
+            prx.Invoker = pipeline;
+            received = await prx.ReceiveProxyAsync();
+            Assert.AreEqual(pipeline, received!.Invoker);
+
+            // Same with an endpoint
+            service.Proxy.Endpoint = "ice+tcp://localhost";
+            received = await prx.ReceiveProxyAsync();
+            Assert.AreEqual(service.Proxy.Endpoint, received!.Endpoint);
+            Assert.AreEqual(pipeline, received!.Invoker);
+        }
+
+        [Test]
+        public async Task Proxy_SendProxyAsync()
+        {
+            var service = new ProxyTest();
+
+            // First verify that the invoker of a proxy received over an incoming request is by default null.
+            await using var server = new Server
+            {
+                Dispatcher = service,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = IProxyTestPrx.FromConnection(connection);
+            await prx.SendProxyAsync(prx);
+            Assert.That(service.Proxy, Is.Not.Null);
+            Assert.That(service.Proxy?.Invoker, Is.Null);
+
+            // Now with a router and the ProxyInvoker middleware - we set the invoker on the proxy received by the
+            // service.
+            var router = new Router();
+            router.Map<IProxyTest>(service);
+
+            var pipeline = new Pipeline();
+            router.Use(Middleware.ProxyInvoker(pipeline));
+
+            server.Dispatcher = router;
+            service.Proxy = null;
+            await prx.SendProxyAsync(prx);
+            Assert.That(service.Proxy, Is.Not.Null);
+            Assert.AreEqual(pipeline, service.Proxy?.Invoker);
+        }
+
+        [Test]
         public void Proxy_UriOptions()
         {
             string proxyString = "ice+tcp://localhost:10000/test";
@@ -488,10 +557,24 @@ namespace IceRpc.Tests.Api
             Assert.IsNull(capture.Greeter.Endpoint);
         }
 
-        public class Greeter : IGreeter
+        private class Greeter : IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 default;
+        }
+
+        private class ProxyTest : IProxyTest
+        {
+            internal IProxyTestPrx? Proxy { get; set; }
+
+            public ValueTask<IProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+                new(Proxy);
+
+            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
+            {
+                Proxy = proxy;
+                return default;
+            }
         }
     }
 }

@@ -56,9 +56,6 @@ namespace IceRpc
         /// value is true.</value>
         public bool HasColocEndpoint { get; set; } = true;
 
-        /// <summary>The invoker of proxies created or unmarshaled by this server.</summary>
-        public IInvoker? Invoker { get; set; }
-
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
         /// <value>The logger factory of this server.</value>
