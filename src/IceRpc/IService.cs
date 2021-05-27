@@ -118,7 +118,7 @@ namespace IceRpc
             CancellationToken cancel)
         {
 
-            payload.ToEmptyArgs(dispatch);
+            payload.CheckEmptyArgs(dispatch);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceId(dispatch, returnValue);
         }
@@ -134,7 +134,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ToEmptyArgs(dispatch);
+            payload.CheckEmptyArgs(dispatch);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return Response.IceIds(dispatch, returnValue);
         }
@@ -166,7 +166,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            payload.ToEmptyArgs(dispatch);
+            payload.CheckEmptyArgs(dispatch);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return Payload.FromVoidReturnValue(dispatch);
         }
