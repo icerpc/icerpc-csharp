@@ -78,7 +78,7 @@ namespace IceRpc.Internal
                     throw new ArgumentException("invalid null activity ID", nameof(activity));
                 }
 
-                // For Ice2 the activity context is written to the binary context as if it has the following Slice
+                // For Ice2 the activity context is written to the field value if it has the following Slice
                 // definition
                 //
                 // struct BaggageEntry
@@ -103,8 +103,8 @@ namespace IceRpc.Internal
                 //    Baggage baggage;
                 // }
 
-                request.BinaryContextOverride.Add(
-                    (int)BinaryContextKey.TraceContext,
+                request.FieldsOverride.Add(
+                    (int)Ice2FieldKey.TraceContext,
                     ostr =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,

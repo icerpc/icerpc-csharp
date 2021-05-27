@@ -12,7 +12,7 @@ namespace IceRpc
     public sealed class IncomingRequest : IncomingFrame, IDisposable
     {
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; } =
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The request context.</summary>
@@ -191,7 +191,7 @@ namespace IceRpc
                 Context = requestHeaderBody.Context as IDictionary<string, string> ??
                     ImmutableSortedDictionary<string, string>.Empty;
 
-                BinaryContext = istr.ReadBinaryContext();
+                Fields = istr.ReadFields();
 
                 if (istr.Pos - startPos != headerSize)
                 {
@@ -237,7 +237,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice2)
             {
-                BinaryContext = request.GetBinaryContext();
+                Fields = request.GetFields();
             }
 
             PayloadEncoding = request.PayloadEncoding;

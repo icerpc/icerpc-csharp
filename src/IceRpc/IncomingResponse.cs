@@ -12,7 +12,7 @@ namespace IceRpc
     public sealed class IncomingResponse : IncomingFrame, IDisposable
     {
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; } =
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
@@ -170,7 +170,7 @@ namespace IceRpc
                 Debug.Assert(Protocol == Protocol.Ice2);
                 int headerSize = istr.ReadSize();
                 int startPos = istr.Pos;
-                BinaryContext = istr.ReadBinaryContext();
+                Fields = istr.ReadFields();
                 if (istr.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(
@@ -189,7 +189,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice2)
             {
-                BinaryContext = response.GetBinaryContext();
+                Fields = response.GetFields();
             }
 
             PayloadEncoding = response.PayloadEncoding;
@@ -213,7 +213,7 @@ namespace IceRpc
             {
                 retryPolicy = Ice1Definitions.GetRetryPolicy(this, proxy);
             }
-            else if (BinaryContext.TryGetValue((int)BinaryContextKey.RetryPolicy, out ReadOnlyMemory<byte> value))
+            else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
                 retryPolicy = value.Read(istr => new RetryPolicy(istr));
             }

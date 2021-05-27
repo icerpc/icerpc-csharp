@@ -36,7 +36,7 @@ namespace IceRpc
         public DateTime Deadline { get; set; }
 
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>When true, the operation is idempotent.</summary>
@@ -194,13 +194,13 @@ namespace IceRpc
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
         /// <param name="proxy">The proxy sending the outgoing request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new outgoing request uses the incoming
-        /// request frame's binary context as a fallback - all the entries in this binary context are added before the
-        /// request is sent, except for entries previously added by interceptors.</param>
+        /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
+        /// fields as a fallback - all the fields lines in this fields dictionary are added before the request is sent,
+        /// except for lines added by interceptors.</param>
         public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
-            bool forwardBinaryContext = true)
+            bool forwardFields = true)
             : this(proxy, request.Operation, request.Context, request.Features)
         {
             Deadline = request.Deadline;
@@ -212,9 +212,9 @@ namespace IceRpc
             {
                 Payload.Add(request.Payload);
 
-                if (Protocol == Protocol.Ice2 && forwardBinaryContext)
+                if (Protocol == Protocol.Ice2 && forwardFields)
                 {
-                    InitialBinaryContext = request.BinaryContext;
+                    InitialFields = request.Fields;
                 }
             }
             else
@@ -281,7 +281,7 @@ namespace IceRpc
 
                 requestHeaderBody.IceWrite(ostr);
 
-                WriteBinaryContext(ostr);
+                WriteFields(ostr);
                 ostr.EndFixedLengthSize(start, 2);
             }
             else

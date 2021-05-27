@@ -20,18 +20,28 @@ module IceRpc
         GoAway = 3
     }
 
-    dictionary<varint, ByteSeq> BinaryContext;
+    dictionary<varint, ByteSeq> Fields;
+
+    /// Keys of reserved fields in ice2 request and response headers.
+    unchecked enum Ice2FieldKey : int
+    {
+        /// The retry policy field.
+        RetryPolicy = -1,
+
+        /// The W3C Trace Context field.
+        TraceContext = -2
+    }
+
+    /// Keys of reserved ice2 connection parameters.
+    unchecked enum Ice2ParameterKey : int
+    {
+        IncomingFrameMaxSize = 0
+    }
 
     /// The priority of this request.
     // TODO: describe semantics.
     unchecked enum Priority : byte
     {
-    }
-
-    /// The keys for supported ice2 connection parameters.
-    unchecked enum Ice2ParameterKey : int
-    {
-        IncomingFrameMaxSize = 0
     }
 
     /// The request header body, see Ice2RequestHeader.
@@ -54,7 +64,7 @@ module IceRpc
     {
         varulong headerSize;
         Ice2RequestHeaderBody body;
-        BinaryContext binaryContext;
+        Fields fields;
     }
 
     /// Each ice2 response frame has:
@@ -64,7 +74,7 @@ module IceRpc
     struct Ice2ResponseHeader
     {
         varulong headerSize;
-        BinaryContext binaryContext;
+        Fields fields;
     }
 
     /// The type of result carried by an ice2 response frame. The values Success and Failure match the values of OK and

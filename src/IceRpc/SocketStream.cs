@@ -313,12 +313,12 @@ namespace IceRpc
             }
             else
             {
-                // Read the protocol parameters which are encoded with the binary context encoding.
+                // Read the protocol parameters which are encoded as IceRpc.Fields.
                 var istr = new InputStream(data, Ice2Definitions.Encoding);
                 int dictionarySize = istr.ReadSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = istr.ReadBinaryContextEntry();
+                    (int key, ReadOnlyMemory<byte> value) = istr.ReadFieldLine();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
                         checked
@@ -455,14 +455,14 @@ namespace IceRpc
                 OutputStream.Position sizePos = ostr.StartFixedLengthSize();
                 OutputStream.Position pos = ostr.Tail;
 
-                // Encode the transport parameters with the binary context encoding.
+                // Encode the transport parameters as Fields
                 ostr.WriteSize(1);
 
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_socket.IncomingFrameMaxSize > 0);
-                ostr.WriteBinaryContextEntry((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                             (ulong)_socket.IncomingFrameMaxSize,
-                                             OutputStream.IceWriterFromVarULong);
+                ostr.WriteFieldLine((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                                    (ulong)_socket.IncomingFrameMaxSize,
+                                    OutputStream.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
                 ostr.Finish();

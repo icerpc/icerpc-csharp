@@ -10,23 +10,23 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Returns a dictionary used to override the binary context of this frame. The full binary context
-        /// is a combination of the <see cref="InitialBinaryContext"/> plus these overrides.</summary>
+        /// <summary>Returns a dictionary used to override the fields of this frame. The full fields are a combination
+        /// of the <see cref="InitialFields"/> plus these overrides.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
-        public Dictionary<int, Action<OutputStream>> BinaryContextOverride
+        public Dictionary<int, Action<OutputStream>> FieldsOverride
         {
             get
             {
-                if (_binaryContextOverride == null)
+                if (_fieldsOverride == null)
                 {
                     if (Protocol == Protocol.Ice1)
                     {
-                        throw new NotSupportedException("ice1 does not support binary contexts");
+                        throw new NotSupportedException("ice1 does not support header fields");
                     }
 
-                    _binaryContextOverride = new Dictionary<int, Action<OutputStream>>();
+                    _fieldsOverride = new Dictionary<int, Action<OutputStream>>();
                 }
-                return _binaryContextOverride;
+                return _fieldsOverride;
             }
         }
 
@@ -36,9 +36,9 @@ namespace IceRpc
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
 
-        /// <summary>Returns the initial binary context set during construction of this frame. See also
-        /// <see cref="BinaryContextOverride"/>.</summary>
-        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; }
+        /// <summary>Returns the initial fields set during construction of this frame. See also
+        /// <see cref="FieldsOverride"/>.</summary>
+        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
         public abstract IList<ArraySegment<byte>> Payload { get; set; }
@@ -60,28 +60,28 @@ namespace IceRpc
         /// called after the request or response frame is sent over a socket stream.</summary>
         internal Action<SocketStream>? StreamDataWriter { get; set; }
 
-        private Dictionary<int, Action<OutputStream>>? _binaryContextOverride;
+        private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>
         internal abstract IncomingFrame ToIncoming();
 
-        /// <summary>Gets or builds a combined binary context using InitialBinaryContext and _binaryContextOverride.
-        /// This method is used for colocated calls.</summary>
-        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetBinaryContext()
+        /// <summary>Gets or builds a combined fields dictionary using InitialFields and _fieldsOverride. This method is
+        /// used for colocated calls.</summary>
+        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetFields()
         {
-            if (_binaryContextOverride == null)
+            if (_fieldsOverride == null)
             {
-                return InitialBinaryContext;
+                return InitialFields;
             }
             else
             {
-                // Need to marshal/unmarshal this binary context
+                // Need to marshal/unmarshal these fields
                 var buffer = new List<ArraySegment<byte>>();
                 var ostr = new OutputStream(Encoding.V20, buffer);
-                WriteBinaryContext(ostr);
+                WriteFields(ostr);
                 ostr.Finish();
-                return buffer.AsArraySegment().AsReadOnlyMemory().Read(istr => istr.ReadBinaryContext());
+                return buffer.AsArraySegment().AsReadOnlyMemory().Read(istr => istr.ReadFields());
             }
         }
 
@@ -96,23 +96,23 @@ namespace IceRpc
             Features = features;
         }
 
-        private protected void WriteBinaryContext(OutputStream ostr)
+        private protected void WriteFields(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
             Debug.Assert(ostr.Encoding == Encoding.V20);
 
             int sizeLength =
-                OutputStream.GetSizeLength20(InitialBinaryContext.Count + (_binaryContextOverride?.Count ?? 0));
+                OutputStream.GetSizeLength20(InitialFields.Count + (_fieldsOverride?.Count ?? 0));
 
             int size = 0;
 
             OutputStream.Position start = ostr.StartFixedLengthSize(sizeLength);
 
-            // First write the overrides, then the InitialBinaryContext entries that were not overridden.
+            // First write the overrides, then the InitialFields lines that were not overridden.
 
-            if (_binaryContextOverride is Dictionary<int, Action<OutputStream>> binaryContextOverride)
+            if (_fieldsOverride is Dictionary<int, Action<OutputStream>> fieldsOverride)
             {
-                foreach ((int key, Action<OutputStream> action) in binaryContextOverride)
+                foreach ((int key, Action<OutputStream> action) in fieldsOverride)
                 {
                     ostr.WriteVarInt(key);
                     OutputStream.Position startValue = ostr.StartFixedLengthSize(2);
@@ -121,9 +121,9 @@ namespace IceRpc
                     size++;
                 }
             }
-            foreach ((int key, ReadOnlyMemory<byte> value) in InitialBinaryContext)
+            foreach ((int key, ReadOnlyMemory<byte> value) in InitialFields)
             {
-                if (_binaryContextOverride == null || !_binaryContextOverride.ContainsKey(key))
+                if (_fieldsOverride == null || !_fieldsOverride.ContainsKey(key))
                 {
                     ostr.WriteVarInt(key);
                     ostr.WriteSize(value.Length);

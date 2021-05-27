@@ -12,7 +12,7 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
@@ -200,13 +200,13 @@ namespace IceRpc
         /// </summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new response uses the incoming response's
-        /// binary context as a fallback - all the entries in this binary context are added before the response is sent,
-        /// except for entries previously added by dispatch interceptors.</param>
+        /// <param name="forwardFields">When true (the default), the new response uses the incoming response's
+        /// fields as a fallback - all the field lines in this fields dictionary are added before the response is sent,
+        /// except for fields previously added by middleware.</param>
         public OutgoingResponse(
             IncomingRequest request,
             IncomingResponse response,
-            bool forwardBinaryContext = true)
+            bool forwardFields = true)
             : base(request.Protocol, FeatureCollection.Empty)
         {
             _payload = new List<ArraySegment<byte>>();
@@ -215,11 +215,11 @@ namespace IceRpc
             if (Protocol == response.Protocol)
             {
                 Payload.Add(response.Payload);
-                if (Protocol == Protocol.Ice2 && forwardBinaryContext)
+                if (Protocol == Protocol.Ice2 && forwardFields)
                 {
-                    // Don't forward RetryPolicy context
-                    InitialBinaryContext =
-                        response.BinaryContext.ToImmutableDictionary().Remove((int)BinaryContextKey.RetryPolicy);
+                    // Don't forward RetryPolicy
+                    InitialFields =
+                        response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
                 }
             }
             else
@@ -328,8 +328,8 @@ namespace IceRpc
             {
                 RetryPolicy retryPolicy = exception.RetryPolicy;
 
-                BinaryContextOverride.Add(
-                    (int)BinaryContextKey.RetryPolicy,
+                FieldsOverride.Add(
+                    (int)Ice2FieldKey.RetryPolicy,
                     ostr =>
                     {
                         ostr.Write(retryPolicy.Retryable);
@@ -352,7 +352,7 @@ namespace IceRpc
             if (Protocol == Protocol.Ice2)
             {
                 OutputStream.Position startPos = ostr.StartFixedLengthSize(2);
-                WriteBinaryContext(ostr);
+                WriteFields(ostr);
                 ostr.EndFixedLengthSize(startPos, 2);
             }
             else

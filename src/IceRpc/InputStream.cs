@@ -1032,18 +1032,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a binary context entry.</summary>
-        /// <returns>The binary context key and value. The read-only memory for the value is backed by the input
-        /// stream's buffer, the data is not copied.</returns>
-        internal (int Key, ReadOnlyMemory<byte> Value) ReadBinaryContextEntry()
-        {
-            int key = ReadVarInt();
-            int entrySize = ReadSize();
-            ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
-            Pos += entrySize;
-            return (key, value);
-        }
-
         /// <summary>Reads an encapsulation header from the stream.</summary>
         /// <param name="checkFullBuffer">When true, the encapsulation is expected to consume all the bytes of the
         /// current buffer. When false, bytes can remain in the buffer after the encapsulation.</param>
@@ -1145,6 +1133,18 @@ namespace IceRpc
             }
 
             return endpoint;
+        }
+
+        /// <summary>Reads a field line from the stream.</summary>
+        /// <returns>The key and value of the field. The read-only memory for the value is backed by the stream's
+        /// buffer, the data is not copied.</returns>
+        internal (int Key, ReadOnlyMemory<byte> Value) ReadFieldLine()
+        {
+            int key = ReadVarInt();
+            int entrySize = ReadSize();
+            ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
+            Pos += entrySize;
+            return (key, value);
         }
 
         /// <summary>Checks if the stream holds a tagged proxy for the given tag, and when it does, skips the size
