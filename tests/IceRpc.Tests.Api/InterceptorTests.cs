@@ -128,7 +128,11 @@ namespace IceRpc.Tests.Api
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.Context = new Dictionary<string, string> { ["foo"] = "bar" };
+                if (request.Features.IsReadOnly)
+                {
+                    request.Features = new FeatureCollection(request.Features);
+                }
+                request.Features.Set<IDictionary<string, string>>(new Dictionary<string, string> { ["foo"] = "bar" });
                 return await next.InvokeAsync(request, cancel);
             }));
 

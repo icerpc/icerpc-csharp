@@ -25,11 +25,14 @@ module IceRpc
     /// Keys of reserved fields in ice2 request and response headers.
     unchecked enum Ice2FieldKey : int
     {
+        /// The string-string dictionary field that corresponds to an ice1 Context.
+        Context = 0,
+
         /// The retry policy field.
         RetryPolicy = -1,
 
         /// The W3C Trace Context field.
-        TraceContext = -2
+        TraceContext = -2,
     }
 
     /// Keys of reserved ice2 connection parameters.

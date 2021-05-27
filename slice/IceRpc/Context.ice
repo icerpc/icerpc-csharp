@@ -6,6 +6,6 @@
 
 module IceRpc
 {
-    /// A request context. Each operation has a <code>Context</code> as its implicit final parameter.
+    /// An ice1 request context.
     [cs:generic:SortedDictionary] dictionary<string, string> Context;
 }

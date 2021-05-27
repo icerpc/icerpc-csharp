@@ -13,8 +13,21 @@ namespace IceRpc
         /// <summary>Gets or sets the marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
 
-        /// <summary>Gets or sets the context dictionary carried by the request.</summary>
-        public IDictionary<string, string> Context { get; set; } = ImmutableSortedDictionary<string, string>.Empty;
+        /// <summary>Gets or sets the context dictionary carried by the request features.</summary>
+        public IDictionary<string, string> Context
+        {
+            get => RequestFeatures.Get<IDictionary<string, string>>() ??
+                ImmutableSortedDictionary<string, string>.Empty;
+
+            set
+            {
+                if (RequestFeatures.IsReadOnly)
+                {
+                    RequestFeatures = new FeatureCollection(RequestFeatures);
+                }
+                RequestFeatures.Set(value);
+            }
+        }
 
         /// <summary>Gets or sets the deadline of this invocation.</summary>
         public DateTime? Deadline { get; set; }

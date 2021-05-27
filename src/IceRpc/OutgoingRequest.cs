@@ -25,8 +25,9 @@ namespace IceRpc
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The context of this request.</summary>
-        public IDictionary<string, string> Context { get; set; }
+        /// <summary>The request context stored in <see cref="Features"/>.</summary>
+        public IDictionary<string, string> Context =>
+            Features.Get<IDictionary<string, string>>() ?? ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
@@ -201,7 +202,7 @@ namespace IceRpc
             IServicePrx proxy,
             IncomingRequest request,
             bool forwardFields = true)
-            : this(proxy, request.Operation, request.Context, request.Features)
+            : this(proxy, request.Operation, request.Features)
         {
             Deadline = request.Deadline;
             IsIdempotent = request.IsIdempotent;
@@ -248,7 +249,6 @@ namespace IceRpc
             bool oneway = false)
             : this(proxy,
                    operation,
-                   invocation?.Context ?? ImmutableSortedDictionary<string, string>.Empty,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty)
         {
             Deadline = deadline;
@@ -291,16 +291,11 @@ namespace IceRpc
             }
         }
 
-        private OutgoingRequest(
-            IServicePrx proxy,
-            string operation,
-            IDictionary<string, string> context,
-            FeatureCollection features)
+        private OutgoingRequest(IServicePrx proxy, string operation, FeatureCollection features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Context = context;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
