@@ -100,7 +100,7 @@ namespace IceRpc
 
             if (protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                istr = new InputStream(payload.Slice(1),
+                istr = new InputStream(payload[1..],
                                        protocol.GetEncoding(),
                                        connection,
                                        invoker,
@@ -114,7 +114,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(protocol == Protocol.Ice1);
-                istr = new InputStream(payload.Slice(1), Encoding.V11);
+                istr = new InputStream(payload[1..], Encoding.V11);
             }
 
             RemoteException exception;
@@ -151,14 +151,12 @@ namespace IceRpc
             }
 
             return (ResultType)payload.Span[0] == ResultType.Success ?
-                payload.Slice(1).ReadEncapsulation(connection.Protocol.GetEncoding(),
-                                                   reader,
-                                                   connection,
-                                                   invoker) :
+                payload[1..].ReadEncapsulation(connection.Protocol.GetEncoding(), reader, connection, invoker) :
                 throw payload.ToRemoteException(connection, invoker);
         }
 
-        /// <summary>Reads a response payload and converts it into a void return value or a remote exception.</summary>
+        /// <summary>Reads a response payload and ensures it carries a void return value or a remote exception.
+        /// </summary>
         /// <param name="payload">The response payload.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
@@ -175,7 +173,7 @@ namespace IceRpc
 
             if ((ResultType)payload.Span[0] == ResultType.Success)
             {
-                new InputStream(payload.Slice(1),
+                new InputStream(payload[1..],
                                 connection.Protocol.GetEncoding(),
                                 startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
             }
@@ -194,7 +192,6 @@ namespace IceRpc
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-
         public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
