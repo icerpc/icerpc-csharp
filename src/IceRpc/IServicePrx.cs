@@ -308,7 +308,7 @@ namespace IceRpc
             {
                 (ReadOnlyMemory<byte> responsePayload, Connection connection) =
                      await responseTask.ConfigureAwait(false);
-                responsePayload.ToVoidReturnValue(connection, Invoker);
+                responsePayload.CheckVoidReturnValue(connection, Invoker);
             }
         }
     }
