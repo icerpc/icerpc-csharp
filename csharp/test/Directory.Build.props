@@ -2,7 +2,7 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$(MSBuildThisFileDirectory)../msbuild/ice.test.props" />
     <PropertyGroup>
-        <AppTargetFramework Condition="'$(AppTargetFramework)' == ''">net5.0</AppTargetFramework>
+        <AppTargetFramework Condition="'$(AppTargetFramework)' == ''">net6.0</AppTargetFramework>
         <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)../msbuild/CodeAnalysis.Test.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
     <Choose>
@@ -13,15 +13,15 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <Reference Include="$(MSBuildThisFileDirectory)../../lib/net5.0/IceRpc.dll" />
+                <Reference Include="$(MSBuildThisFileDirectory)../../lib/net6.0/IceRpc.dll" />
             </ItemGroup>
         </Otherwise>
     </Choose>
     <ItemGroup>
         <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.261" PrivateAssets="All"/>
         <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.4.21253.7" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0-preview.4.21253.7" />
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\msbuild\stylecop.json" Link="stylecop.json" />
     </ItemGroup>
 </Project>
