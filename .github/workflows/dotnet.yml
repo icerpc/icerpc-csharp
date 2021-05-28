@@ -13,9 +13,7 @@ jobs:
 
     steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.x
+      run:  mkdir $HOME/dotnet_install && cd $HOME/dotnet_install && curl -L https://aka.ms/install-dotnet-preview -o install-dotnet-preview.sh && sudo bash install-dotnet-preview.sh
     - name: Install Slice compiler dependencies
       run: sudo apt-get install libmcpp-dev
     - uses: actions/checkout@v2
