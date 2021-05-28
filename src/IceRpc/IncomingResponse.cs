@@ -170,7 +170,7 @@ namespace IceRpc
                 Debug.Assert(Protocol == Protocol.Ice2);
                 int headerSize = istr.ReadSize();
                 int startPos = istr.Pos;
-                Fields = istr.ReadFields();
+                Fields = istr.ReadFieldDictionary();
                 if (istr.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(

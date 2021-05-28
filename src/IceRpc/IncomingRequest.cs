@@ -194,17 +194,17 @@ namespace IceRpc
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
 
-                Fields = istr.ReadFields();
+                Fields = istr.ReadFieldDictionary();
 
                 // Read Context from Fields and set corresponding feature.
                 if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
                     Features = new FeatureCollection();
                     Features.Set<IDictionary<string, string>>(
-                        value.Read(istr => istr.ReadDictionary(1,
-                                                               1,
-                                                               InputStream.IceReaderIntoString,
-                                                               InputStream.IceReaderIntoString)));
+                        value.Read(istr => istr.ReadDictionary(minKeySize: 1,
+                                                               minValueSize: 1,
+                                                               keyReader: InputStream.IceReaderIntoString,
+                                                               valueReader: InputStream.IceReaderIntoString)));
                 }
 
                 if (istr.Pos - startPos != headerSize)

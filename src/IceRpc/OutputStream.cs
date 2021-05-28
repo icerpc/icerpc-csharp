@@ -1235,14 +1235,14 @@ namespace IceRpc
             RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos, sizeLength);
         }
 
-        internal void WriteFieldLine(int key, ReadOnlySpan<byte> value)
+        internal void WriteField(int key, ReadOnlySpan<byte> value)
         {
             WriteVarInt(key);
             WriteSize(value.Length);
             WriteByteSpan(value);
         }
 
-        internal void WriteFieldLine<T>(int key, T value, OutputStreamWriter<T> writer)
+        internal void WriteField<T>(int key, T value, OutputStreamWriter<T> writer)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

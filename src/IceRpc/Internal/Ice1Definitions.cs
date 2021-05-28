@@ -163,7 +163,13 @@ namespace IceRpc.Internal
                 case ReplyStatus.OperationNotExistException:
 
                     var requestFailed = new Ice1RequestFailedExceptionData(istr);
-                    string facet = requestFailed.FacetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
+
+                    IList<string> facetPath = requestFailed.FacetPath;
+                    if (facetPath.Count > 1)
+                    {
+                        throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
+                    }
+                    string facet = facetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {

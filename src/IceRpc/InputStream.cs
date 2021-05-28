@@ -1135,10 +1135,10 @@ namespace IceRpc
             return endpoint;
         }
 
-        /// <summary>Reads a field line from the stream.</summary>
+        /// <summary>Reads a field from the stream.</summary>
         /// <returns>The key and value of the field. The read-only memory for the value is backed by the stream's
         /// buffer, the data is not copied.</returns>
-        internal (int Key, ReadOnlyMemory<byte> Value) ReadFieldLine()
+        internal (int Key, ReadOnlyMemory<byte> Value) ReadField()
         {
             int key = ReadVarInt();
             int entrySize = ReadSize();

@@ -13,7 +13,7 @@ namespace IceRpc
         /// <param name="istr">The input stream.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFields(this InputStream istr)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this InputStream istr)
         {
             Debug.Assert(istr.Encoding == Encoding.V20);
 
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = istr.ReadFieldLine();
+                    (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();

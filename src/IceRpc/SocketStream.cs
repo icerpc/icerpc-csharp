@@ -318,7 +318,7 @@ namespace IceRpc
                 int dictionarySize = istr.ReadSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = istr.ReadFieldLine();
+                    (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
                         checked
@@ -460,9 +460,9 @@ namespace IceRpc
 
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_socket.IncomingFrameMaxSize > 0);
-                ostr.WriteFieldLine((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                    (ulong)_socket.IncomingFrameMaxSize,
-                                    OutputStream.IceWriterFromVarULong);
+                ostr.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                                (ulong)_socket.IncomingFrameMaxSize,
+                                OutputStream.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
                 ostr.Finish();
