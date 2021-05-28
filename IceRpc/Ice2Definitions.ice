@@ -20,18 +20,31 @@ module IceRpc
         GoAway = 3
     }
 
-    dictionary<varint, ByteSeq> BinaryContext;
+    dictionary<varint, ByteSeq> Fields;
+
+    /// Keys of reserved fields in ice2 request and response headers.
+    unchecked enum Ice2FieldKey : int
+    {
+        /// The string-string dictionary field (for request headers).
+        Context = 0,
+
+        /// The retry policy field (for response headers).
+        RetryPolicy = -1,
+
+        /// The W3C Trace Context field.
+        TraceContext = -2,
+    }
+
+    /// Keys of reserved ice2 connection parameters.
+    unchecked enum Ice2ParameterKey : int
+    {
+        IncomingFrameMaxSize = 0
+    }
 
     /// The priority of this request.
     // TODO: describe semantics.
     unchecked enum Priority : byte
     {
-    }
-
-    /// The keys for supported ice2 connection parameters.
-    unchecked enum Ice2ParameterKey : int
-    {
-        IncomingFrameMaxSize = 0
     }
 
     /// The request header body, see Ice2RequestHeader.
@@ -43,28 +56,29 @@ module IceRpc
         bool? \idempotent;       // null equivalent to false
         Priority? priority;      // null equivalent to 0
         varlong deadline;
-        Context? context;        // null equivalent to empty context
     }
 
     /// Each ice2 request frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a request header (below)
     /// - a request payload
+    [cs:readonly]
     struct Ice2RequestHeader
     {
         varulong headerSize;
         Ice2RequestHeaderBody body;
-        BinaryContext binaryContext;
+        Fields fields;
     }
 
     /// Each ice2 response frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a response header (below)
     /// - a response payload
+    [cs:readonly]
     struct Ice2ResponseHeader
     {
         varulong headerSize;
-        BinaryContext binaryContext;
+        Fields fields;
     }
 
     /// The type of result carried by an ice2 response frame. The values Success and Failure match the values of OK and
@@ -88,6 +102,7 @@ module IceRpc
         StopStreamingData = 1,
     }
 
+    [cs:readonly]
     struct Ice2GoAwayBody
     {
         varulong lastBidirectionalStreamId;

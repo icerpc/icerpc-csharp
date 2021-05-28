@@ -17,8 +17,8 @@ module IceRpc::Slic
         StreamBufferMaxSize = 4,
     }
 
-    /// The header of the Slic initialize frame body. This header is followed by connection parameters encoded
-    /// as a binary context.
+    /// The header of the Slic initialize frame body. This header is followed by connection parameters encoded as
+    /// Fields.
     [cs:readonly]
     struct InitializeHeaderBody
     {
