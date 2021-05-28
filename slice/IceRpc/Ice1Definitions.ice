@@ -1,4 +1,3 @@
-
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 #pragma once
@@ -86,6 +85,7 @@ module IceRpc
 
     /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or
     /// OperationNotExistException).
+    [cs:readonly]
     struct Ice1RequestFailedExceptionData
     {
         Ice::Identity identity;

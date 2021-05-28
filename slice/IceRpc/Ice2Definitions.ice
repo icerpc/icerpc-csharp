@@ -62,6 +62,7 @@ module IceRpc
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a request header (below)
     /// - a request payload
+    [cs:readonly]
     struct Ice2RequestHeader
     {
         varulong headerSize;
@@ -73,6 +74,7 @@ module IceRpc
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a response header (below)
     /// - a response payload
+    [cs:readonly]
     struct Ice2ResponseHeader
     {
         varulong headerSize;
@@ -100,6 +102,7 @@ module IceRpc
         StopStreamingData = 1,
     }
 
+    [cs:readonly]
     struct Ice2GoAwayBody
     {
         varulong lastBidirectionalStreamId;
