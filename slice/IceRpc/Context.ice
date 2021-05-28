@@ -6,6 +6,6 @@
 
 module IceRpc
 {
-    /// An ice1 request context.
+    /// A request context.
     [cs:generic:SortedDictionary] dictionary<string, string> Context;
 }

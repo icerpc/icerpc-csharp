@@ -319,7 +319,7 @@ namespace IceRpc
                             }
                             identity.IceWrite(ostr);
                         }
-                        ostr.WriteIce1Facet(request.Facet);
+                        ostr.WriteSequence(request.FacetPath, OutputStream.IceWriterFromString);
                         ostr.WriteString(request.Operation);
                         break;
 

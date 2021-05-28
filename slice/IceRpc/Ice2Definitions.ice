@@ -25,10 +25,10 @@ module IceRpc
     /// Keys of reserved fields in ice2 request and response headers.
     unchecked enum Ice2FieldKey : int
     {
-        /// The string-string dictionary field that corresponds to an ice1 Context.
+        /// The string-string dictionary field (for request headers).
         Context = 0,
 
-        /// The retry policy field.
+        /// The retry policy field (for response headers).
         RetryPolicy = -1,
 
         /// The W3C Trace Context field.
@@ -56,7 +56,6 @@ module IceRpc
         bool? \idempotent;       // null equivalent to false
         Priority? priority;      // null equivalent to 0
         varlong deadline;
-        Context? context;        // null equivalent to empty context
     }
 
     /// Each ice2 request frame has:

@@ -71,8 +71,8 @@ namespace IceRpc
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        /// <summary>The facet path of the target service. ice1 only.</summary>
+        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; } = Identity.Empty;
@@ -159,7 +159,7 @@ namespace IceRpc
                 var requestHeader = new Ice1RequestHeader(istr);
                 Identity = requestHeader.Identity;
                 Path = Identity.ToPath();
-                Facet = Ice1Definitions.GetFacet(requestHeader.FacetPath);
+                FacetPath = requestHeader.FacetPath;
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
                 if (requestHeader.Context.Count > 0)
@@ -196,11 +196,15 @@ namespace IceRpc
 
                 Fields = istr.ReadFields();
 
-                // TODO: temporary, read from fields
-                if (requestHeaderBody.Context is IDictionary<string, string> context)
+                // Read Context from Fields and set corresponding feature.
+                if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
                     Features = new FeatureCollection();
-                    Features.Set<IDictionary<string, string>>(context);
+                    Features.Set<IDictionary<string, string>>(
+                        value.Read(istr => istr.ReadDictionary(1,
+                                                               1,
+                                                               InputStream.IceReaderIntoString,
+                                                               InputStream.IceReaderIntoString)));
                 }
 
                 if (istr.Pos - startPos != headerSize)
@@ -232,7 +236,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                Facet = request.Facet;
+                FacetPath = request.FacetPath;
                 Identity = request.Identity;
             }
             Path = request.Path;

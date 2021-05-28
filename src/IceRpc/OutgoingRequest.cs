@@ -114,8 +114,8 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        /// <summary>The facet path of the target service. ice1 only.</summary>
+        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; private set; }
@@ -276,10 +276,20 @@ namespace IceRpc
                     idempotent: IsIdempotent ? true : null,
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    Context);
+                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
                 requestHeaderBody.IceWrite(ostr);
+
+                IDictionary<string, string> context = Context;
+                if (InitialFields.ContainsKey((int)Ice2FieldKey.Context) || Context.Count > 0)
+                {
+                    // Writes or overrides context
+                    FieldsOverride[(int)Ice2FieldKey.Context] =
+                        ostr => ostr.WriteDictionary(context,
+                                                     OutputStream.IceWriterFromString,
+                                                     OutputStream.IceWriterFromString);
+                }
+                // else context remains empty (not set)
 
                 WriteFields(ostr);
                 ostr.EndFixedLengthSize(start, 2);
@@ -287,7 +297,13 @@ namespace IceRpc
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
-                ostr.WriteIce1RequestHeader(Identity, Facet, Operation, IsIdempotent, Context);
+                var requestHeader = new Ice1RequestHeader(
+                    Identity,
+                    FacetPath,
+                    Operation,
+                    IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    Context);
+                requestHeader.IceWrite(ostr);
             }
         }
 
@@ -301,7 +317,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                Facet = proxy.Impl.Facet;
+                FacetPath = proxy.Impl.FacetPath;
                 Identity = proxy.Impl.Identity;
             }
 

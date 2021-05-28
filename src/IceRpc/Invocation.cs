@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>Gets or sets the marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
 
-        /// <summary>Gets or sets the context dictionary carried by the request features.</summary>
+        /// <summary>Gets or sets the context dictionary from <see cref="RequestFeatures"/>.</summary>
         public IDictionary<string, string> Context
         {
             get => RequestFeatures.Get<IDictionary<string, string>>() ??
