@@ -112,7 +112,7 @@ namespace IceRpc.Internal
         public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
         {
             _writer.Complete();
-            await _reader.Completion.WaitAsync(cancel).ConfigureAwait(false);
+            await _reader.Completion.IceWaitAsync(cancel).ConfigureAwait(false);
         }
 
         public override SocketStream CreateStream(bool bidirectional) =>

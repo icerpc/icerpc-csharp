@@ -59,7 +59,7 @@ namespace IceRpc.Internal
                     using IDisposable? scope = StartScope();
                     if (_receivedOffset == _receivedSize)
                     {
-                        ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
+                        ValueTask<(int, bool)> valueTask = IceWaitAsync(CancellationToken.None);
                         Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _receivedEndOfStream) = valueTask.Result;
@@ -120,7 +120,7 @@ namespace IceRpc.Internal
 
             if (signaled)
             {
-                ValueTask<(int, bool)> valueTask = WaitAsync();
+                ValueTask<(int, bool)> valueTask = IceWaitAsync();
                 Debug.Assert(valueTask.IsCompleted);
                 (int size, bool fin) = valueTask.Result;
                 ReceivedFrame(size, fin);
@@ -152,7 +152,7 @@ namespace IceRpc.Internal
                 // Wait to be signaled for the reception of a new stream frame for this stream. If buffering is
                 // enabled, check for the circular buffer element count instead of the signal result since
                 // multiple Slic frame might have been received and buffered while waiting for the signal.
-                (_receivedSize, _receivedEndOfStream) = await WaitAsync(cancel).ConfigureAwait(false);
+                (_receivedSize, _receivedEndOfStream) = await IceWaitAsync(cancel).ConfigureAwait(false);
                 if (_receivedSize == 0)
                 {
                     if (_receiveBuffer == null)

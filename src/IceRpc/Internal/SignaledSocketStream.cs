@@ -112,7 +112,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Signals the stream with a new exception.</summary>
-        /// <param name="exception">The exception that will be raised by WaitAsync.</param>
+        /// <param name="exception">The exception that will be raised by IceWaitAsync.</param>
         protected void SetException(Exception exception)
         {
             bool lockTaken = false;
@@ -144,7 +144,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Signals the stream with a new result.</summary>
-        /// <param name="result">The result that will be returned by WaitAsync.</param>
+        /// <param name="result">The result that will be returned by IceWaitAsync.</param>
         protected void SetResult(T result)
         {
             bool lockTaken = false;
@@ -175,7 +175,7 @@ namespace IceRpc.Internal
         /// <summary>Wait for the stream to be signaled with a result or exception.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The value used to signaled the stream.</return>
-        protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
+        protected ValueTask<T> IceWaitAsync(CancellationToken cancel = default)
         {
             if (cancel.CanBeCanceled)
             {

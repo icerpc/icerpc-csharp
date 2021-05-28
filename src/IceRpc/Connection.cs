@@ -868,7 +868,7 @@ namespace IceRpc
                     }
                     shutdownTask = _closeTask ?? AbortAsync(exception);
                 }
-                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
+                await shutdownTask.IceWaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -929,7 +929,7 @@ namespace IceRpc
                         {
                             throw exception;
                         }
-                        await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
+                        await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)

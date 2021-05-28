@@ -248,7 +248,7 @@ namespace IceRpc
                     }
                 }
 
-                connection = await connectTask.WaitAsync(cancel).ConfigureAwait(false);
+                connection = await connectTask.IceWaitAsync(cancel).ConfigureAwait(false);
             }
             while (connection == null);
             return connection;
