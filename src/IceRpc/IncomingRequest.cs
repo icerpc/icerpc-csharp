@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
 using System;
@@ -11,10 +12,6 @@ namespace IceRpc
     /// <summary>Represents a request protocol frame received by the application.</summary>
     public sealed class IncomingRequest : IncomingFrame, IDisposable
     {
-        /// <summary>The request context stored in <see cref="Features"/>.</summary>
-        public IDictionary<string, string> Context =>
-            Features.Get<IDictionary<string, string>>() ?? ImmutableSortedDictionary<string, string>.Empty;
-
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
         /// enforce this deadline - it's provided "for information" to the application. The Ice client runtime sets
@@ -165,7 +162,7 @@ namespace IceRpc
                 if (requestHeader.Context.Count > 0)
                 {
                     Features = new FeatureCollection();
-                    Features.Set<IDictionary<string, string>>(requestHeader.Context);
+                    Features.Set(new Context { Value = requestHeader.Context });
                 }
                 Priority = default;
                 Deadline = DateTime.MaxValue;
@@ -200,11 +197,13 @@ namespace IceRpc
                 if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
                     Features = new FeatureCollection();
-                    Features.Set<IDictionary<string, string>>(
-                        value.Read(istr => istr.ReadDictionary(minKeySize: 1,
-                                                               minValueSize: 1,
-                                                               keyReader: InputStream.IceReaderIntoString,
-                                                               valueReader: InputStream.IceReaderIntoString)));
+                    Features.Set(new Context
+                    {
+                        Value = value.Read(istr => istr.ReadDictionary(minKeySize: 1,
+                                                                       minValueSize: 1,
+                                                                       keyReader: InputStream.IceReaderIntoString,
+                                                                       valueReader: InputStream.IceReaderIntoString))
+                    });
                 }
 
                 if (istr.Pos - startPos != headerSize)
@@ -244,20 +243,23 @@ namespace IceRpc
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
 
-            if (request.Context.Count > 0)
-            {
-                Features = new FeatureCollection();
-                Features.Set<IDictionary<string, string>>(request.Context);
-            }
-
-            Priority = default;
-            Deadline = request.Deadline;
-
             if (Protocol == Protocol.Ice2)
             {
                 Fields = request.GetFields();
             }
 
+            // For coloc calls, the context (and more generally the header) is not marshaled so we need to copy the
+            // context from the request features.
+            IDictionary<string, string>? context = request.Features.Get<Context>()?.Value;
+
+            if (context?.Count > 0)
+            {
+                Features = new FeatureCollection();
+                Features.Set(new Context { Value = context.ToImmutableSortedDictionary() }); // clone context value
+            }
+
+            Priority = default;
+            Deadline = request.Deadline;
             PayloadEncoding = request.PayloadEncoding;
 
             Payload = request.Payload.AsArraySegment();

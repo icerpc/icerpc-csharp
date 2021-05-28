@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 namespace IceRpc
 {
@@ -13,20 +13,11 @@ namespace IceRpc
         /// <summary>Gets or sets the marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
 
-        /// <summary>Gets or sets the context dictionary from <see cref="RequestFeatures"/>.</summary>
+        /// <summary>Gets or sets the value of the Context feature in <see cref="RequestFeatures"/>.</summary>
         public IDictionary<string, string> Context
         {
-            get => RequestFeatures.Get<IDictionary<string, string>>() ??
-                ImmutableSortedDictionary<string, string>.Empty;
-
-            set
-            {
-                if (RequestFeatures.IsReadOnly)
-                {
-                    RequestFeatures = new FeatureCollection(RequestFeatures);
-                }
-                RequestFeatures.Set(value);
-            }
+            get => RequestFeatures.GetContext();
+            set => RequestFeatures = RequestFeatures.WithContext(value);
         }
 
         /// <summary>Gets or sets the deadline of this invocation.</summary>

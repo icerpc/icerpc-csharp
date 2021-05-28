@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using System;
 using System.Collections.Generic;
 
@@ -12,8 +13,8 @@ namespace IceRpc
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection => IncomingRequest.Connection;
 
-        /// <summary>The request context.</summary>
-        public IDictionary<string, string> Context => IncomingRequest.Context;
+        /// <summary>Gets the value of the Context features in <see cref="RequestFeatures"/>.</summary>
+        public IDictionary<string, string> Context => RequestFeatures.GetContext();
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not

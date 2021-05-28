@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -178,7 +179,7 @@ namespace IceRpc.Internal
                 request.PayloadSize,
                 request.PayloadEncoding,
                 request.PayloadCompressionFormat,
-                request.Context,
+                request.Features.GetContext(), // TODO: should we really log this?
                 null!);
 
         internal static void LogReceivedResponse(this ILogger logger, IncomingResponse response) =>
@@ -259,7 +260,7 @@ namespace IceRpc.Internal
                 request.PayloadSize,
                 request.PayloadEncoding,
                 request.PayloadCompressionFormat,
-                request.Context,
+                request.Features.GetContext(), // TODO: should we really log this?
                 null!);
 
         internal static void LogSentResponse(this ILogger logger, OutgoingResponse response) =>

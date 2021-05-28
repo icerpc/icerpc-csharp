@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Interop;
 using NUnit.Framework;
 using System;
@@ -61,7 +62,7 @@ namespace IceRpc.Tests.Api
             prx.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
-                Assert.AreEqual(request.Context, invocation.Context);
+                Assert.AreEqual(request.Features.GetContext(), invocation.Context);
                 return next.InvokeAsync(request, cancel);
             }));
 
