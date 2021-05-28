@@ -6,7 +6,6 @@
 
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/Interop/Process.ice>
-#include <IceRpc/BuiltinSequences.ice>
 
 [cs:namespace(IceRpc.Interop)]
 module Ice
