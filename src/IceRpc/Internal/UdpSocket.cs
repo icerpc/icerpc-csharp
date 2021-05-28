@@ -156,6 +156,9 @@ namespace IceRpc.Internal
 
             try
             {
+                // TODO ThrowIfCancellationRequested should not be necessary here, WaitAsync should throw in this case,
+                // but it no longer does with .NET6 preview 4
+                cancel.ThrowIfCancellationRequested();
                 // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
                 return await _socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
             }
