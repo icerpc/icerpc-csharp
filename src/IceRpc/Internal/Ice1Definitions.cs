@@ -95,15 +95,6 @@ namespace IceRpc.Internal
         internal static ArraySegment<byte> GetEmptyArgsPayload(Encoding encoding) =>
             GetVoidReturnValuePayload(encoding).Slice(1);
 
-        internal static string GetFacet(IList<string> facetPath)
-        {
-            if (facetPath.Count > 1)
-            {
-                throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
-            }
-            return facetPath.Count == 1 ? facetPath[0] : "";
-        }
-
         internal static RetryPolicy GetRetryPolicy(IncomingResponse response, ServicePrx proxy)
         {
             Debug.Assert(response.PayloadEncoding == Encoding.V11);
@@ -154,15 +145,6 @@ namespace IceRpc.Internal
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
-        /// <summary>Reads a facet in the old ice1 format from the stream.</summary>
-        /// <param name="istr">The stream to read from.</param>
-        /// <returns>The facet read from the stream.</returns>
-        internal static string ReadIce1Facet(this InputStream istr)
-        {
-            Debug.Assert(istr.Encoding == Encoding);
-            return GetFacet(istr.ReadArray(1, InputStream.IceReaderIntoString));
-        }
-
         /// <summary>Reads an ice1 system exception encoded based on the provided reply status.</summary>
         /// <param name="istr">The stream to read from.</param>
         /// <param name="replyStatus">The reply status.</param>
@@ -179,22 +161,28 @@ namespace IceRpc.Internal
                 case ReplyStatus.FacetNotExistException:
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
-                    var identity = new Identity(istr);
-                    string facet = istr.ReadIce1Facet();
-                    string operation = istr.ReadString();
+
+                    var requestFailed = new Ice1RequestFailedExceptionData(istr);
+
+                    IList<string> facetPath = requestFailed.FacetPath;
+                    if (facetPath.Count > 1)
+                    {
+                        throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
+                    }
+                    string facet = facetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
                         systemException = new OperationNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
                         { Facet = facet };
                     }
                     else
                     {
                         systemException = new ServiceNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
                         { Facet = facet };
                     }
                     break;
@@ -208,50 +196,51 @@ namespace IceRpc.Internal
             return systemException;
         }
 
-        /// <summary>Writes a facet as a facet path.</summary>
-        /// <param name="ostr">The stream.</param>
-        /// <param name="facet">The facet to write to the stream.</param>
-        internal static void WriteIce1Facet(this OutputStream ostr, string facet)
-        {
-            Debug.Assert(ostr.Encoding == Encoding);
-
-            // The old facet-path style used by the ice1 protocol.
-            if (facet.Length == 0)
-            {
-                ostr.WriteSize(0);
-            }
-            else
-            {
-                ostr.WriteSize(1);
-                ostr.WriteString(facet);
-            }
-        }
-
-        /// <summary>Writes a request header without constructing an Ice1RequestHeader instance. This implementation is
-        /// slightly more efficient than the generated code because it avoids the allocation of a  string[] to write the
-        /// facet and the allocation of a Dictionary{string, string} to write the context.</summary>
-        internal static void WriteIce1RequestHeader(
+        /// <summary>Writes an ice1 system exception.</summary>
+        /// <param name="ostr">The stream to write to.</param>
+        /// <param name="replyStatus">The reply status.</param>
+        /// <param name="request">The request for which we write the exception.</param>
+        /// <param name="message">The message carried by the exception.</param>
+        internal static void WriteIce1SystemException(
             this OutputStream ostr,
-            Identity identity,
-            string facet,
-            string operation,
-            bool idempotent,
-            IDictionary<string, string> context)
+            ReplyStatus replyStatus,
+            IncomingRequest request,
+            string message)
         {
-            Debug.Assert(ostr.Encoding == Encoding);
-            identity.IceWrite(ostr);
-            ostr.WriteIce1Facet(facet);
-            ostr.WriteString(operation);
-            ostr.Write(idempotent ? OperationMode.Idempotent : OperationMode.Normal);
-            if (context.Count == 0)
+            Debug.Assert(ostr.Encoding == Encoding.V11);
+
+            ostr.Write(replyStatus);
+
+            switch (replyStatus)
             {
-                ostr.WriteSize(0);
-            }
-            else
-            {
-                ostr.WriteDictionary(context,
-                                     OutputStream.IceWriterFromString,
-                                     OutputStream.IceWriterFromString);
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
+
+                    Identity identity = request.Identity;
+                    if (request.Protocol == Protocol.Ice2)
+                    {
+                        try
+                        {
+                            identity = Identity.FromPath(request.Path);
+                        }
+                        catch (FormatException)
+                        {
+                            // ignored, i.e. we'll marshal an empty identity
+                        }
+                    }
+                    var requestFailed =
+                        new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
+
+                    requestFailed.IceWrite(ostr);
+                    break;
+
+                case ReplyStatus.UnknownLocalException:
+                    ostr.WriteString(message);
+                    break;
+
+                default:
+                    Debug.Assert(false);
+                    break;
             }
         }
 

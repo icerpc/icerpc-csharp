@@ -25,8 +25,9 @@ namespace IceRpc
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
 
-        /// <summary>The context of this request.</summary>
-        public IDictionary<string, string> Context { get; set; }
+        /// <summary>The request context stored in <see cref="Features"/>.</summary>
+        public IDictionary<string, string> Context =>
+            Features.Get<IDictionary<string, string>>() ?? ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
@@ -36,7 +37,7 @@ namespace IceRpc
         public DateTime Deadline { get; set; }
 
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialBinaryContext { get; } =
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>When true, the operation is idempotent.</summary>
@@ -113,8 +114,8 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        /// <summary>The facet path of the target service. ice1 only.</summary>
+        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; private set; }
@@ -194,14 +195,14 @@ namespace IceRpc
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
         /// <param name="proxy">The proxy sending the outgoing request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
-        /// <param name="forwardBinaryContext">When true (the default), the new outgoing request uses the incoming
-        /// request frame's binary context as a fallback - all the entries in this binary context are added before the
-        /// request is sent, except for entries previously added by interceptors.</param>
+        /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
+        /// fields as a fallback - all the fields lines in this fields dictionary are added before the request is sent,
+        /// except for lines added by interceptors.</param>
         public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
-            bool forwardBinaryContext = true)
-            : this(proxy, request.Operation, request.Context, request.Features)
+            bool forwardFields = true)
+            : this(proxy, request.Operation, request.Features)
         {
             Deadline = request.Deadline;
             IsIdempotent = request.IsIdempotent;
@@ -212,9 +213,9 @@ namespace IceRpc
             {
                 Payload.Add(request.Payload);
 
-                if (Protocol == Protocol.Ice2 && forwardBinaryContext)
+                if (Protocol == Protocol.Ice2 && forwardFields)
                 {
-                    InitialBinaryContext = request.BinaryContext;
+                    InitialFields = request.Fields;
                 }
             }
             else
@@ -248,7 +249,6 @@ namespace IceRpc
             bool oneway = false)
             : this(proxy,
                    operation,
-                   invocation?.Context ?? ImmutableSortedDictionary<string, string>.Empty,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty)
         {
             Deadline = deadline;
@@ -276,37 +276,48 @@ namespace IceRpc
                     idempotent: IsIdempotent ? true : null,
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    Context);
+                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
                 requestHeaderBody.IceWrite(ostr);
 
-                WriteBinaryContext(ostr);
+                IDictionary<string, string> context = Context;
+                if (InitialFields.ContainsKey((int)Ice2FieldKey.Context) || Context.Count > 0)
+                {
+                    // Writes or overrides context
+                    FieldsOverride[(int)Ice2FieldKey.Context] =
+                        ostr => ostr.WriteDictionary(context,
+                                                     OutputStream.IceWriterFromString,
+                                                     OutputStream.IceWriterFromString);
+                }
+                // else context remains empty (not set)
+
+                WriteFields(ostr);
                 ostr.EndFixedLengthSize(start, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
-                ostr.WriteIce1RequestHeader(Identity, Facet, Operation, IsIdempotent, Context);
+                var requestHeader = new Ice1RequestHeader(
+                    Identity,
+                    FacetPath,
+                    Operation,
+                    IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    Context);
+                requestHeader.IceWrite(ostr);
             }
         }
 
-        private OutgoingRequest(
-            IServicePrx proxy,
-            string operation,
-            IDictionary<string, string> context,
-            FeatureCollection features)
+        private OutgoingRequest(IServicePrx proxy, string operation, FeatureCollection features)
             : base(proxy.Protocol, features)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
-            Context = context;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
 
             if (Protocol == Protocol.Ice1)
             {
-                Facet = proxy.Impl.Facet;
+                FacetPath = proxy.Impl.FacetPath;
                 Identity = proxy.Impl.Identity;
             }
 

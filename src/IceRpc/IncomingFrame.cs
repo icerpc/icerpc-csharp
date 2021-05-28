@@ -8,9 +8,6 @@ namespace IceRpc
     /// <summary>Base class for incoming frames.</summary>
     public abstract class IncomingFrame
     {
-        /// <summary>Returns the binary context of this frame.</summary>
-        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; }
-
         /// <summary>The connection that received this frame.</summary>
         public Connection Connection
         {
@@ -20,6 +17,9 @@ namespace IceRpc
 
         /// <summary>The features of this request.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
+
+        /// <summary>Returns the fields of this frame.</summary>
+        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
         public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;

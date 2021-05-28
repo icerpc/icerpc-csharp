@@ -11,12 +11,9 @@ namespace IceRpc
     /// <summary>Represents a request protocol frame received by the application.</summary>
     public sealed class IncomingRequest : IncomingFrame, IDisposable
     {
-        /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext { get; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-
-        /// <summary>The request context.</summary>
-        public IDictionary<string, string> Context { get; set; }
+        /// <summary>The request context stored in <see cref="Features"/>.</summary>
+        public IDictionary<string, string> Context =>
+            Features.Get<IDictionary<string, string>>() ?? ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -25,6 +22,10 @@ namespace IceRpc
         /// with ice1 requests. As a result, the deadline for an ice1 request is always <see cref="DateTime.MaxValue"/>
         /// on the server-side even though the invocation timeout is usually not infinite.</summary>
         public DateTime Deadline { get; }
+
+        /// <inheritdoc/>
+        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
+            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
@@ -70,8 +71,8 @@ namespace IceRpc
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
 
-        /// <summary>The facet of the target service. ice1 only.</summary>
-        internal string Facet { get; } = "";
+        /// <summary>The facet path of the target service. ice1 only.</summary>
+        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; } = Identity.Empty;
@@ -158,10 +159,14 @@ namespace IceRpc
                 var requestHeader = new Ice1RequestHeader(istr);
                 Identity = requestHeader.Identity;
                 Path = Identity.ToPath();
-                Facet = Ice1Definitions.GetFacet(requestHeader.FacetPath);
+                FacetPath = requestHeader.FacetPath;
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
-                Context = requestHeader.Context;
+                if (requestHeader.Context.Count > 0)
+                {
+                    Features = new FeatureCollection();
+                    Features.Set<IDictionary<string, string>>(requestHeader.Context);
+                }
                 Priority = default;
                 Deadline = DateTime.MaxValue;
 
@@ -188,10 +193,19 @@ namespace IceRpc
                 // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
-                Context = requestHeaderBody.Context as IDictionary<string, string> ??
-                    ImmutableSortedDictionary<string, string>.Empty;
 
-                BinaryContext = istr.ReadBinaryContext();
+                Fields = istr.ReadFieldDictionary();
+
+                // Read Context from Fields and set corresponding feature.
+                if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
+                {
+                    Features = new FeatureCollection();
+                    Features.Set<IDictionary<string, string>>(
+                        value.Read(istr => istr.ReadDictionary(minKeySize: 1,
+                                                               minValueSize: 1,
+                                                               keyReader: InputStream.IceReaderIntoString,
+                                                               valueReader: InputStream.IceReaderIntoString)));
+                }
 
                 if (istr.Pos - startPos != headerSize)
                 {
@@ -215,29 +229,33 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs an incoming request frame from an outgoing request frame. Used for colocated calls.
-        /// </summary>
-        /// <param name="request">The outgoing request frame.</param>
+        /// <summary>Constructs an incoming request from an outgoing request. Used for colocated calls.</summary>
+        /// <param name="request">The outgoing request.</param>
         internal IncomingRequest(OutgoingRequest request)
             : base(request.Protocol)
         {
             if (Protocol == Protocol.Ice1)
             {
-                Facet = request.Facet;
+                FacetPath = request.FacetPath;
                 Identity = request.Identity;
             }
             Path = request.Path;
 
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
-            Context = request.Context.ToImmutableSortedDictionary();
+
+            if (request.Context.Count > 0)
+            {
+                Features = new FeatureCollection();
+                Features.Set<IDictionary<string, string>>(request.Context);
+            }
 
             Priority = default;
             Deadline = request.Deadline;
 
             if (Protocol == Protocol.Ice2)
             {
-                BinaryContext = request.GetBinaryContext();
+                Fields = request.GetFields();
             }
 
             PayloadEncoding = request.PayloadEncoding;

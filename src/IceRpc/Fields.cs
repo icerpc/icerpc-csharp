@@ -6,23 +6,14 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>Constants used as keys for BinaryContext entries.</summary>
-    public enum BinaryContextKey : int
+    /// <summary>Extension class to read fields.</summary>
+    public static class Fields
     {
-        /// <summary>Key used to encode the retry policy entry.</summary>
-        RetryPolicy = -1,
-        /// <summary>Key used to encode the W3C Trace Context information.</summary>
-        TraceContext = -2
-    }
-
-    /// <summary>Helper class for unmarshaling the binary context.</summary>
-    public static class BinaryContextHelper
-    {
-        /// <summary>Reads a binary context from the stream.</summary>
+        /// <summary>Reads fields from an <see cref="InputStream"/>.</summary>
         /// <param name="istr">The input stream.</param>
-        /// <returns>The binary context as an immutable dictionary.</returns>
+        /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadBinaryContext(this InputStream istr)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this InputStream istr)
         {
             Debug.Assert(istr.Encoding == Encoding.V20);
 
@@ -36,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = istr.ReadBinaryContextEntry();
+                    (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();

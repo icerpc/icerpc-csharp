@@ -1,4 +1,4 @@
-/// Copyright (c) ZeroC, Inc. All rights reserved.
+// Copyright (c) ZeroC, Inc. All rights reserved.
 
 #pragma once
 
@@ -6,6 +6,6 @@
 
 module IceRpc
 {
-    /// A request context. Each operation has a <code>Context</code> as its implicit final parameter.
+    /// A request context.
     [cs:generic:SortedDictionary] dictionary<string, string> Context;
 }

@@ -672,7 +672,7 @@ namespace IceRpc.Internal
             ostr.WriteSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                ostr.WriteBinaryContextEntry((int)key, value, OutputStream.IceWriterFromVarULong);
+                ostr.WriteField((int)key, value, OutputStream.IceWriterFromVarULong);
             }
         }
 
@@ -682,7 +682,7 @@ namespace IceRpc.Internal
             var parameters = new Dictionary<ParameterKey, ulong>();
             for (int i = 0; i < dictionarySize; ++i)
             {
-                (int key, ReadOnlyMemory<byte> value) = istr.ReadBinaryContextEntry();
+                (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
                 parameters.Add((ParameterKey)key, value.Span.ReadVarULong().Value);
             }
             return parameters;

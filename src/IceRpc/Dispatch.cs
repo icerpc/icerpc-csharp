@@ -5,13 +5,10 @@ using System.Collections.Generic;
 
 namespace IceRpc
 {
-    /// <summary>Information about the current method dispatch for servers. Each method on the server has a
-    /// Dispatch parameter.</summary>
+    /// <summary>Holds properties that describe the request being dispatched. You can also set
+    /// <see cref="ResponseFeatures"/> to communicate with middleware "on the way back".</summary>
     public sealed class Dispatch
     {
-        /// <summary>The binary context carried by the incoming request frame.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> BinaryContext => IncomingRequest.BinaryContext;
-
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>
         public Connection Connection => IncomingRequest.Connection;
 

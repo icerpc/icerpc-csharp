@@ -54,12 +54,12 @@ namespace IceRpc.Tests.Api
 
             bool? responseFeature = null;
 
-            // This middleare reads the multiplier from the binary context and sets a request feature. It also
+            // This middleare reads the multiplier from the header field (key = 1) and sets a request feature. It also
             // reads an expected response feature.
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
-                    if (request.BinaryContext.TryGetValue(1, out ReadOnlyMemory<byte> value))
+                    if (request.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
                         Multiplier multiplier = value.Read(istr => InputStream.IceReaderIntoInt(istr));
                         if (request.Features.IsReadOnly)
@@ -97,10 +97,10 @@ namespace IceRpc.Tests.Api
             Multiplier multiplier = 10;
 
             var pipeline = new Pipeline();
-            // This interceptor stores the multiplier into the binary context to be read by the middleware.
+            // This interceptor stores the multiplier into a header field (key = 1) to be read by the middleware.
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.BinaryContextOverride.Add(1, ostr => ostr.WriteInt(multiplier));
+                request.FieldsOverride.Add(1, ostr => ostr.WriteInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
 
