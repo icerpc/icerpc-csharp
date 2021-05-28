@@ -83,4 +83,13 @@ module IceRpc
         /// The reply message carries an unknown exception.
         UnknownException = 7
     }
+
+    /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or
+    /// OperationNotExistException).
+    struct Ice1RequestFailedExceptionData
+    {
+        Ice::Identity identity;
+        StringSeq facetPath;
+        string operation;
+    }
 }

@@ -161,29 +161,22 @@ namespace IceRpc.Internal
                 case ReplyStatus.FacetNotExistException:
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
-                    var identity = new Identity(istr);
 
-                    string[] facetPath = istr.ReadArray(1, InputStream.IceReaderIntoString);
-                    if (facetPath.Length > 1)
-                    {
-                        throw new InvalidDataException($"read ice1 facet path with {facetPath.Length} elements");
-                    }
-                    string facet = facetPath.Length == 0 ? "" : facetPath[0];
-
-                    string operation = istr.ReadString();
+                    var requestFailed = new Ice1RequestFailedExceptionData(istr);
+                    string facet = requestFailed.FacetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
                         systemException = new OperationNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
                         { Facet = facet };
                     }
                     else
                     {
                         systemException = new ServiceNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(identity.ToPath(), operation))
+                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
                         { Facet = facet };
                     }
                     break;
@@ -195,6 +188,54 @@ namespace IceRpc.Internal
 
             systemException.ConvertToUnhandled = true;
             return systemException;
+        }
+
+        /// <summary>Writes an ice1 system exception.</summary>
+        /// <param name="ostr">The stream to write to.</param>
+        /// <param name="replyStatus">The reply status.</param>
+        /// <param name="request">The request for which we write the exception.</param>
+        /// <param name="message">The message carried by the exception.</param>
+        internal static void WriteIce1SystemException(
+            this OutputStream ostr,
+            ReplyStatus replyStatus,
+            IncomingRequest request,
+            string message)
+        {
+            Debug.Assert(ostr.Encoding == Encoding.V11);
+
+            ostr.Write(replyStatus);
+
+            switch (replyStatus)
+            {
+                case ReplyStatus.ObjectNotExistException:
+                case ReplyStatus.OperationNotExistException:
+
+                    Identity identity = request.Identity;
+                    if (request.Protocol == Protocol.Ice2)
+                    {
+                        try
+                        {
+                            identity = Identity.FromPath(request.Path);
+                        }
+                        catch (FormatException)
+                        {
+                            // ignored, i.e. we'll marshal an empty identity
+                        }
+                    }
+                    var requestFailed =
+                        new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
+
+                    requestFailed.IceWrite(ostr);
+                    break;
+
+                case ReplyStatus.UnknownLocalException:
+                    ostr.WriteString(message);
+                    break;
+
+                default:
+                    Debug.Assert(false);
+                    break;
+            }
         }
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());

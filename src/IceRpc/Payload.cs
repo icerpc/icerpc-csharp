@@ -253,6 +253,8 @@ namespace IceRpc
         /// <returns>A response payload containing the exception.</returns>
         public static IList<ArraySegment<byte>> FromRemoteException(IncomingRequest request, RemoteException exception)
         {
+            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+
             var payload = new List<ArraySegment<byte>>();
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
@@ -285,60 +287,30 @@ namespace IceRpc
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the encapsulation data is the actual ReplyStatus
-                    ostr.Write(replyStatus);
-                }
-            }
-            else
-            {
-                Debug.Assert(request.Protocol == Protocol.Ice1 && (byte)replyStatus > (byte)ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding, payload); // not an encapsulation
-                ostr.Write(replyStatus);
-            }
-
-            exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-            if (request.PayloadEncoding == Encoding.V11)
-            {
-                switch (replyStatus)
-                {
-                    case ReplyStatus.ObjectNotExistException:
-                    case ReplyStatus.OperationNotExistException:
-                        if (request.Protocol == Protocol.Ice1)
-                        {
-                            request.Identity.IceWrite(ostr);
-                        }
-                        else
-                        {
-                            var identity = Identity.Empty;
-                            try
-                            {
-                                identity = Identity.FromPath(request.Path);
-                            }
-                            catch (FormatException)
-                            {
-                                // ignored, i.e. we'll marshal an empty identity
-                            }
-                            identity.IceWrite(ostr);
-                        }
-                        ostr.WriteSequence(request.FacetPath, OutputStream.IceWriterFromString);
-                        ostr.WriteString(request.Operation);
-                        break;
-
-                    case ReplyStatus.UnknownLocalException:
-                        ostr.WriteString(exception.Message);
-                        break;
-
-                    default:
+                    if (replyStatus == ReplyStatus.UserException)
+                    {
+                        ostr.Write(replyStatus);
                         ostr.WriteException(exception);
-                        break;
+                    }
+                    else
+                    {
+                        // Writes reply status and more.
+                        ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
+                    }
+                }
+                else
+                {
+                    ostr.WriteException(exception);
                 }
             }
             else
             {
-                ostr.WriteException(exception);
+                Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
+                ostr = new OutputStream(Ice1Definitions.Encoding, payload); // not an encapsulation
+                ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
             ostr.Finish();
-
             return payload;
         }
 
