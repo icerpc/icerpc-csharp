@@ -22,8 +22,8 @@ namespace IceRpc.Features
         public static IDictionary<string, string> GetContext(this FeatureCollection features) =>
             features.Get<Context>()?.Value ?? ImmutableSortedDictionary<string, string>.Empty;
 
-        /// <summary>Updates this feature collection (if read-write) or creates a few feature collection (if read-only)
-        /// with the specified <see cref="Context"/> feature set.</summary>
+        /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
+        /// and sets its <see cref="Context"/> feature to the provided value.</summary>
         /// <param name="features">This feature collection.</param>
         /// <param name="value">The new context value.</param>
         /// <returns>The updated feature collection.</returns>
