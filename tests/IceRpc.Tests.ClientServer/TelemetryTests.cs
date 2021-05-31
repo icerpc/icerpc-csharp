@@ -138,7 +138,6 @@ namespace IceRpc.Tests.ClientServer
                     }));
                 router.Map<IGreeter>(new Greeter());
 
-
                 await using var server = new Server
                 {
                     Endpoint = TestHelper.GetUniqueColocEndpoint(),
@@ -205,7 +204,8 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = TestHelper.GetTestEndpoint(),
                 Dispatcher = router,
                 ActivitySource = activitySource,
-                ProxyHost = "localhost"
+                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
+                ProxyHost = "127.0.0.1"
             };
 
             server.Listen();

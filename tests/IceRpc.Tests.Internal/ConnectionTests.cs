@@ -337,8 +337,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(tcpClientSocket.IsSigned, Is.True);
                 Assert.That(tcpClientSocket.LocalCertificate, Is.Null);
 
-                // TODO: Disabled for now, see https://github.com/zeroc-ice/icerpc-csharp/issues/287
-
                 Assert.That(tcpServerSocket.NegotiatedApplicationProtocol, Is.Not.Null);
                 if (OperatingSystem.IsMacOS())
                 {

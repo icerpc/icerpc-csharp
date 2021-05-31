@@ -300,7 +300,8 @@ namespace IceRpc.Tests.ClientServer
                 HasColocEndpoint = false,
                 Dispatcher = dispatcher,
                 Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
-                ProxyHost = "localhost"
+                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
+                ProxyHost = "127.0.0.1"
             };
 
         private static string GetCategory(JsonDocument document) =>

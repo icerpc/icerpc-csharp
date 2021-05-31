@@ -518,7 +518,8 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
-                ProxyHost = "localhost",
+                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
+                ProxyHost = "127.0.0.1",
                 Dispatcher = router
             };
             server.Listen();
