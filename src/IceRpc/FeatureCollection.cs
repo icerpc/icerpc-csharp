@@ -58,7 +58,14 @@ namespace IceRpc
 
         /// <summary>Constructs a feature collection with defaults.</summary>
         /// <param name="defaults">The feature collection that provide default values.</param>
-        public FeatureCollection(FeatureCollection defaults) => _defaults = defaults;
+        public FeatureCollection(FeatureCollection defaults)
+        {
+            if (defaults != Empty)
+            {
+                _defaults = defaults;
+            }
+            // else no need to query Empty for default values
+        }
 
         /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>

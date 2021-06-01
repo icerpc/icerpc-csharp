@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -128,11 +129,7 @@ namespace IceRpc.Tests.Api
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                if (request.Features.IsReadOnly)
-                {
-                    request.Features = new FeatureCollection(request.Features);
-                }
-                request.Features.Set<IDictionary<string, string>>(new Dictionary<string, string> { ["foo"] = "bar" });
+                request.Features = request.Features.WithContext(new Dictionary<string, string> { ["foo"] = "bar" });
                 return await next.InvokeAsync(request, cancel);
             }));
 
@@ -141,7 +138,7 @@ namespace IceRpc.Tests.Api
                 {
                     Context = new Dictionary<string, string> { ["foo"] = "baz" }
                 });
-            CollectionAssert.AreEqual(ctx, new Dictionary<string, string> { ["foo"] = "bar" });
+            CollectionAssert.AreEqual(ctx, new SortedDictionary<string, string> { ["foo"] = "bar" });
         }
 
         [OneTimeTearDown]

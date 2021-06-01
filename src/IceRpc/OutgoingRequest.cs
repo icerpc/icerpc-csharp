@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
 using System;
@@ -24,10 +25,6 @@ namespace IceRpc
 
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }
-
-        /// <summary>The request context stored in <see cref="Features"/>.</summary>
-        public IDictionary<string, string> Context =>
-            Features.Get<IDictionary<string, string>>() ?? ImmutableSortedDictionary<string, string>.Empty;
 
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. This deadline is sent with ice2
@@ -265,6 +262,8 @@ namespace IceRpc
         {
             Debug.Assert(ostr.Encoding == Protocol.GetEncoding());
 
+            IDictionary<string, string> context = Features.GetContext();
+
             if (Protocol == Protocol.Ice2)
             {
                 OutputStream.Position start = ostr.StartFixedLengthSize(2);
@@ -280,8 +279,7 @@ namespace IceRpc
 
                 requestHeaderBody.IceWrite(ostr);
 
-                IDictionary<string, string> context = Context;
-                if (InitialFields.ContainsKey((int)Ice2FieldKey.Context) || Context.Count > 0)
+                if (InitialFields.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
                     // Writes or overrides context
                     FieldsOverride[(int)Ice2FieldKey.Context] =
@@ -302,7 +300,7 @@ namespace IceRpc
                     FacetPath,
                     Operation,
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    Context);
+                    context);
                 requestHeader.IceWrite(ostr);
             }
         }
