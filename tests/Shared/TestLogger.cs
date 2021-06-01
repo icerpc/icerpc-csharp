@@ -69,7 +69,7 @@ namespace IceRpc.Tests
             ScopeProvider = scopeProvider;
         }
 
-        public IDisposable? BeginScope<TState>(TState state) => ScopeProvider?.Push(state);
+        public IDisposable BeginScope<TState>(TState state) => ScopeProvider?.Push(state) ?? new Disposable();
 
         public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
 
@@ -77,8 +77,8 @@ namespace IceRpc.Tests
             LogLevel logLevel,
             EventId eventId,
             TState state,
-            Exception exception,
-            Func<TState, Exception, string> formatter)
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
             if (!IsEnabled(logLevel))
             {
@@ -86,10 +86,18 @@ namespace IceRpc.Tests
             }
 
             var writer = new StringWriter();
-            LogEntry<TState> logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
+            var logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
             _formatter.Write(in logEntry, ScopeProvider, writer);
             _output.Write(writer.ToString());
             _output.Flush();
+        }
+
+        /// <summary>Dummy disposable type, for use with BeginScope.</summary>
+        private class Disposable : IDisposable
+        {
+            public void Dispose()
+            {
+            }
         }
     }
 
@@ -105,17 +113,14 @@ namespace IceRpc.Tests
     {
         public JsonFormatterOptions Options { get; set; }
 
-        public JsonFormatter()
-        {
-            Options = new JsonFormatterOptions();
-        }
+        public JsonFormatter() => Options = new JsonFormatterOptions();
 
         public void Write<TState>(
             in LogEntry<TState> logEntry,
             IExternalScopeProvider? scopeProvider,
             TextWriter textWriter)
         {
-            string message = logEntry.Formatter(logEntry.State, logEntry.Exception);
+            string? message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception);
             if (logEntry.Exception == null && message == null)
             {
                 return;
@@ -194,9 +199,9 @@ namespace IceRpc.Tests
                     }
                     state.WriteEndObject();
                 }
-                else
+                else if (scope?.ToString() is string value)
                 {
-                    state.WriteStringValue(scope.ToString());
+                    state.WriteStringValue(value);
                 }
             }, writer);
             writer.WriteEndArray();
@@ -204,53 +209,52 @@ namespace IceRpc.Tests
 
         private static void WriteItem(Utf8JsonWriter writer, KeyValuePair<string, object> item)
         {
-            var key = item.Key;
             switch (item.Value)
             {
                 case bool boolValue:
-                    writer.WriteBoolean(key, boolValue);
+                    writer.WriteBoolean(item.Key, boolValue);
                     break;
                 case byte byteValue:
-                    writer.WriteNumber(key, byteValue);
+                    writer.WriteNumber(item.Key, byteValue);
                     break;
                 case sbyte sbyteValue:
-                    writer.WriteNumber(key, sbyteValue);
+                    writer.WriteNumber(item.Key, sbyteValue);
                     break;
                 case char charValue:
-                    writer.WriteString(key, MemoryMarshal.CreateSpan(ref charValue, 1));
+                    writer.WriteString(item.Key, MemoryMarshal.CreateSpan(ref charValue, 1));
                     break;
                 case decimal decimalValue:
-                    writer.WriteNumber(key, decimalValue);
+                    writer.WriteNumber(item.Key, decimalValue);
                     break;
                 case double doubleValue:
-                    writer.WriteNumber(key, doubleValue);
+                    writer.WriteNumber(item.Key, doubleValue);
                     break;
                 case float floatValue:
-                    writer.WriteNumber(key, floatValue);
+                    writer.WriteNumber(item.Key, floatValue);
                     break;
                 case int intValue:
-                    writer.WriteNumber(key, intValue);
+                    writer.WriteNumber(item.Key, intValue);
                     break;
                 case uint uintValue:
-                    writer.WriteNumber(key, uintValue);
+                    writer.WriteNumber(item.Key, uintValue);
                     break;
                 case long longValue:
-                    writer.WriteNumber(key, longValue);
+                    writer.WriteNumber(item.Key, longValue);
                     break;
                 case ulong ulongValue:
-                    writer.WriteNumber(key, ulongValue);
+                    writer.WriteNumber(item.Key, ulongValue);
                     break;
                 case short shortValue:
-                    writer.WriteNumber(key, shortValue);
+                    writer.WriteNumber(item.Key, shortValue);
                     break;
                 case ushort ushortValue:
-                    writer.WriteNumber(key, ushortValue);
+                    writer.WriteNumber(item.Key, ushortValue);
                     break;
                 case null:
-                    writer.WriteNull(key);
+                    writer.WriteNull(item.Key);
                     break;
                 default:
-                    writer.WriteString(key, item.Value.ToString());
+                    writer.WriteString(item.Key, item.Value.ToString());
                     break;
             }
         }

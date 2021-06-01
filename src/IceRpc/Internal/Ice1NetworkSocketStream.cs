@@ -56,7 +56,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
-            (Ice1FrameType frameType, ArraySegment<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
+            (Ice1FrameType frameType, ArraySegment<byte> frame) = await IceWaitAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)

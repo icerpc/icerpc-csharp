@@ -45,7 +45,8 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = new Greeter(),
                 Endpoint = endpoint,
                 HasColocEndpoint = hasColocEndpoint,
-                ProxyHost = "localhost"
+                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
+                ProxyHost = "127.0.0.1"
             };
             server.Listen();
 

@@ -113,7 +113,7 @@ namespace IceRpc.Internal
                     SocketReceiveFromResult result =
                         await _socket.ReceiveFromAsync(buffer,
                                                       SocketFlags.None,
-                                                      remoteAddress).WaitAsync(cancel).ConfigureAwait(false);
+                                                      remoteAddress).IceWaitAsync(cancel).ConfigureAwait(false);
 
                     received = result.ReceivedBytes;
                 }
@@ -157,7 +157,7 @@ namespace IceRpc.Internal
             try
             {
                 // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                return await _socket.SendAsync(buffer, SocketFlags.None).WaitAsync(cancel).ConfigureAwait(false);
+                return await _socket.SendAsync(buffer, SocketFlags.None).IceWaitAsync(cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {

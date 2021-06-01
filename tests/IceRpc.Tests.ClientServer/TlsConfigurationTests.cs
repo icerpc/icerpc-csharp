@@ -262,6 +262,8 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync());
         }
 
+        // TODO enable once https://github.com/dotnet/runtime/issues/53447 is fixed
+        /*
         // This must succeed, the target host matches the certificate DNS altName.
         [TestCase("s_rsa_ca1_cn1.p12", "localhost", OperatingSystem.All)]
         // This must fail, the target host does not match the certificate DNS altName.
@@ -321,7 +323,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
             }
-        }
+        }*/
 
         [Test]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(

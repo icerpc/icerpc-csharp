@@ -61,7 +61,7 @@ namespace IceRpc.Internal
             // socket channel.
             if (_streamReader == null)
             {
-                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+                (object frame, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
                 _streamReader = frame as ChannelReader<byte[]>;
                 Debug.Assert(_streamReader != null);
             }
@@ -151,7 +151,7 @@ namespace IceRpc.Internal
 
         internal override async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+            (object frameObject, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequest);
             var frame = (IncomingRequest)frameObject;
 
@@ -180,7 +180,7 @@ namespace IceRpc.Internal
 
             try
             {
-                (frameObject, fin) = await WaitAsync(cancel).ConfigureAwait(false);
+                (frameObject, fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -211,7 +211,7 @@ namespace IceRpc.Internal
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+            (object frame, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
             if (fin)
             {
                 _receivedEndOfStream = true;

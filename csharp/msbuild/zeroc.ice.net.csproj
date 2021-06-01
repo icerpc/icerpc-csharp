@@ -33,9 +33,9 @@
             <Pack>true</Pack>
         </Content>
 
-        <Content Include="..\lib\net5.0\*.dll">
+        <Content Include="..\lib\net6.0\*.dll">
             <Pack>true</Pack>
-            <PackagePath>lib\net5.0</PackagePath>
+            <PackagePath>lib\net6.0</PackagePath>
         </Content>
 
         <Content Include="..\..\slice\**\*.ice"

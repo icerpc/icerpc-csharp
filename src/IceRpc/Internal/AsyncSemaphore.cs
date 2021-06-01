@@ -167,7 +167,7 @@ namespace IceRpc.Internal
                     }
                     catch
                     {
-                        // Ignore, this can occur if WaitAsync is canceled.
+                        // Ignore, this can occur if IceWaitAsync is canceled.
                     }
                 }
 
