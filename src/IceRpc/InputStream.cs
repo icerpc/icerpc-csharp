@@ -150,7 +150,7 @@ namespace IceRpc
         private int _classGraphDepth;
 
         // Map of class instance ID to class instance.
-        // When reading a top-level encapsulation:
+        // When reading a buffer:
         //  - Instance ID = 0 means null
         //  - Instance ID = 1 means the instance is encoded inline afterwards
         //  - Instance ID > 1 means a reference to a previously read instance, found in this map.
@@ -989,7 +989,7 @@ namespace IceRpc
 
         /// <summary>Verifies the input stream has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
-        /// encapsulation.</param>
+        /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)
         {
             if (skipTaggedParams)
@@ -1003,47 +1003,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads an encapsulation header from the stream.</summary>
-        /// <param name="checkFullBuffer">When true, the encapsulation is expected to consume all the bytes of the
-        /// current buffer. When false, bytes can remain in the buffer after the encapsulation.</param>
-        /// <returns>The encapsulation header read from the stream. The size does not include the bytes to the size
-        /// length; it does however include the two byte for the encoding.</returns>
-        internal (int Size, Encoding Encoding) ReadEncapsulationHeader(bool checkFullBuffer)
-        {
-            int size;
-
-            if (OldEncoding)
-            {
-                size = ReadInt();
-                if (size < 4)
-                {
-                    throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
-                }
-                size -= 4; // remove the size length which is included with the 1.1 encoding
-            }
-            else
-            {
-                size = ReadSize20();
-            }
-
-            if (checkFullBuffer)
-            {
-                if (size != _buffer.Length - Pos)
-                {
-                    throw new InvalidDataException(
-                        $"expected an encapsulation size of {_buffer.Length - Pos} bytes, but read {size}");
-                }
-            }
-            else if (size > _buffer.Length - Pos)
-            {
-                throw new InvalidDataException(
-                    $"the encapsulation's size ({size}) extends beyond the end of the buffer");
-            }
-
-            var encoding = new Encoding(this);
-            return (size, encoding);
-        }
-
         /// <summary>Reads an endpoint from the stream. Only called when the stream uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint read from the stream.</returns>
@@ -1054,14 +1013,13 @@ namespace IceRpc
             Endpoint endpoint;
 
             Transport transport = this.ReadTransport();
-            (int size, Encoding encoding) = ReadEncapsulationHeader(checkFullBuffer: false);
+            (int size, Encoding encoding) = ReadEncapsulationHeader();
 
             Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
                 Runtime.FindIce1EndpointFactory(transport) : null;
 
-            // Remove the two bytes of the encoding included in size. Endpoint encapsulations don't include a
-            // compression byte.
-            size -= 2;
+            // Remove the 6 bytes from the encapsulation header.
+            size -= 6;
 
             // We need to read the encapsulation except for ice1 + null factory.
             if (protocol == Protocol.Ice1 && ice1Factory == null)
@@ -1104,6 +1062,24 @@ namespace IceRpc
             }
 
             return endpoint;
+
+            (int Size, Encoding Encoding) ReadEncapsulationHeader()
+            {
+                size = ReadInt();
+                if (size < 4)
+                {
+                    throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
+                }
+
+                if (size - 4 > _buffer.Length - Pos)
+                {
+                    throw new InvalidDataException(
+                     $"the encapsulation's size ({size}) extends beyond the end of the buffer");
+                }
+
+                var encoding = new Encoding(this);
+                return (size, encoding);
+            }
         }
 
         /// <summary>Reads a field from the stream.</summary>
@@ -1283,7 +1259,7 @@ namespace IceRpc
             {
                 if (_buffer.Length - Pos <= 0)
                 {
-                    return false; // End of encapsulation also indicates end of tagged parameters.
+                    return false; // End of buffer also indicates end of tagged parameters.
                 }
 
                 int savedPos = Pos;
