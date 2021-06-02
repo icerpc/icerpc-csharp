@@ -108,18 +108,6 @@ namespace IceRpc
             return (value, buffer[0].ReadVarLongLength());
         }
 
-        internal static void WriteEncapsulationSize(this Span<byte> buffer, int size, Encoding encoding)
-        {
-            if (encoding == Encoding.V20)
-            {
-                buffer.WriteFixedLengthSize20(size);
-            }
-            else
-            {
-                buffer.WriteInt(size + 4);
-            }
-        }
-
         /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="buffer">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
         /// <param name="size">The size to write.</param>

@@ -182,14 +182,11 @@ namespace IceRpc
         private readonly FormatType _format;
 
         // Map of class instance to instance ID, where the instance IDs start at 2.
-        // When writing a top-level encapsulation:
+        // When writing a buffer:
         //  - Instance ID = 0 means null.
         //  - Instance ID = 1 means the instance is encoded inline afterwards.
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
         private Dictionary<AnyClass, int>? _instanceMap;
-
-        // The encoding used to write the encapsulation header itself.
-        private readonly Encoding _mainEncoding;
 
         // All segments before the tail segment are fully used.
         private readonly IList<ArraySegment<byte>> _segmentList;
@@ -198,8 +195,7 @@ namespace IceRpc
         private Position _tail;
 
         // Map of type ID string to type ID index.
-        // When writing into a top-level encapsulation, we assign a type ID index (starting with 1) to each type ID we
-        // write, in order.
+        // When writing into a buffer, we assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
         // Write methods for basic types
@@ -1050,7 +1046,6 @@ namespace IceRpc
             Position startAt = default, // TODO: is it needed?
             FormatType format = default)
         {
-            _mainEncoding = encoding;
             Encoding = encoding;
             Encoding.CheckSupported();
             _format = format;
@@ -1166,18 +1161,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes an empty encapsulation.</summary>
-        internal Position WriteEmptyEncapsulation(Encoding encoding)
-        {
-            encoding.CheckSupported();
-            WriteEncapsulationHeader(size: encoding == Encoding.V20 ? 3 : 2, encoding);
-            if (encoding == Encoding.V20)
-            {
-                WriteByte(0); // The compression status, 0 = not-compressed
-            }
-            return _tail;
-        }
-
         internal void WriteEndpoint11(Endpoint endpoint)
         {
             Debug.Assert(OldEncoding);
@@ -1206,7 +1189,7 @@ namespace IceRpc
                     WriteSequence(endpoint.Data.Options, IceWriterFromString);
                 }
             }
-            RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos, sizeLength);
+            RewriteFixedLengthSize11(Distance(startPos), startPos);
         }
 
         internal void WriteField(int key, ReadOnlySpan<byte> value)
@@ -1358,26 +1341,6 @@ namespace IceRpc
                 Debug.Assert(pos.Offset == segment.Count);
                 segment = _segmentList[pos.Segment + 1];
                 segment[0] = v;
-            }
-        }
-
-        /// <summary>Rewrites an encapsulation size on a fixed number of bytes at the given position of the stream.
-        /// </summary>
-        /// <param name="size">The number of bytes in the encapsulation, without taking into account the bytes for the
-        /// size itself.</param>
-        /// <param name="pos">The position to write to.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size with the 2.0 encoding. Can be 1, 2 or
-        /// 4.</param>
-        private void RewriteEncapsulationSize(int size, Position pos, int sizeLength = DefaultSizeLength)
-        {
-            if (OldEncoding)
-            {
-                // With the 1.1 encoding, sizeLength is always 4 bytes and the encoded size includes this sizeLength.
-                RewriteFixedLengthSize11(size + 4, pos);
-            }
-            else
-            {
-                RewriteFixedLengthSize20(size, pos, sizeLength);
             }
         }
 
