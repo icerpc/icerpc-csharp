@@ -1040,15 +1040,12 @@ namespace IceRpc
         }
 
         // Constructs an OutputStream
-        internal OutputStream(
-            Encoding encoding,
-            IList<ArraySegment<byte>> data,
-            Position startAt = default, // TODO: is it needed?
-            FormatType format = default)
+        internal OutputStream(Encoding encoding, IList<ArraySegment<byte>> data, FormatType format = default)
         {
             Encoding = encoding;
             Encoding.CheckSupported();
             _format = format;
+            _tail = default;
 
             _segmentList = data;
             if (_segmentList.Count == 0)
@@ -1056,11 +1053,9 @@ namespace IceRpc
                 _currentSegment = ArraySegment<byte>.Empty;
                 _capacity = 0;
                 Size = 0;
-                _tail = default;
             }
             else
             {
-                _tail = startAt;
                 _currentSegment = _segmentList[_tail.Segment];
                 Size = Distance(default);
                 _capacity = 0;

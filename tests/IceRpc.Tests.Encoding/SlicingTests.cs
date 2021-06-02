@@ -16,10 +16,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
-            var ostr = new OutputStream(encoding,
-                                        data,
-                                        startAt: default,
-                                        format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             ostr.WriteClass(p1, null);
@@ -67,10 +64,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
-            var ostr = new OutputStream(encoding,
-                                        data,
-                                        startAt: default,
-                                        format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             ostr.WriteClass(p1, null);
@@ -132,10 +126,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
-            var ostr = new OutputStream(encoding,
-                                        data,
-                                        startAt: default,
-                                        format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             ostr.WriteException(p1);
@@ -190,10 +181,7 @@ namespace IceRpc.Tests.Encoding
             Assert.IsNotInstanceOf<MyBaseException>(r);
 
             // Marshal the exception again to ensure all Slices are correctly preserved
-            ostr = new OutputStream(encoding,
-                                    data,
-                                    startAt: default,
-                                    format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
             ostr.WriteException(r);
             ostr.Finish();
 
@@ -214,10 +202,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
-            var ostr = new OutputStream(encoding,
-                                        data,
-                                        startAt: default,
-                                        format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -240,10 +225,7 @@ namespace IceRpc.Tests.Encoding
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             data = new List<ArraySegment<byte>>() { buffer };
-            ostr = new OutputStream(encoding,
-                                    data,
-                                    startAt: default,
-                                    format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
             ostr.WriteClass(r1, null);
             ostr.Finish();
 
@@ -269,10 +251,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var data = new List<ArraySegment<byte>>() { buffer };
-            var ostr = new OutputStream(encoding,
-                                        data,
-                                        startAt: default,
-                                        format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -295,10 +274,7 @@ namespace IceRpc.Tests.Encoding
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             data = new List<ArraySegment<byte>>() { buffer };
-            ostr = new OutputStream(encoding,
-                                    data,
-                                    startAt: default,
-                                    format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
             ostr.WriteClass(r1, null);
             ostr.Finish();
 

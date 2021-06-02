@@ -88,7 +88,7 @@ module IceRpc
 
     /// Each ice1 response frame has:
     /// - a frame prologue, with the frame type and the overall frame size
-    /// - a replys status
+    /// - a reply status
     /// - when reply status is OK or UserException, a response header (below) followed by a response payload, with
     /// encapsulationSize - 6 bytes
     [cs:readonly]

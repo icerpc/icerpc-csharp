@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Encoding
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var ostr = new OutputStream(encoding, _data, startAt: default);
+            var ostr = new OutputStream(encoding, _data);
 
             var prx = IServicePrx.Parse(str);
             ostr.WriteProxy(prx);
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Encoding
             IServicePrx regular = IServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var ostr = new OutputStream(encoding, _data, startAt: default);
+            var ostr = new OutputStream(encoding, _data);
             ostr.WriteProxy(endpointLess);
             ostr.Finish();
 

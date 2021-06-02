@@ -29,7 +29,7 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(proxy.Encoding, payload, startAt: default, classFormat);
+            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -58,7 +58,7 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(proxy.Encoding, payload, startAt: default, classFormat);
+            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -188,7 +188,7 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(dispatch.Encoding, payload, startAt: default, classFormat);
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -216,7 +216,7 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(dispatch.Encoding, payload, startAt: default, classFormat);
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -254,7 +254,7 @@ namespace IceRpc
             OutputStream ostr;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                ostr = new OutputStream(request.PayloadEncoding, payload, startAt: default, FormatType.Sliced);
+                ostr = new OutputStream(request.PayloadEncoding, payload, FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {

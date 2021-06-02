@@ -72,8 +72,7 @@ module IceRpc
         varulong payloadSize;
     }
 
-    /// The type of result carried by an ice2 response frame. The values Success and Failure match the values of OK and
-    /// UserException in {@see ReplyStatus}.
+    /// The type of result carried by an ice2 response frame.
     enum ResultType : byte
     {
         /// The request succeeded.
