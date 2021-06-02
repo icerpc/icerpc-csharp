@@ -62,6 +62,8 @@ module IceRpc
     /// - a frame prologue, with the frame type and (for now) the overall frame size
     /// - a request header (below)
     /// - a request payload
+    /// We put various members of the header in the Ice2RequestHeaderBody struct because the marshaling and unmarshaling
+    /// of Fields is often custom.
     [cs:readonly]
     struct Ice2RequestHeader
     {
