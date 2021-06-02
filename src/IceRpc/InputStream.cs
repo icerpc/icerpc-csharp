@@ -149,9 +149,6 @@ namespace IceRpc
         // The current depth when reading nested class instances.
         private int _classGraphDepth;
 
-        // True when reading a top-level encapsulation; otherwise, false.
-        private readonly bool _inEncapsulation;
-
         // Map of class instance ID to class instance.
         // When reading a top-level encapsulation:
         //  - Instance ID = 0 means null
@@ -960,8 +957,6 @@ namespace IceRpc
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="connection">The connection (optional).</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
-        /// <c>encoding</c> represents the encoding of the header.</param>
         /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
         /// <see cref="Runtime.TypeIdClassFactoryDictionary"/> will be used.</param>
         /// <param name="typeIdExceptionFactories">Optional dictionary used to map Slice type Ids to exceptions, if
@@ -973,7 +968,6 @@ namespace IceRpc
             Encoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
-            bool startEncapsulation = false,
             IReadOnlyDictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
             IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
             IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
@@ -991,28 +985,6 @@ namespace IceRpc
             _typeIdClassFactories = typeIdClassFactories;
             _typeIdRemoteExceptionFactories = typeIdExceptionFactories;
             _compactTypeIdClassFactories = compactTypeIdClassFactories;
-
-            if (startEncapsulation)
-            {
-                // When startEncapsulation is true, the buffer must extend until the end of the encapsulation - it
-                // cannot include extra bytes.
-                Encoding = ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
-                Encoding.CheckSupported();
-
-                // We slice the provided buffer to the encapsulation (minus its header).
-                _buffer = buffer[Pos..];
-                Pos = 0;
-
-                if (Encoding == Encoding.V20)
-                {
-                    CompressionFormat compressionFormat = this.ReadCompressionFormat();
-                    if (compressionFormat != CompressionFormat.Decompressed)
-                    {
-                        throw new InvalidDataException("the buffer encapsulation is compressed");
-                    }
-                }
-            }
-            _inEncapsulation = startEncapsulation;
         }
 
         /// <summary>Verifies the input stream has reached the end of its underlying buffer.</summary>
@@ -1022,7 +994,6 @@ namespace IceRpc
         {
             if (skipTaggedParams)
             {
-                Debug.Assert(_inEncapsulation);
                 SkipTaggedParams();
             }
 
@@ -1299,9 +1270,6 @@ namespace IceRpc
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool ReadTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
         {
-            // Tagged members/parameters can only be in the main encapsulation.
-            Debug.Assert(_inEncapsulation);
-
             // The current slice has no tagged parameter.
             if (_current.InstanceType != InstanceType.None &&
                 (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)

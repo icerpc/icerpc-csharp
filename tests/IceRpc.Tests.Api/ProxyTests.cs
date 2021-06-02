@@ -13,16 +13,18 @@ namespace IceRpc.Tests.Api
     [Parallelizable(scope: ParallelScope.All)]
     public class ProxyTests
     {
-        [Test]
-        public async Task Proxy_BuiltinOperationsAsync()
+        [TestCase(Protocol.Ice1)]
+        [TestCase(Protocol.Ice2)]
+        public async Task Proxy_BuiltinOperationsAsync(Protocol protocol)
         {
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await connection.ConnectAsync();
 
             var prx = IGreeterPrx.FromConnection(connection);
 
@@ -370,11 +372,10 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             var prx = IGreeterPrx.FromConnection(connection);
 
-            (ReadOnlyMemory<byte> responsePayload, Connection responseConnection) = await prx.InvokeAsync(
-                "SayHello",
-                Payload.FromEmptyArgs(prx));
+            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection responseConnection) =
+                await prx.InvokeAsync("SayHello", Payload.FromEmptyArgs(prx));
 
-            Assert.DoesNotThrow(() => responsePayload.CheckVoidReturnValue(responseConnection, prx.Invoker));
+            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
         }
 
         [Test]

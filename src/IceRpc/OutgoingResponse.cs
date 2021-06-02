@@ -21,34 +21,9 @@ namespace IceRpc
             get => _payload;
             set
             {
-                if (value.Count == 0 || value[0].Count == 0)
+                if (ResultType == ResultType.Success && PayloadEncoding == Encoding.V20)
                 {
-                    throw new ArgumentException("the response payload cannot be empty");
-                }
-
-                // the payload encapsulation header is always in the payload first segment
-                var istr = new InputStream(value[0], Protocol.GetEncoding());
-                ReplyStatus replyStatus = istr.ReadReplyStatus();
-                if (_payload.Count > 0 && replyStatus != (ReplyStatus)_payload[0][0])
-                {
-                    throw new ArgumentException(
-                        "setting the Payload cannot change the ReplyStatus byte",
-                        nameof(Payload));
-                }
-
-                // If the response frame has an encapsulation reset the payload encoding and compression format values
-                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
-                {
-                    int _ = Protocol == Protocol.Ice1 ? istr.ReadInt() : istr.ReadSize();
-                    var payloadEncoding = new Encoding(istr);
-                    CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V11 ?
-                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
-                    PayloadCompressionFormat = payloadCompressionFormat;
-                    PayloadEncoding = payloadEncoding;
-                }
-                else
-                {
-                    PayloadEncoding = Encoding.V11;
+                    PayloadCompressionFormat = (CompressionFormat)value[0][0];
                 }
                 _payload = value;
                 _payloadSize = -1;
@@ -74,8 +49,15 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The result type; see <see cref="IceRpc.ResultType"/>.</summary>
-        public ResultType ResultType => Payload[0][0] == 0 ? ResultType.Success : ResultType.Failure;
+        /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
+        /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
+        /// <see cref="IceRpc.ResultType.Success"/>; otherwise, if <see cref="PayloadEncoding"/> is 1.1, the value is
+        /// stored in the response header or payload. For any other payload encoding, the value is
+        /// <see cref="IceRpc.ReplyStatus.UserException"/>.</value>
+        public ReplyStatus ReplyStatus { get; }
+
+        /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
+        public ResultType ResultType { get; }
 
         private IList<ArraySegment<byte>> _payload;
         private int _payloadSize = -1;
@@ -176,144 +158,93 @@ namespace IceRpc
         */
 
         /// <summary>Constructs an outgoing response with the given payload. The new response will use the protocol and
-        /// encoding of <paramref name="request"/>.</summary>
-        /// <param name="request">The request on which this constructor creates a response.</param>
-        /// <param name="payload">The payload of this response.</param>
+        /// encoding of <paramref name="request"/> and corresponds to a successful completion.</summary>
+        /// <param name="request">The request for which this constructor creates a response.</param>
+        /// <param name="payload">The payload of this response encoded using request.PayloadEncoding.</param>
         public OutgoingResponse(
             IncomingRequest request,
             IList<ArraySegment<byte>> payload)
-            : this(request.Protocol, payload, FeatureCollection.Empty)
+            : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty)
         {
+            ResultType = ResultType.Success;
+            ReplyStatus = ReplyStatus.OK;
         }
 
         /// <summary>Constructs an outgoing response with a payload. The new response will use the protocol
-        /// of the <paramref name="dispatch"/>.</summary>
-        /// <param name="dispatch">The dispatch for the request on which this constructor creates a response.</param>
-        /// <param name="payload">The payload of this response.</param>
+        /// of the <paramref name="dispatch"/> and corresponds to a successful completion.</summary>
+        /// <param name="dispatch">The dispatch for which this constructor creates a response.</param>
+        /// <param name="payload">The payload of this response encoded using dispatch.Encoding.</param>
         public OutgoingResponse(Dispatch dispatch, IList<ArraySegment<byte>> payload)
-            : this(dispatch.Protocol, payload, dispatch.ResponseFeatures)
+            : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures)
         {
+            ResultType = ResultType.Success;
+            ReplyStatus = ReplyStatus.OK;
         }
 
-        /// <summary>Constructs an outgoing response from the given incoming response. The new response will
-        /// use the protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.
-        /// </summary>
+        /// <summary>Constructs an outgoing response from the given incoming response. The new response will use the
+        /// protocol of the <paramref name="request"/> and the encoding of <paramref name="response"/>.</summary>
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
-        /// <param name="forwardFields">When true (the default), the new response uses the incoming response's
-        /// fields as a fallback - all the field lines in this fields dictionary are added before the response is sent,
-        /// except for fields previously added by middleware.</param>
+        /// <param name="forwardFields">When true (the default), the new response uses the incoming response's fields as
+        /// a fallback - all the field lines in this fields dictionary are added before the response is sent, except for
+        /// fields previously added by middleware.</param>
         public OutgoingResponse(
             IncomingRequest request,
             IncomingResponse response,
             bool forwardFields = true)
             : base(request.Protocol, FeatureCollection.Empty)
         {
+            ResultType = response.ResultType;
+            ReplyStatus = response.ReplyStatus;
+
+            PayloadEncoding = response.PayloadEncoding;
             _payload = new List<ArraySegment<byte>>();
             _payloadSize = -1;
-            PayloadEncoding = response.PayloadEncoding;
+
             if (Protocol == response.Protocol)
             {
                 Payload.Add(response.Payload);
+
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
                     // Don't forward RetryPolicy
-                    InitialFields =
-                        response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
+                    InitialFields = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
                 }
             }
             else
             {
-                int sizeLength = response.Protocol == Protocol.Ice1 ? 4 : response.Payload[1].ReadSizeLength20();
-
-                // Create a small buffer to hold the result type or reply status plus the encapsulation header.
-                Debug.Assert(Payload.Count == 0);
-                byte[] buffer = new byte[8];
-                Payload.Add(buffer);
-
                 if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
                     // When the response carries a failure encoded with 1.1, we need to perform a small adjustment
                     // between ice1 and ice2 response frames.
-                    // ice1: [failure reply status][encapsulation or special exception]
-                    // ice2: [failure][encapsulation with reply status + encapsulation bytes or special exception]
+                    // ice1: [failure reply status][payload size, encoding and bytes|special exception]
+                    // ice2: [failure result type][payload encoding][payload size][reply status][payload bytes|
+                    //                                                                          special exception bytes]
                     // There is no such adjustment with other encoding, or when the response does not carry a failure.
 
                     if (Protocol == Protocol.Ice1)
                     {
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
-                        // Read the reply status byte located immediately after the encapsulation header; +1
-                        // corresponds to the result type and +2 corresponds to the encoding in the encapsulation
-                        // header.
-                        ReplyStatus replyStatus = response.Payload[1 + sizeLength + 2].AsReplyStatus();
-
-                        var ostr = new OutputStream(Ice1Definitions.Encoding, Payload);
-                        ostr.Write(replyStatus);
-                        if (replyStatus == ReplyStatus.UserException)
-                        {
-                            // We are forwarding a user exception encoded using 1.1 and received over ice2 to ice1.
-                            // The size of the new encapsulation is the size of the payload -1 byte of the ice2 result
-                            // type, -1 byte of the reply status, sizeLength is not included in the encapsulation size.
-
-                            ostr.WriteEncapsulationHeader(response.Payload.Count - 1 - sizeLength - 1, PayloadEncoding);
-                        }
-                        // else we are forwarding a system exception encoded using 1.1 and received over ice2 to ice1.
-                        // and we include only the reply status
-
-                        ostr.Finish();
-
-                        // We need to get rid of the extra reply status byte and the start of the encapsulation added
-                        // when 1.1 exceptions are marshaled using ice2.
-
-                        // 1 for the result type in the response, then sizeLength + 2 to skip the encapsulation header,
-                        // then + 1 to skip the reply status byte
-                        Payload.Add(response.Payload.Slice(1 + sizeLength + 2 + 1));
+                        // We slice-off the reply status that is part of the ice2 payload.
+                        Payload.Add(response.Payload.Slice(1));
                     }
                     else
                     {
+                        Debug.Assert(Protocol == Protocol.Ice2);
                         Debug.Assert(response.Protocol == Protocol.Ice1);
-                        var ostr = new OutputStream(Ice2Definitions.Encoding, Payload);
-                        ostr.Write(ResultType.Failure);
 
-                        var replyStatus = (ReplyStatus)response.Payload[0];
-                        if (replyStatus == ReplyStatus.UserException)
-                        {
-                            // We are forwarding a user exception encoded using 1.1 and received over ice1 to ice2. We
-                            // create an ice2 encapsulation and write the 1.1 reply status followed by the 1.1 encoded
-                            // data, sizeLength is not included in the encapsulation size.
-
-                            ostr.WriteEncapsulationHeader(response.Payload.Count - sizeLength, PayloadEncoding);
-                            ostr.Write(replyStatus);
-                            ostr.Finish();
-                            Payload.Add(response.Payload.Slice(1 + sizeLength + 2));
-                        }
-                        else
-                        {
-                            // We are forwarding a system exception encoded using 1.1 and received over ice1 to ice2.
-                            // We create an ice2 encapsulation and write the 1.1 encoded exception in it (which
-                            // includes the 1.1 reply status, followed by the exception). The size of the new
-                            // encapsulation is the size of the payload +2 bytes for the encapsulations encoding.
-
-                            ostr.WriteEncapsulationHeader(response.Payload.Count + 2, PayloadEncoding);
-                            ostr.Finish();
-                            Payload.Add(response.Payload);
-                        }
+                        // Prepend a little buffer in front of the ice2 response payload to hold the reply status
+                        byte[] buffer = new byte[1];
+                        buffer[0] = (byte)ReplyStatus;
+                        Payload.Add(buffer);
+                        Payload.Add(response.Payload);
                     }
                 }
                 else
                 {
-                    // In this case we always have an encapsulation it is either an ice1 response with result type
-                    // success or an ice2 response that always uses an encapsulation. We just need to rewrite the
-                    // encapsulation header with the new encoding and keep the rest of the encapsulation data as is.
-                    var ostr = new OutputStream(Protocol.GetEncoding(), Payload);
-                    ostr.Write(response.ResultType);
-                    ostr.WriteEncapsulationHeader(response.Payload.Count - 1 - sizeLength, PayloadEncoding);
-                    ostr.Finish();
-                    Payload.Add(response.Payload.Slice(1 + sizeLength + 2));
+                    Payload.Add(response.Payload);
                 }
-
-                Debug.Assert(Payload.Count == 2);
             }
         }
 
@@ -322,8 +253,16 @@ namespace IceRpc
         ///  creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         public OutgoingResponse(IncomingRequest request, RemoteException exception)
-            : this(request.Protocol, IceRpc.Payload.FromRemoteException(request, exception), exception.Features)
+            : base(request.Protocol, exception.Features)
         {
+            ResultType = ResultType.Failure;
+
+            _payloadSize = -1;
+            _payload = ImmutableList<ArraySegment<byte>>.Empty;
+            PayloadEncoding = request.PayloadEncoding;
+
+            (Payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
+
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
                 RetryPolicy retryPolicy = exception.RetryPolicy;
@@ -353,23 +292,34 @@ namespace IceRpc
             {
                 OutputStream.Position startPos = ostr.StartFixedLengthSize(2);
                 WriteFields(ostr);
+                ostr.Write(ResultType);
+                PayloadEncoding.IceWrite(ostr);
+                ostr.WriteSize(PayloadSize);
                 ostr.EndFixedLengthSize(startPos, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
-                // no header
+
+                ostr.Write(ReplyStatus);
+                if (ReplyStatus <= ReplyStatus.UserException)
+                {
+                    ostr.WriteInt(PayloadSize + 6); // encapsulation size
+                    PayloadEncoding.IceWrite(ostr);
+                }
             }
         }
 
         private OutgoingResponse(
             Protocol protocol,
             IList<ArraySegment<byte>> payload,
+            Encoding payloadEncoding,
             FeatureCollection features)
             : base(protocol, features)
         {
-            _payload = payload;
             _payloadSize = -1;
+            _payload = ImmutableList<ArraySegment<byte>>.Empty;
+            PayloadEncoding = payloadEncoding;
             Payload = payload;
         }
     }

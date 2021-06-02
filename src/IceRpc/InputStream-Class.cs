@@ -25,7 +25,7 @@ namespace IceRpc
         public void IceEndSlice()
         {
             // Note that IceEndSlice is not called when we call SkipSlice.
-            Debug.Assert(_inEncapsulation && _current.InstanceType != InstanceType.None);
+            Debug.Assert(_current.InstanceType != InstanceType.None);
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
             {
                 SkipTaggedParams();
@@ -50,7 +50,6 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartNextSlice()
         {
-            Debug.Assert(_inEncapsulation);
             ReadNextSliceHeaderIntoCurrent();
             ReadIndirectionTableIntoCurrent();
         }
@@ -68,11 +67,6 @@ namespace IceRpc
         /// <returns>The remote exception.</returns>
         public RemoteException ReadException()
         {
-            if (!_inEncapsulation)
-            {
-                throw new InvalidOperationException("cannot read an exception outside an encapsulation");
-            }
-
             Debug.Assert(_current.InstanceType == InstanceType.None);
             _current.InstanceType = InstanceType.Exception;
 
@@ -221,11 +215,6 @@ namespace IceRpc
         /// <returns>The class instance read from the stream. Can be null.</returns>
         private AnyClass? ReadAnyClass(string? formalTypeId)
         {
-            if (!_inEncapsulation)
-            {
-                throw new InvalidOperationException("cannot read a class outside an encapsulation");
-            }
-
             int index = ReadSize();
             if (index < 0)
             {

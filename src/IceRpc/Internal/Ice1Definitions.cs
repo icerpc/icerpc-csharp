@@ -59,8 +59,10 @@ namespace IceRpc.Internal
             }
         };
 
-        private static readonly byte[] _voidReturnValuePayload11 = new byte[] { 0, 6, 0, 0, 0, 1, 1 };
-        private static readonly byte[] _voidReturnValuePayload20 = new byte[] { 0, 7, 0, 0, 0, 2, 0, 0 };
+        private static readonly byte[] _voidReturnValuePayload11 = Array.Empty<byte>();
+
+        // The single byte corresponds to the compression format.
+        private static readonly byte[] _voidReturnValuePayload20 = new byte[] { 0 };
 
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
@@ -91,49 +93,8 @@ namespace IceRpc.Internal
         /// <param name="encoding">The encoding of this empty args payload. The header of this payload is always encoded
         /// using ice1's header encoding (1.1).</param>
         /// <returns>The payload.</returns>
-        /// <remarks>The 2.0 encoding has an extra byte for the compression status.</remarks>
         internal static ArraySegment<byte> GetEmptyArgsPayload(Encoding encoding) =>
-            GetVoidReturnValuePayload(encoding).Slice(1);
-
-        internal static RetryPolicy GetRetryPolicy(IncomingResponse response, ServicePrx proxy)
-        {
-            Debug.Assert(response.PayloadEncoding == Encoding.V11);
-            if (response.ResultType == ResultType.Failure)
-            {
-                var replyStatus = (ReplyStatus)response.Payload[0]; // can be reassigned below
-
-                InputStream? istr = null;
-                if (response.Protocol == Protocol.Ice1)
-                {
-                    if (replyStatus != ReplyStatus.UserException)
-                    {
-                        istr = new InputStream(response.Payload.Slice(1), Encoding.V11);
-                    }
-                }
-                else
-                {
-                    istr = new InputStream(response.Payload.Slice(1),
-                                           Ice2Definitions.Encoding,
-                                           startEncapsulation: true);
-
-                    replyStatus = istr.ReadReplyStatus();
-                    if (replyStatus == ReplyStatus.UserException)
-                    {
-                        istr = null; // we are not reading this user exception here
-                    }
-                }
-
-                if (istr?.ReadIce1SystemException(replyStatus) is ServiceNotFoundException)
-                {
-                    // 1.1 System exceptions
-                    if (proxy.IsIndirect)
-                    {
-                        return RetryPolicy.OtherReplica;
-                    }
-                }
-            }
-            return RetryPolicy.NoRetry;
-        }
+            GetVoidReturnValuePayload(encoding);
 
         /// <summary>Returns the payload of an ice1 response frame for an operation returning void.</summary>
         /// <param name="encoding">The encoding of this void return. The header of this payload is always encoded
@@ -152,7 +113,7 @@ namespace IceRpc.Internal
         internal static RemoteException ReadIce1SystemException(this InputStream istr, ReplyStatus replyStatus)
         {
             Debug.Assert(istr.Encoding == Encoding.V11);
-            Debug.Assert((byte)replyStatus > (byte)ReplyStatus.UserException);
+            Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
 
@@ -201,6 +162,7 @@ namespace IceRpc.Internal
         /// <param name="replyStatus">The reply status.</param>
         /// <param name="request">The request for which we write the exception.</param>
         /// <param name="message">The message carried by the exception.</param>
+        /// <remarks>The reply status itself is part of the response header and is not written by this method.</remarks>
         internal static void WriteIce1SystemException(
             this OutputStream ostr,
             ReplyStatus replyStatus,
@@ -208,8 +170,6 @@ namespace IceRpc.Internal
             string message)
         {
             Debug.Assert(ostr.Encoding == Encoding.V11);
-
-            ostr.Write(replyStatus);
 
             switch (replyStatus)
             {

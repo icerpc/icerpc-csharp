@@ -71,19 +71,10 @@ namespace IceRpc
             get => _payload;
             set
             {
-                if (value.Count == 0 || value[0].Count == 0)
+                if (PayloadEncoding == Encoding.V20)
                 {
-                    throw new ArgumentException("the request payload cannot be empty");
+                    PayloadCompressionFormat = (CompressionFormat)value[0][0];
                 }
-
-                // the payload encapsulation header is always in the payload first segment
-                var istr = new InputStream(value[0], Protocol.GetEncoding());
-                int _ = Protocol == Protocol.Ice1 ? istr.ReadInt() : istr.ReadSize();
-                var payloadEncoding = new Encoding(istr);
-                CompressionFormat payloadCompressionFormat = payloadEncoding == Encoding.V11 ?
-                    CompressionFormat.Decompressed : istr.ReadCompressionFormat();
-                PayloadCompressionFormat = payloadCompressionFormat;
-                PayloadEncoding = payloadEncoding;
                 _payload = value;
                 _payloadSize = -1;
             }
@@ -206,32 +197,12 @@ namespace IceRpc
             IsOneway = request.IsOneway;
             PayloadEncoding = request.PayloadEncoding;
 
-            if (request.Protocol == Protocol)
+            // We forward the payload as is.
+            Payload.Add(request.Payload);
+
+            if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
             {
-                Payload.Add(request.Payload);
-
-                if (Protocol == Protocol.Ice2 && forwardFields)
-                {
-                    InitialFields = request.Fields;
-                }
-            }
-            else
-            {
-                // We forward the payload (encapsulation) after rewriting the encapsulation header. The encoded bytes
-                // of the encapsulation must remain the same since we cannot transcode the encoded bytes.
-
-                int sizeLength = request.Protocol == Protocol.Ice1 ? 4 : request.Payload[0].ReadSizeLength20();
-
-                var ostr = new OutputStream(Protocol.GetEncoding(), Payload);
-                ostr.WriteEncapsulationHeader(request.Payload.Count - sizeLength, request.PayloadEncoding);
-                ostr.Finish();
-
-                // "2" below corresponds to the encoded length of the encoding.
-                if (request.Payload.Count > sizeLength + 2)
-                {
-                    // Add encoded bytes, not including the encapsulation header (size + encoding).
-                    Payload.Add(request.Payload.Slice(sizeLength + 2));
-                }
+                InitialFields = request.Fields;
             }
         }
 
@@ -290,6 +261,8 @@ namespace IceRpc
                 // else context remains empty (not set)
 
                 WriteFields(ostr);
+                PayloadEncoding.IceWrite(ostr);
+                ostr.WriteSize(PayloadSize);
                 ostr.EndFixedLengthSize(start, 2);
             }
             else
@@ -300,7 +273,9 @@ namespace IceRpc
                     FacetPath,
                     Operation,
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    context);
+                    context,
+                    encapsulationSize: PayloadSize + 6,
+                    PayloadEncoding);
                 requestHeader.IceWrite(ostr);
             }
         }

@@ -19,7 +19,6 @@ namespace IceRpc.Tests.Encoding
             var ostr = new OutputStream(encoding,
                                         data,
                                         startAt: default,
-                                        payloadEncoding: encoding,
                                         format: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
@@ -27,7 +26,7 @@ namespace IceRpc.Tests.Encoding
             ostr.Finish();
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            var istr = new InputStream(data[0], encoding);
             MyMostDerivedClass r = istr.ReadClass<MyMostDerivedClass>(null);
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
@@ -37,9 +36,9 @@ namespace IceRpc.Tests.Encoding
             // as 'MyDerivedClass' which is the base type and still know by input stream.
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             classFactories.Remove(MyMostDerivedClass.IceTypeId);
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyMostDerivedClass>(null));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             MyDerivedClass r1 = istr.ReadClass<MyDerivedClass>(null);
             Assert.IsNull(r1.SlicedData);
             Assert.AreEqual(p1.M1, r1.M1);
@@ -47,18 +46,18 @@ namespace IceRpc.Tests.Encoding
 
             // Repeat removing the factory for 'MyDerivedClass'
             classFactories.Remove(MyDerivedClass.IceTypeId);
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyDerivedClass>(null));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             MyBaseClass r2 = istr.ReadClass<MyBaseClass>(null);
             Assert.IsNull(r2.SlicedData);
             Assert.AreEqual(p1.M1, r2.M1);
 
             // Repeat removing the factory for 'MyBaseClass'
             classFactories.Remove(MyBaseClass.IceTypeId);
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyBaseClass>(null));
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             Assert.DoesNotThrow(() => istr.ReadClass<AnyClass>(null));
         }
 
@@ -71,7 +70,6 @@ namespace IceRpc.Tests.Encoding
             var ostr = new OutputStream(encoding,
                                         data,
                                         startAt: default,
-                                        payloadEncoding: encoding,
                                         format: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
@@ -79,7 +77,7 @@ namespace IceRpc.Tests.Encoding
             ostr.Finish();
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            var istr = new InputStream(data[0], encoding);
             MyCompactMostDerivedClass r = istr.ReadClass<MyCompactMostDerivedClass>(null);
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
@@ -92,12 +90,10 @@ namespace IceRpc.Tests.Encoding
             classFactories.Remove(3);
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactMostDerivedClass>(null));
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             MyCompactDerivedClass r1 = istr.ReadClass<MyCompactDerivedClass>(null);
             Assert.IsNull(r1.SlicedData);
@@ -108,12 +104,10 @@ namespace IceRpc.Tests.Encoding
             classFactories.Remove(2);
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactDerivedClass>(null));
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             MyCompactBaseClass r2 = istr.ReadClass<MyCompactBaseClass>(null);
             Assert.IsNull(r2.SlicedData);
@@ -123,12 +117,10 @@ namespace IceRpc.Tests.Encoding
             classFactories.Remove(1);
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyCompactBaseClass>(null));
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             Assert.DoesNotThrow(() => istr.ReadClass<AnyClass>(null));
         }
@@ -143,7 +135,6 @@ namespace IceRpc.Tests.Encoding
             var ostr = new OutputStream(encoding,
                                         data,
                                         startAt: default,
-                                        payloadEncoding: encoding,
                                         format: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
@@ -151,7 +142,7 @@ namespace IceRpc.Tests.Encoding
             ostr.Finish();
 
             // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
-            var istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            var istr = new InputStream(data[0], encoding);
             RemoteException r = istr.ReadException();
             Assert.IsNull(r.SlicedData);
             Assert.IsInstanceOf<MyMostDerivedException>(r);
@@ -167,7 +158,6 @@ namespace IceRpc.Tests.Encoding
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    typeIdExceptionFactories: exceptionFactories);
 
             r = istr.ReadException();
@@ -182,7 +172,6 @@ namespace IceRpc.Tests.Encoding
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyDerivedException");
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    typeIdExceptionFactories: exceptionFactories);
             r = istr.ReadException();
             Assert.IsNotNull(r.SlicedData);
@@ -195,7 +184,6 @@ namespace IceRpc.Tests.Encoding
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyBaseException");
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    typeIdExceptionFactories: exceptionFactories);
             r = istr.ReadException();
             Assert.IsNotNull(r.SlicedData);
@@ -205,12 +193,11 @@ namespace IceRpc.Tests.Encoding
             ostr = new OutputStream(encoding,
                                     data,
                                     startAt: default,
-                                    payloadEncoding: encoding,
                                     format: FormatType.Sliced);
             ostr.WriteException(r);
             ostr.Finish();
 
-            istr = new InputStream(data[0], encoding, startEncapsulation: true);
+            istr = new InputStream(data[0], encoding);
             r = istr.ReadException();
             Assert.IsNull(r.SlicedData);
             Assert.IsInstanceOf<MyMostDerivedException>(r);
@@ -230,7 +217,6 @@ namespace IceRpc.Tests.Encoding
             var ostr = new OutputStream(encoding,
                                         data,
                                         startAt: default,
-                                        payloadEncoding: encoding,
                                         format: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
@@ -244,14 +230,10 @@ namespace IceRpc.Tests.Encoding
             var factory = classFactories.Remove(MyPreservedDerivedClass1.IceTypeId);
             var istr = new InputStream(data[0],
                                        encoding,
-                                       startEncapsulation: true,
                                        typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyPreservedDerivedClass1>(null));
 
-            istr = new InputStream(data[0],
-                                       encoding,
-                                       startEncapsulation: true,
-                                       typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             var r1 = istr.ReadClass<MyBaseClass>(null);
             Assert.IsNotNull(r1.SlicedData);
 
@@ -261,7 +243,6 @@ namespace IceRpc.Tests.Encoding
             ostr = new OutputStream(encoding,
                                     data,
                                     startAt: default,
-                                    payloadEncoding: encoding,
                                     format: FormatType.Sliced);
             ostr.WriteClass(r1, null);
             ostr.Finish();
@@ -270,7 +251,7 @@ namespace IceRpc.Tests.Encoding
             // Slices.
             classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
 
-            istr = new InputStream(data[0], encoding, startEncapsulation: true, typeIdClassFactories: classFactories);
+            istr = new InputStream(data[0], encoding, typeIdClassFactories: classFactories);
             var r2 = istr.ReadClass<MyPreservedDerivedClass1>(null);
             Assert.IsNull(r2.SlicedData);
             Assert.AreEqual("p1-m1", r2.M1);
@@ -291,7 +272,6 @@ namespace IceRpc.Tests.Encoding
             var ostr = new OutputStream(encoding,
                                         data,
                                         startAt: default,
-                                        payloadEncoding: encoding,
                                         format: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
@@ -305,12 +285,10 @@ namespace IceRpc.Tests.Encoding
             var factory = classFactories.Remove(56);
             var istr = new InputStream(data[0],
                                        encoding,
-                                       startEncapsulation: true,
                                        compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => istr.ReadClass<MyPreservedDerivedClass2>(null));
             istr = new InputStream(data[0],
                                        encoding,
-                                       startEncapsulation: true,
                                        compactTypeIdClassFactories: classFactories);
             var r1 = istr.ReadClass<MyBaseClass>(null);
 
@@ -320,7 +298,6 @@ namespace IceRpc.Tests.Encoding
             ostr = new OutputStream(encoding,
                                     data,
                                     startAt: default,
-                                    payloadEncoding: encoding,
                                     format: FormatType.Sliced);
             ostr.WriteClass(r1, null);
             ostr.Finish();
@@ -330,7 +307,6 @@ namespace IceRpc.Tests.Encoding
             classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             istr = new InputStream(data[0],
                                    encoding,
-                                   startEncapsulation: true,
                                    compactTypeIdClassFactories: classFactories);
             var r2 = istr.ReadClass<MyPreservedDerivedClass2>(null);
             Assert.AreEqual("p1-m1", r2.M1);

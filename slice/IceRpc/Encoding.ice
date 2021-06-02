@@ -23,7 +23,7 @@ module IceRpc
     unchecked enum CompressionFormat : byte
     {
         /// The payload is not compressed and can be read directly.
-        Decompressed = 0,
+        NotCompressed = 0,
 
         /// The payload is compressed using the deflate format.
         Deflate = 1,

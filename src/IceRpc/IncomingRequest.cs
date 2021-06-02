@@ -46,18 +46,17 @@ namespace IceRpc
             get => _payload;
             set
             {
-                // reset the payload encoding and compression format values
-                var istr = new InputStream(value, Protocol.GetEncoding());
-                (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
-                PayloadCompressionFormat = payloadEncoding == Encoding.V20 ?
-                    istr.ReadCompressionFormat() : CompressionFormat.Decompressed;
-                PayloadEncoding = payloadEncoding;
+                if (PayloadEncoding == Encoding.V20)
+                {
+                    PayloadCompressionFormat = (CompressionFormat)value[0];
+                }
                 _payload = value;
             }
         }
 
         /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; } =
+            CompressionFormat.NotCompressed;
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
@@ -150,6 +149,7 @@ namespace IceRpc
             SocketStream = socketStream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
+            int payloadSize;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -164,6 +164,9 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context { Value = requestHeader.Context });
                 }
+                payloadSize = requestHeader.EncapsulationSize - 6;
+                PayloadEncoding = requestHeader.PayloadEncoding;
+
                 Priority = default;
                 Deadline = DateTime.MaxValue;
 
@@ -193,6 +196,16 @@ namespace IceRpc
 
                 Fields = istr.ReadFieldDictionary();
 
+                PayloadEncoding = new Encoding(istr);
+                payloadSize = istr.ReadSize();
+
+                if (istr.Pos - startPos != headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"received invalid request header: expected {headerSize} bytes but read {istr.Pos - startPos
+                        } bytes");
+                }
+
                 // Read Context from Fields and set corresponding feature.
                 if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
@@ -205,13 +218,6 @@ namespace IceRpc
                                                                        valueReader: InputStream.IceReaderIntoString))
                     });
                 }
-
-                if (istr.Pos - startPos != headerSize)
-                {
-                    throw new InvalidDataException(
-                        @$"received invalid request header: expected {headerSize} bytes but read {istr.Pos - startPos
-                        } bytes");
-                }
             }
 
             if (Operation.Length == 0)
@@ -220,8 +226,12 @@ namespace IceRpc
             }
 
             _payload = data.Slice(istr.Pos);
+            if (payloadSize != _payload.Count)
+            {
+                throw new InvalidDataException(
+                    $"request payload size mismatch: expected {payloadSize} bytes, read {_payload.Count} bytes");
+            }
 
-            PayloadEncoding = istr.ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
             if (PayloadEncoding == Encoding.V20)
             {
                 PayloadCompressionFormat = istr.ReadCompressionFormat();

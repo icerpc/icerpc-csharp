@@ -59,8 +59,6 @@ namespace IceRpc.Tests.Encoding
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx1.Encoding);
-
-                (int size, IceRpc.Encoding encoding) = istr.ReadEncapsulationHeader(false);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -71,9 +69,9 @@ namespace IceRpc.Tests.Encoding
                 var sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice includes a size for the sliced format
                 Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
+
                 var response = await next.InvokeAsync(request, cancel);
-                istr = new InputStream(response.Payload.Slice(1), prx1.Encoding);
-                (size, encoding) = istr.ReadEncapsulationHeader(false);
+                istr = new InputStream(response.Payload, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -95,7 +93,6 @@ namespace IceRpc.Tests.Encoding
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx2.Encoding);
-                (int size, IceRpc.Encoding encoding) = istr.ReadEncapsulationHeader(false);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -107,8 +104,7 @@ namespace IceRpc.Tests.Encoding
                 // The Slice does not include a size when using the compact format
                 Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
                 var response = await next.InvokeAsync(request, cancel);
-                istr = new InputStream(response.Payload.Slice(1), prx1.Encoding);
-                (size, encoding) = istr.ReadEncapsulationHeader(false);
+                istr = new InputStream(response.Payload, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -130,7 +126,6 @@ namespace IceRpc.Tests.Encoding
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
-                (int size, IceRpc.Encoding encoding) = istr.ReadEncapsulationHeader(false);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -142,8 +137,7 @@ namespace IceRpc.Tests.Encoding
                 // The Slice does not include a size when using the compact format
                 Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
                 var response = await next.InvokeAsync(request, cancel);
-                istr = new InputStream(response.Payload.Slice(1), prx1.Encoding);
-                (size, encoding) = istr.ReadEncapsulationHeader(false);
+                istr = new InputStream(response.Payload, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -164,7 +158,6 @@ namespace IceRpc.Tests.Encoding
             {
                 var data = request.Payload.AsArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
-                (int size, IceRpc.Encoding encoding) = istr.ReadEncapsulationHeader(false);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
@@ -176,8 +169,7 @@ namespace IceRpc.Tests.Encoding
                 // The Slice includes a size for the sliced format
                 Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
                 var response = await next.InvokeAsync(request, cancel);
-                istr = new InputStream(response.Payload.Slice(1), prx1.Encoding);
-                (size, encoding) = istr.ReadEncapsulationHeader(false);
+                istr = new InputStream(response.Payload, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed

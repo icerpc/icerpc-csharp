@@ -165,8 +165,6 @@ namespace IceRpc
 
         private static readonly System.Text.UTF8Encoding _utf8 = new System.Text.UTF8Encoding(false, true);
 
-        private bool InEncapsulation => _startPos != null;
-
         private bool OldEncoding => Encoding == Encoding.V11;
 
         // The number of bytes that the stream can hold.
@@ -195,9 +193,6 @@ namespace IceRpc
 
         // All segments before the tail segment are fully used.
         private readonly IList<ArraySegment<byte>> _segmentList;
-
-        // The start of an encapsulation. When set, we are writing to a top-level encapsulation.
-        private readonly Position? _startPos;
 
         // The position for the next write operation.
         private Position _tail;
@@ -1048,13 +1043,18 @@ namespace IceRpc
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
-        // Constructor for protocol frame header and other non-encapsulated data.
-        internal OutputStream(Encoding encoding, IList<ArraySegment<byte>> data, Position startAt = default)
+        // Constructs an OutputStream
+        internal OutputStream(
+            Encoding encoding,
+            IList<ArraySegment<byte>> data,
+            Position startAt = default, // TODO: is it needed?
+            FormatType format = default)
         {
             _mainEncoding = encoding;
             Encoding = encoding;
             Encoding.CheckSupported();
-            _format = default; // not used
+            _format = format;
+
             _segmentList = data;
             if (_segmentList.Count == 0)
             {
@@ -1076,25 +1076,6 @@ namespace IceRpc
             }
         }
 
-        // Constructor that starts an encapsulation.
-        internal OutputStream(
-            Encoding encoding,
-            IList<ArraySegment<byte>> data,
-            Position startAt,
-            Encoding payloadEncoding,
-            FormatType format)
-            : this(encoding, data, startAt)
-        {
-            _format = format;
-            _startPos = _tail;
-            WriteEncapsulationHeader(payloadEncoding); // with placeholder for size
-            if (payloadEncoding == Encoding.V20)
-            {
-                WriteByte(0); // Placeholder for the compression status
-            }
-            Encoding = payloadEncoding;
-        }
-
         /// <summary>Computes the amount of data written from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>
@@ -1113,18 +1094,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Completes the current encapsulation (if any) and finishes off the underlying buffer. You should not
-        /// write additional data to this output stream or its underlying buffer after calling Finish, however rewriting
-        /// previous data (with for example <see cref="EndFixedLengthSize"/>) is fine.</summary>
+        /// <summary>Finishes off the underlying buffer. You should not write additional data to this output stream or
+        /// its underlying buffer after calling Finish, however rewriting previous data (with for example
+        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         internal void Finish()
         {
-            if (_startPos is Position startPos)
-            {
-                Encoding = _mainEncoding;
-                int sizeLength = OldEncoding ? 4 : DefaultSizeLength;
-                RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos);
-            }
-
             Debug.Assert(_segmentList.Count - 1 == _tail.Segment);
             _segmentList[^1] = _segmentList[^1].Slice(0, _tail.Offset);
         }
@@ -1481,7 +1455,6 @@ namespace IceRpc
         /// <param name="format">The tag format.</param>
         private void WriteTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {
-            Debug.Assert(InEncapsulation);
             Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be marshaled
 
             int v = (int)format;

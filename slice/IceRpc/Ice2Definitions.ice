@@ -5,7 +5,7 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Context.ice>
+#include <IceRpc/Encoding.ice>
 
 module IceRpc
 {
@@ -47,7 +47,7 @@ module IceRpc
     {
     }
 
-    /// The request header body, see Ice2RequestHeader.
+    // See Ice2RequestHeader below.
     [cs:readonly]
     struct Ice2RequestHeaderBody
     {
@@ -59,7 +59,7 @@ module IceRpc
     }
 
     /// Each ice2 request frame has:
-    /// - a frame prologue, with the frame type and the overall frame size
+    /// - a frame prologue, with the frame type and (for now) the overall frame size
     /// - a request header (below)
     /// - a request payload
     [cs:readonly]
@@ -68,6 +68,19 @@ module IceRpc
         varulong headerSize;
         Ice2RequestHeaderBody body;
         Fields fields;
+        Encoding payloadEncoding;
+        varulong payloadSize;
+    }
+
+    /// The type of result carried by an ice2 response frame. The values Success and Failure match the values of OK and
+    /// UserException in {@see ReplyStatus}.
+    enum ResultType : byte
+    {
+        /// The request succeeded.
+        Success = 0,
+
+        /// The request failed.
+        Failure = 1
     }
 
     /// Each ice2 response frame has:
@@ -79,17 +92,9 @@ module IceRpc
     {
         varulong headerSize;
         Fields fields;
-    }
-
-    /// The type of result carried by an ice2 response frame. The values Success and Failure match the values of OK and
-    /// UserException in {@see ReplyStatus}. The first byte of an ice2 response frame payload is a ResultType.
-    enum ResultType : byte
-    {
-        /// The request succeeded.
-        Success = 0,
-
-        /// The request failed.
-        Failure = 1
+        ResultType resultType;
+        Encoding payloadEncoding;
+        varulong payloadSize;
     }
 
     // The possible error codes to describe the reason of a stream reset.

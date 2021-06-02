@@ -21,63 +21,42 @@ namespace IceRpc.Internal
         PayloadNotCompressible
     }
 
-    /// <summary>Extensions methods to compress and decompress 2.0 encoded encapsulation payload.</summary>
+    /// <summary>Extensions methods to compress and decompress 2.0 encoded payloads.</summary>
     internal static class CompressionExtensions
     {
-        /// <summary>Compresses the encapsulation payload using the specified compression format (by default, deflate).
-        /// Compressed encapsulation payload is only supported with the 2.0 encoding.</summary>
+        /// <summary>Compresses the payload using the specified compression format (by default, deflate).
+        /// Compressed payloads are only supported with the 2.0 encoding.</summary>
         /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
         /// </returns>
         internal static (CompressionResult, ArraySegment<byte>) Compress(
             this IList<ArraySegment<byte>> payload,
-            Protocol protocol,
-            bool request, // true = request payload, false = response payload
+            int payloadSize,
             CompressionLevel compressionLevel,
             int compressionMinSize)
         {
-            int encapsulationOffset = request ? 0 : 1;
+            var payloadCompressionFormat = (CompressionFormat)payload[0][0];
 
-            // The encapsulation always starts in the first segment of the payload (at position 0 or 1).
-            Debug.Assert(encapsulationOffset < payload[0].Count);
-
-            int sizeLength = protocol == Protocol.Ice2 ?
-                payload[0][encapsulationOffset].ReadSizeLength20() : 4;
-
-            byte payloadEncodingMajor = payload[0][encapsulationOffset + sizeLength];
-            byte payloadEncodingMinor = payload[0][encapsulationOffset + sizeLength + 1];
-
-            var payloadCompressionFormat = (CompressionFormat)payload[0][encapsulationOffset + sizeLength + 2];
-
-            if (payloadCompressionFormat != CompressionFormat.Decompressed)
+            if (payloadCompressionFormat != CompressionFormat.NotCompressed)
             {
                 throw new InvalidOperationException("the payload is already compressed");
             }
 
-            Debug.Assert(payload.GetByte(encapsulationOffset + sizeLength + 2) == 0); // i.e. Decompressed
-
-            int encapsulationSize = payload.GetByteCount() - encapsulationOffset; // this includes the size length
-            if (encapsulationSize < compressionMinSize)
+            if (payloadSize < compressionMinSize)
             {
                 return (CompressionResult.PayloadTooSmall, ArraySegment<byte>.Empty);
             }
             // Reserve memory for the compressed data, this should never be greater than the uncompressed data
             // otherwise we will just send the uncompressed data.
-            byte[] compressedData = new byte[encapsulationOffset + encapsulationSize];
-            // Copy the byte before the encapsulation, if any
-            if (encapsulationOffset == 1)
-            {
-                compressedData[0] = payload[0][0];
-            }
-            // Write the encapsulation header
-            int offset = encapsulationOffset + sizeLength;
-            compressedData[offset++] = payloadEncodingMajor;
-            compressedData[offset++] = payloadEncodingMinor;
+            byte[] compressedData = new byte[payloadSize];
+
+            int offset = 0;
             // Set the compression status byte to Deflate compressed
             compressedData[offset++] = (byte)CompressionFormat.Deflate;
             // Write the size of the uncompressed data
-            compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(encapsulationSize - sizeLength);
-
+            int sizeLength = OutputStream.GetSizeLength20(payloadSize);
+            compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(payloadSize);
             offset += sizeLength;
+
             using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
             using var deflateStream = new DeflateStream(
                 memoryStream,
@@ -86,9 +65,8 @@ namespace IceRpc.Internal
                     System.IO.Compression.CompressionLevel.Optimal);
             try
             {
-                // The data to compress starts after the compression status byte, + 3 corresponds to (Encoding 2
-                // bytes, Compression status 1 byte)
-                foreach (ArraySegment<byte> segment in payload.Slice(encapsulationOffset + sizeLength + 3))
+                // The data to compress starts after the compression status byte
+                foreach (ArraySegment<byte> segment in payload.Slice(1))
                 {
                     deflateStream.Write(segment);
                 }
@@ -103,32 +81,19 @@ namespace IceRpc.Internal
 
             offset += (int)memoryStream.Position;
             var compressedPayload = new ArraySegment<byte>(compressedData, 0, offset);
-
-            // Rewrite the encapsulation size
-            compressedData.AsSpan(encapsulationOffset, sizeLength).WriteEncapsulationSize(
-                offset - sizeLength - encapsulationOffset,
-                protocol.GetEncoding());
-
             return (CompressionResult.Success, compressedPayload);
         }
 
-        /// <summary>Decompresses the encapsulation payload if it is compressed. Compressed encapsulations are only
-        /// supported with the 2.0 encoding.</summary>
-        internal static ArraySegment<byte> Decompress(
-            this ArraySegment<byte> payload,
-            Protocol protocol,
-            bool request, // true = request payload, false = response payload
-            int maxSize)
+        /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
+        /// encoding.</summary>
+        internal static ArraySegment<byte> Decompress(this ArraySegment<byte> payload, int maxSize)
         {
-            int encapsulationOffset = request ? 0 : 1;
+            ReadOnlySpan<byte> buffer = payload;
 
-            ReadOnlySpan<byte> buffer = payload.Slice(encapsulationOffset);
-            int sizeLength = protocol == Protocol.Ice2 ? buffer[0].ReadSizeLength20() : 4;
-
-            var payloadCompressionFormat = (CompressionFormat)payload[encapsulationOffset + sizeLength + 2];
-            if (payloadCompressionFormat == CompressionFormat.Decompressed)
+            var payloadCompressionFormat = (CompressionFormat)payload[0];
+            if (payloadCompressionFormat == CompressionFormat.NotCompressed)
             {
-                throw new InvalidOperationException("the encapsulation's payload is not compressed");
+                throw new InvalidOperationException("the payload is not compressed");
             }
 
             if (payloadCompressionFormat != CompressionFormat.Deflate)
@@ -136,9 +101,9 @@ namespace IceRpc.Internal
                 throw new NotSupportedException($"cannot decompress compression format '{payloadCompressionFormat}'");
             }
 
-            // Read the decompressed size that is written after the compression status byte when the payload is
-            // compressed +3 corresponds to (Encoding 2 bytes, Compression status 1 byte)
-            (int decompressedSize, int decompressedSizeLength) = buffer[(sizeLength + 3)..].ReadSize20();
+            // Read the decompressed size that is written after the compression format byte when the payload is
+            // compressed
+            (int decompressedSize, int decompressedSizeLength) = buffer[1..].ReadSize20();
 
             if (decompressedSize > maxSize)
             {
@@ -148,54 +113,35 @@ namespace IceRpc.Internal
             }
 
             // We are going to replace the Payload segment with a new Payload segment/array that contains a
-            // decompressed encapsulation.
-            byte[] decompressedPayload = new byte[encapsulationOffset + decompressedSizeLength + decompressedSize];
+            // decompressed payload.
+            byte[] decompressedPayload = new byte[decompressedSize];
 
-            // Write the result type and the encapsulation header "by hand" in decompressedPayload.
-            if (encapsulationOffset == 1)
-            {
-                decompressedPayload[0] = payload[0]; // copy the result type.
-            }
+            int decompressedIndex = 0;
 
-            decompressedPayload.AsSpan(encapsulationOffset, decompressedSizeLength).WriteEncapsulationSize(
-                decompressedSize,
-                protocol.GetEncoding());
-
-            int compressedIndex = encapsulationOffset + sizeLength;
-            int decompressedIndex = encapsulationOffset + decompressedSizeLength;
-
-            // Keep same encoding
-            decompressedPayload[decompressedIndex++] = payload[compressedIndex++];
-            decompressedPayload[decompressedIndex++] = payload[compressedIndex++];
-
-            // Set the payload's compression format to Decompressed.
-            decompressedPayload[decompressedIndex++] = (byte)CompressionFormat.Decompressed;
-
-            // Verify PayloadCompressionFormat was set correctly.
-            Debug.Assert(payload[compressedIndex] == (byte)CompressionFormat.Deflate);
+            // Set the payload's compression format to NotCompressed.
+            decompressedPayload[decompressedIndex++] = (byte)CompressionFormat.NotCompressed;
 
             using var decompressedStream = new MemoryStream(decompressedPayload,
                                                             decompressedIndex,
                                                             decompressedPayload.Length - decompressedIndex);
 
             // Skip compression status and decompressed size in compressed payload.
-            compressedIndex += 1 + decompressedSizeLength;
+            int compressedIndex = 1 + decompressedSizeLength;
 
             Debug.Assert(payload.Array != null);
             using var compressed = new DeflateStream(
                 new MemoryStream(payload.Array,
-                                    payload.Offset + compressedIndex,
-                                    payload.Count - compressedIndex),
+                                 payload.Offset + compressedIndex,
+                                 payload.Count - compressedIndex),
                 CompressionMode.Decompress);
             compressed.CopyTo(decompressedStream);
 
-            // "3" corresponds to (Encoding 2 bytes and Compression status 1 byte), that are part of the
-            // decompressedSize but are not Deflate compressed.
-            if (decompressedStream.Position + 3 != decompressedSize)
+            // "1" corresponds to the compress format that is in the decompressed size but is not compressed
+            if (decompressedStream.Position + 1 != decompressedSize)
             {
                 throw new InvalidDataException(
                     @$"received Deflate compressed payload with a decompressed size of only {decompressedStream.
-                    Position + 3} bytes; expected {decompressedSize} bytes");
+                    Position + 1} bytes; expected {decompressedSize} bytes");
             }
 
             return decompressedPayload;

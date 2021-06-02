@@ -19,7 +19,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice(bool lastSlice)
         {
-            Debug.Assert(InEncapsulation && _current.InstanceType != InstanceType.None);
+            Debug.Assert(_current.InstanceType != InstanceType.None);
 
             if (lastSlice)
             {
@@ -86,7 +86,7 @@ namespace IceRpc
             RemoteExceptionOrigin? origin = null,
             int? compactTypeId = null)
         {
-            Debug.Assert(InEncapsulation && _current.InstanceType != InstanceType.None);
+            Debug.Assert(_current.InstanceType != InstanceType.None);
 
             if (slicedData is SlicedData slicedDataValue)
             {
@@ -144,7 +144,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartNextSlice(string typeId, int? compactId = null)
         {
-            Debug.Assert(InEncapsulation && _current.InstanceType != InstanceType.None);
+            Debug.Assert(_current.InstanceType != InstanceType.None);
 
             _current.SliceFlags = default;
             _current.SliceFlagsPos = _tail;
@@ -169,8 +169,6 @@ namespace IceRpc
         /// Use null when the type of the parameter/data member is AnyClass.</param>
         public void WriteClass(AnyClass v, string? formalTypeId)
         {
-            Debug.Assert(InEncapsulation);
-
             if (_current.InstanceType != InstanceType.None && _format == FormatType.Sliced)
             {
                 // If writing an instance within a slice and using the sliced format, write an index of that slice's
@@ -200,7 +198,7 @@ namespace IceRpc
         /// <param name="v">The remote exception to write.</param>
         public void WriteException(RemoteException v)
         {
-            Debug.Assert(InEncapsulation && _current.InstanceType == InstanceType.None);
+            Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_format == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
             v.Write(this);
@@ -213,7 +211,6 @@ namespace IceRpc
         /// Use null when the type of the parameter/data member is AnyClass.</param>
         public void WriteNullableClass(AnyClass? v, string? formalTypeId)
         {
-            Debug.Assert(InEncapsulation);
             if (v == null)
             {
                 WriteSize(0);

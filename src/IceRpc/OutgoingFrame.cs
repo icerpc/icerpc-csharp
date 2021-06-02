@@ -34,7 +34,7 @@ namespace IceRpc
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
-        public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
+        public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.NotCompressed;
 
         /// <summary>Returns the initial fields set during construction of this frame. See also
         /// <see cref="FieldsOverride"/>.</summary>

@@ -38,25 +38,21 @@ namespace IceRpc
                 {
                     if (compressorOptions.DecompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadCompressionFormat != CompressionFormat.Decompressed &&
+                        request.PayloadCompressionFormat != CompressionFormat.NotCompressed &&
                         request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
                         // TODO maxSize should come from the connection
-                        request.Payload = request.Payload.Decompress(request.Protocol,
-                                                                     request: true,
-                                                                     maxSize: 1024 * 1024);
+                        request.Payload = request.Payload.Decompress(maxSize: 1024 * 1024);
                     }
                     OutgoingResponse response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
                     if (compressorOptions.CompressResponsePayload &&
                         response.PayloadEncoding == Encoding.V20 &&
                         response.ResultType == ResultType.Success &&
-                        response.PayloadCompressionFormat == CompressionFormat.Decompressed &&
+                        response.PayloadCompressionFormat == CompressionFormat.NotCompressed &&
                         response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
                     {
-                        // TODO move CompressPayload out of the OutgoingFrame class
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =
-                            response.Payload.Compress(request.Protocol,
-                                                      request: false,
+                            response.Payload.Compress(response.PayloadSize,
                                                       compressorOptions.CompressionLevel,
                                                       compressorOptions.CompressionMinSize);
                         if (result == CompressionResult.Success)
