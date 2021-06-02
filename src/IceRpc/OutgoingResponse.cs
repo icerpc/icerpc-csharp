@@ -304,8 +304,8 @@ namespace IceRpc
                 ostr.Write(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    ostr.WriteInt(PayloadSize + 6); // encapsulation size
-                    PayloadEncoding.IceWrite(ostr);
+                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
+                    responseHeader.IceWrite(ostr);
                 }
             }
         }

@@ -164,9 +164,11 @@ namespace IceRpc
 
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    int payloadSize = istr.ReadInt() - 6; // encapsulation size - 6
-                    PayloadEncoding = new Encoding(istr);
+                    var responseHeader = new Ice1ResponseHeader(istr);
+                    PayloadEncoding = responseHeader.PayloadEncoding;
                     Payload = data.Slice(istr.Pos);
+
+                    int payloadSize = responseHeader.EncapsulationSize - 6;
                     if (payloadSize != Payload.Count)
                     {
                         throw new InvalidDataException(
