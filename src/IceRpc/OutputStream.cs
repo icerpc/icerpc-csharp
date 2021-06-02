@@ -1166,18 +1166,16 @@ namespace IceRpc
             Debug.Assert(OldEncoding);
 
             this.Write(endpoint.Transport);
-
             Position startPos = _tail;
-            int sizeLength = 4;
 
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding, sizeLength); // with placeholder for size
+                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding); // with placeholder for size
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                WriteEncapsulationHeader(Encoding, sizeLength); // with placeholder for size
+                WriteEncapsulationHeader(Encoding); // with placeholder for size
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.WriteOptions11(this);
@@ -1190,6 +1188,13 @@ namespace IceRpc
                 }
             }
             RewriteFixedLengthSize11(Distance(startPos), startPos);
+
+            void WriteEncapsulationHeader(Encoding encoding)
+            {
+                WriteInt(0); // placeholder for future size
+                WriteByte(encoding.Major);
+                WriteByte(encoding.Minor);
+            }
         }
 
         internal void WriteField(int key, ReadOnlySpan<byte> value)
@@ -1370,37 +1375,6 @@ namespace IceRpc
                 segment = _segmentList[pos.Segment + 1];
                 data[remaining..].CopyTo(segment.AsSpan(0, data.Length - remaining));
             }
-        }
-
-        /// <summary>Writes an encapsulation header.</summary>
-        /// <param name="size">The size of the encapsulation, in bytes. This size does not include the length of the
-        /// encoded size itself.</param>
-        /// <param name="encoding">The encoding of the new encapsulation.</param>
-        internal void WriteEncapsulationHeader(int size, Encoding encoding)
-        {
-            if (OldEncoding)
-            {
-                WriteInt(size + 4); // the size length is included in the encoded size with the 1.1 encoding.
-            }
-            else
-            {
-                WriteSize(size);
-            }
-
-            WriteByte(encoding.Major);
-            WriteByte(encoding.Minor);
-        }
-
-        /// <summary>Writes an encapsulation header with a placeholder size.</summary>
-        /// <param name="encoding">The encoding of the new encapsulation.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size, used only with the 2.0 encoding. Can
-        /// be 1, 2 or 4.</param>
-        private void WriteEncapsulationHeader(Encoding encoding, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
-            WriteByteSpan(stackalloc byte[OldEncoding ? 4 : sizeLength]); // placeholder for future size
-            WriteByte(encoding.Major);
-            WriteByte(encoding.Minor);
         }
 
         /// <summary>Writes a fixed-size numeric value to the stream.</summary>
