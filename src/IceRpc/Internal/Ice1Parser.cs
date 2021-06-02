@@ -93,7 +93,7 @@ namespace IceRpc.Internal
                     // unmarshal it from this buffer.
                     var bufferList = new List<ArraySegment<byte>>
                     {
-                        // 8 = size of short + size of encapsulation header with 1.1 encoding
+                        // 8 = size of short + size of 1.1 encapsulation header
                         new byte[8 + opaqueEndpoint.Value.Length]
                     };
 

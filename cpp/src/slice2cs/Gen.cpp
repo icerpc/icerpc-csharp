@@ -2900,7 +2900,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         _out << nl << "dispatch.ResponseFeatures = IceRpc.Features.CompressPayloadExtensions.CompressPayload(dispatch.ResponseFeatures);";
     }
 
-    // Even when the parameters are empty, we verify the encapsulation is indeed empty (can contain tagged params
+    // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params
     // that we skip).
     if (params.empty())
     {
