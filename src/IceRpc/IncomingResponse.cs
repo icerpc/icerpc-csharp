@@ -30,8 +30,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; } =
-            CompressionFormat.NotCompressed;
+        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
