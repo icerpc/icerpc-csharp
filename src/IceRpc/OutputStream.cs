@@ -182,7 +182,6 @@ namespace IceRpc
         private readonly FormatType _format;
 
         // Map of class instance to instance ID, where the instance IDs start at 2.
-        // When writing a buffer:
         //  - Instance ID = 0 means null.
         //  - Instance ID = 1 means the instance is encoded inline afterwards.
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
@@ -195,7 +194,7 @@ namespace IceRpc
         private Position _tail;
 
         // Map of type ID string to type ID index.
-        // When writing into a buffer, we assign a type ID index (starting with 1) to each type ID we write, in order.
+        // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
         // Write methods for basic types

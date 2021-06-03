@@ -163,6 +163,8 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context { Value = requestHeader.Context });
                 }
+
+                // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                 payloadSize = requestHeader.EncapsulationSize - 6;
                 PayloadEncoding = requestHeader.PayloadEncoding;
 
