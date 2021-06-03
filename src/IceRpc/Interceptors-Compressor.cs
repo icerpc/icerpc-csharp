@@ -37,12 +37,11 @@ namespace IceRpc
                 {
                     if (compressorOptions.CompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadCompressionFormat == CompressionFormat.Decompressed &&
+                        request.PayloadCompressionFormat == CompressionFormat.NotCompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =
-                            request.Payload.Compress(request.Protocol,
-                                                     request: true,
+                            request.Payload.Compress(request.PayloadSize,
                                                      compressorOptions.CompressionLevel,
                                                      compressorOptions.CompressionMinSize);
                         if (result == CompressionResult.Success)
@@ -52,14 +51,13 @@ namespace IceRpc
                     }
                     var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     if (compressorOptions.DecompressResponsePayload &&
+                        response.ResultType == ResultType.Success &&
                         response.PayloadEncoding == Encoding.V20 &&
-                        response.PayloadCompressionFormat != CompressionFormat.Decompressed &&
+                        response.PayloadCompressionFormat != CompressionFormat.NotCompressed &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
                         // TODO maxSize should come from the connection
-                        response.Payload = response.Payload.Decompress(response.Protocol,
-                                                                       request: false,
-                                                                       maxSize: 1024 * 1024);
+                        response.Payload = response.Payload.Decompress(maxSize: 1024 * 1024);
                     }
                     return response;
                 });

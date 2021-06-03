@@ -149,11 +149,8 @@ namespace IceRpc
         // The current depth when reading nested class instances.
         private int _classGraphDepth;
 
-        // True when reading a top-level encapsulation; otherwise, false.
-        private readonly bool _inEncapsulation;
-
         // Map of class instance ID to class instance.
-        // When reading a top-level encapsulation:
+        // When reading a buffer:
         //  - Instance ID = 0 means null
         //  - Instance ID = 1 means the instance is encoded inline afterwards
         //  - Instance ID > 1 means a reference to a previously read instance, found in this map.
@@ -960,8 +957,6 @@ namespace IceRpc
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="connection">The connection (optional).</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="startEncapsulation">When true, start reading an encapsulation in this byte buffer, and
-        /// <c>encoding</c> represents the encoding of the header.</param>
         /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
         /// <see cref="Runtime.TypeIdClassFactoryDictionary"/> will be used.</param>
         /// <param name="typeIdExceptionFactories">Optional dictionary used to map Slice type Ids to exceptions, if
@@ -973,7 +968,6 @@ namespace IceRpc
             Encoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
-            bool startEncapsulation = false,
             IReadOnlyDictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
             IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
             IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
@@ -991,38 +985,15 @@ namespace IceRpc
             _typeIdClassFactories = typeIdClassFactories;
             _typeIdRemoteExceptionFactories = typeIdExceptionFactories;
             _compactTypeIdClassFactories = compactTypeIdClassFactories;
-
-            if (startEncapsulation)
-            {
-                // When startEncapsulation is true, the buffer must extend until the end of the encapsulation - it
-                // cannot include extra bytes.
-                Encoding = ReadEncapsulationHeader(checkFullBuffer: true).Encoding;
-                Encoding.CheckSupported();
-
-                // We slice the provided buffer to the encapsulation (minus its header).
-                _buffer = buffer[Pos..];
-                Pos = 0;
-
-                if (Encoding == Encoding.V20)
-                {
-                    CompressionFormat compressionFormat = this.ReadCompressionFormat();
-                    if (compressionFormat != CompressionFormat.Decompressed)
-                    {
-                        throw new InvalidDataException("the buffer encapsulation is compressed");
-                    }
-                }
-            }
-            _inEncapsulation = startEncapsulation;
         }
 
         /// <summary>Verifies the input stream has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
-        /// encapsulation.</param>
+        /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)
         {
             if (skipTaggedParams)
             {
-                Debug.Assert(_inEncapsulation);
                 SkipTaggedParams();
             }
 
@@ -1030,47 +1001,6 @@ namespace IceRpc
             {
                 throw new InvalidDataException($"{_buffer.Length - Pos} bytes remaining in the InputStream buffer");
             }
-        }
-
-        /// <summary>Reads an encapsulation header from the stream.</summary>
-        /// <param name="checkFullBuffer">When true, the encapsulation is expected to consume all the bytes of the
-        /// current buffer. When false, bytes can remain in the buffer after the encapsulation.</param>
-        /// <returns>The encapsulation header read from the stream. The size does not include the bytes to the size
-        /// length; it does however include the two byte for the encoding.</returns>
-        internal (int Size, Encoding Encoding) ReadEncapsulationHeader(bool checkFullBuffer)
-        {
-            int size;
-
-            if (OldEncoding)
-            {
-                size = ReadInt();
-                if (size < 4)
-                {
-                    throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
-                }
-                size -= 4; // remove the size length which is included with the 1.1 encoding
-            }
-            else
-            {
-                size = ReadSize20();
-            }
-
-            if (checkFullBuffer)
-            {
-                if (size != _buffer.Length - Pos)
-                {
-                    throw new InvalidDataException(
-                        $"expected an encapsulation size of {_buffer.Length - Pos} bytes, but read {size}");
-                }
-            }
-            else if (size > _buffer.Length - Pos)
-            {
-                throw new InvalidDataException(
-                    $"the encapsulation's size ({size}) extends beyond the end of the buffer");
-            }
-
-            var encoding = new Encoding(this);
-            return (size, encoding);
         }
 
         /// <summary>Reads an endpoint from the stream. Only called when the stream uses the 1.1 encoding.</summary>
@@ -1083,14 +1013,13 @@ namespace IceRpc
             Endpoint endpoint;
 
             Transport transport = this.ReadTransport();
-            (int size, Encoding encoding) = ReadEncapsulationHeader(checkFullBuffer: false);
+            (int size, Encoding encoding) = ReadEncapsulationHeader();
 
             Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
                 Runtime.FindIce1EndpointFactory(transport) : null;
 
-            // Remove the two bytes of the encoding included in size. Endpoint encapsulations don't include a
-            // compression byte.
-            size -= 2;
+            // Remove the 6 bytes from the encapsulation header.
+            size -= 6;
 
             // We need to read the encapsulation except for ice1 + null factory.
             if (protocol == Protocol.Ice1 && ice1Factory == null)
@@ -1133,6 +1062,24 @@ namespace IceRpc
             }
 
             return endpoint;
+
+            (int Size, Encoding Encoding) ReadEncapsulationHeader()
+            {
+                size = ReadInt();
+                if (size < 4)
+                {
+                    throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
+                }
+
+                if (size - 4 > _buffer.Length - Pos)
+                {
+                    throw new InvalidDataException(
+                     $"the encapsulation's size ({size}) extends beyond the end of the buffer");
+                }
+
+                var encoding = new Encoding(this);
+                return (size, encoding);
+            }
         }
 
         /// <summary>Reads a field from the stream.</summary>
@@ -1299,9 +1246,6 @@ namespace IceRpc
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool ReadTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
         {
-            // Tagged members/parameters can only be in the main encapsulation.
-            Debug.Assert(_inEncapsulation);
-
             // The current slice has no tagged parameter.
             if (_current.InstanceType != InstanceType.None &&
                 (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)
@@ -1315,7 +1259,7 @@ namespace IceRpc
             {
                 if (_buffer.Length - Pos <= 0)
                 {
-                    return false; // End of encapsulation also indicates end of tagged parameters.
+                    return false; // End of buffer also indicates end of tagged parameters.
                 }
 
                 int savedPos = Pos;

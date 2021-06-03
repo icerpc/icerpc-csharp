@@ -199,11 +199,11 @@ namespace IceRpc.Tests.CodeGeneration
                     ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
-            (ReadOnlyMemory<byte> responsePayload, Connection connection) = await _prx.InvokeAsync(
+            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection) = await _prx.InvokeAsync(
                 "opVoid",
                 requestPayload);
 
-            Assert.DoesNotThrow(() => responsePayload.CheckVoidReturnValue(connection, _prx.Invoker));
+            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.IsFalse(b.MInt2.HasValue);

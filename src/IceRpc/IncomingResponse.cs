@@ -21,20 +21,9 @@ namespace IceRpc
             get => _payload;
             set
             {
-                var istr = new InputStream(value, Protocol.GetEncoding());
-                ReplyStatus replyStatus = istr.ReadReplyStatus();
-
-                // If the response frame has an encapsulation reset the payload encoding and compression format values
-                if (Protocol == Protocol.Ice2 || replyStatus <= ReplyStatus.UserException)
+                if (PayloadEncoding == Encoding.V20)
                 {
-                    (int _, Encoding payloadEncoding) = istr.ReadEncapsulationHeader(checkFullBuffer: true);
-                    PayloadCompressionFormat = payloadEncoding == Encoding.V11 ?
-                        CompressionFormat.Decompressed : istr.ReadCompressionFormat();
-                    PayloadEncoding = payloadEncoding;
-                }
-                else
-                {
-                    PayloadEncoding = Encoding.V11;
+                    PayloadCompressionFormat = (CompressionFormat)value[0];
                 }
                 _payload = value;
             }
@@ -46,8 +35,15 @@ namespace IceRpc
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
-        /// <summary>The <see cref="IceRpc.ResultType"/> of this response frame.</summary>
-        public ResultType ResultType => Payload[0] == 0 ? ResultType.Success : ResultType.Failure;
+        /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
+        /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
+        /// <see cref="IceRpc.ResultType.Success"/>; otherwise, if <see cref="PayloadEncoding"/> is 1.1, the value is
+        /// read from the response header or payload. For any other payload encoding, the value is
+        /// <see cref="IceRpc.ReplyStatus.UserException"/>.</value>
+        public ReplyStatus ReplyStatus { get; }
+
+        /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
+        public ResultType ResultType { get; }
 
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
@@ -163,7 +159,29 @@ namespace IceRpc
             var istr = new InputStream(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {
-                Payload = data; // there is no response frame header with ice1
+                ReplyStatus = istr.ReadReplyStatus();
+                ResultType = ReplyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+
+                if (ReplyStatus <= ReplyStatus.UserException)
+                {
+                    var responseHeader = new Ice1ResponseHeader(istr);
+                    PayloadEncoding = responseHeader.PayloadEncoding;
+                    Payload = data.Slice(istr.Pos);
+
+                    int payloadSize = responseHeader.EncapsulationSize - 6;
+                    if (payloadSize != Payload.Count)
+                    {
+                        throw new InvalidDataException(
+                            @$"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count
+                            } bytes");
+                    }
+                }
+                else
+                {
+                    // "special" exception
+                    Payload = data.Slice(istr.Pos);
+                    PayloadEncoding = Encoding.V11;
+                }
             }
             else
             {
@@ -171,6 +189,10 @@ namespace IceRpc
                 int headerSize = istr.ReadSize();
                 int startPos = istr.Pos;
                 Fields = istr.ReadFieldDictionary();
+                ResultType = istr.ReadResultType();
+                PayloadEncoding = new Encoding(istr);
+
+                int payloadSize = istr.ReadSize();
                 if (istr.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(
@@ -178,6 +200,20 @@ namespace IceRpc
                         } bytes");
                 }
                 Payload = data.Slice(istr.Pos);
+                if (payloadSize != Payload.Count)
+                {
+                    throw new InvalidDataException(
+                        $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count} bytes");
+                }
+
+                if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
+                {
+                    ReplyStatus = istr.ReadReplyStatus(); // first byte of the payload
+                }
+                else
+                {
+                    ReplyStatus = ResultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException;
+                }
             }
         }
 
@@ -192,6 +228,9 @@ namespace IceRpc
                 Fields = response.GetFields();
             }
 
+            ResultType = response.ResultType;
+            ReplyStatus = response.ReplyStatus;
+
             PayloadEncoding = response.PayloadEncoding;
             PayloadCompressionFormat = response.PayloadCompressionFormat;
             Payload = response.Payload.AsArraySegment();
@@ -202,6 +241,10 @@ namespace IceRpc
             : base(connection.Protocol)
         {
             Connection = connection;
+
+            ResultType = ResultType.Success;
+            ReplyStatus = ReplyStatus.OK;
+
             PayloadEncoding = encoding;
             Payload = Protocol.GetVoidReturnPayload(encoding);
         }
@@ -211,7 +254,11 @@ namespace IceRpc
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
             if (PayloadEncoding == Encoding.V11)
             {
-                retryPolicy = Ice1Definitions.GetRetryPolicy(this, proxy);
+                // For compatibility with ZeroC Ice
+                if (ReplyStatus == ReplyStatus.ObjectNotExistException && proxy.IsIndirect)
+                {
+                    retryPolicy = RetryPolicy.OtherReplica;
+                }
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {

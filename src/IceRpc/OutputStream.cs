@@ -165,8 +165,6 @@ namespace IceRpc
 
         private static readonly System.Text.UTF8Encoding _utf8 = new System.Text.UTF8Encoding(false, true);
 
-        private bool InEncapsulation => _startPos != null;
-
         private bool OldEncoding => Encoding == Encoding.V11;
 
         // The number of bytes that the stream can hold.
@@ -184,27 +182,19 @@ namespace IceRpc
         private readonly FormatType _format;
 
         // Map of class instance to instance ID, where the instance IDs start at 2.
-        // When writing a top-level encapsulation:
         //  - Instance ID = 0 means null.
         //  - Instance ID = 1 means the instance is encoded inline afterwards.
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
         private Dictionary<AnyClass, int>? _instanceMap;
 
-        // The encoding used to write the encapsulation header itself.
-        private readonly Encoding _mainEncoding;
-
         // All segments before the tail segment are fully used.
         private readonly IList<ArraySegment<byte>> _segmentList;
-
-        // The start of an encapsulation. When set, we are writing to a top-level encapsulation.
-        private readonly Position? _startPos;
 
         // The position for the next write operation.
         private Position _tail;
 
         // Map of type ID string to type ID index.
-        // When writing into a top-level encapsulation, we assign a type ID index (starting with 1) to each type ID we
-        // write, in order.
+        // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
         // Write methods for basic types
@@ -1048,24 +1038,23 @@ namespace IceRpc
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
-        // Constructor for protocol frame header and other non-encapsulated data.
-        internal OutputStream(Encoding encoding, IList<ArraySegment<byte>> data, Position startAt = default)
+        // Constructs an OutputStream
+        internal OutputStream(Encoding encoding, IList<ArraySegment<byte>> data, FormatType format = default)
         {
-            _mainEncoding = encoding;
             Encoding = encoding;
             Encoding.CheckSupported();
-            _format = default; // not used
+            _format = format;
+            _tail = default;
+
             _segmentList = data;
             if (_segmentList.Count == 0)
             {
                 _currentSegment = ArraySegment<byte>.Empty;
                 _capacity = 0;
                 Size = 0;
-                _tail = default;
             }
             else
             {
-                _tail = startAt;
                 _currentSegment = _segmentList[_tail.Segment];
                 Size = Distance(default);
                 _capacity = 0;
@@ -1074,25 +1063,6 @@ namespace IceRpc
                     _capacity += segment.Count;
                 }
             }
-        }
-
-        // Constructor that starts an encapsulation.
-        internal OutputStream(
-            Encoding encoding,
-            IList<ArraySegment<byte>> data,
-            Position startAt,
-            Encoding payloadEncoding,
-            FormatType format)
-            : this(encoding, data, startAt)
-        {
-            _format = format;
-            _startPos = _tail;
-            WriteEncapsulationHeader(payloadEncoding); // with placeholder for size
-            if (payloadEncoding == Encoding.V20)
-            {
-                WriteByte(0); // Placeholder for the compression status
-            }
-            Encoding = payloadEncoding;
         }
 
         /// <summary>Computes the amount of data written from the start position to the current position and writes that
@@ -1113,18 +1083,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Completes the current encapsulation (if any) and finishes off the underlying buffer. You should not
-        /// write additional data to this output stream or its underlying buffer after calling Finish, however rewriting
-        /// previous data (with for example <see cref="EndFixedLengthSize"/>) is fine.</summary>
+        /// <summary>Finishes off the underlying buffer. You should not write additional data to this output stream or
+        /// its underlying buffer after calling Finish, however rewriting previous data (with for example
+        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         internal void Finish()
         {
-            if (_startPos is Position startPos)
-            {
-                Encoding = _mainEncoding;
-                int sizeLength = OldEncoding ? 4 : DefaultSizeLength;
-                RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos);
-            }
-
             Debug.Assert(_segmentList.Count - 1 == _tail.Segment);
             _segmentList[^1] = _segmentList[^1].Slice(0, _tail.Offset);
         }
@@ -1192,35 +1155,21 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes an empty encapsulation.</summary>
-        internal Position WriteEmptyEncapsulation(Encoding encoding)
-        {
-            encoding.CheckSupported();
-            WriteEncapsulationHeader(size: encoding == Encoding.V20 ? 3 : 2, encoding);
-            if (encoding == Encoding.V20)
-            {
-                WriteByte(0); // The compression status, 0 = not-compressed
-            }
-            return _tail;
-        }
-
         internal void WriteEndpoint11(Endpoint endpoint)
         {
             Debug.Assert(OldEncoding);
 
             this.Write(endpoint.Transport);
-
             Position startPos = _tail;
-            int sizeLength = 4;
 
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding, sizeLength); // with placeholder for size
+                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding); // with placeholder for size
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                WriteEncapsulationHeader(Encoding, sizeLength); // with placeholder for size
+                WriteEncapsulationHeader(Encoding); // with placeholder for size
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.WriteOptions11(this);
@@ -1232,7 +1181,14 @@ namespace IceRpc
                     WriteSequence(endpoint.Data.Options, IceWriterFromString);
                 }
             }
-            RewriteEncapsulationSize(Distance(startPos) - sizeLength, startPos, sizeLength);
+            RewriteFixedLengthSize11(Distance(startPos), startPos);
+
+            void WriteEncapsulationHeader(Encoding encoding)
+            {
+                WriteInt(0); // placeholder for future size
+                WriteByte(encoding.Major);
+                WriteByte(encoding.Minor);
+            }
         }
 
         internal void WriteField(int key, ReadOnlySpan<byte> value)
@@ -1387,26 +1343,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Rewrites an encapsulation size on a fixed number of bytes at the given position of the stream.
-        /// </summary>
-        /// <param name="size">The number of bytes in the encapsulation, without taking into account the bytes for the
-        /// size itself.</param>
-        /// <param name="pos">The position to write to.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size with the 2.0 encoding. Can be 1, 2 or
-        /// 4.</param>
-        private void RewriteEncapsulationSize(int size, Position pos, int sizeLength = DefaultSizeLength)
-        {
-            if (OldEncoding)
-            {
-                // With the 1.1 encoding, sizeLength is always 4 bytes and the encoded size includes this sizeLength.
-                RewriteFixedLengthSize11(size + 4, pos);
-            }
-            else
-            {
-                RewriteFixedLengthSize20(size, pos, sizeLength);
-            }
-        }
-
         /// <summary>Writes a size on 4 bytes at the given position of the stream.</summary>
         /// <param name="size">The size to write.</param>
         /// <param name="pos">The position to write to.</param>
@@ -1435,37 +1371,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes an encapsulation header.</summary>
-        /// <param name="size">The size of the encapsulation, in bytes. This size does not include the length of the
-        /// encoded size itself.</param>
-        /// <param name="encoding">The encoding of the new encapsulation.</param>
-        internal void WriteEncapsulationHeader(int size, Encoding encoding)
-        {
-            if (OldEncoding)
-            {
-                WriteInt(size + 4); // the size length is included in the encoded size with the 1.1 encoding.
-            }
-            else
-            {
-                WriteSize(size);
-            }
-
-            WriteByte(encoding.Major);
-            WriteByte(encoding.Minor);
-        }
-
-        /// <summary>Writes an encapsulation header with a placeholder size.</summary>
-        /// <param name="encoding">The encoding of the new encapsulation.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size, used only with the 2.0 encoding. Can
-        /// be 1, 2 or 4.</param>
-        private void WriteEncapsulationHeader(Encoding encoding, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
-            WriteByteSpan(stackalloc byte[OldEncoding ? 4 : sizeLength]); // placeholder for future size
-            WriteByte(encoding.Major);
-            WriteByte(encoding.Minor);
-        }
-
         /// <summary>Writes a fixed-size numeric value to the stream.</summary>
         /// <param name="v">The numeric value to write to the stream.</param>
         private void WriteFixedSizeNumeric<T>(T v) where T : struct
@@ -1481,7 +1386,6 @@ namespace IceRpc
         /// <param name="format">The tag format.</param>
         private void WriteTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {
-            Debug.Assert(InEncapsulation);
             Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be marshaled
 
             int v = (int)format;

@@ -22,7 +22,7 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; }
 
         /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
-        public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.Decompressed;
+        public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.NotCompressed;
 
         /// <summary>The payload of this frame. The bytes inside the data should not be written to;
         /// they are writable because of the <see cref="System.Net.Sockets.Socket"/> methods for sending.</summary>

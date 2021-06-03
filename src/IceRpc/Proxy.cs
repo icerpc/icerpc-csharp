@@ -165,10 +165,11 @@ namespace IceRpc
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload and the connection that received the response.</returns>
+        /// <returns>The response payload, its encoding and the connection that received the response.</returns>
+        /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Connection)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             IList<ArraySegment<byte>> requestPayload,
@@ -236,7 +237,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte>, Connection)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
@@ -250,7 +251,16 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    return (response.Payload, response.Connection);
+                    if (response.ResultType == ResultType.Failure)
+                    {
+                        throw Payload.ToRemoteException(response.Payload,
+                                                        response.PayloadEncoding,
+                                                        response.ReplyStatus,
+                                                        response.Connection,
+                                                        proxy.Invoker);
+                    }
+
+                    return (response.Payload, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {

@@ -11,10 +11,6 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
-        // When a response frame contains an encapsulation, it always starts at position 1 of the first segment,
-        // and the first segment has always at least 2 bytes.
-        private static readonly OutputStream.Position _responseEncapsulationStart = new(0, 1);
-
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
@@ -33,11 +29,12 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
-                                        payload,
-                                        startAt: default,
-                                        proxy.Encoding,
-                                        classFormat);
+            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
+            if (proxy.Encoding == Encoding.V20)
+            {
+                ostr.Write(CompressionFormat.NotCompressed);
+            }
+
             writer(ostr, arg);
             ostr.Finish();
             return payload;
@@ -61,11 +58,12 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
-                                        payload,
-                                        startAt: default,
-                                        proxy.Encoding,
-                                        classFormat);
+            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
+            if (proxy.Encoding == Encoding.V20)
+            {
+                ostr.Write(CompressionFormat.NotCompressed);
+            }
+
             writer(ostr, in args);
             ostr.Finish();
             return payload;
@@ -80,41 +78,30 @@ namespace IceRpc
 
         /// <summary>Reads a remote exception from a response payload.</summary>
         /// <param name="payload">The response's payload.</param>
+        /// <param name="payloadEncoding">The response's payload encoding.</param>
+        /// <param name="replyStatus">The reply status.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The remote exception.</returns>
         public static RemoteException ToRemoteException(
             this ReadOnlyMemory<byte> payload,
+            Encoding payloadEncoding,
+            ReplyStatus replyStatus,
             Connection connection,
             IInvoker? invoker)
         {
-            if (payload.Length == 0 || (ResultType)payload.Span[0] == ResultType.Success)
+            if (payload.Length == 0 || replyStatus == ReplyStatus.OK)
             {
                 throw new ArgumentException("payload does not carry a remote exception", nameof(payload));
             }
 
-            var replyStatus = (ReplyStatus)payload.Span[0]; // can be reassigned below
-
             Protocol protocol = connection.Protocol;
-            InputStream istr;
+            InputStream istr = new InputStream(payload, payloadEncoding, connection, invoker);
 
-            if (protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
+            if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
             {
-                istr = new InputStream(payload[1..],
-                                       protocol.GetEncoding(),
-                                       connection,
-                                       invoker,
-                                       startEncapsulation: true);
-
-                if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
-                {
-                    replyStatus = istr.ReadReplyStatus();
-                }
-            }
-            else
-            {
-                Debug.Assert(protocol == Protocol.Ice1);
-                istr = new InputStream(payload[1..], Encoding.V11);
+                // Skip reply status byte
+                istr.Skip(1);
             }
 
             RemoteException exception;
@@ -131,16 +118,17 @@ namespace IceRpc
             return exception;
         }
 
-        /// <summary>Reads a response payload and converts it into a return value or a remote exception.</summary>
+        /// <summary>Reads a response payload and converts it into a return value.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
+        /// <param name="payloadEncoding">The response's payload encoding.</param>
         /// <param name="reader">An input stream reader used to read the return value.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
-        /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
+            Encoding payloadEncoding,
             InputStreamReader<T> reader,
             Connection connection,
             IInvoker? invoker)
@@ -149,38 +137,38 @@ namespace IceRpc
             {
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
+            if (payloadEncoding == Encoding.V20)
+            {
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
+            }
 
-            return (ResultType)payload.Span[0] == ResultType.Success ?
-                payload[1..].ReadEncapsulation(connection.Protocol.GetEncoding(), reader, connection, invoker) :
-                throw payload.ToRemoteException(connection, invoker);
+            return payload.ReadPayload(payloadEncoding, reader, connection, invoker);
         }
 
         /// <summary>Reads a response payload and ensures it carries a void return value or a remote exception.
         /// </summary>
         /// <param name="payload">The response payload.</param>
-        /// <param name="connection">The connection that received this response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <exception cref="RemoteException">Thrown when the payload carries a failure.</exception>
-        public static void CheckVoidReturnValue(
-            this ReadOnlyMemory<byte> payload,
-            Connection connection,
-            IInvoker? invoker)
+        /// <param name="payloadEncoding">The response's payload encoding.</param>
+        public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding)
         {
-            if (payload.Length == 0)
+            if (payloadEncoding == Encoding.V20)
             {
-                throw new ArgumentException("invalid empty payload", nameof(payload));
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
             }
 
-            if ((ResultType)payload.Span[0] == ResultType.Success)
-            {
-                new InputStream(payload[1..],
-                                connection.Protocol.GetEncoding(),
-                                startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
-            }
-            else
-            {
-                throw payload.ToRemoteException(connection, invoker);
-            }
+            new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and response argument.
@@ -200,16 +188,12 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
-            byte[] buffer = new byte[256];
-            buffer[0] = (byte)ResultType.Success;
-            payload.Add(buffer);
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            if (dispatch.Encoding == Encoding.V20)
+            {
+                ostr.Write(CompressionFormat.NotCompressed);
+            }
 
-            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
-                                        payload,
-                                        _responseEncapsulationStart,
-                                        dispatch.Encoding,
-                                        classFormat);
             writer(ostr, returnValue);
             ostr.Finish();
             return payload;
@@ -232,16 +216,12 @@ namespace IceRpc
         {
             var payload = new List<ArraySegment<byte>>();
 
-            // Write result type Success or reply status OK (both have the same value, 0) followed by an encapsulation.
-            byte[] buffer = new byte[256];
-            buffer[0] = (byte)ResultType.Success;
-            payload.Add(buffer);
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            if (dispatch.Encoding == Encoding.V20)
+            {
+                ostr.Write(CompressionFormat.NotCompressed);
+            }
 
-            var ostr = new OutputStream(dispatch.Protocol.GetEncoding(),
-                                        payload,
-                                        _responseEncapsulationStart,
-                                        dispatch.Encoding,
-                                        classFormat);
             writer(ostr, in returnValueTuple);
             ostr.Finish();
             return payload;
@@ -251,11 +231,11 @@ namespace IceRpc
         /// <param name="request">The incoming request used to create this response payload. </param>
         /// <param name="exception">The exception.</param>
         /// <returns>A response payload containing the exception.</returns>
-        public static IList<ArraySegment<byte>> FromRemoteException(IncomingRequest request, RemoteException exception)
+        public static (IList<ArraySegment<byte>> Payload, ReplyStatus ReplyStatus) FromRemoteException(
+            IncomingRequest request,
+            RemoteException exception)
         {
             exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-
-            var payload = new List<ArraySegment<byte>>();
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
             if (request.PayloadEncoding == Encoding.V11)
@@ -269,32 +249,24 @@ namespace IceRpc
                 };
             }
 
+            var payload = new List<ArraySegment<byte>>();
+
             OutputStream ostr;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                // Write ResultType.Failure or ReplyStatus.UserException (both have the same value, 1) followed by an
-                // encapsulation.
-                byte[] buffer = new byte[256];
-                buffer[0] = (byte)ResultType.Failure;
-                payload.Add(buffer);
-
-                ostr = new OutputStream(request.Protocol.GetEncoding(),
-                                        payload,
-                                        _responseEncapsulationStart,
-                                        request.PayloadEncoding,
-                                        FormatType.Sliced);
+                ostr = new OutputStream(request.PayloadEncoding, payload, FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
-                    // The first byte of the encapsulation data is the actual ReplyStatus
+                    // The first byte of the payload is the actual ReplyStatus in this case.
+                    ostr.Write(replyStatus);
+
                     if (replyStatus == ReplyStatus.UserException)
                     {
-                        ostr.Write(replyStatus);
                         ostr.WriteException(exception);
                     }
                     else
                     {
-                        // Writes reply status and more.
                         ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
                     }
                 }
@@ -306,12 +278,12 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding, payload); // not an encapsulation
+                ostr = new OutputStream(Ice1Definitions.Encoding, payload);
                 ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
             ostr.Finish();
-            return payload;
+            return (payload, replyStatus);
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -342,39 +314,56 @@ namespace IceRpc
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
 
-            return payload.ReadEncapsulation(dispatch.Protocol.GetEncoding(),
-                                             reader,
-                                             dispatch.Connection,
-                                             dispatch.ProxyInvoker);
+            if (dispatch.Encoding == Encoding.V20)
+            {
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
+            }
+
+            return payload.ReadPayload(dispatch.Encoding, reader, dispatch.Connection, dispatch.ProxyInvoker);
         }
 
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
-            new InputStream(payload,
-                            dispatch.Protocol.GetEncoding(),
-                            startEncapsulation: true).CheckEndOfBuffer(skipTaggedParams: true);
+        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch)
+        {
+            if (dispatch.Encoding == Encoding.V20)
+            {
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
+            }
+            new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+        }
 
-        /// <summary>Reads the contents of an encapsulation from the buffer.</summary>
+        /// <summary>Reads the contents of a payload</summary>
         /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of encapsulation header in the buffer.</param>
-        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload of the
-        /// encapsulation using an <see cref="InputStream"/>.</param>
+        /// <param name="payload">The payload.</param>
+        /// <param name="payloadEncoding">The encoding of the payload.</param>
+        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <returns>The contents of the encapsulation read from the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid encapsulation or
+        /// <returns>The contents of the payload.</returns>
+        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid payload or
         /// <c>payloadReader</c> finds invalid data.</exception>
-        private static T ReadEncapsulation<T>(
-            this ReadOnlyMemory<byte> buffer,
-            Encoding encoding,
+        private static T ReadPayload<T>(
+            this ReadOnlyMemory<byte> payload,
+            Encoding payloadEncoding,
             InputStreamReader<T> payloadReader,
             Connection connection,
             IInvoker? invoker)
         {
-            var istr = new InputStream(buffer, encoding, connection, invoker, startEncapsulation: true);
+            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
             T result = payloadReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;

@@ -18,12 +18,12 @@ module IceRpc
         byte minor;
     }
 
-    /// With the 2.0 encoding, the payload of an encapsulation (and by extension the payload of a protocol frame)
-    /// may be compressed. CompressionFormat describes the format of such a payload.
+    /// With the 2.0 encoding, the payload of some frames such a Request and "Success" Response can be compressed.
+    /// CompressionFormat is the first byte of such a payload.
     unchecked enum CompressionFormat : byte
     {
         /// The payload is not compressed and can be read directly.
-        Decompressed = 0,
+        NotCompressed = 0,
 
         /// The payload is compressed using the deflate format.
         Deflate = 1,
