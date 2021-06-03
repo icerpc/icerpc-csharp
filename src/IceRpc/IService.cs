@@ -176,10 +176,12 @@ namespace IceRpc
             var dispatch = new Dispatch(request);
             try
             {
-                IList<ArraySegment<byte>> payload =
-                    await DispatchAsync(request.Payload.AsReadOnlyMemory(), dispatch, cancel).ConfigureAwait(false);
+                ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
 
-                return new OutgoingResponse(dispatch, payload);
+                IList<ArraySegment<byte>> responsePayload =
+                    await DispatchAsync(requestPayload, dispatch, cancel).ConfigureAwait(false);
+
+                return new OutgoingResponse(dispatch, responsePayload);
             }
             catch (RemoteException exception)
             {

@@ -16,23 +16,6 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override ArraySegment<byte> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0];
-                }
-                _payload = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
@@ -48,8 +31,6 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
         internal SocketStream? SocketStream { get; set; }
-
-        private ArraySegment<byte> _payload;
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
@@ -72,11 +53,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReaderWithStreamable<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -114,11 +90,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -166,21 +137,22 @@ namespace IceRpc
                 {
                     var responseHeader = new Ice1ResponseHeader(istr);
                     PayloadEncoding = responseHeader.PayloadEncoding;
-                    Payload = data.Slice(istr.Pos);
+                    var payload = data.Slice(istr.Pos);
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
-                    if (payloadSize != Payload.Count)
+                    if (payloadSize != payload.Count)
                     {
                         throw new InvalidDataException(
-                            @$"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count
+                            @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count
                             } bytes");
                     }
+                    Payload = payload;
                 }
                 else
                 {
                     // "special" exception
-                    Payload = data.Slice(istr.Pos);
                     PayloadEncoding = Encoding.V11;
+                    Payload = data.Slice(istr.Pos);
                 }
             }
             else
@@ -199,12 +171,13 @@ namespace IceRpc
                         @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-                Payload = data.Slice(istr.Pos);
-                if (payloadSize != Payload.Count)
+                var payload = data.Slice(istr.Pos);
+                if (payloadSize != payload.Count)
                 {
                     throw new InvalidDataException(
-                        $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count} bytes");
+                        $"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count} bytes");
                 }
+                Payload = payload;
 
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
@@ -232,7 +205,6 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            PayloadCompressionFormat = response.PayloadCompressionFormat;
             Payload = response.Payload.AsArraySegment();
         }
 

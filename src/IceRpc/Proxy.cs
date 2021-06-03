@@ -245,6 +245,7 @@ namespace IceRpc
                 try
                 {
                     using IncomingResponse response = await responseTask.ConfigureAwait(false);
+                    ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
                     {
@@ -253,14 +254,14 @@ namespace IceRpc
 
                     if (response.ResultType == ResultType.Failure)
                     {
-                        throw Payload.ToRemoteException(response.Payload,
+                        throw Payload.ToRemoteException(responsePayload,
                                                         response.PayloadEncoding,
                                                         response.ReplyStatus,
                                                         response.Connection,
                                                         proxy.Invoker);
                     }
 
-                    return (response.Payload, response.PayloadEncoding, response.Connection);
+                    return (responsePayload, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {

@@ -37,7 +37,7 @@ namespace IceRpc
                 {
                     if (compressorOptions.CompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadCompressionFormat == CompressionFormat.NotCompressed &&
+                        (request.PayloadSize >= 1 && request.Payload[0][0] == (byte)CompressionFormat.NotCompressed) &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =
@@ -49,15 +49,21 @@ namespace IceRpc
                             request.Payload = new List<ArraySegment<byte>> { compressedPayload };
                         }
                     }
+
                     var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+
                     if (compressorOptions.DecompressResponsePayload &&
                         response.ResultType == ResultType.Success &&
                         response.PayloadEncoding == Encoding.V20 &&
-                        response.PayloadCompressionFormat != CompressionFormat.NotCompressed &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        // TODO maxSize should come from the connection
-                        response.Payload = response.Payload.Decompress(maxSize: 1024 * 1024);
+                        ArraySegment<byte> payload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
+
+                        if (payload.Count >= 1 && payload[0] == (byte)CompressionFormat.Deflate)
+                        {
+                            // TODO maxSize should come from the connection
+                            response.Payload = payload.Decompress(maxSize: 1024 * 1024);
+                        }
                     }
                     return response;
                 });
