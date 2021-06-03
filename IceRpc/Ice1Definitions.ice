@@ -7,6 +7,7 @@
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Context.ice>
+#include <IceRpc/Encoding.ice>
 
 module IceRpc
 {
@@ -44,7 +45,7 @@ module IceRpc
     /// Each ice1 request frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a request header (below)
-    /// - a request payload
+    /// - a request payload, with encapsulationSize - 6 bytes
     [cs:readonly]
     struct Ice1RequestHeader
     {
@@ -53,6 +54,8 @@ module IceRpc
         string operation;
         OperationMode operationMode;
         Context context;
+        int encapsulationSize;
+        Encoding payloadEncoding;
     }
 
     /// The reply status of an ice1 response frame.
@@ -81,6 +84,18 @@ module IceRpc
 
         /// The reply message carries an unknown exception.
         UnknownException = 7
+    }
+
+    /// Each ice1 response frame has:
+    /// - a frame prologue, with the frame type and the overall frame size
+    /// - a reply status
+    /// - when reply status is OK or UserException, a response header (below) followed by a response payload, with
+    /// encapsulationSize - 6 bytes
+    [cs:readonly]
+    struct Ice1ResponseHeader
+    {
+        int encapsulationSize;
+        Encoding payloadEncoding;
     }
 
     /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or
