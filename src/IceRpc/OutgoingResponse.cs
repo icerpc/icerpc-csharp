@@ -166,9 +166,11 @@ namespace IceRpc
             PayloadEncoding = response.PayloadEncoding;
             Payload = new List<ArraySegment<byte>>();
 
+            ArraySegment<byte> incomingResponsePayload = response.Payload; // TODO: temporary
+
             if (Protocol == response.Protocol)
             {
-                Payload.Add(response.Payload);
+                Payload.Add(incomingResponsePayload);
 
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
@@ -192,7 +194,7 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
                         // We slice-off the reply status that is part of the ice2 payload.
-                        Payload.Add(response.Payload.Slice(1));
+                        Payload.Add(incomingResponsePayload.Slice(1));
                     }
                     else
                     {
@@ -203,12 +205,12 @@ namespace IceRpc
                         byte[] buffer = new byte[1];
                         buffer[0] = (byte)ReplyStatus;
                         Payload.Add(buffer);
-                        Payload.Add(response.Payload);
+                        Payload.Add(incomingResponsePayload);
                     }
                 }
                 else
                 {
-                    Payload.Add(response.Payload);
+                    Payload.Add(incomingResponsePayload);
                 }
             }
         }

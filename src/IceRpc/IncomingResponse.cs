@@ -137,21 +137,22 @@ namespace IceRpc
                 {
                     var responseHeader = new Ice1ResponseHeader(istr);
                     PayloadEncoding = responseHeader.PayloadEncoding;
-                    Payload = data.Slice(istr.Pos);
+                    var payload = data.Slice(istr.Pos);
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
-                    if (payloadSize != Payload.Count)
+                    if (payloadSize != payload.Count)
                     {
                         throw new InvalidDataException(
-                            @$"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count
+                            @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count
                             } bytes");
                     }
+                    Payload = payload;
                 }
                 else
                 {
                     // "special" exception
-                    Payload = data.Slice(istr.Pos);
                     PayloadEncoding = Encoding.V11;
+                    Payload = data.Slice(istr.Pos);
                 }
             }
             else
@@ -170,12 +171,13 @@ namespace IceRpc
                         @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-                Payload = data.Slice(istr.Pos);
-                if (payloadSize != Payload.Count)
+                var payload = data.Slice(istr.Pos);
+                if (payloadSize != payload.Count)
                 {
                     throw new InvalidDataException(
-                        $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Count} bytes");
+                        $"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count} bytes");
                 }
+                Payload = payload;
 
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {

@@ -65,6 +65,7 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
+
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
@@ -129,7 +130,6 @@ namespace IceRpc
             SocketStream = socketStream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
-            int payloadSize;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -144,7 +144,7 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context { Value = requestHeader.Context });
                 }
-                payloadSize = requestHeader.EncapsulationSize - 6;
+                PayloadSize = requestHeader.EncapsulationSize - 6;
                 PayloadEncoding = requestHeader.PayloadEncoding;
 
                 Priority = default;
@@ -177,7 +177,7 @@ namespace IceRpc
                 Fields = istr.ReadFieldDictionary();
 
                 PayloadEncoding = new Encoding(istr);
-                payloadSize = istr.ReadSize();
+                PayloadSize = istr.ReadSize();
 
                 if (istr.Pos - startPos != headerSize)
                 {
@@ -205,12 +205,14 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            Payload = data.Slice(istr.Pos);
-            if (payloadSize != Payload.Count)
+            var payload = data.Slice(istr.Pos);
+            if (PayloadSize != payload.Count)
             {
                 throw new InvalidDataException(
-                    $"request payload size mismatch: expected {payloadSize} bytes, read {Payload.Count} bytes");
+                    $"request payload size mismatch: expected {PayloadSize} bytes, read {payload.Count} bytes");
             }
+
+            Payload = payload;
         }
 
         /// <summary>Constructs an incoming request from an outgoing request. Used for colocated calls.</summary>

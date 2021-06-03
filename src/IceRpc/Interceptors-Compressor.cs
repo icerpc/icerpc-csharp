@@ -55,11 +55,15 @@ namespace IceRpc
                     if (compressorOptions.DecompressResponsePayload &&
                         response.ResultType == ResultType.Success &&
                         response.PayloadEncoding == Encoding.V20 &&
-                        (response.PayloadSize >=1 && response.Payload[0] == (byte)CompressionFormat.Deflate) &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        // TODO maxSize should come from the connection
-                        response.Payload = response.Payload.Decompress(maxSize: 1024 * 1024);
+                        ArraySegment<byte> payload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
+
+                        if (payload.Count >= 1 && payload[0] == (byte)CompressionFormat.Deflate)
+                        {
+                            // TODO maxSize should come from the connection
+                            response.Payload = payload.Decompress(maxSize: 1024 * 1024);
+                        }
                     }
                     return response;
                 });

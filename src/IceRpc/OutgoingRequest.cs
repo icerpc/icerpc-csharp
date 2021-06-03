@@ -165,7 +165,7 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
 
             // We forward the payload as is.
-            Payload.Add(request.Payload);
+            Payload.Add(request.Payload); // TODO: temporary
 
             if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
             {
