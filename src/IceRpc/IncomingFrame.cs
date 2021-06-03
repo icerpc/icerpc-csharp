@@ -25,7 +25,6 @@ namespace IceRpc
 
         /// <summary>The payload of this frame. The bytes inside the data should not be written to; they are writable
         /// because of the <see cref="System.Net.Sockets.Socket"/> methods for sending.</summary>
-        /// <value>The payload array segment. If the payload was never set, an empty array segment is returned.</value>
         public ArraySegment<byte> Payload
         {
             get =>
