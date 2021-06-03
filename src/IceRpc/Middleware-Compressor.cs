@@ -38,17 +38,23 @@ namespace IceRpc
                 {
                     if (compressorOptions.DecompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadCompressionFormat != CompressionFormat.NotCompressed &&
                         request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        // TODO maxSize should come from the connection
-                        request.Payload = request.Payload.Decompress(maxSize: 1024 * 1024);
+                        ArraySegment<byte> payload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
+
+                        if (payload.Count >= 1 && payload[0] == (byte)CompressionFormat.Deflate)
+                        {
+                            // TODO maxSize should come from the connection
+                            request.Payload = payload.Decompress(maxSize: 1024 * 1024);
+                        }
                     }
+
                     OutgoingResponse response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
+
                     if (compressorOptions.CompressResponsePayload &&
                         response.PayloadEncoding == Encoding.V20 &&
                         response.ResultType == ResultType.Success &&
-                        response.PayloadCompressionFormat == CompressionFormat.NotCompressed &&
+                        (response.PayloadSize >=1 && response.Payload[0][0] == (byte)CompressionFormat.NotCompressed) &&
                         response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
                     {
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =

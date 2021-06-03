@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -33,25 +34,37 @@ namespace IceRpc
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
-        /// <summary>Returns true when the payload is compressed; otherwise, returns false.</summary>
-        public bool HasCompressedPayload => PayloadCompressionFormat != CompressionFormat.NotCompressed;
-
         /// <summary>Returns the initial fields set during construction of this frame. See also
         /// <see cref="FieldsOverride"/>.</summary>
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
-        public abstract IList<ArraySegment<byte>> Payload { get; set; }
-
-        /// <summary>Returns the payload's compression format.</summary>
-        public abstract CompressionFormat PayloadCompressionFormat { get; private protected set; }
+        public IList<ArraySegment<byte>> Payload
+        {
+            get => _payload;
+            set
+            {
+                _payload = value;
+                _payloadSize = -1;
+            }
+        }
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
         public abstract Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>Returns the number of bytes in the payload.</summary>
-        public abstract int PayloadSize { get; }
+        public int PayloadSize
+        {
+            get
+            {
+                if (_payloadSize == -1)
+                {
+                    _payloadSize = Payload.GetByteCount();
+                }
+                return _payloadSize;
+            }
+        }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
@@ -59,8 +72,10 @@ namespace IceRpc
         /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
         /// called after the request or response frame is sent over a socket stream.</summary>
         internal Action<SocketStream>? StreamDataWriter { get; set; }
-
         private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
+
+        private IList<ArraySegment<byte>> _payload = ImmutableList<ArraySegment<byte>>.Empty;
+        private int _payloadSize = -1;
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
         /// calls.</summary>

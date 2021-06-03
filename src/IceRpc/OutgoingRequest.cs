@@ -66,38 +66,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override IList<ArraySegment<byte>> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0][0];
-                }
-                _payload = value;
-                _payloadSize = -1;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
-
-        /// <inheritdoc/>
-        public override int PayloadSize
-        {
-            get
-            {
-                if (_payloadSize == -1)
-                {
-                    _payloadSize = Payload.GetByteCount();
-                }
-                return _payloadSize;
-            }
-        }
 
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
@@ -108,8 +77,6 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; private set; }
 
-        private IList<ArraySegment<byte>> _payload;
-        private int _payloadSize = -1;
         private string _path = "";
 
         /*
@@ -198,7 +165,7 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
 
             // We forward the payload as is.
-            Payload.Add(request.Payload);
+            Payload.Add(request.Payload); // TODO: temporary
 
             if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
             {
@@ -298,7 +265,7 @@ namespace IceRpc
             Path = proxy.Path;
             PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
 
-            _payload = new List<ArraySegment<byte>>();
+            Payload = new List<ArraySegment<byte>>();
         }
     }
 }

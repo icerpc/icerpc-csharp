@@ -41,23 +41,6 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override ArraySegment<byte> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0];
-                }
-                _payload = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
@@ -83,7 +66,6 @@ namespace IceRpc
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
 
-        ArraySegment<byte> _payload;
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
@@ -148,7 +130,6 @@ namespace IceRpc
             SocketStream = socketStream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
-            int payloadSize;
 
             if (Protocol == Protocol.Ice1)
             {
@@ -165,7 +146,7 @@ namespace IceRpc
                 }
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
-                payloadSize = requestHeader.EncapsulationSize - 6;
+                PayloadSize = requestHeader.EncapsulationSize - 6;
                 PayloadEncoding = requestHeader.PayloadEncoding;
 
                 Priority = default;
@@ -198,7 +179,7 @@ namespace IceRpc
                 Fields = istr.ReadFieldDictionary();
 
                 PayloadEncoding = new Encoding(istr);
-                payloadSize = istr.ReadSize();
+                PayloadSize = istr.ReadSize();
 
                 if (istr.Pos - startPos != headerSize)
                 {
@@ -226,17 +207,14 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            _payload = data.Slice(istr.Pos);
-            if (payloadSize != _payload.Count)
+            var payload = data.Slice(istr.Pos);
+            if (PayloadSize != payload.Count)
             {
                 throw new InvalidDataException(
-                    $"request payload size mismatch: expected {payloadSize} bytes, read {_payload.Count} bytes");
+                    $"request payload size mismatch: expected {PayloadSize} bytes, read {payload.Count} bytes");
             }
 
-            if (PayloadEncoding == Encoding.V20)
-            {
-                PayloadCompressionFormat = istr.ReadCompressionFormat();
-            }
+            Payload = payload;
         }
 
         /// <summary>Constructs an incoming request from an outgoing request. Used for colocated calls.</summary>
@@ -274,7 +252,6 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
 
             Payload = request.Payload.AsArraySegment();
-            PayloadCompressionFormat = request.PayloadCompressionFormat;
         }
     }
 }
