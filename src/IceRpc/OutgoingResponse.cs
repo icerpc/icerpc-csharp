@@ -152,7 +152,7 @@ namespace IceRpc
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
         /// <param name="forwardFields">When true (the default), the new response uses the incoming response's fields as
-        /// a fallback - all the field lines in this fields dictionary are added before the response is sent, except for
+        /// a fallback - all the fields in this field dictionary are added before the response is sent, except for
         /// fields previously added by middleware.</param>
         public OutgoingResponse(
             IncomingRequest request,
