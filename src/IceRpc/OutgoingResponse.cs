@@ -16,38 +16,7 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override IList<ArraySegment<byte>> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (ResultType == ResultType.Success && PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0][0];
-                }
-                _payload = value;
-                _payloadSize = -1;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
-
-        /// <inheritdoc/>
-        public override int PayloadSize
-        {
-            get
-            {
-                if (_payloadSize == -1)
-                {
-                    _payloadSize = Payload.GetByteCount();
-                }
-                return _payloadSize;
-            }
-        }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
@@ -58,9 +27,6 @@ namespace IceRpc
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; }
-
-        private IList<ArraySegment<byte>> _payload;
-        private int _payloadSize = -1;
 
         /*
                 /// <summary>Creates a new <see cref="OutgoingResponse"/> for an operation with a non-tuple non-struct
@@ -198,8 +164,7 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            _payload = new List<ArraySegment<byte>>();
-            _payloadSize = -1;
+            Payload = new List<ArraySegment<byte>>();
 
             if (Protocol == response.Protocol)
             {
@@ -256,9 +221,6 @@ namespace IceRpc
             : base(request.Protocol, exception.Features)
         {
             ResultType = ResultType.Failure;
-
-            _payloadSize = -1;
-            _payload = ImmutableList<ArraySegment<byte>>.Empty;
             PayloadEncoding = request.PayloadEncoding;
 
             (Payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
@@ -317,8 +279,6 @@ namespace IceRpc
             FeatureCollection features)
             : base(protocol, features)
         {
-            _payloadSize = -1;
-            _payload = ImmutableList<ArraySegment<byte>>.Empty;
             PayloadEncoding = payloadEncoding;
             Payload = payload;
         }

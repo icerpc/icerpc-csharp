@@ -37,7 +37,7 @@ namespace IceRpc
                 {
                     if (compressorOptions.CompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadCompressionFormat == CompressionFormat.NotCompressed &&
+                        (request.PayloadSize >= 1 && request.Payload[0][0] == (byte)CompressionFormat.NotCompressed) &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =
@@ -49,11 +49,13 @@ namespace IceRpc
                             request.Payload = new List<ArraySegment<byte>> { compressedPayload };
                         }
                     }
+
                     var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+
                     if (compressorOptions.DecompressResponsePayload &&
                         response.ResultType == ResultType.Success &&
                         response.PayloadEncoding == Encoding.V20 &&
-                        response.PayloadCompressionFormat != CompressionFormat.NotCompressed &&
+                        (response.PayloadSize >=1 && response.Payload[0] == (byte)CompressionFormat.Deflate) &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
                         // TODO maxSize should come from the connection

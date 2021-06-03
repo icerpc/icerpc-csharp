@@ -16,23 +16,6 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override ArraySegment<byte> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0];
-                }
-                _payload = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
@@ -48,8 +31,6 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
         internal SocketStream? SocketStream { get; set; }
-
-        private ArraySegment<byte> _payload;
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
@@ -72,11 +53,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReaderWithStreamable<T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -114,11 +90,6 @@ namespace IceRpc
         /// <returns>The frame return value.</returns>
         public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
         {
-            if (PayloadCompressionFormat != CompressionFormat.Decompressed)
-            {
-                DecompressPayload();
-            }
-
             if (ResultType == ResultType.Success)
             {
                 if (SocketStream == null)
@@ -232,7 +203,6 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            PayloadCompressionFormat = response.PayloadCompressionFormat;
             Payload = response.Payload.AsArraySegment();
         }
 

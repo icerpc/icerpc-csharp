@@ -41,23 +41,6 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override ArraySegment<byte> Payload
-        {
-            get => _payload;
-            set
-            {
-                if (PayloadEncoding == Encoding.V20)
-                {
-                    PayloadCompressionFormat = (CompressionFormat)value[0];
-                }
-                _payload = value;
-            }
-        }
-
-        /// <inheritdoc/>
-        public override CompressionFormat PayloadCompressionFormat { get; private protected set; }
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
@@ -82,8 +65,6 @@ namespace IceRpc
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
         internal SocketStream? SocketStream { get; set; }
-
-        ArraySegment<byte> _payload;
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
@@ -224,16 +205,11 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            _payload = data.Slice(istr.Pos);
-            if (payloadSize != _payload.Count)
+            Payload = data.Slice(istr.Pos);
+            if (payloadSize != Payload.Count)
             {
                 throw new InvalidDataException(
-                    $"request payload size mismatch: expected {payloadSize} bytes, read {_payload.Count} bytes");
-            }
-
-            if (PayloadEncoding == Encoding.V20)
-            {
-                PayloadCompressionFormat = istr.ReadCompressionFormat();
+                    $"request payload size mismatch: expected {payloadSize} bytes, read {Payload.Count} bytes");
             }
         }
 
@@ -272,7 +248,6 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
 
             Payload = request.Payload.AsArraySegment();
-            PayloadCompressionFormat = request.PayloadCompressionFormat;
         }
     }
 }
