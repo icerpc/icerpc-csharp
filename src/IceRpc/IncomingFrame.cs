@@ -30,6 +30,7 @@ namespace IceRpc
         {
             get =>
                 _payload is ArraySegment<byte> value ? value : throw new InvalidOperationException("payload not set");
+
             set
             {
                 _payload = value;
