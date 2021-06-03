@@ -130,7 +130,6 @@ namespace IceRpc
             SocketStream = socketStream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
-            int payloadSize;
 
             if (Protocol == Protocol.Ice1)
             {
