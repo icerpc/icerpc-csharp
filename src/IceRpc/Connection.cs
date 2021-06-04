@@ -303,6 +303,7 @@ namespace IceRpc
 
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
+        private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
@@ -322,7 +323,6 @@ namespace IceRpc
         private SocketStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
-        private TaskCompletionSource? _cancelGoAwaySource;
         private Server? _server;
         private MultiStreamSocket? _socket;
         private ConnectionState _state = ConnectionState.NotConnected;
@@ -613,8 +613,8 @@ namespace IceRpc
             }
             catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.ConnectionShutdownByPeer)
             {
-                // If the peer shutdown the connection, streams aborted with this error code are always safe to
-                // retry since only non-processed streams are aborted.
+                // If the peer shuts down the connection, streams which are aborted with this error code are
+                // always safe to retry since only streams not processed by the peer are aborted.
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer");
             }
@@ -845,7 +845,7 @@ namespace IceRpc
             Debug.Assert(stream != null);
             try
             {
-                // Get a cancellation token for the dispatch. The token is cancelled when the stream is reset by the
+                // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the
                 // peer or when the stream is aborted because the connection shutdown is canceled or failed.
                 CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
@@ -925,10 +925,9 @@ namespace IceRpc
         /// <summary>Send the GoAway or CloseConnection frame to initiate the shutdown of the connection. Before
         /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
         /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
-        /// timeout to close the socket. If ShutdownAsync is canceled, invocations and dispatch in progress are
-        /// canceled to ensure a speedier shutdown.</summary>
-        /// <remarks>If Ice1, ShutdownAsync also waits for the incoming streams to complete before sending the
-        /// CloseConnection frame because Ice1 requires all the dispatch to complete.</remarks>
+        /// timeout to close the socket. If ShutdownAsync is canceled, dispatch in progress are canceled and a
+        /// GoAwayCanceled frame is set to the peer to cancel its dispatch as well. Shutdown cancellation can
+        /// lead to a speedier shutdown if dispatch are cancelable.</summary>
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
             Task shutdownTask;
@@ -960,7 +959,7 @@ namespace IceRpc
                 else
                 {
                     // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
-                    // send the GoAwayCanceled from once the GoAway frame has been sent.
+                    // send the GoAwayCanceled frame once the GoAway frame has been sent.
                     _cancelGoAwaySource?.TrySetResult();
                 }
             }
@@ -984,6 +983,7 @@ namespace IceRpc
                     // and that _closeTask is assigned before any synchronous continuations are ran.
                     await Task.Yield();
 
+                    // Setup a cancellation token source for the close timeout.
                     Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
                     using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
                     CancellationToken cancel = cancelCloseSource.Token;
@@ -1007,8 +1007,8 @@ namespace IceRpc
 
                     if (Protocol == Protocol.Ice2)
                     {
-                        // GoAway frame is sent, allow cancel to send the GoAwayCanceled frame at this point
-                        // if shutdown is canceled.
+                        // GoAway frame is sent, we can allow shutdown cancellation to send the GoAwayCanceled frame
+                        // at this point.
                         _ = PerformCancelGoAwayIfShutdownCanceledAsync();
                     }
 
@@ -1056,9 +1056,43 @@ namespace IceRpc
             }
         }
 
+        private async Task WaitForCloseAsync(CancellationToken cancel)
+        {
+            // Wait for the peer to close the connection and return.
+            while (State != ConnectionState.Closed)
+            {
+                await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
+            }
+            throw new ConnectionClosedException();
+        }
+
+        private async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
+        {
+            // Wait for all the streams to complete or an unexpected connection closure.
+            Task waitForEmptyStreams = _socket!.WaitForEmptyStreamsAsync(cancel);
+            if (!waitForEmptyStreams.IsCompleted)
+            {
+                Task task = await Task.WhenAny(waitForEmptyStreams, WaitForCloseAsync(cancel)).ConfigureAwait(false);
+                if (task != waitForEmptyStreams)
+                {
+                    // The peer closed the connection before the streams are completed. If it gracefully closed the
+                    // connection, we continue waiting for the streams to complete.
+                    try
+                    {
+                        await task.ConfigureAwait(false);
+                    }
+                    catch (ConnectionClosedException)
+                    {
+                        await waitForEmptyStreams.ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+
         /// <summary>Waits for the GoAway or CloseConnection frame to initiate the shutdown of the connection.
         /// The shutdown of the connection aborts outgoing streams that the peer didn't process yet and waits
-        /// for all the stream to complete (or the peer to close the socket) before closing the socket.</summary>
+        /// for all the stream to complete (or the peer to close the socket). Once all the streams are completed,
+        /// the socket is closed.</summary>
         private async Task WaitForShutdownAsync()
         {
             Debug.Assert(State >= ConnectionState.Active);
@@ -1120,7 +1154,8 @@ namespace IceRpc
                                                                        exception.Message,
                                                                        cancel).ConfigureAwait(false);
 
-                            // Wait for the GoAwayCanceled frame from the peer, if received this will abort the streams.
+                            // Wait for the GoAwayCanceled frame from the peer, if received this will cancel the
+                            // dispatch.
                             _ = WaitForGoAwayCanceledAsync();
                         }
 
@@ -1160,44 +1195,11 @@ namespace IceRpc
                     // Wait to receive the GoAwayCanceled frame.
                     await _peerControlStream!.ReceiveGoAwayCanceledFrameAsync().ConfigureAwait(false);
 
-                    // Cancel dispatch if shutdown is canceled.
+                    // Cancel the dispatch if the peer canceled the shutdown.
                     _socket!.CancelDispatch();
                 }
                 catch
                 {
-                }
-            }
-        }
-
-        private async Task WaitForCloseAsync(CancellationToken cancel)
-        {
-            // Wait for the peer to close the connection and return.
-            while (State != ConnectionState.Closed)
-            {
-                await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
-            }
-            throw new ConnectionClosedException();
-        }
-
-        private async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
-        {
-            // Wait for all the streams to complete or an unexpected connection closure.
-            Task waitForEmptyStreams = _socket!.WaitForEmptyStreamsAsync(cancel);
-            if (!waitForEmptyStreams.IsCompleted)
-            {
-                Task task = await Task.WhenAny(waitForEmptyStreams, WaitForCloseAsync(cancel)).ConfigureAwait(false);
-                if (task != waitForEmptyStreams)
-                {
-                    // The peer closed the connection before the streams are completed. If it gracefully closed the
-                    // connection, we continue waiting for the streams to complete.
-                    try
-                    {
-                        await task.ConfigureAwait(false);
-                    }
-                    catch (ConnectionClosedException)
-                    {
-                        await waitForEmptyStreams.ConfigureAwait(false);
-                    }
                 }
             }
         }
