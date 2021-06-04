@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Encoding
             prx1.Invoker = pipeline1;
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.AsArraySegment();
+                var data = request.Payload.ToArraySegment();
                 var istr = new InputStream(data, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -91,7 +91,7 @@ namespace IceRpc.Tests.Encoding
             prx2.Invoker = pipeline2;
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.AsArraySegment();
+                var data = request.Payload.ToArraySegment();
                 var istr = new InputStream(data, prx2.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Encoding
             prx3.Invoker = pipeline3;
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.AsArraySegment();
+                var data = request.Payload.ToArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -156,7 +156,7 @@ namespace IceRpc.Tests.Encoding
             prx3.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.AsArraySegment();
+                var data = request.Payload.ToArraySegment();
                 var istr = new InputStream(data, prx3.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {

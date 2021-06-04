@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 
 namespace IceRpc.Internal
 {
@@ -66,7 +67,12 @@ namespace IceRpc.Internal
             try
             {
                 // The data to compress starts after the compression status byte
-                foreach (ArraySegment<byte> segment in payload.Slice(1))
+                if (payload[0].Count > 1)
+                {
+                    deflateStream.Write(payload[0][1..]);
+                }
+
+                foreach (ArraySegment<byte> segment in payload.Skip(1))
                 {
                     deflateStream.Write(segment);
                 }

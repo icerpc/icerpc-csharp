@@ -205,7 +205,7 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            Payload = response.Payload.AsArraySegment();
+            Payload = response.Payload.ToArraySegment();
         }
 
         // Constructor for oneway response pseudo frame.
@@ -234,7 +234,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.Read(istr => new RetryPolicy(istr));
+                retryPolicy = value.ReadFieldValue(istr => new RetryPolicy(istr));
             }
             return retryPolicy;
         }

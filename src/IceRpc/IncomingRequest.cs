@@ -194,10 +194,11 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context
                     {
-                        Value = value.Read(istr => istr.ReadDictionary(minKeySize: 1,
-                                                                       minValueSize: 1,
-                                                                       keyReader: InputStream.IceReaderIntoString,
-                                                                       valueReader: InputStream.IceReaderIntoString))
+                        Value = value.ReadFieldValue(istr => istr.ReadDictionary(
+                            minKeySize: 1,
+                            minValueSize: 1,
+                            keyReader: InputStream.IceReaderIntoString,
+                            valueReader: InputStream.IceReaderIntoString))
                     });
                 }
             }
@@ -251,7 +252,7 @@ namespace IceRpc
             Deadline = request.Deadline;
             PayloadEncoding = request.PayloadEncoding;
 
-            Payload = request.Payload.AsArraySegment();
+            Payload = request.Payload.ToArraySegment();
         }
     }
 }
