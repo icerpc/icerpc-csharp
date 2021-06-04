@@ -77,6 +77,10 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; private set; }
 
+        /// <summary>The retry policy for the request. The policy is used by the retry invoker if the request fails
+        /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
+        internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
+
         private string _path = "";
 
         /*

@@ -110,7 +110,7 @@ namespace IceRpc.Internal
                     int received = await _socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
                     if (received == 0)
                     {
-                        throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                        throw new ConnectionLostException();
                     }
                     Debug.Assert(received == 1);
                     secure = buffer.Array![0] == TlsHandshakeRecord;
@@ -130,21 +130,22 @@ namespace IceRpc.Internal
                     return (this, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
             }
-            catch (SocketException ex) when (ex.IsConnectionLost())
+            catch (Exception ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException(ex);
             }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+            catch (Exception ex) when (cancel.IsCancellationRequested)
             {
-                throw new ConnectionRefusedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new OperationCanceledException(null, ex, cancel);
             }
-            catch (SocketException ex)
+            catch (Exception ex)
             {
-                throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
         }
 
-        public override ValueTask CloseAsync(Exception ex, CancellationToken cancel) => default;
+        // We can't shutdown the socket write side because it might block.
+        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
         public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
@@ -174,11 +175,11 @@ namespace IceRpc.Internal
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
-                throw new ConnectionRefusedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionRefusedException(ex);
             }
             catch (SocketException ex)
             {
-                throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectFailedException(ex);
             }
             catch (Exception ex) when (cancel.IsCancellationRequested)
             {
@@ -186,7 +187,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
         }
 
@@ -204,7 +205,7 @@ namespace IceRpc.Internal
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException(ex);
             }
             catch (OperationCanceledException)
             {
@@ -216,11 +217,11 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
             if (received == 0)
             {
-                throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException();
             }
             return received;
         }
@@ -238,7 +239,7 @@ namespace IceRpc.Internal
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException(ex);
             }
             catch (OperationCanceledException)
             {
@@ -250,7 +251,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
         }
 

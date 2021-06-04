@@ -69,10 +69,19 @@ namespace IceRpc
 
                     async Task<IncomingResponse> PerformAsync(ValueTask<Connection> task)
                     {
-                        request.Connection = await task.ConfigureAwait(false);
-                        if (cacheConnection)
+                        try
                         {
-                            request.Proxy.Connection = request.Connection;
+                            request.Connection = await task.ConfigureAwait(false);
+                            if (cacheConnection)
+                            {
+                                request.Proxy.Connection = request.Connection;
+                            }
+                        }
+                        catch (TransportException)
+                        {
+                            // If obtaining a connection failed with a transport exception, the request can be retried.
+                            request.RetryPolicy = RetryPolicy.Immediately;
+                            throw;
                         }
                         return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     }

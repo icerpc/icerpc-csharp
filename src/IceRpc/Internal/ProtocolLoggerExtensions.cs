@@ -53,6 +53,12 @@ namespace IceRpc.Internal
                 "received go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                 "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
 
+        private static readonly Action<ILogger, Exception> _receivedGoAwayCanceledFrame =
+            LoggerMessage.Define(
+                LogLevel.Debug,
+                ProtocolEventIds.ReceivedGoAwayCanceledFrame,
+                "received go away canceled frame");
+
         private static readonly Action<ILogger, int, Exception> _receivedInitializeFrame = LoggerMessage.Define<int>(
             LogLevel.Debug,
             ProtocolEventIds.ReceivedInitializeFrame,
@@ -109,6 +115,12 @@ namespace IceRpc.Internal
                 "sent go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
                 "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
 
+        private static readonly Action<ILogger, Exception> _sentGoAwayCanceledFrame =
+            LoggerMessage.Define(
+                LogLevel.Debug,
+                ProtocolEventIds.SentGoAwayCanceledFrame,
+                "sent go away canceled frame");
+
         private static readonly Action<ILogger, int, Exception> _sentInitializeFrame = LoggerMessage.Define<int>(
             LogLevel.Debug,
             ProtocolEventIds.SentInitializeFrame,
@@ -155,6 +167,9 @@ namespace IceRpc.Internal
                 _receivedGoAwayFrame(logger, lastBidirectionalId, lastUnidirectionalId, message, null!);
             }
         }
+
+        internal static void LogReceivedGoAwayCanceledFrame(this ILogger logger) =>
+            _receivedGoAwayCanceledFrame(logger, null!);
 
         internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamSocket socket)
         {
@@ -231,6 +246,9 @@ namespace IceRpc.Internal
                 _sentGoAwayFrame(logger, lastBidirectionalId, lastUnidirectionalId, message, null!);
             }
         }
+
+        internal static void LogSentGoAwayCanceledFrame(this ILogger logger) =>
+            _sentGoAwayCanceledFrame(logger, null!);
 
         internal static void LogSentInitializeFrame(
             this ILogger logger,

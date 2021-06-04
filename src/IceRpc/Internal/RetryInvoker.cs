@@ -41,6 +41,7 @@ namespace IceRpc.Internal
             {
                 do
                 {
+                    RetryPolicy retryPolicy = RetryPolicy.NoRetry;
                     try
                     {
                         response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -51,6 +52,8 @@ namespace IceRpc.Internal
                         {
                             return response;
                         }
+
+                        retryPolicy = response.GetRetryPolicy(request.Proxy.Impl);
                     }
                     catch (OperationCanceledException)
                     {
@@ -66,13 +69,12 @@ namespace IceRpc.Internal
                     {
                         response = null;
                         exception = ex;
+                        retryPolicy = request.RetryPolicy;
                     }
 
                     // Compute retry policy based on the exception or response retry policy, whether or not the
                     // connection is established or the request sent and idempotent
                     Debug.Assert(response != null || exception != null);
-                    RetryPolicy retryPolicy = response?.GetRetryPolicy(request.Proxy.Impl) ??
-                        exception!.GetRetryPolicy(request.IsIdempotent, request.IsSent);
 
                     // Check if we can retry
                     if (attempt == _maxAttempts ||
@@ -136,6 +138,10 @@ namespace IceRpc.Internal
                             // Retry with a new connection
                             request.Connection = null;
                         }
+
+                        // Reset relevant request properties before trying again.
+                        request.IsSent = false;
+                        request.RetryPolicy = RetryPolicy.NoRetry;
                     }
                 }
                 while (tryAgain);

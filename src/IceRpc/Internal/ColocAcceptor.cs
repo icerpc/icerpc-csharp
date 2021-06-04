@@ -7,8 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object? Frame, bool Fin)>;
-using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object? Frame, bool Fin)>;
+using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object Frame, bool Fin)>;
+using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object Frame, bool Fin)>;
 
 namespace IceRpc.Internal
 {
@@ -75,7 +75,7 @@ namespace IceRpc.Internal
 
         internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
         {
-            var reader = Channel.CreateUnbounded<(long, object?, bool)>(
+            var reader = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
@@ -83,7 +83,7 @@ namespace IceRpc.Internal
                     AllowSynchronousContinuations = false
                 });
 
-            var writer = Channel.CreateUnbounded<(long, object?, bool)>(
+            var writer = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,

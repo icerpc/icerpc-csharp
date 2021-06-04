@@ -18,6 +18,9 @@ namespace IceRpc.Internal
     /// </summary>
     internal abstract class SignaledSocketStream<T> : SocketStream, IValueTaskSource<T>
     {
+        internal Exception? AbortException => _exception;
+        internal bool IsAborted => _exception != null;
+
         internal bool IsSignaled
         {
             get
@@ -38,7 +41,7 @@ namespace IceRpc.Internal
             }
         }
 
-        private Exception? _exception;
+        private volatile Exception? _exception;
         // Provide thread safety using a spin lock to avoid having to create another object on the heap. The lock
         // is used to protect the setting of the signal value or exception with the manual reset value task source.
         private SpinLock _lock;
@@ -47,15 +50,12 @@ namespace IceRpc.Internal
         private Queue<T>? _resultQueue;
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
-        private static readonly Exception _disposedException =
-            new ObjectDisposedException(nameof(SignaledSocketStream<T>));
+        private static readonly Exception _closedException =
+            new SocketStreamAbortedException(SocketStreamErrorCode.ConnectionAborted);
 
         /// <summary>Aborts the stream.</summary>
-        public override void Abort(Exception ex)
-        {
-            base.Abort(ex);
-            SetException(ex);
-        }
+        protected override void AbortRead(SocketStreamErrorCode errorCode) =>
+            SetException(new SocketStreamAbortedException(errorCode));
 
         protected SignaledSocketStream(MultiStreamSocket socket, long streamId)
             : base(socket, streamId) => _source.RunContinuationsAsynchronously = true;
@@ -68,7 +68,7 @@ namespace IceRpc.Internal
             base.Shutdown();
 
             // Ensure the stream signaling fails after destruction of the stream.
-            SetException(_disposedException);
+            SetException(_closedException);
 
             // Unregister the cancellation token callback
             _tokenRegistration.Dispose();
@@ -175,13 +175,34 @@ namespace IceRpc.Internal
         /// <summary>Wait for the stream to be signaled with a result or exception.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The value used to signaled the stream.</return>
-        protected ValueTask<T> IceWaitAsync(CancellationToken cancel = default)
+        protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
             if (cancel.CanBeCanceled)
             {
                 Debug.Assert(_tokenRegistration == default);
                 cancel.ThrowIfCancellationRequested();
-                _tokenRegistration = cancel.Register(() => SetException(new OperationCanceledException(cancel)));
+                _tokenRegistration = cancel.Register(() =>
+                {
+                    // We don't use SetException here since the cancellation of WaitAsync isn't considered as
+                    // an error configure from which we can't recover.
+                    bool lockTaken = false;
+                    try
+                    {
+                        _lock.Enter(ref lockTaken);
+                        if (_source.GetStatus(_source.Version) == ValueTaskSourceStatus.Pending)
+                        {
+                            // If the source isn't already signaled, signal completion by setting the exception.
+                            _source.SetException(new OperationCanceledException(cancel));
+                        }
+                    }
+                    finally
+                    {
+                        if (lockTaken)
+                        {
+                            _lock.Exit();
+                        }
+                    }
+                });
             }
             return new ValueTask<T>(this, _source.Version);
         }
@@ -190,9 +211,22 @@ namespace IceRpc.Internal
         {
             Debug.Assert(token == _source.Version);
 
-            // Get the result. This will throw if the stream has been aborted. In this case, we let the
-            // exception go through and we don't reset the source.
-            T result = _source.GetResult(token);
+            // Get the result.
+            var result = default(T);
+            Exception? exception = null;
+            try
+            {
+                result = _source.GetResult(token);
+            }
+            catch (Exception ex)
+            {
+                // If the stream has been aborted, we let the exception go through and we don't reset the source.
+                if (_exception != null)
+                {
+                    throw _exception;
+                }
+                exception = ex;
+            }
 
             // Reset the source to allow the stream to be signaled again. It's important to dispose the
             // registration without the lock held since Dispose() might block until the cancellation callback
@@ -221,7 +255,7 @@ namespace IceRpc.Internal
                     // If an exception is set, we set it on the source.
                     _source.SetException(_exception);
                 }
-                return result;
+                return exception != null ? throw exception : result!;
             }
             finally
             {

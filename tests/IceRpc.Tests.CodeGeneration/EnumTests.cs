@@ -105,7 +105,7 @@ namespace IceRpc.Tests.CodeGeneration
                     Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyEnumAsync());
                     Assert.ThrowsAsync<InvalidDataException>(async () => await prx.OpInvalidMyFixedLengthEnumAsync());
 
-                    // Sending and invalid value for a checked enum results in an UnhandledException
+                    // Sending an invalid value for a checked enum results in an UnhandledException
                     Assert.ThrowsAsync<UnhandledException>(
                         async () => await prx.OpMyEnumAsync((MyEnum)3, MyEnum.enum1));
                     Assert.ThrowsAsync<UnhandledException>(
@@ -131,8 +131,6 @@ namespace IceRpc.Tests.CodeGeneration
             };
             server.Listen();
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            // TODO: temporary
-            connection.ConnectAsync().Wait();
             IEnumOperationsPrx prx = IEnumOperationsPrx.FromConnection(connection);
             Assert.AreEqual(protocol, prx.Protocol);
             await closure(prx);

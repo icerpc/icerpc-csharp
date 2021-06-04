@@ -27,9 +27,6 @@ namespace IceRpc.Tests.Api
 
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
             _prx = IInterceptorTestPrx.FromConnection(_connection);
-
-            // TODO: temporary, to ensure the connection is not "activated" concurrently
-            _connection.ConnectAsync().Wait();
         }
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller

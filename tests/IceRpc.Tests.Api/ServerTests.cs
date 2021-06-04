@@ -257,12 +257,14 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
+        [TestCase(false, Protocol.Ice1)]
+        [TestCase(true, Protocol.Ice1)]
+        [TestCase(false, Protocol.Ice2)]
+        [TestCase(true, Protocol.Ice2)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
         //  Shutdown, which call ShutdownAsync with a canceled token.
-        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown)
+        public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
         {
             var semaphore = new SemaphoreSlim(0);
             var server = new Server
@@ -274,7 +276,7 @@ namespace IceRpc.Tests.Api
                     await Task.Delay(-1, cancel);
                     return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
                 }),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
 
             server.Listen();
@@ -303,8 +305,16 @@ namespace IceRpc.Tests.Api
                 cancellationSource.Cancel();
             }
 
-            // Ensure the client gets a DispatchException and that shutdown doesn't throw.
-            Assert.ThrowsAsync<DispatchException>(async () => await task);
+            // Ensure the client gets a DispatchException with Ice1 and OperationCanceledException with Ice2.
+            if (protocol == Protocol.Ice1)
+            {
+                Assert.ThrowsAsync<DispatchException>(async () => await task);
+            }
+            else
+            {
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await task);
+            }
+            // Shutdown shouldn't throw.
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
         }
 

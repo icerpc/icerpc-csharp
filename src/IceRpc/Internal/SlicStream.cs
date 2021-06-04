@@ -4,7 +4,6 @@ using IceRpc.Slic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,8 +21,9 @@ namespace IceRpc.Internal
     /// etc) are necessary to receive a simple response/request frame.</summary>
     internal class SlicStream : SignaledSocketStream<(int, bool)>
     {
-        protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
+
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
         // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
@@ -45,49 +45,30 @@ namespace IceRpc.Internal
         // A value which is used as a gate to ensure the stream isn't released twice with the socket.
         private int _streamReleased;
 
-        protected override void Shutdown()
+        protected override void AbortWrite(SocketStreamErrorCode errorCode)
         {
-            base.Shutdown();
-
-            // If there's still data pending to be received for the stream, we notify the socket that
-            // we're abandoning the reading. It will finish to read the stream's frame data in order to
-            // continue receiving frames for other streams.
-            if (_receiveBuffer == null)
+            if (IsIncoming && !ReleaseStreamCount())
             {
-                try
-                {
-                    using IDisposable? scope = StartScope();
-                    if (_receivedOffset == _receivedSize)
-                    {
-                        ValueTask<(int, bool)> valueTask = IceWaitAsync(CancellationToken.None);
-                        Debug.Assert(valueTask.IsCompleted);
-                        _receivedOffset = 0;
-                        (_receivedSize, _receivedEndOfStream) = valueTask.Result;
-                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
-                    }
-                    else
-                    {
-                        _socket.FinishedReceivedStreamData(
-                            _receivedSize,
-                            _receivedEndOfStream,
-                            _receivedSize - _receivedOffset);
-                    }
-                }
-                catch
-                {
-                    // Ignore, there's nothing to consume.
-                }
+                // If the stream is already released, it indicates that it was aborted. No need to send a
+                // stream Reset frame in this case.
+                Debug.Assert(IsAborted);
+                return;
             }
 
-            // The stream is only released on destroy if it's an incoming stream. Outgoing streams are released
-            // from the socket when the StreamLast or StreamReset frame is received (which can be received after
-            // the stream is destroyed, for example, with oneway requests, the stream is disposed as soon as the
-            // request is sent and before receiving the StreamLast frame).
-            if (IsIncoming && ReleaseStreamCount() && !IsControl)
+            if (!IsAborted)
             {
-                // It's important to decrement the stream count before sending the StreamLast frame to prevent
-                // a race where the peer could start a new stream before the counter is decremented.
-                _ = _socket.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, streamId: Id);
+                // Send the reset frame to the peer.
+                _ = _socket.PrepareAndSendFrameAsync(
+                    SlicDefinitions.FrameType.StreamReset,
+                    ostr =>
+                    {
+                        checked
+                        {
+                            new StreamResetBody((ulong)errorCode).IceWrite(ostr);
+                        }
+                    },
+                    frameSize => _socket.Logger.LogSentSlicResetFrame(frameSize, errorCode),
+                    this);
             }
         }
 
@@ -120,7 +101,7 @@ namespace IceRpc.Internal
 
             if (signaled)
             {
-                ValueTask<(int, bool)> valueTask = IceWaitAsync();
+                ValueTask<(int, bool)> valueTask = WaitAsync();
                 Debug.Assert(valueTask.IsCompleted);
                 (int size, bool fin) = valueTask.Result;
                 ReceivedFrame(size, fin);
@@ -148,11 +129,12 @@ namespace IceRpc.Internal
                     return 0;
                 }
                 _receivedOffset = 0;
+                _receivedSize = 0;
 
                 // Wait to be signaled for the reception of a new stream frame for this stream. If buffering is
                 // enabled, check for the circular buffer element count instead of the signal result since
                 // multiple Slic frame might have been received and buffered while waiting for the signal.
-                (_receivedSize, _receivedEndOfStream) = await IceWaitAsync(cancel).ConfigureAwait(false);
+                (_receivedSize, _receivedEndOfStream) = await WaitAsync(cancel).ConfigureAwait(false);
                 if (_receivedSize == 0)
                 {
                     if (_receiveBuffer == null)
@@ -203,30 +185,11 @@ namespace IceRpc.Internal
                         frameSize => _socket.Logger.LogSentSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
-                        Id,
+                        this,
                         CancellationToken.None).ConfigureAwait(false);
                 }
             }
             return size;
-        }
-
-        protected override async ValueTask ResetAsync(long errorCode)
-        {
-            // Abort the stream.
-            Abort(new IOException($"the stream was aborted with the error code {errorCode}"));
-
-            // Send the reset frame to the peer.
-            await _socket.PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.StreamReset,
-                ostr =>
-                {
-                    checked
-                    {
-                        new StreamResetBody((ulong)errorCode).IceWrite(ostr);
-                    }
-                },
-                frameSize => _socket.Logger.LogSentSlicResetFrame(frameSize, (StreamResetErrorCode)errorCode),
-                Id).ConfigureAwait(false);
         }
 
         protected override async ValueTask SendAsync(
@@ -366,6 +329,52 @@ namespace IceRpc.Internal
             }
         }
 
+        protected override void Shutdown()
+        {
+            base.Shutdown();
+
+            // If there's still data pending to be received for the stream, we notify the socket that
+            // we're abandoning the reading. It will finish to read the stream's frame data in order to
+            // continue receiving frames for other streams.
+            if (_receiveBuffer == null)
+            {
+                try
+                {
+                    using IDisposable? scope = StartScope();
+                    if (_receivedOffset == _receivedSize)
+                    {
+                        ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
+                        Debug.Assert(valueTask.IsCompleted);
+                        _receivedOffset = 0;
+                        (_receivedSize, _receivedEndOfStream) = valueTask.Result;
+                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
+                    }
+                    else
+                    {
+                        _socket.FinishedReceivedStreamData(
+                            _receivedSize,
+                            _receivedEndOfStream,
+                            _receivedSize - _receivedOffset);
+                    }
+                }
+                catch
+                {
+                    // Ignore, there's nothing to consume.
+                }
+            }
+
+            // The stream count is only released on shutdown if it's an incoming stream. Outgoing streams are
+            // released from the socket when the StreamLast or StreamReset frame is received (which can be
+            // received after the stream is destroyed, for example, with oneway requests, the stream is
+            // disposed as soon as the request is sent and before receiving the StreamLast frame).
+            if (IsIncoming && ReleaseStreamCount())
+            {
+                // It's important to decrement the stream count before sending the StreamLast frame to prevent
+                // a race where the peer could start a new stream before the counter is decremented.
+                _ = _socket.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, stream: this);
+            }
+        }
+
         internal SlicStream(SlicSocket socket, long streamId)
             : base(socket, streamId) => _socket = socket;
 
@@ -399,7 +408,7 @@ namespace IceRpc.Internal
             // there's an issue with the peer sending twice a last stream frame.
             if (!IsIncoming && fin && !ReleaseStreamCount())
             {
-                throw new InvalidDataException("already received last stream frame");
+                throw new InvalidDataException("stream already released");
             }
 
             // Set the result if buffering is not enabled, the data will be consumed when ReceiveAsync is
@@ -481,15 +490,15 @@ namespace IceRpc.Internal
             }
         }
 
-        internal override void ReceivedReset(long errorCode)
+        internal void ReceivedReset(SocketStreamErrorCode errorCode)
         {
-            // We ignore the stream reset if the stream is already released (the last stream frame has already
-            // been sent).
-            if (ReleaseStreamCount())
+            if (!IsIncoming && !ReleaseStreamCount())
             {
-                Abort(new TransportException($"the peer aborted the stream with the error code {errorCode}"));
-                base.ReceivedReset(errorCode);
+                throw new InvalidDataException("stream already released");
             }
+
+            AbortRead(errorCode);
+            CancelDispatchSource?.Cancel();
         }
 
         internal bool ReleaseStreamCount()

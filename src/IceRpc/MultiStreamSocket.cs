@@ -23,13 +23,13 @@ namespace IceRpc
         /// <summary>Gets or set the idle timeout.</summary>
         public abstract TimeSpan IdleTimeout { get; internal set; }
 
+        /// <summary><c>true</c> for datagram sockets <c>false</c> otherwise.</summary>
+        public bool IsDatagram => _endpoint.IsDatagram;
+
         /// <summary><c>true</c> for incoming sockets <c>false</c> otherwise. An incoming socket is created
         /// by a server-side acceptor while an outgoing socket is created from the endpoint by the client-side.
         /// </summary>
         public bool IsIncoming { get; }
-
-        /// <summary><c>true</c> for datagram sockets <c>false</c> otherwise.</summary>
-        public bool IsDatagram => _endpoint.IsDatagram;
 
         /// <summary>The socket local endpoint. The socket might not be available until the socket is connected.
         /// </summary>
@@ -60,13 +60,33 @@ namespace IceRpc
         public string TransportName => _endpoint.TransportName;
 
         internal int IncomingFrameMaxSize { get; }
-        internal int IncomingStreamCount => Thread.VolatileRead(ref _incomingStreamCount);
+        internal int IncomingStreamCount
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _incomingStreamCount;
+                }
+            }
+        }
+
         internal TimeSpan LastActivity { get; private set; }
         // The stream ID of the last received response with the Ice1 protocol. Keeping track of this stream ID is
         // necessary to avoid a race condition with the GoAway frame which could be received and processed before
         // the response is delivered to the stream.
         internal long LastResponseStreamId { get; set; }
-        internal int OutgoingStreamCount => Thread.VolatileRead(ref _outgoingStreamCount);
+        internal int OutgoingStreamCount
+        {
+            get
+            {
+                lock (_mutex)
+                {
+                    return _outgoingStreamCount;
+                }
+            }
+        }
+
         internal int? PeerIncomingFrameMaxSize { get; set; }
         internal ILogger Logger { get; }
         internal Action? PingReceived;
@@ -75,17 +95,16 @@ namespace IceRpc
         // endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
-        // The mutex provides thread-safety for the _streamsAborted and LastActivity data members.
+        private TaskCompletionSource? _incomingStreamsEmptySource;
+        private long _lastIncomingBidirectionalStreamId = -1;
+        private long _lastIncomingUnidirectionalStreamId = -1;
         private Endpoint? _localEndpoint;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
+        private TaskCompletionSource? _outgoingStreamsEmptySource;
         private Endpoint? _remoteEndpoint;
         private readonly ConcurrentDictionary<long, SocketStream> _streams = new();
-        private bool _streamsAborted;
-        private volatile TaskCompletionSource? _streamsEmptySource;
-
-        /// <summary>Aborts the socket.</summary>
-        public abstract void Abort();
+        private bool _shutdown;
 
         /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
         /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
@@ -110,9 +129,9 @@ namespace IceRpc
             CancellationToken cancel);
 
         /// <summary>Closes the socket.</summary>
-        /// <param name="exception">The exception for which the socket is closed.</param>
+        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(Exception exception, CancellationToken cancel);
+        public abstract ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel);
 
         /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
         /// be immediately available after the stream creation. It will be available after the first successful send
@@ -173,6 +192,23 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Returns <c>false</c> if an incoming stream is unknown, <c>true</c> otherwise. An incoming
+        /// is known if its the ID is inferior or equal to the last allocated incoming stream ID.</summary>
+        protected bool IsIncomingStreamUnknown(long streamId, bool bidirectional)
+        {
+            lock (_mutex)
+            {
+                if (bidirectional)
+                {
+                    return streamId > _lastIncomingBidirectionalStreamId;
+                }
+                else
+                {
+                    return streamId > _lastIncomingUnidirectionalStreamId;
+                }
+            }
+        }
+
         /// <summary>Traces the given received amount of data. Transport implementations should call this method
         /// to trace the received data.</summary>
         /// <param name="size">The size in bytes of the received data.</param>
@@ -221,51 +257,58 @@ namespace IceRpc
             return false;
         }
 
-        internal void Abort(Exception exception)
+        internal virtual void AbortOutgoingStreams(
+            SocketStreamErrorCode errorCode,
+            (long Bidirectional, long Unidirectional)? ids = null)
         {
-            // Abort the transport.
-            Abort();
-
-            // Abort the streams if not already done. It's important to call this again even if has already been
-            // called previously by graceful connection closure. Not all the streams might have been aborted and
-            // at this point we want to make sure all the streams are aborted.
-            AbortStreams(exception);
-        }
-
-        internal virtual (long Bidirectional, long Unidirectional) AbortStreams(
-            Exception exception,
-            Func<SocketStream, bool>? predicate = null)
-        {
-            lock (_mutex)
-            {
-                // Set the _streamsAborted flag to prevent addition of new streams by AddStream. No more streams
-                // will be added to _streams once this flag is true.
-                _streamsAborted = true;
-            }
-
-            // Cancel the streams based on the given predicate. Control streams are not canceled since they are
-            // still needed for sending and receiving GoAway frames.
-            long largestBidirectionalStreamId = 0;
-            long largestUnidirectionalStreamId = 0;
+            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer
+            // so we mark the stream as retryable. This is used by the connection to figure out whether or not the
+            // request can safely be retried.
             foreach (SocketStream stream in _streams.Values)
             {
-                if (!stream.IsControl && (predicate?.Invoke(stream) ?? true))
+                if (!stream.IsIncoming &&
+                    !stream.IsControl &&
+                    (ids == null ||
+                     stream.Id > (stream.IsBidirectional ? ids.Value.Bidirectional : ids.Value.Unidirectional)))
                 {
-                    stream.Abort(exception);
-                }
-                else if (stream.IsBidirectional)
-                {
-                    if (stream.Id > largestBidirectionalStreamId)
-                    {
-                        largestBidirectionalStreamId = stream.Id;
-                    }
-                }
-                else if (stream.Id > largestUnidirectionalStreamId)
-                {
-                    largestUnidirectionalStreamId = stream.Id;
+                    stream.Abort(errorCode);
                 }
             }
-            return (largestBidirectionalStreamId, largestUnidirectionalStreamId);
+        }
+
+        internal virtual void AbortStreams(SocketStreamErrorCode errorCode)
+        {
+            foreach (SocketStream stream in _streams.Values)
+            {
+                // Control streams are never aborted.
+                if (!stream.IsControl)
+                {
+                    try
+                    {
+                        stream.Abort(errorCode);
+                        stream.CancelDispatchSource?.Cancel();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Ignore
+                    }
+                }
+            }
+        }
+
+        internal void CancelDispatch()
+        {
+            foreach (SocketStream stream in _streams.Values)
+            {
+                try
+                {
+                    stream.CancelDispatchSource?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Ignore
+                }
+            }
         }
 
         internal void AddStream(long id, SocketStream stream, bool control, ref long streamId)
@@ -274,7 +317,7 @@ namespace IceRpc
             {
                 // It's important to hold the mutex here to ensure the check for _streamsAborted and the stream
                 // addition to the dictionary is atomic.
-                if (_streamsAborted)
+                if (_shutdown)
                 {
                     throw new ConnectionClosedException();
                 }
@@ -283,11 +326,32 @@ namespace IceRpc
                 // Assign the stream ID within the mutex as well to ensure that the addition of the stream to
                 // the socket and the stream ID assignment are atomic.
                 streamId = id;
-            }
 
-            if (!control)
-            {
-                Interlocked.Increment(ref stream.IsIncoming ? ref _incomingStreamCount : ref _outgoingStreamCount);
+                if (!control)
+                {
+                    if (stream.IsIncoming)
+                    {
+                        ++_incomingStreamCount;
+                    }
+                    else
+                    {
+                        ++_outgoingStreamCount;
+                    }
+                }
+
+                // Keep track of the last assigned stream ID. This is used for the shutdown logic to tell the peer
+                // which streams were received last.
+                if (stream.IsIncoming)
+                {
+                    if (stream.IsBidirectional)
+                    {
+                        _lastIncomingBidirectionalStreamId = id;
+                    }
+                    else
+                    {
+                        _lastIncomingUnidirectionalStreamId = id;
+                    }
+                }
             }
         }
 
@@ -301,18 +365,33 @@ namespace IceRpc
 
         internal bool RemoveStream(long id)
         {
-            if (_streams.TryRemove(id, out SocketStream? stream))
+            lock (_mutex)
             {
-                if (!stream.IsControl)
+                if (_streams.TryRemove(id, out SocketStream? stream))
                 {
-                    Interlocked.Decrement(ref stream.IsIncoming ? ref _incomingStreamCount : ref _outgoingStreamCount);
+                    if (!stream.IsControl)
+                    {
+                        if (stream.IsIncoming)
+                        {
+                            if (--_incomingStreamCount == 0)
+                            {
+                                _incomingStreamsEmptySource?.SetResult();
+                            }
+                        }
+                        else
+                        {
+                            if (--_outgoingStreamCount == 0)
+                            {
+                                _outgoingStreamsEmptySource?.SetResult();
+                            }
+                        }
+                    }
+                    return true;
                 }
-                CheckStreamsEmpty();
-                return true;
-            }
-            else
-            {
-                return false;
+                else
+                {
+                    return false;
+                }
             }
         }
 
@@ -324,25 +403,49 @@ namespace IceRpc
             return stream;
         }
 
-        internal IDisposable? StartScope(Server? server = null) => Logger.StartSocketScope(this, server);
-
-        internal virtual async ValueTask WaitForEmptyStreamsAsync()
+        internal (long Bidirectional, long Unidirectional) Shutdown()
         {
-            if (IncomingStreamCount > 0 || OutgoingStreamCount > 0)
+            lock (_mutex)
             {
-                // Create a task completion source to wait for the streams to complete.
-                _streamsEmptySource ??= new TaskCompletionSource();
-                CheckStreamsEmpty();
-                await _streamsEmptySource.Task.ConfigureAwait(false);
+                // Set the _shutdown flag to prevent addition of new streams by AddStream. No more streams
+                // will be added to _streams once this flag is true.
+                _shutdown = true;
+                return (_lastIncomingBidirectionalStreamId, _lastIncomingUnidirectionalStreamId);
             }
         }
 
-        private void CheckStreamsEmpty()
+        internal IDisposable? StartScope(Server? server = null) => Logger.StartSocketScope(this, server);
+
+        internal async ValueTask WaitForEmptyIncomingStreamsAsync(CancellationToken cancel)
         {
-            if (IncomingStreamCount == 0 && OutgoingStreamCount == 0)
+            lock (_mutex)
             {
-                _streamsEmptySource?.TrySetResult();
+                if (_incomingStreamCount == 0)
+                {
+                    return;
+                }
+                // Run the continuations asynchronously to ensure continuations are not ran from
+                // the code that aborts the last stream.
+                _incomingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
+            await _incomingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+        }
+
+        internal async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
+        {
+            await WaitForEmptyIncomingStreamsAsync(cancel).ConfigureAwait(false);
+
+            lock (_mutex)
+            {
+                if (_outgoingStreamCount == 0)
+                {
+                    return;
+                }
+                // Run the continuations asynchronously to ensure continuations are not ran from
+                // the code that aborts the last stream.
+                _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+            await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
     }
 }

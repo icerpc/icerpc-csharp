@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Threading;
@@ -28,6 +29,13 @@ namespace IceRpc
         Closed
     }
 
+    /// <summary>Error codes for connection errors.</summary>
+    public enum ConnectionErrorCode : byte
+    {
+        /// <summary>The connection has been shutdown.</summary>
+        Shutdown,
+    }
+
     /// <summary>The ClosedEventArgument class is provided to closed event handlers.</summary>
     public sealed class ClosedEventArgs : EventArgs
     {
@@ -50,7 +58,7 @@ namespace IceRpc
             {
                 lock (_mutex)
                 {
-                    if (State >= ConnectionState.Closed)
+                    if (_state >= ConnectionState.Closed)
                     {
                         throw new InvalidOperationException("the connection is closed");
                     }
@@ -131,12 +139,15 @@ namespace IceRpc
             get => _loggerFactory;
             set
             {
-                if (State > ConnectionState.NotConnected)
+                lock (_mutex)
                 {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
+                    if (_state > ConnectionState.NotConnected)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
+                    }
+                    _loggerFactory = value;
                 }
-                _loggerFactory = value;
             }
         }
 
@@ -148,16 +159,19 @@ namespace IceRpc
             get => _options?.Clone();
             set
             {
-                if (State > ConnectionState.NotConnected)
+                lock (_mutex)
                 {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
+                    if (_state > ConnectionState.NotConnected)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
+                    }
+                    if (value == null)
+                    {
+                        throw new ArgumentException($"{nameof(value)} can't be null");
+                    }
+                    _options = value.Clone();
                 }
-                if (value == null)
-                {
-                    throw new ArgumentException($"{nameof(value)} can't be null");
-                }
-                _options = value.Clone();
             }
         }
 
@@ -195,12 +209,15 @@ namespace IceRpc
             get => _remoteEndpoint ?? _socket?.RemoteEndpoint;
             set
             {
-                if (State > ConnectionState.NotConnected)
+                lock (_mutex)
                 {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
+                    if (_state > ConnectionState.NotConnected)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
+                    }
+                    _remoteEndpoint = value;
                 }
-                _remoteEndpoint = value;
             }
         }
 
@@ -212,12 +229,15 @@ namespace IceRpc
             get => _server;
             set
             {
-                if (State > ConnectionState.NotConnected)
+                lock (_mutex)
                 {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
+                    if (_state > ConnectionState.NotConnected)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
+                    }
+                    _server = value;
                 }
-                _server = value;
             }
         }
 
@@ -229,22 +249,12 @@ namespace IceRpc
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
         {
-            get => _state;
-
-            private set
+            get
             {
-                Debug.Assert(_state < value); // Don't switch twice and only switch to a higher value state.
-
-                // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
-                // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
-                // be infinite.
-                if (value == ConnectionState.Active && _socket!.IdleTimeout != Timeout.InfiniteTimeSpan)
+                lock (_mutex)
                 {
-                    TimeSpan period = _socket.IdleTimeout / 2;
-                    _timer = new Timer(value => Monitor(), null, period, period);
+                    return _state;
                 }
-
-                _state = value;
             }
         }
 
@@ -294,6 +304,7 @@ namespace IceRpc
         // The accept stream task is assigned each time a new accept stream async operation is started.
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private bool _connected;
+        private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
         private SocketStream? _controlStream;
@@ -311,9 +322,10 @@ namespace IceRpc
         private SocketStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
+        private TaskCompletionSource? _cancelGoAwaySource;
         private Server? _server;
         private MultiStreamSocket? _socket;
-        private volatile ConnectionState _state = ConnectionState.NotConnected;
+        private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
         /// <summary>Constructs a new outgoing connection.</summary>
@@ -326,13 +338,8 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            if (_socket == null)
-            {
-                throw new InvalidOperationException("connection is not established");
-            }
-            using IDisposable? scope = _socket.StartScope(Server);
-            return AbortAsync(
-                new ConnectionClosedException(message ?? "connection closed forcefully", isClosedByPeer: false));
+            using IDisposable? scope = _socket?.StartScope(Server);
+            return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
         }
 
         /// <summary>Establishes the connection to the <see cref="RemoteEndpoint"/>.</summary>
@@ -343,20 +350,25 @@ namespace IceRpc
         /// <see cref="Options"/> is set to an <see cref="IncomingConnectionOptions"/> instance</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
-            ValueTask connectTask = new();
-            MultiStreamSocket socket;
             lock (_mutex)
             {
-                if (State == ConnectionState.Closed)
+                if (_state == ConnectionState.Active)
                 {
-                    throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
+                    return Task.CompletedTask;
                 }
-                else if (State > ConnectionState.NotConnected)
+                else if (_state >= ConnectionState.Closing)
                 {
-                    throw new InvalidOperationException($"connection is already connected");
+                    // TODO: resume the connection if it's resumable
+                    throw new ConnectionClosedException();
                 }
+                else if (_state == ConnectionState.Connecting)
+                {
+                    return _connectTask!;
+                }
+                Debug.Assert(_state == ConnectionState.NotConnected);
 
                 _options ??= IsIncoming ? IncomingConnectionOptions.Default : OutgoingConnectionOptions.Default;
+                ValueTask connectTask;
                 if (_options is OutgoingConnectionOptions outgoingOptions)
                 {
                     if (IsIncoming)
@@ -392,8 +404,9 @@ namespace IceRpc
 
                     connectTask = _socket.ConnectAsync(clientAuthenticationOptions, cancel);
                 }
-                else if (_options is IncomingConnectionOptions incomingOptions)
+                else
                 {
+                    var incomingOptions = (IncomingConnectionOptions)_options;
                     if (!IsIncoming)
                     {
                         throw new InvalidOperationException(
@@ -419,13 +432,15 @@ namespace IceRpc
                 }
 
                 Debug.Assert(_socket != null);
-                State = ConnectionState.Connecting;
-                socket = _socket;
+                _state = ConnectionState.Connecting;
+
+                // Initialize the connection after it's connected.
+                _connectTask = PerformInitializeAsync(_socket, connectTask);
             }
 
-            return PerformConnectAsync();
+            return _connectTask;
 
-            async Task PerformConnectAsync()
+            async Task PerformInitializeAsync(MultiStreamSocket socket, ValueTask connectTask)
             {
                 try
                 {
@@ -437,7 +452,7 @@ namespace IceRpc
                     using IDisposable? scope = socket.StartScope(Server);
                     lock (_mutex)
                     {
-                        if (State == ConnectionState.Closed)
+                        if (_state == ConnectionState.Closed)
                         {
                             // This can occur if the communicator or server is disposed while the connection is being
                             // initialized.
@@ -479,7 +494,7 @@ namespace IceRpc
 
                 lock (_mutex)
                 {
-                    if (State == ConnectionState.Closed)
+                    if (_state == ConnectionState.Closed)
                     {
                         // This can occur if the communicator or server is disposed while the connection is being
                         // initialized.
@@ -500,7 +515,17 @@ namespace IceRpc
                             }
                         });
                     };
-                    State = ConnectionState.Active;
+
+                    _state = ConnectionState.Active;
+
+                    // Setup a timer to check for the connection idle time every IdleTimeout / 2 period. If the
+                    // transport doesn't support idle timeout (e.g.: the colocated transport), IdleTimeout will
+                    // be infinite.
+                    if (_socket!.IdleTimeout != Timeout.InfiniteTimeSpan)
+                    {
+                        TimeSpan period = _socket.IdleTimeout / 2;
+                        _timer = new Timer(value => Monitor(), null, period, period);
+                    }
 
                     using IDisposable? scope = socket.StartScope(Server);
 
@@ -512,33 +537,40 @@ namespace IceRpc
 
                     // Start the asynchronous AcceptStream operation from the thread pool to prevent reading
                     // synchronously new frames from this thread.
-                    _acceptStreamTask = Task.Run(async () => await AcceptStreamAsync().ConfigureAwait(false), default);
+                    _acceptStreamTask = Task.Run(() => AcceptStreamAsync(), default);
                 }
             }
         }
 
         /// <inheritdoc/>
-        public ValueTask DisposeAsync()
+        public async ValueTask DisposeAsync()
         {
             try
             {
-                return new(ShutdownAsync("connection closed", new CancellationToken(canceled: true)));
+                await ShutdownAsync("connection disposed", new CancellationToken(canceled: true)).ConfigureAwait(false);
             }
-            finally
+            catch (Exception ex)
             {
-                // These are disposed by AbortAsync but we do it again here to prevent a warning.
-                _timer?.Dispose();
+                // This is a workaround to call dispose on disposable data members. Not disposing them here causes
+                // warnings.
+                Debug.Assert(false, $"dispose exception {ex}");
                 _socket?.Dispose();
+                _timer?.Dispose();
             }
         }
 
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // TODO: temporary, not thread-safe
-            if (_state == ConnectionState.NotConnected)
+            // Make sure the connection is connected.
+            try
             {
                 await ConnectAsync(cancel).ConfigureAwait(false);
+            }
+            catch
+            {
+                request.RetryPolicy = RetryPolicy.Immediately;
+                throw;
             }
 
             SocketStream? stream = null;
@@ -547,15 +579,15 @@ namespace IceRpc
                 using IDisposable? socketScope = StartScope();
 
                 // Create the outgoing stream.
-                stream = CreateStream(!request.IsOneway);
+                stream = _socket!.CreateStream(!request.IsOneway);
 
                 // Send the request and wait for the sending to complete.
                 await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
-                // TODO: move this set to stream.SendRequestFrameAsync
+                // Mark the request as sent.
                 request.IsSent = true;
 
-                using IDisposable? streamSocket = stream.StartScope();
+                using IDisposable? streamScope = stream.StartScope();
 
                 // Wait for the reception of the response.
                 IncomingResponse response = request.IsOneway ?
@@ -563,6 +595,54 @@ namespace IceRpc
                     await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
                 return response;
+            }
+            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+            {
+                stream!.Reset(SocketStreamErrorCode.InvocationCanceled);
+                throw;
+            }
+            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.DispatchCanceled)
+            {
+                throw new OperationCanceledException("dispatch canceled by peer");
+            }
+            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.ConnectionShutdown)
+            {
+                // Invocations are canceled immediately when Shutdown is called on the connection.
+                Debug.Assert(Protocol == Protocol.Ice1);
+                throw new OperationCanceledException("connection shutdown");
+            }
+            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.ConnectionShutdownByPeer)
+            {
+                // If the peer shutdown the connection, streams aborted with this error code are always safe to
+                // retry since only non-processed streams are aborted.
+                request.RetryPolicy = RetryPolicy.Immediately;
+                throw new ConnectionClosedException("connection shutdown by peer");
+            }
+            catch (SocketStreamAbortedException ex)
+            {
+                if (request.IsIdempotent || !request.IsSent)
+                {
+                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
+                    request.RetryPolicy = RetryPolicy.Immediately;
+                }
+                Debug.Assert(ex.ErrorCode == SocketStreamErrorCode.ConnectionAborted);
+                throw new ConnectionLostException();
+            }
+            catch (TransportException ex)
+            {
+                if (State < ConnectionState.Closing)
+                {
+                    // Abort the connection if the request fails with a transport exception.
+                    _ = AbortAsync(ex);
+                }
+                if (request.IsIdempotent || !request.IsSent)
+                {
+                    // If the connection is being shutdown, exceptions are expected since the request send
+                    // or response receive can fail. If the request is idempotent or hasn't been sent it's
+                    // safe to retry it.
+                    request.RetryPolicy = RetryPolicy.Immediately;
+                }
+                throw;
             }
             finally
             {
@@ -588,9 +668,7 @@ namespace IceRpc
         /// <param name="message">The message transmitted to the peer with the GoAway frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
-            ShutdownAsync(
-                new ConnectionClosedException(message ?? "connection closed gracefully", isClosedByPeer: false),
-                cancel);
+            ShutdownAsync(new ConnectionClosedException(message ?? "connection closed gracefully"), cancel);
 
         /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
@@ -608,32 +686,17 @@ namespace IceRpc
             Server = server;
         }
 
-        internal SocketStream CreateStream(bool bidirectional)
-        {
-            // Ensure the stream is created in the active state only, no new streams should be created if the
-            // connection is closing or closed.
-            lock (_mutex)
-            {
-                if (State != ConnectionState.Active)
-                {
-                    throw new ConnectionClosedException();
-                }
-                return _socket!.CreateStream(bidirectional);
-            }
-        }
-
         internal void Monitor()
         {
             lock (_mutex)
             {
-                if (State != ConnectionState.Active)
+                if (_state != ConnectionState.Active)
                 {
                     return;
                 }
                 Debug.Assert(_socket != null);
 
                 TimeSpan idleTime = Time.Elapsed - _socket!.LastActivity;
-
                 if (idleTime > _socket.IdleTimeout / 4 && (_options!.KeepAlive || _socket.IncomingStreamCount > 0))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
@@ -650,26 +713,53 @@ namespace IceRpc
                 {
                     if (_socket.OutgoingStreamCount > 0)
                     {
-                        // Close the connection if we didn't receive a heartbeat or if read/write didn't update the
-                        // ACM activity in the last period.
-                        _ = AbortAsync(new ConnectionClosedException("connection timed out", isClosedByPeer: false));
+                        // Close the connection if we didn't receive a heartbeat and the connection is idle. The
+                        // server is supposed to send heartbeats when dispatch are in progress.
+                        _ = AbortAsync("connection timed out");
                     }
                     else
                     {
                         // The connection is idle, close it.
-                        _ = ShutdownAsync(new ConnectionClosedException("connection idle", isClosedByPeer: false));
+                        _ = ShutdownAsync("connection idle");
                     }
                 }
             }
         }
 
+        internal IDisposable? StartScope() => _socket?.StartScope();
+
         private async Task AbortAsync(Exception exception)
         {
             lock (_mutex)
             {
-                if (_socket != null && State < ConnectionState.Closed)
+                if (_state != ConnectionState.Closed)
                 {
-                    if (State == ConnectionState.Connecting && !_connected)
+                    // It's important to set the state before performing the abort. The abort of the stream
+                    // will trigger the failure of the associated invocations whose interceptor might access
+                    // the connection state (e.g.: the retry interceptor or the connection pool which calls
+                    // IsActive on the connection).
+                    _state = ConnectionState.Closed;
+                    _closeTask = PerformAbortAsync();
+                }
+            }
+
+            await _closeTask!.ConfigureAwait(false);
+
+            async Task PerformAbortAsync()
+            {
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked
+                // and that _closeTask is assigned before any synchronous continuations are ran.
+                await Task.Yield();
+
+                if (_socket != null)
+                {
+                    // Abort the streams.
+                    _socket.AbortStreams(SocketStreamErrorCode.ConnectionAborted);
+
+                    _socket.Dispose();
+
+                    // Log the connection closure
+                    if (_state == ConnectionState.Connecting && !_connected)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
@@ -683,7 +773,7 @@ namespace IceRpc
                         };
                         logFailure(exception);
                     }
-                    else if (State > ConnectionState.Connecting || _connected)
+                    else if (_state > ConnectionState.Connecting || _connected)
                     {
                         if (IsDatagram && IsIncoming)
                         {
@@ -691,40 +781,25 @@ namespace IceRpc
                         }
                         else if (exception is ConnectionClosedException closedException)
                         {
-                            _socket.Logger.LogConnectionClosed(exception.Message, closedException.IsClosedByPeer);
+                            _socket.Logger.LogConnectionClosed(exception.Message);
                         }
-                        else if (State == ConnectionState.Closing)
+                        else if (_state == ConnectionState.Closing)
                         {
-                            _socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false);
+                            _socket.Logger.LogConnectionClosed(exception.Message);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            _socket.Logger.LogConnectionClosed("connection lost", closedByPeer: true);
+                            _socket.Logger.LogConnectionClosed("connection lost");
                         }
                         else
                         {
-                            _socket.Logger.LogConnectionClosed(exception.Message, closedByPeer: false, exception);
+                            _socket.Logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
-
-                    State = ConnectionState.Closed;
-                    _closeTask = PerformAbortAsync();
                 }
-            }
 
-            await _closeTask!.ConfigureAwait(false);
-
-            async Task PerformAbortAsync()
-            {
-                _socket.Abort(exception);
-
-                // Dispose the disposable resources associated with the connection.
-                _socket.Dispose();
                 _timer?.Dispose();
-
-                // Yield to ensure the code below is executed without the mutex locked (PerformAbortAsync is called
-                // with the mutex locked).
-                await Task.Yield();
+                _cancelGoAwaySource?.TrySetCanceled();
 
                 // Raise the Closed event, this will call user code so we shouldn't hold the mutex.
                 try
@@ -733,7 +808,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    _socket.Logger.LogConnectionEventHandlerException("close", ex);
+                    Logger.LogConnectionEventHandlerException("close", ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -743,36 +818,27 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => _socket?.StartScope();
-
-        private async ValueTask AcceptStreamAsync()
+        private async Task AcceptStreamAsync()
         {
             SocketStream? stream = null;
-            while (stream == null)
+            try
             {
-                try
-                {
-                    // Accept a new stream.
-                    stream = await _socket!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
-                }
-                catch (ConnectionClosedException) when (
-                    (State != ConnectionState.Closed && _peerControlStream!.ReceivedEndOfStream) ||
-                     State == ConnectionState.Closing)
-                {
-                    // Don't abort the connection if the connection is being gracefully closed (either the peer
-                    // control stream is done which indicates the reception of the GoAway frame or the connection
-                    // is in the closing state). We just ignore the failure to accept the new stream until the
-                    // connection is closed (which is indicated by a ConnectionLostException).
-                }
-                catch (Exception ex)
-                {
-                    _ = AbortAsync(ex);
-                    throw;
-                }
+                // Accept a new stream.
+                stream = await _socket!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (State == ConnectionState.Closing || ex is ConnectionClosedException)
+            {
+                // The connection is being closed gracefully, let the exception go through.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _ = AbortAsync(ex);
+                throw;
             }
 
             // Start a new accept stream task to accept another stream.
-            _acceptStreamTask = Task.Run(() => AcceptStreamAsync().AsTask());
+            _acceptStreamTask = Task.Run(() => AcceptStreamAsync());
 
             using IDisposable? streamScope = stream.StartScope();
 
@@ -780,8 +846,8 @@ namespace IceRpc
             try
             {
                 // Get a cancellation token for the dispatch. The token is cancelled when the stream is reset by the
-                // peer or when the stream is aborted because the connection shutdown timed out.
-                CancellationToken cancel = stream.CancelDispatchToken;
+                // peer or when the stream is aborted because the connection shutdown is canceled or failed.
+                CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
                 // Receives the request frame from the stream
                 using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
@@ -795,14 +861,17 @@ namespace IceRpc
                     response =
                         await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException exception) when (stream.IsBidirectional &&
-                                                                   exception.CancellationToken == cancel &&
-                                                                   State > ConnectionState.Active)
+                catch (OperationCanceledException)
                 {
-                    // The connection is being shutdown and shutdown aborted the dispatch, replace the
-                    // response with a dispatch exception to notify the client of the cancellation caused
-                    // by the connection shutdown.
-                    response = new OutgoingResponse(request, new DispatchException("dispatch canceled by shutdown"));
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        // With Ice1, stream reset is not supported so we raise a DispatchException instead.
+                        response = new OutgoingResponse(request, new DispatchException("dispatch canceled by peer"));
+                    }
+                    else
+                    {
+                        stream.Reset(SocketStreamErrorCode.DispatchCanceled);
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -811,21 +880,22 @@ namespace IceRpc
                     {
                         // We log the exception as the UnhandledException may not include all details.
                         _socket!.Logger.LogDispatchException(request, exception);
-                        remoteException = new UnhandledException(exception);
+                        response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else if (!stream.IsBidirectional)
                     {
-                        // We log this exception, since otherwise it would be lost since we don't send a response.
+                        // We log this exception, otherwise it would be lost since we don't send a response.
                         _socket!.Logger.LogDispatchException(request, exception);
                     }
-
-                    response = new OutgoingResponse(request, remoteException);
+                    else
+                    {
+                        response = new OutgoingResponse(request, remoteException);
+                    }
                 }
 
                 // Send the response if the stream is bidirectional.
-                if (stream.IsBidirectional)
+                if (response != null)
                 {
-                    Debug.Assert(response != null);
                     try
                     {
                         await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
@@ -838,6 +908,10 @@ namespace IceRpc
                     }
                 }
             }
+            catch (SocketStreamAbortedException)
+            {
+                // Ignore
+            }
             catch (Exception ex)
             {
                 _ = AbortAsync(ex);
@@ -848,61 +922,187 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Send the GoAway or CloseConnection frame to initiate the shutdown of the connection. Before
+        /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
+        /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
+        /// timeout to close the socket. If ShutdownAsync is canceled, invocations and dispatch in progress are
+        /// canceled to ensure a speedier shutdown.</summary>
+        /// <remarks>If Ice1, ShutdownAsync also waits for the incoming streams to complete before sending the
+        /// CloseConnection frame because Ice1 requires all the dispatch to complete.</remarks>
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
-            if (_socket == null)
+            Task shutdownTask;
+            lock (_mutex)
             {
-                // The connection is not established, we're done.
-                return;
+                if (_state == ConnectionState.Active && !IsDatagram)
+                {
+                    _state = ConnectionState.Closing;
+                    if (Protocol == Protocol.Ice2)
+                    {
+                        _cancelGoAwaySource = new();
+                    }
+                    _closeTask ??= PerformShutdownAsync(exception);
+                }
+                shutdownTask = _closeTask ?? AbortAsync(exception);
             }
 
-            Task shutdownTask;
             try
             {
-                lock (_mutex)
-                {
-                    if (State == ConnectionState.Active && !IsDatagram)
-                    {
-                        State = ConnectionState.Closing;
-                        _closeTask ??= PerformShutdownAsync(exception);
-                    }
-                    shutdownTask = _closeTask ?? AbortAsync(exception);
-                }
                 await shutdownTask.IceWaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
-                lock (_mutex)
+                if (Protocol == Protocol.Ice1)
                 {
-                    if (State == ConnectionState.Closing)
-                    {
-                        _socket.AbortStreams(exception);
-                    }
-                    shutdownTask = _closeTask!;
+                    // Cancel dispatch if shutdown is canceled.
+                    _socket?.CancelDispatch();
                 }
-                await shutdownTask.ConfigureAwait(false);
+                else
+                {
+                    // Notify the task completion source that shutdown was canceled. PerformShutdownAsync will
+                    // send the GoAwayCanceled from once the GoAway frame has been sent.
+                    _cancelGoAwaySource?.TrySetResult();
+                }
             }
-            catch (Exception ex)
-            {
-                // PerformShutdownAsync doesn't throw.
-                Debug.Assert(false, $"unexpected exception {ex}");
-            }
+
+            await shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync(Exception exception)
             {
+                Debug.Assert(_socket != null);
+
                 using IDisposable? scope = _socket.StartScope(Server);
-
-                // Abort outgoing streams and get the largest incoming stream IDs. With Ice2, we don't wait for
-                // the incoming streams to complete before sending the GoAway frame but instead provide the ID
-                // of the latest incoming stream IDs to the peer. The peer will close the connection only once
-                // the streams with IDs inferior or equal to the largest stream IDs are complete.
-                (long, long) lastIncomingStreamIds = _socket.AbortStreams(exception, stream => !stream.IsIncoming);
-
-                // With Ice1, we first wait for all incoming streams to complete before sending the GoAway frame.
-                if (Protocol == Protocol.Ice1)
+                TimeSpan now = Time.Elapsed;
+                try
                 {
-                    await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
+                    // Shutdown the multi-stream socket to prevent new streams from being created. This is done
+                    // before the yield to ensure consistency between the socket shutdown state and the connection
+                    // closing State.
+                    (long, long) lastIncomingStreamIds = _socket.Shutdown();
+
+                    // Yield before continuing to ensure the code below isn't executed with the mutex locked
+                    // and that _closeTask is assigned before any synchronous continuations are ran.
+                    await Task.Yield();
+
+                    Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
+                    using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
+                    CancellationToken cancel = cancelCloseSource.Token;
+
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        // Abort outgoing streams.
+                        _socket.AbortOutgoingStreams(SocketStreamErrorCode.ConnectionShutdown);
+
+                        // Wait for incoming streams to complete before sending the CloseConnetion frame. Ice1 doesn't
+                        // support sending the largest request ID with the CloseConnection frame. When the peer
+                        // receives the CloseConnection frame, it indicates that no more requests will be dispatch and
+                        // the peer can therefore cancel remaining pending invocations (which can safely be retried).
+                        await _socket.WaitForEmptyIncomingStreamsAsync(cancel).ConfigureAwait(false);
+                    }
+
+                    // Write the GoAway frame
+                    await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
+                                                               exception.Message,
+                                                               cancel).ConfigureAwait(false);
+
+                    if (Protocol == Protocol.Ice2)
+                    {
+                        // GoAway frame is sent, allow cancel to send the GoAwayCanceled frame at this point
+                        // if shutdown is canceled.
+                        _ = PerformCancelGoAwayIfShutdownCanceledAsync();
+                    }
+
+                    // Wait for all the streams to complete.
+                    await WaitForEmptyStreamsAsync(cancel).ConfigureAwait(false);
+
+                    // Close the socket. This sends a close notification to the peer. The peer is supposed
+                    // to close the connection upon getting this notification.
+                    await _socket.CloseAsync(ConnectionErrorCode.Shutdown, cancel).ConfigureAwait(false);
+
+                    // Wait for peer to close the connection.
+                    try
+                    {
+                        await WaitForCloseAsync(cancel).ConfigureAwait(false);
+                    }
+                    catch (TransportException)
+                    {
+                        // Ignore
+                    }
+
+                    // Abort the connection if the peer closed the connection.
+                    await AbortAsync(exception).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    var ex = new ConnectionClosedException("connection closure timed out");
+                    await AbortAsync(ex).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await AbortAsync(ex).ConfigureAwait(false);
+                }
+            }
+
+            async Task PerformCancelGoAwayIfShutdownCanceledAsync()
+            {
+                // Wait for the shutdown cancellation.
+                await _cancelGoAwaySource!.Task.ConfigureAwait(false);
+
+                // Write the GoAwayCanceled frame to the peer's streams.
+                await _controlStream!.SendGoAwayCanceledFrameAsync(CancellationToken.None).ConfigureAwait(false);
+
+                // Cancel dispatch if shutdown is canceled.
+                _socket!.CancelDispatch();
+            }
+        }
+
+        /// <summary>Waits for the GoAway or CloseConnection frame to initiate the shutdown of the connection.
+        /// The shutdown of the connection aborts outgoing streams that the peer didn't process yet and waits
+        /// for all the stream to complete (or the peer to close the socket) before closing the socket.</summary>
+        private async Task WaitForShutdownAsync()
+        {
+            Debug.Assert(State >= ConnectionState.Active);
+
+            // Wait to receive the GoAway frame on the control stream.
+            ((long, long) lastOutgoingStreamIds, string message) =
+                await _peerControlStream!.ReceiveGoAwayFrameAsync().ConfigureAwait(false);
+
+            Task shutdownTask;
+            lock (_mutex)
+            {
+                var exception = new ConnectionClosedException(message);
+                if (_state == ConnectionState.Active)
+                {
+                    _state = ConnectionState.Closing;
+                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, true);
+                }
+                else if (_state == ConnectionState.Closing)
+                {
+                    // We already initiated graceful connection closure. If the peer did as well, we can cancel
+                    // incoming/outgoing streams.
+                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, false);
+                }
+                else
+                {
+                    shutdownTask = _closeTask!;
+                }
+            }
+
+            await shutdownTask.ConfigureAwait(false);
+
+            async Task PerformShutdownAsync((long, long) lastOutgoingStreamIds, Exception exception, bool closing)
+            {
+                // Shutdown the multi-stream socket to prevent new streams from being created. This is done
+                // before the yield to ensure consistency between the socket shutdown state and the connection
+                // closing State.
+                (long, long) lastIncomingStreamIds = _socket!.Shutdown();
+
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked.
+                await Task.Yield();
+
+                // Abort non-processed outgoing streams before closing the connection to ensure the invocation
+                // will fail with a retryable exception.
+                _socket.AbortOutgoingStreams(SocketStreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
 
                 try
                 {
@@ -910,99 +1110,94 @@ namespace IceRpc
                     using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
                     CancellationToken cancel = cancelCloseSource.Token;
 
-                    // Write the close frame
-                    await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
-                                                               exception.Message,
-                                                               cancel).ConfigureAwait(false);
-
-                    // Make sure to yield to release the mutex. It's important to not hold the mutex because the
-                    // loop below waits for AbortAsync to be called and AbortAsync requires to lock the mutex.
-                    await Task.Yield();
-
-                    // Wait for the peer to close the connection.
-                    while (true)
+                    if (Protocol != Protocol.Ice1)
                     {
-                        // We can't just wait for the accept stream task failure as the task can sometime succeed
-                        // depending on the thread scheduling. So we also check for the state to ensure the loop
-                        // eventually terminates once the peer connection is closed.
-                        if (State == ConnectionState.Closed)
+                        if (closing)
                         {
-                            throw exception;
+                            // Send back a GoAway frame if we just switched to the closing state. If we were already
+                            // in the closing state, it has already been sent.
+                            await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
+                                                                       exception.Message,
+                                                                       cancel).ConfigureAwait(false);
+
+                            // Wait for the GoAwayCanceled frame from the peer, if received this will abort the streams.
+                            _ = WaitForGoAwayCanceledAsync();
                         }
-                        await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
+
+                        // Wait for all the streams to complete.
+                        await WaitForEmptyStreamsAsync(cancel).ConfigureAwait(false);
+
+                        // Wait for the connection closure.
+                        try
+                        {
+                            await WaitForCloseAsync(cancel).ConfigureAwait(false);
+                        }
+                        catch (TransportException)
+                        {
+                            // Ignore
+                        }
                     }
+
+                    // Abort the connection once all the streams have completed.
+                    await AbortAsync(exception).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
-                    await AbortAsync(new TimeoutException("connection closure timed out")).ConfigureAwait(false);
+                    var ex = new ConnectionClosedException("connection closure timed out");
+                    await AbortAsync(ex).ConfigureAwait(false);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    await AbortAsync(exception).ConfigureAwait(false);
+                    // If the connection is closed
+                    await AbortAsync(ex).ConfigureAwait(false);
+                }
+            }
+
+            async Task WaitForGoAwayCanceledAsync()
+            {
+                try
+                {
+                    // Wait to receive the GoAwayCanceled frame.
+                    await _peerControlStream!.ReceiveGoAwayCanceledFrameAsync().ConfigureAwait(false);
+
+                    // Cancel dispatch if shutdown is canceled.
+                    _socket!.CancelDispatch();
+                }
+                catch
+                {
                 }
             }
         }
 
-        private async Task WaitForShutdownAsync()
+        private async Task WaitForCloseAsync(CancellationToken cancel)
         {
-            try
+            // Wait for the peer to close the connection and return.
+            while (State != ConnectionState.Closed)
             {
-                // Wait to receive the GoAway frame on the control stream.
-                ((long Bidirectional, long Unidirectional) lastStreamIds, string message) =
-                    await _peerControlStream!.ReceiveGoAwayFrameAsync().ConfigureAwait(false);
-
-                Task shutdownTask;
-                lock (_mutex)
-                {
-                    var exception = new ConnectionClosedException(message, isClosedByPeer: true);
-                    if (State == ConnectionState.Active)
-                    {
-                        State = ConnectionState.Closing;
-                        shutdownTask = PerformShutdownAsync(lastStreamIds, exception);
-                    }
-                    else if (State == ConnectionState.Closing)
-                    {
-                        // We already initiated graceful connection closure. If the peer did as well, we can cancel
-                        // incoming/outgoing streams.
-                        shutdownTask = PerformShutdownAsync(lastStreamIds, exception);
-                    }
-                    else
-                    {
-                        shutdownTask = _closeTask!;
-                    }
-                }
-
-                await shutdownTask.ConfigureAwait(false);
+                await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            throw new ConnectionClosedException();
+        }
+
+        private async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
+        {
+            // Wait for all the streams to complete or an unexpected connection closure.
+            Task waitForEmptyStreams = _socket!.WaitForEmptyStreamsAsync(cancel);
+            if (!waitForEmptyStreams.IsCompleted)
             {
-                await AbortAsync(ex).ConfigureAwait(false);
-            }
-
-            async Task PerformShutdownAsync(
-                (long Bidirectional, long Unidirectional) lastStreamIds,
-                Exception exception)
-            {
-                // Abort non-processed outgoing streams and all incoming streams.
-                _socket!.AbortStreams(
-                    exception,
-                    stream => stream.IsIncoming ||
-                                stream.IsBidirectional ?
-                                    stream.Id > lastStreamIds.Bidirectional :
-                                    stream.Id > lastStreamIds.Unidirectional);
-
-                // Wait for all the streams to complete.
-                await _socket.WaitForEmptyStreamsAsync().ConfigureAwait(false);
-
-                try
+                Task task = await Task.WhenAny(waitForEmptyStreams, WaitForCloseAsync(cancel)).ConfigureAwait(false);
+                if (task != waitForEmptyStreams)
                 {
-                    // Close the transport
-                    await _socket.CloseAsync(exception, CancellationToken.None).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // Abort the connection once all the streams have completed.
-                    await AbortAsync(exception).ConfigureAwait(false);
+                    // The peer closed the connection before the streams are completed. If it gracefully closed the
+                    // connection, we continue waiting for the streams to complete.
+                    try
+                    {
+                        await task.ConfigureAwait(false);
+                    }
+                    catch (ConnectionClosedException)
+                    {
+                        await waitForEmptyStreams.ConfigureAwait(false);
+                    }
                 }
             }
         }

@@ -85,7 +85,7 @@ namespace IceRpc.Internal
 
         private static readonly UTF8Encoding _utf8 = new(false, true);
 
-        private bool _closing;
+        private TaskCompletionSource? _closingTaskCompletionSource;
         private bool _incoming;
         private string _key;
         private readonly HttpParser _parser;
@@ -114,17 +114,26 @@ namespace IceRpc.Internal
             return (this, remoteEndpoint);
         }
 
-        public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
+        public override async ValueTask CloseAsync(long errorCode, CancellationToken cancel)
         {
+            lock (_mutex)
+            {
+                if (_closingTaskCompletionSource != null)
+                {
+                    // We already received the close frame.
+                    return;
+                }
+                _closingTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
+            // Send the close frame if the close frame.
             byte[] payload = new byte[2];
-            short reason = System.Net.IPAddress.HostToNetworkOrder(
-                (short)(exception is ObjectDisposedException ? ClosureStatusCode.Shutdown : ClosureStatusCode.Normal));
+            short reason = IPAddress.HostToNetworkOrder((short)ClosureStatusCode.Shutdown);
             MemoryMarshal.Write(payload, ref reason);
+            var sendBuffer = new List<ArraySegment<byte>> { payload };
+            await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
 
-            _closing = true;
-
-            // Send the close frame.
-            await SendImplAsync(OpCode.Close, new List<ArraySegment<byte>> { payload }, cancel).ConfigureAwait(false);
+            await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
 
         public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
@@ -156,7 +165,7 @@ namespace IceRpc.Internal
 
             if (_receivePayloadLength == 0)
             {
-                throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException();
             }
 
             // Read the payload
@@ -182,6 +191,7 @@ namespace IceRpc.Internal
 
         protected override void Dispose(bool disposing)
         {
+            _closingTaskCompletionSource?.TrySetResult();
             _bufferedSocket.Dispose();
             _rand.Dispose();
         }
@@ -451,17 +461,21 @@ namespace IceRpc.Internal
                             Unmask(payload, 0, payload.Length);
                         }
 
-                        // If we've received a close frame and we were waiting for it, notify the task. Otherwise,
-                        // we didn't send a close frame and we should reply back with a close frame.
-                        if (_closing)
+                        lock (_mutex)
                         {
-                            return 0;
+                            if (_closingTaskCompletionSource != null)
+                            {
+                                _closingTaskCompletionSource.TrySetResult();
+                                return 0;
+                            }
+
+                            _closingTaskCompletionSource = new();
+                            _closingTaskCompletionSource.SetResult();
                         }
-                        else
-                        {
-                            var sendBuffer = new List<ArraySegment<byte>> { payload };
-                            await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
-                        }
+
+                        // Send back a close frame.
+                        var sendBuffer = new List<ArraySegment<byte>> { payload };
+                        await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Ping:
@@ -688,7 +702,7 @@ namespace IceRpc.Internal
                 int size = buffers.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
 
-                Logger.LogReceivedWebSocketFrame(opCode, size);
+                Logger.LogSendingWebSocketFrame(opCode, size);
 
                 if (_incoming || opCode == OpCode.Pong)
                 {

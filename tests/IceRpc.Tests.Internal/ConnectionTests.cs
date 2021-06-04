@@ -13,7 +13,6 @@ namespace IceRpc.Tests.Internal
 {
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    // [Log(LogAttributeLevel.Debug)]
     public class ConnectionTests
     {
         /// <summary>The connection factory is a small helper to allow creating a client and server connection
@@ -49,6 +48,18 @@ namespace IceRpc.Tests.Internal
             }
 
             public ILogger Logger => _server.Logger;
+
+            public IServicePrx Proxy
+            {
+                get
+                {
+                    var proxy = IServicePrx.FromConnection(Client);
+                    var pipeline = new Pipeline();
+                    pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory));
+                    proxy.Invoker = pipeline;
+                    return proxy;
+                }
+            }
 
             private Connection? _cachedClientConnection;
             private Connection? _cachedServerConnection;
@@ -136,7 +147,13 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
+                IDispatcher? pipeline = null;
+                if (dispatcher != null)
+                {
+                    pipeline = Middleware.Logger(Runtime.DefaultLoggerFactory)(dispatcher);
+                }
+
+                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = pipeline };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")
@@ -165,46 +182,58 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task Connection_AbortAsync(bool closeClientSide)
+        [TestCase(Protocol.Ice2, "tcp", false)]
+        [TestCase(Protocol.Ice2, "tcp", true)]
+        [TestCase(Protocol.Ice2, "ws", false)]
+        [TestCase(Protocol.Ice2, "ws", true)]
+        [TestCase(Protocol.Ice1, "tcp", false)]
+        [TestCase(Protocol.Ice1, "tcp", true)]
+        [TestCase(Protocol.Ice2, "coloc", false)]
+        [TestCase(Protocol.Ice2, "coloc", true)]
+        public async Task Connection_AbortAsync(Protocol protocol, string transport, bool closeClientSide)
         {
             using var semaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
-                "tcp",
+                transport,
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
                     return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
-                }));
+                }),
+                protocol: protocol);
 
             // Perform an invocation
-            var proxy = IServicePrx.FromConnection(factory.Client);
-            proxy.Invoker = new Pipeline(); // TODO temporary FromConnection must setup the Invoker
-            Task pingTask = proxy.IcePingAsync();
+            Task pingTask = factory.Proxy.IcePingAsync();
 
             if (closeClientSide)
             {
                 await factory.Client.AbortAsync();
-                Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
             }
             else
             {
                 await factory.Server.AbortAsync();
-                Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
+            Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             semaphore.Release();
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task Connection_ClosedEventAsync(bool closeClientSide)
+        [TestCase(Protocol.Ice1, false)]
+        [TestCase(Protocol.Ice1, true)]
+        [TestCase(Protocol.Ice2, false)]
+        [TestCase(Protocol.Ice2, true)]
+        public async Task Connection_ClosedEventAsync(Protocol protocol, bool closeClientSide)
         {
-            await using var factory = new ConnectionFactory();
+            await using var factory = new ConnectionFactory("tcp", protocol);
 
             using var semaphore = new SemaphoreSlim(0);
-            factory.Client.Closed += (sender, args) => semaphore.Release();
-            factory.Server.Closed += (sender, args) => semaphore.Release();
+            EventHandler<ClosedEventArgs> handler = (sender, args) =>
+            {
+                Assert.That(sender, Is.AssignableTo<Connection>());
+                Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
+                semaphore.Release();
+            };
+            factory.Client.Closed += handler;
+            factory.Server.Closed += handler;
 
             await (closeClientSide ? factory.Client : factory.Server).ShutdownAsync();
 
@@ -429,14 +458,19 @@ namespace IceRpc.Tests.Internal
                 });
 
             var semaphore = new SemaphoreSlim(0);
+            EventHandler handler = (sender, args) =>
+            {
+                Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.Server : factory.Client));
+                semaphore.Release();
+            };
             if (heartbeatOnClient)
             {
                 factory.Client.PingReceived += (sender, args) => Assert.Fail();
-                factory.Server.PingReceived += (sender, args) => semaphore.Release();
+                factory.Server.PingReceived += handler;
             }
             else
             {
-                factory.Client.PingReceived += (sender, args) => semaphore.Release();
+                factory.Client.PingReceived += handler;
                 factory.Server.PingReceived += (sender, args) => Assert.Fail();
             }
 
@@ -446,14 +480,13 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
-        // [Log(LogAttributeLevel.Debug)]
         public async Task Connection_KeepAliveOnInvocationAsync(Protocol protocol)
         {
             using var dispatchSemaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                serverConnectionOptions: new() { IdleTimeout = TimeSpan.FromMilliseconds(100) },
+                serverConnectionOptions: new() { IdleTimeout = TimeSpan.FromMilliseconds(1000) },
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
@@ -461,14 +494,11 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            var proxy = IServicePrx.FromConnection(factory.Client);
-            proxy.Invoker = new Pipeline(); // TODO temporary FromConnection must setup the Invoker
-            Task pingTask = proxy.IcePingAsync();
+            Task pingTask = factory.Proxy.IcePingAsync();
 
             // Make sure we receive few pings while the invocation is pending.
             var semaphore = new SemaphoreSlim(0);
             factory.Client.PingReceived += (sender, args) => semaphore.Release();
-            await semaphore.WaitAsync();
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();
 
@@ -477,16 +507,21 @@ namespace IceRpc.Tests.Internal
             await pingTask;
         }
 
-        [TestCase(false, Protocol.Ice1)]
-        [TestCase(true, Protocol.Ice1)]
-        [TestCase(false, Protocol.Ice2)]
-        [TestCase(true, Protocol.Ice2)]
-        public async Task Connection_GoAwayAsync(bool closeClientSide, Protocol protocol)
+        [TestCase(Protocol.Ice2, "tcp", false)]
+        [TestCase(Protocol.Ice2, "tcp", true)]
+        [TestCase(Protocol.Ice2, "ws", false)]
+        [TestCase(Protocol.Ice2, "ws", true)]
+        [TestCase(Protocol.Ice1, "tcp", false)]
+        [TestCase(Protocol.Ice1, "tcp", true)]
+        [TestCase(Protocol.Ice2, "coloc", false)]
+        [TestCase(Protocol.Ice2, "coloc", true)]
+        [Repeat(10)]
+        public async Task Connection_ShutdownAsync(Protocol protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             using var dispatchSemaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
-                "tcp",
+                transport,
                 protocol,
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
@@ -496,65 +531,139 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            var proxy = IServicePrx.FromConnection(factory.Client);
-            proxy.Invoker = new Pipeline(); // TODO temporary FromConnection must setup the Invoker
-            proxy.Endpoint = null; // Clear the endpoint to ensure the invocations only use the given connection
-            Task pingTask = proxy.IcePingAsync();
+            Task pingTask = factory.Proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
-            if (closeClientSide)
+            // Shutdown the connection
+            Task shutdownTask = (closeClientSide ? factory.Client : factory.Server).ShutdownAsync("message");
+            Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
+            await shutdownTask;
+
+            if (protocol == Protocol.Ice1 && closeClientSide)
             {
-                Task shutdownTask = factory.Client.ShutdownAsync("client message");
+                // With Ice1, when closing the connection with a pending invocation, invocations are aborted
+                // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
+                Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
 
-                // GoAway waits for the server-side connection closure, which can't occur until all the dispatch
-                // complete on the connection. We release the dispatch here to ensure GoAway completes.
-                // TODO: with Ice2, calling GoAwayAsync on the client side should cancel the dispatch since the
-                // connection doesn't wait for the response?
-                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
-
-                await shutdownTask;
-
-                // Next invocation on the connection should throw the ConnectionClosedException
-                ConnectionClosedException? ex =
-                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
-                Assert.That(ex, Is.Not.Null);
-                Assert.That(ex!.Message, Is.EqualTo("client message"));
-                Assert.That(ex.IsClosedByPeer, Is.False);
-                Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
             }
             else
             {
-                // GoAway waits for the client-side connection closure, which can't occur until all the invocations
-                // complete on the connection. We release the dispatch here and ensure GoAway completes.
-                Task shutdownTask = factory.Server.ShutdownAsync("server message");
-                Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
-                await shutdownTask;
-
                 // Ensure the invocation is successful
                 Assert.DoesNotThrowAsync(async () => await pingTask);
+            }
 
-                // Next invocation on the connection should throw the ConnectionClosedException
-                ConnectionClosedException? ex =
-                    Assert.ThrowsAsync<ConnectionClosedException>(async () => await proxy.IcePingAsync());
-                Assert.That(ex, Is.Not.Null);
+            // Next invocation on the connection should throw ConnectionClosedException
+            Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
+        }
 
-                // TODO: after connetion refactoring, should a non-resumable connection remember if
-                // it was closed by the peer and the closure reason? The server message isn't very
-                // useful right now except for tracing.
-                Assert.That(ex!.Message, Is.EqualTo("cannot access closed connection"));
-                Assert.That(ex.IsClosedByPeer, Is.False);
-                Assert.That(ex.RetryPolicy, Is.EqualTo(RetryPolicy.AfterDelay(TimeSpan.Zero)));
+        [TestCase(false, Protocol.Ice1)]
+        [TestCase(true, Protocol.Ice1)]
+        [TestCase(false, Protocol.Ice2)]
+        [TestCase(true, Protocol.Ice2)]
+        [Log(LogAttributeLevel.Debug)]
+        public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
+        {
+            using var waitForDispatchSemaphore = new SemaphoreSlim(0);
+            using var dispatchSemaphore = new SemaphoreSlim(0);
+            await using var factory = new ConnectionFactory(
+                "tcp",
+                protocol,
+                dispatcher: new InlineDispatcher(async (request, cancel) =>
+                {
+                    waitForDispatchSemaphore.Release();
+                    try
+                    {
+                        await Task.Delay(-1, cancel);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        dispatchSemaphore.Release();
+                        throw;
+                    }
+                    catch
+                    {
+                    }
+                    Assert.Fail();
+                    return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
+                }));
+
+            // Perform an invocation
+            Task pingTask = factory.Proxy.IcePingAsync();
+            await waitForDispatchSemaphore.WaitAsync();
+
+            using var cancelSource = new CancellationTokenSource();
+            if (closeClientSide)
+            {
+                Task shutdownTask = factory.Client.ShutdownAsync("client message", cancelSource.Token);
+                Assert.That(shutdownTask.IsCompleted, Is.False);
+                cancelSource.Cancel();
+
+                if (protocol != Protocol.Ice1)
+                {
+                    // Ensure the dispatch is canceled. With Ice1, the dispatch isn't canceled because
+                    // stream Reset is not supported.
+                    dispatchSemaphore.Wait();
+                }
+
+                // The invocation on the connection has been canceled by the shutdown cancellation
+                var ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+
+                if (protocol == Protocol.Ice1)
+                {
+                    // Client-side Ice1 invocations are canceled immediately on shutdown
+                    Assert.That(ex!.Message, Is.EqualTo("connection shutdown"));
+
+                    // Ensure the dispatch is canceled with Ice1 once the connection is forcefully closed on
+                    // the client side.
+                    dispatchSemaphore.Wait();
+                }
+                else
+                {
+                    Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
+                }
+            }
+            else
+            {
+                Task shutdownTask = factory.Server.ShutdownAsync("server message", cancelSource.Token);
+                Assert.That(shutdownTask.IsCompleted, Is.False);
+                cancelSource.Cancel();
+
+                // Ensure the dispatch is canceled.
+                dispatchSemaphore.Wait();
+
+                // The invocation on the connection should throw a DispatchException
+                if (protocol == Protocol.Ice1)
+                {
+                    DispatchException? ex = Assert.ThrowsAsync<DispatchException>(async () => await pingTask);
+                    Assert.That(ex!.RetryPolicy, Is.EqualTo(RetryPolicy.NoRetry));
+                }
+                else
+                {
+                    var ex = Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                    Assert.That(ex!.Message, Is.EqualTo("dispatch canceled by peer"));
+                }
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task Connection_GoAway_TimeoutAsync(bool closeClientSide)
+        [TestCase(Protocol.Ice2, "tcp", false)]
+        [TestCase(Protocol.Ice2, "tcp", true)]
+        [TestCase(Protocol.Ice2, "ws", false)]
+        [TestCase(Protocol.Ice2, "ws", true)]
+        [TestCase(Protocol.Ice1, "tcp", false)]
+        [TestCase(Protocol.Ice1, "tcp", true)]
+        [TestCase(Protocol.Ice2, "coloc", false)]
+        [TestCase(Protocol.Ice2, "coloc", true)]
+        [Log(LogAttributeLevel.Debug)]
+        public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
+            Protocol protocol,
+            string transport,
+            bool closeClientSide)
         {
             using var semaphore = new SemaphoreSlim(0);
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
             await using var factory = new ConnectionFactory(
-                "tcp",
+                transport,
+                protocol: protocol,
                 clientConnectionOptions: new()
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
@@ -571,27 +680,30 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            var proxy = IServicePrx.FromConnection(factory.Client);
-            proxy.Invoker = new Pipeline(); // TODO temporary FromConnection must setup the Invoker
-            Task pingTask = proxy.IcePingAsync();
+            Task pingTask = factory.Proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
             if (closeClientSide)
             {
-                // GoAway should trigger the abort of the connection after the close timeout
+                // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.Client.ShutdownAsync();
-
-                // The client side aborts the invocation as soon as the client-side connection is shutdown.
-                Assert.ThrowsAsync<ConnectionClosedException>(async () => await pingTask);
+                if (protocol == Protocol.Ice1)
+                {
+                    // Invocations are canceled immediately on shutdown with Ice1
+                    Assert.ThrowsAsync<OperationCanceledException>(async () => await pingTask);
+                }
+                else
+                {
+                    Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
+                }
             }
             else
             {
-                // GoAway should trigger the abort of the connection after the close timeout
+                // Shutdown should trigger the abort of the connection after the close timeout
                 await factory.Server.ShutdownAsync();
-
-                // The server forcefully close the connection after the close timeout.
                 Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
+
             semaphore.Release();
         }
     }

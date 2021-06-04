@@ -12,8 +12,6 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class SingleStreamSocketBaseTest : SocketBaseTest
     {
-        protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
-        protected static readonly List<ArraySegment<byte>> OneMBSendBuffer = new() { new byte[1024 * 1024] };
         protected SingleStreamSocket ClientSocket => _clientSocket!;
         protected SingleStreamSocket ServerSocket => _serverSocket!;
         private SingleStreamSocket? _clientSocket;

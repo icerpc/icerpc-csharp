@@ -33,12 +33,10 @@ namespace IceRpc.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
-        private readonly ChannelReader<(long, object?, bool)> _reader;
+        private readonly ChannelReader<(long, object, bool)> _reader;
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
-        private readonly ChannelWriter<(long, object?, bool)> _writer;
-
-        public override void Abort() => _writer.TryComplete();
+        private readonly ChannelWriter<(long, object, bool)> _writer;
 
         public override ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
@@ -50,21 +48,29 @@ namespace IceRpc.Internal
             {
                 try
                 {
-                    (long streamId, object? frame, bool fin) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
-                    if (TryGetStream(streamId, out ColocStream? stream))
+                    (long streamId, object frame, bool fin) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                    if (streamId == -1)
+                    {
+                        if (frame == _pingFrame)
+                        {
+                            PingReceived?.Invoke();
+                        }
+                        else if (fin)
+                        {
+                            throw new ConnectionClosedException();
+                        }
+                        else
+                        {
+                            Debug.Assert(false);
+                        }
+                    }
+                    else if (TryGetStream(streamId, out ColocStream? stream))
                     {
                         // If we received a frame for a known stream, signal the stream of the frame reception. A null
                         // frame indicates a stream reset so reset the stream in this case.
                         try
                         {
-                            if (frame == null)
-                            {
-                                stream.ReceivedReset(0);
-                            }
-                            else
-                            {
-                                stream.ReceivedFrame(frame, fin);
-                            }
+                            stream.ReceivedFrame(frame, fin);
                         }
                         catch
                         {
@@ -76,22 +82,17 @@ namespace IceRpc.Internal
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
                         Debug.Assert(frame != null);
-                        stream = new ColocStream(this, streamId);
                         try
                         {
+                            stream = new ColocStream(this, streamId);
                             stream.ReceivedFrame(frame, fin);
                             return stream;
                         }
                         catch
                         {
-                            // Ignore, the stream got aborted.
-                            stream.Release();
+                            // Ignore, the stream got aborted or the socket is being shutdown.
+                            stream?.Release();
                         }
-                    }
-                    else if (streamId == -1)
-                    {
-                        Debug.Assert(frame == _pingFrame);
-                        PingReceived?.Invoke();
                     }
                     else
                     {
@@ -100,7 +101,7 @@ namespace IceRpc.Internal
                 }
                 catch (ChannelClosedException exception)
                 {
-                    throw new ConnectionLostException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new ConnectionLostException(exception);
                 }
             }
         }
@@ -109,11 +110,8 @@ namespace IceRpc.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => default;
 
-        public override async ValueTask CloseAsync(Exception exception, CancellationToken cancel)
-        {
-            _writer.Complete();
-            await _reader.Completion.IceWaitAsync(cancel).ConfigureAwait(false);
-        }
+        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
+            _writer.WriteAsync((-1, errorCode, true), cancel);
 
         public override SocketStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -140,7 +138,7 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                throw new TransportException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(exception);
             }
         }
 
@@ -153,15 +151,24 @@ namespace IceRpc.Internal
             }
             catch (Exception exception)
             {
-                throw new TransportException(exception, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(exception);
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (disposing)
+            {
+                _writer.TryComplete();
             }
         }
 
         internal ColocSocket(
             ColocEndpoint endpoint,
             long id,
-            ChannelWriter<(long, object?, bool)> writer,
-            ChannelReader<(long, object?, bool)> reader,
+            ChannelWriter<(long, object, bool)> writer,
+            ChannelReader<(long, object, bool)> reader,
             ConnectionOptions options,
             ILogger logger)
             : base(endpoint, options, logger)
@@ -189,16 +196,13 @@ namespace IceRpc.Internal
             }
         }
 
-        internal override (long, long) AbortStreams(Exception exception, Func<SocketStream, bool>? predicate)
+        internal override void AbortStreams(SocketStreamErrorCode errorCode)
         {
-            (long, long) streamIds = base.AbortStreams(exception, predicate);
+            base.AbortStreams(errorCode);
 
-            // Unblock requests waiting on the semaphores.
-            var ex = new ConnectionClosedException();
-            _bidirectionalStreamSemaphore!.Complete(ex);
-            _unidirectionalStreamSemaphore!.Complete(ex);
-
-            return streamIds;
+            var exception = new ConnectionClosedException();
+            _bidirectionalStreamSemaphore!.Complete(exception);
+            _unidirectionalStreamSemaphore!.Complete(exception);
         }
 
         internal void ReleaseStream(ColocStream stream)
@@ -219,12 +223,18 @@ namespace IceRpc.Internal
 
         internal async ValueTask SendFrameAsync(
             ColocStream stream,
-            object? frame,
+            object frame,
             bool fin,
             CancellationToken cancel)
         {
             if (stream.IsStarted)
             {
+                // If the stream is aborted, stop sending stream frames.
+                if (stream.AbortException is Exception exception)
+                {
+                    throw exception;
+                }
+
                 try
                 {
                     await _writer.WriteAsync((stream.Id, frame, fin), cancel).ConfigureAwait(false);
@@ -235,7 +245,7 @@ namespace IceRpc.Internal
                 }
                 catch (Exception ex)
                 {
-                    throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new TransportException(ex);
                 }
             }
             else
@@ -250,6 +260,13 @@ namespace IceRpc.Internal
                     AsyncSemaphore semaphore = stream.IsBidirectional ?
                         _bidirectionalStreamSemaphore! : _unidirectionalStreamSemaphore!;
                     await semaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+                    // If the stream is aborted, stop sending stream frames.
+                    if (stream.AbortException is Exception exception)
+                    {
+                        semaphore.Release();
+                        throw exception;
+                    }
                 }
 
                 // Ensure we allocate and queue the first stream frame atomically to ensure the receiver won't
@@ -280,7 +297,7 @@ namespace IceRpc.Internal
                 }
                 catch (Exception ex)
                 {
-                    throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new TransportException(ex);
                 }
             }
         }

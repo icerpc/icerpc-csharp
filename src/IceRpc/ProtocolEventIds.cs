@@ -35,6 +35,10 @@ namespace IceRpc
         /// <summary>Received an ice2 go away frame.</summary>
         public static readonly EventId ReceivedGoAwayFrame = GetEventId(ProtocolEvent.ReceivedGoAwayFrame);
 
+        /// <summary>Received an ice2 go away canceled frame.</summary>
+        public static readonly EventId ReceivedGoAwayCanceledFrame =
+            GetEventId(ProtocolEvent.ReceivedGoAwayCanceledFrame);
+
         /// <summary>Received an ice2 initialize frame.</summary>
         public static readonly EventId ReceivedInitializeFrame =
             GetEventId(ProtocolEvent.ReceivedInitializeFrame);
@@ -67,6 +71,9 @@ namespace IceRpc
         /// <summary>An ice2 go away frame was sent.</summary>
         public static readonly EventId SentGoAwayFrame = GetEventId(ProtocolEvent.SentGoAwayFrame);
 
+        /// <summary>An ice2 go away canceled frame was sent.</summary>
+        public static readonly EventId SentGoAwayCanceledFrame = GetEventId(ProtocolEvent.SentGoAwayCanceledFrame);
+
         /// <summary>An ice2 initialize frame was sent.</summary>
         public static readonly EventId SentInitializeFrame = GetEventId(ProtocolEvent.SentInitializeFrame);
 
@@ -87,6 +94,7 @@ namespace IceRpc
             ReceivedIce1RequestBatchFrame,
             ReceivedIce1ValidateConnectionFrame,
             ReceivedGoAwayFrame,
+            ReceivedGoAwayCanceledFrame,
             ReceivedInitializeFrame,
             ReceivedRequestFrame,
             ReceivedResponseFrame,
@@ -96,6 +104,7 @@ namespace IceRpc
             SentIce1ValidateConnectionFrame,
             SentIce1CloseConnectionFrame,
             SentGoAwayFrame,
+            SentGoAwayCanceledFrame,
             SentInitializeFrame,
             SentRequestFrame,
             SentResponseFrame

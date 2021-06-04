@@ -25,10 +25,15 @@ namespace IceRpc.Internal
             return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
-        protected override void Shutdown()
+        protected override void AbortWrite(SocketStreamErrorCode errorCode)
         {
-            base.Shutdown();
-            _socket.ReleaseStream(this);
+            // If the stream is aborted, either because it was reset by the peer or because the connection was
+            // aborted, there's no need to send a reset frame.
+            if (!IsAborted)
+            {
+                // Send reset frame
+                _ = _socket.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+            }
         }
 
         protected override void EnableSendFlowControl()
@@ -61,7 +66,7 @@ namespace IceRpc.Internal
             // socket channel.
             if (_streamReader == null)
             {
-                (object frame, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
+                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
                 _streamReader = frame as ChannelReader<byte[]>;
                 Debug.Assert(_streamReader != null);
             }
@@ -106,11 +111,6 @@ namespace IceRpc.Internal
             return received;
         }
 
-        protected override ValueTask ResetAsync(long errorCode) =>
-            // A null frame indicates a stream reset.
-            // TODO: Provide the error code?
-            _socket.SendFrameAsync(this, frame: null, fin: true, CancellationToken.None);
-
         protected override async ValueTask SendAsync(
             IList<ArraySegment<byte>> buffer,
             bool fin,
@@ -139,6 +139,12 @@ namespace IceRpc.Internal
             }
         }
 
+        protected override void Shutdown()
+        {
+            base.Shutdown();
+            _socket.ReleaseStream(this);
+        }
+
         /// <summary>Constructor for incoming colocated stream</summary>
         internal ColocStream(ColocSocket socket, long streamId)
             : base(socket, streamId) => _socket = socket;
@@ -147,11 +153,22 @@ namespace IceRpc.Internal
         internal ColocStream(ColocSocket socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
-        internal void ReceivedFrame(object frame, bool fin) => QueueResult((frame, fin));
+        internal void ReceivedFrame(object frame, bool fin)
+        {
+            if (frame is SocketStreamErrorCode errorCode)
+            {
+                AbortRead(errorCode);
+                CancelDispatchSource?.Cancel();
+            }
+            else
+            {
+                QueueResult((frame, fin));
+            }
+        }
 
         internal override async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequest);
             var frame = (IncomingRequest)frameObject;
 
@@ -167,34 +184,10 @@ namespace IceRpc.Internal
             return frame;
         }
 
-        internal override void ReceivedReset(long errorCode)
-        {
-            Abort(new TransportException($"the peer aborted the stream with the error code {errorCode}"));
-            base.ReceivedReset(errorCode);
-        }
-
         internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
-            object frameObject;
-            bool fin;
-
-            try
-            {
-                (frameObject, fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                if (_socket.Protocol != Protocol.Ice1)
-                {
-                    // Don't await the sending of the reset since it might block if sending is blocking.
-                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
-                }
-                throw;
-            }
-
-            Debug.Assert(frameObject is IncomingResponse);
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             var frame = (IncomingResponse)frameObject;
-
             if (fin)
             {
                 _receivedEndOfStream = true;
@@ -211,7 +204,7 @@ namespace IceRpc.Internal
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await IceWaitAsync(cancel).ConfigureAwait(false);
+            (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             if (fin)
             {
                 _receivedEndOfStream = true;

@@ -23,9 +23,9 @@ namespace IceRpc
 
         /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
         /// of the connection closure.</summary>
-        /// <param name="exception">The reason of the connection closure.</param>
+        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(Exception exception, CancellationToken cancel);
+        public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
@@ -33,6 +33,9 @@ namespace IceRpc
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"{base.ToString()} ({Socket.Description})";
 
         /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
         /// to perform socket level initialization (TLS handshake, etc).</summary>

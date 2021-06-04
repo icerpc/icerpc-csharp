@@ -18,6 +18,8 @@ namespace IceRpc.Tests.Internal
     /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
     public class SocketBaseTest
     {
+        protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
+        protected static readonly List<ArraySegment<byte>> OneMBSendBuffer = new() { new byte[1024 * 1024] };
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }

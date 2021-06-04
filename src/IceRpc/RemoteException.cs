@@ -23,6 +23,9 @@ namespace IceRpc
         /// </summary>
         public static readonly RetryPolicy OtherReplica = new(Retryable.OtherReplica);
 
+        /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
+        public static readonly RetryPolicy Immediately = new(Retryable.AfterDelay, TimeSpan.Zero);
+
         /// <summary>Creates a retry policy that specifies that the exception can be retried after the given delay.</summary>
         /// <param name="delay">The delay after which the exception can be retried.</param>
         /// <returns>The retry policy.</returns>

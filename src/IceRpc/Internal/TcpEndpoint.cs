@@ -294,7 +294,7 @@ namespace IceRpc.Internal
             catch (SocketException ex)
             {
                 socket.Dispose();
-                throw new TransportException(ex, RetryPolicy.OtherReplica);
+                throw new TransportException(ex);
             }
 
             return new TcpSocket(socket, logger, addr);

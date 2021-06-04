@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
+
 namespace IceRpc.Internal
 {
     internal static class SlicDefinitions
@@ -14,12 +16,13 @@ namespace IceRpc.Internal
             Stream = 6,
             StreamLast = 7,
             StreamReset = 8,
-            StreamConsumed = 9
+            StreamConsumed = 9,
+            Close = 10
         }
 
         // The header below is a sentinel header used to reserve space in the protocol frame to avoid
         // allocating again a byte buffer for the Slic header.
-        internal static byte[] FrameHeader = new byte[]
+        internal static ReadOnlyMemory<byte> FrameHeader = new byte[]
         {
             0x05, // Frame type
             0x02, 0x04, 0x06, 0x08, // FrameSize (varuint)
