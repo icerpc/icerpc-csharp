@@ -1065,7 +1065,7 @@ namespace IceRpc
 
             (int Size, Encoding Encoding) ReadEncapsulationHeader()
             {
-                size = ReadInt();
+                int size = ReadInt();
                 if (size < 4)
                 {
                     throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");

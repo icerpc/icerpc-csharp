@@ -329,8 +329,7 @@ namespace IceRpc
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection) =
-                    await responseTask.ConfigureAwait(false);
+                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, _) = await responseTask.ConfigureAwait(false);
                 payload.CheckVoidReturnValue(payloadEncoding);
             }
         }

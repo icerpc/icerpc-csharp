@@ -208,7 +208,7 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            var payload = data.Slice(istr.Pos);
+            ArraySegment<byte> payload = data.Slice(istr.Pos);
             if (PayloadSize != payload.Count)
             {
                 throw new InvalidDataException(
