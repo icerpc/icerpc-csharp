@@ -54,7 +54,8 @@ namespace IceRpc
                     if (compressorOptions.CompressResponsePayload &&
                         response.PayloadEncoding == Encoding.V20 &&
                         response.ResultType == ResultType.Success &&
-                        (response.PayloadSize >=1 && response.Payload[0][0] == (byte)CompressionFormat.NotCompressed) &&
+                        response.PayloadSize >=1 &&
+                        response.Payload[0][0] == (byte)CompressionFormat.NotCompressed &&
                         response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
                     {
                         (CompressionResult result, ArraySegment<byte> compressedPayload) =

@@ -163,7 +163,7 @@ namespace IceRpc
         // The number of bytes we use by default when writing a size on a fixed number of byte with the 2.0 encoding.
         private const int DefaultSizeLength = 4;
 
-        private static readonly System.Text.UTF8Encoding _utf8 = new System.Text.UTF8Encoding(false, true);
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private bool OldEncoding => Encoding == Encoding.V11;
 
@@ -1162,14 +1162,15 @@ namespace IceRpc
             this.Write(endpoint.Transport);
             Position startPos = _tail;
 
+            WriteInt(0); // placeholder for future encapsulation size
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                WriteEncapsulationHeader(opaqueEndpoint.ValueEncoding); // with placeholder for size
+                opaqueEndpoint.ValueEncoding.IceWrite(this);
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                WriteEncapsulationHeader(Encoding); // with placeholder for size
+                Encoding.IceWrite(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.WriteOptions11(this);
@@ -1182,13 +1183,6 @@ namespace IceRpc
                 }
             }
             RewriteFixedLengthSize11(Distance(startPos), startPos);
-
-            void WriteEncapsulationHeader(Encoding encoding)
-            {
-                WriteInt(0); // placeholder for future size
-                WriteByte(encoding.Major);
-                WriteByte(encoding.Minor);
-            }
         }
 
         internal void WriteField(int key, ReadOnlySpan<byte> value)
