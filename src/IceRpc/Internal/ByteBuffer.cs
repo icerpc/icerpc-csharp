@@ -32,31 +32,6 @@ namespace IceRpc.Internal
             return count;
         }
 
-        /// <summary>Reads the contents of a buffer.</summary>
-        /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="buffer">The buffer.</param>
-        /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the buffer.</param>
-        /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="skipTaggedParams">When true, the buffer may contain tagged parameters and this method skips
-        /// them before checking that the end of the buffer is reached.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The contents of the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
-        internal static T Read<T>(
-            this ReadOnlyMemory<byte> buffer,
-            InputStreamReader<T> reader,
-            Encoding encoding,
-            bool skipTaggedParams = false,
-            Connection? connection = null,
-            IInvoker? invoker = null)
-        {
-            var istr = new InputStream(buffer, encoding, connection, invoker);
-            T result = reader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams);
-            return result;
-        }
-
         internal static int ReadInt(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt32(buffer);
         internal static long ReadLong(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt64(buffer);
         internal static short ReadShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt16(buffer);

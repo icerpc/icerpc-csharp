@@ -47,7 +47,12 @@ namespace IceRpc
             this ReadOnlyMemory<byte> value,
             InputStreamReader<T> reader,
             Connection? connection = null,
-            IInvoker? invoker = null) =>
-            value.Read(reader, Encoding.V20, skipTaggedParams: false, connection, invoker);
+            IInvoker? invoker = null)
+        {
+            var istr = new InputStream(value, Encoding.V20, connection, invoker);
+            T result = reader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: false);
+            return result;
+        }
     }
 }

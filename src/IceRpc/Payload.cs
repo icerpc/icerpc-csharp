@@ -206,11 +206,10 @@ namespace IceRpc
                 payload = payload.Slice(1);
             }
 
-            return payload.Read(reader,
-                                dispatch.Encoding,
-                                skipTaggedParams: true,
-                                dispatch.Connection,
-                                dispatch.ProxyInvoker);
+            var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = reader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            return result;
         }
 
         /// <summary>Reads a response payload and converts it into a return value.</summary>
@@ -241,7 +240,10 @@ namespace IceRpc
                 payload = payload.Slice(1);
             }
 
-            return payload.Read(reader, payloadEncoding, skipTaggedParams: true, connection, invoker);
+            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            T result = reader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            return result;
         }
 
         /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
