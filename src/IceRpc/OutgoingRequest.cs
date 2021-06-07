@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
