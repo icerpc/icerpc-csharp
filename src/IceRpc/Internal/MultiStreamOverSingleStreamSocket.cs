@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;

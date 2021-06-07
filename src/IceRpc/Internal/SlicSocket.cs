@@ -46,7 +46,7 @@ namespace IceRpc.Internal
 
             while (true)
             {
-                (SlicDefinitions.FrameType type, int size, long? streamId)  =
+                (SlicDefinitions.FrameType type, int size, long? streamId) =
                          await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
 
                 switch (type)
