@@ -137,7 +137,7 @@ namespace IceRpc
                 {
                     var responseHeader = new Ice1ResponseHeader(istr);
                     PayloadEncoding = responseHeader.PayloadEncoding;
-                    var payload = data.Slice(istr.Pos);
+                    ArraySegment<byte> payload = data.Slice(istr.Pos);
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
                     if (payloadSize != payload.Count)
@@ -171,7 +171,7 @@ namespace IceRpc
                         @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-                var payload = data.Slice(istr.Pos);
+                ArraySegment<byte> payload = data.Slice(istr.Pos);
                 if (payloadSize != payload.Count)
                 {
                     throw new InvalidDataException(
@@ -205,7 +205,7 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            Payload = response.Payload.AsArraySegment();
+            Payload = response.Payload.ToArraySegment();
         }
 
         // Constructor for oneway response pseudo frame.
@@ -234,7 +234,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.Read(istr => new RetryPolicy(istr));
+                retryPolicy = value.ReadFieldValue(istr => new RetryPolicy(istr));
             }
             return retryPolicy;
         }

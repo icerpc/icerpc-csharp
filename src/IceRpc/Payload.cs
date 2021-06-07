@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,40 +10,51 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
-        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
-        /// takes a single parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="proxy">A proxy to the target service. This method uses the protocol and encoding of the proxy
-        /// to create the payload.</param>
-        /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
-        /// </param>
-        /// <param name="classFormat">The class format in case T is a class.</param>
-        /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromSingleArg<T>(
-            IServicePrx proxy,
-            T arg,
-            OutputStreamWriter<T> writer,
-            FormatType classFormat = default)
+        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
+        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch)
         {
-            var payload = new List<ArraySegment<byte>>();
-
-            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
-            if (proxy.Encoding == Encoding.V20)
+            if (dispatch.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
+            }
+            new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+        }
+
+        /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
+        /// <param name="payload">The response payload.</param>
+        /// <param name="payloadEncoding">The response's payload encoding.</param>
+        public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding)
+        {
+            if (payloadEncoding == Encoding.V20)
+            {
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
             }
 
-            writer(ostr, arg);
-            ostr.Finish();
-            return payload;
+            new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
-        /// <param name="proxy">A proxy to the target service. This method uses the protocol and encoding of the proxy
-        /// to create the payload.</param>
+        /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
         /// <param name="writer">The <see cref="OutputStreamValueWriter{T}"/> that writes the arguments into the
         /// payload.</param>
@@ -70,52 +80,136 @@ namespace IceRpc
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
-        /// <param name="proxy">A proxy to the target service. This method uses the protocol and encoding of the proxy
-        /// to create the payload.</param>
+        /// <param name="proxy">A proxy to the target service.</param>
         /// <returns>A new payload.</returns>
         public static IList<ArraySegment<byte>> FromEmptyArgs(IServicePrx proxy) =>
             new List<ArraySegment<byte>> { proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding) };
 
-        /// <summary>Reads a remote exception from a response payload.</summary>
-        /// <param name="payload">The response's payload.</param>
-        /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="replyStatus">The reply status.</param>
-        /// <param name="connection">The connection that received this response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <returns>The remote exception.</returns>
-        public static RemoteException ToRemoteException(
-            this ReadOnlyMemory<byte> payload,
-            Encoding payloadEncoding,
-            ReplyStatus replyStatus,
-            Connection connection,
-            IInvoker? invoker)
+        /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
+        /// method when the operation returns a tuple.</summary>
+        /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
+        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="returnValueTuple">The return values to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromReturnValueTuple<T>(
+            Dispatch dispatch,
+            in T returnValueTuple,
+            OutputStreamValueWriter<T> writer,
+            FormatType classFormat = default) where T : struct
         {
-            if (payload.Length == 0 || replyStatus == ReplyStatus.OK)
+            var payload = new List<ArraySegment<byte>>();
+
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            if (dispatch.Encoding == Encoding.V20)
             {
-                throw new ArgumentException("payload does not carry a remote exception", nameof(payload));
+                ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            Protocol protocol = connection.Protocol;
-            InputStream istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            writer(ostr, in returnValueTuple);
+            ostr.Finish();
+            return payload;
+        }
 
-            if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
+        /// takes a single parameter.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="proxy">A proxy to the target service.</param>
+        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromSingleArg<T>(
+            IServicePrx proxy,
+            T arg,
+            OutputStreamWriter<T> writer,
+            FormatType classFormat = default)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
+            if (proxy.Encoding == Encoding.V20)
             {
-                // Skip reply status byte
-                istr.Skip(1);
+                ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            RemoteException exception;
-            if (istr.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            writer(ostr, arg);
+            ostr.Finish();
+            return payload;
+        }
+
+        /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
+        /// when the operation returns a single value.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="returnValue">The return value to write into the payload.</param>
+        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// </param>
+        /// <param name="classFormat">The class format in case T is a class.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
+            Dispatch dispatch,
+            T returnValue,
+            OutputStreamWriter<T> writer,
+            FormatType classFormat = default)
+        {
+            var payload = new List<ArraySegment<byte>>();
+
+            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            if (dispatch.Encoding == Encoding.V20)
             {
-                exception = istr.ReadIce1SystemException(replyStatus);
-                istr.CheckEndOfBuffer(skipTaggedParams: false);
+                ostr.Write(CompressionFormat.NotCompressed);
             }
-            else
+
+            writer(ostr, returnValue);
+            ostr.Finish();
+            return payload;
+        }
+
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="dispatch">The request's dispatch properties.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(Dispatch dispatch) =>
+            FromVoidReturnValue(dispatch.IncomingRequest);
+
+        /// <summary>Creates a payload representing a void return value.</summary>
+        /// <param name="request">The request.</param>
+        /// <returns>A new payload.</returns>
+        public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
+            new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
+
+        /// <summary>Reads a request payload and converts it into a list of arguments.</summary>
+        /// <paramtype name="T">The type of the request parameters.</paramtype>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="reader">An input stream reader used to read the arguments from the payload.</param>
+        /// <returns>The request arguments.</returns>
+        public static T ToArgs<T>(
+            this ReadOnlyMemory<byte> payload,
+            Dispatch dispatch,
+            InputStreamReader<T> reader)
+        {
+            if (payload.Length == 0)
             {
-                exception = istr.ReadException();
-                istr.CheckEndOfBuffer(skipTaggedParams: true);
+                throw new ArgumentException("invalid empty payload", nameof(payload));
             }
-            return exception;
+
+            if (dispatch.Encoding == Encoding.V20)
+            {
+                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
+                {
+                    throw new ArgumentException("cannot read compressed payload");
+                }
+                payload = payload.Slice(1);
+            }
+
+            var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = reader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            return result;
         }
 
         /// <summary>Reads a response payload and converts it into a return value.</summary>
@@ -146,92 +240,17 @@ namespace IceRpc
                 payload = payload.Slice(1);
             }
 
-            return payload.ReadPayload(payloadEncoding, reader, connection, invoker);
-        }
-
-        /// <summary>Reads a response payload and ensures it carries a void return value or a remote exception.
-        /// </summary>
-        /// <param name="payload">The response payload.</param>
-        /// <param name="payloadEncoding">The response's payload encoding.</param>
-        public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding)
-        {
-            if (payloadEncoding == Encoding.V20)
-            {
-                if (payload.Length == 0)
-                {
-                    throw new ArgumentException("invalid empty payload", nameof(payload));
-                }
-                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
-                {
-                    throw new ArgumentException("cannot read compressed payload");
-                }
-                payload = payload.Slice(1);
-            }
-
-            new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
-        }
-
-        /// <summary>Creates the payload of a response from the request's dispatch and response argument.
-        /// Use this method when the operation returns a single value.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
-        /// </param>
-        /// <param name="classFormat">The class format in case T is a class.</param>
-        /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
-            Dispatch dispatch,
-            T returnValue,
-            OutputStreamWriter<T> writer,
-            FormatType classFormat = default)
-        {
-            var payload = new List<ArraySegment<byte>>();
-
-            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
-            if (dispatch.Encoding == Encoding.V20)
-            {
-                ostr.Write(CompressionFormat.NotCompressed);
-            }
-
-            writer(ostr, returnValue);
-            ostr.Finish();
-            return payload;
-        }
-
-        /// <summary>Creates the payload of a response from the request's dispatch and response arguments.
-        /// Use this method when the operation returns a tuple.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
-        /// </param>
-        /// <param name="classFormat">The class format in case T is a class.</param>
-        /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromReturnValueTuple<T>(
-            Dispatch dispatch,
-            in T returnValueTuple,
-            OutputStreamValueWriter<T> writer,
-            FormatType classFormat = default) where T : struct
-        {
-            var payload = new List<ArraySegment<byte>>();
-
-            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
-            if (dispatch.Encoding == Encoding.V20)
-            {
-                ostr.Write(CompressionFormat.NotCompressed);
-            }
-
-            writer(ostr, in returnValueTuple);
-            ostr.Finish();
-            return payload;
+            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            T result = reader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            return result;
         }
 
         /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
         /// <param name="request">The incoming request used to create this response payload. </param>
         /// <param name="exception">The exception.</param>
         /// <returns>A response payload containing the exception.</returns>
-        public static (IList<ArraySegment<byte>> Payload, ReplyStatus ReplyStatus) FromRemoteException(
+        internal static (IList<ArraySegment<byte>> Payload, ReplyStatus ReplyStatus) FromRemoteException(
             IncomingRequest request,
             RemoteException exception)
         {
@@ -286,87 +305,46 @@ namespace IceRpc
             return (payload, replyStatus);
         }
 
-        /// <summary>Creates a payload representing a void return value.</summary>
-        /// <param name="dispatch">The request's dispatch object. Used for the protocol and encoding.</param>
-        /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidReturnValue(Dispatch dispatch) =>
-            FromVoidReturnValue(dispatch.IncomingRequest);
-
-        /// <summary>Creates a payload representing a void return value.</summary>
-        /// <param name="request">The request. Used for the protocol and encoding.</param>
-        /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
-            new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
-
-        /// <summary>Converts a request payload into a list of arguments.</summary>
-        /// <paramtype name="T">The type of the request parameters.</paramtype>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">An input stream reader used to read the arguments from the payload.</param>
-        /// <returns>The request arguments.</returns>
-        public static T ToArgs<T>(
-            this ReadOnlyMemory<byte> payload,
-            Dispatch dispatch,
-            InputStreamReader<T> reader)
-        {
-            if (payload.Length == 0)
-            {
-                throw new ArgumentException("invalid empty payload", nameof(payload));
-            }
-
-            if (dispatch.Encoding == Encoding.V20)
-            {
-                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
-                {
-                    throw new ArgumentException("cannot read compressed payload");
-                }
-                payload = payload.Slice(1);
-            }
-
-            return payload.ReadPayload(dispatch.Encoding, reader, dispatch.Connection, dispatch.ProxyInvoker);
-        }
-
-        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties.</param>
-        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch)
-        {
-            if (dispatch.Encoding == Encoding.V20)
-            {
-                if (payload.Length == 0)
-                {
-                    throw new ArgumentException("invalid empty payload", nameof(payload));
-                }
-                if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
-                {
-                    throw new ArgumentException("cannot read compressed payload");
-                }
-                payload = payload.Slice(1);
-            }
-            new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
-        }
-
-        /// <summary>Reads the contents of a payload</summary>
-        /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="payload">The payload.</param>
-        /// <param name="payloadEncoding">The encoding of the payload.</param>
-        /// <param name="payloadReader">The <see cref="InputStreamReader{T}"/> that reads the payload.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The contents of the payload.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>buffer</c> is not a valid payload or
-        /// <c>payloadReader</c> finds invalid data.</exception>
-        private static T ReadPayload<T>(
+        /// <summary>Reads a remote exception from a response payload.</summary>
+        /// <param name="payload">The response's payload.</param>
+        /// <param name="payloadEncoding">The response's payload encoding.</param>
+        /// <param name="replyStatus">The reply status.</param>
+        /// <param name="connection">The connection that received this response.</param>
+        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
+        /// <returns>The remote exception.</returns>
+        internal static RemoteException ToRemoteException(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            InputStreamReader<T> payloadReader,
+            ReplyStatus replyStatus,
             Connection connection,
             IInvoker? invoker)
         {
+            if (payload.Length == 0 || replyStatus == ReplyStatus.OK)
+            {
+                throw new ArgumentException("payload does not carry a remote exception", nameof(payload));
+            }
+
+            Protocol protocol = connection.Protocol;
             var istr = new InputStream(payload, payloadEncoding, connection, invoker);
-            T result = payloadReader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
+
+            if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
+            {
+                // Skip reply status byte
+                istr.Skip(1);
+            }
+
+            RemoteException exception;
+            if (istr.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            {
+                exception = istr.ReadIce1SystemException(replyStatus);
+                istr.CheckEndOfBuffer(skipTaggedParams: false);
+            }
+            else
+            {
+                exception = istr.ReadException();
+                istr.CheckEndOfBuffer(skipTaggedParams: true);
+            }
+            return exception;
         }
     }
 }

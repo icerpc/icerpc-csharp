@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -51,10 +52,9 @@ namespace IceRpc.Tests.Encoding
             ostr.WriteProxy(prx);
             ostr.Finish();
 
-            var prx2 = _data[0].AsReadOnlyMemory().Read(encoding,
-                                                        IServicePrx.IceReader,
-                                                        connection: null,
-                                                        prx.Invoker);
+            var istr = new InputStream(_data[0], encoding, connection: null, prx.Invoker);
+            var prx2 = IServicePrx.IceReader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(prx, prx2);
         }
 
@@ -75,10 +75,10 @@ namespace IceRpc.Tests.Encoding
             ostr.Finish();
 
             // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
-            IServicePrx prx1 = _data[0].AsReadOnlyMemory().Read(encoding,
-                                                                IServicePrx.IceReader,
-                                                                _connection,
-                                                                invoker: null);
+            var istr = new InputStream(_data[0], encoding, _connection);
+            var prx1 = IServicePrx.IceReader(istr);
+            istr.CheckEndOfBuffer(skipTaggedParams: false);
+
             Assert.AreEqual(regular.Connection, prx1.Connection);
             Assert.AreEqual(prx1.Endpoint, regular.Connection!.RemoteEndpoint);
         }

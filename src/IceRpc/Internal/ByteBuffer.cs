@@ -1,59 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
-    /// <summary>Provides extension methods for byte buffers (such as <c>ReadOnlyMemory{byte}</c>) to read and write
-    /// data encoded using the Ice encoding.</summary>
-    public static class ByteBufferExtensions
+    /// <summary>Provides extension methods for byte buffers (such as <c>ReadOnlyMemory{byte}</c>).</summary>
+    internal static class ByteBuffer
     {
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
-
-        /// <summary>Reads a value from the buffer. This value cannot contain classes or exceptions.</summary>
-        /// <typeparam name="T">The type of the value.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of the data in the buffer.</param>
-        /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
-        /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The value read from the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
-        /// unread data in the buffer.</exception>
-        public static T Read<T>(
-            this ReadOnlyMemory<byte> buffer,
-            Encoding encoding,
-            InputStreamReader<T> reader,
-            Connection? connection = null,
-            IInvoker? invoker = null)
-        {
-            var istr = new InputStream(buffer, encoding, connection, invoker);
-            T result = reader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: false);
-            return result;
-        }
-
-        /// <summary>Reads a value from the buffer that uses the Ice 2.0 encoding. This value cannot contain classes or
-        /// exceptions.</summary>
-        /// <typeparam name="T">The type of the value.</typeparam>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the value from the buffer using an
-        /// <see cref="InputStream"/>.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>The value read from the buffer.</returns>
-        /// <exception name="InvalidDataException">Thrown when <c>reader</c> finds invalid data or <c>reader</c> leaves
-        /// unread data in the buffer.</exception>
-        public static T Read<T>(
-            this ReadOnlyMemory<byte> buffer,
-            InputStreamReader<T> reader,
-            Connection? connection = null,
-            IInvoker? invoker = null) =>
-            buffer.Read(Encoding.V20, reader, connection, invoker);
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
 
@@ -61,6 +18,19 @@ namespace IceRpc
 
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start, int length) =>
             segment.AsSpan(start, length);
+
+        /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
+        /// <param name="src">The list of segments.</param>
+        /// <returns>The byte count of the segment list.</returns>
+        internal static int GetByteCount(this IEnumerable<ArraySegment<byte>> src)
+        {
+            int count = 0;
+            foreach (ArraySegment<byte> segment in src)
+            {
+                count += segment.Count;
+            }
+            return count;
+        }
 
         internal static int ReadInt(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt32(buffer);
         internal static long ReadLong(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt64(buffer);
@@ -106,6 +76,26 @@ namespace IceRpc
             };
 
             return (value, buffer[0].ReadVarLongLength());
+        }
+
+        internal static ArraySegment<byte> ToArraySegment(this IList<ArraySegment<byte>> src)
+        {
+            if (src.Count == 1)
+            {
+                return src[0];
+            }
+            else
+            {
+                byte[] data = new byte[src.GetByteCount()];
+                int offset = 0;
+                foreach (ArraySegment<byte> segment in src)
+                {
+                    Debug.Assert(segment.Array != null);
+                    Buffer.BlockCopy(segment.Array, segment.Offset, data, offset, segment.Count);
+                    offset += segment.Count;
+                }
+                return data;
+            }
         }
 
         /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>

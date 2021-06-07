@@ -1013,13 +1013,26 @@ namespace IceRpc
             Endpoint endpoint;
 
             Transport transport = this.ReadTransport();
-            (int size, Encoding encoding) = ReadEncapsulationHeader();
+
+            int size = ReadInt();
+            if (size < 6)
+            {
+                throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
+            }
+
+            if (size - 4 > _buffer.Length - Pos)
+            {
+                throw new InvalidDataException(
+                    $"the encapsulation's size ({size}) extends beyond the end of the buffer");
+            }
+
+            // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
+            size -= 6;
+
+            var encoding = new Encoding(this);
 
             Ice1EndpointFactory? ice1Factory = protocol == Protocol.Ice1 && encoding.IsSupported ?
                 Runtime.FindIce1EndpointFactory(transport) : null;
-
-            // Remove the 6 bytes from the encapsulation header.
-            size -= 6;
 
             // We need to read the encapsulation except for ice1 + null factory.
             if (protocol == Protocol.Ice1 && ice1Factory == null)
@@ -1062,24 +1075,6 @@ namespace IceRpc
             }
 
             return endpoint;
-
-            (int Size, Encoding Encoding) ReadEncapsulationHeader()
-            {
-                size = ReadInt();
-                if (size < 4)
-                {
-                    throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
-                }
-
-                if (size - 4 > _buffer.Length - Pos)
-                {
-                    throw new InvalidDataException(
-                     $"the encapsulation's size ({size}) extends beyond the end of the buffer");
-                }
-
-                var encoding = new Encoding(this);
-                return (size, encoding);
-            }
         }
 
         /// <summary>Reads a field from the stream.</summary>
