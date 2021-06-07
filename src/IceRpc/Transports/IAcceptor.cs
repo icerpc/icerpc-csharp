@@ -3,7 +3,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>An acceptor listens and accepts incoming connection requests from clients. It creates a socket
     /// which is used to exchange data with the remote peer.</summary>

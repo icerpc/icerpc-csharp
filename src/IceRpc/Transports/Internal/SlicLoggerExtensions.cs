@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains constants used for Slic logging event Ids.</summary>
     internal static class SlicLoggerExtensions

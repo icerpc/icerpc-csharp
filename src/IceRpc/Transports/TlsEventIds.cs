@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>This class contains event ID constants used for Tls logging.</summary>
     public static class TlsEventIds
@@ -13,7 +13,7 @@ namespace IceRpc
         /// <summary>The TSL authentication operation failed.</summary>
         public static readonly EventId TlsAuthenticationFailed = GetEventId(TlsEvent.TlsAuthenticationFailed);
 
-        private const int BaseEventId = Internal.LoggerExtensions.TlsBaseEventId;
+        private const int BaseEventId = IceRpc.Internal.LoggerExtensions.TlsBaseEventId;
 
         private enum TlsEvent
         {

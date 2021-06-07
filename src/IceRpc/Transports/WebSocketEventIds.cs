@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>This class contains event ID constants used for WebSocket logging.</summary>
     public static class WebSocketEventIds
@@ -24,7 +24,7 @@ namespace IceRpc
         /// <summary>A WebSocket frame is being sent.</summary>
         public static readonly EventId SendingWebSocketFrame = GetEventId(WebSocketEvent.SendingWebSocketFrame);
 
-        private const int BaseEventId = Internal.LoggerExtensions.WebSocketBaseEventId;
+        private const int BaseEventId = IceRpc.Internal.LoggerExtensions.WebSocketBaseEventId;
         private enum WebSocketEvent
         {
             HttpUpgradeRequestAccepted = BaseEventId,

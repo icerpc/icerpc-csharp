@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static class TransportLoggerExtensions

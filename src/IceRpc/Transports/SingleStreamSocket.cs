@@ -7,7 +7,7 @@ using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>A single-stream socket represents the local end of a network connection and enables transmitting
     /// raw binary data over a transport such as TCP, UDP or WebSocket.</summary>

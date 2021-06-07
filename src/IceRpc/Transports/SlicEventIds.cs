@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>This class contains event ID constants used for Slic transport logging.</summary>
     public static class SlicEventIds
@@ -37,7 +37,7 @@ namespace IceRpc
         /// <summary>Slic version frame sent.</summary>
         public static readonly EventId SentVersionFrame = GetEventId(SlicEvent.SentVersionFrame);
 
-        private const int BaseEventId = Internal.LoggerExtensions.SlicBaseEventId;
+        private const int BaseEventId = IceRpc.Internal.LoggerExtensions.SlicBaseEventId;
 
         private enum SlicEvent
         {

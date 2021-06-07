@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>Represents an endpoint for the <see cref="Transport.Loc"/> pseudo transport. It needs to be converted
     /// into one or more usable endpoints by an interceptor such as

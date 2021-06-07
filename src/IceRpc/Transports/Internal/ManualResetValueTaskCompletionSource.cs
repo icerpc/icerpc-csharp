@@ -4,7 +4,7 @@ using System;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A manual reset task completion source for ValueTask. It provides the same functionality as the
     /// TaskCompletionSource class but with ValueTask support instead. It's useful for hot code paths that

@@ -3,7 +3,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging WebSocket transport messages.</summary>
     internal static class WebSocketLoggerExtensions

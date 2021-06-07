@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal sealed class HttpParser
     {

@@ -2,7 +2,7 @@
 
 using System.Net.Security;
 
-namespace IceRpc
+namespace IceRpc.Transports.Internal
 {
     internal static class SslAuthenticationOptionsExtensions
     {

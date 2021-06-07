@@ -2,7 +2,7 @@
 
 using System.Net.Sockets;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal static class SocketExtensions
     {

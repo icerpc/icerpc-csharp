@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The SignaledSocketStream abstract class provides signaling functionality using the
     /// IValueTaskSource interface. It's useful for stream implementations that depend on the socket

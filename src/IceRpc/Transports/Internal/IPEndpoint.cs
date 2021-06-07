@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint

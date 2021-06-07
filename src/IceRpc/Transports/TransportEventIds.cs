@@ -2,7 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>This class contains event ID constants used for transport logging.</summary>
     public static class TransportEventIds
@@ -76,7 +76,7 @@ namespace IceRpc
         /// <summary>The transport stops receiving datagram messages.</summary>
         public static readonly EventId StopReceivingDatagrams = GetEventId(TransportEvent.StopReceivingDatagrams);
 
-        private const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;
+        private const int BaseEventId = IceRpc.Internal.LoggerExtensions.TransportBaseEventId;
 
         enum TransportEvent
         {

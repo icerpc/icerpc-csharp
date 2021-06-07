@@ -2,7 +2,7 @@
 
 using System;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal static class SlicDefinitions
     {

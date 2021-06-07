@@ -4,7 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal static class IPEndPointExtensions
     {

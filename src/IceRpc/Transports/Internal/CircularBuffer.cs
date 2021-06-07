@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A circular byte buffer class to buffer streamed data. The socket adds data to this buffer when
     /// receiving stream frames. The data is consumed from the buffer when the application reads the data from

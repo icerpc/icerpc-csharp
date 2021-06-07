@@ -3,7 +3,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     // TODO remove this extensions and use .Net 6 Task.WaitAsync, the semantics are a bit different that with our
     // extension, it doesn't throw for a task that is already completed.

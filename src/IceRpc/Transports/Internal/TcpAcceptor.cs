@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal class TcpAcceptor : IAcceptor
     {

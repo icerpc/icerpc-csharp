@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging Tls messages.</summary>
     internal static class TlsLoggerExtensions

@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     /// <summary>A lightweight semaphore implementation that provides FIFO guarantee for EnterAsync. EnterAsync
     /// also relies on ManualResetValueTaskCompletionSource to minimize heap allocations and provide a ValueTask

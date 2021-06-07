@@ -9,7 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace IceRpc.Internal
+namespace IceRpc.Transports.Internal
 {
     internal sealed class WSEndpoint : TcpEndpoint
     {

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
     public class SocketStreamAbortedException : Exception

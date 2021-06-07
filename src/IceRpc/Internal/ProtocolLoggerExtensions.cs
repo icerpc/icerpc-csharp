@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
