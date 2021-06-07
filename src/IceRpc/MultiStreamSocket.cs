@@ -443,7 +443,8 @@ namespace IceRpc
                 }
                 // Run the continuations asynchronously to ensure continuations are not ran from
                 // the code that aborts the last stream.
-                _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _outgoingStreamsEmptySource ??=
+                    new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             }
             await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }

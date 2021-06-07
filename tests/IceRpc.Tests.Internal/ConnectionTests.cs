@@ -147,13 +147,12 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                IDispatcher? pipeline = null;
                 if (dispatcher != null)
                 {
-                    pipeline = Middleware.Logger(Runtime.DefaultLoggerFactory)(dispatcher);
+                    dispatcher = Middleware.Logger(Runtime.DefaultLoggerFactory)(dispatcher);
                 }
 
-                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = pipeline };
+                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")

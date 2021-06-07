@@ -66,8 +66,6 @@ namespace IceRpc.Internal
                     }
                     else if (TryGetStream(streamId, out ColocStream? stream))
                     {
-                        // If we received a frame for a known stream, signal the stream of the frame reception. A null
-                        // frame indicates a stream reset so reset the stream in this case.
                         try
                         {
                             stream.ReceivedFrame(frame, fin);

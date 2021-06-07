@@ -24,7 +24,7 @@ namespace IceRpc
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled = 0,
 
-        /// <summary>The was stream was aborted because the dispatch was canceled.</summary>
+        /// <summary>The stream was aborted because the dispatch was canceled.</summary>
         DispatchCanceled = 1,
 
         /// <summary>An error was encountered while streaming data.</summary>
@@ -194,7 +194,7 @@ namespace IceRpc
             _socket.AddStream(streamId, this, IsControl, ref _id);
             if (IsIncoming)
             {
-                CancelDispatchSource = new();
+                CancelDispatchSource = new CancellationTokenSource();
             }
         }
 
@@ -471,7 +471,7 @@ namespace IceRpc
             _socket.Logger.LogSentGoAwayFrame(_socket, streamIds.Bidirectional, streamIds.Unidirectional, reason);
         }
 
-        internal virtual async ValueTask SendGoAwayCanceledFrameAsync(CancellationToken cancel = default)
+        internal virtual async ValueTask SendGoAwayCanceledFrameAsync()
         {
             Debug.Assert(IsStarted && !IsIce1);
             using IDisposable? scope = StartScope();
@@ -486,7 +486,7 @@ namespace IceRpc
             ostr.EndFixedLengthSize(ostr.StartFixedLengthSize());
             ostr.Finish();
 
-            await SendAsync(data, true, cancel).ConfigureAwait(false);
+            await SendAsync(data, true, CancellationToken.None).ConfigureAwait(false);
 
             _socket.Logger.LogSentGoAwayCanceledFrame();
         }

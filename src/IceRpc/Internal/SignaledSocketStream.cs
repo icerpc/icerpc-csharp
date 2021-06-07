@@ -184,7 +184,7 @@ namespace IceRpc.Internal
                 _tokenRegistration = cancel.Register(() =>
                 {
                     // We don't use SetException here since the cancellation of WaitAsync isn't considered as
-                    // an error configure from which we can't recover.
+                    // an unrecoverable error.
                     bool lockTaken = false;
                     try
                     {

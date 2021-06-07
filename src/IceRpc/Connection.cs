@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Threading;
@@ -56,14 +55,11 @@ namespace IceRpc
         {
             add
             {
-                lock (_mutex)
+                if (_state >= ConnectionState.Closed)
                 {
-                    if (_state >= ConnectionState.Closed)
-                    {
-                        throw new InvalidOperationException("the connection is closed");
-                    }
-                    _closed += value;
+                    throw new InvalidOperationException("the connection is closed");
                 }
+                _closed += value;
             }
             remove => _closed -= value;
         }
@@ -139,15 +135,12 @@ namespace IceRpc
             get => _loggerFactory;
             set
             {
-                lock (_mutex)
+                if (_state > ConnectionState.NotConnected)
                 {
-                    if (_state > ConnectionState.NotConnected)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
-                    }
-                    _loggerFactory = value;
+                    throw new InvalidOperationException(
+                        $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
                 }
+                _loggerFactory = value;
             }
         }
 
@@ -159,19 +152,16 @@ namespace IceRpc
             get => _options?.Clone();
             set
             {
-                lock (_mutex)
+                if (_state > ConnectionState.NotConnected)
                 {
-                    if (_state > ConnectionState.NotConnected)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
-                    }
-                    if (value == null)
-                    {
-                        throw new ArgumentException($"{nameof(value)} can't be null");
-                    }
-                    _options = value.Clone();
+                    throw new InvalidOperationException(
+                        $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
                 }
+                if (value == null)
+                {
+                    throw new ArgumentException($"{nameof(value)} can't be null");
+                }
+                _options = value.Clone();
             }
         }
 
@@ -209,15 +199,12 @@ namespace IceRpc
             get => _remoteEndpoint ?? _socket?.RemoteEndpoint;
             set
             {
-                lock (_mutex)
+                if (_state > ConnectionState.NotConnected)
                 {
-                    if (_state > ConnectionState.NotConnected)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
-                    }
-                    _remoteEndpoint = value;
+                    throw new InvalidOperationException(
+                        $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
                 }
+                _remoteEndpoint = value;
             }
         }
 
@@ -229,15 +216,12 @@ namespace IceRpc
             get => _server;
             set
             {
-                lock (_mutex)
+                if (_state > ConnectionState.NotConnected)
                 {
-                    if (_state > ConnectionState.NotConnected)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
-                    }
-                    _server = value;
+                    throw new InvalidOperationException(
+                        $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
                 }
+                _server = value;
             }
         }
 
@@ -324,9 +308,13 @@ namespace IceRpc
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private Server? _server;
+#pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private MultiStreamSocket? _socket;
+#pragma warning restore CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private ConnectionState _state = ConnectionState.NotConnected;
+#pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private Timer? _timer;
+#pragma warning restore CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
 
         /// <summary>Constructs a new outgoing connection.</summary>
         public Connection()
@@ -334,7 +322,7 @@ namespace IceRpc
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to <c>ConnectionState.Closed</c>
-        /// If <c>Closed</c> events are registered, it waits for the events to be executed.</summary>
+        /// If <c>Closed</c> event listeners are registered, it waits for the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
@@ -551,11 +539,7 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                // This is a workaround to call dispose on disposable data members. Not disposing them here causes
-                // warnings.
                 Debug.Assert(false, $"dispose exception {ex}");
-                _socket?.Dispose();
-                _timer?.Dispose();
             }
         }
 
@@ -926,8 +910,8 @@ namespace IceRpc
         /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
         /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
         /// timeout to close the socket. If ShutdownAsync is canceled, dispatch in progress are canceled and a
-        /// GoAwayCanceled frame is set to the peer to cancel its dispatch as well. Shutdown cancellation can
-        /// lead to a speedier shutdown if dispatch are cancelable.</summary>
+        /// GoAwayCanceled frame is sent to the peer to cancel its dispatches as well. Shutdown cancellation can
+        /// lead to a speedier shutdown if dispatches are cancelable.</summary>
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
             Task shutdownTask;
@@ -1049,7 +1033,7 @@ namespace IceRpc
                 await _cancelGoAwaySource!.Task.ConfigureAwait(false);
 
                 // Write the GoAwayCanceled frame to the peer's streams.
-                await _controlStream!.SendGoAwayCanceledFrameAsync(CancellationToken.None).ConfigureAwait(false);
+                await _controlStream!.SendGoAwayCanceledFrameAsync().ConfigureAwait(false);
 
                 // Cancel dispatch if shutdown is canceled.
                 _socket!.CancelDispatch();
