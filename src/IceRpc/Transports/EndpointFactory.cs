@@ -2,7 +2,7 @@
 
 using System.Collections.Generic;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
     /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
     /// <param name="data">The endpoint's data.</param>

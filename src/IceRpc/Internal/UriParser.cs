@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;

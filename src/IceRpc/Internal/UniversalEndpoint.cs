@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Internal
 {
     /// <summary>Describes an endpoint with a transport or protocol that the associated communicator does not implement.
     /// The communicator cannot send a request to this endpoint; it can however marshal this endpoint (within a proxy)

@@ -8,7 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Internal
 {
     /// <summary>Describes an ice1 endpoint that the associated communicator cannot use, typically because it does not
     /// implement the endpoint's transport. The communicator can marshal a proxy with such an endpoint and send it to

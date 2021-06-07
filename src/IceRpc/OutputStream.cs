@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
