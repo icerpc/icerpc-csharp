@@ -17,7 +17,8 @@ module IceRpc
         Initialize = 0,
         Request = 1,
         Response = 2,
-        GoAway = 3
+        GoAway = 3,
+        GoAwayCanceled = 4
     }
 
     dictionary<varint, ByteSeq> Fields;
@@ -98,21 +99,11 @@ module IceRpc
         varulong payloadSize;
     }
 
-    // The possible error codes to describe the reason of a stream reset.
-    enum StreamResetErrorCode : byte
-    {
-        /// The caller canceled the request.
-        RequestCanceled = 0,
-
-        /// The peer no longer wants to receive data from the stream.
-        StopStreamingData = 1,
-    }
-
     [cs:readonly]
     struct Ice2GoAwayBody
     {
-        varulong lastBidirectionalStreamId;
-        varulong lastUnidirectionalStreamId;
+        varlong lastBidirectionalStreamId;
+        varlong lastUnidirectionalStreamId;
         string message;
     }
 }
