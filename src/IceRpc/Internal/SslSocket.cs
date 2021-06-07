@@ -48,10 +48,7 @@ namespace IceRpc.Internal
             return (this, endpoint);
         }
 
-        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
-            // Implement TLS close_notify and call ShutdownAsync? This might be required for implementation
-            // session resumption if we want to allow connection migration.
-            _underlying.CloseAsync(exception, cancel);
+        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
@@ -67,7 +64,7 @@ namespace IceRpc.Internal
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException(ex);
             }
             catch (OperationCanceledException)
             {
@@ -75,11 +72,11 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
             if (received == 0)
             {
-                throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException();
             }
             return received;
         }
@@ -102,7 +99,7 @@ namespace IceRpc.Internal
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException();
             }
             catch (OperationCanceledException)
             {
@@ -110,7 +107,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
         }
 
@@ -152,16 +149,16 @@ namespace IceRpc.Internal
             }
             catch (IOException ex) when (ex.IsConnectionLost())
             {
-                throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException(ex);
             }
             catch (IOException ex)
             {
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
             catch (AuthenticationException ex)
             {
                 Logger.LogTlsAuthenticationFailed(SslStream, ex);
-                throw new TransportException(ex, RetryPolicy.OtherReplica);
+                throw new TransportException(ex);
             }
 
             Logger.LogTlsAuthenticationSucceeded(SslStream);

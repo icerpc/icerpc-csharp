@@ -99,6 +99,8 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2)]
         [TestCase(10)]
         [TestCase(20)]
+        [Repeat(50)]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_GracefulClose(int maxQueue)
         {
             await WithRetryServiceAsync(async (service, retry) =>
@@ -151,8 +153,8 @@ namespace IceRpc.Tests.ClientServer
                 (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts), Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
-                    // Idempotent operations can always be retried, the operation must succeed if the failed attempts are
-                    // less than the invocation max attempts configured above.
+                    // Idempotent operations can always be retried, the operation must succeed if the failed attempts
+                    // are less than the invocation max attempts configured above.
                     // With Ice1 user exceptions don't carry a retry policy and are not retryable
                     if (failedAttempts < maxAttempts && (protocol == Protocol.Ice2 || killConnection))
                     {
@@ -360,6 +362,7 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
@@ -422,7 +425,10 @@ namespace IceRpc.Tests.ClientServer
         private static Pipeline CreatePipeline(ConnectionPool pool)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: pool.LoggerFactory), Interceptors.Binder(pool));
+            pipeline.Use(
+                Interceptors.Logger(Runtime.DefaultLoggerFactory),
+                Interceptors.Retry(5, loggerFactory: Runtime.DefaultLoggerFactory),
+                Interceptors.Binder(pool));
             return pipeline;
         }
 
@@ -461,6 +467,7 @@ namespace IceRpc.Tests.ClientServer
 
             var router = new Router();
             var service = new RetryTest();
+            router.Use(Middleware.Logger(Runtime.DefaultLoggerFactory));
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
@@ -493,10 +500,10 @@ namespace IceRpc.Tests.ClientServer
 
         internal class RetryTest : IRetryTest
         {
-            internal int Attempts;
+            internal volatile int Attempts;
             internal Connection? Connection;
 
-            public ValueTask OpIdempotentAsync(
+            public async ValueTask OpIdempotentAsync(
                 int failedAttempts,
                 bool killConnection,
                 Dispatch dispatch,
@@ -506,17 +513,16 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.AbortAsync();
                     }
                     else
                     {
-                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                        throw new RetrySystemFailure(RetryPolicy.Immediately);
                     }
                 }
-                return default;
             }
 
-            public ValueTask OpNotIdempotentAsync(
+            public async ValueTask OpNotIdempotentAsync(
                 int failedAttempts,
                 bool killConnection,
                 Dispatch dispatch,
@@ -526,14 +532,13 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.AbortAsync();
                     }
                     else
                     {
-                        throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                        throw new RetrySystemFailure(RetryPolicy.Immediately);
                     }
                 }
-                return default;
             }
 
             public async ValueTask OpWithDataAsync(
@@ -546,7 +551,7 @@ namespace IceRpc.Tests.ClientServer
                 if (failedAttempts >= Attempts)
                 {
                     await Task.Delay(delay, cancel);
-                    throw new RetrySystemFailure(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                    throw new RetrySystemFailure(RetryPolicy.Immediately);
                 }
             }
 

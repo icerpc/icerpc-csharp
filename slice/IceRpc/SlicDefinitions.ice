@@ -56,4 +56,13 @@ module IceRpc::Slic
         /// The size of the consumed data.
         varulong size;
     }
+
+    /// The body of the close frame. This frame is sent to notify the peer that the sender will no longer be
+    /// sending any data. The error code is application protocol specific.
+    [cs:readonly]
+    struct CloseBody
+    {
+        /// The application protocol error code indicating the reason of the reset.
+        varulong applicationProtocolErrorCode;
+    }
 }

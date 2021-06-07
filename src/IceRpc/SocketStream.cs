@@ -10,6 +10,36 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
+    public class SocketStreamAbortedException : Exception
+    {
+        internal SocketStreamErrorCode ErrorCode { get; }
+
+        internal SocketStreamAbortedException(SocketStreamErrorCode errorCode) => ErrorCode = errorCode;
+    }
+
+    /// <summary>Error codes for stream errors.</summary>
+    public enum SocketStreamErrorCode : byte
+    {
+        /// <summary>The stream was aborted because the invocation was canceled.</summary>
+        InvocationCanceled = 0,
+
+        /// <summary>The stream was aborted because the dispatch was canceled.</summary>
+        DispatchCanceled = 1,
+
+        /// <summary>An error was encountered while streaming data.</summary>
+        StreamingError = 2,
+
+        /// <summary>The stream was aborted because the connection was shutdown.</summary>
+        ConnectionShutdown,
+
+        /// <summary>The stream was aborted because the connection was shutdown by the peer.</summary>
+        ConnectionShutdownByPeer,
+
+        /// <summary>The stream was aborted because the connection was aborted.</summary>
+        ConnectionAborted,
+    }
+
     /// <summary>The SocketStream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream socket.</summary>
     public abstract class SocketStream
@@ -64,13 +94,8 @@ namespace IceRpc
         /// this header to be set at the start of the first segment.</summary>
         protected virtual ReadOnlyMemory<byte> TransportHeader => default;
 
-        /// <summary>Get the cancellation token to provide to the dispatcher. The token is canceled when the
-        /// the stream is aborted. This is only accessed by the dispatch code for incoming streams. This
-        /// method is called from a single thread and doesn't need to be thread-safe.</summary>
-        internal CancellationToken CancelDispatchToken => (_cancelDispatchSource ??= new()).Token;
-
-        /// <summary>The Reset event is triggered when a reset frame is received.</summary>
-        internal event Action<long>? Reset;
+        /// <summary>Get the cancellation dispatch source.</summary>
+        internal CancellationTokenSource? CancelDispatchSource { get; }
 
         internal bool IsIce1 => _socket.Protocol == Protocol.Ice1;
 
@@ -81,27 +106,14 @@ namespace IceRpc
         // to process stream parameters. The socket stream is disposed only once this count drops to 0.
         private protected int _useCount = 1;
 
-        private CancellationTokenSource? _cancelDispatchSource;
-
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
         private readonly MultiStreamSocket _socket;
 
-        /// <summary>Aborts the stream. This is called by the connection when it's being closed. If needed, the stream
-        /// implementation should abort the pending receive task.</summary>
-        public virtual void Abort(Exception ex)
-        {
-            try
-            {
-                _cancelDispatchSource?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ignore, this can occur if the stream is released concurrently.
-            }
-        }
+        /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
+        internal void Abort(SocketStreamErrorCode errorCode) => AbortRead(errorCode);
 
         /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
@@ -151,7 +163,7 @@ namespace IceRpc
                             catch
                             {
                                 // Don't await the sending of the reset since it might block if sending is blocking.
-                                _ = ResetAsync((long)StreamResetErrorCode.StopStreamingData).AsTask();
+                                Reset(SocketStreamErrorCode.StreamingError);
                                 break;
                             }
                         }
@@ -171,25 +183,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
 
-        /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
-        /// <param name="buffer">The buffer to store the received data.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes received.</return>
-        protected abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
-
-        /// <summary>Resets the stream.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the reset to transmit to the peer.</param>
-        protected abstract ValueTask ResetAsync(long errorCode);
-
-        /// <summary>Sends data from the given buffer and returns once the buffer is sent.</summary>
-        /// <param name="buffer">The buffer with the data to send.</param>
-        /// <param name="fin">True if no more data will be sent over this stream, False otherwise.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        protected abstract ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
-            CancellationToken cancel);
-
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="socket">The parent socket.</param>
@@ -199,6 +192,10 @@ namespace IceRpc
             IsBidirectional = streamId % 4 < 2;
             IsControl = streamId == 2 || streamId == 3;
             _socket.AddStream(streamId, this, IsControl, ref _id);
+            if (IsIncoming)
+            {
+                CancelDispatchSource = new CancellationTokenSource();
+            }
         }
 
         /// <summary>Constructs an outgoing stream.</summary>
@@ -212,17 +209,11 @@ namespace IceRpc
             IsControl = control;
         }
 
-        /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
-        /// response or a streamable parameter. It un-registers the stream from the socket.</summary>
-        protected virtual void Shutdown()
-        {
-            if (IsStarted && !_socket.RemoveStream(Id))
-            {
-                Debug.Assert(false);
-                throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
-            }
-            _cancelDispatchSource?.Dispose();
-        }
+        /// <summary>Abort the stream received side.</summary>
+        protected abstract void AbortRead(SocketStreamErrorCode errorCode);
+
+        /// <summary>Abort the stream send size.</summary>
+        protected abstract void AbortWrite(SocketStreamErrorCode errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -249,7 +240,43 @@ namespace IceRpc
             Interlocked.Increment(ref _useCount);
         }
 
-        internal virtual async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
+        /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
+        /// <param name="buffer">The buffer to store the received data.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <return>The number of bytes received.</return>
+        protected abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
+
+        /// <summary>Sends data from the given buffer and returns once the buffer is sent.</summary>
+        /// <param name="buffer">The buffer with the data to send.</param>
+        /// <param name="fin">True if no more data will be sent over this stream, False otherwise.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        protected abstract ValueTask SendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel);
+
+        /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
+        /// response or a streamable parameter. It un-registers the stream from the socket.</summary>
+        protected virtual void Shutdown()
+        {
+            if (IsStarted && !_socket.RemoveStream(Id))
+            {
+                Debug.Assert(false);
+                throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
+            }
+            CancelDispatchSource?.Dispose();
+        }
+
+        // Internal method which should only be used by tests.
+        internal ValueTask<int> InternalReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+            ReceiveAsync(buffer, cancel);
+
+        // Internal method which should only be used by tests.
+        internal ValueTask InternalSendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel)
+        {
+            var sendBuffer = new List<ArraySegment<byte>> { TransportHeader.ToArray() };
+            sendBuffer.AddRange(buffer);
+            return SendAsync(sendBuffer, fin, cancel);
+        }
+
+        internal async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
         {
             Debug.Assert(IsStarted);
 
@@ -258,10 +285,6 @@ namespace IceRpc
             byte frameType = IsIce1 ? (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
-            if (!ReceivedEndOfStream)
-            {
-                throw new InvalidDataException($"expected end of stream after GoAway frame");
-            }
 
             long lastBidirectionalId;
             long lastUnidirectionalId;
@@ -274,13 +297,13 @@ namespace IceRpc
                 // due to the thread scheduling.
                 lastBidirectionalId = _socket.LastResponseStreamId;
                 lastUnidirectionalId = 0;
-                message = "connection gracefully closed by peer";
+                message = "connection closed gracefull by peer";
             }
             else
             {
                 var goAwayFrame = new Ice2GoAwayBody(new InputStream(data, Ice2Definitions.Encoding));
-                lastBidirectionalId = (long)goAwayFrame.LastBidirectionalStreamId;
-                lastUnidirectionalId = (long)goAwayFrame.LastUnidirectionalStreamId;
+                lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
+                lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
             }
 
@@ -288,7 +311,17 @@ namespace IceRpc
             return ((lastBidirectionalId, lastUnidirectionalId), message);
         }
 
-        internal virtual void ReceivedReset(long errorCode) => Reset?.Invoke(errorCode);
+        internal async ValueTask ReceiveGoAwayCanceledFrameAsync()
+        {
+            Debug.Assert(IsStarted && !IsIce1);
+
+            using IDisposable? scope = StartScope();
+
+            byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
+            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+
+            _socket.Logger.LogReceivedGoAwayCanceledFrame();
+        }
 
         internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
@@ -370,21 +403,9 @@ namespace IceRpc
         internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
-            ArraySegment<byte> data;
-            try
-            {
-                byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
-                data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                if (!IsIce1)
-                {
-                    // Don't await the sending of the reset since it might block if sending is blocking.
-                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
-                }
-                throw;
-            }
+            byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
+
+            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
 
             IncomingResponse response;
             if (ReceivedEndOfStream)
@@ -400,6 +421,22 @@ namespace IceRpc
             return response;
         }
 
+        internal void Release()
+        {
+            if (Interlocked.Decrement(ref _useCount) == 0)
+            {
+                Shutdown();
+            }
+        }
+
+        internal void Reset(SocketStreamErrorCode errorCode)
+        {
+            if (!IsControl)
+            {
+                AbortWrite(errorCode);
+            }
+        }
+
         internal virtual async ValueTask SendGoAwayFrameAsync(
             (long Bidirectional, long Unidirectional) streamIds,
             string reason,
@@ -410,7 +447,7 @@ namespace IceRpc
 
             if (IsIce1)
             {
-                await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
+                await SendAsync(Ice1Definitions.CloseConnectionFrame, false, cancel).ConfigureAwait(false);
             }
             else
             {
@@ -423,18 +460,35 @@ namespace IceRpc
                 ostr.WriteByte((byte)Ice2FrameType.GoAway);
                 OutputStream.Position sizePos = ostr.StartFixedLengthSize();
 
-                var goAwayFrameBody = new Ice2GoAwayBody(
-                    (ulong)streamIds.Bidirectional,
-                    (ulong)streamIds.Unidirectional,
-                    reason);
+                var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
                 goAwayFrameBody.IceWrite(ostr);
                 ostr.EndFixedLengthSize(sizePos);
                 ostr.Finish();
 
-                await SendAsync(data, true, cancel).ConfigureAwait(false);
+                await SendAsync(data, false, cancel).ConfigureAwait(false);
             }
 
             _socket.Logger.LogSentGoAwayFrame(_socket, streamIds.Bidirectional, streamIds.Unidirectional, reason);
+        }
+
+        internal virtual async ValueTask SendGoAwayCanceledFrameAsync()
+        {
+            Debug.Assert(IsStarted && !IsIce1);
+            using IDisposable? scope = StartScope();
+
+            var data = new List<ArraySegment<byte>>() { new byte[1024] };
+            var ostr = new OutputStream(Ice2Definitions.Encoding, data);
+            if (!TransportHeader.IsEmpty)
+            {
+                ostr.WriteByteSpan(TransportHeader.Span);
+            }
+            ostr.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
+            ostr.EndFixedLengthSize(ostr.StartFixedLengthSize());
+            ostr.Finish();
+
+            await SendAsync(data, true, CancellationToken.None).ConfigureAwait(false);
+
+            _socket.Logger.LogSentGoAwayCanceledFrame();
         }
 
         internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
@@ -476,30 +530,14 @@ namespace IceRpc
 
         internal async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel = default)
         {
-            try
-            {
-                // Send the request frame.
-                await SendFrameAsync(request, cancel).ConfigureAwait(false);
+            // Send the request frame.
+            await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
-                // If there's a stream data writer, we can start streaming the data.
-                request.StreamDataWriter?.Invoke(this);
-            }
-            catch (OperationCanceledException)
-            {
-                // If the stream is not started, there's no need to send a stream reset frame. The stream ID wasn't
-                // allocated and the peer doesn't know about this stream.
-                if (IsStarted && !IsIce1)
-                {
-                    // Don't await the sending of the reset since it might block if sending is blocking.
-                    _ = ResetAsync((long)StreamResetErrorCode.RequestCanceled).AsTask();
-                }
-                throw;
-            }
+            // If there's a stream data writer, we can start streaming the data.
+            request.StreamDataWriter?.Invoke(this);
         }
 
-        internal async ValueTask SendResponseFrameAsync(
-            OutgoingResponse response,
-            CancellationToken cancel = default)
+        internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
         {
             // Send the response frame.
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
@@ -509,14 +547,6 @@ namespace IceRpc
         }
 
         internal IDisposable? StartScope() => _socket.Logger.StartStreamScope(Id);
-
-        internal void Release()
-        {
-            if (Interlocked.Decrement(ref _useCount) == 0)
-            {
-                Shutdown();
-            }
-        }
 
         private protected virtual async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
             byte expectedFrameType,

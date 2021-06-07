@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,8 +17,6 @@ namespace IceRpc.Internal
         internal SingleStreamSocket Underlying { get; private set; }
 
         public override string ToString() => $"{base.ToString()} ({Underlying})";
-
-        public override void Abort() => Underlying.Dispose();
 
         public override async ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
@@ -44,11 +43,13 @@ namespace IceRpc.Internal
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
+            // First dispose of the underlying socket otherwise base.Dispose() which releases the stream can trigger
+            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
             if (disposing)
             {
                 Underlying.Dispose();
             }
+            base.Dispose(disposing);
         }
 
         protected MultiStreamOverSingleStreamSocket(

@@ -34,8 +34,6 @@ namespace IceRpc.Tests.Encoding
             _server.Listen();
 
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            // TODO: temporary
-            _connection.ConnectAsync().Wait();
 
             _sliced = ISlicedFormatOperationsPrx.FromConnection(_connection);
             _compact = ICompactFormatOperationsPrx.FromConnection(_connection);

@@ -145,7 +145,7 @@ namespace IceRpc.Internal
             catch (SocketException ex)
             {
                 socket.Dispose();
-                throw new TransportException(ex, RetryPolicy.NoRetry);
+                throw new TransportException(ex);
             }
 
             return new Ice1NetworkSocket(this, new UdpSocket(socket, logger, isIncoming: false, endpoint), options);
@@ -212,7 +212,7 @@ namespace IceRpc.Internal
             catch (SocketException ex)
             {
                 socket.Dispose();
-                throw new TransportException(ex, RetryPolicy.NoRetry);
+                throw new TransportException(ex);
             }
             catch
             {

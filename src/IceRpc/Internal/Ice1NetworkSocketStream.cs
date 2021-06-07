@@ -16,24 +16,26 @@ namespace IceRpc.Internal
         private bool _receivedEndOfStream;
         private readonly Ice1NetworkSocket _socket;
 
-        protected override void Shutdown()
+        protected override void AbortWrite(SocketStreamErrorCode errorCode)
         {
-            base.Shutdown();
-            _socket.ReleaseStream(this);
+            // Stream reset is not supported with Ice1
         }
 
         protected override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             // This is never called because we override the default ReceiveFrameAsync implementation
             throw new NotImplementedException();
 
-        // Stream reset is not supported with Ice1
-        protected override ValueTask ResetAsync(long errorCode) => default;
-
         protected async override ValueTask SendAsync(
             IList<ArraySegment<byte>> buffer,
             bool fin,
             CancellationToken cancel) =>
             await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+
+        protected override void Shutdown()
+        {
+            base.Shutdown();
+            _socket.ReleaseStream(this);
+        }
 
         internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, long streamId)
             : base(socket, streamId) => _socket = socket;
@@ -56,7 +58,7 @@ namespace IceRpc.Internal
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
-            (Ice1FrameType frameType, ArraySegment<byte> frame) = await IceWaitAsync(cancel).ConfigureAwait(false);
+            (Ice1FrameType frameType, ArraySegment<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)

@@ -331,7 +331,7 @@ namespace IceRpc
                     if (source.IsCancellationRequested)
                     {
                         _transportFailures[endpoint] = DateTime.Now;
-                        throw new ConnectTimeoutException(RetryPolicy.AfterDelay(TimeSpan.Zero));
+                        throw new ConnectTimeoutException();
                     }
                     else
                     {

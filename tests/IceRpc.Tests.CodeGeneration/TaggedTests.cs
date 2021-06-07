@@ -25,8 +25,6 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            // TODO: temporary
-            _connection.ConnectAsync().Wait();
             _prx = ITaggedOperationsPrx.FromConnection(_connection);
         }
 

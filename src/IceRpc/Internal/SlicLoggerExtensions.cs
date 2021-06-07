@@ -17,8 +17,8 @@ namespace IceRpc.Internal
                 SlicEventIds.ReceivedFrame,
                 "received Slic {FrameType} frame (Size={Size})");
 
-        private static readonly Action<ILogger, int, StreamResetErrorCode, Exception> _receivedResetFrame =
-            LoggerMessage.Define<int, StreamResetErrorCode>(
+        private static readonly Action<ILogger, int, SocketStreamErrorCode, Exception> _receivedResetFrame =
+            LoggerMessage.Define<int, SocketStreamErrorCode>(
                 LogLevel.Debug,
                 SlicEventIds.ReceivedResetFrame,
                 "received Slic StreamReset frame (Size={Size}, ResetCode={ResetCode})");
@@ -29,8 +29,8 @@ namespace IceRpc.Internal
                 SlicEventIds.SentFrame,
                 "sent Slic {FrameType} frame (Size={Size})");
 
-        private static readonly Action<ILogger, int, StreamResetErrorCode, Exception> _sentResetFrame =
-            LoggerMessage.Define<int, StreamResetErrorCode>(
+        private static readonly Action<ILogger, int, SocketStreamErrorCode, Exception> _sentResetFrame =
+            LoggerMessage.Define<int, SocketStreamErrorCode>(
                 LogLevel.Debug,
                 SlicEventIds.SentResetFrame,
                 "sent Slic StreamReset frame (Size={Size}, ErrorCode={ErrorCode})");
@@ -65,7 +65,7 @@ namespace IceRpc.Internal
         internal static void LogReceivedSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            StreamResetErrorCode errorCode) =>
+            SocketStreamErrorCode errorCode) =>
             _receivedResetFrame(logger, frameSize, errorCode, null!);
 
         internal static void LogReceivedSlicVersionFrame(
@@ -92,7 +92,7 @@ namespace IceRpc.Internal
         internal static void LogSentSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            StreamResetErrorCode errorCode) =>
+            SocketStreamErrorCode errorCode) =>
             _sentResetFrame(logger, frameSize, errorCode, null!);
 
         internal static void LogSentSlicFrame(this ILogger logger, SlicDefinitions.FrameType type, int frameSize) =>

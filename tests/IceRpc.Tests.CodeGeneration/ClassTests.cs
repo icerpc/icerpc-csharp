@@ -55,8 +55,6 @@ namespace IceRpc.Tests.CodeGeneration
             _server.Listen();
 
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            // TODO: temporary
-            _connection.ConnectAsync().Wait();
 
             _prx = IClassOperationsPrx.FromConnection(_connection);
             _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromConnection(_connection);

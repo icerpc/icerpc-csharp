@@ -111,7 +111,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
             Assert.That(scopes, Is.Empty);
-            Assert.That(GetEventId(entry), Is.EqualTo(138));
+            Assert.That(GetEventId(entry), Is.EqualTo(ProtocolEventIds.RequestException.Id));
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -185,59 +185,51 @@ namespace IceRpc.Tests.ClientServer
                 events.Add(eventId);
                 CollectionAssert.AllItemsAreUnique(events);
                 // TODO The log scopes are not started with interceptor/middleware protocol logging
-                switch (eventId)
+                if (eventId == ProtocolEventIds.ReceivedRequestFrame.Id)
                 {
-                    case 136:
-                    {
-                        Assert.AreEqual("IceRpc", GetCategory(entry));
-                        Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
-                        JsonElement[] scopes = GetScopes(entry);
-                        //CheckServerScope(scopes[0], colocated);
-                        //CheckServerSocketScope(scopes[1], colocated);
-                        //CheckStreamScope(scopes[2]);
-                        break;
-                    }
-                    case 145:
-                    {
-                        Assert.AreEqual("IceRpc", GetCategory(entry));
-                        Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
-                        JsonElement[] scopes = GetScopes(entry);
-                        //CheckClientSocketScope(scopes[0], colocated);
-                        //CheckStreamScope(scopes[1]);
-                        break;
-                    }
-                    case 137:
-                    {
-                        Assert.AreEqual("IceRpc", GetCategory(entry));
-                        Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
-                        JsonElement[] scopes = GetScopes(entry);
-                        //CheckClientSocketScope(scopes[0], colocated);
-                        //CheckStreamScope(scopes[1]);
-                        // The sending of the request always comes before the receiving of the response
-                        CollectionAssert.Contains(events, 145);
-                        break;
-                    }
-                    case 146:
-                    {
-                        Assert.AreEqual("IceRpc", GetCategory(entry));
-                        Assert.AreEqual("Information", GetLogLevel(entry));
-                        Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
-                        JsonElement[] scopes = GetScopes(entry);
-                        //CheckServerScope(scopes[0], colocated);
-                        //CheckServerSocketScope(scopes[1], colocated);
-                        //CheckStreamScope(scopes[2]);
-                        // The sending of the response always comes before the receiving of the request
-                        CollectionAssert.Contains(events, 136);
-                        break;
-                    }
-                    default:
-                    {
-                        Assert.Fail($"Unexpected event {eventId}");
-                        break;
-                    }
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
+                    JsonElement[] scopes = GetScopes(entry);
+                    //CheckServerScope(scopes[0], colocated);
+                    //CheckServerSocketScope(scopes[1], colocated);
+                    //CheckStreamScope(scopes[2]);
+                }
+                else if (eventId == ProtocolEventIds.SentRequestFrame.Id)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
+                    JsonElement[] scopes = GetScopes(entry);
+                    //CheckClientSocketScope(scopes[0], colocated);
+                    //CheckStreamScope(scopes[1]);
+                }
+                else if (eventId == ProtocolEventIds.ReceivedResponseFrame.Id)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
+                    JsonElement[] scopes = GetScopes(entry);
+                    //CheckClientSocketScope(scopes[0], colocated);
+                    //CheckStreamScope(scopes[1]);
+                    // The sending of the request always comes before the receiving of the response
+                    CollectionAssert.Contains(events, ProtocolEventIds.SentRequestFrame.Id);
+                }
+                else if (eventId == ProtocolEventIds.SentResponseFrame.Id)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
+                    JsonElement[] scopes = GetScopes(entry);
+                    //CheckServerScope(scopes[0], colocated);
+                    //CheckServerSocketScope(scopes[1], colocated);
+                    //CheckStreamScope(scopes[2]);
+                    // The sending of the response always comes before the receiving of the request
+                    CollectionAssert.Contains(events, ProtocolEventIds.SentResponseFrame.Id);
+                }
+                else
+                {
+                    Assert.Fail($"Unexpected event {eventId}");
                 }
             }
         }

@@ -10,6 +10,7 @@ namespace IceRpc.Tests.Internal
     // rather than waiting for the peer close notification so we can't test them like we do for WS.
     [TestFixture("ws", false)]
     [TestFixture("ws", true)]
+    [Timeout(10000)]
     public class WSSocketTests : SingleStreamSocketBaseTest
     {
         public WSSocketTests(string transport, bool tls)
@@ -23,7 +24,7 @@ namespace IceRpc.Tests.Internal
             ValueTask<int> serverReceiveTask = ServerSocket.ReceiveAsync(new byte[1], default);
             ValueTask<int> clientReceiveTask = ClientSocket.ReceiveAsync(new byte[1], default);
 
-            await ClientSocket.CloseAsync(new InvalidDataException(""), default);
+            await ClientSocket.CloseAsync(0, default);
 
             // Wait for the server to send back a close frame.
             Assert.ThrowsAsync<ConnectionLostException>(async () => await clientReceiveTask);

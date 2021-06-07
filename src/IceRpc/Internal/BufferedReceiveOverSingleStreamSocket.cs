@@ -38,8 +38,8 @@ namespace IceRpc.Internal
             return (this, remoteEndpoint);
         }
 
-        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
-            Underlying.CloseAsync(exception, cancel);
+        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
+            Underlying.CloseAsync(errorCode, cancel);
 
         public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,

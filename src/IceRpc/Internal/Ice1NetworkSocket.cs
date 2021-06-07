@@ -147,9 +147,9 @@ namespace IceRpc.Internal
                     {
                         // Create a new input stream for the request. If serialization is enabled, ensure we acquire
                         // the semaphore first to serialize the dispatching.
-                        stream = new Ice1NetworkSocketStream(this, streamId);
                         try
                         {
+                            stream = new Ice1NetworkSocketStream(this, streamId);
                             AsyncSemaphore? semaphore = stream.IsBidirectional ?
                                 _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
                             if (semaphore != null)
@@ -161,8 +161,8 @@ namespace IceRpc.Internal
                         }
                         catch
                         {
-                            // Ignore, if the stream has been aborted.
-                            stream.Release();
+                            // Ignore, if the stream has been aborted or the socket is being shutdown.
+                            stream?.Release();
                         }
                     }
                     else if (frameType == Ice1FrameType.ValidateConnection)
@@ -182,8 +182,8 @@ namespace IceRpc.Internal
             }
         }
 
-        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) =>
-            Underlying.CloseAsync(exception, cancel);
+        public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
+            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
 
         public override SocketStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -265,6 +265,13 @@ namespace IceRpc.Internal
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue
             // to serialize the sending of frames.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+
+            // If the stream is aborted, stop sending stream frames.
+            if (stream?.AbortException is Exception exception)
+            {
+                _sendSemaphore.Release();
+                throw exception;
+            }
 
             try
             {

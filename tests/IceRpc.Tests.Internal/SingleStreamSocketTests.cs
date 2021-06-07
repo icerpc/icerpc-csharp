@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
             try
             {
                 // This will either complete successfully or with an OperationCanceledException
-                await ClientSocket.CloseAsync(new InvalidDataException(""), canceled.Token);
+                await ClientSocket.CloseAsync(0, canceled.Token);
             }
             catch (OperationCanceledException)
             {

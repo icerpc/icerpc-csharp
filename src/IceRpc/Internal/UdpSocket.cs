@@ -73,7 +73,7 @@ namespace IceRpc.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new((this, null));
 
-        public override ValueTask CloseAsync(Exception exception, CancellationToken cancel) => default;
+        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
         public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
             Endpoint endpoint,
@@ -88,7 +88,7 @@ namespace IceRpc.Internal
             }
             catch (Exception ex)
             {
-                throw new ConnectFailedException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectFailedException(ex);
             }
         }
 
@@ -130,13 +130,13 @@ namespace IceRpc.Internal
             {
                 throw new OperationCanceledException(null, ex, cancel);
             }
-            catch (Exception e)
+            catch (Exception ex) when (ex.IsConnectionLost())
             {
-                if (e.IsConnectionLost())
-                {
-                    throw new ConnectionLostException(RetryPolicy.AfterDelay(TimeSpan.Zero));
-                }
-                throw new TransportException(e, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new ConnectionLostException();
+            }
+            catch (Exception ex)
+            {
+                throw new TransportException(ex);
             }
 
             return buffer.Slice(0, received);
@@ -151,7 +151,7 @@ namespace IceRpc.Internal
         {
             if (_incoming)
             {
-                throw new TransportException("cannot send datagram with incoming connection", RetryPolicy.NoRetry);
+                throw new TransportException("cannot send datagram with incoming connection");
             }
 
             try
@@ -162,19 +162,19 @@ namespace IceRpc.Internal
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {
                 // Don't retry if the datagram can't be sent because its too large.
-                throw new TransportException(ex, RetryPolicy.NoRetry);
+                throw new TransportException(ex);
             }
             catch (Exception ex) when (cancel.IsCancellationRequested)
             {
                 throw new OperationCanceledException(null, ex, cancel);
             }
+            catch (Exception ex) when (ex.IsConnectionLost())
+            {
+                throw new ConnectionLostException();
+            }
             catch (Exception ex)
             {
-                if (ex.IsConnectionLost())
-                {
-                    throw new ConnectionLostException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
-                }
-                throw new TransportException(ex, RetryPolicy.AfterDelay(TimeSpan.Zero));
+                throw new TransportException(ex);
             }
         }
 

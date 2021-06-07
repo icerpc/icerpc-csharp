@@ -64,11 +64,11 @@ namespace IceRpc.Internal
                 TransportEventIds.ConnectionEventHandlerException,
                 "{Name} event handler raised exception");
 
-        private static readonly Action<ILogger, string, bool, Exception> _connectionClosed =
-            LoggerMessage.Define<string, bool>(
+        private static readonly Action<ILogger, string, Exception> _connectionClosed =
+            LoggerMessage.Define<string>(
                 LogLevel.Debug,
-                TransportEventIds.ConnectionEventHandlerException,
-                "closed connection (Reason={Reason}, IsClosedByPeer={IsClosedByPeer})");
+                TransportEventIds.ConnectionConnectFailed,
+                "closed connection (Reason={Reason})");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverSocketServerSocketScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
@@ -184,12 +184,8 @@ namespace IceRpc.Internal
         internal static void LogConnectionAcceptFailed(this ILogger logger, Exception exception) =>
             _connectionAcceptFailed(logger, exception);
 
-        internal static void LogConnectionClosed(
-            this ILogger logger,
-            string message,
-            bool closedByPeer,
-            Exception? exception = null) =>
-            _connectionClosed(logger, message, closedByPeer, exception!);
+        internal static void LogConnectionClosed(this ILogger logger, string message, Exception? exception = null) =>
+            _connectionClosed(logger, message, exception!);
 
         internal static void LogConnectionConnectFailed(this ILogger logger, Exception exception) =>
             _connectionConnectFailed(logger, exception);
