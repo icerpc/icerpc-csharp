@@ -71,7 +71,7 @@ namespace IceRpc
         public Protocol Protocol { get; }
 
         /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
-        /// called after the request or response frame is sent over a socket stream.</summary>
+        /// called after the request or response frame is sent over a stream.</summary>
         internal Action<Stream>? StreamDataWriter { get; set; }
         private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
 

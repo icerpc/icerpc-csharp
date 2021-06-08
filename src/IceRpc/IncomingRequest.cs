@@ -63,14 +63,14 @@ namespace IceRpc
             set => _streamId = value;
         }
 
-        // The optional socket stream. The stream is non-null if there's still data to read over the stream
+        // The optional stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
-        internal Stream? SocketStream { get; set; }
+        internal Stream? Stream { get; set; }
 
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
-        public void Dispose() => SocketStream?.Release();
+        public void Dispose() => Stream?.Release();
 
         /*
         /// <summary>Reads a single stream argument from the request.</summary>
@@ -85,8 +85,8 @@ namespace IceRpc
 
             Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
             T value = reader(Stream);
-            // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the socket stream.
+            // Clear the stream to ensure it's not disposed with the request frame. It's now the
+            // responsibility of the stream parameter object to dispose the stream.
             Stream = null;
             return value;
         }
@@ -109,8 +109,8 @@ namespace IceRpc
                                        invoker: connection.Server?.Invoker,
                                        startEncapsulation: true);
             T value = reader(istr, Stream);
-            // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the socket stream.
+            // Clear the stream to ensure it's not disposed with the request frame. It's now the
+            // responsibility of the stream parameter object to dispose the stream.
             Stream = null;
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return value;
@@ -120,7 +120,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="stream">The optional socket stream. The stream is non-null if there's still data to
+        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
@@ -128,7 +128,7 @@ namespace IceRpc
             Stream? stream)
             : base(protocol)
         {
-            SocketStream = stream;
+            Stream = stream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
 

@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private bool _receivedEndOfStream;
-        private readonly Ice1Connection _socket;
+        private readonly Ice1Connection _connection;
 
         protected override void AbortWrite(StreamErrorCode errorCode)
         {
@@ -30,25 +30,25 @@ namespace IceRpc.Transports.Internal
             IList<ArraySegment<byte>> buffer,
             bool fin,
             CancellationToken cancel) =>
-            await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
 
         protected override void Shutdown()
         {
             base.Shutdown();
-            _socket.ReleaseStream(this);
+            _connection.ReleaseStream(this);
         }
 
-        internal Ice1Stream(Ice1Connection socket, long streamId)
-            : base(socket, streamId) => _socket = socket;
+        internal Ice1Stream(Ice1Connection connection, long streamId)
+            : base(connection, streamId) => _connection = connection;
 
-        internal Ice1Stream(Ice1Connection socket, bool bidirectional, bool control)
-            : base(socket, bidirectional, control) => _socket = socket;
+        internal Ice1Stream(Ice1Connection connection, bool bidirectional, bool control)
+            : base(connection, bidirectional, control) => _connection = connection;
 
         internal void ReceivedFrame(Ice1FrameType frameType, ArraySegment<byte> frame)
         {
-            if (frameType == Ice1FrameType.Reply && _socket.LastResponseStreamId < Id)
+            if (frameType == Ice1FrameType.Reply && _connection.LastResponseStreamId < Id)
             {
-                _socket.LastResponseStreamId = Id;
+                _connection.LastResponseStreamId = Id;
             }
 
             SetResult((frameType, frame));
@@ -98,7 +98,7 @@ namespace IceRpc.Transports.Internal
             int frameSize = buffer.GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
-            await _socket.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
         }
     }
 }

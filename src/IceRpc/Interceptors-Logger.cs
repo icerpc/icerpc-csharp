@@ -20,7 +20,7 @@ namespace IceRpc
                 {
                     // TODO we now log the sending of the request before it is actually sent
                     // and it might never be sent
-                    using IDisposable? socketScope = request.Connection?.StartScope();
+                    using IDisposable? connectionScope = request.Connection?.StartScope();
                     logger.LogSentRequest(request);
                     try
                     {

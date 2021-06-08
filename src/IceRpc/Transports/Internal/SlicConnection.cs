@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private BufferedReceiveOverSingleStreamConnection? _socket;
+        private BufferedReceiveOverSingleStreamConnection? _bufferedConnection;
         private Memory<byte>? _streamConsumedBuffer;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -283,7 +283,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             // Create a buffered receive single stream socket on top of the underlying socket.
-            _socket = new BufferedReceiveOverSingleStreamConnection(Underlying);
+            _bufferedConnection = new BufferedReceiveOverSingleStreamConnection(Underlying);
 
             if (IsIncoming)
             {
@@ -504,7 +504,7 @@ namespace IceRpc.Transports.Internal
         {
             for (int offset = 0; offset != buffer.Length;)
             {
-                int received = await _socket!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                int received = await _bufferedConnection!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
                 offset += received;
                 Received(received);
             }
@@ -541,7 +541,7 @@ namespace IceRpc.Transports.Internal
         internal async ValueTask SendPacketAsync(IList<ArraySegment<byte>> buffer)
         {
             // Perform the write
-            int sent = await _socket!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+            int sent = await _bufferedConnection!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
             Debug.Assert(sent == buffer.GetByteCount());
             Sent(sent);
         }
@@ -810,14 +810,14 @@ namespace IceRpc.Transports.Internal
         {
             // Receive at most 2 bytes for the Slic header (the minimum size of a Slic header). The first byte
             // will be the frame type and the second is the first byte of the Slic frame size.
-            ReadOnlyMemory<byte> buffer = await _socket!.ReceiveAsync(2, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(2, cancel).ConfigureAwait(false);
             var type = (SlicDefinitions.FrameType)buffer.Span[0];
             int sizeLength = buffer.Span[1].ReadSizeLength20();
             int size;
             if (sizeLength > 1)
             {
-                _socket!.Rewind(1);
-                buffer = await _socket!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
+                _bufferedConnection!.Rewind(1);
+                buffer = await _bufferedConnection!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
                 size = buffer.Span.ReadSize20().Size;
             }
             else
@@ -831,9 +831,9 @@ namespace IceRpc.Transports.Internal
             if (type >= SlicDefinitions.FrameType.Stream && type <= SlicDefinitions.FrameType.StreamConsumed)
             {
                 int receiveSize = Math.Min(size, 8);
-                buffer = await _socket!.ReceiveAsync(receiveSize, cancel).ConfigureAwait(false);
+                buffer = await _bufferedConnection!.ReceiveAsync(receiveSize, cancel).ConfigureAwait(false);
                 (streamId, streamIdLength) = buffer.Span.ReadVarULong();
-                _socket!.Rewind(receiveSize - streamIdLength);
+                _bufferedConnection!.Rewind(receiveSize - streamIdLength);
             }
 
             Received(1 + sizeLength + streamIdLength);

@@ -29,9 +29,9 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; }
 
-        // The optional socket stream. The stream is non-null if there's still data to read over the stream
+        // The optional stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
-        internal Stream? SocketStream { get; set; }
+        internal Stream? Stream { get; set; }
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
@@ -42,7 +42,7 @@ namespace IceRpc
         }
 
         /// <summary>Releases resources used by the response frame.</summary>
-        public void Dispose() => SocketStream?.Release();
+        public void Dispose() => Stream?.Release();
 
         /*
         /// <summary>Reads the return value which contains a stream return value. If this response frame carries a
@@ -67,8 +67,8 @@ namespace IceRpc
                                            proxy.GetOptions(),
                                            startEncapsulation: true);
                 T value = reader(istr, Stream);
-                // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
-                // responsibility of the stream parameter object to dispose the socket stream.
+                // Clear the stream to ensure it's not disposed with the response frame. It's now the
+                // responsibility of the stream parameter object to dispose the stream.
                 Stream = null;
                 istr.CheckEndOfBuffer(skipTaggedParams: true);
                 return value;
@@ -99,8 +99,8 @@ namespace IceRpc
                 }
                 Payload.AsReadOnlyMemory(1).ReadEmptyEncapsulation(Protocol.GetEncoding());
                 T value = reader(Stream);
-                // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
-                // responsibility of the stream parameter object to dispose the socket stream.
+                // Clear the stream to ensure it's not disposed with the response frame. It's now the
+                // responsibility of the stream parameter object to dispose the stream.
                 Stream = null;
                 return value;
             }
@@ -118,7 +118,7 @@ namespace IceRpc
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="stream">The optional socket stream. The stream is non-null if there's still data to
+        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the response frame.</param>
         internal IncomingResponse(
             Protocol protocol,
@@ -126,7 +126,7 @@ namespace IceRpc
             Stream? stream)
             : base(protocol)
         {
-            SocketStream = stream;
+            Stream = stream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
