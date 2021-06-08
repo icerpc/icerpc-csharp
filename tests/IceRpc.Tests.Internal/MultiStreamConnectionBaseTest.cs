@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Internal
 
         protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
         protected MultiStreamConnection IncomingConnection => _incomingConnection!;
-        protected MultiStreamConnectionType SocketType { get; }
+        protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _outgoingConnection;
         private Stream? _controlStreamForClient;
         private Stream? _controlStreamForServer;
@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Internal
             : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
                    connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp",
                    tls: false) =>
-            SocketType = connectionType;
+            ConnectionType = connectionType;
 
         public async Task SetUpConnectionsAsync()
         {
@@ -54,7 +54,7 @@ namespace IceRpc.Tests.Internal
             _peerControlStreamForServer = await IncomingConnection.ReceiveInitializeFrameAsync(default);
         }
 
-        public void TearDownSockets()
+        public void TearDownConnections()
         {
             _controlStreamForClient?.Release();
             _peerControlStreamForClient?.Release();

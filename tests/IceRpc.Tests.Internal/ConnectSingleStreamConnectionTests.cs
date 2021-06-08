@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Internal
 
         private SingleStreamConnection CreateClientSocket() =>
             (ClientEndpoint.CreateOutgoingConnection(
-                ClientConnectionOptions,
+                OutgoingConnectionOptions,
                 Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }

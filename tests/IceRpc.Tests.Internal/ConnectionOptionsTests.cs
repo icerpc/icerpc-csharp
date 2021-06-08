@@ -152,7 +152,7 @@ namespace IceRpc.Tests.Internal
             if (IsIPv6)
             {
                 // Create a server endpoint for ::0 instead of loopback
-                IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
+                IncomingConnectionOptions connectionOptions = IncomingConnectionOptions.Clone();
                 connectionOptions.TransportOptions = new TcpOptions()
                 {
                     IsIPv6Only = ipv6Only
@@ -244,14 +244,14 @@ namespace IceRpc.Tests.Internal
 
         private IAcceptor CreateAcceptorWithTcpOptions(TcpOptions options)
         {
-            IncomingConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
+            IncomingConnectionOptions connectionOptions = IncomingConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
             return ServerEndpoint.CreateAcceptor(connectionOptions, Logger);
         }
 
         private SingleStreamConnection CreateClientSocket(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
         {
-            OutgoingConnectionOptions options = ClientConnectionOptions.Clone();
+            OutgoingConnectionOptions options = OutgoingConnectionOptions.Clone();
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
             return ((endpoint ?? ClientEndpoint).CreateOutgoingConnection(
                    options,

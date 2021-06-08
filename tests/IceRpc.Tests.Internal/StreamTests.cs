@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         public Task SetUp() => SetUpConnectionsAsync();
 
         [TearDown]
-        public void TearDown() => TearDownSockets();
+        public void TearDown() => TearDownConnections();
 
         [TestCase(64)]
         [TestCase(1024)]
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
         public async Task Stream_Reset(StreamErrorCode errorCode)
         {
             // SendAsync/ReceiveAsync is only supported with Slic
-            if (SocketType != MultiStreamConnectionType.Slic)
+            if (ConnectionType != MultiStreamConnectionType.Slic)
             {
                 return;
             }
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await responseTask);
 
-            if (SocketType != MultiStreamConnectionType.Ice1)
+            if (ConnectionType != MultiStreamConnectionType.Ice1)
             {
                 stream.Reset(StreamErrorCode.InvocationCanceled);
 

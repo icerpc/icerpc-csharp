@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    // Test the varions single socket implementations. We don't test Ice1 + WS here as it doesn't really
-    // provide additional test coverage given that the WS socket has no protocol specific code.
+    // Test the various single stream connection implementations. We don't test Ice1 + WS here as it doesn't really
+    // provide additional test coverage given that the WS connection has no protocol specific code.
     [TestFixture("tcp", false)]
     [TestFixture("ws", false)]
     [TestFixture("tcp", true)]
@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Internal
             try
             {
                 // This will either complete successfully or with an OperationCanceledException
-                await ClientSocket.CloseAsync(0, canceled.Token);
+                await OutgoingConnection.CloseAsync(0, canceled.Token);
             }
             catch (OperationCanceledException)
             {
@@ -41,17 +41,17 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void SingleStreamConnection_Dispose()
         {
-            ClientSocket.Dispose();
-            ServerSocket.Dispose();
-            ClientSocket.Dispose();
-            ServerSocket.Dispose();
+            OutgoingConnection.Dispose();
+            IncomingConnection.Dispose();
+            OutgoingConnection.Dispose();
+            IncomingConnection.Dispose();
         }
 
         [Test]
         public void SingleStreamConnection_Properties()
         {
-            Test(ClientSocket);
-            Test(ServerSocket);
+            Test(OutgoingConnection);
+            Test(IncomingConnection);
 
             static void Test(SingleStreamConnection socket)
             {

@@ -40,10 +40,10 @@ namespace IceRpc.Tests.Internal
             _serverSockets.Clear();
             for (int i = 0; i < _incomingConnectionCount; ++i)
             {
-                _serverSockets.Add(((MultiStreamOverSingleStreamConnection)CreateServerSocket()).Underlying);
+                _serverSockets.Add(((MultiStreamOverSingleStreamConnection)CreateIncomingConnection()).Underlying);
             }
 
-            ValueTask<SingleStreamConnection> connectTask = SingleStreamSocketAsync(ConnectAsync());
+            ValueTask<SingleStreamConnection> connectTask = SingleStreamConnectionAsync(ConnectAsync());
             _clientSocket = await connectTask;
         }
 

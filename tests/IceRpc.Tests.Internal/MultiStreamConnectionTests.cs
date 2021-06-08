@@ -20,9 +20,9 @@ namespace IceRpc.Tests.Internal
         public MultiStreamConnectionTests(MultiStreamConnectionType type)
             : base(type)
         {
-            ServerConnectionOptions.BidirectionalStreamMaxCount = 15;
-            ServerConnectionOptions.UnidirectionalStreamMaxCount = 10;
-            ServerConnectionOptions.IncomingFrameMaxSize = 512 * 1024;
+            IncomingConnectionOptions.BidirectionalStreamMaxCount = 15;
+            IncomingConnectionOptions.UnidirectionalStreamMaxCount = 10;
+            IncomingConnectionOptions.IncomingFrameMaxSize = 512 * 1024;
         }
 
         [Test]
@@ -228,7 +228,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<Stream>();
             var serverStreams = new List<Stream>();
             IncomingRequest? incomingRequest = null;
-            for (int i = 0; i < ServerConnectionOptions.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < IncomingConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
                 var stream = OutgoingConnection.CreateStream(true);
                 clientStreams.Add(stream);
@@ -253,7 +253,7 @@ namespace IceRpc.Tests.Internal
             // request should succeed since the max count is only checked on the server side. For collocated and slic,
             // the stream isn't opened on the client side until we have confirmation from the server that we can open
             // a new stream, so the send shouldn't not complete.
-            Assert.AreEqual(SocketType == MultiStreamConnectionType.Ice1, sendTask.IsCompleted);
+            Assert.AreEqual(ConnectionType == MultiStreamConnectionType.Ice1, sendTask.IsCompleted);
             Assert.IsFalse(acceptTask.IsCompleted);
 
             // Close one stream by sending the response (which sends the stream EOS) after receiving it.
@@ -285,8 +285,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                ServerConnectionOptions.BidirectionalStreamMaxCount :
-                ServerConnectionOptions.UnidirectionalStreamMaxCount;
+                IncomingConnectionOptions.BidirectionalStreamMaxCount :
+                IncomingConnectionOptions.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -310,7 +310,7 @@ namespace IceRpc.Tests.Internal
 
                 // With non-Ice1 sockets, the client-side keeps track of the stream max count and it ensures that it
                 // doesn't open more streams that the server permits.
-                if (SocketType != MultiStreamConnectionType.Ice1)
+                if (ConnectionType != MultiStreamConnectionType.Ice1)
                 {
                     Interlocked.Increment(ref streamCount);
                     Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
@@ -326,7 +326,7 @@ namespace IceRpc.Tests.Internal
             {
                 // Ice1 stream max count is enforced on the server-side only. The stream is accepted only
                 // the server-side stream count permits it.
-                if (SocketType == MultiStreamConnectionType.Ice1)
+                if (ConnectionType == MultiStreamConnectionType.Ice1)
                 {
                     Interlocked.Increment(ref streamCount);
                     Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
@@ -336,7 +336,7 @@ namespace IceRpc.Tests.Internal
 
                 // With non-Ice1 sockets, the server-side releases the stream shortly before sending the
                 // last stream frame (with the response).
-                if (SocketType != MultiStreamConnectionType.Ice1)
+                if (ConnectionType != MultiStreamConnectionType.Ice1)
                 {
                     Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
                     Interlocked.Decrement(ref streamCount);
@@ -347,7 +347,7 @@ namespace IceRpc.Tests.Internal
                     await stream.SendResponseFrameAsync(GetResponseFrame(request));
                 }
 
-                if (SocketType == MultiStreamConnectionType.Ice1)
+                if (ConnectionType == MultiStreamConnectionType.Ice1)
                 {
                     Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
                     Interlocked.Decrement(ref streamCount);
@@ -361,7 +361,7 @@ namespace IceRpc.Tests.Internal
         {
             var clientStreams = new List<Stream>();
             var serverStreams = new List<Stream>();
-            for (int i = 0; i < ServerConnectionOptions.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < IncomingConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = OutgoingConnection.CreateStream(false);
                 clientStreams.Add(stream);
@@ -385,7 +385,7 @@ namespace IceRpc.Tests.Internal
             // request should succeed since the max count is only checked on the server side. For collocated and slic,
             // the stream isn't opened on the client side until we have confirmation from the server that we can open
             // a new stream, so the send shouldn't not complete.
-            Assert.AreEqual(SocketType == MultiStreamConnectionType.Ice1, sendTask.IsCompleted);
+            Assert.AreEqual(ConnectionType == MultiStreamConnectionType.Ice1, sendTask.IsCompleted);
             Assert.IsFalse(acceptTask.IsCompleted);
 
             // Close one stream by releasing the stream on the server-side.
@@ -413,7 +413,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamConnection_PeerIncomingFrameMaxSize()
         {
             // PeerIncomingFrameMaxSize is set when control streams are initialized in Setup()
-            if (SocketType == MultiStreamConnectionType.Ice1)
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
             {
                 Assert.IsNull(IncomingConnection.PeerIncomingFrameMaxSize);
                 Assert.IsNull(OutgoingConnection.PeerIncomingFrameMaxSize);
@@ -566,6 +566,6 @@ namespace IceRpc.Tests.Internal
         public Task SetUp() => SetUpConnectionsAsync();
 
         [TearDown]
-        public void TearDown() => TearDownSockets();
+        public void TearDown() => TearDownConnections();
     }
 }
