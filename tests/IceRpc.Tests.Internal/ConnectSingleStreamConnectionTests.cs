@@ -10,9 +10,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
-    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the connection to
-    // figure out if the outgoing connection is a secure or non-secure connection).
+    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure incoming
+    // connections: with Ice2, the acceptor peeks a byte on the connection to figure out if it's secure or not.
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
