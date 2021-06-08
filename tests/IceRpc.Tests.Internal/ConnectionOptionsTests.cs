@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                // Accessing DualMode for an IPv4 socket throws NotSupportedException
+                // Accessing DualMode for an IPv4 connection throws NotSupportedException
                 Assert.Catch<NotSupportedException>(() => _ = outgoingConnection.NetworkSocket!.DualMode);
             }
         }
@@ -215,7 +215,7 @@ namespace IceRpc.Tests.Internal
                     ListenerBackLog = 18
                 });
                 ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
-                var sockets = new List<SingleStreamConnection>();
+                var connections = new List<SingleStreamConnection>();
                 while (true)
                 {
                     using var source = new CancellationTokenSource(500);
@@ -223,7 +223,7 @@ namespace IceRpc.Tests.Internal
                     try
                     {
                         await outgoingConnection.ConnectAsync(ClientEndpoint, ClientAuthenticationOptions, source.Token);
-                        sockets.Add(outgoingConnection);
+                        connections.Add(outgoingConnection);
                     }
                     catch (OperationCanceledException)
                     {
@@ -232,12 +232,12 @@ namespace IceRpc.Tests.Internal
                     }
                 }
 
-                // Tolerate a little more sockets than the exact expected count (on Linux, it appears to accept one
-                // more socket for instance).
-                Assert.GreaterOrEqual(sockets.Count, 19);
-                Assert.LessOrEqual(sockets.Count, 25);
+                // Tolerate a little more connections than the exact expected count (on Linux, it appears to accept one
+                // more connection for instance).
+                Assert.GreaterOrEqual(connections.Count, 19);
+                Assert.LessOrEqual(connections.Count, 25);
 
-                sockets.ForEach(socket => socket.Dispose());
+                connections.ForEach(connection => connection.Dispose());
                 acceptor.Dispose();
             }
         }
