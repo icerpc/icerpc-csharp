@@ -346,12 +346,12 @@ namespace IceRpc.Tests.Internal
             if (transport == "ws")
             {
                 Assert.That(outgoingConnection, Is.AssignableTo<IWSConnectionInformation>());
-                var wsSocket = (IWSConnectionInformation)outgoingConnection;
+                var wsConnectionInformation = (IWSConnectionInformation)outgoingConnection;
 
-                Assert.AreEqual("websocket", wsSocket.Headers["Upgrade"]);
-                Assert.AreEqual("Upgrade", wsSocket.Headers["Connection"]);
-                Assert.AreEqual("ice.zeroc.com", wsSocket.Headers["Sec-WebSocket-Protocol"]);
-                Assert.That(wsSocket.Headers["Sec-WebSocket-Accept"], Is.Not.Null);
+                Assert.AreEqual("websocket", wsConnectionInformation.Headers["Upgrade"]);
+                Assert.AreEqual("Upgrade", wsConnectionInformation.Headers["Connection"]);
+                Assert.AreEqual("ice.zeroc.com", wsConnectionInformation.Headers["Sec-WebSocket-Protocol"]);
+                Assert.That(wsConnectionInformation.Headers["Sec-WebSocket-Accept"], Is.Not.Null);
             }
 
             if (secure)

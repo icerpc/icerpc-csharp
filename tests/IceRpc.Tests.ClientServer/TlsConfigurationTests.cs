@@ -360,9 +360,9 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(prx.Connection!.ConnectionInformation, Is.AssignableTo<ITcpConnectionInformation>());
-            var socket = (ITcpConnectionInformation)prx.Connection.ConnectionInformation;
-            Assert.IsTrue(socket.IsSecure);
-            Assert.AreEqual(SslProtocols.Tls12, socket.SslProtocol);
+            var connectionInformation = (ITcpConnectionInformation)prx.Connection.ConnectionInformation;
+            Assert.IsTrue(connectionInformation.IsSecure);
+            Assert.AreEqual(SslProtocols.Tls12, connectionInformation.SslProtocol);
         }
 
         [Test]
