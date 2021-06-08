@@ -15,7 +15,7 @@ namespace IceRpc.Tests.Internal
     }
 
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    public class MultiStreamSocketBaseTest : SocketBaseTest
+    public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
         protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
 
@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Internal
         private Stream? _peerControlStreamForServer;
         private MultiStreamConnection? _incomingConnection;
 
-        public MultiStreamSocketBaseTest(MultiStreamConnectionType connectionType)
+        public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)
             : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
                    connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp",
                    tls: false) =>

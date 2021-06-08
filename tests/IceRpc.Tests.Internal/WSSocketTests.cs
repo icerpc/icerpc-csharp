@@ -11,9 +11,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture("ws", false)]
     [TestFixture("ws", true)]
     [Timeout(10000)]
-    public class WSSocketTests : SingleStreamSocketBaseTest
+    public class WSConnectionTests : SingleStreamConnectionBaseTest
     {
-        public WSSocketTests(string transport, bool tls)
+        public WSConnectionTests(string transport, bool tls)
             : base(Protocol.Ice2, transport, tls, AddressFamily.InterNetwork)
         {
         }

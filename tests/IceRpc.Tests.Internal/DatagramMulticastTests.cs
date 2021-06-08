@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(5, AddressFamily.InterNetwork)]
     [TestFixture(5, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class DatagramMulticastTests : SocketBaseTest
+    public class DatagramMulticastTests : ConnectionBaseTest
     {
         protected SingleStreamConnection ClientSocket => _clientSocket!;
         protected IList<SingleStreamConnection> ServerSockets => _serverSockets;

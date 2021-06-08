@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    public class SingleStreamSocketBaseTest : SocketBaseTest
+    public class SingleStreamConnectionBaseTest : ConnectionBaseTest
     {
         protected SingleStreamConnection ClientSocket => _clientSocket!;
         protected SingleStreamConnection ServerSocket => _serverSocket!;
         private SingleStreamConnection? _clientSocket;
         private SingleStreamConnection? _serverSocket;
 
-        public SingleStreamSocketBaseTest(
+        public SingleStreamConnectionBaseTest(
             Protocol protocol,
             string transport,
             bool tls,

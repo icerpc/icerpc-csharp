@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
     [TestFixture(MultiStreamConnectionType.Ice1)]
-    public class MultiStreamSocketTests : MultiStreamSocketBaseTest
+    public class MultiStreamConnectionTests : MultiStreamConnectionBaseTest
     {
-        public MultiStreamSocketTests(MultiStreamConnectionType type)
+        public MultiStreamConnectionTests(MultiStreamConnectionType type)
             : base(type)
         {
             ServerConnectionOptions.BidirectionalStreamMaxCount = 15;

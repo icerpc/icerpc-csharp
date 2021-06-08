@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class TcpOptionsTests : SocketBaseTest
+    public class TcpOptionsTests : ConnectionBaseTest
     {
         public TcpOptionsTests(Protocol protocol, AddressFamily addressFamily)
             : base(protocol, "tcp", tls: false, addressFamily)

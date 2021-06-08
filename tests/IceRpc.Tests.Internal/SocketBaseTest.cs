@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Internal
 {
     /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
     /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
-    public class SocketBaseTest
+    public class ConnectionBaseTest
     {
         protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
         protected static readonly List<ArraySegment<byte>> OneMBSendBuffer = new() { new byte[1024 * 1024] };
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Internal
         private readonly object _mutex = new();
         private static int _nextBasePort;
 
-        public SocketBaseTest(
+        public ConnectionBaseTest(
             Protocol protocol,
             string transport,
             bool tls,
