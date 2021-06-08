@@ -11,7 +11,7 @@ namespace IceRpc.Transports
 {
     /// <summary>A single-stream socket represents the local end of a network connection and enables transmitting
     /// raw binary data over a transport such as TCP, UDP or WebSocket.</summary>
-    public abstract class SingleStreamSocket : IDisposable
+    public abstract class SingleStreamConnection : IDisposable
     {
         /// <summary>The public socket interface to obtain information on the socket.</summary>
         public abstract ISocket Socket { get; }
@@ -44,7 +44,7 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A tuple with the single stream socket to use after the initialization and the remote endpoint.
         /// The socket implementation might return a different socket based on information read on the socket.</returns>
-        public abstract ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public abstract ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
@@ -57,7 +57,7 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A tuple with the single stream socket to use after the initialization and the local endpoint.
         /// The socket implementation might return a different socket based on information read on the socket.</returns>
-        public abstract ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public abstract ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
@@ -90,6 +90,6 @@ namespace IceRpc.Transports
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
 
-        internal SingleStreamSocket(ILogger logger) => Logger = logger;
+        internal SingleStreamConnection(ILogger logger) => Logger = logger;
     }
 }

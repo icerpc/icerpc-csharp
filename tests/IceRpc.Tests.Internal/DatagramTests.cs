@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
             new Random().NextBytes(sendBuffer[0]);
 
-            List<SingleStreamSocket> clientSockets = new();
+            List<SingleStreamConnection> clientSockets = new();
             clientSockets.Add(ClientSocket);
             for (int i = 0; i < clientSocketCount; ++i)
             {
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamSocket socket in clientSockets)
+                    foreach (SingleStreamConnection socket in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ValueTask<int> sendTask = socket.SendDatagramAsync(sendBuffer, default);
@@ -65,11 +65,11 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamSocket socket in clientSockets)
+                    foreach (SingleStreamConnection socket in clientSockets)
                     {
                         await socket.SendDatagramAsync(sendBuffer, default);
                     }
-                    foreach (SingleStreamSocket socket in clientSockets)
+                    foreach (SingleStreamConnection socket in clientSockets)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ArraySegment<byte> receiveBuffer = await ServerSocket.ReceiveDatagramAsync(source.Token);

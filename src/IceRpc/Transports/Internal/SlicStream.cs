@@ -20,7 +20,7 @@ namespace IceRpc.Transports.Internal
     /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight
     /// Slic stream object where no additional heap objects (such as the circular buffer, send semaphore,
     /// etc) are necessary to receive a simple response/request frame.</summary>
-    internal class SlicStream : SignaledSocketStream<(int, bool)>
+    internal class SlicStream : SignaledStream<(int, bool)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
@@ -40,13 +40,13 @@ namespace IceRpc.Transports.Internal
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private AsyncSemaphore? _sendSemaphore;
-        private readonly SlicSocket _socket;
+        private readonly SlicConnection _socket;
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
         // A value which is used as a gate to ensure the stream isn't released twice with the socket.
         private int _streamReleased;
 
-        protected override void AbortWrite(SocketStreamErrorCode errorCode)
+        protected override void AbortWrite(StreamErrorCode errorCode)
         {
             if (IsIncoming && !ReleaseStreamCount())
             {
@@ -376,10 +376,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicStream(SlicSocket socket, long streamId)
+        internal SlicStream(SlicConnection socket, long streamId)
             : base(socket, streamId) => _socket = socket;
 
-        internal SlicStream(SlicSocket socket, bool bidirectional, bool control)
+        internal SlicStream(SlicConnection socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
         internal void ReceivedConsumed(int size)
@@ -491,7 +491,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedReset(SocketStreamErrorCode errorCode)
+        internal void ReceivedReset(StreamErrorCode errorCode)
         {
             if (!IsIncoming && !ReleaseStreamCount())
             {

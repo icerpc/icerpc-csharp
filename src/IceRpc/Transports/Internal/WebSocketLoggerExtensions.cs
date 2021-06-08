@@ -44,10 +44,10 @@ namespace IceRpc.Transports.Internal
         internal static void LogHttpUpgradeRequestSucceed(this ILogger logger) =>
             _httpUpgradeRequestSucceed(logger, null!);
 
-        internal static void LogReceivedWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
+        internal static void LogReceivedWebSocketFrame(this ILogger logger, WSConnection.OpCode opCode, int size) =>
             _receivedWebSocketFrame(logger, opCode.ToString(), size, null!);
 
-        internal static void LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
+        internal static void LogSendingWebSocketFrame(this ILogger logger, WSConnection.OpCode opCode, int size) =>
             _sendingWebSocketFrame(logger, opCode.ToString(), size, null!);
     }
 }

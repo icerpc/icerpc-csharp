@@ -103,7 +103,7 @@ namespace IceRpc
             string operation,
             Invocation? invocation,
             T args,
-            Action<SocketStream, T, CancellationToken> writer,
+            Action<Stream, T, CancellationToken> writer,
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);

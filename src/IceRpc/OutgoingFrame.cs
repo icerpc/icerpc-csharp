@@ -72,7 +72,7 @@ namespace IceRpc
 
         /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
         /// called after the request or response frame is sent over a socket stream.</summary>
-        internal Action<SocketStream>? StreamDataWriter { get; set; }
+        internal Action<Stream>? StreamDataWriter { get; set; }
         private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
 
         private IList<ArraySegment<byte>> _payload = ImmutableList<ArraySegment<byte>>.Empty;

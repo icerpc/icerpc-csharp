@@ -18,11 +18,11 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class DatagramMulticastTests : SocketBaseTest
     {
-        protected SingleStreamSocket ClientSocket => _clientSocket!;
-        protected IList<SingleStreamSocket> ServerSockets => _serverSockets;
-        private SingleStreamSocket? _clientSocket;
+        protected SingleStreamConnection ClientSocket => _clientSocket!;
+        protected IList<SingleStreamConnection> ServerSockets => _serverSockets;
+        private SingleStreamConnection? _clientSocket;
         private readonly int _incomingConnectionCount;
-        private readonly List<SingleStreamSocket> _serverSockets = new();
+        private readonly List<SingleStreamConnection> _serverSockets = new();
 
         public DatagramMulticastTests(int incomingConnectionCount, AddressFamily addressFamily)
             : base(
@@ -40,10 +40,10 @@ namespace IceRpc.Tests.Internal
             _serverSockets.Clear();
             for (int i = 0; i < _incomingConnectionCount; ++i)
             {
-                _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateServerSocket()).Underlying);
+                _serverSockets.Add(((MultiStreamOverSingleStreamConnection)CreateServerSocket()).Underlying);
             }
 
-            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
+            ValueTask<SingleStreamConnection> connectTask = SingleStreamSocketAsync(ConnectAsync());
             _clientSocket = await connectTask;
         }
 
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Internal
                 {
                     using var source = new CancellationTokenSource(1000);
                     ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, default);
-                    foreach (SingleStreamSocket socket in ServerSockets)
+                    foreach (SingleStreamConnection socket in ServerSockets)
                     {
                         ArraySegment<byte> receiveBuffer = await socket.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);

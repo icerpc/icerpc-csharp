@@ -9,14 +9,14 @@ using System.Threading.Tasks.Sources;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The SignaledSocketStream abstract class provides signaling functionality using the
+    /// <summary>The SignaledStream abstract class provides signaling functionality using the
     /// IValueTaskSource interface. It's useful for stream implementations that depend on the socket
     /// for receiving data. The socket can easily signal the stream when new data is available.
     /// Signaling the stream and either be done with SetResult/SetException to signal a single value
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
     /// </summary>
-    internal abstract class SignaledSocketStream<T> : SocketStream, IValueTaskSource<T>
+    internal abstract class SignaledStream<T> : Stream, IValueTaskSource<T>
     {
         internal Exception? AbortException => _exception;
         internal bool IsAborted => _exception != null;
@@ -51,16 +51,16 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
         private static readonly Exception _closedException =
-            new SocketStreamAbortedException(SocketStreamErrorCode.ConnectionAborted);
+            new StreamAbortedException(StreamErrorCode.ConnectionAborted);
 
         /// <summary>Aborts the stream.</summary>
-        protected override void AbortRead(SocketStreamErrorCode errorCode) =>
-            SetException(new SocketStreamAbortedException(errorCode));
+        protected override void AbortRead(StreamErrorCode errorCode) =>
+            SetException(new StreamAbortedException(errorCode));
 
-        protected SignaledSocketStream(MultiStreamSocket socket, long streamId)
+        protected SignaledStream(MultiStreamConnection socket, long streamId)
             : base(socket, streamId) => _source.RunContinuationsAsynchronously = true;
 
-        protected SignaledSocketStream(MultiStreamSocket socket, bool bidirectional, bool control)
+        protected SignaledStream(MultiStreamConnection socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _source.RunContinuationsAsynchronously = true;
 
         protected override void Shutdown()

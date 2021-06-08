@@ -8,16 +8,16 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Ice1NetworkSocketStream class provides a stream implementation of the Ice1NetworkSocketSocket and
+    /// <summary>The Ice1Stream class provides a stream implementation of the Ice1NetworkSocketSocket and
     /// Ice1 protocol.</summary>
-    internal class Ice1NetworkSocketStream : SignaledSocketStream<(Ice1FrameType, ArraySegment<byte>)>
+    internal class Ice1Stream : SignaledStream<(Ice1FrameType, ArraySegment<byte>)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private bool _receivedEndOfStream;
-        private readonly Ice1NetworkSocket _socket;
+        private readonly Ice1Connection _socket;
 
-        protected override void AbortWrite(SocketStreamErrorCode errorCode)
+        protected override void AbortWrite(StreamErrorCode errorCode)
         {
             // Stream reset is not supported with Ice1
         }
@@ -38,10 +38,10 @@ namespace IceRpc.Transports.Internal
             _socket.ReleaseStream(this);
         }
 
-        internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, long streamId)
+        internal Ice1Stream(Ice1Connection socket, long streamId)
             : base(socket, streamId) => _socket = socket;
 
-        internal Ice1NetworkSocketStream(Ice1NetworkSocket socket, bool bidirectional, bool control)
+        internal Ice1Stream(Ice1Connection socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
         internal void ReceivedFrame(Ice1FrameType frameType, ArraySegment<byte> frame)

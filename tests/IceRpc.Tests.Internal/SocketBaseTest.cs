@@ -120,10 +120,10 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _acceptor?.Dispose();
 
-        static protected async ValueTask<SingleStreamSocket> SingleStreamSocketAsync(Task<MultiStreamSocket> socket) =>
-            (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        static protected async ValueTask<SingleStreamConnection> SingleStreamSocketAsync(Task<MultiStreamConnection> socket) =>
+            (await socket as MultiStreamOverSingleStreamConnection)!.Underlying;
 
-        protected async Task<MultiStreamSocket> AcceptAsync()
+        protected async Task<MultiStreamConnection> AcceptAsync()
         {
             lock (_mutex)
             {
@@ -133,14 +133,14 @@ namespace IceRpc.Tests.Internal
             await _acceptSemaphore.EnterAsync();
             try
             {
-                MultiStreamSocket multiStreamSocket = await _acceptor.AcceptAsync();
+                MultiStreamConnection multiStreamSocket = await _acceptor.AcceptAsync();
                 Debug.Assert(multiStreamSocket.TransportName == TransportName);
                 await multiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
                 if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamSocket.Socket.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the socket.
                     // See above for the reason.
-                    if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                    if (multiStreamSocket is MultiStreamOverSingleStreamConnection socket)
                     {
                         Memory<byte> buffer = new byte[1];
                         await socket.Underlying.ReceiveAsync(buffer, default);
@@ -159,7 +159,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
+        protected async Task<MultiStreamConnection> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
         {
             if (!ClientEndpoint.IsDatagram)
             {
@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamSocket multiStreamSocket = ClientEndpoint.CreateClientSocket(
+            MultiStreamConnection multiStreamSocket = ClientEndpoint.CreateClientSocket(
                 connectionOptions ?? ClientConnectionOptions,
                 Logger);
             await multiStreamSocket.ConnectAsync(ClientAuthenticationOptions, default);
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.Internal
                 // a single byte over the socket to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                if (multiStreamSocket is MultiStreamOverSingleStreamConnection socket)
                 {
                     var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
                     await socket.Underlying.SendAsync(buffer, default);
@@ -189,14 +189,14 @@ namespace IceRpc.Tests.Internal
             if (multiStreamSocket.TransportName != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(multiStreamSocket is ColocSocket);
+                Debug.Assert(multiStreamSocket is ColocConnection);
             }
             return multiStreamSocket;
         }
 
         protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
 
-        protected MultiStreamSocket CreateServerSocket() =>
+        protected MultiStreamConnection CreateServerSocket() =>
             ServerEndpoint.CreateServerSocket(ServerConnectionOptions, Logger);
     }
 }

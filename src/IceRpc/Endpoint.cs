@@ -208,7 +208,7 @@ namespace IceRpc
         /// <param name="options">The client connection options.</param>
         /// <param name="logger">The logger.</param>
         /// <returns>The client socket.</returns>
-        protected internal virtual MultiStreamSocket CreateClientSocket(
+        protected internal virtual MultiStreamConnection CreateClientSocket(
             OutgoingConnectionOptions options,
             ILogger logger) =>
             HasConnect ? throw new NotImplementedException($"cannot establish a connection to endpoint '{this}'") :
@@ -220,7 +220,7 @@ namespace IceRpc
         /// <param name="options">The server connection options.</param>
         /// <param name="logger">The logger.</param>
         /// <returns>The server socket.</returns>
-        protected internal virtual MultiStreamSocket CreateServerSocket(
+        protected internal virtual MultiStreamConnection CreateServerSocket(
             IncomingConnectionOptions options,
             ILogger logger) =>
             throw new NotSupportedException($"endpoint '{this}' cannot create a server connection");

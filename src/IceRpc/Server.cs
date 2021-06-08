@@ -177,7 +177,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    MultiStreamSocket socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
+                    MultiStreamConnection socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
                     var incomingConnection = new Connection(socket, this);
                     _endpoint = socket.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -310,7 +310,7 @@ namespace IceRpc
 
             while (true)
             {
-                MultiStreamSocket socket;
+                MultiStreamConnection socket;
                 try
                 {
                     socket = await acceptor.AcceptAsync().ConfigureAwait(false);

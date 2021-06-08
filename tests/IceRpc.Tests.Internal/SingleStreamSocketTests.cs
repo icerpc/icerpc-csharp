@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Internal
             Test(ClientSocket);
             Test(ServerSocket);
 
-            static void Test(SingleStreamSocket socket)
+            static void Test(SingleStreamConnection socket)
             {
                 Assert.NotNull(socket.Socket);
                 Assert.IsNotEmpty(socket.ToString());

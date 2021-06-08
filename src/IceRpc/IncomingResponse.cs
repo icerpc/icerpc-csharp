@@ -31,7 +31,7 @@ namespace IceRpc
 
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the response frame.
-        internal SocketStream? SocketStream { get; set; }
+        internal Stream? SocketStream { get; set; }
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of the response.</param>
@@ -56,7 +56,7 @@ namespace IceRpc
         {
             if (ResultType == ResultType.Success)
             {
-                if (SocketStream == null)
+                if (Stream == null)
                 {
                     throw new InvalidDataException("no stream data available for operation with stream parameter");
                 }
@@ -66,16 +66,16 @@ namespace IceRpc
                                            Connection,
                                            proxy.GetOptions(),
                                            startEncapsulation: true);
-                T value = reader(istr, SocketStream);
+                T value = reader(istr, Stream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
                 // responsibility of the stream parameter object to dispose the socket stream.
-                SocketStream = null;
+                Stream = null;
                 istr.CheckEndOfBuffer(skipTaggedParams: true);
                 return value;
             }
             else
             {
-                if (SocketStream != null)
+                if (Stream != null)
                 {
                     throw new InvalidDataException("stream data available with remote exception result");
                 }
@@ -89,24 +89,24 @@ namespace IceRpc
         /// <param name="proxy">The proxy used to send the request.</param>
         /// <param name="reader">A reader used to read the frame return value.</param>
         /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IServicePrx proxy, Func<SocketStream, T> reader)
+        public T ReadReturnValue<T>(IServicePrx proxy, Func<Stream, T> reader)
         {
             if (ResultType == ResultType.Success)
             {
-                if (SocketStream == null)
+                if (Stream == null)
                 {
                     throw new InvalidDataException("no stream data available for operation with stream parameter");
                 }
                 Payload.AsReadOnlyMemory(1).ReadEmptyEncapsulation(Protocol.GetEncoding());
-                T value = reader(SocketStream);
+                T value = reader(Stream);
                 // Clear the socket stream to ensure it's not disposed with the response frame. It's now the
                 // responsibility of the stream parameter object to dispose the socket stream.
-                SocketStream = null;
+                Stream = null;
                 return value;
             }
             else
             {
-                if (SocketStream != null)
+                if (Stream != null)
                 {
                     throw new InvalidDataException("stream data available with remote exception result");
                 }
@@ -123,7 +123,7 @@ namespace IceRpc
         internal IncomingResponse(
             Protocol protocol,
             ArraySegment<byte> data,
-            SocketStream? socketStream)
+            Stream? socketStream)
             : base(protocol)
         {
             SocketStream = socketStream;

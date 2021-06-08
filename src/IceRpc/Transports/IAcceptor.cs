@@ -16,6 +16,6 @@ namespace IceRpc.Transports
 
         /// <summary>Accepts a new socket.</summary>
         /// <return>The accepted socket.</return>
-        ValueTask<MultiStreamSocket> AcceptAsync();
+        ValueTask<MultiStreamConnection> AcceptAsync();
     }
 }

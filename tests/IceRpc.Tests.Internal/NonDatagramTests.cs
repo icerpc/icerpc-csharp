@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
             await test1;
             await test2;
 
-            async ValueTask Test(SingleStreamSocket socket1, SingleStreamSocket socket2)
+            async ValueTask Test(SingleStreamConnection socket1, SingleStreamConnection socket2)
             {
                 ValueTask<int> sendTask = socket1.SendAsync(sendBuffer, default);
                 ArraySegment<byte> receiveBuffer = new byte[size];

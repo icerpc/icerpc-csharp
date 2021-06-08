@@ -106,14 +106,14 @@ namespace IceRpc
         SslProtocols? SslProtocol { get; }
     }
 
-    /// <summary>The UdpSocket interface provides properties for a UDP socket.</summary>
+    /// <summary>The UdpConnection interface provides properties for a UDP socket.</summary>
     interface IUdpSocket : IIPSocket
     {
         /// <summary>The multicast IP-endpoint for a multicast connection otherwise null.</summary>
         IPEndPoint? MulticastEndpoint { get; }
     }
 
-    /// <summary>The WSSocket interface provides properties for a WebSocket socket.</summary>
+    /// <summary>The WSConnection interface provides properties for a WebSocket socket.</summary>
     interface IWSSocket : ITcpSocket
     {
         /// <summary>The HTTP headers for the WebSocket socket.</summary>

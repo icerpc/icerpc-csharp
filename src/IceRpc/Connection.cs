@@ -294,7 +294,7 @@ namespace IceRpc
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
-        private SocketStream? _controlStream;
+        private Stream? _controlStream;
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
@@ -306,12 +306,12 @@ namespace IceRpc
         // performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
-        private SocketStream? _peerControlStream;
+        private Stream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private Server? _server;
 #pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
-        private MultiStreamSocket? _socket;
+        private MultiStreamConnection? _socket;
 #pragma warning restore CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private ConnectionState _state = ConnectionState.NotConnected;
 #pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
@@ -430,7 +430,7 @@ namespace IceRpc
 
             return _connectTask;
 
-            async Task PerformInitializeAsync(MultiStreamSocket socket, ValueTask connectTask)
+            async Task PerformInitializeAsync(MultiStreamConnection socket, ValueTask connectTask)
             {
                 try
                 {
@@ -559,7 +559,7 @@ namespace IceRpc
                 throw;
             }
 
-            SocketStream? stream = null;
+            Stream? stream = null;
             try
             {
                 using IDisposable? socketScope = StartScope();
@@ -584,34 +584,34 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                stream!.Reset(SocketStreamErrorCode.InvocationCanceled);
+                stream!.Reset(StreamErrorCode.InvocationCanceled);
                 throw;
             }
-            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.DispatchCanceled)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer");
             }
-            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.ConnectionShutdown)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdown)
             {
                 // Invocations are canceled immediately when Shutdown is called on the connection.
                 Debug.Assert(Protocol == Protocol.Ice1);
                 throw new OperationCanceledException("connection shutdown");
             }
-            catch (SocketStreamAbortedException ex) when (ex.ErrorCode == SocketStreamErrorCode.ConnectionShutdownByPeer)
+            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer");
             }
-            catch (SocketStreamAbortedException ex)
+            catch (StreamAbortedException ex)
             {
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
-                Debug.Assert(ex.ErrorCode == SocketStreamErrorCode.ConnectionAborted);
+                Debug.Assert(ex.ErrorCode == StreamErrorCode.ConnectionAborted);
                 throw new ConnectionLostException();
             }
             catch (TransportException ex)
@@ -662,7 +662,7 @@ namespace IceRpc
             $"{Socket.GetType().FullName} ({Socket.Description}, IsIncoming={IsIncoming})";
 
         /// <summary>Constructs an incoming connection from an accepted socket.</summary>
-        internal Connection(MultiStreamSocket socket, Server server)
+        internal Connection(MultiStreamConnection socket, Server server)
         {
             _socket = socket;
             _localEndpoint = socket.LocalEndpoint!;
@@ -740,7 +740,7 @@ namespace IceRpc
                 if (_socket != null)
                 {
                     // Abort the streams.
-                    _socket.AbortStreams(SocketStreamErrorCode.ConnectionAborted);
+                    _socket.AbortStreams(StreamErrorCode.ConnectionAborted);
 
                     _socket.Dispose();
 
@@ -806,7 +806,7 @@ namespace IceRpc
 
         private async Task AcceptStreamAsync()
         {
-            SocketStream? stream = null;
+            Stream? stream = null;
             try
             {
                 // Accept a new stream.
@@ -856,7 +856,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        stream.Reset(SocketStreamErrorCode.DispatchCanceled);
+                        stream.Reset(StreamErrorCode.DispatchCanceled);
                     }
                 }
                 catch (Exception exception)
@@ -894,7 +894,7 @@ namespace IceRpc
                     }
                 }
             }
-            catch (SocketStreamAbortedException)
+            catch (StreamAbortedException)
             {
                 // Ignore
             }
@@ -977,7 +977,7 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1)
                     {
                         // Abort outgoing streams.
-                        _socket.AbortOutgoingStreams(SocketStreamErrorCode.ConnectionShutdown);
+                        _socket.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdown);
 
                         // Wait for incoming streams to complete before sending the CloseConnetion frame. Ice1 doesn't
                         // support sending the largest request ID with the CloseConnection frame. When the peer
@@ -1122,7 +1122,7 @@ namespace IceRpc
 
                 // Abort non-processed outgoing streams before closing the connection to ensure the invocation
                 // will fail with a retryable exception.
-                _socket.AbortOutgoingStreams(SocketStreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
+                _socket.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
 
                 try
                 {

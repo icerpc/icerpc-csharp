@@ -11,10 +11,10 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class SingleStreamSocketBaseTest : SocketBaseTest
     {
-        protected SingleStreamSocket ClientSocket => _clientSocket!;
-        protected SingleStreamSocket ServerSocket => _serverSocket!;
-        private SingleStreamSocket? _clientSocket;
-        private SingleStreamSocket? _serverSocket;
+        protected SingleStreamConnection ClientSocket => _clientSocket!;
+        protected SingleStreamConnection ServerSocket => _serverSocket!;
+        private SingleStreamConnection? _clientSocket;
+        private SingleStreamConnection? _serverSocket;
 
         public SingleStreamSocketBaseTest(
             Protocol protocol,
@@ -30,14 +30,14 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.IsDatagram)
             {
-                _serverSocket = ((MultiStreamOverSingleStreamSocket)CreateServerSocket()).Underlying;
-                ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
+                _serverSocket = ((MultiStreamOverSingleStreamConnection)CreateServerSocket()).Underlying;
+                ValueTask<SingleStreamConnection> connectTask = SingleStreamSocketAsync(ConnectAsync());
                 _clientSocket = await connectTask;
             }
             else
             {
-                ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
-                ValueTask<SingleStreamSocket> acceptTask = SingleStreamSocketAsync(AcceptAsync());
+                ValueTask<SingleStreamConnection> connectTask = SingleStreamSocketAsync(ConnectAsync());
+                ValueTask<SingleStreamConnection> acceptTask = SingleStreamSocketAsync(AcceptAsync());
 
                 _clientSocket = await connectTask;
                 _serverSocket = await acceptTask;

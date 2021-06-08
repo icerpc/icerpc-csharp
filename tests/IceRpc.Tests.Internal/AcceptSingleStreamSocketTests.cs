@@ -39,14 +39,14 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptSingleStreamSocket_Acceptor_AcceptAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection clientSocket = CreateClientSocket();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection serverSocket = await acceptTask;
         }
 
         [Test]
@@ -60,17 +60,17 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptSingleStreamSocket_AcceptAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection clientSocket = CreateClientSocket();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection serverSocket = await acceptTask;
 
-            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask2 = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask2 = serverSocket.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -82,16 +82,16 @@ namespace IceRpc.Tests.Internal
                 await clientSocket.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
             }
 
-            (SingleStreamSocket socket, Endpoint _) = await acceptTask2;
+            (SingleStreamConnection socket, Endpoint _) = await acceptTask2;
 
-            // The SslSocket is returned if a secure connection is requested.
+            // The SslConnection is returned if a secure connection is requested.
             if (IsSecure && TransportName != "ws")
             {
-                Assert.IsInstanceOf<SslSocket>(socket);
+                Assert.IsInstanceOf<SslConnection>(socket);
             }
             else
             {
-                Assert.IsNotInstanceOf<SslSocket>(socket);
+                Assert.IsNotInstanceOf<SslConnection>(socket);
             }
         }
 
@@ -101,16 +101,16 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
 
-            SingleStreamSocket clientSocket = CreateClientSocket();
+            SingleStreamConnection clientSocket = CreateClientSocket();
 
             // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
             await clientSocket.NetworkSocket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection serverSocket = await acceptTask;
 
             clientSocket.Dispose();
 
@@ -199,17 +199,17 @@ namespace IceRpc.Tests.Internal
         {
             using IAcceptor acceptor = CreateAcceptor();
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection clientSocket = CreateClientSocket();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = clientSocket.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
+            using SingleStreamConnection serverSocket = await CreateServerSocketAsync(acceptor);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask = serverSocket.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);
@@ -225,12 +225,12 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamSocket CreateClientSocket() =>
+        private SingleStreamConnection CreateClientSocket() =>
             (ClientEndpoint.CreateClientSocket(
                 ClientConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
+                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
 
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor) =>
-            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamSocket)!.Underlying;
+        private static async ValueTask<SingleStreamConnection> CreateServerSocketAsync(IAcceptor acceptor) =>
+            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }

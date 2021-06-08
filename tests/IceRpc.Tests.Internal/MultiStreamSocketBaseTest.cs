@@ -19,17 +19,17 @@ namespace IceRpc.Tests.Internal
     {
         protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
 
-        protected MultiStreamSocket ClientSocket => _clientSocket!;
+        protected MultiStreamConnection ClientSocket => _clientSocket!;
 
         protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
-        protected MultiStreamSocket ServerSocket => _serverSocket!;
+        protected MultiStreamConnection ServerSocket => _serverSocket!;
         protected MultiStreamSocketType SocketType { get; }
-        private MultiStreamSocket? _clientSocket;
-        private SocketStream? _controlStreamForClient;
-        private SocketStream? _controlStreamForServer;
-        private SocketStream? _peerControlStreamForClient;
-        private SocketStream? _peerControlStreamForServer;
-        private MultiStreamSocket? _serverSocket;
+        private MultiStreamConnection? _clientSocket;
+        private Stream? _controlStreamForClient;
+        private Stream? _controlStreamForServer;
+        private Stream? _peerControlStreamForClient;
+        private Stream? _peerControlStreamForServer;
+        private MultiStreamConnection? _serverSocket;
 
         public MultiStreamSocketBaseTest(MultiStreamSocketType socketType)
             : base(socketType == MultiStreamSocketType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Internal
 
         public async Task SetUpSocketsAsync()
         {
-            Task<MultiStreamSocket> acceptTask = AcceptAsync();
+            Task<MultiStreamConnection> acceptTask = AcceptAsync();
             _clientSocket = await ConnectAsync();
             _serverSocket = await acceptTask;
 

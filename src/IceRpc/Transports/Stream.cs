@@ -12,15 +12,15 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class SocketStreamAbortedException : Exception
+    public class StreamAbortedException : Exception
     {
-        internal SocketStreamErrorCode ErrorCode { get; }
+        internal StreamErrorCode ErrorCode { get; }
 
-        internal SocketStreamAbortedException(SocketStreamErrorCode errorCode) => ErrorCode = errorCode;
+        internal StreamAbortedException(StreamErrorCode errorCode) => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum SocketStreamErrorCode : byte
+    public enum StreamErrorCode : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled = 0,
@@ -41,16 +41,16 @@ namespace IceRpc.Transports
         ConnectionAborted,
     }
 
-    /// <summary>The SocketStream abstract base class to be overridden by multi-stream transport implementations.
+    /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream socket.</summary>
-    public abstract class SocketStream
+    public abstract class Stream
     {
         /// <summary>A delegate used to send data from a System.IO.Stream value.</summary>
-        public static readonly Action<SocketStream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
+        public static readonly Action<Stream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
             (socketStream, value, cancel) => socketStream.SendDataFromIOStream(value, cancel);
 
         /// <summary>A delegate used to receive data into a System.IO.Stream value.</summary>
-        public static readonly Func<SocketStream, System.IO.Stream> IceReceiveDataIntoIOStream =
+        public static readonly Func<Stream, System.IO.Stream> IceReceiveDataIntoIOStream =
             socketStream => socketStream.ReceiveDataIntoIOStream();
 
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
@@ -111,10 +111,10 @@ namespace IceRpc.Transports
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
-        private readonly MultiStreamSocket _socket;
+        private readonly MultiStreamConnection _socket;
 
         /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
-        internal void Abort(SocketStreamErrorCode errorCode) => AbortRead(errorCode);
+        internal void Abort(StreamErrorCode errorCode) => AbortRead(errorCode);
 
         /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
@@ -164,7 +164,7 @@ namespace IceRpc.Transports
                             catch
                             {
                                 // Don't await the sending of the reset since it might block if sending is blocking.
-                                Reset(SocketStreamErrorCode.StreamingError);
+                                Reset(StreamErrorCode.StreamingError);
                                 break;
                             }
                         }
@@ -187,7 +187,7 @@ namespace IceRpc.Transports
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="socket">The parent socket.</param>
-        protected SocketStream(MultiStreamSocket socket, long streamId)
+        protected Stream(MultiStreamConnection socket, long streamId)
         {
             _socket = socket;
             IsBidirectional = streamId % 4 < 2;
@@ -203,7 +203,7 @@ namespace IceRpc.Transports
         /// <param name="bidirectional">True to create a bidirectional stream, False otherwise.</param>
         /// <param name="control">True to create a control stream, False otherwise.</param>
         /// <param name="socket">The parent socket.</param>
-        protected SocketStream(MultiStreamSocket socket, bool bidirectional, bool control)
+        protected Stream(MultiStreamConnection socket, bool bidirectional, bool control)
         {
             _socket = socket;
             IsBidirectional = bidirectional;
@@ -211,10 +211,10 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Abort the stream received side.</summary>
-        protected abstract void AbortRead(SocketStreamErrorCode errorCode);
+        protected abstract void AbortRead(StreamErrorCode errorCode);
 
         /// <summary>Abort the stream send size.</summary>
-        protected abstract void AbortWrite(SocketStreamErrorCode errorCode);
+        protected abstract void AbortWrite(StreamErrorCode errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -260,7 +260,7 @@ namespace IceRpc.Transports
             if (IsStarted && !_socket.RemoveStream(Id))
             {
                 Debug.Assert(false);
-                throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
+                throw new ObjectDisposedException($"{typeof(Stream).FullName}");
             }
             CancelDispatchSource?.Dispose();
         }
@@ -430,7 +430,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Reset(SocketStreamErrorCode errorCode)
+        internal void Reset(StreamErrorCode errorCode)
         {
             if (!IsControl)
             {
@@ -658,7 +658,7 @@ namespace IceRpc.Transports
                 set => throw new NotImplementedException();
             }
 
-            private readonly SocketStream _stream;
+            private readonly Stream _stream;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -694,7 +694,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            internal IOStream(SocketStream stream) => _stream = stream;
+            internal IOStream(Stream stream) => _stream = stream;
         }
     }
 }

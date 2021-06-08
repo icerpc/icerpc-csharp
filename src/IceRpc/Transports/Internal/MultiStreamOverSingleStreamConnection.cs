@@ -8,12 +8,12 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>An abstract multi-stream socket which is using a single stream socket for receiving and sending
     /// data.</summary>
-    internal abstract class MultiStreamOverSingleStreamSocket : MultiStreamSocket
+    internal abstract class MultiStreamOverSingleStreamConnection : MultiStreamConnection
     {
         /// <inheritdoc/>
         public override ISocket Socket => Underlying.Socket;
 
-        internal SingleStreamSocket Underlying { get; private set; }
+        internal SingleStreamConnection Underlying { get; private set; }
 
         public override string ToString() => $"{base.ToString()} ({Underlying})";
 
@@ -51,9 +51,9 @@ namespace IceRpc.Transports.Internal
             base.Dispose(disposing);
         }
 
-        protected MultiStreamOverSingleStreamSocket(
+        protected MultiStreamOverSingleStreamConnection(
             Endpoint endpoint,
-            SingleStreamSocket socket,
+            SingleStreamConnection socket,
             ConnectionOptions options)
             : base(endpoint, options, socket.Logger) => Underlying = socket;
     }

@@ -17,16 +17,16 @@ namespace IceRpc.Transports.Internal
         private readonly IncomingConnectionOptions _options;
         private readonly Socket _socket;
 
-        public async ValueTask<MultiStreamSocket> AcceptAsync()
+        public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
             Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-            SingleStreamSocket socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _logger);
+            SingleStreamConnection socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _logger);
 
-            MultiStreamOverSingleStreamSocket multiStreamSocket = Endpoint.Protocol switch
+            MultiStreamOverSingleStreamConnection multiStreamSocket = Endpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(Endpoint, socket, _options),
-                _ => new SlicSocket(Endpoint, socket, _options)
+                Protocol.Ice1 => new Ice1Connection(Endpoint, socket, _options),
+                _ => new SlicConnection(Endpoint, socket, _options)
             };
             return multiStreamSocket;
         }

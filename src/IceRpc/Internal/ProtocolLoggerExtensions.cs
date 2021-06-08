@@ -153,7 +153,7 @@ namespace IceRpc.Internal
 
         internal static void LogReceivedGoAwayFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection socket,
             long lastBidirectionalId,
             long lastUnidirectionalId,
             string message)
@@ -171,7 +171,7 @@ namespace IceRpc.Internal
         internal static void LogReceivedGoAwayCanceledFrame(this ILogger logger) =>
             _receivedGoAwayCanceledFrame(logger, null!);
 
-        internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamSocket socket)
+        internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamConnection socket)
         {
             if (socket.Protocol == Protocol.Ice1)
             {
@@ -232,7 +232,7 @@ namespace IceRpc.Internal
 
         internal static void LogSentGoAwayFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection socket,
             long lastBidirectionalId,
             long lastUnidirectionalId,
             string message)
@@ -252,7 +252,7 @@ namespace IceRpc.Internal
 
         internal static void LogSentInitializeFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection socket,
             int incomingFrameMaxSize)
         {
             if (socket.Protocol == Protocol.Ice1)

@@ -23,7 +23,7 @@ namespace IceRpc
     /// <typeparam name="T">The type of the value to read.</typeparam>
     /// <param name="istr">The input stream to read from.</param>
     /// <param name="socketStream">The socket stream to receive the streamable data from.</param>
-    public delegate T InputStreamReaderWithStreamable<T>(InputStream istr, SocketStream socketStream);
+    public delegate T InputStreamReaderWithStreamable<T>(InputStream istr, Stream socketStream);
 
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
     public sealed partial class InputStream

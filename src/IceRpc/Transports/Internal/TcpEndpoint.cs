@@ -120,17 +120,17 @@ namespace IceRpc.Transports.Internal
             return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
         }
 
-        protected internal override MultiStreamSocket CreateClientSocket(
+        protected internal override MultiStreamConnection CreateClientSocket(
             OutgoingConnectionOptions options,
             ILogger logger)
         {
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamSocket socket = CreateSocket(endpoint, tcpOptions, logger);
+            SingleStreamConnection socket = CreateSocket(endpoint, tcpOptions, logger);
             return Protocol switch
             {
-                Protocol.Ice1 => new Ice1NetworkSocket(this, socket, options),
-                _ => new SlicSocket(this, socket, options)
+                Protocol.Ice1 => new Ice1Connection(this, socket, options),
+                _ => new SlicConnection(this, socket, options)
             };
         }
 
@@ -268,7 +268,7 @@ namespace IceRpc.Transports.Internal
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamSocket CreateSocket(EndPoint addr, TcpOptions options, ILogger logger)
+        internal virtual SingleStreamConnection CreateSocket(EndPoint addr, TcpOptions options, ILogger logger)
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
             // created if the address is an IPv4 address.
@@ -297,10 +297,10 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new TcpSocket(socket, logger, addr);
+            return new TcpConnection(socket, logger, addr);
         }
 
-        internal virtual SingleStreamSocket CreateSocket(Socket socket, ILogger logger) =>
-            new TcpSocket(socket, logger);
+        internal virtual SingleStreamConnection CreateSocket(Socket socket, ILogger logger) =>
+            new TcpConnection(socket, logger);
     }
 }

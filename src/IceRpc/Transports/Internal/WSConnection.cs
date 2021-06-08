@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class WSSocket : SingleStreamSocket, IWSSocket
+    internal sealed class WSConnection : SingleStreamConnection, IWSSocket
     {
         /// <inheritdoc/>
         public bool CheckCertRevocationStatus => _tcpSocket.CheckCertRevocationStatus;
@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
         private string _key;
         private readonly HttpParser _parser;
         private readonly object _mutex = new();
-        private readonly BufferedReceiveOverSingleStreamSocket _bufferedSocket;
+        private readonly BufferedReceiveOverSingleStreamConnection _bufferedSocket;
         private readonly RandomNumberGenerator _rand;
         private bool _receiveLastFrame;
         private readonly byte[] _receiveMask = new byte[4];
@@ -102,7 +102,7 @@ namespace IceRpc.Transports.Internal
         private Task _sendTask = Task.CompletedTask;
         private readonly ITcpSocket _tcpSocket;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -137,7 +137,7 @@ namespace IceRpc.Transports.Internal
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -197,10 +197,10 @@ namespace IceRpc.Transports.Internal
             _rand.Dispose();
         }
 
-        internal WSSocket(TcpSocket socket)
+        internal WSConnection(TcpConnection socket)
             : base(socket.Logger)
         {
-            _bufferedSocket = new BufferedReceiveOverSingleStreamSocket(socket);
+            _bufferedSocket = new BufferedReceiveOverSingleStreamConnection(socket);
             _tcpSocket = (ITcpSocket)socket.Socket;
             _parser = new HttpParser();
             _receiveLastFrame = true;

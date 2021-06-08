@@ -9,25 +9,25 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The BufferedReceiveOverSingleStreamSocket is a wrapper around SingleStreamSocket to provide
+    /// <summary>The BufferedReceiveOverSingleStreamConnection is a wrapper around SingleStreamConnection to provide
     /// buffered data receive. This helps to limit the number of operating system Receive calls when the user
     /// needs to read only few bytes before reading more (typically to read a frame header) by receiving the
     /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by the
-    /// <c>SlicSocket</c> and <c>WSSocket</c>.
+    /// <c>SlicConnection</c> and <c>WSConnection</c>.
     /// </summary>
-    internal class BufferedReceiveOverSingleStreamSocket : SingleStreamSocket
+    internal class BufferedReceiveOverSingleStreamConnection : SingleStreamConnection
     {
         public override ISocket Socket => Underlying.Socket;
 
         /// <inheritdoc/>
         internal override System.Net.Sockets.Socket? NetworkSocket => Underlying.NetworkSocket;
 
-        internal SingleStreamSocket Underlying { get; private set; }
+        internal SingleStreamConnection Underlying { get; private set; }
 
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -41,7 +41,7 @@ namespace IceRpc.Transports.Internal
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
             Underlying.CloseAsync(errorCode, cancel);
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -83,7 +83,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
-        internal BufferedReceiveOverSingleStreamSocket(SingleStreamSocket underlying, int bufferSize = 256)
+        internal BufferedReceiveOverSingleStreamConnection(SingleStreamConnection underlying, int bufferSize = 256)
             : base(underlying.Logger)
         {
             Underlying = underlying;

@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamSocket clientSocket = CreateClientSocket();
+            using SingleStreamConnection clientSocket = CreateClientSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
                 async () => await clientSocket.ConnectAsync(
                     ClientEndpoint,
@@ -56,8 +56,8 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamSocket clientSocket = CreateClientSocket();
-                ValueTask<(SingleStreamSocket, Endpoint)> connectTask =
+                using SingleStreamConnection clientSocket = CreateClientSocket();
+                ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
                     clientSocket.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamSocket clientSocket2 = CreateClientSocket();
+            using SingleStreamConnection clientSocket2 = CreateClientSocket();
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await clientSocket2.ConnectAsync(
                     ClientEndpoint,
@@ -76,9 +76,9 @@ namespace IceRpc.Tests.Internal
                     source2.Token));
         }
 
-        private SingleStreamSocket CreateClientSocket() =>
+        private SingleStreamConnection CreateClientSocket() =>
             (ClientEndpoint.CreateClientSocket(
                 ClientConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
+                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }

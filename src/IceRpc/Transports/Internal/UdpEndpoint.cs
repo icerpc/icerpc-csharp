@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override MultiStreamSocket CreateClientSocket(
+        protected internal override MultiStreamConnection CreateClientSocket(
             OutgoingConnectionOptions options,
             ILogger logger)
         {
@@ -148,10 +148,10 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new Ice1NetworkSocket(this, new UdpSocket(socket, logger, isIncoming: false, endpoint), options);
+            return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
         }
 
-        protected internal override MultiStreamSocket CreateServerSocket(
+        protected internal override MultiStreamConnection CreateServerSocket(
             IncomingConnectionOptions options,
             ILogger logger)
         {
@@ -206,8 +206,8 @@ namespace IceRpc.Transports.Internal
                     SetMulticastGroup(socket, multicastAddress.Address);
                 }
 
-                var udpSocket = new UdpSocket(socket, logger, isIncoming: true, multicastAddress);
-                return new Ice1NetworkSocket(Clone(port), udpSocket, options);
+                var udpSocket = new UdpConnection(socket, logger, isIncoming: true, multicastAddress);
+                return new Ice1Connection(Clone(port), udpSocket, options);
             }
             catch (SocketException ex)
             {

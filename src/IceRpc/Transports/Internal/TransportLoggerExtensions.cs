@@ -247,7 +247,7 @@ namespace IceRpc.Transports.Internal
 
         internal static IDisposable? StartSocketScope(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection socket,
             Server? server)
         {
             if (!logger.IsEnabled(LogLevel.Error))
@@ -257,7 +257,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                if (socket is ColocSocket colocatedSocket)
+                if (socket is ColocConnection colocatedSocket)
                 {
                     if (socket.IsIncoming)
                     {

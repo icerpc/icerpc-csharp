@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The SocketStream class for the colocated transport.</summary>
-    internal class ColocStream : SignaledSocketStream<(object, bool)>
+    /// <summary>The Stream class for the colocated transport.</summary>
+    internal class ColocStream : SignaledStream<(object, bool)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
-        private readonly ColocSocket _socket;
+        private readonly ColocConnection _socket;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
@@ -26,7 +26,7 @@ namespace IceRpc.Transports.Internal
             return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
-        protected override void AbortWrite(SocketStreamErrorCode errorCode)
+        protected override void AbortWrite(StreamErrorCode errorCode)
         {
             // If the stream is aborted, either because it was reset by the peer or because the connection was
             // aborted, there's no need to send a reset frame.
@@ -147,16 +147,16 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
-        internal ColocStream(ColocSocket socket, long streamId)
+        internal ColocStream(ColocConnection socket, long streamId)
             : base(socket, streamId) => _socket = socket;
 
         /// <summary>Constructor for outgoing colocated stream</summary>
-        internal ColocStream(ColocSocket socket, bool bidirectional, bool control)
+        internal ColocStream(ColocConnection socket, bool bidirectional, bool control)
             : base(socket, bidirectional, control) => _socket = socket;
 
         internal void ReceivedFrame(object frame, bool fin)
         {
-            if (frame is SocketStreamErrorCode errorCode)
+            if (frame is StreamErrorCode errorCode)
             {
                 AbortRead(errorCode);
                 CancelDispatchSource?.Cancel();

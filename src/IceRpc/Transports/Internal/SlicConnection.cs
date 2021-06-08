@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The Slic socket implements a multi-stream transport on top of a single-stream transport such
     /// as TCP. It supports the same set of features as Quic.</summary>
-    internal class SlicSocket : MultiStreamOverSingleStreamSocket
+    internal class SlicConnection : MultiStreamOverSingleStreamConnection
     {
         public override TimeSpan IdleTimeout
         {
@@ -35,12 +35,12 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private BufferedReceiveOverSingleStreamSocket? _socket;
+        private BufferedReceiveOverSingleStreamConnection? _socket;
         private Memory<byte>? _streamConsumedBuffer;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -192,7 +192,7 @@ namespace IceRpc.Transports.Internal
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
                         var streamReset = new StreamResetBody(istr);
-                        var errorCode = (SocketStreamErrorCode)streamReset.ApplicationProtocolErrorCode;
+                        var errorCode = (StreamErrorCode)streamReset.ApplicationProtocolErrorCode;
                         if (TryGetStream(streamId.Value, out SlicStream? stream))
                         {
                             stream.ReceivedReset(errorCode);
@@ -273,7 +273,7 @@ namespace IceRpc.Transports.Internal
                 cancel: cancel).ConfigureAwait(false);
         }
 
-        public override SocketStream CreateStream(bool bidirectional) =>
+        public override Stream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new SlicStream(
                 this,
@@ -283,7 +283,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             // Create a buffered receive single stream socket on top of the underlying socket.
-            _socket = new BufferedReceiveOverSingleStreamSocket(Underlying);
+            _socket = new BufferedReceiveOverSingleStreamConnection(Underlying);
 
             if (IsIncoming)
             {
@@ -407,7 +407,7 @@ namespace IceRpc.Transports.Internal
             // the pong from is received? which timeout to use for expecting the pong frame?
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
-        internal SlicSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
+        internal SlicConnection(Endpoint endpoint, SingleStreamConnection socket, ConnectionOptions options)
             : base(endpoint, socket, options)
         {
             _idleTimeout = options.IdleTimeout;
@@ -440,7 +440,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(SocketStreamErrorCode errorCode)
+        internal override void AbortStreams(StreamErrorCode errorCode)
         {
             base.AbortStreams(errorCode);
 

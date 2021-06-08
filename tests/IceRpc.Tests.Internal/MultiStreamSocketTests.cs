@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamSocket_Dispose()
         {
-            ValueTask<SocketStream> acceptStreamTask = ServerSocket.AcceptStreamAsync(default);
+            ValueTask<Stream> acceptStreamTask = ServerSocket.AcceptStreamAsync(default);
             ClientSocket.Dispose();
             Assert.ThrowsAsync<ConnectionLostException>(async () => await acceptStreamTask);
         }
@@ -36,8 +36,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamSocket_AbortStreams_EmptyStreams()
         {
-            ClientSocket.AbortStreams(SocketStreamErrorCode.ConnectionAborted);
-            ServerSocket.AbortStreams(SocketStreamErrorCode.ConnectionAborted);
+            ClientSocket.AbortStreams(StreamErrorCode.ConnectionAborted);
+            ServerSocket.AbortStreams(StreamErrorCode.ConnectionAborted);
 
             (long clientBidirectional, long clientUnidirectional) = ClientSocket.Shutdown();
             (long serverBidirectional, long serverUnidirectional) = ServerSocket.Shutdown();
@@ -54,14 +54,14 @@ namespace IceRpc.Tests.Internal
             var clientStream = ClientSocket.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            ClientSocket.AbortStreams(SocketStreamErrorCode.ConnectionAborted);
+            ClientSocket.AbortStreams(StreamErrorCode.ConnectionAborted);
             (long clientBidirectional, long clientUnidirectional) = ClientSocket.Shutdown();
 
-            SocketStreamAbortedException? ex;
+            StreamAbortedException? ex;
             // Stream is aborted
-            ex = Assert.ThrowsAsync<SocketStreamAbortedException>(
+            ex = Assert.ThrowsAsync<StreamAbortedException>(
                 async () => await clientStream.ReceiveResponseFrameAsync(default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(SocketStreamErrorCode.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(StreamErrorCode.ConnectionAborted));
             clientStream.Release();
 
             // Can't create new stream
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
 
-            ClientSocket.AbortOutgoingStreams(SocketStreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
+            ClientSocket.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
 
             // Stream is not aborted
             _ = ClientSocket.AcceptStreamAsync(default).AsTask();
@@ -156,13 +156,13 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamSocket_AcceptStreamAsync()
         {
-            SocketStream clientStream = ClientSocket.CreateStream(bidirectional: true);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
+            Stream clientStream = ClientSocket.CreateStream(bidirectional: true);
+            ValueTask<Stream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             // The server-side won't accept the stream until the first frame is sent.
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            SocketStream serverStream = await acceptTask;
+            Stream serverStream = await acceptTask;
 
             Assert.IsTrue(serverStream.IsBidirectional);
             Assert.IsTrue(serverStream.IsStarted);
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Internal
         public void MultiStreamSocket_AcceptStream_Cancellation()
         {
             using var source = new CancellationTokenSource();
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(source.Token);
+            ValueTask<Stream> acceptTask = ServerSocket.AcceptStreamAsync(source.Token);
             source.Cancel();
             Assert.ThrowsAsync<OperationCanceledException>(async () => await acceptTask);
         }
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task MultiStreamSocket_CreateStream(bool bidirectional)
         {
-            SocketStream clientStream = ClientSocket.CreateStream(bidirectional);
+            Stream clientStream = ClientSocket.CreateStream(bidirectional);
             Assert.IsFalse(clientStream.IsStarted);
             Assert.Throws<InvalidOperationException>(() => _ = clientStream.Id); // stream is not started
             Assert.AreEqual(bidirectional, clientStream.IsBidirectional);
@@ -225,8 +225,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamSocket_StreamMaxCount_BidirectionalAsync()
         {
-            var clientStreams = new List<SocketStream>();
-            var serverStreams = new List<SocketStream>();
+            var clientStreams = new List<Stream>();
+            var serverStreams = new List<Stream>();
             IncomingRequest? incomingRequest = null;
             for (int i = 0; i < ServerConnectionOptions.BidirectionalStreamMaxCount; ++i)
             {
@@ -241,11 +241,11 @@ namespace IceRpc.Tests.Internal
             }
 
             // Ensure the client side accepts streams to receive responses.
-            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
+            ValueTask<Stream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
 
             var clientStream = ClientSocket.CreateStream(true);
             ValueTask sendTask = clientStream.SendRequestFrameAsync(DummyRequest);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
+            ValueTask<Stream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -304,7 +304,7 @@ namespace IceRpc.Tests.Internal
                 _ = ReceiveRequestAndSendResponseAsync(await ServerSocket.AcceptStreamAsync(default));
             }
 
-            async Task SendRequestAndReceiveResponseAsync(SocketStream stream)
+            async Task SendRequestAndReceiveResponseAsync(Stream stream)
             {
                 await stream.SendRequestFrameAsync(DummyRequest);
 
@@ -322,7 +322,7 @@ namespace IceRpc.Tests.Internal
                 stream.Release();
             }
 
-            async Task ReceiveRequestAndSendResponseAsync(SocketStream stream)
+            async Task ReceiveRequestAndSendResponseAsync(Stream stream)
             {
                 // Ice1 stream max count is enforced on the server-side only. The stream is accepted only
                 // the server-side stream count permits it.
@@ -359,8 +359,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamSocket_StreamMaxCount_UnidirectionalAsync()
         {
-            var clientStreams = new List<SocketStream>();
-            var serverStreams = new List<SocketStream>();
+            var clientStreams = new List<Stream>();
+            var serverStreams = new List<Stream>();
             for (int i = 0; i < ServerConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientSocket.CreateStream(false);
@@ -373,11 +373,11 @@ namespace IceRpc.Tests.Internal
             }
 
             // Ensure the client side accepts streams to receive responses.
-            ValueTask<SocketStream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
+            ValueTask<Stream> acceptClientStream = ClientSocket.AcceptStreamAsync(default);
 
             var clientStream = ClientSocket.CreateStream(false);
             ValueTask sendTask = clientStream.SendRequestFrameAsync(DummyRequest);
-            ValueTask<SocketStream> acceptTask = ServerSocket.AcceptStreamAsync(default);
+            ValueTask<Stream> acceptTask = ServerSocket.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -474,7 +474,7 @@ namespace IceRpc.Tests.Internal
             Assert.IsTrue(!ClientSocket.IsIncoming);
             Assert.IsTrue(ServerSocket.IsIncoming);
 
-            static void Test(MultiStreamSocket socket)
+            static void Test(MultiStreamConnection socket)
             {
                 Assert.NotNull(socket.LocalEndpoint != null);
                 Assert.AreNotEqual(socket.IdleTimeout, TimeSpan.Zero);
@@ -515,7 +515,7 @@ namespace IceRpc.Tests.Internal
             var serverStream = await ServerSocket.AcceptStreamAsync(default);
             var request = await serverStream.ReceiveRequestFrameAsync();
             ServerSocket.Dispose();
-            Assert.CatchAsync<SocketStreamAbortedException>(
+            Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.SendResponseFrameAsync(GetResponseFrame(request)));
         }
 
@@ -539,7 +539,7 @@ namespace IceRpc.Tests.Internal
             release2();
             release1();
 
-            async Task<Action> TestAsync(MultiStreamSocket socket, MultiStreamSocket peerSocket, int expectedCount)
+            async Task<Action> TestAsync(MultiStreamConnection socket, MultiStreamConnection peerSocket, int expectedCount)
             {
                 var clientStream = socket.CreateStream(true);
                 Assert.AreEqual(expectedCount - 1, socket.OutgoingStreamCount);

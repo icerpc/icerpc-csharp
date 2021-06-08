@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The MultiStreamSocket class for the colocated transport.</summary>
-    internal class ColocSocket : MultiStreamSocket, IColocSocket
+    /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
+    internal class ColocConnection : MultiStreamConnection, IColocSocket
     {
         /// <inheritdoc/>
         public override TimeSpan IdleTimeout
@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => default;
 
-        public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -111,7 +111,7 @@ namespace IceRpc.Transports.Internal
         public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
             _writer.WriteAsync((-1, errorCode, true), cancel);
 
-        public override SocketStream CreateStream(bool bidirectional) =>
+        public override Stream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new ColocStream(
                 this,
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
                 await _writer.WriteAsync((-1, this, false), cancel).ConfigureAwait(false);
                 (_, object? peer, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
 
-                var peerSocket = (ColocSocket)peer!;
+                var peerSocket = (ColocConnection)peer!;
 
                 // We're responsible for creating the peer's semaphores with our configured stream max count.
                 peerSocket._bidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount);
@@ -162,7 +162,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal ColocSocket(
+        internal ColocConnection(
             ColocEndpoint endpoint,
             long id,
             ChannelWriter<(long, object, bool)> writer,
@@ -194,7 +194,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(SocketStreamErrorCode errorCode)
+        internal override void AbortStreams(StreamErrorCode errorCode)
         {
             base.AbortStreams(errorCode);
 

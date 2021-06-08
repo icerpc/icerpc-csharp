@@ -65,7 +65,7 @@ namespace IceRpc
 
         // The optional socket stream. The stream is non-null if there's still data to read over the stream
         // after the reading of the request frame.
-        internal SocketStream? SocketStream { get; set; }
+        internal Stream? SocketStream { get; set; }
 
         private long? _streamId;
 
@@ -76,18 +76,18 @@ namespace IceRpc
         /// <summary>Reads a single stream argument from the request.</summary>
         /// <param name="reader">The delegate used to read the argument.</param>
         /// <returns>The request argument.</returns>
-        public T ReadArgs<T>(Func<SocketStream, T> reader)
+        public T ReadArgs<T>(Func<Stream, T> reader)
         {
-            if (SocketStream == null)
+            if (Stream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
             }
 
             Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-            T value = reader(SocketStream);
+            T value = reader(Stream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
             // responsibility of the stream parameter object to dispose the socket stream.
-            SocketStream = null;
+            Stream = null;
             return value;
         }
 
@@ -98,7 +98,7 @@ namespace IceRpc
         /// <returns>The request arguments.</returns>
         public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
         {
-            if (SocketStream == null)
+            if (Stream == null)
             {
                 throw new InvalidDataException("no stream data available for operation with stream parameter");
             }
@@ -108,10 +108,10 @@ namespace IceRpc
                                        connection: connection,
                                        invoker: connection.Server?.Invoker,
                                        startEncapsulation: true);
-            T value = reader(istr, SocketStream);
+            T value = reader(istr, Stream);
             // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
             // responsibility of the stream parameter object to dispose the socket stream.
-            SocketStream = null;
+            Stream = null;
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return value;
         }
@@ -125,7 +125,7 @@ namespace IceRpc
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            SocketStream? socketStream)
+            Stream? socketStream)
             : base(protocol)
         {
             SocketStream = socketStream;
