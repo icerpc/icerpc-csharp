@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    public enum MultiStreamSocketType
+    public enum MultiStreamConnectionType
     {
         Ice1,
         Coloc,
@@ -19,39 +19,39 @@ namespace IceRpc.Tests.Internal
     {
         protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
 
-        protected MultiStreamConnection ClientSocket => _clientSocket!;
+        protected MultiStreamConnection OutgoingConnection => _outgoingConnection!;
 
         protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
-        protected MultiStreamConnection ServerSocket => _serverSocket!;
-        protected MultiStreamSocketType SocketType { get; }
-        private MultiStreamConnection? _clientSocket;
+        protected MultiStreamConnection IncomingConnection => _incomingConnection!;
+        protected MultiStreamConnectionType SocketType { get; }
+        private MultiStreamConnection? _outgoingConnection;
         private Stream? _controlStreamForClient;
         private Stream? _controlStreamForServer;
         private Stream? _peerControlStreamForClient;
         private Stream? _peerControlStreamForServer;
-        private MultiStreamConnection? _serverSocket;
+        private MultiStreamConnection? _incomingConnection;
 
-        public MultiStreamSocketBaseTest(MultiStreamSocketType socketType)
-            : base(socketType == MultiStreamSocketType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
-                   socketType == MultiStreamSocketType.Coloc ? "coloc" : "tcp",
+        public MultiStreamSocketBaseTest(MultiStreamConnectionType connectionType)
+            : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
+                   connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp",
                    tls: false) =>
-            SocketType = socketType;
+            SocketType = connectionType;
 
-        public async Task SetUpSocketsAsync()
+        public async Task SetUpConnectionsAsync()
         {
             Task<MultiStreamConnection> acceptTask = AcceptAsync();
-            _clientSocket = await ConnectAsync();
-            _serverSocket = await acceptTask;
+            _outgoingConnection = await ConnectAsync();
+            _incomingConnection = await acceptTask;
 
-            ValueTask initializeTask = _serverSocket.InitializeAsync(default);
-            await _clientSocket.InitializeAsync(default);
+            ValueTask initializeTask = _incomingConnection.InitializeAsync(default);
+            await _outgoingConnection.InitializeAsync(default);
             await initializeTask;
 
-            _controlStreamForClient = await ClientSocket.SendInitializeFrameAsync(default);
-            _controlStreamForServer = await ServerSocket.SendInitializeFrameAsync(default);
+            _controlStreamForClient = await OutgoingConnection.SendInitializeFrameAsync(default);
+            _controlStreamForServer = await IncomingConnection.SendInitializeFrameAsync(default);
 
-            _peerControlStreamForClient = await ClientSocket.ReceiveInitializeFrameAsync(default);
-            _peerControlStreamForServer = await ServerSocket.ReceiveInitializeFrameAsync(default);
+            _peerControlStreamForClient = await OutgoingConnection.ReceiveInitializeFrameAsync(default);
+            _peerControlStreamForServer = await IncomingConnection.ReceiveInitializeFrameAsync(default);
         }
 
         public void TearDownSockets()
@@ -61,8 +61,8 @@ namespace IceRpc.Tests.Internal
             _controlStreamForServer?.Release();
             _peerControlStreamForServer?.Release();
 
-            _clientSocket?.Dispose();
-            _serverSocket?.Dispose();
+            _outgoingConnection?.Dispose();
+            _incomingConnection?.Dispose();
         }
 
         static protected OutgoingResponse GetResponseFrame(IncomingRequest request) =>
