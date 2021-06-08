@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
 
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _clientConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _outgoingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, Description={Description})");
 
@@ -27,10 +27,10 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
 
-        private static readonly Func<ILogger, long, IDisposable> _colocServerConnectionScope =
+        private static readonly Func<ILogger, long, IDisposable> _colocIncomingConnectionScope =
             LoggerMessage.DefineScope<long>("connection(ID={ID})");
 
-        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocClientConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocOutgoingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, long, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
 
@@ -70,21 +70,21 @@ namespace IceRpc.Transports.Internal
                 TransportEventIds.ConnectionConnectFailed,
                 "closed connection (Reason={Reason})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionServerConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionIncomingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramServerConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramIncomingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "Description={Description})");
 
-        private static readonly Func<ILogger, string, IDisposable> _overConnectionServerConnectionScope =
+        private static readonly Func<ILogger, string, IDisposable> _overConnectionIncomingConnectionScope =
             LoggerMessage.DefineScope<string>(
                 "connection(RemoteEndPoint={RemoteEndpoint})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overConnectionClientConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overConnectionOutgoingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
                 "RemoteEndPoint={RemoteEndpoint})");
@@ -119,7 +119,7 @@ namespace IceRpc.Transports.Internal
                 TransportEventIds.SentData,
                 "sent {Size} bytes");
 
-        private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
+        private static readonly Func<ILogger, string, IDisposable> _incomingConnectionScope =
             LoggerMessage.DefineScope<string>("connection(Description={Description})");
 
         private static readonly Action<ILogger, Exception> _startAcceptingConnections =
@@ -261,12 +261,12 @@ namespace IceRpc.Transports.Internal
                 {
                     if (connection.IsIncoming)
                     {
-                        return _colocServerConnectionScope(logger, colocatedConnection.Id);
+                        return _colocIncomingConnectionScope(logger, colocatedConnection.Id);
                     }
                     else
                     {
                         // TODO: revisit
-                        return _colocClientConnectionScope(
+                        return _colocOutgoingConnectionScope(
                             logger,
                             connection.TransportName,
                             connection.Protocol,
@@ -280,7 +280,7 @@ namespace IceRpc.Transports.Internal
                     {
                         try
                         {
-                            return _datagramOverConnectionServerConnectionScope(
+                            return _datagramOverConnectionIncomingConnectionScope(
                                 logger,
                                 connection.TransportName,
                                 connection.Protocol,
@@ -289,7 +289,7 @@ namespace IceRpc.Transports.Internal
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
-                            return _datagramServerConnectionScope(
+                            return _datagramIncomingConnectionScope(
                                 logger,
                                 connection.TransportName,
                                 connection.Protocol,
@@ -303,13 +303,13 @@ namespace IceRpc.Transports.Internal
                         {
                             if (connection.IsIncoming)
                             {
-                                return _overConnectionServerConnectionScope(
+                                return _overConnectionIncomingConnectionScope(
                                     logger,
                                     tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                             else
                             {
-                                return _overConnectionClientConnectionScope(
+                                return _overConnectionOutgoingConnectionScope(
                                     logger,
                                     connection.TransportName,
                                     connection.Protocol,
@@ -321,11 +321,11 @@ namespace IceRpc.Transports.Internal
                         {
                             if (connection.IsIncoming)
                             {
-                                return _serverConnectionScope(logger, "not connected");
+                                return _incomingConnectionScope(logger, "not connected");
                             }
                             else
                             {
-                                return _clientConnectionScope(
+                                return _outgoingConnectionScope(
                                     logger,
                                     connection.TransportName,
                                     connection.Protocol,
@@ -338,7 +338,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (connection.IsDatagram && server != null)
                     {
-                        return _datagramServerConnectionScope(
+                        return _datagramIncomingConnectionScope(
                             logger,
                             connection.TransportName,
                             connection.Protocol,
@@ -347,11 +347,11 @@ namespace IceRpc.Transports.Internal
                     }
                     else if (connection.IsIncoming)
                     {
-                        return _serverConnectionScope(logger, connection.ToString()!);
+                        return _incomingConnectionScope(logger, connection.ToString()!);
                     }
                     else
                     {
-                        return _clientConnectionScope(logger, connection.TransportName, connection.Protocol, connection.ToString()!);
+                        return _outgoingConnectionScope(logger, connection.TransportName, connection.Protocol, connection.ToString()!);
                     }
                 }
             }

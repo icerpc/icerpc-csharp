@@ -16,7 +16,7 @@ namespace IceRpc.Tests.Internal
     [Timeout(30000)]
     public class ConnectionTests
     {
-        /// <summary>The connection factory is a small helper to allow creating a client and server connection
+        /// <summary>The connection factory is a small helper to allow creating a client and incoming connection
         /// directly from the transport API rather than going through the Communicator/Server APIs.</summary>
         private class ConnectionFactory : IAsyncDisposable
         {
@@ -24,15 +24,15 @@ namespace IceRpc.Tests.Internal
             {
                 get
                 {
-                    if (_cachedClientConnection == null)
+                    if (_cachedOutgoingConnection == null)
                     {
-                        (_cachedServerConnection, _cachedClientConnection) = AcceptAndConnectAsync().Result;
+                        (_cachedIncomingConnection, _cachedOutgoingConnection) = AcceptAndConnectAsync().Result;
                     }
-                    return _cachedClientConnection!;
+                    return _cachedOutgoingConnection!;
                 }
             }
 
-            public OutgoingConnectionOptions ClientConnectionOptions { get; }
+            public OutgoingConnectionOptions OutgoingConnectionOptions { get; }
 
             public Endpoint Endpoint { get; }
 
@@ -40,11 +40,11 @@ namespace IceRpc.Tests.Internal
             {
                 get
                 {
-                    if (_cachedServerConnection == null)
+                    if (_cachedIncomingConnection == null)
                     {
-                        (_cachedServerConnection, _cachedClientConnection) = AcceptAndConnectAsync().Result;
+                        (_cachedIncomingConnection, _cachedOutgoingConnection) = AcceptAndConnectAsync().Result;
                     }
-                    return _cachedServerConnection!;
+                    return _cachedIncomingConnection!;
                 }
             }
 
@@ -62,33 +62,33 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            private Connection? _cachedClientConnection;
-            private Connection? _cachedServerConnection;
+            private Connection? _cachedOutgoingConnection;
+            private Connection? _cachedIncomingConnection;
             private readonly Server _server;
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
-                Connection clientConnection;
-                Connection serverConnection;
+                Connection outgoingConnection;
+                Connection incomingConnection;
 
                 if (Endpoint.IsDatagram)
                 {
-                    serverConnection = new Connection(
+                    incomingConnection = new Connection(
                         Endpoint.CreateIncomingConnection(_server.ConnectionOptions, _server.Logger),
                         _server);
-                    _ = serverConnection.ConnectAsync(default);
-                    clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
+                    _ = incomingConnection.ConnectAsync(default);
+                    outgoingConnection = await ConnectAsync(incomingConnection.LocalEndpoint!);
                 }
                 else
                 {
                     using IAcceptor acceptor = Endpoint.CreateAcceptor(_server.ConnectionOptions, _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
                     Task<Connection> clientTask = ConnectAsync(acceptor.Endpoint);
-                    serverConnection = await serverTask;
-                    clientConnection = await clientTask;
+                    incomingConnection = await serverTask;
+                    outgoingConnection = await clientTask;
                 }
 
-                return (serverConnection, clientConnection);
+                return (incomingConnection, outgoingConnection);
 
                 async Task<Connection> AcceptAsync(IAcceptor acceptor)
                 {
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Options = ClientConnectionOptions
+                        Options = OutgoingConnectionOptions
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -111,10 +111,10 @@ namespace IceRpc.Tests.Internal
 
             public async ValueTask DisposeAsync()
             {
-                if (_cachedClientConnection != null)
+                if (_cachedOutgoingConnection != null)
                 {
-                    await _cachedClientConnection.DisposeAsync();
-                    await _cachedServerConnection!.DisposeAsync();
+                    await _cachedOutgoingConnection.DisposeAsync();
+                    await _cachedIncomingConnection!.DisposeAsync();
                 }
                 await _server.DisposeAsync();
             }
@@ -123,14 +123,14 @@ namespace IceRpc.Tests.Internal
                 string transport = "coloc",
                 Protocol protocol = Protocol.Ice2,
                 bool secure = false,
-                OutgoingConnectionOptions? clientConnectionOptions = null,
-                IncomingConnectionOptions? serverConnectionOptions = null,
+                OutgoingConnectionOptions? outgoingConnectionOptions = null,
+                IncomingConnectionOptions? incomingConnectionOptions = null,
                 IDispatcher? dispatcher = null)
             {
                 if (secure)
                 {
-                    clientConnectionOptions ??= new();
-                    clientConnectionOptions.AuthenticationOptions = new()
+                    outgoingConnectionOptions ??= new();
+                    outgoingConnectionOptions.AuthenticationOptions = new()
                     {
                         RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
@@ -140,8 +140,8 @@ namespace IceRpc.Tests.Internal
                                 })
                     };
 
-                    serverConnectionOptions ??= new();
-                    serverConnectionOptions.AuthenticationOptions = new()
+                    incomingConnectionOptions ??= new();
+                    incomingConnectionOptions.AuthenticationOptions = new()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
@@ -153,8 +153,8 @@ namespace IceRpc.Tests.Internal
                     dispatcher = Middleware.Logger(Runtime.DefaultLoggerFactory)(dispatcher);
                 }
 
-                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
-                ClientConnectionOptions = clientConnectionOptions ?? new();
+                _server = new Server { ConnectionOptions = incomingConnectionOptions ?? new(), Dispatcher = dispatcher };
+                OutgoingConnectionOptions = outgoingConnectionOptions ?? new();
 
                 if (transport == "coloc")
                 {
@@ -250,11 +250,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                clientConnectionOptions: new()
+                outgoingConnectionOptions: new()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromMilliseconds(500) : TimeSpan.FromHours(1)
                 },
-                serverConnectionOptions: new()
+                incomingConnectionOptions: new()
                 {
                     IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
                 });
@@ -398,11 +398,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol: protocol,
-                clientConnectionOptions: new()
+                outgoingConnectionOptions: new()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(2)
                 },
-                serverConnectionOptions: new()
+                incomingConnectionOptions: new()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(3)
                 });
@@ -425,11 +425,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(
                 protocol: protocol,
-                clientConnectionOptions: new()
+                outgoingConnectionOptions: new()
                 {
                     KeepAlive = true
                 },
-                serverConnectionOptions: new()
+                incomingConnectionOptions: new()
                 {
                     KeepAlive = true
                 });
@@ -446,12 +446,12 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                clientConnectionOptions: new()
+                outgoingConnectionOptions: new()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(1),
                     KeepAlive = heartbeatOnClient
                 },
-                serverConnectionOptions: new()
+                incomingConnectionOptions: new()
                 {
                     IdleTimeout = TimeSpan.FromSeconds(1),
                     KeepAlive = !heartbeatOnClient
@@ -486,7 +486,7 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 "tcp",
                 protocol,
-                serverConnectionOptions: new() { IdleTimeout = TimeSpan.FromMilliseconds(1000) },
+                incomingConnectionOptions: new() { IdleTimeout = TimeSpan.FromMilliseconds(1000) },
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
@@ -657,11 +657,11 @@ namespace IceRpc.Tests.Internal
             await using var factory = new ConnectionFactory(
                 transport,
                 protocol: protocol,
-                clientConnectionOptions: new()
+                outgoingConnectionOptions: new()
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(60)
                 },
-                serverConnectionOptions: new()
+                incomingConnectionOptions: new()
                 {
                     CloseTimeout = closeClientSide ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(1)
                 },

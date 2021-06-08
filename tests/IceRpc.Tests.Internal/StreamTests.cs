@@ -87,10 +87,10 @@ namespace IceRpc.Tests.Internal
             var sendBuffer = new List<ArraySegment<byte>> { new byte[1] };
             await clientStream.InternalSendAsync(sendBuffer, false, default);
 
-            // Accept the new stream on the server connection
+            // Accept the new stream on the incoming connection
             Stream serverStream = await IncomingConnection.AcceptStreamAsync(default);
 
-            // Continue reading from on the server connection and receive the byte sent over the client stream.
+            // Continue reading from on the incoming connection and receive the byte sent over the client stream.
             _ = IncomingConnection.AcceptStreamAsync(default).AsTask();
             int received = await serverStream.InternalReceiveAsync(new byte[256], default);
             Assert.That(received, Is.EqualTo(1));
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.Internal
             // Reset the stream
             clientStream.Reset(errorCode);
 
-            // Ensure that receive on the server connection raises OperationCanceledException
+            // Ensure that receive on the incoming connection raises OperationCanceledException
             StreamAbortedException? ex = Assert.CatchAsync<StreamAbortedException>(
                 async () => await serverStream.InternalReceiveAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));

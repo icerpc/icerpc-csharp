@@ -90,7 +90,7 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or the remote
+        // The endpoint which created the connection. If it's a incoming connection, it's the local endpoint or the remote
         // endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;

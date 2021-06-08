@@ -73,7 +73,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
+        internal (ColocChannelReader, ColocChannelWriter, long) NewOutgoingConnection()
         {
             var reader = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions
