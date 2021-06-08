@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task SingleStreamSocket_CloseAsync_ExceptionAsync()
+        public async Task SingleStreamConnection_CloseAsync_ExceptionAsync()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_Dispose()
+        public void SingleStreamConnection_Dispose()
         {
             ClientSocket.Dispose();
             ServerSocket.Dispose();
@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamSocket_Properties()
+        public void SingleStreamConnection_Properties()
         {
             Test(ClientSocket);
             Test(ServerSocket);

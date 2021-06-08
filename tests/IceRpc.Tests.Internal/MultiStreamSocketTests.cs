@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_Dispose()
+        public void MultiStreamConnection_Dispose()
         {
             ValueTask<Stream> acceptStreamTask = IncomingConnection.AcceptStreamAsync(default);
             OutgoingConnection.Dispose();
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_AbortStreams_EmptyStreams()
+        public void MultiStreamConnection_AbortStreams_EmptyStreams()
         {
             OutgoingConnection.AbortStreams(StreamErrorCode.ConnectionAborted);
             IncomingConnection.AbortStreams(StreamErrorCode.ConnectionAborted);
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_AbortStreamAsync()
+        public async Task MultiStreamConnection_AbortStreams_AbortStreamAsync()
         {
             var clientStream = OutgoingConnection.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_NoAbortStreamAsync()
+        public async Task MultiStreamConnection_AbortStreams_NoAbortStreamAsync()
         {
             var ex = new InvalidOperationException();
 
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AbortStreams_LargestStreamIdsAsync()
+        public async Task MultiStreamConnection_AbortStreams_LargestStreamIdsAsync()
         {
             var ex = new InvalidOperationException();
 
@@ -154,7 +154,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_AcceptStreamAsync()
+        public async Task MultiStreamConnection_AcceptStreamAsync()
         {
             Stream clientStream = OutgoingConnection.CreateStream(bidirectional: true);
             ValueTask<Stream> acceptTask = IncomingConnection.AcceptStreamAsync(default);
@@ -174,7 +174,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_AcceptStream_Cancellation()
+        public void MultiStreamConnection_AcceptStream_Cancellation()
         {
             using var source = new CancellationTokenSource();
             ValueTask<Stream> acceptTask = IncomingConnection.AcceptStreamAsync(source.Token);
@@ -183,14 +183,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_AcceptStream_Failure()
+        public void MultiStreamConnection_AcceptStream_Failure()
         {
             OutgoingConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await IncomingConnection.AcceptStreamAsync(default));
         }
 
         [Test]
-        public async Task MultiStreamSocket_CloseAsync_CancellationAsync()
+        public async Task MultiStreamConnection_CloseAsync_CancellationAsync()
         {
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -207,7 +207,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task MultiStreamSocket_CreateStream(bool bidirectional)
+        public async Task MultiStreamConnection_CreateStream(bool bidirectional)
         {
             Stream clientStream = OutgoingConnection.CreateStream(bidirectional);
             Assert.IsFalse(clientStream.IsStarted);
@@ -223,7 +223,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_StreamMaxCount_BidirectionalAsync()
+        public async Task MultiStreamConnection_StreamMaxCount_BidirectionalAsync()
         {
             var clientStreams = new List<Stream>();
             var serverStreams = new List<Stream>();
@@ -282,7 +282,7 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(false)]
         [TestCase(true)]
-        public async Task MultiStreamSocket_StreamMaxCount_StressTestAsync(bool bidirectional)
+        public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
                 ServerConnectionOptions.BidirectionalStreamMaxCount :
@@ -357,7 +357,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_StreamMaxCount_UnidirectionalAsync()
+        public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<Stream>();
             var serverStreams = new List<Stream>();
@@ -410,7 +410,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_PeerIncomingFrameMaxSize()
+        public void MultiStreamConnection_PeerIncomingFrameMaxSize()
         {
             // PeerIncomingFrameMaxSize is set when control streams are initialized in Setup()
             if (SocketType == MultiStreamConnectionType.Ice1)
@@ -426,7 +426,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_PingAsync()
+        public async Task MultiStreamConnection_PingAsync()
         {
             var semaphore = new SemaphoreSlim(0);
             IncomingConnection.PingReceived = () => semaphore.Release();
@@ -451,7 +451,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_Ping_Cancellation()
+        public void MultiStreamConnection_Ping_Cancellation()
         {
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -459,14 +459,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_Ping_Failure()
+        public void MultiStreamConnection_Ping_Failure()
         {
             OutgoingConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await OutgoingConnection.PingAsync(default));
         }
 
         [Test]
-        public void MultiStreamSocket_Properties()
+        public void MultiStreamConnection_Properties()
         {
             Test(OutgoingConnection);
             Test(IncomingConnection);
@@ -499,7 +499,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocket_SendRequest_Failure()
+        public void MultiStreamConnection_SendRequest_Failure()
         {
             var stream = OutgoingConnection.CreateStream(false);
             OutgoingConnection.Dispose();
@@ -507,7 +507,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocket_SendResponse_FailureAsync()
+        public async Task MultiStreamConnection_SendResponse_FailureAsync()
         {
             var stream = OutgoingConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
@@ -520,7 +520,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Order(1)]
-        public async Task MultiStreamSocket_StreamCountAsync()
+        public async Task MultiStreamConnection_StreamCountAsync()
         {
             Assert.AreEqual(0, OutgoingConnection.IncomingStreamCount);
             Assert.AreEqual(0, OutgoingConnection.OutgoingStreamCount);

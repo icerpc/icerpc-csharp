@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(32 * 1024)]
         [TestCase(128 * 1024)]
         [TestCase(512 * 1024)]
-        public async Task MultiStreamSocketStream_SendReceiveRequestAsync(int size)
+        public async Task Stream_SendReceiveRequestAsync(int size)
         {
             IList<ArraySegment<byte>> requestPayload = Payload.FromSingleArg(
                 Proxy,
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocketStream_SendRequestAsync_Cancellation()
+        public void Stream_SendRequestAsync_Cancellation()
         {
             Stream stream = OutgoingConnection.CreateStream(true);
             using var source = new CancellationTokenSource();
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(StreamErrorCode.DispatchCanceled)]
         [TestCase(StreamErrorCode.InvocationCanceled)]
         [TestCase((StreamErrorCode)10)]
-        public async Task MultiStreamSocketStream_Reset(StreamErrorCode errorCode)
+        public async Task Stream_Reset(StreamErrorCode errorCode)
         {
             // SendAsync/ReceiveAsync is only supported with Slic
             if (SocketType != MultiStreamConnectionType.Slic)
@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_SendResponse_CancellationAsync()
+        public async Task Stream_SendResponse_CancellationAsync()
         {
             Stream stream = OutgoingConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void MultiStreamSocketStream_ReceiveRequest_Cancellation()
+        public void Stream_ReceiveRequest_Cancellation()
         {
             Stream stream = OutgoingConnection.CreateStream(false);
             using var source = new CancellationTokenSource();
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_ReceiveResponse_Cancellation1Async()
+        public async Task Stream_ReceiveResponse_Cancellation1Async()
         {
             Stream stream = OutgoingConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
@@ -154,7 +154,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task MultiStreamSocketStream_ReceiveResponse_Cancellation2Async()
+        public async Task Stream_ReceiveResponse_Cancellation2Async()
         {
             Stream stream = OutgoingConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);

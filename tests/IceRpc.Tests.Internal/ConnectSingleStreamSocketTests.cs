@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
+        public void ConnectSingleStreamConnection_ConnectAsync_ConnectionRefusedException()
         {
             using SingleStreamConnection clientSocket = CreateClientSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
@@ -45,7 +45,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
+        public void ConnectSingleStreamConnection_ConnectAsync_OperationCanceledException()
         {
             using IAcceptor acceptor = CreateAcceptor();
 
