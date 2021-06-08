@@ -177,7 +177,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    MultiStreamConnection socket = _endpoint.CreateServerSocket(ConnectionOptions, Logger);
+                    MultiStreamConnection socket = _endpoint.CreateIncomingConnection(ConnectionOptions, Logger);
                     var incomingConnection = new Connection(socket, this);
                     _endpoint = socket.LocalEndpoint!;
                     UpdateProxyEndpoint();

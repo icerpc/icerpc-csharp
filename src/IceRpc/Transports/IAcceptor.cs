@@ -14,8 +14,8 @@ namespace IceRpc.Transports
         /// <return>The bound endpoint.</return>
         Endpoint Endpoint { get; }
 
-        /// <summary>Accepts a new socket.</summary>
-        /// <return>The accepted socket.</return>
+        /// <summary>Accepts a new connection.</summary>
+        /// <return>The accepted connection.</return>
         ValueTask<MultiStreamConnection> AcceptAsync();
     }
 }

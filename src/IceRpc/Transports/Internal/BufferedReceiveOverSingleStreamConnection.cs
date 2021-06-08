@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
     /// </summary>
     internal class BufferedReceiveOverSingleStreamConnection : SingleStreamConnection
     {
-        public override ISocket Socket => Underlying.Socket;
+        public override IConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
 
         /// <inheritdoc/>
         internal override System.Net.Sockets.Socket? NetworkSocket => Underlying.NetworkSocket;

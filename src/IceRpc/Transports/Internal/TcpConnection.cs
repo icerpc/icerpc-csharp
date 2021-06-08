@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class TcpConnection : SingleStreamConnection, ITcpSocket
+    internal class TcpConnection : SingleStreamConnection, ITcpConnectionInformation
     {
         /// <inheritdoc/>
         public bool CheckCertRevocationStatus => _sslStream?.CheckCertRevocationStatus ?? false;
@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
         public SslProtocols? SslProtocol => _sslStream?.SslProtocol;

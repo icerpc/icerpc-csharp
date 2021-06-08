@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override MultiStreamConnection CreateClientSocket(
+        protected internal override MultiStreamConnection CreateOutgoingConnection(
             OutgoingConnectionOptions options,
             ILogger logger)
         {
@@ -151,7 +151,7 @@ namespace IceRpc.Transports.Internal
             return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
         }
 
-        protected internal override MultiStreamConnection CreateServerSocket(
+        protected internal override MultiStreamConnection CreateIncomingConnection(
             IncomingConnectionOptions options,
             ILogger logger)
         {

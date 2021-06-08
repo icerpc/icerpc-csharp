@@ -136,7 +136,7 @@ namespace IceRpc.Tests.Internal
                 MultiStreamConnection multiStreamSocket = await _acceptor.AcceptAsync();
                 Debug.Assert(multiStreamSocket.TransportName == TransportName);
                 await multiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamSocket.Socket.IsSecure)
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamSocket.ConnectionInformation.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the socket.
                     // See above for the reason.
@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamSocket = ClientEndpoint.CreateClientSocket(
+            MultiStreamConnection multiStreamSocket = ClientEndpoint.CreateOutgoingConnection(
                 connectionOptions ?? ClientConnectionOptions,
                 Logger);
             await multiStreamSocket.ConnectAsync(ClientAuthenticationOptions, default);
@@ -197,6 +197,6 @@ namespace IceRpc.Tests.Internal
         protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
 
         protected MultiStreamConnection CreateServerSocket() =>
-            ServerEndpoint.CreateServerSocket(ServerConnectionOptions, Logger);
+            ServerEndpoint.CreateIncomingConnection(ServerConnectionOptions, Logger);
     }
 }

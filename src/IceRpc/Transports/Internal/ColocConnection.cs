@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
-    internal class ColocConnection : MultiStreamConnection, IColocSocket
+    internal class ColocConnection : MultiStreamConnection, IColocConnectionInformation
     {
         /// <inheritdoc/>
         public override TimeSpan IdleTimeout
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
         public long Id { get; }
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;

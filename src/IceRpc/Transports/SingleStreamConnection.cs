@@ -9,25 +9,25 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A single-stream socket represents the local end of a network connection and enables transmitting
-    /// raw binary data over a transport such as TCP, UDP or WebSocket.</summary>
+    /// <summary>A single-stream connection represents a network connection that supports a single stream of binary 
+    /// data.</summary>
     public abstract class SingleStreamConnection : IDisposable
     {
-        /// <summary>The public socket interface to obtain information on the socket.</summary>
-        public abstract ISocket Socket { get; }
+        /// <summary>Returns information about the connection.</summary>
+        public abstract IConnectionInformation ConnectionInformation { get; }
 
         internal ILogger Logger { get; }
 
         /// <summary>This property should be used for testing purpose only.</summary>
         internal abstract System.Net.Sockets.Socket? NetworkSocket { get; }
 
-        /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
+        /// <summary>Closes the connection. The connection might use this method to send a notification to the peer
         /// of the connection closure.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
+        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the socket.</summary>
+        /// <summary>Releases the resources used by the connection.</summary>
         public void Dispose()
         {
             Dispose(true);
@@ -35,28 +35,30 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({Socket.Description})";
+        public override string ToString() => $"{base.ToString()} ({ConnectionInformation.Description})";
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
+        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
-        /// <param name="endpoint">The endpoint used to create the socket.</param>
-        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
+        /// <param name="endpoint">The endpoint used to create the connection.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A tuple with the single stream socket to use after the initialization and the remote endpoint.
-        /// The socket implementation might return a different socket based on information read on the socket.</returns>
+        /// <returns>A tuple with the single stream connection to use after the initialization and the remote endpoint.
+        /// The connection implementation might return a different connection based on information read on the
+        /// connection.</returns>
         public abstract ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
+        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform socket level initialization (TLS handshake, etc).
         /// </summary>
-        /// <param name="endpoint">The endpoint used to create the socket.</param>
-        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
+        /// <param name="endpoint">The endpoint used to create the connection.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A tuple with the single stream socket to use after the initialization and the local endpoint.
-        /// The socket implementation might return a different socket based on information read on the socket.</returns>
+        /// <returns>A tuple with the single stream connection to use after the initialization and the local endpoint.
+        /// The connection implementation might return a different connection based on information read on the 
+        /// connection.</returns>
         public abstract ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
@@ -85,7 +87,7 @@ namespace IceRpc.Transports
         /// <return>The number of bytes sent.</return>
         public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the socket.</summary>
+        /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);

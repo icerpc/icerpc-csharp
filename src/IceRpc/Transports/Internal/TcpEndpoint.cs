@@ -120,7 +120,7 @@ namespace IceRpc.Transports.Internal
             return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
         }
 
-        protected internal override MultiStreamConnection CreateClientSocket(
+        protected internal override MultiStreamConnection CreateOutgoingConnection(
             OutgoingConnectionOptions options,
             ILogger logger)
         {

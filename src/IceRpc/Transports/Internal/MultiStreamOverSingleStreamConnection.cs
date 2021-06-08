@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
     internal abstract class MultiStreamOverSingleStreamConnection : MultiStreamConnection
     {
         /// <inheritdoc/>
-        public override ISocket Socket => Underlying.Socket;
+        public override IConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
 
         internal SingleStreamConnection Underlying { get; private set; }
 

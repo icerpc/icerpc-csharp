@@ -245,7 +245,7 @@ namespace IceRpc.Transports.Internal
 
         internal static void LogSentData(this ILogger logger, int size) => _sentData(logger, size, null!);
 
-        internal static IDisposable? StartSocketScope(
+        internal static IDisposable? StartConnectionScope(
             this ILogger logger,
             MultiStreamConnection socket,
             Server? server)
@@ -274,7 +274,7 @@ namespace IceRpc.Transports.Internal
                             socket.LocalEndpoint.ToString());
                     }
                 }
-                else if (socket.Socket is ITcpSocket tcpSocket)
+                else if (socket.ConnectionInformation is ITcpConnectionInformation tcpSocket)
                 {
                     if (socket.IsDatagram && server != null)
                     {

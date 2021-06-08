@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
             IncomingConnectionOptions options,
             ILogger logger) => new ColocAcceptor(this, options, logger);
 
-        protected internal override MultiStreamConnection CreateClientSocket(
+        protected internal override MultiStreamConnection CreateOutgoingConnection(
             OutgoingConnectionOptions options,
             ILogger logger)
         {

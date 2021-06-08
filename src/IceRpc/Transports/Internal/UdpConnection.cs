@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class UdpConnection : SingleStreamConnection, IUdpSocket
+    internal sealed class UdpConnection : SingleStreamConnection, IUdpConnectionInformation
     {
         /// <inheritdoc/>
         public bool IsSecure => false;
@@ -54,7 +54,7 @@ namespace IceRpc.Transports.Internal
         public IPEndPoint? MulticastEndpoint { get; private set; }
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;

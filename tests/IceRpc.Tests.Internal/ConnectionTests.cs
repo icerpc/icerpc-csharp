@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        Endpoint.CreateServerSocket(_server.ConnectionOptions, _server.Logger),
+                        Endpoint.CreateIncomingConnection(_server.ConnectionOptions, _server.Logger),
                         _server);
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
@@ -293,11 +293,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(transport, secure: secure);
 
-            Assert.That(factory.Client.Socket, Is.AssignableTo<IIPSocket>());
-            Assert.That(factory.Server.Socket, Is.AssignableTo<IIPSocket>());
+            Assert.That(factory.Client.ConnectionInformation, Is.AssignableTo<IIPConnectionInformation>());
+            Assert.That(factory.Server.ConnectionInformation, Is.AssignableTo<IIPConnectionInformation>());
 
-            var clientSocket = (IIPSocket)factory.Client.Socket;
-            var serverSocket = (IIPSocket)factory.Server.Socket;
+            var clientSocket = (IIPConnectionInformation)factory.Client.ConnectionInformation;
+            var serverSocket = (IIPConnectionInformation)factory.Server.ConnectionInformation;
 
             Assert.That(clientSocket.IsSecure, Is.EqualTo(secure));
             Assert.That(serverSocket.IsSecure, Is.EqualTo(secure));
@@ -337,16 +337,16 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "udp")
             {
-                Assert.That(clientSocket, Is.AssignableTo<IUdpSocket>());
+                Assert.That(clientSocket, Is.AssignableTo<IUdpConnectionInformation>());
             }
             else if (transport == "tcp")
             {
-                Assert.That(clientSocket, Is.AssignableTo<ITcpSocket>());
+                Assert.That(clientSocket, Is.AssignableTo<ITcpConnectionInformation>());
             }
             if (transport == "ws")
             {
-                Assert.That(clientSocket, Is.AssignableTo<IWSSocket>());
-                var wsSocket = (IWSSocket)clientSocket;
+                Assert.That(clientSocket, Is.AssignableTo<IWSConnectionInformation>());
+                var wsSocket = (IWSConnectionInformation)clientSocket;
 
                 Assert.AreEqual("websocket", wsSocket.Headers["Upgrade"]);
                 Assert.AreEqual("Upgrade", wsSocket.Headers["Connection"]);
@@ -357,8 +357,8 @@ namespace IceRpc.Tests.Internal
             if (secure)
             {
                 CollectionAssert.Contains(new List<string> { "tcp", "ws" }, transport);
-                var tcpClientSocket = (ITcpSocket)clientSocket;
-                var tcpServerSocket = (ITcpSocket)serverSocket;
+                var tcpClientSocket = (ITcpConnectionInformation)clientSocket;
+                var tcpServerSocket = (ITcpConnectionInformation)serverSocket;
 
                 Assert.That(tcpClientSocket.CheckCertRevocationStatus, Is.False);
                 Assert.That(tcpClientSocket.IsEncrypted, Is.True);

@@ -253,7 +253,7 @@ namespace IceRpc.Tests.Internal
         {
             OutgoingConnectionOptions options = ClientConnectionOptions.Clone();
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
-            return ((endpoint ?? ClientEndpoint).CreateClientSocket(
+            return ((endpoint ?? ClientEndpoint).CreateOutgoingConnection(
                    options,
                    Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
         }

@@ -13,51 +13,48 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A multi-stream socket represents the local end of a network connection and enables transmitting raw
-    /// binary data over multiple independent streams. The data sent and received over these streams can either be
-    /// transmitted using a datagram oriented transport such as Quic or a stream oriented transport such as TCP
-    /// (data multiplexing is used to transmit the data from multiple concurrent streams over the same TCP socket).
-    /// The Ice core relies on a multi-stream sockets to support the Ice protocol.
-    /// </summary>
+    /// <summary>A multi-stream connection represents a network connection that provides multiple independent streams of
+    /// binary data.</summary>
+    /// <seealso cref="Stream"/>
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
         public abstract TimeSpan IdleTimeout { get; internal set; }
 
-        /// <summary><c>true</c> for datagram sockets <c>false</c> otherwise.</summary>
+        /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
-        /// <summary><c>true</c> for incoming sockets <c>false</c> otherwise. An incoming socket is created
-        /// by a server-side acceptor while an outgoing socket is created from the endpoint by the client-side.
+        /// <summary><c>true</c> for incoming connections; otherwise, <c>false</c>. An incoming connection is created
+        /// by a server-side acceptor while an outgoing connection is created from the endpoint by the client-side.
         /// </summary>
         public bool IsIncoming { get; }
 
-        /// <summary>The socket local endpoint. The socket might not be available until the socket is connected.
+        /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
         public Endpoint LocalEndpoint
         {
-            get => _localEndpoint ?? throw new InvalidOperationException("the socket is not connected");
+            get => _localEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             set => _localEndpoint = value;
         }
 
-        /// <summary>The protocol used by the socket.</summary>
+        /// <summary>The Ice protocol used by this connection.</summary>
         public Protocol Protocol => _endpoint.Protocol;
 
-        /// <summary>The socket remote endpoint. The socket might not be available until the socket is accepted
-        /// or if the socket isn't a socket which is connected with a fixed peer.</summary>
+        /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
+        /// </summary>
         public Endpoint RemoteEndpoint
         {
-            get => _remoteEndpoint ?? throw new InvalidOperationException("the socket is not connected");
+            get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             set => _remoteEndpoint = value;
         }
 
-        /// <summary>The public socket interface to obtain information on the socket.</summary>
-        public abstract ISocket Socket { get; }
+        /// <summary>Returns information about this connection.</summary>
+        public abstract IConnectionInformation ConnectionInformation { get; }
 
-        /// <summary>The socket transport.</summary>
+        /// <summary>The transport of this connection.</summary>
         public Transport Transport => _endpoint.Transport;
 
-        /// <summary>The socket transport name.</summary>
+        /// <summary>The name of the transport.</summary>
         public string TransportName => _endpoint.TransportName;
 
         internal int IncomingFrameMaxSize { get; }
@@ -73,6 +70,7 @@ namespace IceRpc.Transports
         }
 
         internal TimeSpan LastActivity { get; private set; }
+
         // The stream ID of the last received response with the Ice1 protocol. Keeping track of this stream ID is
         // necessary to avoid a race condition with the GoAway frame which could be received and processed before
         // the response is delivered to the stream.
@@ -92,7 +90,7 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the socket. If it's a server socket, it's the local endpoint or the remote
+        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or the remote
         // endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
@@ -107,9 +105,9 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<long, Stream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new socket
+        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
         /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
@@ -120,17 +118,17 @@ namespace IceRpc.Transports
         /// <return>The accepted stream.</return>
         public abstract ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel);
 
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new socket
-        /// to establish the connection and perform  blocking socket level initialization (TLS handshake, etc).
+        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
+        /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
         /// </summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure sockets.</param>
+        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask ConnectAsync(
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Closes the socket.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
+        /// <summary>Closes the connection.</summary>
+        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel);
 
@@ -141,7 +139,7 @@ namespace IceRpc.Transports
         /// <return>The outgoing stream.</return>
         public abstract Stream CreateStream(bool bidirectional);
 
-        /// <summary>Releases the resources used by the socket.</summary>
+        /// <summary>Releases the resources used by the connection.</summary>
         public void Dispose()
         {
             Dispose(true);
@@ -157,7 +155,7 @@ namespace IceRpc.Transports
         public abstract Task PingAsync(CancellationToken cancel);
 
         /// <summary>The MultiStreamConnection constructor.</summary>
-        /// <param name="endpoint">The endpoint that created the socket.</param>
+        /// <param name="endpoint">The endpoint that created the connection.</param>
         /// <param name="options">The connection options.</param>
         /// <param name="logger">The logger.</param>
         protected MultiStreamConnection(
@@ -174,7 +172,7 @@ namespace IceRpc.Transports
             Logger = logger;
         }
 
-        /// <summary>Releases the resources used by the socket.</summary>
+        /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
@@ -325,7 +323,7 @@ namespace IceRpc.Transports
                 _streams[id] = stream;
 
                 // Assign the stream ID within the mutex as well to ensure that the addition of the stream to
-                // the socket and the stream ID assignment are atomic.
+                // the connection and the stream ID assignment are atomic.
                 streamId = id;
 
                 if (!control)
@@ -415,7 +413,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal IDisposable? StartScope(Server? server = null) => Logger.StartSocketScope(this, server);
+        internal IDisposable? StartScope(Server? server = null) => Logger.StartConnectionScope(this, server);
 
         internal async ValueTask WaitForEmptyIncomingStreamsAsync(CancellationToken cancel)
         {

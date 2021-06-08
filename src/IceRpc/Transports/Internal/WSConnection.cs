@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class WSConnection : SingleStreamConnection, IWSSocket
+    internal sealed class WSConnection : SingleStreamConnection, IWSConnectionInformation
     {
         /// <inheritdoc/>
         public bool CheckCertRevocationStatus => _tcpSocket.CheckCertRevocationStatus;
@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
         public IPEndPoint? RemoteEndPoint => _tcpSocket.RemoteEndPoint;
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
         public SslProtocols? SslProtocol => _tcpSocket.SslProtocol;
@@ -100,7 +100,7 @@ namespace IceRpc.Transports.Internal
         private readonly byte[] _sendMask;
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
-        private readonly ITcpSocket _tcpSocket;
+        private readonly ITcpConnectionInformation _tcpSocket;
 
         public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
@@ -201,7 +201,7 @@ namespace IceRpc.Transports.Internal
             : base(socket.Logger)
         {
             _bufferedSocket = new BufferedReceiveOverSingleStreamConnection(socket);
-            _tcpSocket = (ITcpSocket)socket.Socket;
+            _tcpSocket = (ITcpConnectionInformation)socket.ConnectionInformation;
             _parser = new HttpParser();
             _receiveLastFrame = true;
             _sendBuffer = new List<ArraySegment<byte>>();
