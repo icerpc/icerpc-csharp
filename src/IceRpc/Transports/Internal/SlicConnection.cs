@@ -407,8 +407,11 @@ namespace IceRpc.Transports.Internal
             // the pong from is received? which timeout to use for expecting the pong frame?
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
-        internal SlicConnection(Endpoint endpoint, SingleStreamConnection socket, ConnectionOptions options)
-            : base(endpoint, socket, options)
+        internal SlicConnection(
+            Endpoint endpoint, 
+            SingleStreamConnection singleStreamConnection, 
+            ConnectionOptions options)
+            : base(endpoint, singleStreamConnection, options)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;

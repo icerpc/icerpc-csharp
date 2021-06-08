@@ -126,11 +126,11 @@ namespace IceRpc.Transports.Internal
         {
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamConnection socket = CreateSingleStreamConnection(endpoint, tcpOptions, logger);
+            SingleStreamConnection singleStreamConnection = CreateSingleStreamConnection(endpoint, tcpOptions, logger);
             return Protocol switch
             {
-                Protocol.Ice1 => new Ice1Connection(this, socket, options),
-                _ => new SlicConnection(this, socket, options)
+                Protocol.Ice1 => new Ice1Connection(this, singleStreamConnection, options),
+                _ => new SlicConnection(this, singleStreamConnection, options)
             };
         }
 

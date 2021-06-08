@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Ice1 network socket implements a multi-stream transport using the Ice1 protocol. A new incoming
+    /// <summary>The Ice1 connection implements a multi-stream connection for the Ice1 protocol. A new incoming
     /// stream is created for each incoming Ice1 request and an outgoing stream is created for outgoing requests.
-    /// The streams created by the Ice1 network socket are always finished once the request or response frames are
+    /// The streams created by the Ice1 connection are always finished once the request or response frames are
     /// sent or received. Data streaming is not supported. Initialize or GoAway frames sent over the control streams
     /// are translated to connection validation or close connection Ice1 frames.</summary>
     internal class Ice1Connection : MultiStreamOverSingleStreamConnection
@@ -204,8 +204,11 @@ namespace IceRpc.Transports.Internal
             Logger.LogSentInitializeFrame(this, 0);
         }
 
-        internal Ice1Connection(Endpoint endpoint, SingleStreamConnection socket, ConnectionOptions options)
-            : base(endpoint, socket, options)
+        internal Ice1Connection(
+            Endpoint endpoint, 
+            SingleStreamConnection singleStreamConnection,
+            ConnectionOptions options)
+            : base(endpoint, singleStreamConnection, options)
         {
             IdleTimeout = options.IdleTimeout;
 

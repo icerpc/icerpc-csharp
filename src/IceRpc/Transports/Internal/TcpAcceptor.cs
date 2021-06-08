@@ -21,14 +21,15 @@ namespace IceRpc.Transports.Internal
         {
             Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-            SingleStreamConnection socket = ((TcpEndpoint)Endpoint).CreateSingleStreamConnection(fd, _logger);
+            SingleStreamConnection singleStreamConnection = 
+                    ((TcpEndpoint)Endpoint).CreateSingleStreamConnection(fd, _logger);
 
-            MultiStreamOverSingleStreamConnection multiStreamSocket = Endpoint.Protocol switch
+            MultiStreamOverSingleStreamConnection multiStreamConnection = Endpoint.Protocol switch
             {
-                Protocol.Ice1 => new Ice1Connection(Endpoint, socket, _options),
-                _ => new SlicConnection(Endpoint, socket, _options)
+                Protocol.Ice1 => new Ice1Connection(Endpoint, singleStreamConnection, _options),
+                _ => new SlicConnection(Endpoint, singleStreamConnection, _options)
             };
-            return multiStreamSocket;
+            return multiStreamConnection;
         }
 
         public void Dispose() => _socket.CloseNoThrow();

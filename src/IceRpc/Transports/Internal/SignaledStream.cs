@@ -10,8 +10,8 @@ using System.Threading.Tasks.Sources;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The SignaledStream abstract class provides signaling functionality using the
-    /// IValueTaskSource interface. It's useful for stream implementations that depend on the socket
-    /// for receiving data. The socket can easily signal the stream when new data is available.
+    /// IValueTaskSource interface. It's useful for stream implementations that depend on the connection
+    /// for receiving data. The connection can easily signal the stream when new data is available.
     /// Signaling the stream and either be done with SetResult/SetException to signal a single value
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
@@ -57,11 +57,11 @@ namespace IceRpc.Transports.Internal
         protected override void AbortRead(StreamErrorCode errorCode) =>
             SetException(new StreamAbortedException(errorCode));
 
-        protected SignaledStream(MultiStreamConnection socket, long streamId)
-            : base(socket, streamId) => _source.RunContinuationsAsynchronously = true;
+        protected SignaledStream(MultiStreamConnection connection, long streamId)
+            : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;
 
-        protected SignaledStream(MultiStreamConnection socket, bool bidirectional, bool control)
-            : base(socket, bidirectional, control) => _source.RunContinuationsAsynchronously = true;
+        protected SignaledStream(MultiStreamConnection connection, bool bidirectional, bool control)
+            : base(connection, bidirectional, control) => _source.RunContinuationsAsynchronously = true;
 
         protected override void Shutdown()
         {

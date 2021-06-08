@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>An abstract multi-stream socket which is using a single stream socket for receiving and sending
+    /// <summary>An abstract multi-stream connection which is using a single stream connection for receiving and sending
     /// data.</summary>
     internal abstract class MultiStreamOverSingleStreamConnection : MultiStreamConnection
     {
@@ -53,8 +53,8 @@ namespace IceRpc.Transports.Internal
 
         protected MultiStreamOverSingleStreamConnection(
             Endpoint endpoint,
-            SingleStreamConnection socket,
+            SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
-            : base(endpoint, options, socket.Logger) => Underlying = socket;
+            : base(endpoint, options, singleStreamConnection.Logger) => Underlying = singleStreamConnection;
     }
 }

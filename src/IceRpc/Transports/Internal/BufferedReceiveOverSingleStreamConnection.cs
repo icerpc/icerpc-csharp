@@ -89,12 +89,12 @@ namespace IceRpc.Transports.Internal
             Underlying = underlying;
 
             // The _buffer data member holds the buffered data. There's no buffered data until we receive data
-            // from the underlying socket so the array segment point to an empty segment.
+            // from the underlying connection so the array segment point to an empty segment.
             _buffer = new ArraySegment<byte>(new byte[bufferSize], 0, 0);
         }
 
         /// <summary>Returns buffered data. If there's no buffered data, the buffer is filled using the underlying
-        /// socket to receive additional data. The method returns when the buffer contains at least byteCount
+        /// connection to receive additional data. The method returns when the buffer contains at least byteCount
         /// data. If byteCount is set to zero, it returns all the buffered data.</summary>
         /// <param name="byteCount">The number of bytes of buffered data to return. It can be set to null to get all
         /// the buffered data.</param>

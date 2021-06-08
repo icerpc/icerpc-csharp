@@ -121,10 +121,10 @@ namespace IceRpc.Transports.Internal
                 // The caller is responsible for using the returned SslConnection in place of this TcpConnection.
                 if (endpoint.IsSecure ?? secure)
                 {
-                    var socket = new SslConnection(this, _socket);
-                    await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = socket.SslStream;
-                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
+                    var sslConnection = new SslConnection(this, _socket);
+                    await sslConnection.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = sslConnection.SslStream;
+                    return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
                 else
                 {
@@ -164,10 +164,10 @@ namespace IceRpc.Transports.Internal
                 // responsible for using the returned SslConnection instead of using this TcpConnection.
                 if (authenticationOptions != null)
                 {
-                    var socket = new SslConnection(this, _socket);
-                    await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = socket.SslStream;
-                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
+                    var sslConnection = new SslConnection(this, _socket);
+                    await sslConnection.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = sslConnection.SslStream;
+                    return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
                 }
                 else
                 {
