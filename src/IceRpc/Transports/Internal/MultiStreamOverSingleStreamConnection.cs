@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing)
         {
-            // First dispose of the underlying socket otherwise base.Dispose() which releases the stream can trigger
+            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
             // additional data to be sent of the stream release sends data (which is the case for SlicStream).
             if (disposing)
             {

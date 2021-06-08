@@ -104,7 +104,7 @@ namespace IceRpc.Transports.Internal
                     await ReceiveAsync(buffer.Slice(Ice1Definitions.HeaderSize), cancel).ConfigureAwait(false);
                 }
 
-                // Make sure the socket is marked as validated. This flag is necessary because incoming
+                // Make sure the connection is marked as validated. This flag is necessary because incoming
                 // connection initialization doesn't wait for connection validation message. So the connection
                 // is considered validated on the server side only once the first frame is received. This is
                 // only useful for connection warnings, to prevent a warning from showing up if the server side
@@ -162,7 +162,7 @@ namespace IceRpc.Transports.Internal
                         }
                         catch
                         {
-                            // Ignore, if the stream has been aborted or the socket is being shutdown.
+                            // Ignore, if the stream has been aborted or the connection is being shutdown.
                             stream?.Release();
                         }
                     }
