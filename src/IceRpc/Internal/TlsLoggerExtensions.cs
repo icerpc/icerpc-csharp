@@ -7,26 +7,22 @@ using System.Collections.Generic;
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging Tls messages.</summary>
-    internal static class TlsLoggerExtensions
+    internal static partial class TlsLoggerExtensions
     {
         private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthenticationSucceeded =
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
-                TlsEventIds.TlsAuthenticationSucceeded,
+                new EventId((int)TlsEvent.TlsAuthenticationSucceeded, nameof(TlsEvent.TlsAuthenticationSucceeded)),
                 "Tls authentication succeeded ({TlsConnectionInfo})");
 
-        private static readonly Action<ILogger, Exception> _tlsAuthenticationFailed =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TlsEventIds.TlsAuthenticationFailed,
-                "Tls authentication failed");
 
-        internal static void LogTlsAuthenticationFailed(
-            this ILogger logger,
-            System.Net.Security.SslStream _,
-            Exception exception) =>
-            // TODO: log SslStream properties
-            _tlsAuthenticationFailed(logger, exception);
+        // TODO: log SslStream properties
+        [LoggerMessage(
+            EventId = (int)TlsEvent.TlsAuthenticationFailed,
+            EventName = nameof(TlsEvent.TlsAuthenticationFailed),
+            Level = LogLevel.Debug,
+            Message = "Tls authentication failed")]
+        internal static partial void LogTlsAuthenticationFailed(this ILogger logger, Exception exception);
 
         internal static void LogTlsAuthenticationSucceeded(
             this ILogger logger,

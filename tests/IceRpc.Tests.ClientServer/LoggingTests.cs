@@ -50,21 +50,21 @@ namespace IceRpc.Tests.ClientServer
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
             var eventIds = new int[] {
-                TransportEventIds.ConnectionConnectFailed.Id,
-                ProtocolEventIds.RetryRequestConnectionException.Id,
-                ProtocolEventIds.RequestException.Id
+                (int)TransportEvent.ConnectionConnectFailed,
+                (int)ProtocolEvent.RetryRequestConnectionException,
+                (int)ProtocolEvent.RequestException
             };
 
             foreach (JsonDocument entry in logEntries)
             {
-                string expectedLogLevel = GetEventId(entry) == ProtocolEventIds.RequestException.Id ?
+                string expectedLogLevel = GetEventId(entry) == (int)ProtocolEvent.RequestException ?
                     "Information" : "Debug";
 
                 Assert.AreEqual(expectedLogLevel, GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 CollectionAssert.Contains(eventIds, GetEventId(entry));
                 JsonElement[] scopes = GetScopes(entry);
-                if (GetEventId(entry) == TransportEventIds.ConnectionConnectFailed)
+                if (GetEventId(entry) == (int)TransportEvent.ConnectionConnectFailed)
                 {
                     Assert.That(scopes, Is.Not.Empty);
 
@@ -111,7 +111,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
             Assert.That(scopes, Is.Empty);
-            Assert.That(GetEventId(entry), Is.EqualTo(ProtocolEventIds.RequestException.Id));
+            Assert.That(GetEventId(entry), Is.EqualTo((int)ProtocolEvent.RequestException));
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -185,7 +185,7 @@ namespace IceRpc.Tests.ClientServer
                 events.Add(eventId);
                 CollectionAssert.AllItemsAreUnique(events);
                 // TODO The log scopes are not started with interceptor/middleware protocol logging
-                if (eventId == ProtocolEventIds.ReceivedRequestFrame.Id)
+                if (eventId == (int)ProtocolEvent.ReceivedRequestFrame)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.ClientServer
                     //CheckServerSocketScope(scopes[1], colocated);
                     //CheckStreamScope(scopes[2]);
                 }
-                else if (eventId == ProtocolEventIds.SentRequestFrame.Id)
+                else if (eventId == (int)ProtocolEvent.SentRequestFrame)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
@@ -204,7 +204,7 @@ namespace IceRpc.Tests.ClientServer
                     //CheckClientSocketScope(scopes[0], colocated);
                     //CheckStreamScope(scopes[1]);
                 }
-                else if (eventId == ProtocolEventIds.ReceivedResponseFrame.Id)
+                else if (eventId == (int)ProtocolEvent.ReceivedResponseFrame)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
@@ -213,9 +213,9 @@ namespace IceRpc.Tests.ClientServer
                     //CheckClientSocketScope(scopes[0], colocated);
                     //CheckStreamScope(scopes[1]);
                     // The sending of the request always comes before the receiving of the response
-                    CollectionAssert.Contains(events, ProtocolEventIds.SentRequestFrame.Id);
+                    CollectionAssert.Contains(events, (int)ProtocolEvent.SentRequestFrame);
                 }
-                else if (eventId == ProtocolEventIds.SentResponseFrame.Id)
+                else if (eventId == (int)ProtocolEvent.SentResponseFrame)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
@@ -225,7 +225,7 @@ namespace IceRpc.Tests.ClientServer
                     //CheckServerSocketScope(scopes[1], colocated);
                     //CheckStreamScope(scopes[2]);
                     // The sending of the response always comes before the receiving of the request
-                    CollectionAssert.Contains(events, ProtocolEventIds.SentResponseFrame.Id);
+                    CollectionAssert.Contains(events, (int)ProtocolEvent.SentResponseFrame);
                 }
                 else
                 {

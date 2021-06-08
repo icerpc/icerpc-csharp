@@ -27,7 +27,7 @@ namespace IceRpc
                         IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                         if (!request.IsOneway)
                         {
-                            logger.LogReceivedResponse(response);
+                            logger.LogReceivedResponse(response.ResultType);
                         }
                         return response;
                     }

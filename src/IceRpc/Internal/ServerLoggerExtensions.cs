@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace IceRpc.Internal
 {
@@ -12,21 +11,21 @@ namespace IceRpc.Internal
             EventId = (int)ServerEvent.ServerListening,
             EventName = nameof(ServerEvent.ServerListening),
             Level = LogLevel.Information,
-            Message = "server '{Name}' is listening")]
+            Message = "server '{Server}' is listening")]
         internal static partial void LogServerListening(this ILogger logger, Server server);
 
         [LoggerMessage(
             EventId = (int)ServerEvent.ServerShuttingDown,
             EventName = nameof(ServerEvent.ServerShuttingDown),
             Level = LogLevel.Debug,
-            Message = "server '{Name}' is shutting down")]
+            Message = "server '{Server}' is shutting down")]
         internal static partial void LogServerShuttingDown(this ILogger logger, Server server);
 
         [LoggerMessage(
             EventId = (int)ServerEvent.ServerShutdownComplete,
             EventName = nameof(ServerEvent.ServerShutdownComplete),
             Level = LogLevel.Information,
-            Message = "server '{Name}' completed its shutdown"))]
+            Message = "server '{Server}' completed its shutdown")]
         internal static partial void LogServerShutdownComplete(this ILogger logger, Server server);
     }
 }

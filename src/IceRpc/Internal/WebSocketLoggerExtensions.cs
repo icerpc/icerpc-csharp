@@ -6,48 +6,41 @@ using System;
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging WebSocket transport messages.</summary>
-    internal static class WebSocketLoggerExtensions
+    internal static partial class WebSocketLoggerExtensions
     {
-        private static readonly Action<ILogger, Exception> _httpUpgradeRequestAccepted = LoggerMessage.Define(
-            LogLevel.Trace,
-            WebSocketEventIds.HttpUpgradeRequestAccepted,
-            "accepted connection HTTP upgrade request");
+        [LoggerMessage(
+            EventId = (int)WebSocketEvent.HttpUpgradeRequestAccepted,
+            EventName = nameof(WebSocketEvent.HttpUpgradeRequestAccepted),
+            Level = LogLevel.Trace,
+            Message = "accepted connection HTTP upgrade request")]
+        internal static partial void LogHttpUpgradeRequestAccepted(this ILogger logger);
 
-        private static readonly Action<ILogger, Exception> _httpUpgradeRequestFailed = LoggerMessage.Define(
-            LogLevel.Trace,
-            WebSocketEventIds.HttpUpgradeRequestFailed,
-            "connection HTTP upgrade request failed");
+        [LoggerMessage(
+            EventId = (int)WebSocketEvent.HttpUpgradeRequestFailed,
+            EventName = nameof(WebSocketEvent.HttpUpgradeRequestFailed),
+            Level = LogLevel.Trace,
+            Message = "connection HTTP upgrade request failed")]
+        internal static partial void LogHttpUpgradeRequestFailed(this ILogger logger, Exception ex);
 
-        private static readonly Action<ILogger, Exception> _httpUpgradeRequestSucceed = LoggerMessage.Define(
-            LogLevel.Trace,
-            WebSocketEventIds.HttpUpgradeRequestSucceed,
-            "connection HTTP upgrade request succeed");
+        [LoggerMessage(
+            EventId = (int)WebSocketEvent.HttpUpgradeRequestSucceed,
+            EventName = nameof(WebSocketEvent.HttpUpgradeRequestSucceed),
+            Level = LogLevel.Trace,
+            Message = "connection HTTP upgrade request succeed")]
+        internal static partial void  LogHttpUpgradeRequestSucceed(this ILogger logger);
 
-        private static readonly Action<ILogger, string, int, Exception> _receivedWebSocketFrame =
-            LoggerMessage.Define<string, int>(
-                LogLevel.Trace,
-                WebSocketEventIds.ReceivedWebSocketFrame,
-                "received {OpCode} frame with {Size} bytes payload");
+        [LoggerMessage(
+            EventId = (int)WebSocketEvent.ReceivedWebSocketFrame,
+            EventName = nameof(WebSocketEvent.ReceivedWebSocketFrame),
+            Level = LogLevel.Trace,
+            Message = "received {OpCode} frame with {Size} bytes payload")]
+        internal static partial void LogReceivedWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
 
-        private static readonly Action<ILogger, string, int, Exception> _sendingWebSocketFrame =
-            LoggerMessage.Define<string, int>(
-                LogLevel.Trace,
-                WebSocketEventIds.SendingWebSocketFrame,
-                "sending {OpCode} frame with {Size} bytes payload");
-
-        internal static void LogHttpUpgradeRequestAccepted(this ILogger logger) =>
-            _httpUpgradeRequestAccepted(logger, null!);
-
-        internal static void LogHttpUpgradeRequestFailed(this ILogger logger, Exception ex) =>
-            _httpUpgradeRequestFailed(logger, ex);
-
-        internal static void LogHttpUpgradeRequestSucceed(this ILogger logger) =>
-            _httpUpgradeRequestSucceed(logger, null!);
-
-        internal static void LogReceivedWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
-            _receivedWebSocketFrame(logger, opCode.ToString(), size, null!);
-
-        internal static void LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size) =>
-            _sendingWebSocketFrame(logger, opCode.ToString(), size, null!);
+        [LoggerMessage(
+            EventId = (int)WebSocketEvent.SendingWebSocketFrame,
+            EventName = nameof(WebSocketEvent.SendingWebSocketFrame),
+            Level = LogLevel.Trace,
+            Message = "sending {OpCode} frame with {Size} bytes payload")]
+        internal static partial void  LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
     }
 }

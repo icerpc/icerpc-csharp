@@ -863,13 +863,19 @@ namespace IceRpc
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
                         // We log the exception as the UnhandledException may not include all details.
-                        _socket!.Logger.LogDispatchException(request, exception);
+                        _socket!.Logger.LogDispatchException(request.Connection,
+                                                             request.Path,
+                                                             request.Operation,
+                                                             exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else if (!stream.IsBidirectional)
                     {
                         // We log this exception, otherwise it would be lost since we don't send a response.
-                        _socket!.Logger.LogDispatchException(request, exception);
+                        _socket!.Logger.LogDispatchException(request.Connection,
+                                                             request.Path,
+                                                             request.Operation,
+                                                             exception);
                     }
                     else
                     {

@@ -157,7 +157,7 @@ namespace IceRpc.Internal
             }
             catch (AuthenticationException ex)
             {
-                Logger.LogTlsAuthenticationFailed(SslStream, ex);
+                Logger.LogTlsAuthenticationFailed(ex);
                 throw new TransportException(ex);
             }
 

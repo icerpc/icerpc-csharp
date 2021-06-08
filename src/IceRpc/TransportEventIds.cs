@@ -1,106 +1,53 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-
 namespace IceRpc
 {
-    /// <summary>This class contains event ID constants used for transport logging.</summary>
-    public static class TransportEventIds
+    /// <summary>This enum contains event ID constants used for transport logging.</summary>
+    public enum TransportEvent
     {
         /// <summary>The transport failed to accept a connection.</summary>
-        public static readonly EventId AcceptingConnectionFailed =
-            GetEventId(TransportEvent.AcceptingConnectionFailed);
-
+        AcceptingConnectionFailed = Internal.LoggerExtensions.TransportBaseEventId,
         /// <summary>The transport accepted a new connection.</summary>
-        public static readonly EventId ConnectionAccepted = GetEventId(TransportEvent.ConnectionAccepted);
-
+        ConnectionAccepted,
         /// <summary>The transport failed to accept a connection.</summary>
-        public static readonly EventId ConnectionAcceptFailed = GetEventId(TransportEvent.ConnectionAcceptFailed);
-
+        ConnectionAcceptFailed,
         /// <summary>A <see cref="Connection"/> event handler thrown an exception.</summary>
-        public static readonly EventId ConnectionEventHandlerException =
-            GetEventId(TransportEvent.ConnectionEventHandlerException);
-
+        ConnectionEventHandlerException,
         /// <summary>A <see cref="Connection"/> was closed.</summary>
-        public static readonly EventId ConnectionClosed = GetEventId(TransportEvent.ConnectionClosed);
-
+        ConnectionClosed,
         /// <summary>The <see cref="Connection"/> connect operation failed.</summary>
         /// <seealso cref="Connection.ConnectAsync(System.Threading.CancellationToken)"/>
-        public static readonly EventId ConnectionConnectFailed = GetEventId(TransportEvent.ConnectionConnectFailed);
-
+        ConnectionConnectFailed,
         /// <summary>The connection connect operation succeed.</summary>
         /// <seealso cref="Connection.ConnectAsync(System.Threading.CancellationToken)"/>
-        public static readonly EventId ConnectionConnected = GetEventId(TransportEvent.ConnectionEstablished);
-
+        ConnectionEstablished,
         /// <summary>The transport received buffer size was adjusted.</summary>
         /// <seealso cref="TcpOptions.ReceiveBufferSize"/>
         /// <seealso cref="UdpOptions.ReceiveBufferSize"/>
-        public static readonly EventId ReceiveBufferSizeAdjusted =
-            GetEventId(TransportEvent.ReceiveBufferSizeAdjusted);
-
+        ReceiveBufferSizeAdjusted,
         /// <summary>The transport received data.</summary>
-        public static readonly EventId ReceivedData = GetEventId(TransportEvent.ReceivedData);
-
+        ReceivedData,
         /// <summary>The transport received an invalid datagram message.</summary>
-        public static readonly EventId ReceivedInvalidDatagram = GetEventId(TransportEvent.ReceivedInvalidDatagram);
-
+        ReceivedInvalidDatagram,
         /// <summary>The transport send buffer size was adjusted.</summary>
         /// <seealso cref="TcpOptions.SendBufferSize"/>
         /// <seealso cref="UdpOptions.SendBufferSize"/>
-        public static readonly EventId SendBufferSizeAdjusted = GetEventId(TransportEvent.SendBufferSizeAdjusted);
-
+        SendBufferSizeAdjusted,
         /// <summary>The transport sent data.</summary>
-        public static readonly EventId SentData = GetEventId(TransportEvent.SentData);
-
+        SentData,
         /// <summary>The transport start accepting connections.</summary>
-        public static readonly EventId StartAcceptingConnections =
-            GetEventId(TransportEvent.StartAcceptingConnections);
-
+        StartAcceptingConnections,
         /// <summary>The transport starts receiving datagram messages.</summary>
-        public static readonly EventId StartReceivingDatagrams = GetEventId(TransportEvent.StartReceivingDatagrams);
-
+        StartReceivingDatagrams,
         /// <summary>The transport failed to start receiving datagram messages.</summary>
-        public static readonly EventId StartReceivingDatagramsFailed =
-            GetEventId(TransportEvent.StartReceivingDatagramsFailed);
-
+        StartReceivingDatagramsFailed,
         /// <summary>The transport starts sending datagram messages.</summary>
-        public static readonly EventId StartSendingDatagrams = GetEventId(TransportEvent.StartSendingDatagrams);
-
+        StartSendingDatagrams,
         /// <summary>The transport failed to start sending datagram messages.</summary>
-        public static readonly EventId StartSendingDatagramsFailed =
-            GetEventId(TransportEvent.StartSendingDatagramsFailed);
-
+        StartSendingDatagramsFailed,
         /// <summary>The transport stops accepting connections.</summary>
-        public static readonly EventId StopAcceptingConnections = GetEventId(TransportEvent.StopAcceptingConnections);
-
+        StopAcceptingConnections,
         /// <summary>The transport stops receiving datagram messages.</summary>
-        public static readonly EventId StopReceivingDatagrams = GetEventId(TransportEvent.StopReceivingDatagrams);
-
-        private const int BaseEventId = Internal.LoggerExtensions.TransportBaseEventId;
-
-        enum TransportEvent
-        {
-            AcceptingConnectionFailed = BaseEventId,
-            ConnectionAccepted,
-            ConnectionAcceptFailed,
-            ConnectionEventHandlerException,
-            ConnectionClosed,
-            ConnectionConnectFailed,
-            ConnectionEstablished,
-            ReceiveBufferSizeAdjusted,
-            ReceivedData,
-            ReceivedInvalidDatagram,
-            SendBufferSizeAdjusted,
-            SentData,
-            StartAcceptingConnections,
-            StartReceivingDatagrams,
-            StartReceivingDatagramsFailed,
-            StartSendingDatagrams,
-            StartSendingDatagramsFailed,
-            StopAcceptingConnections,
-            StopReceivingDatagrams
-        }
-
-        private static EventId GetEventId(TransportEvent e) => new((int)e, e.ToString());
+        StopReceivingDatagrams
     }
 }
