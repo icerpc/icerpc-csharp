@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
         {
             Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
 
-            SingleStreamConnection socket = ((TcpEndpoint)Endpoint).CreateSocket(fd, _logger);
+            SingleStreamConnection socket = ((TcpEndpoint)Endpoint).CreateSingleStreamConnection(fd, _logger);
 
             MultiStreamOverSingleStreamConnection multiStreamSocket = Endpoint.Protocol switch
             {

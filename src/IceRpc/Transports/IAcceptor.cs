@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>An acceptor listens and accepts incoming connection requests from clients. It creates a socket
-    /// which is used to exchange data with the remote peer.</summary>
+    /// <summary>An acceptor listens and accepts incoming connection requests from clients.</summary>
     public interface IAcceptor : IDisposable
     {
         /// <summary>The listening endpoint. The acceptor endpoint might be different from the endpoint used

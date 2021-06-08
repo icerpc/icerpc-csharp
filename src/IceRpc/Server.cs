@@ -177,9 +177,9 @@ namespace IceRpc
                 }
                 else
                 {
-                    MultiStreamConnection socket = _endpoint.CreateIncomingConnection(ConnectionOptions, Logger);
-                    var incomingConnection = new Connection(socket, this);
-                    _endpoint = socket.LocalEndpoint!;
+                    MultiStreamConnection multiStreamConnection = _endpoint.CreateIncomingConnection(ConnectionOptions, Logger);
+                    var incomingConnection = new Connection(multiStreamConnection, this);
+                    _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
 
                     // Connect the connection to start accepting new streams.
@@ -310,10 +310,10 @@ namespace IceRpc
 
             while (true)
             {
-                MultiStreamConnection socket;
+                MultiStreamConnection multiStreamConnection;
                 try
                 {
-                    socket = await acceptor.AcceptAsync().ConfigureAwait(false);
+                    multiStreamConnection = await acceptor.AcceptAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -333,7 +333,7 @@ namespace IceRpc
                     continue;
                 }
 
-                var connection = new Connection(socket, this);
+                var connection = new Connection(multiStreamConnection, this);
 
                 lock (_mutex)
                 {

@@ -126,7 +126,7 @@ namespace IceRpc.Transports.Internal
         {
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamConnection socket = CreateSocket(endpoint, tcpOptions, logger);
+            SingleStreamConnection socket = CreateSingleStreamConnection(endpoint, tcpOptions, logger);
             return Protocol switch
             {
                 Protocol.Ice1 => new Ice1Connection(this, socket, options),
@@ -268,7 +268,10 @@ namespace IceRpc.Transports.Internal
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
 
-        internal virtual SingleStreamConnection CreateSocket(EndPoint addr, TcpOptions options, ILogger logger)
+        internal virtual SingleStreamConnection CreateSingleStreamConnection(
+            EndPoint addr, 
+            TcpOptions options, 
+            ILogger logger)
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
             // created if the address is an IPv4 address.
@@ -300,7 +303,7 @@ namespace IceRpc.Transports.Internal
             return new TcpConnection(socket, logger, addr);
         }
 
-        internal virtual SingleStreamConnection CreateSocket(Socket socket, ILogger logger) =>
+        internal virtual SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
             new TcpConnection(socket, logger);
     }
 }

@@ -158,11 +158,11 @@ namespace IceRpc.Transports.Internal
             ostr.WriteString(Resource);
         }
 
-        internal override SingleStreamConnection CreateSocket(EndPoint addr, TcpOptions options, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSocket(addr, options, logger));
+        internal override SingleStreamConnection CreateSingleStreamConnection(EndPoint addr, TcpOptions options, ILogger logger) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(addr, options, logger));
 
-        internal override SingleStreamConnection CreateSocket(Socket socket, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSocket(socket, logger));
+        internal override SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger));
 
         // Constructor used for ice2 parsing.
         private WSEndpoint(EndpointData data, bool? tls)
