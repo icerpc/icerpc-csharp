@@ -120,15 +120,15 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
+        /// <param name="stream">The optional socket stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            Stream? socketStream)
+            Stream? stream)
             : base(protocol)
         {
-            SocketStream = socketStream;
+            SocketStream = stream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
 

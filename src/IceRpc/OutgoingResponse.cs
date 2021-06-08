@@ -71,7 +71,7 @@ namespace IceRpc
                 {
                     OutgoingResponse response = WithVoidReturnValue(dispatch);
                     // TODO: deal with format
-                    response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
+                    response.StreamDataWriter = stream => writer(stream, returnValue, default);
                     return response;
                 }
 
