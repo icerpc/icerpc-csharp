@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System;
 using System.Threading;
