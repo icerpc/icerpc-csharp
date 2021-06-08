@@ -296,28 +296,28 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.Client.ConnectionInformation, Is.AssignableTo<IIPConnectionInformation>());
             Assert.That(factory.Server.ConnectionInformation, Is.AssignableTo<IIPConnectionInformation>());
 
-            var clientSocket = (IIPConnectionInformation)factory.Client.ConnectionInformation;
-            var serverSocket = (IIPConnectionInformation)factory.Server.ConnectionInformation;
+            var outgoingConnection = (IIPConnectionInformation)factory.Client.ConnectionInformation;
+            var incomingConnection = (IIPConnectionInformation)factory.Server.ConnectionInformation;
 
-            Assert.That(clientSocket.IsSecure, Is.EqualTo(secure));
-            Assert.That(serverSocket.IsSecure, Is.EqualTo(secure));
+            Assert.That(outgoingConnection.IsSecure, Is.EqualTo(secure));
+            Assert.That(incomingConnection.IsSecure, Is.EqualTo(secure));
 
-            Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
-            Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
+            Assert.That(outgoingConnection.RemoteEndPoint, Is.Not.Null);
+            Assert.That(outgoingConnection.LocalEndPoint, Is.Not.Null);
 
-            Assert.That(serverSocket.LocalEndPoint, Is.Not.Null);
+            Assert.That(incomingConnection.LocalEndPoint, Is.Not.Null);
 
             Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint!.Host);
             Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint!.Host);
             Assert.That(factory.Client.RemoteEndpoint!.Port, Is.EqualTo(factory.Server.LocalEndpoint!.Port));
             if (transport == "udp")
             {
-                Assert.That(serverSocket.RemoteEndPoint, Is.Null);
+                Assert.That(incomingConnection.RemoteEndPoint, Is.Null);
                 Assert.Throws<InvalidOperationException>(() => _ = factory.Server.RemoteEndpoint);
             }
             else
             {
-                Assert.That(serverSocket.RemoteEndPoint, Is.Not.Null);
+                Assert.That(incomingConnection.RemoteEndPoint, Is.Not.Null);
                 Assert.That(factory.Client.LocalEndpoint.Port, Is.EqualTo(factory.Server.RemoteEndpoint!.Port));
                 Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
             }
@@ -326,27 +326,27 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.Server.IsIncoming, Is.True);
 
             Assert.AreEqual(null, factory.Client.Server);
-            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, clientSocket.RemoteEndPoint!.Port);
-            Assert.AreEqual(factory.Client.LocalEndpoint.Port, clientSocket.LocalEndPoint!.Port);
+            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, outgoingConnection.RemoteEndPoint!.Port);
+            Assert.AreEqual(factory.Client.LocalEndpoint.Port, outgoingConnection.LocalEndPoint!.Port);
 
-            Assert.AreEqual("127.0.0.1", clientSocket.LocalEndPoint.Address.ToString());
-            Assert.AreEqual("127.0.0.1", clientSocket.RemoteEndPoint.Address.ToString());
+            Assert.AreEqual("127.0.0.1", outgoingConnection.LocalEndPoint.Address.ToString());
+            Assert.AreEqual("127.0.0.1", outgoingConnection.RemoteEndPoint.Address.ToString());
 
-            Assert.That($"{factory.Client}", Does.StartWith(clientSocket.GetType().FullName));
-            Assert.That($"{factory.Server}", Does.StartWith(serverSocket.GetType().FullName));
+            Assert.That($"{factory.Client}", Does.StartWith(outgoingConnection.GetType().FullName));
+            Assert.That($"{factory.Server}", Does.StartWith(incomingConnection.GetType().FullName));
 
             if (transport == "udp")
             {
-                Assert.That(clientSocket, Is.AssignableTo<IUdpConnectionInformation>());
+                Assert.That(outgoingConnection, Is.AssignableTo<IUdpConnectionInformation>());
             }
             else if (transport == "tcp")
             {
-                Assert.That(clientSocket, Is.AssignableTo<ITcpConnectionInformation>());
+                Assert.That(outgoingConnection, Is.AssignableTo<ITcpConnectionInformation>());
             }
             if (transport == "ws")
             {
-                Assert.That(clientSocket, Is.AssignableTo<IWSConnectionInformation>());
-                var wsSocket = (IWSConnectionInformation)clientSocket;
+                Assert.That(outgoingConnection, Is.AssignableTo<IWSConnectionInformation>());
+                var wsSocket = (IWSConnectionInformation)outgoingConnection;
 
                 Assert.AreEqual("websocket", wsSocket.Headers["Upgrade"]);
                 Assert.AreEqual("Upgrade", wsSocket.Headers["Connection"]);
@@ -357,37 +357,37 @@ namespace IceRpc.Tests.Internal
             if (secure)
             {
                 CollectionAssert.Contains(new List<string> { "tcp", "ws" }, transport);
-                var tcpClientSocket = (ITcpConnectionInformation)clientSocket;
-                var tcpServerSocket = (ITcpConnectionInformation)serverSocket;
+                var tcpOutgoingConnection = (ITcpConnectionInformation)outgoingConnection;
+                var tcpIncomingConnection = (ITcpConnectionInformation)incomingConnection;
 
-                Assert.That(tcpClientSocket.CheckCertRevocationStatus, Is.False);
-                Assert.That(tcpClientSocket.IsEncrypted, Is.True);
-                Assert.That(tcpClientSocket.IsMutuallyAuthenticated, Is.False);
-                Assert.That(tcpClientSocket.IsSigned, Is.True);
-                Assert.That(tcpClientSocket.LocalCertificate, Is.Null);
+                Assert.That(tcpOutgoingConnection.CheckCertRevocationStatus, Is.False);
+                Assert.That(tcpOutgoingConnection.IsEncrypted, Is.True);
+                Assert.That(tcpOutgoingConnection.IsMutuallyAuthenticated, Is.False);
+                Assert.That(tcpOutgoingConnection.IsSigned, Is.True);
+                Assert.That(tcpOutgoingConnection.LocalCertificate, Is.Null);
 
-                Assert.That(tcpServerSocket.NegotiatedApplicationProtocol, Is.Not.Null);
+                Assert.That(tcpIncomingConnection.NegotiatedApplicationProtocol, Is.Not.Null);
                 if (OperatingSystem.IsMacOS())
                 {
                     // APLN doesn't work on macOS (we keep this check to figure out when it will be supported)
-                    Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(), Is.Empty);
-                    Assert.That(tcpServerSocket.NegotiatedApplicationProtocol!.ToString(), Is.Empty);
+                    Assert.That(tcpOutgoingConnection.NegotiatedApplicationProtocol!.ToString(), Is.Empty);
+                    Assert.That(tcpIncomingConnection.NegotiatedApplicationProtocol!.ToString(), Is.Empty);
                 }
                 else
                 {
-                    Assert.That(tcpClientSocket.NegotiatedApplicationProtocol!.ToString(),
+                    Assert.That(tcpOutgoingConnection.NegotiatedApplicationProtocol!.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
-                    Assert.That(tcpServerSocket.NegotiatedApplicationProtocol!.ToString(),
+                    Assert.That(tcpIncomingConnection.NegotiatedApplicationProtocol!.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
                 }
 
-                Assert.That(tcpClientSocket.RemoteCertificate, Is.Not.Null);
-                Assert.That(tcpClientSocket.SslProtocol, Is.Not.Null);
+                Assert.That(tcpOutgoingConnection.RemoteCertificate, Is.Not.Null);
+                Assert.That(tcpOutgoingConnection.SslProtocol, Is.Not.Null);
 
-                Assert.That(tcpServerSocket.NegotiatedApplicationProtocol,
-                            Is.EqualTo(tcpClientSocket.NegotiatedApplicationProtocol));
-                Assert.That(tcpServerSocket.LocalCertificate, Is.Not.Null);
-                Assert.That(tcpServerSocket.RemoteCertificate, Is.Null);
+                Assert.That(tcpIncomingConnection.NegotiatedApplicationProtocol,
+                            Is.EqualTo(tcpOutgoingConnection.NegotiatedApplicationProtocol));
+                Assert.That(tcpIncomingConnection.LocalCertificate, Is.Not.Null);
+                Assert.That(tcpIncomingConnection.RemoteCertificate, Is.Null);
             }
         }
 

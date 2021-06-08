@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
             // Wait for the server to send back a close frame.
             Assert.ThrowsAsync<ConnectionLostException>(async () => await clientReceiveTask);
 
-            // Close the socket to unblock the server socket.
+            // Close the connection to unblock the server connection.
             OutgoingConnection.Dispose();
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await serverReceiveTask);

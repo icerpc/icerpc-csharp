@@ -36,9 +36,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectSingleStreamConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamConnection clientSocket = CreateClientSocket();
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await clientSocket.ConnectAsync(
+                async () => await outgoingConnection.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     default));
@@ -56,9 +56,9 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamConnection clientSocket = CreateClientSocket();
+                using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
                 ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
-                    clientSocket.ConnectAsync(
+                    outgoingConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
                         source.Token);
@@ -68,15 +68,15 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamConnection clientSocket2 = CreateClientSocket();
+            using SingleStreamConnection outgoingConnection2 = CreateOutgoingConnection();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await clientSocket2.ConnectAsync(
+                async () => await outgoingConnection2.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     source2.Token));
         }
 
-        private SingleStreamConnection CreateClientSocket() =>
+        private SingleStreamConnection CreateOutgoingConnection() =>
             (ClientEndpoint.CreateOutgoingConnection(
                 OutgoingConnectionOptions,
                 Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;

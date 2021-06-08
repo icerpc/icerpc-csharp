@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    // Test the varions multi-stream socket implementations.
+    // Test the varions multi-stream connection implementations.
     [Timeout(30000)]
     [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
@@ -308,7 +308,7 @@ namespace IceRpc.Tests.Internal
             {
                 await stream.SendRequestFrameAsync(DummyRequest);
 
-                // With non-Ice1 sockets, the client-side keeps track of the stream max count and it ensures that it
+                // With non-Ice1 connections, the client-side keeps track of the stream max count and it ensures that it
                 // doesn't open more streams that the server permits.
                 if (ConnectionType != MultiStreamConnectionType.Ice1)
                 {
@@ -334,7 +334,7 @@ namespace IceRpc.Tests.Internal
 
                 var request = await stream.ReceiveRequestFrameAsync();
 
-                // With non-Ice1 sockets, the server-side releases the stream shortly before sending the
+                // With non-Ice1 connections, the server-side releases the stream shortly before sending the
                 // last stream frame (with the response).
                 if (ConnectionType != MultiStreamConnectionType.Ice1)
                 {
@@ -474,24 +474,24 @@ namespace IceRpc.Tests.Internal
             Assert.IsTrue(!OutgoingConnection.IsIncoming);
             Assert.IsTrue(IncomingConnection.IsIncoming);
 
-            static void Test(MultiStreamConnection socket)
+            static void Test(MultiStreamConnection connection)
             {
-                Assert.NotNull(socket.LocalEndpoint != null);
-                Assert.AreNotEqual(socket.IdleTimeout, TimeSpan.Zero);
-                Assert.Greater(socket.IncomingFrameMaxSize, 0);
-                if (socket.Protocol != Protocol.Ice1)
+                Assert.NotNull(connection.LocalEndpoint != null);
+                Assert.AreNotEqual(connection.IdleTimeout, TimeSpan.Zero);
+                Assert.Greater(connection.IncomingFrameMaxSize, 0);
+                if (connection.Protocol != Protocol.Ice1)
                 {
-                    Assert.Greater(socket.PeerIncomingFrameMaxSize, 0);
+                    Assert.Greater(connection.PeerIncomingFrameMaxSize, 0);
                 }
                 else
                 {
-                    Assert.IsNull(socket.PeerIncomingFrameMaxSize);
+                    Assert.IsNull(connection.PeerIncomingFrameMaxSize);
                 }
-                Assert.IsNotEmpty(socket.ToString());
-                Assert.AreNotEqual(socket.LastActivity, TimeSpan.Zero);
-                Assert.AreEqual(0, socket.LastResponseStreamId);
-                Assert.AreEqual(0, socket.IncomingStreamCount);
-                Assert.AreEqual(0, socket.OutgoingStreamCount);
+                Assert.IsNotEmpty(connection.ToString());
+                Assert.AreNotEqual(connection.LastActivity, TimeSpan.Zero);
+                Assert.AreEqual(0, connection.LastResponseStreamId);
+                Assert.AreEqual(0, connection.IncomingStreamCount);
+                Assert.AreEqual(0, connection.OutgoingStreamCount);
             }
 
             Assert.AreEqual(512 * 1024, IncomingConnection.IncomingFrameMaxSize);
@@ -539,25 +539,25 @@ namespace IceRpc.Tests.Internal
             release2();
             release1();
 
-            async Task<Action> TestAsync(MultiStreamConnection socket, MultiStreamConnection peerSocket, int expectedCount)
+            async Task<Action> TestAsync(MultiStreamConnection connection, MultiStreamConnection peerConnection, int expectedCount)
             {
-                var clientStream = socket.CreateStream(true);
-                Assert.AreEqual(expectedCount - 1, socket.OutgoingStreamCount);
+                var clientStream = connection.CreateStream(true);
+                Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
                 ValueTask task = clientStream.SendRequestFrameAsync(DummyRequest);
-                Assert.AreEqual(expectedCount, socket.OutgoingStreamCount);
+                Assert.AreEqual(expectedCount, connection.OutgoingStreamCount);
 
-                Assert.AreEqual(expectedCount - 1, peerSocket.IncomingStreamCount);
-                var serverStream = await peerSocket.AcceptStreamAsync(default);
-                Assert.AreEqual(expectedCount, peerSocket.IncomingStreamCount);
+                Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
+                var serverStream = await peerConnection.AcceptStreamAsync(default);
+                Assert.AreEqual(expectedCount, peerConnection.IncomingStreamCount);
 
                 await task;
                 return () =>
                 {
                     clientStream.Release();
-                    Assert.AreEqual(expectedCount - 1, socket.OutgoingStreamCount);
+                    Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
 
                     serverStream.Release();
-                    Assert.AreEqual(expectedCount - 1, peerSocket.IncomingStreamCount);
+                    Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
                 };
             }
         }

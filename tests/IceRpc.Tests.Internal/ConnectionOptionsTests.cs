@@ -31,29 +31,29 @@ namespace IceRpc.Tests.Internal
         public void TcpOptions_Client_BufferSize(int size)
         {
             using IAcceptor acceptor = CreateAcceptor();
-            using SingleStreamConnection clientSocket = CreateClientSocket(new TcpOptions
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
             });
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(clientSocket.NetworkSocket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, size);
+            Assert.GreaterOrEqual(outgoingConnection.NetworkSocket!.SendBufferSize, size);
+            Assert.GreaterOrEqual(outgoingConnection.NetworkSocket!.ReceiveBufferSize, size);
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size.
-                Assert.LessOrEqual(clientSocket.NetworkSocket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
+                Assert.LessOrEqual(outgoingConnection.NetworkSocket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(outgoingConnection.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
             }
             else
             {
                 // Windows typically allocates the requested size and macOS allocates a little more than the
                 // requested size.
-                Assert.LessOrEqual(clientSocket.NetworkSocket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(clientSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
+                Assert.LessOrEqual(outgoingConnection.NetworkSocket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(outgoingConnection.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
             }
         }
 
@@ -61,18 +61,18 @@ namespace IceRpc.Tests.Internal
         public void TcpOptions_Client_IsIPv6Only()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            using SingleStreamConnection clientSocket = CreateClientSocket(new TcpOptions
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection(new TcpOptions
             {
                 IsIPv6Only = true
             });
             if (IsIPv6)
             {
-                Assert.IsFalse(clientSocket.NetworkSocket!.DualMode);
+                Assert.IsFalse(outgoingConnection.NetworkSocket!.DualMode);
             }
             else
             {
                 // Accessing DualMode for an IPv4 socket throws NotSupportedException
-                Assert.Catch<NotSupportedException>(() => _ = clientSocket.NetworkSocket!.DualMode);
+                Assert.Catch<NotSupportedException>(() => _ = outgoingConnection.NetworkSocket!.DualMode);
             }
         }
 
@@ -86,11 +86,11 @@ namespace IceRpc.Tests.Internal
                 {
                     using IAcceptor acceptor = CreateAcceptor();
                     var localEndPoint = new IPEndPoint(IsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
-                    using SingleStreamConnection clientSocket = CreateClientSocket(new TcpOptions
+                    using SingleStreamConnection outgoingConnection = CreateOutgoingConnection(new TcpOptions
                     {
                         LocalEndPoint = localEndPoint
                     });
-                    Assert.AreEqual(localEndPoint, clientSocket.NetworkSocket!.LocalEndPoint);
+                    Assert.AreEqual(localEndPoint, outgoingConnection.NetworkSocket!.LocalEndPoint);
                     break;
                 }
                 catch (TransportException)
@@ -111,36 +111,36 @@ namespace IceRpc.Tests.Internal
                 SendBufferSize = size,
                 ReceiveBufferSize = size
             });
-            ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
-            using SingleStreamConnection clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
-            using SingleStreamConnection serverSocket = await acceptTask;
+            using SingleStreamConnection incomingConnection = await acceptTask;
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(serverSocket.NetworkSocket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, size);
+            Assert.GreaterOrEqual(incomingConnection.NetworkSocket!.SendBufferSize, size);
+            Assert.GreaterOrEqual(incomingConnection.NetworkSocket!.ReceiveBufferSize, size);
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsMacOS())
             {
                 // macOS Big Sur appears to have a low limit of a little more than 256KB for the receive buffer and
                 // 64KB for the send buffer.
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
             }
             else if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.SendBufferSize, 2.5 * size);
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.ReceiveBufferSize, 2.5 * size);
             }
             else
             {
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(serverSocket.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.SendBufferSize, 1.5 * size);
+                Assert.LessOrEqual(incomingConnection.NetworkSocket!.ReceiveBufferSize, 1.5 * size);
             }
             acceptor.Dispose();
         }
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Internal
 
                 using IAcceptor acceptor = serverEndpoint.CreateAcceptor(connectionOptions, Logger);
 
-                ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
+                ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
                 var data = new EndpointData(
@@ -179,10 +179,10 @@ namespace IceRpc.Tests.Internal
 
                 var clientEndpoint = TcpEndpoint.CreateEndpoint(data, ClientEndpoint.Protocol);
 
-                using SingleStreamConnection clientSocket = CreateClientSocket(endpoint: clientEndpoint);
+                using SingleStreamConnection outgoingConnection = CreateOutgoingConnection(endpoint: clientEndpoint);
 
                 ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
-                    clientSocket.ConnectAsync(clientEndpoint, null, default);
+                    outgoingConnection.ConnectAsync(clientEndpoint, null, default);
 
                 if (ipv6Only)
                 {
@@ -191,9 +191,9 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using SingleStreamConnection serverSocket = await acceptTask;
+                    using SingleStreamConnection incomingConnection = await acceptTask;
                     ValueTask<(SingleStreamConnection, Endpoint?)> task =
-                        serverSocket.AcceptAsync(serverEndpoint, null, default);
+                        incomingConnection.AcceptAsync(serverEndpoint, null, default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);
@@ -214,20 +214,20 @@ namespace IceRpc.Tests.Internal
                 {
                     ListenerBackLog = 18
                 });
-                ValueTask<SingleStreamConnection> acceptTask = CreateServerSocketAsync(acceptor);
+                ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
                 var sockets = new List<SingleStreamConnection>();
                 while (true)
                 {
                     using var source = new CancellationTokenSource(500);
-                    SingleStreamConnection clientSocket = CreateClientSocket();
+                    SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
                     try
                     {
-                        await clientSocket.ConnectAsync(ClientEndpoint, ClientAuthenticationOptions, source.Token);
-                        sockets.Add(clientSocket);
+                        await outgoingConnection.ConnectAsync(ClientEndpoint, ClientAuthenticationOptions, source.Token);
+                        sockets.Add(outgoingConnection);
                     }
                     catch (OperationCanceledException)
                     {
-                        clientSocket.Dispose();
+                        outgoingConnection.Dispose();
                         break;
                     }
                 }
@@ -249,7 +249,7 @@ namespace IceRpc.Tests.Internal
             return ServerEndpoint.CreateAcceptor(connectionOptions, Logger);
         }
 
-        private SingleStreamConnection CreateClientSocket(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
+        private SingleStreamConnection CreateOutgoingConnection(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
         {
             OutgoingConnectionOptions options = OutgoingConnectionOptions.Clone();
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
@@ -258,7 +258,7 @@ namespace IceRpc.Tests.Internal
                    Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
         }
 
-        private static async ValueTask<SingleStreamConnection> CreateServerSocketAsync(IAcceptor acceptor) =>
+        private static async ValueTask<SingleStreamConnection> CreateIncomingConnectionAsync(IAcceptor acceptor) =>
             ((await acceptor.AcceptAsync()) as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }

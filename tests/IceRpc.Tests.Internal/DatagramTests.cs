@@ -25,16 +25,16 @@ namespace IceRpc.Tests.Internal
         [TestCase(1, 4096)]
         [TestCase(2, 1024)]
         [TestCase(10, 1024)]
-        public async Task DatagramSocket_MultipleSendReceiveAsync(int clientSocketCount, int size)
+        public async Task DatagramSocket_MultipleSendReceiveAsync(int outgoingConnectionCount, int size)
         {
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
             new Random().NextBytes(sendBuffer[0]);
 
-            List<SingleStreamConnection> clientSockets = new();
-            clientSockets.Add(OutgoingConnection);
-            for (int i = 0; i < clientSocketCount; ++i)
+            List<SingleStreamConnection> outgoingConnections = new();
+            outgoingConnections.Add(OutgoingConnection);
+            for (int i = 0; i < outgoingConnectionCount; ++i)
             {
-                clientSockets.Add(await SingleStreamConnectionAsync(ConnectAsync()));
+                outgoingConnections.Add(await SingleStreamConnectionAsync(ConnectAsync()));
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
@@ -43,10 +43,10 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamConnection socket in clientSockets)
+                    foreach (SingleStreamConnection connection in outgoingConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        ValueTask<int> sendTask = socket.SendDatagramAsync(sendBuffer, default);
+                        ValueTask<int> sendTask = connection.SendDatagramAsync(sendBuffer, default);
 
                         ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
@@ -65,11 +65,11 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamConnection socket in clientSockets)
+                    foreach (SingleStreamConnection connection in outgoingConnections)
                     {
-                        await socket.SendDatagramAsync(sendBuffer, default);
+                        await connection.SendDatagramAsync(sendBuffer, default);
                     }
-                    foreach (SingleStreamConnection socket in clientSockets)
+                    foreach (SingleStreamConnection connection in outgoingConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);

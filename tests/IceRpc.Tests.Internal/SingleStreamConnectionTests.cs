@@ -53,10 +53,10 @@ namespace IceRpc.Tests.Internal
             Test(OutgoingConnection);
             Test(IncomingConnection);
 
-            static void Test(SingleStreamConnection socket)
+            static void Test(SingleStreamConnection connection)
             {
-                Assert.NotNull(socket.ConnectionInformation);
-                Assert.IsNotEmpty(socket.ToString());
+                Assert.NotNull(connection.ConnectionInformation);
+                Assert.IsNotEmpty(connection.ToString());
             }
         }
     }

@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveAsync_Cancellation()
+        public void NonDatagramConnection_ReceiveAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<int> receiveTask = OutgoingConnection.ReceiveAsync(new byte[1], canceled.Token);
@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveAsync_ConnectionLostException()
+        public void NonDatagramConnection_ReceiveAsync_ConnectionLostException()
         {
             IncomingConnection.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
@@ -42,14 +42,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveAsync_Dispose()
+        public void NonDatagramConnection_ReceiveAsync_Dispose()
         {
             OutgoingConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await OutgoingConnection.ReceiveAsync(new byte[1], default));
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveAsync_Exception()
+        public void NonDatagramConnection_ReceiveAsync_Exception()
         {
             Assert.ThrowsAsync<ArgumentException>(
                 async () => await OutgoingConnection.ReceiveAsync(Array.Empty<byte>(), default));
@@ -61,19 +61,19 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_ReceiveDatagramAsync_Exception()
+        public void NonDatagramConnection_ReceiveDatagramAsync_Exception()
         {
             Assert.ThrowsAsync<InvalidOperationException>(async () => await OutgoingConnection.ReceiveDatagramAsync(default));
         }
 
         [Test]
-        public async Task NonDatagramSocket_SendAsync_CancellationAsync()
+        public async Task NonDatagramConnection_SendAsync_CancellationAsync()
         {
             IncomingConnection.NetworkSocket!.ReceiveBufferSize = 4096;
             OutgoingConnection.NetworkSocket!.SendBufferSize = 4096;
 
             // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
-            // are at least not larger than 16KB. The test below relies on the SendAsync to block when the socket
+            // are at least not larger than 16KB. The test below relies on the SendAsync to block when the connection
             // send/receive buffers fill up.
             Assert.Less(IncomingConnection.NetworkSocket!.ReceiveBufferSize, 16 * 1024);
             Assert.Less(OutgoingConnection.NetworkSocket!.SendBufferSize, 16 * 1024);
@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_SendAsync_ConnectionLostException()
+        public void NonDatagramConnection_SendAsync_ConnectionLostException()
         {
             IncomingConnection.Dispose();
             Assert.CatchAsync<ConnectionLostException>(
@@ -111,14 +111,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_SendAsync_Dispose()
+        public void NonDatagramConnection_SendAsync_Dispose()
         {
             OutgoingConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () => await OutgoingConnection.SendAsync(OneBSendBuffer, default));
         }
 
         [Test]
-        public void NonDatagramSocket_SendAsync_Exception()
+        public void NonDatagramConnection_SendAsync_Exception()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramSocket_SendDatagramAsync_Exception()
+        public void NonDatagramConnection_SendDatagramAsync_Exception()
         {
             Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await OutgoingConnection.SendDatagramAsync(OneBSendBuffer, default));
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(1024)]
         [TestCase(16 * 1024)]
         [TestCase(512 * 1024)]
-        public async Task NonDatagramSocket_SendReceiveAsync(int size)
+        public async Task NonDatagramConnection_SendReceiveAsync(int size)
         {
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
 
@@ -147,14 +147,14 @@ namespace IceRpc.Tests.Internal
             await test1;
             await test2;
 
-            async ValueTask Test(SingleStreamConnection socket1, SingleStreamConnection socket2)
+            async ValueTask Test(SingleStreamConnection connection1, SingleStreamConnection connection2)
             {
-                ValueTask<int> sendTask = socket1.SendAsync(sendBuffer, default);
+                ValueTask<int> sendTask = connection1.SendAsync(sendBuffer, default);
                 ArraySegment<byte> receiveBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)
                 {
-                    offset += await socket2.ReceiveAsync(receiveBuffer.Slice(offset), default);
+                    offset += await connection2.ReceiveAsync(receiveBuffer.Slice(offset), default);
                 }
                 Assert.AreEqual(await sendTask, size);
             }
