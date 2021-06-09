@@ -14,78 +14,19 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class TcpConnection : SingleStreamConnection, ITcpConnectionInformation
+    internal class TcpConnection : SingleStreamConnection
     {
         /// <inheritdoc/>
-        public bool CheckCertRevocationStatus => _sslStream?.CheckCertRevocationStatus ?? false;
-
-        /// <inheritdoc/>
-        public bool IsEncrypted => _sslStream?.IsEncrypted ?? false;
-
-        /// <inheritdoc/>
-        public bool IsMutuallyAuthenticated => _sslStream?.IsMutuallyAuthenticated ?? false;
-
-        /// <inheritdoc/>
-        public bool IsSecure => _sslStream != null;
-
-        /// <inheritdoc/>
-        public bool IsSigned => _sslStream?.IsSigned ?? false;
-
-        /// <inheritdoc/>
-        public X509Certificate? LocalCertificate => _sslStream?.LocalCertificate;
-
-        /// <inheritdoc/>
-        public IPEndPoint? LocalEndPoint
-        {
-            get
-            {
-                try
-                {
-                    return _socket.LocalEndPoint as IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public SslApplicationProtocol? NegotiatedApplicationProtocol => _sslStream?.NegotiatedApplicationProtocol;
-
-        /// <inheritdoc/>
-        public TlsCipherSuite? NegotiatedCipherSuite => _sslStream?.NegotiatedCipherSuite;
-
-        /// <inheritdoc/>
-        public X509Certificate? RemoteCertificate => _sslStream?.RemoteCertificate;
-
-        /// <inheritdoc/>
-        public IPEndPoint? RemoteEndPoint
-        {
-            get
-            {
-                try
-                {
-                    return _socket.RemoteEndPoint as IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public override IConnectionInformation ConnectionInformation => this;
-
-        /// <inheritdoc/>
-        public SslProtocols? SslProtocol => _sslStream?.SslProtocol;
+        public override ConnectionInformation ConnectionInformation =>
+            _connectionInformation ??= new TcpConnectionInformation(_socket, _sslStream);
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;
-
         private readonly EndPoint? _addr;
+        private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
+
+        // the SslStream of the SslConnection that wraps this tcp connection
         private SslStream? _sslStream;
 
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4

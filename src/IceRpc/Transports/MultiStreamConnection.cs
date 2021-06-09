@@ -49,7 +49,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Returns information about this connection.</summary>
-        public abstract IConnectionInformation ConnectionInformation { get; }
+        public abstract ConnectionInformation ConnectionInformation { get; }
 
         /// <summary>The transport of this connection.</summary>
         public Transport Transport => _endpoint.Transport;

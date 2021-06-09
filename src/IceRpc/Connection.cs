@@ -70,6 +70,11 @@ namespace IceRpc
         internal static IDispatcher NullDispatcher { get; } =
             new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
 
+        /// <summary>Gets information about the underlying network connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
+        public ConnectionInformation ConnectionInformation => _connection?.ConnectionInformation ??
+            throw new InvalidOperationException("the connection is not connected");
+
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For outgoing connections, set can be called during configuration.</summary>
@@ -226,11 +231,6 @@ namespace IceRpc
                 _server = value;
             }
         }
-
-        /// <summary>The connection interface provides information on the connection used by the connection.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        public IConnectionInformation ConnectionInformation =>
-            _connection?.ConnectionInformation ?? throw new InvalidOperationException("the connection is not connected");
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State

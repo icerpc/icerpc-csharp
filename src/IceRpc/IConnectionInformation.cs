@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -9,42 +10,67 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc
 {
-    /// <summary>The <c>IConnectionInformation</c> base interface. Interfaces extending this interface provide information
-    /// on the connection used by a connection.</summary>
-    public interface IConnectionInformation
+    /// <summary>The base class for connection information.</summary>
+    public abstract class ConnectionInformation
     {
         /// <summary><c>true</c> if the connection uses encryption, <c>false</c> otherwise.</summary>
-        bool IsSecure { get; }
+        public abstract bool IsSecure { get; }
 
         /// <summary>The description of the connection.</summary>
-        string Description => $"IsSecure={IsSecure}";
+        public virtual string Description => $"IsSecure={IsSecure}";
     }
 
-    /// <summary>The IColocConnectionInformation interface provides information for a coloc connection.</summary>
+    /// <summary>Provides information about a coloc connection.</summary>
 
-    public interface IColocConnectionInformation : IConnectionInformation
+    public class ColocConnectionInformation : ConnectionInformation
     {
         /// <summary>The Id of the colocated connection.</summary>
-        long Id { get; }
+        public long Id { get; internal init; }
 
         /// <inheritdoc/>
-        bool IConnectionInformation.IsSecure => true;
+        public override bool IsSecure => true;
 
         /// <inheritdoc/>
-        string IConnectionInformation.Description => $"ID={Id}";
+        public override string Description => $"ID={Id}";
     }
 
-    /// <summary>The ITcpConnectionInformation interface provides properties for an IP connection.</summary>
-    public interface IIPConnectionInformation : IConnectionInformation
+    /// <summary>Provides information about an IP connection.</summary>
+    public abstract class IPConnectionInformation : ConnectionInformation
     {
         /// <summary>The connection local IP-endpoint or null if it is not available.</summary>
-        IPEndPoint? LocalEndPoint { get; }
+        public IPEndPoint? LocalEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.LocalEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <summary>The connection remote IP-endpoint or null if it is not available.</summary>
-        IPEndPoint? RemoteEndPoint { get; }
+        public IPEndPoint? RemoteEndPoint
+        {
+            get
+            {
+                try
+                {
+                    return _socket.RemoteEndPoint as IPEndPoint;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
 
         /// <inheritdoc/>
-        string IConnectionInformation.Description
+        public override string Description
         {
             get
             {
@@ -68,55 +94,88 @@ namespace IceRpc
                 return $"LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint}, IsSecure={IsSecure}";
             }
         }
+
+        private readonly Socket _socket;
+
+        /// <summary>Constructs an IP connection information.</summary>
+        protected IPConnectionInformation(Socket socket) => _socket = socket;
     }
 
-    /// <summary>The ITcpConnectionInformation interface provides properties for a TCP connection.</summary>
-    public interface ITcpConnectionInformation : IIPConnectionInformation
+    /// <summary>Provides information about a TCP connection.</summary>
+    /// TODO: should we simply return the SslStream?
+    public class TcpConnectionInformation : IPConnectionInformation
     {
         /// <summary>Gets a Boolean value that indicates whether the certificate revocation list is checked during the
         /// certificate validation process.</summary>
-        bool CheckCertRevocationStatus { get; }
+        public bool CheckCertRevocationStatus => _sslStream?.CheckCertRevocationStatus ?? false;
 
         /// <summary>Gets a Boolean value that indicates whether this SslStream uses data encryption.</summary>
-        bool IsEncrypted { get; }
+        // TODO: fix comment an explain difference with IsSecure, if any.
+        public bool IsEncrypted => _sslStream?.IsEncrypted ?? false;
 
         /// <summary>Gets a Boolean value that indicates whether both server and client have been authenticated.
         /// </summary>
-        bool IsMutuallyAuthenticated { get; }
+        public bool IsMutuallyAuthenticated => _sslStream?.IsMutuallyAuthenticated ?? false;
 
         /// <summary>Gets a Boolean value that indicates whether the data sent using this stream is signed.</summary>
-        bool IsSigned { get; }
+        public bool IsSigned => _sslStream?.IsSigned ?? false;
+
+        /// <inheritdoc/>
+        public override bool IsSecure => _sslStream != null;
 
         /// <summary>Gets the certificate used to authenticate the local endpoint or null if no certificate was
         /// supplied.</summary>
-        X509Certificate? LocalCertificate { get; }
+        public X509Certificate? LocalCertificate => _sslStream?.LocalCertificate;
 
         /// <summary>The negotiated application protocol in TLS handshake.</summary>
-        SslApplicationProtocol? NegotiatedApplicationProtocol { get; }
+        public SslApplicationProtocol? NegotiatedApplicationProtocol => _sslStream?.NegotiatedApplicationProtocol;
 
         /// <summary>Gets the cipher suite which was negotiated for this connection.</summary>
-        TlsCipherSuite? NegotiatedCipherSuite { get; }
+        public TlsCipherSuite? NegotiatedCipherSuite => _sslStream?.NegotiatedCipherSuite;
 
         /// <summary>Gets the certificate used to authenticate the remote endpoint or null if no certificate was
         /// supplied.</summary>
-        X509Certificate? RemoteCertificate { get; }
+        public X509Certificate? RemoteCertificate => _sslStream?.RemoteCertificate;
 
         /// <summary>Gets a value that indicates the security protocol used to authenticate this connection or
         /// null if the connection is not secure.</summary>
-        SslProtocols? SslProtocol { get; }
+        public SslProtocols? SslProtocol => _sslStream?.SslProtocol;
+
+        private readonly SslStream? _sslStream;
+
+        /// <summary>Constructs a TCP connection information.</summary>
+        protected internal TcpConnectionInformation(Socket socket, SslStream? sslStream)
+            : base(socket) => _sslStream = sslStream;
     }
 
-    /// <summary>The UdpConnection interface provides properties for a UDP connection.</summary>
-    interface IUdpConnectionInformation : IIPConnectionInformation
+    /// <summary>Provides information about a UDP connection.</summary>
+    public class UdpConnectionInformation : IPConnectionInformation
     {
+        /// <inheritdoc/>
+        public override bool IsSecure => false;
+
         /// <summary>The multicast IP-endpoint for a multicast connection otherwise null.</summary>
-        IPEndPoint? MulticastEndpoint { get; }
+        // TODO: fix description. Is this only for incoming connections???
+        public IPEndPoint? MulticastEndpoint { get; internal init; }
+
+        /// <summary>Constructs a UDP connection information.</summary>
+        internal UdpConnectionInformation(Socket socket)
+            : base(socket)
+        {
+        }
     }
 
-    /// <summary>The WSConnection interface provides properties for a WebSocket connection.</summary>
-    interface IWSConnectionInformation : ITcpConnectionInformation
+    /// <summary>Provides information about a WebSocket connection.</summary>
+    public class WSConnectionInformation : TcpConnectionInformation
     {
         /// <summary>The HTTP headers for the WebSocket connection.</summary>
-        IReadOnlyDictionary<string, string> Headers { get; }
+        public IReadOnlyDictionary<string, string> Headers { get; internal init; } =
+            ImmutableDictionary<string, string>.Empty;
+
+        /// <summary>Constructs a UDP connection information.</summary>
+        internal WSConnectionInformation(Socket socket, SslStream? sslStream)
+            : base(socket, sslStream)
+        {
+        }
     }
 }

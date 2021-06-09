@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
 {
     internal sealed class SslConnection : SingleStreamConnection
     {
-        public override IConnectionInformation ConnectionInformation => _underlying.ConnectionInformation;
+        public override ConnectionInformation ConnectionInformation => _underlying.ConnectionInformation;
 
         internal SslStream? SslStream { get; private set; }
 

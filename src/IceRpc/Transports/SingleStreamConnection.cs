@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A single-stream connection represents a network connection that supports a single stream of binary 
+    /// <summary>A single-stream connection represents a network connection that supports a single stream of binary
     /// data.</summary>
     public abstract class SingleStreamConnection : IDisposable
     {
         /// <summary>Returns information about the connection.</summary>
-        public abstract IConnectionInformation ConnectionInformation { get; }
+        public abstract ConnectionInformation ConnectionInformation { get; }
 
         internal ILogger Logger { get; }
 
@@ -57,7 +57,7 @@ namespace IceRpc.Transports
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A tuple with the single stream connection to use after the initialization and the local endpoint.
-        /// The connection implementation might return a different connection based on information read on the 
+        /// The connection implementation might return a different connection based on information read on the
         /// connection.</returns>
         public abstract ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
