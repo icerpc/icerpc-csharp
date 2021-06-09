@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Interop;
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -82,74 +83,6 @@ namespace IceRpc
 
         private string _path = "";
 
-        /*
-        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with a single stream
-        /// parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="proxy">A proxy to the target service. This method uses the communicator, identity, facet,
-        /// encoding and context of this proxy to create the request frame.</param>
-        /// <param name="operation">The operation to invoke on the target service.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="args">The argument(s) to write into the frame.</param>
-        /// <param name="writer">The delegate that will send the streamable.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new OutgoingRequestFrame.</returns>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Microsoft.Performance",
-            "CA1801: Review unused parameters",
-            Justification = "TODO")]
-        public static OutgoingRequest WithArgs<T>(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation,
-            T args,
-            Action<SocketStream, T, CancellationToken> writer,
-            CancellationToken cancel = default)
-        {
-            OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);
-            // TODO: deal with compress, format, and cancel parameters
-            request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
-            return request;
-        }
-        */
-
-        /*
-        /// <summary>Creates a new <see cref="OutgoingRequest"/> for an operation with multiple parameters where
-        /// one of the parameter is a stream parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameters; it's a tuple type for an operation with multiple
-        /// parameters.</typeparam>
-        /// <param name="proxy">A proxy to the target service.</param>
-        /// <param name="operation">The operation to invoke on the target service.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="args">The argument(s) to write into the frame.</param>
-        /// <param name="writer">The delegate that writes the arguments into the frame.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new OutgoingRequestFrame.</returns>
-        public static OutgoingRequest WithArgs<T>(
-            IServicePrx proxy,
-            string operation,
-            Invocation? invocation,
-            in T args,
-            OutputStreamValueWriterWithStreamable<T> writer,
-            CancellationToken cancel = default) where T : struct
-        {
-            var request = new OutgoingRequest(proxy, operation, invocation, cancel);
-            var ostr = new OutputStream(proxy.Protocol.GetEncoding(),
-                                        request.Payload,
-                                        startAt: default,
-                                        request.PayloadEncoding,
-                                        invocation?.ClassFormat ?? default);
-            // TODO: deal with compress, format, and cancel parameters
-            request.StreamDataWriter = writer(ostr, in args, cancel);
-            ostr.Finish();
-            if ((invocation?.CompressRequestPayload ?? false) && proxy.Encoding == Encoding.V20)
-            {
-                request.CompressPayload();
-            }
-            return request;
-        }
-        */
-
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
         /// <param name="proxy">The proxy sending the outgoing request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
@@ -160,7 +93,8 @@ namespace IceRpc
             IServicePrx proxy,
             IncomingRequest request,
             bool forwardFields = true)
-            : this(proxy, request.Operation, request.Features)
+            // TODO: support stream param forwarding
+            : this(proxy, request.Operation, request.Features, null)
         {
             Deadline = request.Deadline;
             IsIdempotent = request.IsIdempotent;
@@ -184,10 +118,12 @@ namespace IceRpc
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
-            bool oneway = false)
+            bool oneway = false,
+            Action<SocketStream>? streamDataWriter = null)
             : this(proxy,
                    operation,
-                   invocation?.RequestFeatures ?? FeatureCollection.Empty)
+                   invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                   streamDataWriter)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -250,8 +186,12 @@ namespace IceRpc
             }
         }
 
-        private OutgoingRequest(IServicePrx proxy, string operation, FeatureCollection features)
-            : base(proxy.Protocol, features)
+        private OutgoingRequest(
+            IServicePrx proxy,
+            string operation,
+            FeatureCollection features,
+            Action<SocketStream>? streamDataWriter)
+            : base(proxy.Protocol, features, streamDataWriter)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;

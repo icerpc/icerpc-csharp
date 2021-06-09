@@ -63,59 +63,13 @@ namespace IceRpc
             set => _streamId = value;
         }
 
-        // The optional socket stream. The stream is non-null if there's still data to read over the stream
-        // after the reading of the request frame.
+        // The socket stream that received the request.
         internal SocketStream? SocketStream { get; set; }
 
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
         public void Dispose() => SocketStream?.Release();
-
-        /*
-        /// <summary>Reads a single stream argument from the request.</summary>
-        /// <param name="reader">The delegate used to read the argument.</param>
-        /// <returns>The request argument.</returns>
-        public T ReadArgs<T>(Func<SocketStream, T> reader)
-        {
-            if (SocketStream == null)
-            {
-                throw new InvalidDataException("no stream data available for operation with stream parameter");
-            }
-
-            Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-            T value = reader(SocketStream);
-            // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the socket stream.
-            SocketStream = null;
-            return value;
-        }
-
-        /// <summary>Reads the arguments from a request. The arguments include a stream argument.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="connection">The current connection.</param>
-        /// <param name="reader">The delegate used to read the arguments.</param>
-        /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
-        {
-            if (SocketStream == null)
-            {
-                throw new InvalidDataException("no stream data available for operation with stream parameter");
-            }
-
-            var istr = new InputStream(Payload.AsReadOnlyMemory(),
-                                       Protocol.GetEncoding(),
-                                       connection: connection,
-                                       invoker: connection.Server?.Invoker,
-                                       startEncapsulation: true);
-            T value = reader(istr, SocketStream);
-            // Clear the socket stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the socket stream.
-            SocketStream = null;
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
-            return value;
-        }
-        */
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>

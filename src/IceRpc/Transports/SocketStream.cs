@@ -47,11 +47,11 @@ namespace IceRpc.Transports
     {
         /// <summary>A delegate used to send data from a System.IO.Stream value.</summary>
         public static readonly Action<SocketStream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
-            (socketStream, value, cancel) => socketStream.SendDataFromIOStream(value, cancel);
+            (socketStream, value, cancel) => socketStream.SendData(value, cancel);
 
         /// <summary>A delegate used to receive data into a System.IO.Stream value.</summary>
         public static readonly Func<SocketStream, System.IO.Stream> IceReceiveDataIntoIOStream =
-            socketStream => socketStream.ReceiveDataIntoIOStream();
+            socketStream => socketStream.ReceiveData();
 
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the socket.</summary>
@@ -118,12 +118,12 @@ namespace IceRpc.Transports
 
         /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
-        public System.IO.Stream ReceiveDataIntoIOStream() => new IOStream(this);
+        public System.IO.Stream ReceiveData() => new IOStream(this);
 
         /// <summary>Send data from the given IO stream to the socket stream.</summary>
         /// <param name="ioStream">The IO stream to read the data to send over the socket stream.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public void SendDataFromIOStream(System.IO.Stream ioStream, CancellationToken cancel)
+        public void SendData(System.IO.Stream ioStream, CancellationToken cancel = default)
         {
             EnableSendFlowControl();
             Task.Run(async () =>

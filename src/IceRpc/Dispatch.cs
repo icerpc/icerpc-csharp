@@ -54,6 +54,9 @@ namespace IceRpc
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;
 
+        /// <summary>The stream.</summary>
+        public IceRpc.Transports.SocketStream Stream => IncomingRequest.SocketStream!;
+
         /// <summary>The stream ID</summary>
         public long StreamId => IncomingRequest.StreamId;
 
