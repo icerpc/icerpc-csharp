@@ -16,16 +16,13 @@ namespace IceRpc.Transports.Internal
     {
         /// <inheritdoc/>
         public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new TcpConnectionInformation(_socket, _sslStream);
+            _connectionInformation ??= new TcpConnectionInformation(_socket, sslStream: null);
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;
         private readonly EndPoint? _addr;
         private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
-
-        // the SslStream of the SslConnection that wraps this tcp connection
-        private SslStream? _sslStream;
 
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
@@ -61,7 +58,6 @@ namespace IceRpc.Transports.Internal
                 {
                     var sslConnection = new SslConnection(this, _socket);
                     await sslConnection.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = sslConnection.SslStream;
                     return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
                 else
@@ -95,16 +91,15 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                // Connect to the peer and cache the description of the _socket.
+                // Connect to the peer.
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                // If a secure socket is requested, create an SslConnection and return it from this method. The caller is
-                // responsible for using the returned SslConnection instead of using this TcpConnection.
+                // If a secure socket is requested, create an SslConnection and return it from this method. The caller
+                // is responsible for using the returned SslConnection instead of using this TcpConnection.
                 if (authenticationOptions != null)
                 {
                     var sslConnection = new SslConnection(this, _socket);
                     await sslConnection.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = sslConnection.SslStream;
                     return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
                 }
                 else

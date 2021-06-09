@@ -83,7 +83,7 @@ namespace IceRpc
         /// <summary>Gets information about the underlying network connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
         public ConnectionInformation ConnectionInformation => _connection?.ConnectionInformation ??
-            throw new InvalidOperationException("the connection is not connected");
+            throw new InvalidOperationException("the connection is not established");
 
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
