@@ -43,7 +43,8 @@ namespace IceRpc.Transports.Internal
         public IPEndPoint? LocalEndPoint => _tcpConnectionInformation.LocalEndPoint;
 
         /// <inheritdoc/>
-        public SslApplicationProtocol? NegotiatedApplicationProtocol => _tcpConnectionInformation.NegotiatedApplicationProtocol;
+        public SslApplicationProtocol? NegotiatedApplicationProtocol =>
+            _tcpConnectionInformation.NegotiatedApplicationProtocol;
 
         /// <inheritdoc/>
         public TlsCipherSuite? NegotiatedCipherSuite => _tcpConnectionInformation.NegotiatedCipherSuite;
@@ -98,7 +99,6 @@ namespace IceRpc.Transports.Internal
         private int _receivePayloadLength;
         private int _receivePayloadOffset;
         private readonly byte[] _sendMask;
-        private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
         private readonly ITcpConnectionInformation _tcpConnectionInformation;
 
@@ -131,8 +131,7 @@ namespace IceRpc.Transports.Internal
             byte[] payload = new byte[2];
             short reason = IPAddress.HostToNetworkOrder((short)ClosureStatusCode.Shutdown);
             MemoryMarshal.Write(payload, ref reason);
-            var sendBuffer = new List<ArraySegment<byte>> { payload };
-            await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
+            await SendImplAsync(OpCode.Close, payload, cancel).ConfigureAwait(false);
 
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
@@ -204,7 +203,6 @@ namespace IceRpc.Transports.Internal
             _tcpConnectionInformation = (ITcpConnectionInformation)tcpConnection.ConnectionInformation;
             _parser = new HttpParser();
             _receiveLastFrame = true;
-            _sendBuffer = new List<ArraySegment<byte>>();
             _sendMask = new byte[4];
             _key = "";
             _rand = RandomNumberGenerator.Create();
@@ -235,11 +233,8 @@ namespace IceRpc.Transports.Internal
                     _key = Convert.ToBase64String(key);
                     sb.Append(_key + "\r\n\r\n"); // EOM
                     byte[] data = _utf8.GetBytes(sb.ToString());
-                    _sendBuffer.Add(data);
-
-                    await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
+                    await _bufferedConnection.SendAsync(data, cancel).ConfigureAwait(false);
                 }
-                _sendBuffer.Clear();
 
                 // Try to read the client's upgrade request or the server's response.
                 var httpBuffer = new ArraySegment<byte>();
@@ -301,11 +296,8 @@ namespace IceRpc.Transports.Internal
 #pragma warning restore CA5350 // Do Not Use Weak Cryptographic Algorithms
                         sb.Append(Convert.ToBase64String(hash) + "\r\n" + "\r\n"); // EOM
 
-                        Debug.Assert(_sendBuffer.Count == 0);
                         byte[] data = _utf8.GetBytes(sb.ToString());
-                        _sendBuffer.Add(data);
-                        await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
-                        _sendBuffer.Clear();
+                        await _bufferedConnection.SendAsync(data, cancel).ConfigureAwait(false);
                     }
                     else
                     {
@@ -333,46 +325,53 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private ArraySegment<byte> PrepareHeaderForSend(OpCode opCode, int payloadLength)
+        private void Mask(Memory<byte> buffer)
         {
-            // Prepare the frame header.
-            byte[] buffer = new byte[16];
+            Span<byte> bufferAsSpan = buffer.Span;
+            for (int i = 0; i < buffer.Length; ++i)
+            {
+                bufferAsSpan[i] = (byte)(bufferAsSpan[i] ^ _sendMask[i % 4]);
+            }
+        }
+
+        private int PrepareHeaderForSend(OpCode opCode, int payloadSize, Memory<byte> buffer)
+        {
             int i = 0;
 
             // Set the opcode - this is the one and only data frame.
-            buffer[i++] = (byte)((byte)opCode | FlagFinal);
+            buffer.Span[i++] = (byte)((byte)opCode | FlagFinal);
 
             // Set the payload length.
-            if (payloadLength <= 125)
+            if (payloadSize <= 125)
             {
-                buffer[i++] = (byte)payloadLength;
+                buffer.Span[i++] = (byte)payloadSize;
             }
-            else if (payloadLength > 125 && payloadLength <= 65535)
+            else if (payloadSize > 125 && payloadSize <= 65535)
             {
                 // Use an extra 16 bits to encode the payload length.
-                buffer[i++] = 126;
-                short length = System.Net.IPAddress.HostToNetworkOrder((short)payloadLength);
-                MemoryMarshal.Write(buffer.AsSpan(i, 2), ref length);
+                buffer.Span[i++] = 126;
+                short length = IPAddress.HostToNetworkOrder((short)payloadSize);
+                MemoryMarshal.Write(buffer.Span.Slice(i, 2), ref length);
                 i += 2;
             }
-            else if (payloadLength > 65535)
+            else if (payloadSize > 65535)
             {
                 // Use an extra 64 bits to encode the payload length.
-                buffer[i++] = 127;
-                long length = System.Net.IPAddress.HostToNetworkOrder((long)payloadLength);
-                MemoryMarshal.Write(buffer.AsSpan(i, 8), ref length);
+                buffer.Span[i++] = 127;
+                long length = IPAddress.HostToNetworkOrder((long)payloadSize);
+                MemoryMarshal.Write(buffer.Span.Slice(i, 8), ref length);
                 i += 8;
             }
 
             if (!_incoming)
             {
                 // Add a random 32-bit mask to every outgoing frame, copy the payload data, and apply the mask.
-                buffer[1] = (byte)(buffer[1] | FlagMasked);
+                buffer.Span[1] = (byte)(buffer.Span[1] | FlagMasked);
                 _rand.GetBytes(_sendMask);
-                Buffer.BlockCopy(_sendMask, 0, buffer, i, _sendMask.Length);
+                _sendMask.AsMemory().CopyTo(buffer[i..]);
                 i += _sendMask.Length;
             }
-            return new ArraySegment<byte>(buffer, 0, i);
+            return i;
         }
 
         private async ValueTask<int> ReceiveFrameAsync(CancellationToken cancel)
@@ -475,8 +474,7 @@ namespace IceRpc.Transports.Internal
                         }
 
                         // Send back a close frame.
-                        var sendBuffer = new List<ArraySegment<byte>> { payload };
-                        await SendImplAsync(OpCode.Close, sendBuffer, cancel).ConfigureAwait(false);
+                        await SendImplAsync(OpCode.Close, payload, cancel).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Ping:
@@ -486,8 +484,7 @@ namespace IceRpc.Transports.Internal
                             await _bufferedConnection.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Send a Pong frame with the received payload.
-                        var sendBuffer = new List<ArraySegment<byte>> { payload.ToArray() };
-                        await SendImplAsync(OpCode.Pong, sendBuffer, cancel).ConfigureAwait(false);
+                        await SendImplAsync(OpCode.Pong, payload, cancel).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Pong:
@@ -698,36 +695,21 @@ namespace IceRpc.Transports.Internal
                 // Wait for the current write to be done.
                 await _sendTask.ConfigureAwait(false);
 
-                // Write the given buffer.
-                Debug.Assert(_sendBuffer.Count == 0);
-                int size = buffer.GetByteCount();
-                _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
+                int size = buffer.Length;
+                Memory<byte> sendBuffer = new byte[size+ 16];
 
+                int index = PrepareHeaderForSend(opCode, size, sendBuffer);
                 Logger.LogSendingWebSocketFrame(opCode, size);
 
-                if (_incoming || opCode == OpCode.Pong)
-                {
-                    foreach (ArraySegment<byte> segment in buffer)
-                    {
-                        _sendBuffer.Add(segment); // Borrow data from the buffer
-                    }
-                }
-                else
+                Memory<byte> payload = sendBuffer[index..];
+                buffer.CopyTo(payload);
+
+                if (!_incoming && opCode != OpCode.Pong)
                 {
                     // For an outgoing connection, each frame must be masked with a random 32-bit value.
-                    int n = 0;
-                    foreach (ArraySegment<byte> segment in buffer)
-                    {
-                        byte[] data = new byte[segment.Count];
-                        for (int i = 0; i < segment.Count; ++i, ++n)
-                        {
-                            data[i] = (byte)(segment[i] ^ _sendMask[n % 4]);
-                        }
-                        _sendBuffer.Add(data);
-                    }
+                    Mask(payload);
                 }
-                await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
-                _sendBuffer.Clear();
+                await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
                 return size;
             }
         }

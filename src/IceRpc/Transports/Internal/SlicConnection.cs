@@ -408,8 +408,8 @@ namespace IceRpc.Transports.Internal
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
         internal SlicConnection(
-            Endpoint endpoint, 
-            SingleStreamConnection singleStreamConnection, 
+            Endpoint endpoint,
+            SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
         {
@@ -541,11 +541,17 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask SendPacketAsync(IList<ArraySegment<byte>> buffer)
+        internal async ValueTask SendPacketAsync(IList<ArraySegment<byte>> buffers)
         {
             // Perform the write
-            int sent = await _bufferedConnection!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
-            Debug.Assert(sent == buffer.GetByteCount());
+            int sent = 0;
+
+            foreach (ArraySegment<byte> buffer in buffers)
+            {
+                // TODO: missing comment for cancellation token
+                sent += await _bufferedConnection!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+            }
+            Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
 

@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task NonDatagramConnection_SendReceiveAsync(int size)
         {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
+            var sendBuffer = new byte[size];
 
             ValueTask test1 = Test(OutgoingConnection, IncomingConnection);
             ValueTask test2 = Test(IncomingConnection, OutgoingConnection);

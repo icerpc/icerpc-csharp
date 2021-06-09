@@ -19,8 +19,8 @@ namespace IceRpc.Tests.Internal
     /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
     public class ConnectionBaseTest
     {
-        protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
-        protected static readonly List<ArraySegment<byte>> OneMBSendBuffer = new() { new byte[1024 * 1024] };
+        protected static readonly byte[] OneBSendBuffer = new byte[1];
+        protected static readonly byte[] OneMBSendBuffer = new byte[1024 * 1024];
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
             IsSecure ? OutgoingConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Internal
                 // indefinitely.
                 if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
                 {
-                    var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
+                    var buffer = new byte[1] { 0 };
                     await connection.Underlying.SendAsync(buffer, default);
                 }
             }

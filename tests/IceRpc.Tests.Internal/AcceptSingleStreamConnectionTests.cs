@@ -79,7 +79,7 @@ namespace IceRpc.Tests.Internal
 
             if (ClientEndpoint.Protocol == Protocol.Ice2 && TransportName == "tcp")
             {
-                await outgoingConnection.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
+                await outgoingConnection.SendAsync(new byte[1], default);
             }
 
             (SingleStreamConnection connection, Endpoint _) = await acceptTask2;
