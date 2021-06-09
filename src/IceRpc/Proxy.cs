@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -164,12 +165,13 @@ namespace IceRpc
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
+        /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload, its encoding and the connection that received the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             IList<ArraySegment<byte>> requestPayload,
@@ -177,6 +179,8 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
+            // TODO: the stream data writer shouldn't depend on the Stream transport API.
+            Action<Stream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -219,7 +223,8 @@ namespace IceRpc
                                                   deadline,
                                                   invocation,
                                                   idempotent,
-                                                  oneway);
+                                                  oneway,
+                                                  streamDataWriter);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
@@ -237,14 +242,14 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, Stream)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
             {
                 try
                 {
-                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
                     ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
@@ -261,7 +266,7 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    return (responsePayload, response.PayloadEncoding, response.Connection);
+                    return (responsePayload, response.PayloadEncoding, response.Connection, response.Stream);
                 }
                 finally
                 {

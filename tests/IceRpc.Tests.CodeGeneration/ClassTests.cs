@@ -358,12 +358,13 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class ClassOperationsUnexpectedClass : IService
         {
-            public ValueTask<IList<ArraySegment<byte>>> DispatchAsync(ReadOnlyMemory<byte> payload,
-                                                        Dispatch dispatch,
-                                                        CancellationToken cancel) =>
-                new(IceRpc.Payload.FromSingleReturnValue(dispatch,
-                                                         new MyClassAlsoEmpty(),
-                                                         (ostr, ae) => ostr.WriteClass(ae, null)));
+            public ValueTask<(IList<ArraySegment<byte>>, Action<IceRpc.Transports.Stream>?)> DispatchAsync(
+                ReadOnlyMemory<byte> payload,
+                Dispatch dispatch,
+                CancellationToken cancel) =>
+                new((IceRpc.Payload.FromSingleReturnValue(dispatch,
+                                                          new MyClassAlsoEmpty(),
+                                                          (ostr, ae) => ostr.WriteClass(ae, null)), null));
         }
     }
 }

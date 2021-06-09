@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame received by the application.</summary>
-    public sealed class IncomingResponse : IncomingFrame, IDisposable
+    public sealed class IncomingResponse : IncomingFrame
     {
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
@@ -29,105 +29,12 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; }
 
-        // The optional stream. The stream is non-null if there's still data to read over the stream
-        // after the reading of the response frame.
-        internal Stream? Stream { get; set; }
-
-        /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The protocol of the response.</param>
-        /// <param name="data">The frame data as an array segment.</param>
-        public IncomingResponse(Protocol protocol, ArraySegment<byte> data)
-            : this(protocol, data, null)
-        {
-        }
-
-        /// <summary>Releases resources used by the response frame.</summary>
-        public void Dispose() => Stream?.Release();
-
-        /*
-        /// <summary>Reads the return value which contains a stream return value. If this response frame carries a
-        /// failure, reads and throws this exception.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request.</param>
-        /// <param name="reader">A reader used to read the frame return value, when the frame return value contain
-        /// multiple values the reader must use a tuple to return the values.</param>
-        /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IServicePrx proxy, InputStreamReaderWithStreamable<T> reader)
-        {
-            if (ResultType == ResultType.Success)
-            {
-                if (Stream == null)
-                {
-                    throw new InvalidDataException("no stream data available for operation with stream parameter");
-                }
-
-                var istr = new InputStream(Payload.AsReadOnlyMemory(1),
-                                           Protocol.GetEncoding(),
-                                           Connection,
-                                           proxy.GetOptions(),
-                                           startEncapsulation: true);
-                T value = reader(istr, Stream);
-                // Clear the stream to ensure it's not disposed with the response frame. It's now the
-                // responsibility of the stream parameter object to dispose the stream.
-                Stream = null;
-                istr.CheckEndOfBuffer(skipTaggedParams: true);
-                return value;
-            }
-            else
-            {
-                if (Stream != null)
-                {
-                    throw new InvalidDataException("stream data available with remote exception result");
-                }
-                throw ReadException(proxy);
-            }
-        }
-
-        /// <summary>Reads the return value which is a stream return value only. If this response frame carries a
-        /// failure, reads and throws this exception.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="proxy">The proxy used to send the request.</param>
-        /// <param name="reader">A reader used to read the frame return value.</param>
-        /// <returns>The frame return value.</returns>
-        public T ReadReturnValue<T>(IServicePrx proxy, Func<Stream, T> reader)
-        {
-            if (ResultType == ResultType.Success)
-            {
-                if (Stream == null)
-                {
-                    throw new InvalidDataException("no stream data available for operation with stream parameter");
-                }
-                Payload.AsReadOnlyMemory(1).ReadEmptyEncapsulation(Protocol.GetEncoding());
-                T value = reader(Stream);
-                // Clear the stream to ensure it's not disposed with the response frame. It's now the
-                // responsibility of the stream parameter object to dispose the stream.
-                Stream = null;
-                return value;
-            }
-            else
-            {
-                if (Stream != null)
-                {
-                    throw new InvalidDataException("stream data available with remote exception result");
-                }
-                throw ReadException(proxy);
-            }
-        }
-        */
-
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
-        /// read on the stream after the reading the response frame.</param>
-        internal IncomingResponse(
-            Protocol protocol,
-            ArraySegment<byte> data,
-            Stream? stream)
+        internal IncomingResponse(Protocol protocol, ArraySegment<byte> data)
             : base(protocol)
         {
-            Stream = stream;
-
             var istr = new InputStream(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {

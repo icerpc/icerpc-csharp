@@ -580,6 +580,7 @@ namespace IceRpc
                     new IncomingResponse(this, request.PayloadEncoding) :
                     await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
+                response.Stream = stream;
                 return response;
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
@@ -836,9 +837,9 @@ namespace IceRpc
                 CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
                 // Receives the request frame from the stream
-                using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+                IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
-                request.StreamId = stream.Id;
+                request.Stream = stream;
 
                 OutgoingResponse? response = null;
 

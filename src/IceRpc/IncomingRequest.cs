@@ -11,7 +11,7 @@ using System.Collections.Immutable;
 namespace IceRpc
 {
     /// <summary>Represents a request protocol frame received by the application.</summary>
-    public sealed class IncomingRequest : IncomingFrame, IDisposable
+    public sealed class IncomingRequest : IncomingFrame
     {
         /// <summary>The deadline corresponds to the request's expiration time. Once the deadline is reached, the
         /// caller is no longer interested in the response and discards the request. The server-side runtime does not
@@ -33,7 +33,7 @@ namespace IceRpc
 
         /// <summary>Returns <c>True</c> if the stream that received this request is a bidirectional stream,
         /// <c>False</c> otherwise.</summary>
-        public bool IsBidirectional => StreamId % 4 < 2;
+        public bool IsBidirectional => Stream.Id % 4 < 2;
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
@@ -56,80 +56,12 @@ namespace IceRpc
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; } = Identity.Empty;
 
-        /// <summary>Id of the stream used to create this request.</summary>
-        internal long StreamId
-        {
-            get => _streamId ?? throw new InvalidOperationException("stream ID is not set");
-            set => _streamId = value;
-        }
-
-        // The optional stream. The stream is non-null if there's still data to read over the stream
-        // after the reading of the request frame.
-        internal Stream? Stream { get; set; }
-
-        private long? _streamId;
-
-        /// <summary>Releases resources used by the request frame.</summary>
-        public void Dispose() => Stream?.Release();
-
-        /*
-        /// <summary>Reads a single stream argument from the request.</summary>
-        /// <param name="reader">The delegate used to read the argument.</param>
-        /// <returns>The request argument.</returns>
-        public T ReadArgs<T>(Func<Stream, T> reader)
-        {
-            if (Stream == null)
-            {
-                throw new InvalidDataException("no stream data available for operation with stream parameter");
-            }
-
-            Payload.AsReadOnlyMemory().ReadEmptyEncapsulation(Protocol.GetEncoding());
-            T value = reader(Stream);
-            // Clear the stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the stream.
-            Stream = null;
-            return value;
-        }
-
-        /// <summary>Reads the arguments from a request. The arguments include a stream argument.</summary>
-        /// <paramtype name="T">The type of the arguments.</paramtype>
-        /// <param name="connection">The current connection.</param>
-        /// <param name="reader">The delegate used to read the arguments.</param>
-        /// <returns>The request arguments.</returns>
-        public T ReadArgs<T>(Connection connection, InputStreamReaderWithStreamable<T> reader)
-        {
-            if (Stream == null)
-            {
-                throw new InvalidDataException("no stream data available for operation with stream parameter");
-            }
-
-            var istr = new InputStream(Payload.AsReadOnlyMemory(),
-                                       Protocol.GetEncoding(),
-                                       connection: connection,
-                                       invoker: connection.Server?.Invoker,
-                                       startEncapsulation: true);
-            T value = reader(istr, Stream);
-            // Clear the stream to ensure it's not disposed with the request frame. It's now the
-            // responsibility of the stream parameter object to dispose the stream.
-            Stream = null;
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
-            return value;
-        }
-        */
-
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
-        /// read on the stream after the reading the request frame.</param>
-        internal IncomingRequest(
-            Protocol protocol,
-            ArraySegment<byte> data,
-            Stream? stream)
+        internal IncomingRequest(Protocol protocol, ArraySegment<byte> data)
             : base(protocol)
         {
-            Stream = stream;
-
             var istr = new InputStream(data, Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice1)

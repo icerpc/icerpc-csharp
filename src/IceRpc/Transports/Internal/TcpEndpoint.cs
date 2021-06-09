@@ -269,8 +269,8 @@ namespace IceRpc.Transports.Internal
             new TcpEndpoint(this, host, port);
 
         internal virtual SingleStreamConnection CreateSingleStreamConnection(
-            EndPoint addr, 
-            TcpOptions options, 
+            EndPoint addr,
+            TcpOptions options,
             ILogger logger)
         {
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is

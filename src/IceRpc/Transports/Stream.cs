@@ -45,14 +45,6 @@ namespace IceRpc.Transports
     /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
     public abstract class Stream
     {
-        /// <summary>A delegate used to send data from a System.IO.Stream value.</summary>
-        public static readonly Action<Stream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
-            (stream, value, cancel) => stream.SendDataFromIOStream(value, cancel);
-
-        /// <summary>A delegate used to receive data into a System.IO.Stream value.</summary>
-        public static readonly Func<Stream, System.IO.Stream> IceReceiveDataIntoIOStream =
-            stream => stream.ReceiveDataIntoIOStream();
-
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the connection.</summary>
         /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
@@ -118,12 +110,20 @@ namespace IceRpc.Transports
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
-        public System.IO.Stream ReceiveDataIntoIOStream() => new IOStream(this);
+        public System.IO.Stream ReceiveData()
+        {
+            if (ReceivedEndOfStream)
+            {
+                throw new InvalidOperationException("end of stream already reached");
+            }
+            EnableReceiveFlowControl();
+            return new IOStream(this);
+        }
 
         /// <summary>Send data from the given IO stream to the stream.</summary>
         /// <param name="ioStream">The IO stream to read the data to send over the stream.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public void SendDataFromIOStream(System.IO.Stream ioStream, CancellationToken cancel)
+        public void SendData(System.IO.Stream ioStream, CancellationToken cancel = default)
         {
             EnableSendFlowControl();
             Task.Run(async () =>
@@ -384,42 +384,16 @@ namespace IceRpc.Transports
         internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
-
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
-            IncomingRequest request;
-            if (ReceivedEndOfStream)
-            {
-                request = new IncomingRequest(_connection.Protocol, data, null);
-            }
-            else
-            {
-                EnableReceiveFlowControl();
-                request = new IncomingRequest(_connection.Protocol, data, this);
-            }
-
-            return request;
+            return new IncomingRequest(_connection.Protocol, data);
         }
 
         internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
-
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
-            IncomingResponse response;
-            if (ReceivedEndOfStream)
-            {
-                response = new IncomingResponse(_connection.Protocol, data, null);
-            }
-            else
-            {
-                EnableReceiveFlowControl();
-                response = new IncomingResponse(_connection.Protocol, data, this);
-            }
-
-            return response;
+            return new IncomingResponse(_connection.Protocol, data);
         }
 
         internal void Release()

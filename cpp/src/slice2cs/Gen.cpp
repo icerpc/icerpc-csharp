@@ -139,6 +139,12 @@ Slice::CsVisitor::writeMarshal(const OperationPtr& operation, bool returnType)
     string ns = getNamespace(operation->interface());
 
     MemberList members = returnType ? operation->returnType() : operation->params();
+    MemberPtr streamParam;
+    if (members.back()->stream())
+    {
+        streamParam = members.back();
+        members.pop_back();
+    }
     auto [requiredMembers, taggedMembers] = getSortedMembers(members);
 
     int bitSequenceIndex = -1;
@@ -167,15 +173,12 @@ Slice::CsVisitor::writeMarshal(const OperationPtr& operation, bool returnType)
 
         for (const auto& member : requiredMembers)
         {
-            if (!member->stream())
-            {
-                writeMarshalCode(_out,
-                                member->type(),
-                                bitSequenceIndex,
-                                false,
-                                ns,
-                                members.size() == 1 ? "value" : "value." + fieldName(member));
-            }
+            writeMarshalCode(_out,
+                             member->type(),
+                             bitSequenceIndex,
+                             false,
+                             ns,
+                             members.size() == 1 ? "value" : "value." + fieldName(member));
         }
 
         if (bitSequenceSize > 0)
@@ -190,21 +193,6 @@ Slice::CsVisitor::writeMarshal(const OperationPtr& operation, bool returnType)
                                    false,
                                    ns,
                                    members.size() == 1 ? "value" : "value." + fieldName(member), member->tag());
-        }
-
-        if (members.back()->stream())
-        {
-            if (members.size() == 1)
-            {
-                _out << nl << "return socketStream => socketStream." << streamDataWriter(members.back()->type());
-                _out << "(value, cancel);";
-            }
-            else
-            {
-                _out << nl << "var streamableValue = value." + fieldName(members.back()) << ";";
-            }
-            _out << nl << "return socketStream => socketStream." << streamDataWriter(members.back()->type());
-            _out << "(" << (members.size() == 1 ? "value" : "streamableValue") << ", cancel);";
         }
 
         if (i == 0 && write11ReturnLast) // only for first loop
@@ -232,6 +220,13 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
     string ns = getNamespace(operation->interface());
 
     MemberList members = returnType ? operation->returnType() : operation->params();
+    MemberPtr streamParam;
+    if (members.back()->stream())
+    {
+        streamParam = members.back();
+        members.pop_back();
+    }
+
     auto [requiredMembers, taggedMembers] = getSortedMembers(members);
 
     int bitSequenceIndex = -1;
@@ -261,12 +256,9 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
         for (const auto& member : requiredMembers)
         {
-            if (!member->stream())
-            {
-                _out << nl << paramTypeStr(member, false);
-                _out << " ";
-                writeUnmarshalCode(_out, member->type(), bitSequenceIndex, ns, paramName(member, "iceP_"));
-            }
+            _out << nl << paramTypeStr(member, false);
+            _out << " ";
+            writeUnmarshalCode(_out, member->type(), bitSequenceIndex, ns, paramName(member, "iceP_"));
         }
         if (bitSequenceSize > 0)
         {
@@ -284,19 +276,41 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                                      nullptr);
         }
 
-        if (members.back()->stream())
+        if (streamParam)
         {
-            _out << nl << paramTypeStr(members.back(), false) << " " << paramName(members.back(), "iceP_");
-            _out << " = socketStream." << streamDataReader(members.back()->type()) << "();";
+            _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
+            if (returnType)
+            {
+                _out << " = stream.ReceiveData();";
+            }
+            else
+            {
+                _out << " = dispatch.Stream.ReceiveData();";
+            }
         }
 
-        if (members.size() == 1)
+        _out << nl << "return ";
+        if (streamParam)
         {
-            _out << nl << "return " << paramName(members.front(), "iceP_") << ";";
+            if (members.size() == 0)
+            {
+                _out << paramName(streamParam, "iceP_") << ";";
+            }
+            else
+            {
+                _out << spar << getNames(members, "iceP_") << paramName(streamParam, "iceP_") << epar << ";";
+            }
         }
         else
         {
-            _out << nl << "return " << spar << getNames(members, "iceP_") << epar << ";";
+            if (members.size() == 1)
+            {
+                _out << paramName(members.front(), "iceP_") << ";";
+            }
+            else
+            {
+                _out << spar << getNames(members, "iceP_") << epar << ";";
+            }
         }
 
         if (i == 0 && read11ReturnLast)
@@ -2135,21 +2149,33 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sb;
 
     // Generate nested Request and Response classes if this interface has operations.
+    auto operationList = p->operations();
+    bool generateRequestClass =
+        find_if(operationList.begin(), operationList.end(), [](const auto& op) {
+            return !op->params().empty() && (op->params().size() > 1 || !op->params().front()->stream());
+            }) != operationList.end();
 
-    if (!p->operations().empty())
+    bool generateResponseClass =
+        find_if(operationList.begin(), operationList.end(), [](const auto& op) {
+            return !op->returnType().empty() && (op->returnType().size() > 1 || !op->returnType().front()->stream()); })
+            != operationList.end();
+
+    if (generateRequestClass)
     {
-        bool generateResponseClass = false;
-
         _out << nl << "/// <summary>Converts the arguments of each operation that takes arguments into a request "
             << "payload.</summary>";
         _out << nl << "public static new class Request";
         _out << sb;
-        for (auto operation : p->operations())
+        for (auto operation : operationList)
         {
             auto params = operation->params();
-
-            if (params.size() > 0)
+            if (params.size() > 0 && (params.size() > 1 || !params.back()->stream()))
             {
+                if (params.back()->stream())
+                {
+                    params.pop_back();
+                }
+
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
                     ".</summary>";
@@ -2198,46 +2224,44 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out.dec();
                 _out.dec();
             }
-
-            generateResponseClass = generateResponseClass || !operation->returnType().empty();
         }
         _out << eb;
+    }
 
-        if (generateResponseClass)
+    if (generateResponseClass)
+    {
+        _out << sp;
+        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseReader{T}\"/> for each non-void "
+                << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
+        _out << nl << "public static new class Response";
+        _out << sb;
+        for (auto operation : p->operations())
         {
-            _out << sp;
-            _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseReader{T}\"/> for each non-void "
-                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
-            _out << nl << "public static new class Response";
-            _out << sb;
-            for (auto operation : p->operations())
+            auto returns = operation->returnType();
+            if (returns.size() > 0 && (returns.size() > 1 || !returns.back()->stream()))
             {
-                auto returns = operation->returnType();
-                if (returns.size() > 0)
-                {
-                    _out << sp;
-                    string opName = fixId(operationName(operation));
-                    _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
-                         << "of operation " << operation->name() << ".</summary>";
-                    _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                    _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Encoding payloadEncoding, ";
-                    _out << "IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
-                    _out.inc();
-                    _out << nl << "IceRpc.Payload.ToReturnValue(";
-                    _out.inc();
-                    _out << nl << "payload,";
-                    _out << nl << "payloadEncoding, ";
-                    _out << nl;
-                    writeIncomingResponseReader(operation);
-                    _out << ",";
-                    _out << nl << "connection,";
-                    _out << nl << "invoker);";
-                    _out.dec();
-                    _out.dec();
-                }
+                _out << sp;
+                string opName = fixId(operationName(operation));
+                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
+                        << "of operation " << operation->name() << ".</summary>";
+                _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Encoding payloadEncoding, ";
+                _out << "IceRpc.Connection connection, IceRpc.Transports.Stream stream, IceRpc.IInvoker? invoker) =>";
+                _out.inc();
+                _out << nl << "IceRpc.Payload.ToReturnValue(";
+                _out.inc();
+                _out << nl << "payload,";
+                _out << nl << "payloadEncoding, ";
+                _out << nl;
+                writeIncomingResponseReader(operation);
+                _out << ",";
+                _out << nl << "connection,";
+                _out << nl << "invoker);";
+                _out.dec();
+                _out.dec();
             }
-            _out << eb;
         }
+        _out << eb;
     }
 
     return true;
@@ -2385,7 +2409,20 @@ void
 Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 {
     auto returnType = operation->returnType();
+    MemberPtr streamReturnParam;
+    if (!returnType.empty() && returnType.back()->stream())
+    {
+        streamReturnParam = returnType.back();
+        returnType.pop_back();
+    }
+
     auto params = operation->params();
+    MemberPtr streamParam;
+    if (!params.empty() && params.back()->stream())
+    {
+        streamParam = params.back();
+        params.pop_back();
+    }
 
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string deprecateReason = getDeprecateReason(operation, true);
@@ -2429,6 +2466,11 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << "Response." << name << ", ";
     }
+    else if (streamReturnParam)
+    {
+        _out << "(payload, payloadEncoding, connection, stream, invoker) => stream.ReceiveData(), ";
+    }
+
     _out << invocation << ", ";
     if (opCompressArgs(operation))
     {
@@ -2441,6 +2483,10 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     if (voidOp && oneway)
     {
         _out << "oneway: true, ";
+    }
+    if (streamParam)
+    {
+        _out << "streamDataWriter: stream => stream.SendData(" << paramName(streamParam) << "), ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();
@@ -2462,33 +2508,23 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
     string ns = getNamespace(interface);
 
     auto params = operation->params();
-    assert(!params.empty());
+    if (!params.empty() && params.back()->stream())
+    {
+        params.pop_back();
+    }
 
     // When the operation's parameter is a T? where T is an interface or a class, there is a built-in writer, so
     // defaultWriter is true.
     bool defaultWriter = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
     if (defaultWriter)
     {
-        // This includes operations with a single struct parameter.
-        if (params.front()->stream())
-        {
-            _out << "SocketStream.Ice" << streamDataWriter(params.front()->type());
-        }
-        else
-        {
-            _out << outputStreamWriter(params.front()->type(), ns, true, true);
-        }
+        _out << outputStreamWriter(params.front()->type(), ns, true, true);
     }
     else
     {
         _out << "(IceRpc.OutputStream ostr, ";
         string inValue = params.size() > 1 ? "in " : "";
-        _out << inValue << toTupleType(params, true) << " value";
-        if (params.back()->stream())
-        {
-            _out << ", global::System.Threading.CancellationToken cancel";
-        }
-        _out << ") =>";
+        _out << inValue << toTupleType(params, true) << " value) =>";
         _out << sb;
         writeMarshal(operation, false);
         _out << eb;
@@ -2502,31 +2538,18 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     string ns = getNamespace(interface);
 
     auto returnType = operation->returnType();
+    assert(!returnType.empty() && (returnType.size() > 1 || !returnType.back()->stream()));
 
     bool defaultReader = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
         !returnType.front()->tagged();
 
     if (defaultReader)
     {
-        if(returnType.front()->stream())
-        {
-            _out << "IceRpc.SocketStream.Ice" << streamDataReader(returnType.front()->type());
-        }
-        else
-        {
-            _out << inputStreamReader(returnType.front()->type(), ns);
-        }
+        _out << inputStreamReader(returnType.front()->type(), ns);
     }
     else if (returnType.size() > 0)
     {
-        if (returnType.back()->stream())
-        {
-            _out << "(istr, socketStream) =>";
-        }
-        else
-        {
-            _out << "istr =>";
-        }
+        _out << "istr =>";
         _out << sb;
         writeUnmarshal(operation, true);
         _out << eb;
@@ -2595,8 +2618,9 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             }) != operationList.end();
 
     bool generateResponseClass =
-        find_if(operationList.begin(), operationList.end(), [](const auto& op) { return !op->returnType().empty(); })
-            != operationList.end();
+        find_if(operationList.begin(), operationList.end(), [](const auto& op) {
+            return !op->returnType().empty() && (op->returnType().size() > 1 || !op->returnType().front()->stream());
+            }) != operationList.end();
 
     if (generateRequestClass)
     {
@@ -2607,7 +2631,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         for (auto operation : operationList)
         {
             auto params = operation->params();
-            if (!params.empty() && (params.size() > 1 || !params.front()->stream()))
+            if (params.size() > 0 && (params.size() > 1 || !params.back()->stream()))
             {
                 string propertyName = fixId(operationName(operation));
                 _out << sp;
@@ -2640,10 +2664,13 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         for (auto operation : operationList)
         {
             auto returns = operation->returnType();
-            size_t returnCount = returns.size();
-
-            if (returnCount > 0)
+            if (returns.size() > 0 && (returns.size() > 1 || !returns.back()->stream()))
             {
+                if (returns.back()->stream())
+                {
+                    returns.pop_back();
+                }
+
                 _out << sp;
                 _out << nl << "/// <summary>Creates a response payload for operation "
                      << fixId(operationName(operation)) << ".</summary>";
@@ -2725,7 +2752,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> IceRpc.IService"
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2737,7 +2764,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> "
          << "DispatchAsync(";
     _out.inc();
     _out << nl <<  fixId(name) << " servant,"
@@ -2875,13 +2902,24 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     string name = fixId(opName + "Async");
     string internalName = "IceD" + opName + "Async";
 
-    auto params = operation->params();
     auto returnType = operation->returnType();
+    MemberPtr streamReturnParam;
+    if (!returnType.empty() && returnType.back()->stream())
+    {
+        streamReturnParam = returnType.back();
+    }
+
+    auto params = operation->params();
+    MemberPtr streamParam;
+    if (!params.empty() && params.back()->stream())
+    {
+        streamParam = params.back();
+    }
 
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2902,15 +2940,14 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params
     // that we skip).
-    if (params.empty())
+    if (params.empty() || (params.size() == 1 && streamParam))
     {
         _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch);";
-    }
-    else if(params.size() == 1 && params.front()->stream())
-    {
-        _out << nl << "var " << paramName(params.front(), "iceP_") << " = request.ReadArgs(";
-        _out << "IceRpc.SocketStream.Ice" << streamDataReader(params.front()->type());
-        _out << ");";
+        if (streamParam)
+        {
+            _out << nl << "var " << paramName(streamParam, "iceP_");
+            _out << " = dispatch.Stream.ReceiveData();";
+        }
     }
     else
     {
@@ -2921,6 +2958,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
     if (operation->hasMarshaledResult())
     {
+        // TODO: support for stream param with marshaled result?
+
         _out << nl << "var returnValue = await this." << name << spar;
         if(params.size() > 1)
         {
@@ -2932,13 +2971,13 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch"
              << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return returnValue.Payload;";
+        _out << nl << "return (returnValue.Payload, null);";
         _out << eb;
     }
     else
     {
         _out << nl;
-        if (returnType.size() >= 1)
+        if (returnType.size() >= 1 || streamReturnParam)
         {
             _out << "var returnValue = ";
         }
@@ -2954,13 +2993,31 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
 
-        if (returnType.size() == 0)
+        if (returnType.size() == 0 || (returnType.size() == 1 && streamReturnParam))
         {
-            _out << nl << "return IceRpc.Payload.FromVoidReturnValue(dispatch);";
+            if (streamReturnParam)
+            {
+                _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
+                _out << "stream => stream.SendData(returnValue)";
+                _out << ");";
+            }
+            else
+            {
+                _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), null);";
+            }
+        }
+        else if (streamReturnParam)
+        {
+            auto names = getNames(returnType, [](const MemberPtr &param) { return "returnValue." + fieldName(param); });
+            auto streamName = names.back();
+            names.pop_back();
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+            _out << "stream => stream.SendData(" << streamName << ")";
+            _out << ");";
         }
         else
         {
-            _out << nl << "return Response." << fixId(opName) << "(dispatch, returnValue);";
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, returnValue), null);";
         }
         _out << eb;
     }
@@ -2979,29 +3036,17 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
     string ns = getNamespace(interface);
 
     auto params = operation->params();
+    assert(!params.empty() && (params.size() > 1 || !params.back()->stream()));
+
     bool defaultReader = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
 
     if (defaultReader)
     {
-        if (params.front()->stream())
-        {
-            _out << "IceRpc.SocketStream.Ice" << streamDataReader(params.front()->type());
-        }
-        else
-        {
-            _out << inputStreamReader(params.front()->type(), ns);
-        }
+        _out << inputStreamReader(params.front()->type(), ns);
     }
     else if (params.size() > 0)
     {
-        if (params.back()->stream())
-        {
-            _out << "(istr, socketStream) =>";
-        }
-        else
-        {
-            _out << "istr =>";
-        }
+        _out << "istr =>";
         _out << sb;
         writeUnmarshal(operation, false);
         _out << eb;
@@ -3015,31 +3060,22 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
     string ns = getNamespace(interface);
 
     auto returns = operation->returnType();
-    assert(!returns.empty());
+    if (!returns.empty() && returns.back()->stream())
+    {
+        returns.pop_back();
+    }
 
     // When the operation returns a T? where T is an interface or a class, there is a built-in writer, so defaultWriter
     // is true.
     bool defaultWriter = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
     if (defaultWriter)
     {
-        // This includes operations with a single struct return type.
-        if (returns.front()->stream())
-        {
-            _out << "SocketStream.Ice" << streamDataWriter(returns.front()->type());
-        }
-        else
-        {
-            _out << outputStreamWriter(returns.front()->type(), ns, true, true);
-        }
+        _out << outputStreamWriter(returns.front()->type(), ns, true, true);
     }
     else
     {
         _out << "(IceRpc.OutputStream ostr, ";
         _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, true) << " value";
-        if(returns.back()->stream())
-        {
-            _out << ", global::System.Threading.CancellationToken cancel";
-        }
         _out << ") =>";
         _out << sb;
         writeMarshal(operation, true);
