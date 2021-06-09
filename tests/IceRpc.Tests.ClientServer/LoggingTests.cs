@@ -35,7 +35,7 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new()
                 {
                     // Speed up windows testing by speeding up the connection failure
-                    ConnectTimeout = TimeSpan.FromMilliseconds(200)
+                    ConnectTimeout = TimeSpan.FromMilliseconds(500)
                 },
                 LoggerFactory = loggerFactory
             };

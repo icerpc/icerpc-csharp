@@ -745,7 +745,7 @@ namespace IceRpc
                     _socket.Dispose();
 
                     // Log the connection closure
-                    if (_state == ConnectionState.Connecting && !_connected)
+                    if (!_connected)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
@@ -759,7 +759,7 @@ namespace IceRpc
                         };
                         logFailure(exception);
                     }
-                    else if (_state > ConnectionState.Connecting || _connected)
+                    else
                     {
                         if (IsDatagram && IsIncoming)
                         {
