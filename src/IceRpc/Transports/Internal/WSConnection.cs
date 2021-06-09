@@ -184,10 +184,10 @@ namespace IceRpc.Transports.Internal
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             _bufferedConnection.ReceiveDatagramAsync(cancel);
 
-        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel) =>
-             SendImplAsync(OpCode.Data, buffers, cancel);
+        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+             SendImplAsync(OpCode.Data, buffer, cancel);
 
-        public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             _bufferedConnection.SendDatagramAsync(buffer, cancel);
 
         protected override void Dispose(bool disposing)
@@ -668,7 +668,7 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask<int> SendImplAsync(
             OpCode opCode,
-            IList<ArraySegment<byte>> buffers,
+            ReadOnlyMemory<byte> buffer,
             CancellationToken cancel)
         {
             // Write can be called concurrently because it's called from both ReadAsync and WriteAsync. For example,
@@ -676,7 +676,7 @@ namespace IceRpc.Transports.Internal
             Task<int> task;
             lock (_mutex)
             {
-                ValueTask<int> writeTask = PerformWriteAsync(opCode, buffers, cancel);
+                ValueTask<int> writeTask = PerformWriteAsync(opCode, buffer, cancel);
 
                 // Optimization: we check if the write completed already and avoid creating a Task if it did.
                 if (writeTask.IsCompletedSuccessfully)
@@ -692,7 +692,7 @@ namespace IceRpc.Transports.Internal
 
             async ValueTask<int> PerformWriteAsync(
                 OpCode opCode,
-                IList<ArraySegment<byte>> buffers,
+                ReadOnlyMemory<byte> buffer,
                 CancellationToken cancel)
             {
                 // Wait for the current write to be done.
@@ -700,14 +700,14 @@ namespace IceRpc.Transports.Internal
 
                 // Write the given buffer.
                 Debug.Assert(_sendBuffer.Count == 0);
-                int size = buffers.GetByteCount();
+                int size = buffer.GetByteCount();
                 _sendBuffer.Add(PrepareHeaderForSend(opCode, size));
 
                 Logger.LogSendingWebSocketFrame(opCode, size);
 
                 if (_incoming || opCode == OpCode.Pong)
                 {
-                    foreach (ArraySegment<byte> segment in buffers)
+                    foreach (ArraySegment<byte> segment in buffer)
                     {
                         _sendBuffer.Add(segment); // Borrow data from the buffer
                     }
@@ -716,7 +716,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // For an outgoing connection, each frame must be masked with a random 32-bit value.
                     int n = 0;
-                    foreach (ArraySegment<byte> segment in buffers)
+                    foreach (ArraySegment<byte> segment in buffer)
                     {
                         byte[] data = new byte[segment.Count];
                         for (int i = 0; i < segment.Count; ++i, ++n)

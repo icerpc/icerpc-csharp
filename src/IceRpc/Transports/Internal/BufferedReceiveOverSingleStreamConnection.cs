@@ -75,10 +75,10 @@ namespace IceRpc.Transports.Internal
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             Underlying.ReceiveDatagramAsync(cancel);
 
-        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             Underlying.SendAsync(buffer, cancel);
 
-        public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             Underlying.SendDatagramAsync(buffer, cancel);
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
