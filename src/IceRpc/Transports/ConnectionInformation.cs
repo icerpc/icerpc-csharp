@@ -64,23 +64,8 @@ namespace IceRpc.Transports
         {
             get
             {
-                string localEndPoint;
-                string remoteEndPoint;
-                try
-                {
-                    localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
-                    remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
-                }
-                catch (SocketException)
-                {
-                    localEndPoint = "<not connected>";
-                    remoteEndPoint = "<not connected>";
-                }
-                catch
-                {
-                    localEndPoint = "<closed>";
-                    remoteEndPoint = "<closed>";
-                }
+                string localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
+                string remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
                 return $"LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint}, IsSecure={IsSecure}";
             }
         }
