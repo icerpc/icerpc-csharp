@@ -106,10 +106,7 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(
-            Protocol protocol,
-            FeatureCollection features,
-            Action<Stream>? streamDataWriter)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, Action<Stream>? streamDataWriter)
         {
             Protocol = protocol;
             Protocol.CheckSupported();

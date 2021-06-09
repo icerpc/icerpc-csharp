@@ -179,6 +179,7 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
+            // TODO: the stream data writer shouldn't depend on the Stream transport API.
             Action<Stream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
@@ -248,7 +249,7 @@ namespace IceRpc
             {
                 try
                 {
-                    using IncomingResponse response = await responseTask.ConfigureAwait(false);
+                    IncomingResponse response = await responseTask.ConfigureAwait(false);
                     ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
@@ -265,7 +266,7 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    return (responsePayload, response.PayloadEncoding, response.Connection, response.Stream!);
+                    return (responsePayload, response.PayloadEncoding, response.Connection, response.Stream);
                 }
                 finally
                 {

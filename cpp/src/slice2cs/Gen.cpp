@@ -281,11 +281,11 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
             if (returnType)
             {
-                _out << " = stream!.ReceiveData();";
+                _out << " = stream.ReceiveData();";
             }
             else
             {
-                _out << " = dispatch.Stream!.ReceiveData();";
+                _out << " = dispatch.Stream.ReceiveData();";
             }
         }
 
@@ -2752,7 +2752,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> IceRpc.IService"
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2764,7 +2764,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> "
          << "DispatchAsync(";
     _out.inc();
     _out << nl <<  fixId(name) << " servant,"
@@ -2919,7 +2919,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2958,6 +2958,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
     if (operation->hasMarshaledResult())
     {
+        // TODO: support for stream param with marshaled result?
+
         _out << nl << "var returnValue = await this." << name << spar;
         if(params.size() > 1)
         {
@@ -2969,7 +2971,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch"
              << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return returnValue.Payload;";
+        _out << nl << "return (returnValue.Payload, null);";
         _out << eb;
     }
     else
@@ -2995,23 +2997,27 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             if (streamReturnParam)
             {
-                _out << nl << "dispatch.Stream.SendData(returnValue);";
+                _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
+                _out << "stream => stream.SendData(returnValue)";
+                _out << ");";
             }
-            _out << nl << "return IceRpc.Payload.FromVoidReturnValue(dispatch);";
+            else
+            {
+                _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), null);";
+            }
         }
         else if (streamReturnParam)
         {
             auto names = getNames(returnType, [](const MemberPtr &param) { return "returnValue." + fieldName(param); });
-            if (streamReturnParam)
-            {
-                _out << nl << "dispatch.Stream.SendData(" << names.back() << ");";
-                names.pop_back();
-            }
-            _out << nl << "return Response." << fixId(opName) << "(dispatch, " << spar << names << epar << ");";
+            auto streamName = names.back();
+            names.pop_back();
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+            _out << "stream => stream.SendData(" << streamName << ")";
+            _out << ");";
         }
         else
         {
-            _out << nl << "return Response." << fixId(opName) << "(dispatch, returnValue);";
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, returnValue), null);";
         }
         _out << eb;
     }

@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace IceRpc
 {
     /// <summary>Represents a response protocol frame received by the application.</summary>
-    public sealed class IncomingResponse : IncomingFrame, IDisposable
+    public sealed class IncomingResponse : IncomingFrame
     {
         /// <inheritdoc/>
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
@@ -29,34 +29,12 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; }
 
-        // The optional stream. The stream is non-null if there's still data to read over the stream
-        // after the reading of the response frame.
-        internal Stream? Stream { get; set; }
-
-        /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The protocol of the response.</param>
-        /// <param name="data">The frame data as an array segment.</param>
-        public IncomingResponse(Protocol protocol, ArraySegment<byte> data)
-            : this(protocol, data, null)
-        {
-        }
-
-        /// <summary>Releases resources used by the response frame.</summary>
-        public void Dispose() => Stream?.Release();
-
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
-        /// read on the stream after the reading the response frame.</param>
-        internal IncomingResponse(
-            Protocol protocol,
-            ArraySegment<byte> data,
-            Stream? stream)
+        internal IncomingResponse(Protocol protocol, ArraySegment<byte> data)
             : base(protocol)
         {
-            Stream = stream;
-
             var istr = new InputStream(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {

@@ -291,6 +291,7 @@ namespace IceRpc
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
+            // TODO: the stream data writer shouldn't depend on the Stream transport API.
             Action<Stream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
@@ -337,6 +338,7 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
+            // TODO: the stream data writer shouldn't depend on the Stream transport API.
             Action<Stream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {

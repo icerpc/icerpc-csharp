@@ -110,7 +110,15 @@ namespace IceRpc.Transports
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
-        public System.IO.Stream ReceiveData() => new IOStream(this);
+        public System.IO.Stream ReceiveData()
+        {
+            if (ReceivedEndOfStream)
+            {
+                throw new InvalidOperationException("end of stream already reached");
+            }
+            EnableReceiveFlowControl();
+            return new IOStream(this);
+        }
 
         /// <summary>Send data from the given IO stream to the stream.</summary>
         /// <param name="ioStream">The IO stream to read the data to send over the stream.</param>
@@ -376,34 +384,16 @@ namespace IceRpc.Transports
         internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
-
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
-            var request = new IncomingRequest(_connection.Protocol, data, this);
-            if (!ReceivedEndOfStream)
-            {
-                // Enable flow control for receiving the reminder of the stream data.
-                EnableReceiveFlowControl();
-            }
-
-            return request;
+            return new IncomingRequest(_connection.Protocol, data);
         }
 
         internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
-
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
-            var response = new IncomingResponse(_connection.Protocol, data, this);
-            if (ReceivedEndOfStream)
-            {
-                // Enable flow control for receiving the reminder of the stream data.
-                EnableReceiveFlowControl();
-            }
-
-            return response;
+            return new IncomingResponse(_connection.Protocol, data);
         }
 
         internal void Release()
