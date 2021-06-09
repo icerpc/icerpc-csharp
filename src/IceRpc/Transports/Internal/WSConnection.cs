@@ -696,11 +696,12 @@ namespace IceRpc.Transports.Internal
                 await _sendTask.ConfigureAwait(false);
 
                 int size = buffer.Length;
-                Memory<byte> sendBuffer = new byte[size+ 16];
+                Memory<byte> sendBuffer = new byte[size + 16];
 
                 int index = PrepareHeaderForSend(opCode, size, sendBuffer);
                 Logger.LogSendingWebSocketFrame(opCode, size);
 
+                sendBuffer = sendBuffer[0..(size + index)];
                 Memory<byte> payload = sendBuffer[index..];
                 buffer.CopyTo(payload);
 
