@@ -51,11 +51,11 @@ namespace IceRpc.Transports.Internal
             EventId = (int)SlicEvent.ReceivedResetFrame,
             EventName = nameof(SlicEvent.ReceivedResetFrame),
             Level = LogLevel.Debug,
-            Message = "received Slic StreamReset frame (FrameSize={FrameSize}, ResetCode={ResetCode})")]
+            Message = "received Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogReceivedSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            SocketStreamErrorCode resetCode);
+            StreamErrorCode errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEvent.ReceivedUnsupportedInitializeFrame,
@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            SocketStreamErrorCode errorCode);
+            StreamErrorCode errorCode);
 
         internal static void LogSentSlicVersionFrame(
             this ILogger logger,

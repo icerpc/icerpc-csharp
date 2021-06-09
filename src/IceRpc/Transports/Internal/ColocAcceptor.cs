@@ -28,12 +28,12 @@ namespace IceRpc.Transports.Internal
         private long _nextId;
         private readonly IncomingConnectionOptions _options;
 
-        public async ValueTask<MultiStreamSocket> AcceptAsync()
+        public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocSocket(_endpoint, id, writer, reader, _options, _logger);
+            return new ColocConnection(_endpoint, id, writer, reader, _options, _logger);
         }
 
         public void Dispose()
@@ -73,7 +73,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
+        internal (ColocChannelReader, ColocChannelWriter, long) NewOutgoingConnection()
         {
             var reader = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions

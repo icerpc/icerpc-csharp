@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class SslSocket : SingleStreamSocket
+    internal sealed class SslConnection : SingleStreamConnection
     {
-        public override ISocket Socket => _underlying.Socket;
+        public override IConnectionInformation ConnectionInformation => _underlying.ConnectionInformation;
 
         internal SslStream? SslStream { get; private set; }
 
@@ -21,10 +21,10 @@ namespace IceRpc.Transports.Internal
         internal override Socket? NetworkSocket => _underlying.NetworkSocket;
 
         private BufferedStream? _writeStream;
-        private readonly SingleStreamSocket _underlying;
+        private readonly SingleStreamConnection _underlying;
         private readonly Socket _socket;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -38,7 +38,7 @@ namespace IceRpc.Transports.Internal
             return (this, endpoint);
         }
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -132,7 +132,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SslSocket(SingleStreamSocket underlying, Socket socket)
+        internal SslConnection(SingleStreamConnection underlying, Socket socket)
             : base(underlying.Logger)
         {
             _socket = socket;

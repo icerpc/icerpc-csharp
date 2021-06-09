@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
-    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the socket to
+    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the connection to
     // figure out if the outgoing connection is a secure or non-secure connection).
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetwork)]
@@ -24,9 +24,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class AcceptSingleStreamSocketTests : SocketBaseTest
+    public class AcceptSingleStreamConnectionTests : ConnectionBaseTest
     {
-        public AcceptSingleStreamSocketTests(
+        public AcceptSingleStreamConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,
@@ -36,41 +36,41 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task AcceptSingleStreamSocket_Acceptor_AcceptAsync()
+        public async Task AcceptSingleStreamConnection_Acceptor_AcceptAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection incomingConnection = await acceptTask;
         }
 
         [Test]
-        public void AcceptSingleStreamSocket_Acceptor_Constructor_TransportException()
+        public void AcceptSingleStreamConnection_Acceptor_Constructor_TransportException()
         {
             using IAcceptor acceptor = CreateAcceptor();
             Assert.Throws<TransportException>(() => CreateAcceptor());
         }
 
         [Test]
-        public async Task AcceptSingleStreamSocket_AcceptAsync()
+        public async Task AcceptSingleStreamConnection_AcceptAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection incomingConnection = await acceptTask;
 
-            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask2 = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask2 = incomingConnection.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -79,54 +79,54 @@ namespace IceRpc.Tests.Internal
 
             if (ClientEndpoint.Protocol == Protocol.Ice2 && TransportName == "tcp")
             {
-                await clientSocket.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
+                await outgoingConnection.SendAsync(new List<ArraySegment<byte>> { new byte[1] }, default);
             }
 
-            (SingleStreamSocket socket, Endpoint _) = await acceptTask2;
+            (SingleStreamConnection connection, Endpoint _) = await acceptTask2;
 
-            // The SslSocket is returned if a secure connection is requested.
+            // The SslConnection is returned if a secure connection is requested.
             if (IsSecure && TransportName != "ws")
             {
-                Assert.IsInstanceOf<SslSocket>(socket);
+                Assert.IsInstanceOf<SslConnection>(connection);
             }
             else
             {
-                Assert.IsNotInstanceOf<SslSocket>(socket);
+                Assert.IsNotInstanceOf<SslConnection>(connection);
             }
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
         // example the server SSL handshake completes before the RST is received.
         [Test]
-        public async Task AcceptSingleStreamSocket_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task AcceptSingleStreamConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamSocket> acceptTask = CreateServerSocketAsync(acceptor);
+            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            SingleStreamSocket clientSocket = CreateClientSocket();
+            SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
 
-            // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
+            // We don't use outgoingConnection.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            await clientSocket.NetworkSocket!.ConnectAsync(
+            await outgoingConnection.NetworkSocket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
-            using SingleStreamSocket serverSocket = await acceptTask;
+            using SingleStreamConnection incomingConnection = await acceptTask;
 
-            clientSocket.Dispose();
+            outgoingConnection.Dispose();
 
             AsyncTestDelegate testDelegate;
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
                 // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-                await serverSocket.AcceptAsync(
+                await incomingConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     default);
-                testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
+                testDelegate = async () => await incomingConnection.ReceiveAsync(new byte[1], default);
             }
             else
             {
-                testDelegate = async () => await serverSocket.AcceptAsync(
+                testDelegate = async () => await incomingConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     default);
@@ -137,7 +137,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public void AcceptSingleStreamSocket_Acceptor_AddressReuse(bool wildcard1, bool wildcard2)
+        public void AcceptSingleStreamConnection_Acceptor_AddressReuse(bool wildcard1, bool wildcard2)
         {
             IAcceptor acceptor;
             if (wildcard1)
@@ -148,7 +148,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
+                acceptor = serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
             }
             else
             {
@@ -166,22 +166,22 @@ namespace IceRpc.Tests.Internal
 
                 if (OperatingSystem.IsMacOS())
                 {
-                    // On macOS, it's still possible to bind to a specific address even if a socket is bound
+                    // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger).Dispose());
+                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger).Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => serverEndpoint.CreateAcceptor(ServerConnectionOptions, Logger));
+                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger));
                 }
             }
             else
             {
                 if (wildcard1 && OperatingSystem.IsMacOS())
                 {
-                    // On macOS, it's still possible to bind to a specific address even if a socket is bound
+                    // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(() => CreateAcceptor().Dispose());
                 }
@@ -195,21 +195,21 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task AcceptSingleStreamSocket_AcceptAsync_OperationCanceledExceptionAsync()
+        public async Task AcceptSingleStreamConnection_AcceptAsync_OperationCanceledExceptionAsync()
         {
             using IAcceptor acceptor = CreateAcceptor();
 
-            using SingleStreamSocket clientSocket = CreateClientSocket();
-            ValueTask<(SingleStreamSocket, Endpoint)> connectTask = clientSocket.ConnectAsync(
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamSocket serverSocket = await CreateServerSocketAsync(acceptor);
+            using SingleStreamConnection incomingConnection = await CreateIncomingConnectionAsync(acceptor);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<(SingleStreamSocket, Endpoint?)> acceptTask = serverSocket.AcceptAsync(
+            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask = incomingConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);
@@ -225,12 +225,12 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamSocket CreateClientSocket() =>
-            (ClientEndpoint.CreateClientSocket(
-                ClientConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
+        private SingleStreamConnection CreateOutgoingConnection() =>
+            (ClientEndpoint.CreateOutgoingConnection(
+                OutgoingConnectionOptions,
+                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
 
-        private static async ValueTask<SingleStreamSocket> CreateServerSocketAsync(IAcceptor acceptor) =>
-            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamSocket)!.Underlying;
+        private static async ValueTask<SingleStreamConnection> CreateIncomingConnectionAsync(IAcceptor acceptor) =>
+            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }

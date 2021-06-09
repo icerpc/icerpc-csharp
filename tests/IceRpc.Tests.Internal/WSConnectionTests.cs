@@ -11,9 +11,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture("ws", false)]
     [TestFixture("ws", true)]
     [Timeout(10000)]
-    public class WSSocketTests : SingleStreamSocketBaseTest
+    public class WSConnectionTests : SingleStreamConnectionBaseTest
     {
-        public WSSocketTests(string transport, bool tls)
+        public WSConnectionTests(string transport, bool tls)
             : base(Protocol.Ice2, transport, tls, AddressFamily.InterNetwork)
         {
         }
@@ -21,16 +21,16 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task WSSocket_CloseAsync()
         {
-            ValueTask<int> serverReceiveTask = ServerSocket.ReceiveAsync(new byte[1], default);
-            ValueTask<int> clientReceiveTask = ClientSocket.ReceiveAsync(new byte[1], default);
+            ValueTask<int> serverReceiveTask = IncomingConnection.ReceiveAsync(new byte[1], default);
+            ValueTask<int> clientReceiveTask = OutgoingConnection.ReceiveAsync(new byte[1], default);
 
-            await ClientSocket.CloseAsync(0, default);
+            await OutgoingConnection.CloseAsync(0, default);
 
             // Wait for the server to send back a close frame.
             Assert.ThrowsAsync<ConnectionLostException>(async () => await clientReceiveTask);
 
-            // Close the socket to unblock the server socket.
-            ClientSocket.Dispose();
+            // Close the connection to unblock the incoming connection.
+            OutgoingConnection.Dispose();
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await serverReceiveTask);
         }

@@ -43,7 +43,7 @@ namespace IceRpc
     /// <param name="value">The value to write to the stream.</param>
     /// <param name="cancel">The cancellation token to cancel the sending of the streamable parameter.</param>
     /// <returns>The stream data writer to write the streamable parameter.</returns>
-    public delegate Action<SocketStream> OutputStreamValueWriterWithStreamable<T>(
+    public delegate Action<Stream> OutputStreamValueWriterWithStreamable<T>(
         OutputStream ostr,
         in T value,
         System.Threading.CancellationToken cancel) where T : struct;

@@ -39,12 +39,12 @@ namespace IceRpc.Internal
 
         internal static void LogReceivedGoAwayFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection connection,
             long lastBidirectionalId,
             long lastUnidirectionalId,
             string message)
         {
-            if (socket.Protocol == Protocol.Ice1)
+            if (connection.Protocol == Protocol.Ice1)
             {
                 logger.LogReceivedIce1CloseConnectionFrame();
             }
@@ -61,15 +61,15 @@ namespace IceRpc.Internal
             Message = "received batch request (RequestCount={RequestCount})")]
         internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
 
-        internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamSocket socket)
+        internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamConnection connection)
         {
-            if (socket.Protocol == Protocol.Ice1)
+            if (connection.Protocol == Protocol.Ice1)
             {
                 logger.LogReceivedIce1ValidateConnectionFrame();
             }
             else
             {
-                logger.LogReceivedInitializeFrame(socket.PeerIncomingFrameMaxSize!.Value);
+                logger.LogReceivedInitializeFrame(connection.PeerIncomingFrameMaxSize!.Value);
             }
         }
 
@@ -143,12 +143,12 @@ namespace IceRpc.Internal
 
         internal static void LogSentGoAwayFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection connection,
             long lastBidirectionalId,
             long lastUnidirectionalId,
             string message)
         {
-            if (socket.Protocol == Protocol.Ice1)
+            if (connection.Protocol == Protocol.Ice1)
             {
                 logger.LogSentIce1CloseConnectionFrame(message);
             }
@@ -160,10 +160,10 @@ namespace IceRpc.Internal
 
         internal static void LogSentInitializeFrame(
             this ILogger logger,
-            MultiStreamSocket socket,
+            MultiStreamConnection connection,
             int incomingFrameMaxSize)
         {
-            if (socket.Protocol == Protocol.Ice1)
+            if (connection.Protocol == Protocol.Ice1)
             {
                 logger.LogSentIce1ValidateConnectionFrame();
             }

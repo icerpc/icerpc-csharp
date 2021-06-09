@@ -193,7 +193,7 @@ namespace IceRpc.Tests.ClientServer
                     Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
                     JsonElement[] scopes = GetScopes(entry);
                     //CheckServerScope(scopes[0], colocated);
-                    //CheckServerSocketScope(scopes[1], colocated);
+                    //CheckIncomingConnectionScope(scopes[1], colocated);
                     //CheckStreamScope(scopes[2]);
                 }
                 else if (eventId == (int)ProtocolEvent.SentRequestFrame)
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.ClientServer
                     Assert.AreEqual("Information", GetLogLevel(entry));
                     Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
                     JsonElement[] scopes = GetScopes(entry);
-                    //CheckClientSocketScope(scopes[0], colocated);
+                    //CheckOutgoingConnectionScope(scopes[0], colocated);
                     //CheckStreamScope(scopes[1]);
                 }
                 else if (eventId == (int)ProtocolEvent.ReceivedResponseFrame)
@@ -211,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
                     Assert.AreEqual("Information", GetLogLevel(entry));
                     Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
                     JsonElement[] scopes = GetScopes(entry);
-                    //CheckClientSocketScope(scopes[0], colocated);
+                    //CheckOutgoingConnectionScope(scopes[0], colocated);
                     //CheckStreamScope(scopes[1]);
                     // The sending of the request always comes before the receiving of the response
                     CollectionAssert.Contains(events, (int)ProtocolEvent.SentRequestFrame);
@@ -223,7 +223,7 @@ namespace IceRpc.Tests.ClientServer
                     Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
                     JsonElement[] scopes = GetScopes(entry);
                     //CheckServerScope(scopes[0], colocated);
-                    //CheckServerSocketScope(scopes[1], colocated);
+                    //CheckIncomingConnectionScope(scopes[1], colocated);
                     //CheckStreamScope(scopes[2]);
                     // The sending of the response always comes before the receiving of the request
                     CollectionAssert.Contains(events, (int)ProtocolEvent.SentResponseFrame);
@@ -244,15 +244,15 @@ namespace IceRpc.Tests.ClientServer
                                                                writer: TextWriter.Synchronized(writer)));
                 });
 
-        private static void CheckClientSocketScope(JsonElement scope, bool colocated)
+        private static void CheckOutgoingConnectionScope(JsonElement scope, bool colocated)
         {
             if (colocated)
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=coloc", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("connection(Transport=coloc", StringComparison.Ordinal));
             }
             else
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(Transport=tcp", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("connection(Transport=tcp", StringComparison.Ordinal));
             }
         }
 
@@ -268,15 +268,15 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private static void CheckServerSocketScope(JsonElement scope, bool colocated)
+        private static void CheckIncomingConnectionScope(JsonElement scope, bool colocated)
         {
             if (colocated)
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("connection(", StringComparison.Ordinal));
             }
             else
             {
-                Assert.IsTrue(GetMessage(scope).StartsWith("socket(", StringComparison.Ordinal));
+                Assert.IsTrue(GetMessage(scope).StartsWith("connection(", StringComparison.Ordinal));
             }
         }
 

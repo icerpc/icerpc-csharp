@@ -34,13 +34,18 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(WebSocketEvent.ReceivedWebSocketFrame),
             Level = LogLevel.Trace,
             Message = "received {OpCode} frame with {Size} bytes payload")]
-        internal static partial void LogReceivedWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
+        internal static partial void LogReceivedWebSocketFrame(
+            this ILogger logger,
+            WSConnection.OpCode opCode, int size);
 
         [LoggerMessage(
             EventId = (int)WebSocketEvent.SendingWebSocketFrame,
             EventName = nameof(WebSocketEvent.SendingWebSocketFrame),
             Level = LogLevel.Trace,
             Message = "sending {OpCode} frame with {Size} bytes payload")]
-        internal static partial void LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
+        internal static partial void LogSendingWebSocketFrame(
+            this ILogger logger,
+            WSConnection.OpCode opCode,
+            int size);
     }
 }

@@ -67,11 +67,11 @@ namespace IceRpc
                     Dispatch dispatch,
                     FormatType format,
                     T returnValue,
-                    Action<SocketStream, T, System.Threading.CancellationToken> writer)
+                    Action<Stream, T, System.Threading.CancellationToken> writer)
                 {
                     OutgoingResponse response = WithVoidReturnValue(dispatch);
                     // TODO: deal with format
-                    response.StreamDataWriter = socketStream => writer(socketStream, returnValue, default);
+                    response.StreamDataWriter = stream => writer(stream, returnValue, default);
                     return response;
                 }
 
