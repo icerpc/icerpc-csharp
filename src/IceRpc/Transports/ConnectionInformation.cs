@@ -21,7 +21,7 @@ namespace IceRpc.Transports
         public override bool IsSecure => true;
 
         /// <inheritdoc/>
-        public override string Description => $"ID={Id}";
+        public override string ToString() => $"ID={Id}";
     }
 
     /// <summary>Provides information about an IP connection.</summary>
@@ -58,19 +58,15 @@ namespace IceRpc.Transports
                 }
             }
         }
+        private readonly Socket _socket;
 
         /// <inheritdoc/>
-        public override string Description
+        public override string ToString()
         {
-            get
-            {
-                string localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
-                string remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
-                return $"LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint}, IsSecure={IsSecure}";
-            }
+            string localEndPoint = LocalEndPoint?.ToString() ?? "undefined";
+            string remoteEndPoint = RemoteEndPoint?.ToString() ?? "undefined";
+            return $"LocalEndpoint={localEndPoint}, RemoteEndpoint={remoteEndPoint}, IsSecure={IsSecure}";
         }
-
-        private readonly Socket _socket;
 
         /// <summary>Constructs an IP connection information.</summary>
         protected IPConnectionInformation(Socket socket) => _socket = socket;
