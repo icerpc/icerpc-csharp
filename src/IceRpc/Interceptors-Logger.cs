@@ -21,7 +21,10 @@ namespace IceRpc
                     // TODO we now log the sending of the request before it is actually sent
                     // and it might never be sent
                     using IDisposable? socketScope = request.Connection?.StartScope();
-                    logger.LogSentRequest(request);
+                    logger.LogSentRequest(request.Path,
+                                          request.Operation,
+                                          request.PayloadSize,
+                                          request.PayloadEncoding);
                     try
                     {
                         IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -33,7 +36,7 @@ namespace IceRpc
                     }
                     catch (Exception ex)
                     {
-                        logger.LogRequestException(request, ex);
+                        logger.LogRequestException(request.Path, request.Operation, ex);
                         throw;
                     }
                 });

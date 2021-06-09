@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(WebSocketEvent.HttpUpgradeRequestSucceed),
             Level = LogLevel.Trace,
             Message = "connection HTTP upgrade request succeed")]
-        internal static partial void  LogHttpUpgradeRequestSucceed(this ILogger logger);
+        internal static partial void LogHttpUpgradeRequestSucceed(this ILogger logger);
 
         [LoggerMessage(
             EventId = (int)WebSocketEvent.ReceivedWebSocketFrame,
@@ -41,6 +41,6 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(WebSocketEvent.SendingWebSocketFrame),
             Level = LogLevel.Trace,
             Message = "sending {OpCode} frame with {Size} bytes payload")]
-        internal static partial void  LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
+        internal static partial void LogSendingWebSocketFrame(this ILogger logger, WSSocket.OpCode opCode, int size);
     }
 }

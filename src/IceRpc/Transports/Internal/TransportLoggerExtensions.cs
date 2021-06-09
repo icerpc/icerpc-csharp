@@ -151,6 +151,13 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSentData(this ILogger logger, int size);
 
         [LoggerMessage(
+           EventId = (int)TransportEvent.StartAcceptingConnections,
+           EventName = nameof(TransportEvent.StartAcceptingConnections),
+           Level = LogLevel.Information,
+           Message = "starting to accept connections")]
+        internal static partial void LogStartAcceptingConnections(this ILogger logger);
+
+        [LoggerMessage(
             EventId = (int)TransportEvent.StartReceivingDatagrams,
             EventName = nameof(TransportEvent.StartReceivingDatagrams),
             Level = LogLevel.Information,
@@ -179,13 +186,6 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception exception);
 
         [LoggerMessage(
-            EventId = (int)TransportEvent.StartAcceptingConnections,
-            EventName = nameof(TransportEvent.StartAcceptingConnections),
-            Level = LogLevel.Information,
-            Message = "starting to accept connections")]
-        internal static partial void LogStartAcceptingConnections(this ILogger logger);
-
-        [LoggerMessage(
             EventId = (int)TransportEvent.StopAcceptingConnections,
             EventName = nameof(TransportEvent.StopAcceptingConnections),
             Level = LogLevel.Information,
@@ -198,6 +198,42 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Information,
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
+
+        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
+        {
+            if (!logger.IsEnabled(LogLevel.Error))
+            {
+                return null;
+            }
+
+            string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
+            if (acceptor is TcpAcceptor tcpAcceptor)
+            {
+                return _tcpAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString(),
+                    tcpAcceptor.IPEndPoint);
+            }
+            else if (acceptor is ColocAcceptor)
+            {
+                return _colocAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString());
+            }
+            else
+            {
+                return _acceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString(),
+                    acceptor.ToString()!);
+            }
+        }
 
         internal static IDisposable? StartSocketScope(
             this ILogger logger,
@@ -330,42 +366,6 @@ namespace IceRpc.Transports.Internal
                 _ => ("Server", "Unidirectional")
             };
             return _streamScope(logger, id, initiatedBy, kind);
-        }
-
-        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
-        {
-            if (!logger.IsEnabled(LogLevel.Error))
-            {
-                return null;
-            }
-
-            string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
-            if (acceptor is TcpAcceptor tcpAcceptor)
-            {
-                return _tcpAcceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString(),
-                    tcpAcceptor.IPEndPoint);
-            }
-            else if (acceptor is ColocAcceptor)
-            {
-                return _colocAcceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString());
-            }
-            else
-            {
-                return _acceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString(),
-                    acceptor.ToString()!);
-            }
         }
     }
 }

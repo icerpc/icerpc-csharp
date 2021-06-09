@@ -6,7 +6,7 @@ namespace IceRpc.Transports
     public enum WebSocketEvent
     {
         /// <summary>An HTTP upgrade request was accepted.</summary>
-        HttpUpgradeRequestAccepted = IceRpc.Internal..LoggerExtensions.WebSocketBaseEventId,
+        HttpUpgradeRequestAccepted = IceRpc.Internal.LoggerExtensions.WebSocketBaseEventId,
         /// <summary>An HTTP upgrade request failed.</summary>
         HttpUpgradeRequestFailed,
         /// <summary>An HTTP upgrade request succeed.</summary>

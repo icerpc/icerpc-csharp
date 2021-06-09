@@ -6,8 +6,6 @@ namespace IceRpc
     public enum ConnectionEvent
     {
         /// <summary>A dispatch operation thrown an unexpected exception.</summary>
-        DispatchException = Internal.LoggerExtensions.ConnectionBaseEventId,
-        /// <summary>A dispatch operation was canceled by the client.</summary>
-        DispatchCanceledByClient
+        DispatchException = Internal.LoggerExtensions.ConnectionBaseEventId
     }
 }
