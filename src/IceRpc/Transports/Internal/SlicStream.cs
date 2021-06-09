@@ -13,14 +13,14 @@ namespace IceRpc.Transports.Internal
     /// <summary>The stream implementation for Slic. The stream implementation implements flow control to
     /// ensure data isn't buffered indefinitely if the application doesn't consume it. Buffering and flow
     /// control are only enable when EnableReceiveFlowControl is called. Until this is called, the data is
-    /// not buffered, instead, the data is not received from the Slic socket until the application protocol
+    /// not buffered, instead, the data is not received from the Slic connection until the application protocol
     /// provides a buffer (by calling ReceiveAsync), to receive the data. With Ice2, this means that the
-    /// request or response frame is received directly from the Slic socket with intermediate buffering and
+    /// request or response frame is received directly from the Slic connection with intermediate buffering and
     /// data copying and Ice2 enables receive buffering and flow control for receiving the data associated
     /// to a stream a parameter. Enabling buffering only for stream parameters also ensure a lightweight
     /// Slic stream object where no additional heap objects (such as the circular buffer, send semaphore,
     /// etc) are necessary to receive a simple response/request frame.</summary>
-    internal class SlicStream : SignaledSocketStream<(int, bool)>
+    internal class SlicStream : SignaledStream<(int, bool)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
@@ -40,13 +40,13 @@ namespace IceRpc.Transports.Internal
         private volatile int _sendCredit = int.MaxValue;
         // The semaphore is used when flow control is enabled to wait for additional send credit to be available.
         private AsyncSemaphore? _sendSemaphore;
-        private readonly SlicSocket _socket;
+        private readonly SlicConnection _connection;
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
-        // A value which is used as a gate to ensure the stream isn't released twice with the socket.
+        // A value which is used as a gate to ensure the stream isn't released twice with the connection.
         private int _streamReleased;
 
-        protected override void AbortWrite(SocketStreamErrorCode errorCode)
+        protected override void AbortWrite(StreamErrorCode errorCode)
         {
             if (IsIncoming && !ReleaseStreamCount())
             {
@@ -59,7 +59,7 @@ namespace IceRpc.Transports.Internal
             if (!IsAborted)
             {
                 // Send the reset frame to the peer.
-                _ = _socket.PrepareAndSendFrameAsync(
+                _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamReset,
                     ostr =>
                     {
@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal
                             new StreamResetBody((ulong)errorCode).IceWrite(ostr);
                         }
                     },
-                    frameSize => _socket.Logger.LogSentSlicResetFrame(frameSize, errorCode),
+                    frameSize => _connection.Logger.LogSentSlicResetFrame(frameSize, errorCode),
                     this);
             }
         }
@@ -85,9 +85,9 @@ namespace IceRpc.Transports.Internal
 
                 // Create a receive buffer to buffer the received stream data. The sender must ensure it doesn't
                 // send more data than this receiver allows.
-                _receiveBuffer = new CircularBuffer(_socket.StreamBufferMaxSize);
+                _receiveBuffer = new CircularBuffer(_connection.StreamBufferMaxSize);
 
-                // If the stream is in the signaled state, the socket is waiting for the frame to be received. In
+                // If the stream is in the signaled state, the connection is waiting for the frame to be received. In
                 // this case we get the frame information and notify again the stream that the frame was received.
                 // The frame will be received in the circular buffer and queued.
                 signaled = IsSignaled;
@@ -114,7 +114,7 @@ namespace IceRpc.Transports.Internal
             base.EnableSendFlowControl();
 
             // Assign the initial send credit based on the peer's stream buffer max size.
-            _sendCredit = _socket.PeerStreamBufferMaxSize;
+            _sendCredit = _connection.PeerStreamBufferMaxSize;
 
             // Create send semaphore for flow control. The send semaphore ensures that the stream doesn't send
             // more data than it is allowed to the peer.
@@ -140,7 +140,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (_receiveBuffer == null)
                     {
-                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
+                        _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                     }
                     return 0;
                 }
@@ -151,12 +151,12 @@ namespace IceRpc.Transports.Internal
             if (_receiveBuffer == null)
             {
                 // Read and append the received stream frame data into the given buffer.
-                await _socket.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
+                await _connection.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
 
-                // If we've consumed the whole Slic frame, notify the socket that it can start receiving a new frame.
+                // If we've consumed the whole Slic frame, notify the connection that it can start receiving a new frame.
                 if (_receivedOffset == _receivedSize)
                 {
-                    _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
+                    _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
                 }
             }
             else
@@ -174,7 +174,7 @@ namespace IceRpc.Transports.Internal
                     Interlocked.Exchange(ref _receiveCredit, 0);
 
                     // Notify the peer that it can send additional data.
-                    await _socket.PrepareAndSendFrameAsync(
+                    await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
                         ostr =>
                         {
@@ -183,7 +183,7 @@ namespace IceRpc.Transports.Internal
                                 new StreamConsumedBody((ulong)consumed).IceWrite(ostr);
                             }
                         },
-                        frameSize => _socket.Logger.LogSentSlicFrame(
+                        frameSize => _connection.Logger.LogSentSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
                         this,
@@ -207,7 +207,7 @@ namespace IceRpc.Transports.Internal
                 // Send an empty last stream frame if there's no data to send. There's no need to check
                 // send flow control credit if there's no data to send.
                 Debug.Assert(fin);
-                await _socket.SendStreamFrameAsync(this, 0, true, buffer, cancel).ConfigureAwait(false);
+                await _connection.SendStreamFrameAsync(this, 0, true, buffer, cancel).ConfigureAwait(false);
                 return;
             }
 
@@ -235,7 +235,7 @@ namespace IceRpc.Transports.Internal
 
                 // The maximum packet size to send, it can't be larger than the flow control credit left or
                 // the peer's packet max size.
-                int maxPacketSize = Math.Min(_sendCredit, _socket.PeerPacketMaxSize);
+                int maxPacketSize = Math.Min(_sendCredit, _connection.PeerPacketMaxSize);
 
                 int sendSize = 0;
                 bool lastBuffer;
@@ -289,7 +289,7 @@ namespace IceRpc.Transports.Internal
                 offset += sendSize;
                 if (_sendSemaphore == null)
                 {
-                    await _socket.SendStreamFrameAsync(
+                    await _connection.SendStreamFrameAsync(
                         this,
                         sendSize,
                         lastBuffer && fin,
@@ -308,7 +308,7 @@ namespace IceRpc.Transports.Internal
                         // received before we decreased it.
                         int value = Interlocked.Add(ref _sendCredit, -sendSize);
 
-                        await _socket.SendStreamFrameAsync(
+                        await _connection.SendStreamFrameAsync(
                             this,
                             sendSize,
                             lastBuffer && fin,
@@ -334,7 +334,7 @@ namespace IceRpc.Transports.Internal
         {
             base.Shutdown();
 
-            // If there's still data pending to be received for the stream, we notify the socket that
+            // If there's still data pending to be received for the stream, we notify the connection that
             // we're abandoning the reading. It will finish to read the stream's frame data in order to
             // continue receiving frames for other streams.
             if (_receiveBuffer == null)
@@ -348,11 +348,11 @@ namespace IceRpc.Transports.Internal
                         Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _receivedEndOfStream) = valueTask.Result;
-                        _socket.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
+                        _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
                     }
                     else
                     {
-                        _socket.FinishedReceivedStreamData(
+                        _connection.FinishedReceivedStreamData(
                             _receivedSize,
                             _receivedEndOfStream,
                             _receivedSize - _receivedOffset);
@@ -365,22 +365,22 @@ namespace IceRpc.Transports.Internal
             }
 
             // The stream count is only released on shutdown if it's an incoming stream. Outgoing streams are
-            // released from the socket when the StreamLast or StreamReset frame is received (which can be
+            // released from the connection when the StreamLast or StreamReset frame is received (which can be
             // received after the stream is destroyed, for example, with oneway requests, the stream is
             // disposed as soon as the request is sent and before receiving the StreamLast frame).
             if (IsIncoming && ReleaseStreamCount())
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.
-                _ = _socket.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, stream: this);
+                _ = _connection.PrepareAndSendFrameAsync(SlicDefinitions.FrameType.StreamLast, stream: this);
             }
         }
 
-        internal SlicStream(SlicSocket socket, long streamId)
-            : base(socket, streamId) => _socket = socket;
+        internal SlicStream(SlicConnection connection, long streamId)
+            : base(connection, streamId) => _connection = connection;
 
-        internal SlicStream(SlicSocket socket, bool bidirectional, bool control)
-            : base(socket, bidirectional, control) => _socket = socket;
+        internal SlicStream(SlicConnection connection, bool bidirectional, bool control)
+            : base(connection, bidirectional, control) => _connection = connection;
 
         internal void ReceivedConsumed(int size)
         {
@@ -395,7 +395,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(_sendSemaphore.Count == 0);
                 _sendSemaphore.Release();
             }
-            else if (newValue > 2 * _socket.PeerPacketMaxSize)
+            else if (newValue > 2 * _connection.PeerPacketMaxSize)
             {
                 // The peer is trying to increase the credit to a value which is larger than what it is allowed to.
                 throw new InvalidDataException("invalid flow control credit increase");
@@ -428,9 +428,9 @@ namespace IceRpc.Transports.Internal
                     }
                     catch
                     {
-                        // Ignore, the stream has been aborted. Notify the socket that we're not interested
+                        // Ignore, the stream has been aborted. Notify the connection that we're not interested
                         // with the data to allow it to receive data for other streams.
-                        _socket.FinishedReceivedStreamData(size, fin, size);
+                        _connection.FinishedReceivedStreamData(size, fin, size);
                     }
                 }
                 else
@@ -442,8 +442,8 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException("flow control violation, peer sent too much data");
                     }
 
-                    // Receive the data asynchronously. The task will notify the socket when the Slic frame is fully
-                    // received to allow the socket to process the next Slic frame.
+                    // Receive the data asynchronously. The task will notify the connection when the Slic frame is fully
+                    // received to allow the connection to process the next Slic frame.
                     _ = PerformReceiveInBufferAsync();
                 }
             }
@@ -467,7 +467,7 @@ namespace IceRpc.Transports.Internal
                         // segment than the requested size. If this is the case, we loop to receive the remaining
                         // data in a next available segment.
                         Memory<byte> segment = _receiveBuffer.Enqueue(size - offset);
-                        await _socket.ReceiveDataAsync(segment, CancellationToken.None).ConfigureAwait(false);
+                        await _connection.ReceiveDataAsync(segment, CancellationToken.None).ConfigureAwait(false);
                         offset += segment.Length;
                     }
                 }
@@ -477,7 +477,7 @@ namespace IceRpc.Transports.Internal
                     SetException(ex);
                 }
 
-                // Queue the frame before notifying the socket we're done with the receive. It's important
+                // Queue the frame before notifying the connection we're done with the receive. It's important
                 // to ensure the received frames are queued in order.
                 try
                 {
@@ -487,11 +487,11 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore exceptions, the stream has been aborted.
                 }
-                _socket.FinishedReceivedStreamData(size, fin, 0);
+                _connection.FinishedReceivedStreamData(size, fin, 0);
             }
         }
 
-        internal void ReceivedReset(SocketStreamErrorCode errorCode)
+        internal void ReceivedReset(StreamErrorCode errorCode)
         {
             if (!IsIncoming && !ReleaseStreamCount())
             {
@@ -504,14 +504,14 @@ namespace IceRpc.Transports.Internal
 
         internal bool ReleaseStreamCount()
         {
-            // Release the stream from the socket if not already done. This will decrease the socket stream
+            // Release the stream from the connection if not already done. This will decrease the stream
             // count to allow more streams to be opened.
             if (Interlocked.CompareExchange(ref _streamReleased, 1, 0) == 0)
             {
                 if (!IsControl)
                 {
                     // If the stream is not already released, releases it now.
-                    _socket.ReleaseStream(this);
+                    _connection.ReleaseStream(this);
                 }
                 return true;
             }

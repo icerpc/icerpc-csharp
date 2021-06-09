@@ -16,52 +16,52 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class WSSocket : SingleStreamSocket, IWSSocket
+    internal sealed class WSConnection : SingleStreamConnection, IWSConnectionInformation
     {
         /// <inheritdoc/>
-        public bool CheckCertRevocationStatus => _tcpSocket.CheckCertRevocationStatus;
+        public bool CheckCertRevocationStatus => _tcpConnectionInformation.CheckCertRevocationStatus;
 
         /// <inheritdoc/>
         public IReadOnlyDictionary<string, string> Headers => _parser.GetHeaders();
 
         /// <inheritdoc/>
-        public bool IsEncrypted => _tcpSocket.IsEncrypted;
+        public bool IsEncrypted => _tcpConnectionInformation.IsEncrypted;
 
         /// <inheritdoc/>
-        public bool IsMutuallyAuthenticated => _tcpSocket.IsMutuallyAuthenticated;
+        public bool IsMutuallyAuthenticated => _tcpConnectionInformation.IsMutuallyAuthenticated;
 
         /// <inheritdoc/>
-        public bool IsSecure => _tcpSocket.IsSecure;
+        public bool IsSecure => _tcpConnectionInformation.IsSecure;
 
         /// <inheritdoc/>
-        public bool IsSigned => _tcpSocket.IsSigned;
+        public bool IsSigned => _tcpConnectionInformation.IsSigned;
 
         /// <inheritdoc/>
-        public X509Certificate? LocalCertificate => _tcpSocket.LocalCertificate;
+        public X509Certificate? LocalCertificate => _tcpConnectionInformation.LocalCertificate;
 
         /// <inheritdoc/>
-        public IPEndPoint? LocalEndPoint => _tcpSocket.LocalEndPoint;
+        public IPEndPoint? LocalEndPoint => _tcpConnectionInformation.LocalEndPoint;
 
         /// <inheritdoc/>
-        public SslApplicationProtocol? NegotiatedApplicationProtocol => _tcpSocket.NegotiatedApplicationProtocol;
+        public SslApplicationProtocol? NegotiatedApplicationProtocol => _tcpConnectionInformation.NegotiatedApplicationProtocol;
 
         /// <inheritdoc/>
-        public TlsCipherSuite? NegotiatedCipherSuite => _tcpSocket.NegotiatedCipherSuite;
+        public TlsCipherSuite? NegotiatedCipherSuite => _tcpConnectionInformation.NegotiatedCipherSuite;
 
         /// <inheritdoc/>
-        public X509Certificate? RemoteCertificate => _tcpSocket.RemoteCertificate;
+        public X509Certificate? RemoteCertificate => _tcpConnectionInformation.RemoteCertificate;
 
         /// <inheritdoc/>
-        public IPEndPoint? RemoteEndPoint => _tcpSocket.RemoteEndPoint;
+        public IPEndPoint? RemoteEndPoint => _tcpConnectionInformation.RemoteEndPoint;
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
-        public SslProtocols? SslProtocol => _tcpSocket.SslProtocol;
+        public SslProtocols? SslProtocol => _tcpConnectionInformation.SslProtocol;
 
         /// <inheritdoc/>
-        internal override System.Net.Sockets.Socket? NetworkSocket => _bufferedSocket.NetworkSocket;
+        internal override System.Net.Sockets.Socket? NetworkSocket => _bufferedConnection.NetworkSocket;
 
         internal enum OpCode : byte
         {
@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
         private string _key;
         private readonly HttpParser _parser;
         private readonly object _mutex = new();
-        private readonly BufferedReceiveOverSingleStreamSocket _bufferedSocket;
+        private readonly BufferedReceiveOverSingleStreamConnection _bufferedConnection;
         private readonly RandomNumberGenerator _rand;
         private bool _receiveLastFrame;
         private readonly byte[] _receiveMask = new byte[4];
@@ -100,16 +100,16 @@ namespace IceRpc.Transports.Internal
         private readonly byte[] _sendMask;
         private readonly IList<ArraySegment<byte>> _sendBuffer;
         private Task _sendTask = Task.CompletedTask;
-        private readonly ITcpSocket _tcpSocket;
+        private readonly ITcpConnectionInformation _tcpConnectionInformation;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
             Endpoint? remoteEndpoint;
             (_, remoteEndpoint) =
-                await _bufferedSocket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                await _bufferedConnection.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return (this, remoteEndpoint);
@@ -137,14 +137,14 @@ namespace IceRpc.Transports.Internal
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
             Endpoint localEndpoint;
             (_, localEndpoint) =
-                await _bufferedSocket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                await _bufferedConnection.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
             return (this, localEndpoint);
@@ -171,7 +171,7 @@ namespace IceRpc.Transports.Internal
 
             // Read the payload
             int length = Math.Min(_receivePayloadLength, buffer.Length);
-            int received = await _bufferedSocket.ReceiveAsync(buffer[0..length], cancel).ConfigureAwait(false);
+            int received = await _bufferedConnection.ReceiveAsync(buffer[0..length], cancel).ConfigureAwait(false);
 
             if (_incoming)
             {
@@ -182,26 +182,26 @@ namespace IceRpc.Transports.Internal
         }
 
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            _bufferedSocket.ReceiveDatagramAsync(cancel);
+            _bufferedConnection.ReceiveDatagramAsync(cancel);
 
         public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel) =>
              SendImplAsync(OpCode.Data, buffers, cancel);
 
         public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
-            _bufferedSocket.SendDatagramAsync(buffer, cancel);
+            _bufferedConnection.SendDatagramAsync(buffer, cancel);
 
         protected override void Dispose(bool disposing)
         {
             _closingTaskCompletionSource?.TrySetResult();
-            _bufferedSocket.Dispose();
+            _bufferedConnection.Dispose();
             _rand.Dispose();
         }
 
-        internal WSSocket(TcpSocket socket)
-            : base(socket.Logger)
+        internal WSConnection(TcpConnection tcpConnection)
+            : base(tcpConnection.Logger)
         {
-            _bufferedSocket = new BufferedReceiveOverSingleStreamSocket(socket);
-            _tcpSocket = (ITcpSocket)socket.Socket;
+            _bufferedConnection = new BufferedReceiveOverSingleStreamConnection(tcpConnection);
+            _tcpConnectionInformation = (ITcpConnectionInformation)tcpConnection.ConnectionInformation;
             _parser = new HttpParser();
             _receiveLastFrame = true;
             _sendBuffer = new List<ArraySegment<byte>>();
@@ -237,7 +237,7 @@ namespace IceRpc.Transports.Internal
                     byte[] data = _utf8.GetBytes(sb.ToString());
                     _sendBuffer.Add(data);
 
-                    await _bufferedSocket.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
+                    await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
                 }
                 _sendBuffer.Clear();
 
@@ -245,7 +245,7 @@ namespace IceRpc.Transports.Internal
                 var httpBuffer = new ArraySegment<byte>();
                 while (true)
                 {
-                    ReadOnlyMemory<byte> buffer = await _bufferedSocket.ReceiveAsync(0, cancel).ConfigureAwait(false);
+                    ReadOnlyMemory<byte> buffer = await _bufferedConnection.ReceiveAsync(0, cancel).ConfigureAwait(false);
                     if (httpBuffer.Count + buffer.Length > 16 * 1024)
                     {
                         throw new InvalidDataException("WebSocket HTTP upgrade request too large");
@@ -264,7 +264,7 @@ namespace IceRpc.Transports.Internal
                     if (endPos != -1)
                     {
                         // Add back the un-consumed data to the buffer.
-                        _bufferedSocket.Rewind(httpBuffer.Count - endPos);
+                        _bufferedConnection.Rewind(httpBuffer.Count - endPos);
                         httpBuffer = httpBuffer.Slice(0, endPos);
                         break; // Done
                     }
@@ -304,7 +304,7 @@ namespace IceRpc.Transports.Internal
                         Debug.Assert(_sendBuffer.Count == 0);
                         byte[] data = _utf8.GetBytes(sb.ToString());
                         _sendBuffer.Add(data);
-                        await _bufferedSocket.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
+                        await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
                         _sendBuffer.Clear();
                     }
                     else
@@ -380,7 +380,7 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 // Read the first 2 bytes of the WS frame header
-                ReadOnlyMemory<byte> header = await _bufferedSocket.ReceiveAsync(2, cancel).ConfigureAwait(false);
+                ReadOnlyMemory<byte> header = await _bufferedConnection.ReceiveAsync(2, cancel).ConfigureAwait(false);
                 // Most-significant bit indicates if this is the last frame, least-significant four bits hold the opcode.
                 var opCode = (OpCode)(header.Span[0] & 0xf);
 
@@ -411,13 +411,13 @@ namespace IceRpc.Transports.Internal
                 int payloadLength = header.Span[1] & 0x7f;
                 if (payloadLength == 126)
                 {
-                    header = await _bufferedSocket.ReceiveAsync(2, cancel).ConfigureAwait(false);
+                    header = await _bufferedConnection.ReceiveAsync(2, cancel).ConfigureAwait(false);
                     ushort length = header.Span.ReadUShort();
                     payloadLength = (ushort)System.Net.IPAddress.NetworkToHostOrder((short)length);
                 }
                 else if (payloadLength == 127)
                 {
-                    header = await _bufferedSocket.ReceiveAsync(8, cancel).ConfigureAwait(false);
+                    header = await _bufferedConnection.ReceiveAsync(8, cancel).ConfigureAwait(false);
                     long length = System.Net.IPAddress.NetworkToHostOrder(header.Span.ReadLong());
                     if (length > int.MaxValue)
                     {
@@ -430,7 +430,7 @@ namespace IceRpc.Transports.Internal
                 if (_incoming)
                 {
                     // Read the mask if this is an incoming connection.
-                    (await _bufferedSocket.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
+                    (await _bufferedConnection.ReceiveAsync(4, cancel).ConfigureAwait(false)).CopyTo(_receiveMask);
                 }
 
                 Logger.LogReceivedWebSocketFrame(opCode, payloadLength);
@@ -454,7 +454,7 @@ namespace IceRpc.Transports.Internal
                     {
                         // Read the Close frame payload.
                         ReadOnlyMemory<byte> payloadBuffer =
-                            await _bufferedSocket.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                            await _bufferedConnection.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         byte[] payload = payloadBuffer.ToArray();
                         if (_incoming)
@@ -483,7 +483,7 @@ namespace IceRpc.Transports.Internal
                     {
                         // Read the ping payload.
                         ReadOnlyMemory<byte> payload =
-                            await _bufferedSocket.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                            await _bufferedConnection.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Send a Pong frame with the received payload.
                         var sendBuffer = new List<ArraySegment<byte>> { payload.ToArray() };
@@ -493,7 +493,7 @@ namespace IceRpc.Transports.Internal
                     case OpCode.Pong:
                     {
                         // Read the pong payload.
-                        await _bufferedSocket.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
+                        await _bufferedConnection.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Nothing to do, this can be received even if we don't send a ping frame if the peer sends
                         // an unidirectional heartbeat.
@@ -726,7 +726,7 @@ namespace IceRpc.Transports.Internal
                         _sendBuffer.Add(data);
                     }
                 }
-                await _bufferedSocket.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
+                await _bufferedConnection.SendAsync(_sendBuffer, cancel).ConfigureAwait(false);
                 _sendBuffer.Clear();
                 return size;
             }

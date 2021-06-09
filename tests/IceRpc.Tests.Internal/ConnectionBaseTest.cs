@@ -15,22 +15,22 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    /// <summary>Test fixture for tests that need to test sockets. The constructor initialize a communicator and an
+    /// <summary>Test fixture for tests that need to test connections. The constructor initialize a communicator and an
     /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
-    public class SocketBaseTest
+    public class ConnectionBaseTest
     {
         protected static readonly List<ArraySegment<byte>> OneBSendBuffer = new() { new byte[1] };
         protected static readonly List<ArraySegment<byte>> OneMBSendBuffer = new() { new byte[1024 * 1024] };
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? OutgoingConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
-        protected IncomingConnectionOptions ServerConnectionOptions { get; }
+        protected IncomingConnectionOptions IncomingConnectionOptions { get; }
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions ClientConnectionOptions { get; }
+        protected OutgoingConnectionOptions OutgoingConnectionOptions { get; }
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? IncomingConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Internal
         private readonly object _mutex = new();
         private static int _nextBasePort;
 
-        public SocketBaseTest(
+        public ConnectionBaseTest(
             Protocol protocol,
             string transport,
             bool tls,
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Internal
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            ClientConnectionOptions = new OutgoingConnectionOptions
+            OutgoingConnectionOptions = new OutgoingConnectionOptions
             {
                 AuthenticationOptions = new()
                 {
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
                 }
             };
 
-            ServerConnectionOptions = new IncomingConnectionOptions()
+            IncomingConnectionOptions = new IncomingConnectionOptions()
             {
                 AuthenticationOptions = new()
                 {
@@ -120,10 +120,10 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _acceptor?.Dispose();
 
-        static protected async ValueTask<SingleStreamSocket> SingleStreamSocketAsync(Task<MultiStreamSocket> socket) =>
-            (await socket as MultiStreamOverSingleStreamSocket)!.Underlying;
+        static protected async ValueTask<SingleStreamConnection> SingleStreamConnectionAsync(Task<MultiStreamConnection> connection) =>
+            (await connection as MultiStreamOverSingleStreamConnection)!.Underlying;
 
-        protected async Task<MultiStreamSocket> AcceptAsync()
+        protected async Task<MultiStreamConnection> AcceptAsync()
         {
             lock (_mutex)
             {
@@ -133,20 +133,20 @@ namespace IceRpc.Tests.Internal
             await _acceptSemaphore.EnterAsync();
             try
             {
-                MultiStreamSocket multiStreamSocket = await _acceptor.AcceptAsync();
-                Debug.Assert(multiStreamSocket.TransportName == TransportName);
-                await multiStreamSocket.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamSocket.Socket.IsSecure)
+                MultiStreamConnection multiStreamConnection = await _acceptor.AcceptAsync();
+                Debug.Assert(multiStreamConnection.TransportName == TransportName);
+                await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.ConnectionInformation.IsSecure)
                 {
-                    // If the accepted connection is not secured, we need to read the first byte from the socket.
+                    // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
-                    if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                    if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
                     {
                         Memory<byte> buffer = new byte[1];
-                        await socket.Underlying.ReceiveAsync(buffer, default);
+                        await connection.Underlying.ReceiveAsync(buffer, default);
                     }
                 }
-                return multiStreamSocket;
+                return multiStreamConnection;
             }
             catch (Exception ex)
             {
@@ -159,7 +159,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamSocket> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
+        protected async Task<MultiStreamConnection> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
         {
             if (!ClientEndpoint.IsDatagram)
             {
@@ -169,34 +169,34 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamSocket multiStreamSocket = ClientEndpoint.CreateClientSocket(
-                connectionOptions ?? ClientConnectionOptions,
+            MultiStreamConnection multiStreamConnection = ClientEndpoint.CreateOutgoingConnection(
+                connectionOptions ?? OutgoingConnectionOptions,
                 Logger);
-            await multiStreamSocket.ConnectAsync(ClientAuthenticationOptions, default);
+            await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
-                // a single byte over the socket to figure out if the client establishes a secure/non-secure
+                // a single byte over the connection to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (multiStreamSocket is MultiStreamOverSingleStreamSocket socket)
+                if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
                 {
                     var buffer = new List<ArraySegment<byte>>() { new byte[1] { 0 } };
-                    await socket.Underlying.SendAsync(buffer, default);
+                    await connection.Underlying.SendAsync(buffer, default);
                 }
             }
 
-            if (multiStreamSocket.TransportName != TransportName)
+            if (multiStreamConnection.TransportName != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(multiStreamSocket is ColocSocket);
+                Debug.Assert(multiStreamConnection is ColocConnection);
             }
-            return multiStreamSocket;
+            return multiStreamConnection;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(ServerConnectionOptions, Logger);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
 
-        protected MultiStreamSocket CreateServerSocket() =>
-            ServerEndpoint.CreateServerSocket(ServerConnectionOptions, Logger);
+        protected MultiStreamConnection CreateIncomingConnection() =>
+            ServerEndpoint.CreateIncomingConnection(IncomingConnectionOptions, Logger);
     }
 }

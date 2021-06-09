@@ -29,7 +29,7 @@ namespace IceRpc
         public IPEndPoint? LocalEndPoint { get; set; }
 
         /// <summary>Configures the length of a server socket queue for accepting new connections. If a new
-        /// connection request arrives and the queue is full, the client connection establishment will fail
+        /// connection request arrives and the queue is full, the outgoing connection establishment will fail
         /// with a <see cref="ConnectionRefusedException"/> exception. The default value is 511.</summary>
         /// <value>The server socket backlog size.</value>
         public int ListenerBackLog
@@ -246,7 +246,7 @@ namespace IceRpc
     /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
     public sealed class OutgoingConnectionOptions : ConnectionOptions
     {
-        /// <summary>The SSL authentication options to configure TLS client connections.</summary>
+        /// <summary>The SSL authentication options to configure TLS outgoing connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslClientAuthenticationOptions? AuthenticationOptions
         {
@@ -280,7 +280,7 @@ namespace IceRpc
     /// <summary>An options class for configuring incoming IceRPC connections.</summary>
     public sealed class IncomingConnectionOptions : ConnectionOptions
     {
-        /// <summary>The SSL authentication options to configure TLS server connections.</summary>
+        /// <summary>The SSL authentication options to configure TLS incoming connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslServerAuthenticationOptions? AuthenticationOptions
         {

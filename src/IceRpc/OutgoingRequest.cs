@@ -119,7 +119,7 @@ namespace IceRpc
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false,
-            Action<SocketStream>? streamDataWriter = null)
+            Action<Stream>? streamDataWriter = null)
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,
@@ -190,7 +190,7 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             FeatureCollection features,
-            Action<SocketStream>? streamDataWriter)
+            Action<Stream>? streamDataWriter)
             : base(proxy.Protocol, features, streamDataWriter)
         {
             AltEndpoints = proxy.AltEndpoints;

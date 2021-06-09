@@ -36,7 +36,7 @@ namespace IceRpc
         public OutgoingResponse(
             IncomingRequest request,
             IList<ArraySegment<byte>> payload,
-            Action<SocketStream>? streamDataWriter = null)
+            Action<Stream>? streamDataWriter = null)
             : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamDataWriter)
         {
             ResultType = ResultType.Success;
@@ -51,7 +51,7 @@ namespace IceRpc
         public OutgoingResponse(
             Dispatch dispatch,
             IList<ArraySegment<byte>> payload,
-            Action<SocketStream>? streamDataWriter = null)
+            Action<Stream>? streamDataWriter = null)
             : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamDataWriter)
         {
             ResultType = ResultType.Success;
@@ -191,7 +191,7 @@ namespace IceRpc
             IList<ArraySegment<byte>> payload,
             Encoding payloadEncoding,
             FeatureCollection features,
-            Action<SocketStream>? streamDataWriter)
+            Action<Stream>? streamDataWriter)
             : base(protocol, features, streamDataWriter)
         {
             PayloadEncoding = payloadEncoding;

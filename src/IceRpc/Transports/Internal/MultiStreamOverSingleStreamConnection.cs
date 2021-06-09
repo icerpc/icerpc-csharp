@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>An abstract multi-stream socket which is using a single stream socket for receiving and sending
+    /// <summary>An abstract multi-stream connection which is using a single stream connection for receiving and sending
     /// data.</summary>
-    internal abstract class MultiStreamOverSingleStreamSocket : MultiStreamSocket
+    internal abstract class MultiStreamOverSingleStreamConnection : MultiStreamConnection
     {
         /// <inheritdoc/>
-        public override ISocket Socket => Underlying.Socket;
+        public override IConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
 
-        internal SingleStreamSocket Underlying { get; private set; }
+        internal SingleStreamConnection Underlying { get; private set; }
 
         public override string ToString() => $"{base.ToString()} ({Underlying})";
 
@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing)
         {
-            // First dispose of the underlying socket otherwise base.Dispose() which releases the stream can trigger
+            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
             // additional data to be sent of the stream release sends data (which is the case for SlicStream).
             if (disposing)
             {
@@ -51,10 +51,10 @@ namespace IceRpc.Transports.Internal
             base.Dispose(disposing);
         }
 
-        protected MultiStreamOverSingleStreamSocket(
+        protected MultiStreamOverSingleStreamConnection(
             Endpoint endpoint,
-            SingleStreamSocket socket,
+            SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
-            : base(endpoint, options, socket.Logger) => Underlying = socket;
+            : base(endpoint, options, singleStreamConnection.Logger) => Underlying = singleStreamConnection;
     }
 }

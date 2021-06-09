@@ -64,25 +64,25 @@ namespace IceRpc
         }
 
         // The socket stream that received the request.
-        internal SocketStream? SocketStream { get; set; }
+        internal Stream? Stream { get; set; }
 
         private long? _streamId;
 
         /// <summary>Releases resources used by the request frame.</summary>
-        public void Dispose() => SocketStream?.Release();
+        public void Dispose() => Stream?.Release();
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data as an array segment.</param>
-        /// <param name="socketStream">The optional socket stream. The stream is non-null if there's still data to
+        /// <param name="stream">The optional stream. The stream is non-null if there's still data to
         /// read on the stream after the reading the request frame.</param>
         internal IncomingRequest(
             Protocol protocol,
             ArraySegment<byte> data,
-            SocketStream? socketStream)
+            Stream? stream)
             : base(protocol)
         {
-            SocketStream = socketStream;
+            Stream = stream;
 
             var istr = new InputStream(data, Protocol.GetEncoding());
 

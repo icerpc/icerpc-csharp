@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class TcpSocket : SingleStreamSocket, ITcpSocket
+    internal class TcpConnection : SingleStreamConnection, ITcpConnectionInformation
     {
         /// <inheritdoc/>
         public bool CheckCertRevocationStatus => _sslStream?.CheckCertRevocationStatus ?? false;
@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
         public SslProtocols? SslProtocol => _sslStream?.SslProtocol;
@@ -92,7 +92,7 @@ namespace IceRpc.Transports.Internal
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -117,14 +117,14 @@ namespace IceRpc.Transports.Internal
                     secure = buffer.Array![0] == TlsHandshakeRecord;
                 }
 
-                // If a secure connection is needed, a new SslSocket is created and returned from this method.
-                // The caller is responsible for using the returned SslSocket in place of this TcpSocket.
+                // If a secure connection is needed, a new SslConnection is created and returned from this method.
+                // The caller is responsible for using the returned SslConnection in place of this TcpConnection.
                 if (endpoint.IsSecure ?? secure)
                 {
-                    var socket = new SslSocket(this, _socket);
-                    await socket.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = socket.SslStream;
-                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
+                    var sslConnection = new SslConnection(this, _socket);
+                    await sslConnection.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = sslConnection.SslStream;
+                    return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!));
                 }
                 else
                 {
@@ -148,7 +148,7 @@ namespace IceRpc.Transports.Internal
         // We can't shutdown the socket write side because it might block.
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -160,14 +160,14 @@ namespace IceRpc.Transports.Internal
                 // Connect to the peer and cache the description of the _socket.
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                // If a secure socket is requested, create an SslSocket and return it from this method. The caller is
-                // responsible for using the returned SslSocket instead of using this TcpSocket.
+                // If a secure socket is requested, create an SslConnection and return it from this method. The caller is
+                // responsible for using the returned SslConnection instead of using this TcpConnection.
                 if (authenticationOptions != null)
                 {
-                    var socket = new SslSocket(this, _socket);
-                    await socket.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-                    _sslStream = socket.SslStream;
-                    return (socket, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
+                    var sslConnection = new SslConnection(this, _socket);
+                    await sslConnection.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
+                    _sslStream = sslConnection.SslStream;
+                    return (sslConnection, ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
                 }
                 else
                 {
@@ -261,7 +261,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
 
-        internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
+        internal TcpConnection(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;

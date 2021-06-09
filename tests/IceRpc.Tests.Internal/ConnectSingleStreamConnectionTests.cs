@@ -10,9 +10,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
-    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
-    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the socket to
-    // figure out if the outgoing connection is a secure or non-secure connection).
+    // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure incoming
+    // connections: with Ice2, the acceptor peeks a byte on the connection to figure out if it's secure or not.
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
@@ -22,9 +21,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class ConnectSingleStreamSocketTests : SocketBaseTest
+    public class ConnectSingleStreamConnectionTests : ConnectionBaseTest
     {
-        public ConnectSingleStreamSocketTests(
+        public ConnectSingleStreamConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,
@@ -34,18 +33,18 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectSingleStreamSocket_ConnectAsync_ConnectionRefusedException()
+        public void ConnectSingleStreamConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamSocket clientSocket = CreateClientSocket();
+            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await clientSocket.ConnectAsync(
+                async () => await outgoingConnection.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     default));
         }
 
         [Test]
-        public void ConnectSingleStreamSocket_ConnectAsync_OperationCanceledException()
+        public void ConnectSingleStreamConnection_ConnectAsync_OperationCanceledException()
         {
             using IAcceptor acceptor = CreateAcceptor();
 
@@ -56,9 +55,9 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamSocket clientSocket = CreateClientSocket();
-                ValueTask<(SingleStreamSocket, Endpoint)> connectTask =
-                    clientSocket.ConnectAsync(
+                using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+                ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
+                    outgoingConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
                         source.Token);
@@ -68,17 +67,17 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamSocket clientSocket2 = CreateClientSocket();
+            using SingleStreamConnection outgoingConnection2 = CreateOutgoingConnection();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await clientSocket2.ConnectAsync(
+                async () => await outgoingConnection2.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     source2.Token));
         }
 
-        private SingleStreamSocket CreateClientSocket() =>
-            (ClientEndpoint.CreateClientSocket(
-                ClientConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamSocket)!.Underlying;
+        private SingleStreamConnection CreateOutgoingConnection() =>
+            (ClientEndpoint.CreateOutgoingConnection(
+                OutgoingConnectionOptions,
+                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
     }
 }
