@@ -103,12 +103,12 @@ namespace IceRpc
             string operation,
             Invocation? invocation,
             T args,
-            Action<SocketStream, T, CancellationToken> writer,
+            Action<Stream, T, CancellationToken> writer,
             CancellationToken cancel = default)
         {
             OutgoingRequest request = WithEmptyArgs(proxy, operation, invocation, cancel);
             // TODO: deal with compress, format, and cancel parameters
-            request.StreamDataWriter = socketStream => writer(socketStream, args, cancel);
+            request.StreamDataWriter = stream => writer(stream, args, cancel);
             return request;
         }
         */

@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The SocketStream class for the colocated transport.</summary>
-    internal class ColocStream : SignaledSocketStream<(object, bool)>
+    /// <summary>The Stream class for the colocated transport.</summary>
+    internal class ColocStream : SignaledStream<(object, bool)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
-        private readonly ColocSocket _socket;
+        private readonly ColocConnection _connection;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
@@ -26,14 +26,14 @@ namespace IceRpc.Transports.Internal
             return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
-        protected override void AbortWrite(SocketStreamErrorCode errorCode)
+        protected override void AbortWrite(StreamErrorCode errorCode)
         {
             // If the stream is aborted, either because it was reset by the peer or because the connection was
             // aborted, there's no need to send a reset frame.
             if (!IsAborted)
             {
                 // Send reset frame
-                _ = _socket.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+                _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
             }
         }
 
@@ -58,7 +58,7 @@ namespace IceRpc.Transports.Internal
 
             // Send the channel reader to the peer. Receiving data will first wait for the channel reader
             // to be transmitted.
-            _socket.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
+            _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
         }
 
         protected override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -119,7 +119,7 @@ namespace IceRpc.Transports.Internal
         {
             if (_streamWriter == null)
             {
-                await _socket.SendFrameAsync(this, buffer, fin, cancel).ConfigureAwait(false);
+                await _connection.SendFrameAsync(this, buffer, fin, cancel).ConfigureAwait(false);
             }
             else
             {
@@ -143,20 +143,20 @@ namespace IceRpc.Transports.Internal
         protected override void Shutdown()
         {
             base.Shutdown();
-            _socket.ReleaseStream(this);
+            _connection.ReleaseStream(this);
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
-        internal ColocStream(ColocSocket socket, long streamId)
-            : base(socket, streamId) => _socket = socket;
+        internal ColocStream(ColocConnection connection, long streamId)
+            : base(connection, streamId) => _connection = connection;
 
         /// <summary>Constructor for outgoing colocated stream</summary>
-        internal ColocStream(ColocSocket socket, bool bidirectional, bool control)
-            : base(socket, bidirectional, control) => _socket = socket;
+        internal ColocStream(ColocConnection connection, bool bidirectional, bool control)
+            : base(connection, bidirectional, control) => _connection = connection;
 
         internal void ReceivedFrame(object frame, bool fin)
         {
-            if (frame is SocketStreamErrorCode errorCode)
+            if (frame is StreamErrorCode errorCode)
             {
                 AbortRead(errorCode);
                 CancelDispatchSource?.Cancel();
@@ -179,7 +179,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                frame.SocketStream = this;
+                frame.Stream = this;
                 Interlocked.Increment(ref _useCount);
             }
             return frame;
@@ -195,7 +195,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                frame.SocketStream = this;
+                frame.Stream = this;
                 Interlocked.Increment(ref _useCount);
             }
             return frame;
@@ -214,7 +214,7 @@ namespace IceRpc.Transports.Internal
             if (frame is List<ArraySegment<byte>> data)
             {
                 // Initialize or GoAway frame.
-                if (_socket.Protocol == Protocol.Ice1)
+                if (_connection.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(expectedFrameType == data[0][8]);
                     return ArraySegment<byte>.Empty;
@@ -234,7 +234,7 @@ namespace IceRpc.Transports.Internal
         }
 
         private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel) =>
-            await _socket.SendFrameAsync(
+            await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
                 fin: frame.StreamDataWriter == null,

@@ -4,6 +4,9 @@ root = true
 # C# files
 [*.cs]
 
+#### Guidelines ####
+guidelines = 120
+
 #### Core EditorConfig Options ####
 
 # Indentation and spacing

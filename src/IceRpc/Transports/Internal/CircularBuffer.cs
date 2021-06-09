@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>A circular byte buffer class to buffer streamed data. The socket adds data to this buffer when
+    /// <summary>A circular byte buffer class to buffer streamed data. The connection adds data to this buffer when
     /// receiving stream frames. The data is consumed from the buffer when the application reads the data from
     /// the stream. There can only be a single consumer and producer.</summary>
     internal class CircularBuffer
@@ -67,7 +67,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Add data to the buffer. This method doesn't actually copy the data to the buffer but returns
         /// a slice of the buffer of the given size. The producer is responsible for filling the data in. The
-        /// buffer is typically used to receive the data from the socket. The caller must ensure there's enough
+        /// buffer is typically used to receive the data from the connection. The caller must ensure there's enough
         /// space for adding the data.</summary>
         /// <param name="size">The size of the data to add.</param>
         /// <return>A buffer of the given size.</return>

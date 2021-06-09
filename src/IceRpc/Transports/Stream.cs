@@ -12,15 +12,15 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class SocketStreamAbortedException : Exception
+    public class StreamAbortedException : Exception
     {
-        internal SocketStreamErrorCode ErrorCode { get; }
+        internal StreamErrorCode ErrorCode { get; }
 
-        internal SocketStreamAbortedException(SocketStreamErrorCode errorCode) => ErrorCode = errorCode;
+        internal StreamAbortedException(StreamErrorCode errorCode) => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum SocketStreamErrorCode : byte
+    public enum StreamErrorCode : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled = 0,
@@ -41,20 +41,20 @@ namespace IceRpc.Transports
         ConnectionAborted,
     }
 
-    /// <summary>The SocketStream abstract base class to be overridden by multi-stream transport implementations.
-    /// There's an instance of this class for each active stream managed by the multi-stream socket.</summary>
-    public abstract class SocketStream
+    /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
+    /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
+    public abstract class Stream
     {
         /// <summary>A delegate used to send data from a System.IO.Stream value.</summary>
-        public static readonly Action<SocketStream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
-            (socketStream, value, cancel) => socketStream.SendDataFromIOStream(value, cancel);
+        public static readonly Action<Stream, System.IO.Stream, CancellationToken> IceSendDataFromIOStream =
+            (stream, value, cancel) => stream.SendDataFromIOStream(value, cancel);
 
         /// <summary>A delegate used to receive data into a System.IO.Stream value.</summary>
-        public static readonly Func<SocketStream, System.IO.Stream> IceReceiveDataIntoIOStream =
-            socketStream => socketStream.ReceiveDataIntoIOStream();
+        public static readonly Func<Stream, System.IO.Stream> IceReceiveDataIntoIOStream =
+            stream => stream.ReceiveDataIntoIOStream();
 
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
-        /// stream ID registers the stream with the socket.</summary>
+        /// stream ID registers the stream with the connection.</summary>
         /// <exception cref="InvalidOperationException">If the stream ID has not been assigned yet.</exception>
         public long Id
         {
@@ -69,15 +69,15 @@ namespace IceRpc.Transports
             set
             {
                 Debug.Assert(_id == -1);
-                // First add the stream and then assign the ID. AddStream can throw if the socket is closed and
+                // First add the stream and then assign the ID. AddStream can throw if the connection is closed and
                 // in this case we want to make sure the id isn't assigned since the stream isn't considered
-                // allocated if not added to the socket.
-                _socket.AddStream(value, this, IsControl, ref _id);
+                // allocated if not added to the connection.
+                _connection.AddStream(value, this, IsControl, ref _id);
             }
         }
 
         /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
-        public bool IsIncoming => _id != -1 && _id % 2 == (_socket.IsIncoming ? 0 : 1);
+        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsIncoming ? 0 : 1);
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }
@@ -98,30 +98,30 @@ namespace IceRpc.Transports
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; }
 
-        internal bool IsIce1 => _socket.Protocol == Protocol.Ice1;
+        internal bool IsIce1 => _connection.Protocol == Protocol.Ice1;
 
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
 
-        // The use count indicates if the socket stream is being used to process an invocation or dispatch or
-        // to process stream parameters. The socket stream is disposed only once this count drops to 0.
+        // The use count indicates if the stream is being used to process an invocation or dispatch or
+        // to process stream parameters. The stream is disposed only once this count drops to 0.
         private protected int _useCount = 1;
 
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
-        private readonly MultiStreamSocket _socket;
+        private readonly MultiStreamConnection _connection;
 
         /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
-        internal void Abort(SocketStreamErrorCode errorCode) => AbortRead(errorCode);
+        internal void Abort(StreamErrorCode errorCode) => AbortRead(errorCode);
 
-        /// <summary>Receives data from the socket stream into the returned IO stream.</summary>
+        /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
         public System.IO.Stream ReceiveDataIntoIOStream() => new IOStream(this);
 
-        /// <summary>Send data from the given IO stream to the socket stream.</summary>
-        /// <param name="ioStream">The IO stream to read the data to send over the socket stream.</param>
+        /// <summary>Send data from the given IO stream to the stream.</summary>
+        /// <param name="ioStream">The IO stream to read the data to send over the stream.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public void SendDataFromIOStream(System.IO.Stream ioStream, CancellationToken cancel)
         {
@@ -164,7 +164,7 @@ namespace IceRpc.Transports
                             catch
                             {
                                 // Don't await the sending of the reset since it might block if sending is blocking.
-                                Reset(SocketStreamErrorCode.StreamingError);
+                                Reset(StreamErrorCode.StreamingError);
                                 break;
                             }
                         }
@@ -186,13 +186,13 @@ namespace IceRpc.Transports
 
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
-        /// <param name="socket">The parent socket.</param>
-        protected SocketStream(MultiStreamSocket socket, long streamId)
+        /// <param name="connection">The parent connection.</param>
+        protected Stream(MultiStreamConnection connection, long streamId)
         {
-            _socket = socket;
+            _connection = connection;
             IsBidirectional = streamId % 4 < 2;
             IsControl = streamId == 2 || streamId == 3;
-            _socket.AddStream(streamId, this, IsControl, ref _id);
+            _connection.AddStream(streamId, this, IsControl, ref _id);
             if (IsIncoming)
             {
                 CancelDispatchSource = new CancellationTokenSource();
@@ -202,19 +202,19 @@ namespace IceRpc.Transports
         /// <summary>Constructs an outgoing stream.</summary>
         /// <param name="bidirectional">True to create a bidirectional stream, False otherwise.</param>
         /// <param name="control">True to create a control stream, False otherwise.</param>
-        /// <param name="socket">The parent socket.</param>
-        protected SocketStream(MultiStreamSocket socket, bool bidirectional, bool control)
+        /// <param name="connection">The parent connection.</param>
+        protected Stream(MultiStreamConnection connection, bool bidirectional, bool control)
         {
-            _socket = socket;
+            _connection = connection;
             IsBidirectional = bidirectional;
             IsControl = control;
         }
 
         /// <summary>Abort the stream received side.</summary>
-        protected abstract void AbortRead(SocketStreamErrorCode errorCode);
+        protected abstract void AbortRead(StreamErrorCode errorCode);
 
         /// <summary>Abort the stream send size.</summary>
-        protected abstract void AbortWrite(SocketStreamErrorCode errorCode);
+        protected abstract void AbortWrite(StreamErrorCode errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -254,13 +254,13 @@ namespace IceRpc.Transports
         protected abstract ValueTask SendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel);
 
         /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
-        /// response or a streamable parameter. It un-registers the stream from the socket.</summary>
+        /// response or a streamable parameter. It un-registers the stream from the connection.</summary>
         protected virtual void Shutdown()
         {
-            if (IsStarted && !_socket.RemoveStream(Id))
+            if (IsStarted && !_connection.RemoveStream(Id))
             {
                 Debug.Assert(false);
-                throw new ObjectDisposedException($"{typeof(SocketStream).FullName}");
+                throw new ObjectDisposedException($"{typeof(Stream).FullName}");
             }
             CancelDispatchSource?.Dispose();
         }
@@ -296,7 +296,7 @@ namespace IceRpc.Transports
                 // this stream ID to ensure the request with this stream ID will complete successfully in case the
                 // close connection message is received shortly after the response and potentially processed before
                 // due to the thread scheduling.
-                lastBidirectionalId = _socket.LastResponseStreamId;
+                lastBidirectionalId = _connection.LastResponseStreamId;
                 lastUnidirectionalId = 0;
                 message = "connection closed gracefull by peer";
             }
@@ -308,7 +308,7 @@ namespace IceRpc.Transports
                 message = goAwayFrame.Message;
             }
 
-            _socket.Logger.LogReceivedGoAwayFrame(_socket, lastBidirectionalId, lastUnidirectionalId, message);
+            _connection.Logger.LogReceivedGoAwayFrame(_connection, lastBidirectionalId, lastUnidirectionalId, message);
             return ((lastBidirectionalId, lastUnidirectionalId), message);
         }
 
@@ -321,7 +321,7 @@ namespace IceRpc.Transports
             byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
 
-            _socket.Logger.LogReceivedGoAwayCanceledFrame();
+            _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
 
         internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel = default)
@@ -357,13 +357,13 @@ namespace IceRpc.Transports
                     {
                         checked
                         {
-                            _socket.PeerIncomingFrameMaxSize = (int)value.Span.ReadVarULong().Value;
+                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.ReadVarULong().Value;
                         }
 
-                        if (_socket.PeerIncomingFrameMaxSize < 1024)
+                        if (_connection.PeerIncomingFrameMaxSize < 1024)
                         {
                             throw new InvalidDataException($@"the peer's IncomingFrameMaxSize ({
-                                _socket.PeerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
+                                _connection.PeerIncomingFrameMaxSize} bytes) value is inferior to 1KB");
                         }
                     }
                     else
@@ -372,13 +372,13 @@ namespace IceRpc.Transports
                     }
                 }
 
-                if (_socket.PeerIncomingFrameMaxSize == null)
+                if (_connection.PeerIncomingFrameMaxSize == null)
                 {
                     throw new InvalidDataException("missing IncomingFrameMaxSize Ice2 connection parameter");
                 }
             }
 
-            _socket.Logger.LogReceivedInitializeFrame(_socket);
+            _connection.Logger.LogReceivedInitializeFrame(_connection);
         }
 
         internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
@@ -390,12 +390,12 @@ namespace IceRpc.Transports
             IncomingRequest request;
             if (ReceivedEndOfStream)
             {
-                request = new IncomingRequest(_socket.Protocol, data, null);
+                request = new IncomingRequest(_connection.Protocol, data, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                request = new IncomingRequest(_socket.Protocol, data, this);
+                request = new IncomingRequest(_connection.Protocol, data, this);
             }
 
             return request;
@@ -411,12 +411,12 @@ namespace IceRpc.Transports
             IncomingResponse response;
             if (ReceivedEndOfStream)
             {
-                response = new IncomingResponse(_socket.Protocol, data, null);
+                response = new IncomingResponse(_connection.Protocol, data, null);
             }
             else
             {
                 EnableReceiveFlowControl();
-                response = new IncomingResponse(_socket.Protocol, data, this);
+                response = new IncomingResponse(_connection.Protocol, data, this);
             }
 
             return response;
@@ -430,7 +430,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Reset(SocketStreamErrorCode errorCode)
+        internal void Reset(StreamErrorCode errorCode)
         {
             if (!IsControl)
             {
@@ -469,7 +469,7 @@ namespace IceRpc.Transports
                 await SendAsync(data, false, cancel).ConfigureAwait(false);
             }
 
-            _socket.Logger.LogSentGoAwayFrame(_socket, streamIds.Bidirectional, streamIds.Unidirectional, reason);
+            _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
         }
 
         internal virtual async ValueTask SendGoAwayCanceledFrameAsync()
@@ -489,7 +489,7 @@ namespace IceRpc.Transports
 
             await SendAsync(data, true, CancellationToken.None).ConfigureAwait(false);
 
-            _socket.Logger.LogSentGoAwayCanceledFrame();
+            _connection.Logger.LogSentGoAwayCanceledFrame();
         }
 
         internal virtual async ValueTask SendInitializeFrameAsync(CancellationToken cancel = default)
@@ -514,9 +514,9 @@ namespace IceRpc.Transports
                 ostr.WriteSize(1);
 
                 // Transmit out local incoming frame maximum size
-                Debug.Assert(_socket.IncomingFrameMaxSize > 0);
+                Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 ostr.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                (ulong)_socket.IncomingFrameMaxSize,
+                                (ulong)_connection.IncomingFrameMaxSize,
                                 OutputStream.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
@@ -526,7 +526,7 @@ namespace IceRpc.Transports
             }
 
             using IDisposable? scope = StartScope();
-            _socket.Logger.LogSentInitializeFrame(_socket, _socket.IncomingFrameMaxSize);
+            _connection.Logger.LogSentInitializeFrame(_connection, _connection.IncomingFrameMaxSize);
         }
 
         internal async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel = default)
@@ -547,7 +547,7 @@ namespace IceRpc.Transports
             response.StreamDataWriter?.Invoke(this);
         }
 
-        internal IDisposable? StartScope() => _socket.Logger.StartStreamScope(Id);
+        internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
 
         private protected virtual async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
@@ -576,7 +576,7 @@ namespace IceRpc.Transports
             // Read the frame data
             if (size > 0)
             {
-                if (size > _socket.IncomingFrameMaxSize)
+                if (size > _connection.IncomingFrameMaxSize)
                 {
                     throw new InvalidDataException(
                         $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
@@ -608,13 +608,13 @@ namespace IceRpc.Transports
             int frameSize = buffer.GetByteCount() - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
-            if (frameSize > _socket.PeerIncomingFrameMaxSize)
+            if (frameSize > _connection.PeerIncomingFrameMaxSize)
             {
                 if (frame is OutgoingRequest)
                 {
                     throw new ArgumentException(
                         $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameSizeMax ({
-                        _socket.PeerIncomingFrameMaxSize} bytes)",
+                        _connection.PeerIncomingFrameMaxSize} bytes)",
                         nameof(frame));
                 }
                 else
@@ -623,7 +623,7 @@ namespace IceRpc.Transports
                     // as the response instead of sending this response which is too large.
                     throw new DispatchException(
                         $@"the response size ({frameSize} bytes) is larger than IncomingFrameSizeMax ({
-                        _socket.PeerIncomingFrameMaxSize} bytes)");
+                        _connection.PeerIncomingFrameMaxSize} bytes)");
                 }
             }
 
@@ -658,7 +658,7 @@ namespace IceRpc.Transports
                 set => throw new NotImplementedException();
             }
 
-            private readonly SocketStream _stream;
+            private readonly Stream _stream;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -694,7 +694,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            internal IOStream(SocketStream stream) => _stream = stream;
+            internal IOStream(Stream stream) => _stream = stream;
         }
     }
 }

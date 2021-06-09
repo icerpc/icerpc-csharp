@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class UdpSocket : SingleStreamSocket, IUdpSocket
+    internal sealed class UdpConnection : SingleStreamConnection, IUdpConnectionInformation
     {
         /// <inheritdoc/>
         public bool IsSecure => false;
@@ -54,7 +54,7 @@ namespace IceRpc.Transports.Internal
         public IPEndPoint? MulticastEndpoint { get; private set; }
 
         /// <inheritdoc/>
-        public override ISocket Socket => this;
+        public override IConnectionInformation ConnectionInformation => this;
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;
@@ -69,14 +69,14 @@ namespace IceRpc.Transports.Internal
         private readonly int _rcvSize;
         private readonly Socket _socket;
 
-        public override ValueTask<(SingleStreamSocket, Endpoint?)> AcceptAsync(
+        public override ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new((this, null));
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
-        public override async ValueTask<(SingleStreamSocket, Endpoint)> ConnectAsync(
+        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -182,7 +182,7 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing) => _socket.Dispose();
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
+        internal UdpConnection(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
             : base(logger)
         {
             _socket = socket;

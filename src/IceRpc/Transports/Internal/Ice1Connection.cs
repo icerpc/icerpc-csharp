@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Ice1 network socket implements a multi-stream transport using the Ice1 protocol. A new incoming
+    /// <summary>The Ice1 connection implements a multi-stream connection for the Ice1 protocol. A new incoming
     /// stream is created for each incoming Ice1 request and an outgoing stream is created for outgoing requests.
-    /// The streams created by the Ice1 network socket are always finished once the request or response frames are
+    /// The streams created by the Ice1 connection are always finished once the request or response frames are
     /// sent or received. Data streaming is not supported. Initialize or GoAway frames sent over the control streams
     /// are translated to connection validation or close connection Ice1 frames.</summary>
-    internal class Ice1NetworkSocket : MultiStreamOverSingleStreamSocket
+    internal class Ice1Connection : MultiStreamOverSingleStreamConnection
     {
         public override TimeSpan IdleTimeout { get; internal set; }
 
@@ -28,7 +28,7 @@ namespace IceRpc.Transports.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<SocketStream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -104,7 +104,7 @@ namespace IceRpc.Transports.Internal
                     await ReceiveAsync(buffer.Slice(Ice1Definitions.HeaderSize), cancel).ConfigureAwait(false);
                 }
 
-                // Make sure the socket is marked as validated. This flag is necessary because incoming
+                // Make sure the connection is marked as validated. This flag is necessary because incoming
                 // connection initialization doesn't wait for connection validation message. So the connection
                 // is considered validated on the server side only once the first frame is received. This is
                 // only useful for connection warnings, to prevent a warning from showing up if the server side
@@ -117,7 +117,7 @@ namespace IceRpc.Transports.Internal
                 (long streamId, Ice1FrameType frameType, ArraySegment<byte> frame) = ParseFrame(buffer);
                 if (streamId >= 0)
                 {
-                    if (TryGetStream(streamId, out Ice1NetworkSocketStream? stream))
+                    if (TryGetStream(streamId, out Ice1Stream? stream))
                     {
                         // If this is a known stream, pass the data to the stream.
                         if (frameType == Ice1FrameType.ValidateConnection)
@@ -150,7 +150,7 @@ namespace IceRpc.Transports.Internal
                         // the semaphore first to serialize the dispatching.
                         try
                         {
-                            stream = new Ice1NetworkSocketStream(this, streamId);
+                            stream = new Ice1Stream(this, streamId);
                             AsyncSemaphore? semaphore = stream.IsBidirectional ?
                                 _bidirectionalStreamSemaphore : _unidirectionalStreamSemaphore;
                             if (semaphore != null)
@@ -162,7 +162,7 @@ namespace IceRpc.Transports.Internal
                         }
                         catch
                         {
-                            // Ignore, if the stream has been aborted or the socket is being shutdown.
+                            // Ignore, if the stream has been aborted or the connection is being shutdown.
                             stream?.Release();
                         }
                     }
@@ -170,7 +170,7 @@ namespace IceRpc.Transports.Internal
                     {
                         // If we received a connection validation frame and the stream is not known, it's the first
                         // received connection validation message, create the control stream and return it.
-                        stream = new Ice1NetworkSocketStream(this, streamId);
+                        stream = new Ice1Stream(this, streamId);
                         Debug.Assert(stream.IsControl);
                         stream.ReceivedFrame(frameType, frame);
                         return stream;
@@ -186,9 +186,9 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
             await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
 
-        public override SocketStream CreateStream(bool bidirectional) =>
+        public override Stream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
-            new Ice1NetworkSocketStream(
+            new Ice1Stream(
                 this,
                 bidirectional,
                 !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
@@ -204,8 +204,11 @@ namespace IceRpc.Transports.Internal
             Logger.LogSentInitializeFrame(this, 0);
         }
 
-        internal Ice1NetworkSocket(Endpoint endpoint, SingleStreamSocket socket, ConnectionOptions options)
-            : base(endpoint, socket, options)
+        internal Ice1Connection(
+            Endpoint endpoint, 
+            SingleStreamConnection singleStreamConnection,
+            ConnectionOptions options)
+            : base(endpoint, singleStreamConnection, options)
         {
             IdleTimeout = options.IdleTimeout;
 
@@ -228,14 +231,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<SocketStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
+        internal override ValueTask<Stream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here we
             // only expect the connection validation message for an outgoing connection and just return the
             // control stream immediately for an incoming connection.
             if (IsIncoming)
             {
-                return new ValueTask<SocketStream>(new Ice1NetworkSocketStream(this, 2));
+                return new ValueTask<Stream>(new Ice1Stream(this, 2));
             }
             else
             {
@@ -243,7 +246,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReleaseStream(Ice1NetworkSocketStream stream)
+        internal void ReleaseStream(Ice1Stream stream)
         {
             if (stream.IsIncoming && !stream.IsControl)
             {
@@ -259,7 +262,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal async ValueTask SendFrameAsync(
-            Ice1NetworkSocketStream? stream,
+            Ice1Stream? stream,
             IList<ArraySegment<byte>> buffer,
             CancellationToken cancel)
         {
@@ -296,7 +299,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<SocketStream> SendInitializeFrameAsync(CancellationToken cancel)
+        internal override ValueTask<Stream> SendInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here
             // we only expect the connection validation message for an incoming connection and just return the
@@ -307,7 +310,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                return new ValueTask<SocketStream>(new Ice1NetworkSocketStream(this, AllocateId(false)));
+                return new ValueTask<Stream>(new Ice1Stream(this, AllocateId(false)));
             }
         }
 

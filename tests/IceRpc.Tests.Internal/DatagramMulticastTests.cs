@@ -16,13 +16,13 @@ namespace IceRpc.Tests.Internal
     [TestFixture(5, AddressFamily.InterNetwork)]
     [TestFixture(5, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class DatagramMulticastTests : SocketBaseTest
+    public class DatagramMulticastTests : ConnectionBaseTest
     {
-        protected SingleStreamSocket ClientSocket => _clientSocket!;
-        protected IList<SingleStreamSocket> ServerSockets => _serverSockets;
-        private SingleStreamSocket? _clientSocket;
+        protected SingleStreamConnection OutgoingConnection => _outgoingConnection!;
+        protected IList<SingleStreamConnection> IncomingConnections => _incomingConnections;
+        private SingleStreamConnection? _outgoingConnection;
         private readonly int _incomingConnectionCount;
-        private readonly List<SingleStreamSocket> _serverSockets = new();
+        private readonly List<SingleStreamConnection> _incomingConnections = new();
 
         public DatagramMulticastTests(int incomingConnectionCount, AddressFamily addressFamily)
             : base(
@@ -37,26 +37,26 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            _serverSockets.Clear();
+            _incomingConnections.Clear();
             for (int i = 0; i < _incomingConnectionCount; ++i)
             {
-                _serverSockets.Add(((MultiStreamOverSingleStreamSocket)CreateServerSocket()).Underlying);
+                _incomingConnections.Add(((MultiStreamOverSingleStreamConnection)CreateIncomingConnection()).Underlying);
             }
 
-            ValueTask<SingleStreamSocket> connectTask = SingleStreamSocketAsync(ConnectAsync());
-            _clientSocket = await connectTask;
+            ValueTask<SingleStreamConnection> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+            _outgoingConnection = await connectTask;
         }
 
         [TearDown]
         public void TearDown()
         {
-            _clientSocket?.Dispose();
-            _serverSockets.ForEach(socket => socket.Dispose());
+            _outgoingConnection?.Dispose();
+            _incomingConnections.ForEach(connection => connection.Dispose());
         }
 
         [TestCase(1)]
         [TestCase(1024)]
-        public async Task DatagramMulticastSocket_SendReceiveAsync(int size)
+        public async Task DatagramMulticast_SendReceiveAsync(int size)
         {
             var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
             new Random().NextBytes(sendBuffer[0]);
@@ -68,10 +68,10 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = ClientSocket.SendDatagramAsync(sendBuffer, default);
-                    foreach (SingleStreamSocket socket in ServerSockets)
+                    ValueTask<int> sendTask = OutgoingConnection.SendDatagramAsync(sendBuffer, default);
+                    foreach (SingleStreamConnection connection in IncomingConnections)
                     {
-                        ArraySegment<byte> receiveBuffer = await socket.ReceiveDatagramAsync(source.Token);
+                        ArraySegment<byte> receiveBuffer = await connection.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
                         Assert.AreEqual(sendBuffer[0], receiveBuffer);
                     }

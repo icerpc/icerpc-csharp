@@ -104,7 +104,7 @@ namespace IceRpc.Internal
 
                         if (request.Connection != null)
                         {
-                            using IDisposable? socketScope = request.Connection.StartScope();
+                            using IDisposable? connectionScope = request.Connection.StartScope();
                             _logger.LogRetryRequestRetryableException(
                                 retryPolicy,
                                 attempt,
@@ -150,7 +150,7 @@ namespace IceRpc.Internal
                 {
                     // TODO this doesn't seems correct we need to log request exceptions even if there isn't
                     // a retry invoker
-                    using IDisposable? socketScope = request.Connection?.StartScope();
+                    using IDisposable? connectionScope = request.Connection?.StartScope();
                     _logger.LogRequestException(request, exception);
                 }
 
