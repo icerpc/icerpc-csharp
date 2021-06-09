@@ -745,7 +745,7 @@ namespace IceRpc
                     _connection.Dispose();
 
                     // Log the connection closure
-                    if (_state == ConnectionState.Connecting && !_connected)
+                    if (!_connected)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
@@ -759,7 +759,7 @@ namespace IceRpc
                         };
                         logFailure(exception);
                     }
-                    else if (_state > ConnectionState.Connecting || _connected)
+                    else
                     {
                         if (IsDatagram && IsIncoming)
                         {
@@ -865,13 +865,19 @@ namespace IceRpc
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
                         // We log the exception as the UnhandledException may not include all details.
-                        _connection!.Logger.LogDispatchException(request, exception);
+                        _connection!.Logger.LogDispatchException(request.Connection,
+                                                                 request.Path,
+                                                                 request.Operation,
+                                                                 exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else if (!stream.IsBidirectional)
                     {
                         // We log this exception, otherwise it would be lost since we don't send a response.
-                        _connection!.Logger.LogDispatchException(request, exception);
+                        _connection!.Logger.LogDispatchException(request.Connection,
+                                                                 request.Path,
+                                                                 request.Operation,
+                                                                 exception);
                     }
                     else
                     {

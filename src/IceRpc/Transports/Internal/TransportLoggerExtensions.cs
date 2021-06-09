@@ -7,14 +7,8 @@ using System.Net;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
-    internal static class TransportLoggerExtensions
+    internal static partial class TransportLoggerExtensions
     {
-        private static readonly Action<ILogger, Exception> _acceptingConnectionFailed =
-            LoggerMessage.Define(
-                LogLevel.Error,
-                TransportEventIds.AcceptingConnectionFailed,
-                "unexpected failure to accept a new connection");
-
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _acceptorScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
@@ -33,42 +27,6 @@ namespace IceRpc.Transports.Internal
         private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocOutgoingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, long, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
-
-        private static readonly Action<ILogger, Exception> _connectionAccepted =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.ConnectionAccepted,
-                "accepted connection");
-
-        private static readonly Action<ILogger, Exception> _connectionAcceptFailed =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.ConnectionAcceptFailed,
-                "failed to accept connection");
-
-        private static readonly Action<ILogger, Exception> _connectionConnectFailed =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.ConnectionConnectFailed,
-                "connection establishment failed");
-
-        private static readonly Action<ILogger, Exception> _connectionEstablished =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.ConnectionConnected,
-                "established connection");
-
-        private static readonly Action<ILogger, string, Exception> _connectionEventHandlerException =
-            LoggerMessage.Define<string>(
-                LogLevel.Warning,
-                TransportEventIds.ConnectionEventHandlerException,
-                "{Name} event handler raised exception");
-
-        private static readonly Action<ILogger, string, Exception> _connectionClosed =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                TransportEventIds.ConnectionConnectFailed,
-                "closed connection (Reason={Reason})");
 
         private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionIncomingConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
@@ -89,80 +47,8 @@ namespace IceRpc.Transports.Internal
                 "connection(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
                 "RemoteEndPoint={RemoteEndpoint})");
 
-        private static readonly Action<ILogger, string, int, int, Exception> _receiveBufferSizeAdjusted =
-            LoggerMessage.Define<string, int, int>(
-                LogLevel.Debug,
-                TransportEventIds.ReceiveBufferSizeAdjusted,
-                "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
-
-        private static readonly Action<ILogger, int, Exception> _receivedData =
-            LoggerMessage.Define<int>(
-                LogLevel.Trace,
-                TransportEventIds.ReceivedData,
-                "received {Size} bytes");
-
-        private static readonly Action<ILogger, int, Exception> _receivedInvalidDatagram =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                TransportEventIds.ReceivedInvalidDatagram,
-                "received invalid {Bytes} bytes datagram");
-
-        private static readonly Action<ILogger, string, int, int, Exception> _sendBufferSizeAdjusted =
-            LoggerMessage.Define<string, int, int>(
-                LogLevel.Debug,
-                TransportEventIds.SendBufferSizeAdjusted,
-                "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}");
-
-        private static readonly Action<ILogger, int, Exception> _sentData =
-            LoggerMessage.Define<int>(
-                LogLevel.Trace,
-                TransportEventIds.SentData,
-                "sent {Size} bytes");
-
         private static readonly Func<ILogger, string, IDisposable> _incomingConnectionScope =
             LoggerMessage.DefineScope<string>("connection(Description={Description})");
-
-        private static readonly Action<ILogger, Exception> _startAcceptingConnections =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                TransportEventIds.StartAcceptingConnections,
-                "starting to accept connections");
-
-        private static readonly Action<ILogger, Exception> _startReceivingDatagrams =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                TransportEventIds.StartReceivingDatagrams,
-                "starting to receive datagrams");
-
-        private static readonly Action<ILogger, Exception> _startReceivingDatagramsFailed =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                TransportEventIds.StartReceivingDatagramsFailed,
-                "starting receiving datagrams failed");
-
-        private static readonly Action<ILogger, Exception> _startSendingDatagrams =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.StartSendingDatagrams,
-                "starting to send datagrams");
-
-        private static readonly Action<ILogger, Exception> _startSendingDatagramsFailed =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                TransportEventIds.StartSendingDatagramsFailed,
-                "starting sending datagrams failed");
-
-        private static readonly Action<ILogger, Exception> _stopAcceptingConnections =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                TransportEventIds.StopAcceptingConnections,
-                "stopping to accept connections");
-
-        private static readonly Action<ILogger, Exception> _stopReceivingDatagrams =
-            LoggerMessage.Define(
-                LogLevel.Information,
-                TransportEventIds.StopReceivingDatagrams,
-                "stopping to receive datagrams");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
@@ -172,78 +58,182 @@ namespace IceRpc.Transports.Internal
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
 
-        internal static void LogAcceptingConnectionFailed(this ILogger logger, Exception ex) =>
-            _acceptingConnectionFailed(logger, ex);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.AcceptingConnectionFailed,
+            EventName = nameof(TransportEvent.AcceptingConnectionFailed),
+            Level = LogLevel.Error,
+            Message = "unexpected failure to accept a new connection")]
+        internal static partial void LogAcceptingConnectionFailed(this ILogger logger, Exception ex);
 
-        internal static void LogConnectionEventHandlerException(this ILogger logger, string name, Exception ex) =>
-            _connectionEventHandlerException(logger, name, ex);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionAccepted,
+            EventName = nameof(TransportEvent.ConnectionAccepted),
+            Level = LogLevel.Debug,
+            Message = "accepted connection")]
+        internal static partial void LogConnectionAccepted(this ILogger logger);
 
-        internal static void LogConnectionAccepted(this ILogger logger) =>
-            _connectionAccepted(logger, null!);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionAcceptFailed,
+            EventName = nameof(TransportEvent.ConnectionAcceptFailed),
+            Level = LogLevel.Debug,
+            Message = "failed to accept connection")]
+        internal static partial void LogConnectionAcceptFailed(this ILogger logger, Exception exception);
 
-        internal static void LogConnectionAcceptFailed(this ILogger logger, Exception exception) =>
-            _connectionAcceptFailed(logger, exception);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionClosed,
+            EventName = nameof(TransportEvent.ConnectionClosed),
+            Level = LogLevel.Debug,
+            Message = "closed connection (Reason={Reason})")]
+        internal static partial void LogConnectionClosed(this ILogger logger, string reason, Exception? exception = null);
 
-        internal static void LogConnectionClosed(this ILogger logger, string message, Exception? exception = null) =>
-            _connectionClosed(logger, message, exception!);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionConnectFailed,
+            EventName = nameof(TransportEvent.ConnectionConnectFailed),
+            Level = LogLevel.Debug,
+            Message = "connection establishment failed")]
+        internal static partial void LogConnectionConnectFailed(this ILogger logger, Exception exception);
 
-        internal static void LogConnectionConnectFailed(this ILogger logger, Exception exception) =>
-            _connectionConnectFailed(logger, exception);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionEstablished,
+            EventName = nameof(TransportEvent.ConnectionEstablished),
+            Level = LogLevel.Debug,
+            Message = "established connection")]
+        internal static partial void LogConnectionEstablished(this ILogger logger);
 
-        internal static void LogConnectionEstablished(this ILogger logger) =>
-            _connectionEstablished(logger, null!);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ConnectionEventHandlerException,
+            EventName = nameof(TransportEvent.ConnectionEventHandlerException),
+            Level = LogLevel.Warning,
+            Message = "{Name} event handler raised exception")]
+        internal static partial void LogConnectionEventHandlerException(this ILogger logger, string name, Exception ex);
 
-        internal static void LogReceivedInvalidDatagram(this ILogger logger, int bytes) =>
-            _receivedInvalidDatagram(logger, bytes, null!);
-
-        internal static void LogStartReceivingDatagrams(this ILogger logger) =>
-            _startReceivingDatagrams(logger, null!);
-
-        internal static void LogStartReceivingDatagramsFailed(this ILogger logger, Exception exception) =>
-            _startReceivingDatagramsFailed(logger, exception);
-
-        internal static void LogStartSendingDatagrams(this ILogger logger) =>
-            _startSendingDatagrams(logger, null!);
-
-        internal static void LogStartSendingDatagramsFailed(this ILogger logger, Exception exception) =>
-            _startSendingDatagramsFailed(logger, exception);
-
-        internal static void LogStartAcceptingConnections(this ILogger logger) =>
-            _startAcceptingConnections(logger, null!);
-
-        internal static void LogStopAcceptingConnections(this ILogger logger) =>
-            _stopAcceptingConnections(logger, null!);
-
-        internal static void LogStopReceivingDatagrams(this ILogger logger) =>
-            _stopReceivingDatagrams(logger, null!);
-
-        internal static void LogReceivedData(this ILogger logger, int size) => _receivedData(logger, size, null!);
-
-        internal static void LogReceiveBufferSizeAdjusted(
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ReceiveBufferSizeAdjusted,
+            EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
+            Level = LogLevel.Debug,
+            Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+        internal static partial void LogReceiveBufferSizeAdjusted(
             this ILogger logger,
             Transport transport,
             int requestedSize,
-            int adjustedSize) =>
-            _receiveBufferSizeAdjusted(
-                logger,
-                transport.ToString().ToLowerInvariant(),
-                requestedSize,
-                adjustedSize,
-                null!);
+            int adjustedSize);
 
-        internal static void LogSendBufferSizeAdjusted(
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ReceivedData,
+            EventName = nameof(TransportEvent.ReceivedData),
+            Level = LogLevel.Trace,
+            Message = "received {Size} bytes")]
+        internal static partial void LogReceivedData(this ILogger logger, int size);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ReceivedInvalidDatagram,
+            EventName = nameof(TransportEvent.ReceivedInvalidDatagram),
+            Level = LogLevel.Debug,
+            Message = "received invalid {Bytes} bytes datagram")]
+        internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.SendBufferSizeAdjusted,
+            EventName = nameof(TransportEvent.SendBufferSizeAdjusted),
+            Level = LogLevel.Debug,
+            Message = "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+        internal static partial void LogSendBufferSizeAdjusted(
             this ILogger logger,
             Transport transport,
             int requestedSize,
-            int adjustedSize) =>
-            _sendBufferSizeAdjusted(
-                logger,
-                transport.ToString().ToLowerInvariant(),
-                requestedSize,
-                adjustedSize,
-                null!);
+            int adjustedSize);
 
-        internal static void LogSentData(this ILogger logger, int size) => _sentData(logger, size, null!);
+        [LoggerMessage(
+            EventId = (int)TransportEvent.SentData,
+            EventName = nameof(TransportEvent.SentData),
+            Level = LogLevel.Debug,
+            Message = "sent {Size} bytes")]
+        internal static partial void LogSentData(this ILogger logger, int size);
+
+        [LoggerMessage(
+           EventId = (int)TransportEvent.StartAcceptingConnections,
+           EventName = nameof(TransportEvent.StartAcceptingConnections),
+           Level = LogLevel.Information,
+           Message = "starting to accept connections")]
+        internal static partial void LogStartAcceptingConnections(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StartReceivingDatagrams,
+            EventName = nameof(TransportEvent.StartReceivingDatagrams),
+            Level = LogLevel.Information,
+            Message = "starting to receive datagrams")]
+        internal static partial void LogStartReceivingDatagrams(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StartReceivingDatagramsFailed,
+            EventName = nameof(TransportEvent.StartReceivingDatagramsFailed),
+            Level = LogLevel.Information,
+            Message = "starting receiving datagrams failed")]
+        internal static partial void LogStartReceivingDatagramsFailed(this ILogger logger, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StartSendingDatagrams,
+            EventName = nameof(TransportEvent.StartSendingDatagrams),
+            Level = LogLevel.Debug,
+            Message = "starting to send datagrams")]
+        internal static partial void LogStartSendingDatagrams(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StartSendingDatagramsFailed,
+            EventName = nameof(TransportEvent.StartSendingDatagramsFailed),
+            Level = LogLevel.Debug,
+            Message = "starting sending datagrams failed")]
+        internal static partial void LogStartSendingDatagramsFailed(this ILogger logger, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StopAcceptingConnections,
+            EventName = nameof(TransportEvent.StopAcceptingConnections),
+            Level = LogLevel.Information,
+            Message = "stopping to accept connections")]
+        internal static partial void LogStopAcceptingConnections(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.StopReceivingDatagrams,
+            EventName = nameof(TransportEvent.StopReceivingDatagrams),
+            Level = LogLevel.Information,
+            Message = "stopping to receive datagrams")]
+        internal static partial void LogStopReceivingDatagrams(this ILogger logger);
+
+        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
+        {
+            if (!logger.IsEnabled(LogLevel.Error))
+            {
+                return null;
+            }
+
+            string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
+            if (acceptor is TcpAcceptor tcpAcceptor)
+            {
+                return _tcpAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString(),
+                    tcpAcceptor.IPEndPoint);
+            }
+            else if (acceptor is ColocAcceptor)
+            {
+                return _colocAcceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString());
+            }
+            else
+            {
+                return _acceptorScope(
+                    logger,
+                    acceptor.Endpoint.TransportName,
+                    acceptor.Endpoint.Protocol,
+                    server.ToString(),
+                    acceptor.ToString()!);
+            }
+        }
 
         internal static IDisposable? StartConnectionScope(
             this ILogger logger,
@@ -376,42 +366,6 @@ namespace IceRpc.Transports.Internal
                 _ => ("Server", "Unidirectional")
             };
             return _streamScope(logger, id, initiatedBy, kind);
-        }
-
-        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
-        {
-            if (!logger.IsEnabled(LogLevel.Error))
-            {
-                return null;
-            }
-
-            string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
-            if (acceptor is TcpAcceptor tcpAcceptor)
-            {
-                return _tcpAcceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString(),
-                    tcpAcceptor.IPEndPoint);
-            }
-            else if (acceptor is ColocAcceptor)
-            {
-                return _colocAcceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString());
-            }
-            else
-            {
-                return _acceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString(),
-                    acceptor.ToString()!);
-            }
         }
     }
 }

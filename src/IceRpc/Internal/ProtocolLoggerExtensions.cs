@@ -1,155 +1,41 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 
 namespace IceRpc.Internal
 {
     /// <summary>This class contains constants used for protocol logging event Ids.</summary>
-    internal static class ProtocolLoggerExtensions
+    internal static partial class ProtocolLoggerExtensions
     {
-        private static readonly Action<ILogger, int, Exception> _datagramMaximumSizeExceeded =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                ProtocolEventIds.DatagramMaximumSizeExceeded,
-                "maximum datagram size of {Size} exceeded");
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.DatagramConnectionReceiveCloseConnectionFrame,
+            EventName = nameof(ProtocolEvent.DatagramConnectionReceiveCloseConnectionFrame),
+            Level = LogLevel.Debug,
+            Message = "ignoring close connection frame for datagram connection")]
+        internal static partial void LogDatagramConnectionReceiveCloseConnectionFrame(this ILogger logger);
 
-        private static readonly Action<ILogger, int, Exception> _datagramSizeExceededIncomingFrameMaxSize =
-            LoggerMessage.Define<int>(
-                LogLevel.Debug,
-                ProtocolEventIds.DatagramSizeExceededIncomingFrameMaxSize,
-                "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value");
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.DatagramMaximumSizeExceeded,
+            EventName = nameof(ProtocolEvent.DatagramMaximumSizeExceeded),
+            Level = LogLevel.Debug,
+            Message = "maximum datagram size of {Size} exceeded")]
+        internal static partial void LogDatagramMaximumSizeExceeded(this ILogger logger, int size);
 
-        private static readonly Action<ILogger, Exception> _datagramConnectionReceiveCloseConnectionFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                ProtocolEventIds.DatagramConnectionReceiveCloseConnectionFrame,
-                "ignoring close connection frame for datagram connection");
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.DatagramSizeExceededIncomingFrameMaxSize,
+            EventName = nameof(ProtocolEvent.DatagramSizeExceededIncomingFrameMaxSize),
+            Level = LogLevel.Debug,
+            Message = "frame with {Size} bytes exceeds IncomingFrameMaxSize connection option value")]
+        internal static partial void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size);
 
-        private static readonly Action<ILogger, Exception> _receivedIce1CloseConnectionFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                ProtocolEventIds.ReceivedIce1CloseConnectionFrame,
-                "received close connection frame");
-
-        private static readonly Action<ILogger, int, Exception> _receivedIce1RequestBatchFrame =
-            LoggerMessage.Define<int>(
-                LogLevel.Information,
-                ProtocolEventIds.ReceivedIce1RequestBatchFrame,
-                "received batch request (RequestCount={RequestCount})");
-
-        private static readonly Action<ILogger, Exception> _receivedIce1ValidateConnectionFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                ProtocolEventIds.ReceivedIce1ValidateConnectionFrame,
-                "received validate connection frame");
-
-        private static readonly Action<ILogger, long, long, string, Exception> _receivedGoAwayFrame =
-            LoggerMessage.Define<long, long, string>(
-                LogLevel.Debug,
-                ProtocolEventIds.ReceivedGoAwayFrame,
-                "received go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
-                "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
-
-        private static readonly Action<ILogger, Exception> _receivedGoAwayCanceledFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                ProtocolEventIds.ReceivedGoAwayCanceledFrame,
-                "received go away canceled frame");
-
-        private static readonly Action<ILogger, int, Exception> _receivedInitializeFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            ProtocolEventIds.ReceivedInitializeFrame,
-            "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
-
-        private static readonly Action<ILogger, string, string, int, Encoding, Exception> _receivedRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding>(
-                LogLevel.Information,
-                ProtocolEventIds.ReceivedRequestFrame,
-                "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                "PayloadEncoding={PayloadEncoding})");
-
-        private static readonly Action<ILogger, ResultType, Exception> _receivedResponseFrame =
-            LoggerMessage.Define<ResultType>(
-                LogLevel.Information,
-                ProtocolEventIds.ReceivedResponseFrame,
-                "received response (ResultType={ResultType})");
-
-        private static readonly Action<ILogger, string, string, Exception> _requestException =
-            LoggerMessage.Define<string, string>(
-                LogLevel.Information,
-                ProtocolEventIds.RequestException,
-                "request exception (Path={Path}, Operation={Operation})");
-
-        private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestRetryableException =
-            LoggerMessage.Define<string, string, RetryPolicy, int, int>(
-                LogLevel.Debug,
-                ProtocolEventIds.RetryRequestRetryableException,
-                "retrying request because of retryable exception (Path={Path}, Operation={Operation}, " +
-                "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
-
-        private static readonly Action<ILogger, string, string, RetryPolicy, int, int, Exception> _retryRequestConnectionException =
-            LoggerMessage.Define<string, string, RetryPolicy, int, int>(
-                LogLevel.Debug,
-                ProtocolEventIds.RetryRequestConnectionException,
-                "retrying request because of connection exception (Path={Path}, Operation={Operation}, " +
-                "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})");
-
-        private static readonly Action<ILogger, Exception> _sentIce1ValidateConnectionFrame = LoggerMessage.Define(
-            LogLevel.Debug,
-            ProtocolEventIds.SentIce1ValidateConnectionFrame,
-            "sent validate connection frame");
-
-        private static readonly Action<ILogger, string, Exception> _sentIce1CloseConnectionFrame =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                ProtocolEventIds.SentIce1CloseConnectionFrame,
-                "sent close connection frame (Reason={Reason})");
-
-        private static readonly Action<ILogger, long, long, string, Exception> _sentGoAwayFrame =
-            LoggerMessage.Define<long, long, string>(
-                LogLevel.Debug,
-                ProtocolEventIds.SentGoAwayFrame,
-                "sent go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
-                "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})");
-
-        private static readonly Action<ILogger, Exception> _sentGoAwayCanceledFrame =
-            LoggerMessage.Define(
-                LogLevel.Debug,
-                ProtocolEventIds.SentGoAwayCanceledFrame,
-                "sent go away canceled frame");
-
-        private static readonly Action<ILogger, int, Exception> _sentInitializeFrame = LoggerMessage.Define<int>(
-            LogLevel.Debug,
-            ProtocolEventIds.SentInitializeFrame,
-            "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})");
-
-        private static readonly Action<ILogger, string, string, int, Encoding, Exception> _sentRequestFrame =
-            LoggerMessage.Define<string, string, int, Encoding>(
-                LogLevel.Information,
-                ProtocolEventIds.SentRequestFrame,
-                "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
-                "PayloadEncoding={PayloadEncoding})");
-
-        private static readonly Action<ILogger, ResultType, int, Encoding, Exception> _sentResponseFrame =
-            LoggerMessage.Define<ResultType, int, Encoding>(
-                LogLevel.Information,
-                ProtocolEventIds.SentResponseFrame,
-                "sent response (ResultType={ResultType}, Size={Size}, Encoding={Encoding});");
-
-        internal static void LogDatagramSizeExceededIncomingFrameMaxSize(this ILogger logger, int size) =>
-            _datagramSizeExceededIncomingFrameMaxSize(logger, size, null!);
-
-        internal static void LogDatagramConnectionReceiveCloseConnectionFrame(this ILogger logger) =>
-            _datagramConnectionReceiveCloseConnectionFrame(logger, null!);
-
-        internal static void LogDatagramMaximumSizeExceeded(this ILogger logger, int bytes) =>
-            _datagramMaximumSizeExceeded(logger, bytes, null!);
-
-        internal static void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requests) =>
-            _receivedIce1RequestBatchFrame(logger, requests, null!);
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedGoAwayCanceledFrame,
+            EventName = nameof(ProtocolEvent.ReceivedGoAwayCanceledFrame),
+            Level = LogLevel.Debug,
+            Message = "received go away canceled frame")]
+        internal static partial void LogReceivedGoAwayCanceledFrame(this ILogger logger);
 
         internal static void LogReceivedGoAwayFrame(
             this ILogger logger,
@@ -160,75 +46,100 @@ namespace IceRpc.Internal
         {
             if (connection.Protocol == Protocol.Ice1)
             {
-                _receivedIce1CloseConnectionFrame(logger, null!);
+                logger.LogReceivedIce1CloseConnectionFrame();
             }
             else
             {
-                _receivedGoAwayFrame(logger, lastBidirectionalId, lastUnidirectionalId, message, null!);
+                logger.LogReceivedGoAwayFrame(lastBidirectionalId, lastUnidirectionalId, message);
             }
         }
 
-        internal static void LogReceivedGoAwayCanceledFrame(this ILogger logger) =>
-            _receivedGoAwayCanceledFrame(logger, null!);
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedIce1RequestBatchFrame,
+            EventName = nameof(ProtocolEvent.ReceivedIce1RequestBatchFrame),
+            Level = LogLevel.Information,
+            Message = "received batch request (RequestCount={RequestCount})")]
+        internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
 
         internal static void LogReceivedInitializeFrame(this ILogger logger, MultiStreamConnection connection)
         {
             if (connection.Protocol == Protocol.Ice1)
             {
-                _receivedIce1ValidateConnectionFrame(logger, null!);
+                logger.LogReceivedIce1ValidateConnectionFrame();
             }
             else
             {
-                _receivedInitializeFrame(logger, connection.PeerIncomingFrameMaxSize!.Value, null!);
+                logger.LogReceivedInitializeFrame(connection.PeerIncomingFrameMaxSize!.Value);
             }
         }
 
-        internal static void LogReceivedRequest(this ILogger logger, IncomingRequest request) =>
-            _receivedRequestFrame(
-                logger,
-                request.Path,
-                request.Operation,
-                request.PayloadSize,
-                request.PayloadEncoding,
-                null!);
-
-        internal static void LogReceivedResponse(this ILogger logger, IncomingResponse response) =>
-            _receivedResponseFrame(logger, response.ResultType, null!);
-
-        internal static void LogRetryRequestRetryableException(
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedRequestFrame,
+            EventName = nameof(ProtocolEvent.ReceivedRequestFrame),
+            Level = LogLevel.Debug,
+            Message = "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogReceivedRequest(
             this ILogger logger,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedResponseFrame,
+            EventName = nameof(ProtocolEvent.ReceivedResponseFrame),
+            Level = LogLevel.Information,
+            Message = "received response (ResultType={ResultType})")]
+        internal static partial void LogReceivedResponse(this ILogger logger, ResultType resultType);
+
+        [LoggerMessage(
+           EventId = (int)ProtocolEvent.RequestException,
+           EventName = nameof(ProtocolEvent.RequestException),
+           Level = LogLevel.Information,
+           Message = "request exception (Path={Path}, Operation={Operation})")]
+        internal static partial void LogRequestException(
+           this ILogger logger,
+           string path,
+           string operation,
+           Exception ex);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.RetryRequestConnectionException,
+            EventName = nameof(ProtocolEvent.RetryRequestConnectionException),
+            Level = LogLevel.Debug,
+            Message = "retrying request because of connection exception (Path={Path}, Operation={Operation}, " +
+                      "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
+        internal static partial void LogRetryRequestConnectionException(
+            this ILogger logger,
+            string path,
+            string operation,
             RetryPolicy retryPolicy,
             int attempt,
             int maxAttempts,
-            OutgoingRequest request,
-            Exception? ex) =>
-            _retryRequestRetryableException(
-                logger,
-                request.Path,
-                request.Operation,
-                retryPolicy,
-                attempt,
-                maxAttempts,
-                ex!);
+            Exception? ex);
 
-        internal static void LogRetryRequestConnectionException(
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.RetryRequestRetryableException,
+            EventName = nameof(ProtocolEvent.RetryRequestRetryableException),
+            Level = LogLevel.Debug,
+            Message = "retrying request because of retryable exception (Path={Path}, Operation={Operation}, " +
+                      "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
+        internal static partial void LogRetryRequestRetryableException(
             this ILogger logger,
+            string path,
+            string operation,
             RetryPolicy retryPolicy,
             int attempt,
             int maxAttempts,
-            OutgoingRequest request,
-            Exception? ex) =>
-            _retryRequestConnectionException(
-                logger,
-                request.Path,
-                request.Operation,
-                retryPolicy,
-                attempt,
-                maxAttempts,
-                ex!);
+            Exception? ex);
 
-        internal static void LogRequestException(this ILogger logger, OutgoingRequest request, Exception ex) =>
-            _requestException(logger, request.Path, request.Operation, ex);
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentGoAwayCanceledFrame,
+            EventName = nameof(ProtocolEvent.SentGoAwayCanceledFrame),
+            Level = LogLevel.Debug,
+            Message = "sent go away canceled frame")]
+        internal static partial void LogSentGoAwayCanceledFrame(this ILogger logger);
 
         internal static void LogSentGoAwayFrame(
             this ILogger logger,
@@ -239,16 +150,13 @@ namespace IceRpc.Internal
         {
             if (connection.Protocol == Protocol.Ice1)
             {
-                _sentIce1CloseConnectionFrame(logger, message, null!);
+                logger.LogSentIce1CloseConnectionFrame(message);
             }
             else
             {
-                _sentGoAwayFrame(logger, lastBidirectionalId, lastUnidirectionalId, message, null!);
+                logger.LogSentGoAwayFrame(lastBidirectionalId, lastUnidirectionalId, message);
             }
         }
-
-        internal static void LogSentGoAwayCanceledFrame(this ILogger logger) =>
-            _sentGoAwayCanceledFrame(logger, null!);
 
         internal static void LogSentInitializeFrame(
             this ILogger logger,
@@ -257,29 +165,103 @@ namespace IceRpc.Internal
         {
             if (connection.Protocol == Protocol.Ice1)
             {
-                _sentIce1ValidateConnectionFrame(logger, null!);
+                logger.LogSentIce1ValidateConnectionFrame();
             }
             else
             {
-                _sentInitializeFrame(logger, incomingFrameMaxSize, null!);
+                logger.LogSentInitializeFrame(incomingFrameMaxSize);
             }
         }
 
-        internal static void LogSentRequest(this ILogger logger, OutgoingRequest request) =>
-            _sentRequestFrame(
-                logger,
-                request.Path,
-                request.Operation,
-                request.PayloadSize,
-                request.PayloadEncoding,
-                null!);
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentRequestFrame,
+            EventName = nameof(ProtocolEvent.SentRequestFrame),
+            Level = LogLevel.Information,
+            Message = "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogSentRequest(
+            this ILogger logger,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding);
 
-        internal static void LogSentResponse(this ILogger logger, OutgoingResponse response) =>
-            _sentResponseFrame(
-                logger,
-                response.ResultType,
-                response.PayloadSize,
-                response.PayloadEncoding,
-                null!);
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentResponseFrame,
+            EventName = nameof(ProtocolEvent.SentResponseFrame),
+            Level = LogLevel.Information,
+            Message = "sent response (ResultType={ResultType}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogSentResponse(
+            this ILogger logger,
+            ResultType resultType,
+            int payloadSize,
+            Encoding payloadEncoding);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedGoAwayFrame,
+            EventName = nameof(ProtocolEvent.ReceivedGoAwayFrame),
+            Level = LogLevel.Debug,
+            Message = "received go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
+                      "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})")]
+        private static partial void LogReceivedGoAwayFrame(
+            this ILogger logger,
+            long lastBidirectionalStreamId,
+            long lastUnidirectionalStreamId,
+            string reason);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedIce1CloseConnectionFrame,
+            EventName = nameof(ProtocolEvent.ReceivedIce1CloseConnectionFrame),
+            Level = LogLevel.Debug,
+            Message = "received close connection frame")]
+        private static partial void LogReceivedIce1CloseConnectionFrame(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedIce1ValidateConnectionFrame,
+            EventName = nameof(ProtocolEvent.ReceivedIce1ValidateConnectionFrame),
+            Level = LogLevel.Debug,
+            Message = "received validate connection frame")]
+        private static partial void LogReceivedIce1ValidateConnectionFrame(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.ReceivedInitializeFrame,
+            EventName = nameof(ProtocolEvent.ReceivedInitializeFrame),
+            Level = LogLevel.Debug,
+            Message = "received initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
+        private static partial void LogReceivedInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentGoAwayFrame,
+            EventName = nameof(ProtocolEvent.SentGoAwayFrame),
+            Level = LogLevel.Debug,
+            Message = "sent go away frame (LastBidirectionalStreamId={LastBidirectionalStreamId}, " +
+                      "LastUnidirectionalStreamId={LastUnidirectionalStreamId}, Reason={Reason})")]
+        private static partial void LogSentGoAwayFrame(
+            this ILogger logger,
+            long lastBidirectionalStreamId,
+            long lastUnidirectionalStreamId,
+            string reason);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentIce1CloseConnectionFrame,
+            EventName = nameof(ProtocolEvent.SentIce1CloseConnectionFrame),
+            Level = LogLevel.Debug,
+            Message = "sent close connection frame (Reason={Reason})")]
+        private static partial void LogSentIce1CloseConnectionFrame(this ILogger logger, string reason);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentIce1ValidateConnectionFrame,
+            EventName = nameof(ProtocolEvent.SentIce1ValidateConnectionFrame),
+            Level = LogLevel.Debug,
+            Message = "sent validate connection frame")]
+        private static partial void LogSentIce1ValidateConnectionFrame(this ILogger logger);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEvent.SentInitializeFrame,
+            EventName = nameof(ProtocolEvent.SentInitializeFrame),
+            Level = LogLevel.Debug,
+            Message = "sent initialize frame (IncomingFrameMaxSize={IncomingFrameMaxSize})")]
+        private static partial void LogSentInitializeFrame(this ILogger logger, int incomingFrameMaxSize);
     }
 }

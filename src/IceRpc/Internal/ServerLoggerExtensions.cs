@@ -1,38 +1,31 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for logging Server messages.</summary>
-    internal static class ServerLoggerExtensions
+    internal static partial class ServerLoggerExtensions
     {
-        private static readonly Action<ILogger, Server, Exception> _serverListening =
-            LoggerMessage.Define<Server>(
-                LogLevel.Information,
-                ServerEventIds.ServerListening,
-                "server '{Name}' is listening");
+        [LoggerMessage(
+            EventId = (int)ServerEvent.ServerListening,
+            EventName = nameof(ServerEvent.ServerListening),
+            Level = LogLevel.Information,
+            Message = "server '{Server}' is listening")]
+        internal static partial void LogServerListening(this ILogger logger, Server server);
 
-        private static readonly Action<ILogger, Server, Exception> _serverShuttingDown =
-            LoggerMessage.Define<Server>(
-                LogLevel.Debug,
-                ServerEventIds.ServerShuttingDown,
-                "server '{Name}' is shutting down");
+        [LoggerMessage(
+            EventId = (int)ServerEvent.ServerShuttingDown,
+            EventName = nameof(ServerEvent.ServerShuttingDown),
+            Level = LogLevel.Debug,
+            Message = "server '{Server}' is shutting down")]
+        internal static partial void LogServerShuttingDown(this ILogger logger, Server server);
 
-        private static readonly Action<ILogger, Server, Exception> _serverShutdownComplete =
-            LoggerMessage.Define<Server>(
-                LogLevel.Information,
-                ServerEventIds.ServerShutdownComplete,
-                "server '{Name}' completed its shutdown");
-
-        internal static void LogServerListening(this ILogger logger, Server server) =>
-            _serverListening(logger, server, null!);
-
-        internal static void LogServerShuttingDown(this ILogger logger, Server server) =>
-            _serverShuttingDown(logger, server, null!);
-
-        internal static void LogServerShutdownComplete(this ILogger logger, Server server) =>
-            _serverShutdownComplete(logger, server, null!);
+        [LoggerMessage(
+            EventId = (int)ServerEvent.ServerShutdownComplete,
+            EventName = nameof(ServerEvent.ServerShutdownComplete),
+            Level = LogLevel.Information,
+            Message = "server '{Server}' completed its shutdown")]
+        internal static partial void LogServerShutdownComplete(this ILogger logger, Server server);
     }
 }

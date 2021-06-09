@@ -5,93 +5,15 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Immutable;
 
+// Multiple logging methods are using the same event id
+// TODO should we use differebt IDs for AdapterID/Well-Know proxy logs?
+#pragma warning disable SYSLIB1006
+
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for the locator interceptor.</summary>
-    internal static class LocatorLoggerExtensions
+    internal static partial class LocatorLoggerExtensions
     {
-        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _clearAdapterCacheEntry =
-            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Trace,
-                LocatorEventIds.ClearCacheEntry,
-                "removed endpoints for adapter ID {AdapterId}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _clearWellKnownCacheEntry =
-            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Trace,
-                LocatorEventIds.ClearCacheEntry,
-                "removed endpoints for well-known proxy {Identity}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-
-        private static readonly Action<ILogger, string, Exception> _couldNotResolveAdapterEndpoint =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                LocatorEventIds.CouldNotResolveEndpoint,
-                "could not resolve endpoint(s) for adapter ID = {AdapterId}");
-
-        private static readonly Action<ILogger, Identity, Exception> _couldNotResolveWellKnownEndpoint =
-            LoggerMessage.Define<Identity>(
-                LogLevel.Debug,
-                LocatorEventIds.CouldNotResolveEndpoint,
-                "could not resolve endpoint(s) for well-known proxy = {Identity}");
-
-        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _foundAdapterEntryInCache =
-            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Trace,
-                LocatorEventIds.FoundEntryInCache,
-                "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-
-        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _foundWellKnownEntryInCache =
-            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Trace,
-                LocatorEventIds.FoundEntryInCache,
-                "found entry for well-known proxy {Identity} in cache, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-
-        private static readonly Action<ILogger, string, ServicePrx, Exception> _receivedInvalidProxyForAdapter =
-            LoggerMessage.Define<string, ServicePrx>(
-                LogLevel.Debug,
-                LocatorEventIds.ReceivedInvalidProxy,
-                "locator returned an invalid proxy when resolving adapter ID = {AdapterId}, received = {Proxy}");
-
-        private static readonly Action<ILogger, Identity, ServicePrx, Exception> _receivedInvalidProxyForWellKnown =
-            LoggerMessage.Define<Identity, ServicePrx>(
-                LogLevel.Debug,
-                LocatorEventIds.ReceivedInvalidProxy,
-                "locator returned an invalid proxy when resolving well-known proxy = {Identity}, received = {Proxy}");
-
-        private static readonly Action<ILogger, string, Exception> _resolveAdapterFailure =
-            LoggerMessage.Define<string>(
-                LogLevel.Debug,
-                LocatorEventIds.ResolveFailure,
-                "failure when resolving adapter ID {AdapterId}");
-
-        private static readonly Action<ILogger, Identity, Exception> _resolveWellKnownFailure =
-            LoggerMessage.Define<Identity>(
-                LogLevel.Debug,
-                LocatorEventIds.ResolveFailure,
-                "failure when resolving well-known proxy {Identity}");
-
-        private static readonly Action<ILogger, string, Endpoint, ImmutableList<Endpoint>, Exception> _resolvedAdapter =
-            LoggerMessage.Define<string, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Debug,
-                LocatorEventIds.Resolved,
-                "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-
-        private static readonly Action<ILogger, Identity, Endpoint, ImmutableList<Endpoint>, Exception> _resolvedWellKnown =
-            LoggerMessage.Define<Identity, Endpoint, ImmutableList<Endpoint>>(
-                LogLevel.Debug,
-                LocatorEventIds.Resolved,
-                "resolved well-known proxy using locator, well-known proxy = {Identity}, endpoint = {Endpoint}, alt-endpoint = {AltEndpoints}");
-
-        private static readonly Action<ILogger, string, Exception> _resolvingAdapter = LoggerMessage.Define<string>(
-            LogLevel.Debug,
-            LocatorEventIds.Resolving,
-            "resolving adapter ID {AdapterId}");
-
-        private static readonly Action<ILogger, Identity, Exception> _resolvingWellKnown =
-            LoggerMessage.Define<Identity>(
-                LogLevel.Debug,
-                LocatorEventIds.Resolving,
-                "resolving well-known proxy {Identity}");
-
         internal static void LogClearCacheEntry(
             this ILogger logger,
             string location,
@@ -99,25 +21,25 @@ namespace IceRpc.Internal
             Endpoint endpoint,
             ImmutableList<Endpoint> altEndpoints)
         {
+            // TODO log altEndpoints once https://github.com/dotnet/runtime/issues/51965 is fixed
             if (category == null)
             {
-                _clearAdapterCacheEntry(logger, location, endpoint, altEndpoints, null!);
+                logger.LogClearAdapterCacheEntry(location, endpoint);
             }
             else
             {
-                _clearWellKnownCacheEntry(logger, new Identity(location, category), endpoint, altEndpoints, null!);
+                logger.LogClearWellKnownCacheEntry(new Identity(location, category), endpoint);
             }
         }
-
         internal static void LogCouldNotResolveEndpoint(this ILogger logger, string location, string? category)
         {
             if (category == null)
             {
-                _couldNotResolveAdapterEndpoint(logger, location, null!);
+                logger.LogCouldNotResolveAdapterEndpoint(location);
             }
             else
             {
-                _couldNotResolveWellKnownEndpoint(logger, new Identity(location, category), null!);
+                logger.LogCouldNotResolveWellKnownEndpoint(new Identity(location, category));
             }
         }
 
@@ -128,13 +50,14 @@ namespace IceRpc.Internal
             Endpoint endpoint,
             ImmutableList<Endpoint> altEndpoints)
         {
+            // TODO logg altEndpoints once https://github.com/dotnet/runtime/issues/51965 is fixed
             if (category == null)
             {
-                _foundAdapterEntryInCache(logger, location, endpoint, altEndpoints, null!);
+                logger.LogFoundAdapterEntryInCache(location, endpoint);
             }
             else
             {
-                _foundWellKnownEntryInCache(logger, new Identity(location, category), endpoint, altEndpoints, null!);
+                logger.LogFoundWellKnownEntryInCache(new Identity(location, category), endpoint);
             }
         }
 
@@ -146,11 +69,11 @@ namespace IceRpc.Internal
         {
             if (category == null)
             {
-                _receivedInvalidProxyForAdapter(logger, location, proxy, null!);
+                logger.LogReceivedInvalidProxyForAdapter(location, proxy);
             }
             else
             {
-                _receivedInvalidProxyForWellKnown(logger, new Identity(location, category), proxy, null!);
+                logger.LogReceivedInvalidProxyForWellKnown(new Identity(location, category), proxy);
             }
         }
 
@@ -162,11 +85,11 @@ namespace IceRpc.Internal
         {
             if (category == null)
             {
-                _resolveAdapterFailure(logger, location, exception);
+                logger.LogResolvedAdapterFailure(location, exception);
             }
             else
             {
-                _resolveWellKnownFailure(logger, new Identity(location, category), exception);
+                logger.LogResolvedWellKnownFailure(new Identity(location, category), exception);
             }
         }
 
@@ -177,13 +100,14 @@ namespace IceRpc.Internal
             Endpoint endpoint,
             ImmutableList<Endpoint> altEndpoints)
         {
+            // TODO logg altEndpoints once https://github.com/dotnet/runtime/issues/51965 is fixed
             if (category == null)
             {
-                _resolvedAdapter(logger, location, endpoint, altEndpoints, null!);
+                logger.LogResolvedAdapter(location, endpoint);
             }
             else
             {
-                _resolvedWellKnown(logger, new Identity(location, category), endpoint, altEndpoints, null!);
+                logger.LogResolvedWellKnown(new Identity(location, category), endpoint);
             }
         }
 
@@ -191,12 +115,129 @@ namespace IceRpc.Internal
         {
             if (category == null)
             {
-                _resolvingAdapter(logger, location, null!);
+                logger.LogResolvingAdapter(location);
             }
             else
             {
-                _resolvingWellKnown(logger, new Identity(location, category), null!);
+                logger.LogResolvingWellKnown(new Identity(location, category));
             }
         }
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ClearCacheEntry,
+            EventName = nameof(LocatorEvent.ClearCacheEntry),
+            Level = LogLevel.Trace,
+            Message = "removed endpoints for adapter ID {AdapterId}, endpoint = {Endpoint}")]
+        private static partial void LogClearAdapterCacheEntry(
+            this ILogger logger,
+            string adapterId,
+            Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ClearCacheEntry,
+            EventName = nameof(LocatorEvent.ClearCacheEntry),
+            Level = LogLevel.Trace,
+            Message = "removed endpoints for well-known proxy {Identity}, endpoint = {Endpoint}")]
+        private static partial void LogClearWellKnownCacheEntry(
+            this ILogger logger,
+            Identity identity,
+            Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.CouldNotResolveEndpoint,
+            EventName = nameof(LocatorEvent.CouldNotResolveEndpoint),
+            Level = LogLevel.Debug,
+            Message = "could not resolve endpoint(s) for adapter ID = {AdapterId}")]
+        private static partial void LogCouldNotResolveAdapterEndpoint(this ILogger logger, string adapterId);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.CouldNotResolveEndpoint,
+            EventName = nameof(LocatorEvent.CouldNotResolveEndpoint),
+            Level = LogLevel.Debug,
+            Message = "could not resolve endpoint(s) for well-known proxy = {Identity}")]
+        private static partial void LogCouldNotResolveWellKnownEndpoint(this ILogger logger, Identity identity);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.FoundEntryInCache,
+            EventName = nameof(LocatorEvent.FoundEntryInCache),
+            Level = LogLevel.Trace,
+            Message = "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}")]
+        private static partial void LogFoundAdapterEntryInCache(
+            this ILogger logger,
+            string adapterId,
+            Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.FoundEntryInCache,
+            EventName = nameof(LocatorEvent.FoundEntryInCache),
+            Level = LogLevel.Trace,
+            Message = "found entry for well-known proxy {Identity} in cache, endpoint = {Endpoint}")]
+        private static partial void LogFoundWellKnownEntryInCache(
+            this ILogger logger,
+            Identity identity,
+            Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ReceivedInvalidProxy,
+            EventName = nameof(LocatorEvent.ReceivedInvalidProxy),
+            Level = LogLevel.Debug,
+            Message = "locator returned an invalid proxy when resolving adapter ID = {AdapterId}, received = {Proxy}")]
+        private static partial void LogReceivedInvalidProxyForAdapter(
+            this ILogger logger,
+            string adapterId,
+            ServicePrx proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ReceivedInvalidProxy,
+            EventName = nameof(LocatorEvent.ReceivedInvalidProxy),
+            Level = LogLevel.Debug,
+            Message = "locator returned an invalid proxy when resolving well-known proxy = {Identity}, received = {Proxy}")]
+        private static partial void LogReceivedInvalidProxyForWellKnown(
+            this ILogger logger,
+            Identity identity,
+            ServicePrx proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ResolveFailure,
+            EventName = nameof(LocatorEvent.ResolveFailure),
+            Level = LogLevel.Debug,
+            Message = "failure when resolving adapter ID {AdapterId}")]
+        private static partial void LogResolvedAdapterFailure(this ILogger logger, string adapterId, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ResolveFailure,
+            EventName = nameof(LocatorEvent.ResolveFailure),
+            Level = LogLevel.Debug,
+            Message = "failure when resolving well-known proxy {Identity}")]
+        private static partial void LogResolvedWellKnownFailure(this ILogger logger, Identity identity, Exception exception);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolved,
+            EventName = nameof(LocatorEvent.Resolved),
+            Level = LogLevel.Debug,
+            Message = "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoint = {Endpoint}")]
+        private static partial void LogResolvedAdapter(this ILogger logger, string adapterId, Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolved,
+            EventName = nameof(LocatorEvent.Resolved),
+            Level = LogLevel.Debug,
+            Message = "resolved well-known proxy using locator, well-known proxy = {Identity}, " +
+                      "endpoint = {Endpoint}")]
+        private static partial void LogResolvedWellKnown(this ILogger logger, Identity identity, Endpoint endpoint);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolving,
+            EventName = nameof(LocatorEvent.Resolving),
+            Level = LogLevel.Debug,
+            Message = "resolving adapter ID {AdapterId}")]
+        private static partial void LogResolvingAdapter(this ILogger logger, string adapterId);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolving,
+            EventName = nameof(LocatorEvent.Resolving),
+            Level = LogLevel.Debug,
+            Message = "resolving well-known proxy {Identity}")]
+        private static partial void LogResolvingWellKnown(this ILogger logger, Identity identity);
     }
 }

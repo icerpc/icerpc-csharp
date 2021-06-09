@@ -11,9 +11,9 @@ namespace IceRpc.Tests.Encoding
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class ProxyTests
     {
-        private Connection _connection;
-        private Server _server;
-        private List<ArraySegment<byte>> _data;
+        private readonly Connection _connection;
+        private readonly Server _server;
+        private readonly List<ArraySegment<byte>> _data;
 
         public ProxyTests()
         {
@@ -64,9 +64,9 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
 
             // Create an endpointless proxy
-            IServicePrx endpointLess = IServicePrx.FromPath("/foo", _server.Protocol);
+            var endpointLess = IServicePrx.FromPath("/foo", _server.Protocol);
 
-            IServicePrx regular = IServicePrx.FromConnection(_connection, "/bar");
+            var regular = IServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
             var ostr = new OutputStream(encoding, _data);

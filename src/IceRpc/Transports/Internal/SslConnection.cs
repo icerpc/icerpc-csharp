@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -158,7 +157,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (AuthenticationException ex)
             {
-                Logger.LogTlsAuthenticationFailed(SslStream, ex);
+                Logger.LogTlsAuthenticationFailed(ex);
                 throw new TransportException(ex);
             }
 
