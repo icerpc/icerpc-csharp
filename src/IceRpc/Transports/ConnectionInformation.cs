@@ -8,18 +8,8 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace IceRpc
+namespace IceRpc.Transports
 {
-    /// <summary>The base class for connection information.</summary>
-    public abstract class ConnectionInformation
-    {
-        /// <summary><c>true</c> if the connection uses encryption, <c>false</c> otherwise.</summary>
-        public abstract bool IsSecure { get; }
-
-        /// <summary>The description of the connection.</summary>
-        public virtual string Description => $"IsSecure={IsSecure}";
-    }
-
     /// <summary>Provides information about a coloc connection.</summary>
 
     public class ColocConnectionInformation : ConnectionInformation
