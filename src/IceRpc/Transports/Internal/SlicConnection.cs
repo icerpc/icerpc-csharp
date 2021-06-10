@@ -548,7 +548,7 @@ namespace IceRpc.Transports.Internal
 
             foreach (ArraySegment<byte> buffer in buffers)
             {
-                // TODO: missing comment for cancellation token
+                // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
                 sent += await _bufferedConnection!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
             }
             Debug.Assert(sent == buffers.GetByteCount());

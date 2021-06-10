@@ -7,59 +7,23 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Runtime.InteropServices;
-using System.Security.Authentication;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class WSConnection : SingleStreamConnection, IWSConnectionInformation
+    internal sealed class WSConnection : SingleStreamConnection
     {
         /// <inheritdoc/>
-        public bool CheckCertRevocationStatus => _tcpConnectionInformation.CheckCertRevocationStatus;
-
-        /// <inheritdoc/>
-        public IReadOnlyDictionary<string, string> Headers => _parser.GetHeaders();
-
-        /// <inheritdoc/>
-        public bool IsEncrypted => _tcpConnectionInformation.IsEncrypted;
-
-        /// <inheritdoc/>
-        public bool IsMutuallyAuthenticated => _tcpConnectionInformation.IsMutuallyAuthenticated;
-
-        /// <inheritdoc/>
-        public bool IsSecure => _tcpConnectionInformation.IsSecure;
-
-        /// <inheritdoc/>
-        public bool IsSigned => _tcpConnectionInformation.IsSigned;
-
-        /// <inheritdoc/>
-        public X509Certificate? LocalCertificate => _tcpConnectionInformation.LocalCertificate;
-
-        /// <inheritdoc/>
-        public IPEndPoint? LocalEndPoint => _tcpConnectionInformation.LocalEndPoint;
-
-        /// <inheritdoc/>
-        public SslApplicationProtocol? NegotiatedApplicationProtocol =>
-            _tcpConnectionInformation.NegotiatedApplicationProtocol;
-
-        /// <inheritdoc/>
-        public TlsCipherSuite? NegotiatedCipherSuite => _tcpConnectionInformation.NegotiatedCipherSuite;
-
-        /// <inheritdoc/>
-        public X509Certificate? RemoteCertificate => _tcpConnectionInformation.RemoteCertificate;
-
-        /// <inheritdoc/>
-        public IPEndPoint? RemoteEndPoint => _tcpConnectionInformation.RemoteEndPoint;
-
-        /// <inheritdoc/>
-        public override IConnectionInformation ConnectionInformation => this;
-
-        /// <inheritdoc/>
-        public SslProtocols? SslProtocol => _tcpConnectionInformation.SslProtocol;
+        public override ConnectionInformation ConnectionInformation =>
+            new WSConnectionInformation(
+                _bufferedConnection.NetworkSocket!,
+                _bufferedConnection.Underlying is SslConnection sslConnection ? sslConnection.SslStream : null)
+            {
+                Headers = _parser.GetHeaders()
+            };
 
         /// <inheritdoc/>
         internal override System.Net.Sockets.Socket? NetworkSocket => _bufferedConnection.NetworkSocket;
@@ -100,7 +64,6 @@ namespace IceRpc.Transports.Internal
         private int _receivePayloadOffset;
         private readonly byte[] _sendMask;
         private Task _sendTask = Task.CompletedTask;
-        private readonly ITcpConnectionInformation _tcpConnectionInformation;
 
         public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
             Endpoint endpoint,
@@ -201,7 +164,6 @@ namespace IceRpc.Transports.Internal
             : base(tcpConnection.Logger)
         {
             _bufferedConnection = new BufferedReceiveOverSingleStreamConnection(tcpConnection);
-            _tcpConnectionInformation = (ITcpConnectionInformation)tcpConnection.ConnectionInformation;
             _parser = new HttpParser();
             _receiveLastFrame = true;
             _sendMask = new byte[4];
@@ -323,15 +285,6 @@ namespace IceRpc.Transports.Internal
             else
             {
                 Logger.LogHttpUpgradeRequestSucceed();
-            }
-        }
-
-        private void Mask(Memory<byte> buffer)
-        {
-            Span<byte> bufferAsSpan = buffer.Span;
-            for (int i = 0; i < buffer.Length; ++i)
-            {
-                bufferAsSpan[i] = (byte)(bufferAsSpan[i] ^ _sendMask[i % 4]);
             }
         }
 
@@ -713,6 +666,15 @@ namespace IceRpc.Transports.Internal
                 }
                 await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
                 return size;
+
+                void Mask(Memory<byte> payload)
+                {
+                    Span<byte> bufferAsSpan = payload.Span;
+                    for (int i = 0; i < payload.Length; ++i)
+                    {
+                        bufferAsSpan[i] = (byte)(bufferAsSpan[i] ^ _sendMask[i % 4]);
+                    }
+                }
             }
         }
 

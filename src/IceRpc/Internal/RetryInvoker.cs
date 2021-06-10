@@ -106,10 +106,11 @@ namespace IceRpc.Internal
                         {
                             using IDisposable? connectionScope = request.Connection.StartScope();
                             _logger.LogRetryRequestRetryableException(
+                                request.Path,
+                                request.Operation,
                                 retryPolicy,
                                 attempt,
                                 _maxAttempts,
-                                request,
                                 exception);
                         }
                         else
@@ -117,11 +118,12 @@ namespace IceRpc.Internal
                             // TODO: this is really a failure to establish a connection; other connection failure could
                             // leave request.Connection not null
                             _logger.LogRetryRequestConnectionException(
-                              retryPolicy,
-                              attempt,
-                              _maxAttempts,
-                              request,
-                              exception);
+                                request.Path,
+                                request.Operation,
+                                retryPolicy,
+                                attempt,
+                                _maxAttempts,
+                                exception);
                         }
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
@@ -151,7 +153,7 @@ namespace IceRpc.Internal
                     // TODO this doesn't seems correct we need to log request exceptions even if there isn't
                     // a retry invoker
                     using IDisposable? connectionScope = request.Connection?.StartScope();
-                    _logger.LogRequestException(request, exception);
+                    _logger.LogRequestException(request.Path, request.Operation, exception);
                 }
 
                 Debug.Assert(response != null || exception != null);

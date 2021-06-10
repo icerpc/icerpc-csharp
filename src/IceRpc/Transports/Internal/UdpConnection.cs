@@ -1,9 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -13,48 +11,14 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class UdpConnection : SingleStreamConnection, IUdpConnectionInformation
+    internal sealed class UdpConnection : SingleStreamConnection
     {
         /// <inheritdoc/>
-        public bool IsSecure => false;
-
-        /// <inheritdoc/>
-        public IPEndPoint? LocalEndPoint
-        {
-            get
+        public override ConnectionInformation ConnectionInformation =>
+            _connectionInformation ??= new UdpConnectionInformation(_socket)
             {
-                try
-                {
-                    return _socket.LocalEndPoint as IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public IPEndPoint? RemoteEndPoint
-        {
-            get
-            {
-                try
-                {
-                    return _socket.RemoteEndPoint as IPEndPoint;
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-        }
-
-        /// <inheritdoc/>
-        public IPEndPoint? MulticastEndpoint { get; private set; }
-
-        /// <inheritdoc/>
-        public override IConnectionInformation ConnectionInformation => this;
+                MulticastEndpoint = _multicastEndpoint
+            };
 
         /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;
@@ -65,7 +29,9 @@ namespace IceRpc.Transports.Internal
         private const int UdpOverhead = 20 + 8;
 
         private readonly EndPoint? _addr;
+        private UdpConnectionInformation? _connectionInformation;
         private readonly bool _incoming;
+        private readonly IPEndPoint? _multicastEndpoint;
         private readonly int _rcvSize;
         private readonly Socket _socket;
 
@@ -187,7 +153,7 @@ namespace IceRpc.Transports.Internal
             _rcvSize = _socket.ReceiveBufferSize;
             if (isIncoming)
             {
-                MulticastEndpoint = addr as IPEndPoint;
+                _multicastEndpoint = addr as IPEndPoint;
             }
             else
             {

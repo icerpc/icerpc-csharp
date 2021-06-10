@@ -13,6 +13,16 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    /// <summary>The base class for connection information.</summary>
+    public abstract class ConnectionInformation
+    {
+        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
+        public abstract bool IsSecure { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"IsSecure={IsSecure}";
+    }
+
     /// <summary>The state of an IceRpc connection.</summary>
     public enum ConnectionState : byte
     {
@@ -69,6 +79,11 @@ namespace IceRpc
         /// <summary>The dispatcher that a connection calls when its dispatcher is null.</summary>
         internal static IDispatcher NullDispatcher { get; } =
             new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
+
+        /// <summary>Gets information about the underlying network connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
+        public ConnectionInformation ConnectionInformation => _connection?.ConnectionInformation ??
+            throw new InvalidOperationException("the connection is not established");
 
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
@@ -226,11 +241,6 @@ namespace IceRpc
                 _server = value;
             }
         }
-
-        /// <summary>The connection interface provides information on the connection used by the connection.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        public IConnectionInformation ConnectionInformation =>
-            _connection?.ConnectionInformation ?? throw new InvalidOperationException("the connection is not connected");
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -580,6 +590,7 @@ namespace IceRpc
                     new IncomingResponse(this, request.PayloadEncoding) :
                     await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
+                response.Stream = stream;
                 return response;
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
@@ -658,8 +669,9 @@ namespace IceRpc
 
         /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
-        public override string? ToString() => ConnectionInformation == null ? "" :
-            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation.Description}, IsIncoming={IsIncoming})";
+        // TODO: get on ConnectionInformation can throw!
+        public override string ToString() => ConnectionInformation == null ? "" :
+            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsIncoming})";
 
         /// <summary>Constructs an incoming connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)
@@ -745,7 +757,7 @@ namespace IceRpc
                     _connection.Dispose();
 
                     // Log the connection closure
-                    if (_state == ConnectionState.Connecting && !_connected)
+                    if (!_connected)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
@@ -759,7 +771,7 @@ namespace IceRpc
                         };
                         logFailure(exception);
                     }
-                    else if (_state > ConnectionState.Connecting || _connected)
+                    else
                     {
                         if (IsDatagram && IsIncoming)
                         {
@@ -836,9 +848,9 @@ namespace IceRpc
                 CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
                 // Receives the request frame from the stream
-                using IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+                IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
-                request.StreamId = stream.Id;
+                request.Stream = stream;
 
                 OutgoingResponse? response = null;
 
@@ -865,13 +877,19 @@ namespace IceRpc
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
                         // We log the exception as the UnhandledException may not include all details.
-                        _connection!.Logger.LogDispatchException(request, exception);
+                        _connection!.Logger.LogDispatchException(request.Connection,
+                                                                 request.Path,
+                                                                 request.Operation,
+                                                                 exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else if (!stream.IsBidirectional)
                     {
                         // We log this exception, otherwise it would be lost since we don't send a response.
-                        _connection!.Logger.LogDispatchException(request, exception);
+                        _connection!.Logger.LogDispatchException(request.Connection,
+                                                                 request.Path,
+                                                                 request.Operation,
+                                                                 exception);
                     }
                     else
                     {
