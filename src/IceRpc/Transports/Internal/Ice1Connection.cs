@@ -205,7 +205,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal Ice1Connection(
-            Endpoint endpoint, 
+            Endpoint endpoint,
             SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
@@ -413,15 +413,24 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
         {
-            int sent;
+            int sent = 0;
             if (IsDatagram)
             {
-                sent = await Underlying.SendDatagramAsync(buffers, cancel).ConfigureAwait(false);
+                foreach (ArraySegment<byte> buffer in buffers)
+                {
+                    sent += await Underlying.SendDatagramAsync(buffer, cancel).ConfigureAwait(false);
+                }
             }
             else
             {
-                sent = await Underlying.SendAsync(buffers, cancel).ConfigureAwait(false);
+                foreach (ArraySegment<byte> buffer in buffers)
+                {
+                    sent += await Underlying.SendAsync(buffer, cancel).ConfigureAwait(false);
+                }
             }
+
+            // TODO: what's the point of SendAsync/SendDatagramAsync returning the number of bytes sent since they
+            // always send the whole buffer?
             Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
