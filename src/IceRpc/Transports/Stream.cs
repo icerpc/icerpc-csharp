@@ -160,7 +160,7 @@ namespace IceRpc.Transports
 
                                 sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
                                 await SendAsync(sendBuffers.ToReadOnlyMemory(),
-                                                received == 0, 
+                                                received == 0,
                                                 cancel).ConfigureAwait(false);
                             }
                             catch
@@ -249,24 +249,13 @@ namespace IceRpc.Transports
         /// <return>The number of bytes received.</return>
         protected abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Sends data from the given buffer and returns once the buffer is sent.</summary>
-        /// <param name="buffer">The buffer with the data to send.</param>
-        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        protected ValueTask SendAsync(
-            ReadOnlyMemory<byte> buffer,
-            bool endStream,
-            CancellationToken cancel) =>
-            // TODO: temporary implementation
-            SendAsync(new ReadOnlyMemory<byte>[1] { buffer }, endStream, cancel);
-
         /// <summary>Sends data from the given buffers and returns once the buffers are sent.</summary>
         /// <param name="buffers">The buffers with the data to send.</param>
         /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         protected abstract ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, 
-            bool endStream, 
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel);
 
         /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
@@ -288,7 +277,7 @@ namespace IceRpc.Transports
         // Internal method which should only be used by tests.
         internal ValueTask InternalSendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream, 
+            bool endStream,
             CancellationToken cancel)
         {
             var array = new ReadOnlyMemory<byte>[buffers.Length + 1];
@@ -621,8 +610,8 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer.ToReadOnlyMemory(), 
-                            endStream: frame.StreamDataWriter == null, 
+            await SendAsync(buffer.ToReadOnlyMemory(),
+                            endStream: frame.StreamDataWriter == null,
                             cancel).ConfigureAwait(false);
         }
 
