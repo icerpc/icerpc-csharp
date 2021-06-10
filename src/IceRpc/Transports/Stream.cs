@@ -578,8 +578,8 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var buffer = new List<ArraySegment<byte>>(frame.Payload.Count + 1);
-            var ostr = new OutputStream(Encoding.V20, buffer);
+            var headerBuffer = new List<ArraySegment<byte>>(1);
+            var ostr = new OutputStream(Encoding.V20, headerBuffer);
             ostr.WriteByteSpan(TransportHeader.Span);
 
             ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
@@ -587,8 +587,10 @@ namespace IceRpc.Transports
             frame.WriteHeader(ostr);
             ostr.Finish();
 
-            buffer.AddRange(frame.Payload);
-            int frameSize = buffer.GetByteCount() - TransportHeader.Length - 1 - 4;
+            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
+            buffer[0] = headerBuffer[0];
+            frame.Payload.CopyTo(buffer.AsMemory(1));
+            int frameSize = buffer.AsReadOnlyMemory().GetByteCount() - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
@@ -610,7 +612,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer.ToReadOnlyMemory(),
+            await SendAsync(buffer,
                             endStream: frame.StreamDataWriter == null,
                             cancel).ConfigureAwait(false);
         }

@@ -44,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
                         compressedRequest =
                             (await request.GetPayloadAsync(cancel))[0] == (byte)CompressionFormat.Deflate;
                         var response = await next.DispatchAsync(request, cancel);
-                        compressedResponse = response.Payload[0][0] == (byte)CompressionFormat.Deflate;
+                        compressedResponse = response.Payload.Span[0].Span[0] == (byte)CompressionFormat.Deflate;
                         compressedResponseSize = response.PayloadSize;
                         return response;
                     }

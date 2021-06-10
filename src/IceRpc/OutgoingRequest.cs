@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
 using System;
@@ -102,7 +103,7 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
 
             // We forward the payload as is.
-            Payload.Add(request.Payload); // TODO: temporary
+            Payload = new ReadOnlyMemory<byte>[] { request.Payload }; // TODO: temporary
 
             if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
             {
@@ -128,7 +129,7 @@ namespace IceRpc
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
             IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
-            Payload = args;
+            Payload = args.ToReadOnlyMemory();
         }
 
         /// <inheritdoc/>
@@ -208,7 +209,7 @@ namespace IceRpc
             Path = proxy.Path;
             PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
 
-            Payload = new List<ArraySegment<byte>>();
+            Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }
 }

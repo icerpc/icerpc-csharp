@@ -14,6 +14,9 @@ namespace IceRpc.Internal
 
         internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
 
+        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
+            array;
+
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment) => segment;
 
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start, int length) =>
@@ -105,6 +108,26 @@ namespace IceRpc.Internal
                     Debug.Assert(segment.Array != null);
                     Buffer.BlockCopy(segment.Array, segment.Offset, data, offset, segment.Count);
                     offset += segment.Count;
+                }
+                return data;
+            }
+        }
+
+        // temporary
+        internal static ArraySegment<byte> ToArraySegment(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        {
+            if (buffers.Length == 1 && MemoryMarshal.TryGetArray(buffers.Span[0], out ArraySegment<byte> segment))
+            {
+                return segment;
+            }
+            else
+            {
+                byte[] data = new byte[buffers.GetByteCount()];
+                int offset = 0;
+                for (int i = 0; i < buffers.Length; ++i)
+                {
+                    buffers.Span[i].CopyTo(data.AsMemory(offset));
+                    offset += buffers.Span[i].Length;
                 }
                 return data;
             }
