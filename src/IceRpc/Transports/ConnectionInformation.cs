@@ -147,7 +147,7 @@ namespace IceRpc.Transports
         public IReadOnlyDictionary<string, string> Headers { get; internal init; } =
             ImmutableDictionary<string, string>.Empty;
 
-        /// <summary>Constructs a UDP connection information.</summary>
+        /// <summary>Constructs a WebSocket connection information.</summary>
         internal WSConnectionInformation(Socket socket, SslStream? sslStream)
             : base(socket, sslStream)
         {
