@@ -194,20 +194,20 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override async ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel)
         {
             // Ensure the caller reserved space for the Slic header by checking for the sentinel header.
-            Debug.Assert(TransportHeader.Span.SequenceEqual(buffer[0].Slice(0, TransportHeader.Length)));
+            Debug.Assert(TransportHeader.Span.SequenceEqual(buffers.Span[0].Slice(0, TransportHeader.Length).Span));
 
-            int size = buffer.GetByteCount() - TransportHeader.Length;
+            int size = buffers.GetByteCount() - TransportHeader.Length;
             if (size == 0)
             {
                 // Send an empty last stream frame if there's no data to send. There's no need to check
                 // send flow control credit if there's no data to send.
-                Debug.Assert(fin);
-                await _connection.SendStreamFrameAsync(this, 0, true, buffer, cancel).ConfigureAwait(false);
+                Debug.Assert(endStream);
+                await _connection.SendStreamFrameAsync(this, 0, true, buffers, cancel).ConfigureAwait(false);
                 return;
             }
 
@@ -243,16 +243,16 @@ namespace IceRpc.Transports.Internal
                 {
                     // The given buffer doesn't need to be fragmented as it's smaller than what we are allowed
                     // to send. We directly send the buffer.
-                    sendBuffer = buffer;
+                    sendBuffer = buffers;
                     sendSize = size;
-                    lastBuffer = fin;
+                    lastBuffer = endStream;
                 }
                 else
                 {
                     if (sendBuffer == null)
                     {
                         // Sending first buffer fragment.
-                        sendBuffer = new List<ArraySegment<byte>>(buffer.Count);
+                        sendBuffer = new List<ArraySegment<byte>>(buffers.Count);
                         sendSize = -TransportHeader.Length;
                     }
                     else
@@ -260,27 +260,27 @@ namespace IceRpc.Transports.Internal
                         // If it's not the first fragment, we re-use the space reserved for the Slic header in
                         // the first segment of the given protocol buffer.
                         sendBuffer.Clear();
-                        sendBuffer.Add(buffer[0].Slice(0, TransportHeader.Length));
+                        sendBuffer.Add(buffers[0].Slice(0, TransportHeader.Length));
                     }
 
                     // Append data until we reach the allowed packet size or the end of the buffer to send.
                     lastBuffer = false;
-                    for (int i = start.Segment; i < buffer.Count; ++i)
+                    for (int i = start.Segment; i < buffers.Count; ++i)
                     {
                         int segmentOffset = i == start.Segment ? start.Offset : 0;
-                        if (buffer[i].Slice(segmentOffset).Count > maxPacketSize - sendSize)
+                        if (buffers[i].Slice(segmentOffset).Count > maxPacketSize - sendSize)
                         {
-                            sendBuffer.Add(buffer[i].Slice(segmentOffset, maxPacketSize - sendSize));
+                            sendBuffer.Add(buffers[i].Slice(segmentOffset, maxPacketSize - sendSize));
                             start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Count);
-                            Debug.Assert(start.Offset < buffer[i].Count);
+                            Debug.Assert(start.Offset < buffers[i].Count);
                             sendSize = maxPacketSize;
                             break;
                         }
                         else
                         {
-                            sendBuffer.Add(buffer[i].Slice(segmentOffset));
+                            sendBuffer.Add(buffers[i].Slice(segmentOffset));
                             sendSize += sendBuffer[^1].Count;
-                            lastBuffer = i + 1 == buffer.Count;
+                            lastBuffer = i + 1 == buffers.Count;
                         }
                     }
                 }
@@ -292,7 +292,7 @@ namespace IceRpc.Transports.Internal
                     await _connection.SendStreamFrameAsync(
                         this,
                         sendSize,
-                        lastBuffer && fin,
+                        lastBuffer && endStream,
                         sendBuffer,
                         cancel).ConfigureAwait(false);
                 }
@@ -311,7 +311,7 @@ namespace IceRpc.Transports.Internal
                         await _connection.SendStreamFrameAsync(
                             this,
                             sendSize,
-                            lastBuffer && fin,
+                            lastBuffer && endStream,
                             sendBuffer,
                             cancel).ConfigureAwait(false);
 

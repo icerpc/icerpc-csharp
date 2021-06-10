@@ -263,7 +263,7 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask SendFrameAsync(
             Ice1Stream? stream,
-            IList<ArraySegment<byte>> buffer,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue
@@ -284,14 +284,14 @@ namespace IceRpc.Transports.Internal
                 if (stream != null && !stream.IsStarted)
                 {
                     stream.Id = AllocateId(stream.IsBidirectional);
-                    if (buffer[0][8] == (byte)Ice1FrameType.Request)
+                    if (buffers[0][8] == (byte)Ice1FrameType.Request)
                     {
-                        buffer[0].AsSpan(Ice1Definitions.HeaderSize).WriteInt(stream.RequestId);
+                        buffers[0].AsSpan(Ice1Definitions.HeaderSize).WriteInt(stream.RequestId);
                     }
                 }
 
                 // Perform the sending.
-                await SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+                await SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {

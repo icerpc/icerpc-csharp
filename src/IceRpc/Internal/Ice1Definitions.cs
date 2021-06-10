@@ -29,16 +29,13 @@ namespace IceRpc.Internal
         // encoding of the frame header (always set to 1.0 with the an ice1 frame, even though we use 1.1).
         internal static readonly byte[] ProtocolBytes = new byte[] { 1, 0, 1, 0 };
 
-        internal static readonly List<ArraySegment<byte>> CloseConnectionFrame = new()
+        internal static readonly ReadOnlyMemory<byte> CloseConnectionFrame = new byte[]
         {
-            new byte[]
-            {
-                Magic[0], Magic[1], Magic[2], Magic[3],
-                ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                (byte)Ice1FrameType.CloseConnection,
-                0, // Compression status.
-                HeaderSize, 0, 0, 0 // Frame size.
-            }
+            Magic[0], Magic[1], Magic[2], Magic[3],
+            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            (byte)Ice1FrameType.CloseConnection,
+            0, // Compression status.
+            HeaderSize, 0, 0, 0 // Frame size.
         };
 
         internal static readonly byte[] FramePrologue = new byte[]
@@ -47,16 +44,13 @@ namespace IceRpc.Internal
             ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
         };
 
-        internal static readonly List<ArraySegment<byte>> ValidateConnectionFrame = new()
+        internal static readonly ReadOnlyMemory<byte> ValidateConnectionFrame = new byte[]
         {
-            new byte[]
-            {
-                Magic[0], Magic[1], Magic[2], Magic[3],
-                ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
-                (byte)Ice1FrameType.ValidateConnection,
-                0, // Compression status.
-                HeaderSize, 0, 0, 0 // Frame size.
-            }
+            Magic[0], Magic[1], Magic[2], Magic[3],
+            ProtocolBytes[0], ProtocolBytes[1], ProtocolBytes[2], ProtocolBytes[3],
+            (byte)Ice1FrameType.ValidateConnection,
+            0, // Compression status.
+            HeaderSize, 0, 0, 0 // Frame size.
         };
 
         private static readonly byte[] _voidReturnValuePayload11 = Array.Empty<byte>();

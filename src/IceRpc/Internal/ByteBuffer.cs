@@ -32,6 +32,18 @@ namespace IceRpc.Internal
             return count;
         }
 
+        internal static int GetByteCount(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        {
+            ReadOnlySpan<ReadOnlyMemory<byte>> span = buffers.Span;
+
+            int count = 0;
+            for (int i = 0; i < span.Length; ++i)
+            {
+                count += span[i].Length;
+            }
+            return count;
+        }
+
         internal static int ReadInt(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt32(buffer);
         internal static long ReadLong(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt64(buffer);
         internal static short ReadShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt16(buffer);
@@ -96,6 +108,16 @@ namespace IceRpc.Internal
                 }
                 return data;
             }
+        }
+
+        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<ArraySegment<byte>> src)
+        {
+            var result = new ReadOnlyMemory<byte>[src.Count];
+            for (int i = 0; i < result.Length; ++i)
+            {
+                result[i] = src[i];
+            }
+            return result;
         }
 
         /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>

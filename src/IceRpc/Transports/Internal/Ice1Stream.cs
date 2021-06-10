@@ -27,10 +27,10 @@ namespace IceRpc.Transports.Internal
             throw new NotImplementedException();
 
         protected async override ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel) =>
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
 
         protected override void Shutdown()
         {
@@ -98,7 +98,7 @@ namespace IceRpc.Transports.Internal
             int frameSize = buffer.GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffer.ToReadOnlyMemory(), cancel).ConfigureAwait(false);
         }
     }
 }

@@ -541,19 +541,19 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask SendPacketAsync(IList<ArraySegment<byte>> buffer)
+        internal async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             // Perform the write
-            int sent = await _bufferedConnection!.SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
-            Debug.Assert(sent == buffer.GetByteCount());
+            int sent = await _bufferedConnection!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+            Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
 
         internal async ValueTask SendStreamFrameAsync(
             SlicStream stream,
             int packetSize,
-            bool fin,
-            IList<ArraySegment<byte>> buffer,
+            bool endStream,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             if (stream.IsStarted || stream.IsControl)
@@ -617,7 +617,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            if (IsIncoming && fin)
+            if (IsIncoming && endStream)
             {
                 // Release the stream count if it's the last frame. It's important to release the count before to
                 // send the last frame to prevent a race condition with the client.
@@ -654,30 +654,30 @@ namespace IceRpc.Transports.Internal
                     int sizeLength = OutputStream.GetSizeLength20(packetSize);
 
                     SlicDefinitions.FrameType frameType =
-                        fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
+                        endStream ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
 
                     // Write the Slic frame header (frameType - byte, frameSize - varint, streamId - varlong). Since
                     // we might not need the full space reserved for the header, we modify the send buffer to ensure
                     // the first element points at the start of the Slic header. We'll restore the send buffer once
                     // the send is complete (it's important for the tracing code which might rely on the encoded
                     // data).
-                    ArraySegment<byte> previous = buffer[0];
+                    ArraySegment<byte> previous = buffers[0];
                     ArraySegment<byte> headerData =
-                        buffer[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1);
+                        buffers[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1);
                     headerData[0] = (byte)frameType;
                     headerData.AsSpan(1, sizeLength).WriteFixedLengthSize20(packetSize);
                     headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
-                    buffer[0] = headerData;
+                    buffers[0] = headerData;
 
                     Logger.LogSentSlicFrame(frameType, packetSize);
 
                     try
                     {
-                        await SendPacketAsync(buffer).ConfigureAwait(false);
+                        await SendPacketAsync(buffers).ConfigureAwait(false);
                     }
                     finally
                     {
-                        buffer[0] = previous; // Restore the original value of the send buffer.
+                        buffers[0] = previous; // Restore the original value of the send buffer.
                     }
                 }
                 finally

@@ -113,27 +113,28 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override async ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel)
         {
             if (_streamWriter == null)
             {
-                await _connection.SendFrameAsync(this, buffer, fin, cancel).ConfigureAwait(false);
+                await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
             }
             else
             {
-                if (buffer[0].Count > 0)
+                if (buffers.Span[0].Length > 0)
                 {
                     // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
                     // copying the data from the sender. Copying the data is necessary here because WriteAsync
                     // doesn't block if there's space in the channel and it's not possible to create a
                     // bounded channel with a null capacity.
-                    byte[] copy = new byte[buffer[0].Count];
-                    buffer[0].CopyTo(copy);
+                    // TODO: why are we copying only the first buffer??
+                    byte[] copy = new byte[buffers.Span[0].Length];
+                    buffers.Span[0].CopyTo(copy);
                     await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);
                 }
-                if (fin)
+                if (endStream)
                 {
                     _streamWriter.Complete();
                 }
