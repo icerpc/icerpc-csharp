@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -212,19 +213,30 @@ namespace IceRpc.Transports.Internal
                 _receivedEndOfStream = true;
             }
 
-            if (frame is List<ArraySegment<byte>> data)
+            if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
             {
                 // Initialize or GoAway frame.
                 if (_connection.Protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(expectedFrameType == data[0][8]);
+                    Debug.Assert(expectedFrameType == data.Span[0].Span[8]);
                     return ArraySegment<byte>.Empty;
                 }
                 else
                 {
-                    Debug.Assert(expectedFrameType == data[0][0]);
-                    (int size, int sizeLength) = data[0][1..].AsReadOnlySpan().ReadSize20();
-                    return data[0].Slice(1 + sizeLength, size);
+                    Debug.Assert(expectedFrameType == data.Span[0].Span[0]);
+                    (int size, int sizeLength) = data.Span[0].Span[1..].ReadSize20();
+
+                    // temporary
+                    if (MemoryMarshal.TryGetArray(data.Span[0].Slice(1 + sizeLength, size),
+                                                  out ArraySegment<byte> result))
+                    {
+                        return result;
+                    }
+                    else
+                    {
+                        Debug.Assert(false);
+                        return default;
+                    }
                 }
             }
             else
