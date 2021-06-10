@@ -19,8 +19,8 @@ namespace IceRpc
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         public abstract bool IsSecure { get; }
 
-        /// <summary>The description of the connection.</summary>
-        public virtual string Description => $"IsSecure={IsSecure}";
+        /// <inheritdoc/>
+        public override string ToString() => $"IsSecure={IsSecure}";
     }
 
     /// <summary>The state of an IceRpc connection.</summary>
@@ -669,8 +669,9 @@ namespace IceRpc
 
         /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
-        public override string? ToString() => ConnectionInformation == null ? "" :
-            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation.Description}, IsIncoming={IsIncoming})";
+        // TODO: get on ConnectionInformation can throw!
+        public override string ToString() => ConnectionInformation == null ? "" :
+            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsIncoming})";
 
         /// <summary>Constructs an incoming connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)

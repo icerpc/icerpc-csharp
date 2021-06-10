@@ -35,7 +35,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({ConnectionInformation.Description})";
+        public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
 
         /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
