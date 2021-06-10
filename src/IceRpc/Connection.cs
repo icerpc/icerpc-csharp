@@ -13,6 +13,16 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
+    /// <summary>The base class for connection information.</summary>
+    public abstract class ConnectionInformation
+    {
+        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
+        public abstract bool IsSecure { get; }
+
+        /// <inheritdoc/>
+        public override string ToString() => $"IsSecure={IsSecure}";
+    }
+
     /// <summary>The state of an IceRpc connection.</summary>
     public enum ConnectionState : byte
     {
@@ -69,6 +79,11 @@ namespace IceRpc
         /// <summary>The dispatcher that a connection calls when its dispatcher is null.</summary>
         internal static IDispatcher NullDispatcher { get; } =
             new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
+
+        /// <summary>Gets information about the underlying network connection.</summary>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
+        public ConnectionInformation ConnectionInformation => _connection?.ConnectionInformation ??
+            throw new InvalidOperationException("the connection is not established");
 
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
@@ -226,11 +241,6 @@ namespace IceRpc
                 _server = value;
             }
         }
-
-        /// <summary>The connection interface provides information on the connection used by the connection.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        public IConnectionInformation ConnectionInformation =>
-            _connection?.ConnectionInformation ?? throw new InvalidOperationException("the connection is not connected");
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
@@ -659,8 +669,9 @@ namespace IceRpc
 
         /// <summary>Returns a description of the connection as human readable text, suitable for debugging.</summary>
         /// <returns>The description of the connection as human readable text.</returns>
-        public override string? ToString() => ConnectionInformation == null ? "" :
-            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation.Description}, IsIncoming={IsIncoming})";
+        // TODO: get on ConnectionInformation can throw!
+        public override string ToString() => ConnectionInformation == null ? "" :
+            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsIncoming})";
 
         /// <summary>Constructs an incoming connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)

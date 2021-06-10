@@ -264,7 +264,7 @@ namespace IceRpc.Transports.Internal
                             connection.LocalEndpoint.ToString());
                     }
                 }
-                else if (connection.ConnectionInformation is ITcpConnectionInformation tcpConnection)
+                else if (connection.ConnectionInformation is TcpConnectionInformation tcpConnection)
                 {
                     if (connection.IsDatagram && server != null)
                     {
