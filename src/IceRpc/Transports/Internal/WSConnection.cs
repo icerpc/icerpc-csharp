@@ -157,6 +157,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // If we've fully read the previous DATA frame payload, read a new frame
+            Debug.Assert(_receivePayloadOffset <= _receivePayloadLength);
             if (_receivePayloadOffset == _receivePayloadLength)
             {
                 _receivePayloadLength = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
@@ -169,7 +170,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // Read the payload
-            int length = Math.Min(_receivePayloadLength, buffer.Length);
+            int length = Math.Min(_receivePayloadLength - _receivePayloadOffset, buffer.Length);
             int received = await _bufferedConnection.ReceiveAsync(buffer[0..length], cancel).ConfigureAwait(false);
 
             if (_incoming)
