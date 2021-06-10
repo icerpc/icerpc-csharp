@@ -27,8 +27,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(10, 1024)]
         public async Task Datagram_MultipleSendReceiveAsync(int outgoingConnectionCount, int size)
         {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
-            new Random().NextBytes(sendBuffer[0]);
+            var sendBuffer = new byte[size];
+            new Random().NextBytes(sendBuffer);
 
             List<SingleStreamConnection> outgoingConnections = new();
             outgoingConnections.Add(OutgoingConnection);
@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Internal
 
                         ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                        Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                        Assert.AreEqual(sendBuffer, receiveBuffer);
                     }
                     break;
                 }
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
                     {
                         using var source = new CancellationTokenSource(1000);
                         ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(sendBuffer[0].Count, receiveBuffer.Count);
+                        Assert.AreEqual(sendBuffer.Length, receiveBuffer.Count);
                     }
                     break;
                 }
@@ -119,7 +119,7 @@ namespace IceRpc.Tests.Internal
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
-            var buffer = new List<ArraySegment<byte>>() { new byte[1] };
+            var buffer = new byte[1];
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await OutgoingConnection.SendDatagramAsync(buffer, canceled.Token));
         }
@@ -146,8 +146,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(4096)]
         public async Task Datagram_SendReceiveAsync(int size)
         {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
-            new Random().NextBytes(sendBuffer[0]);
+            var sendBuffer = new byte[size];
+            new Random().NextBytes(sendBuffer);
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
             int count = 5;
@@ -159,7 +159,7 @@ namespace IceRpc.Tests.Internal
                     ValueTask<int> sendTask = OutgoingConnection.SendDatagramAsync(sendBuffer, default);
                     ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
                     Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                    Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                    Assert.AreEqual(sendBuffer, receiveBuffer);
                     break;
                 }
                 catch (OperationCanceledException)

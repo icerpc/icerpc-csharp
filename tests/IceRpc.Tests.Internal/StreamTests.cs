@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
             Stream clientStream = OutgoingConnection.CreateStream(true);
 
             // Send one byte.
-            var sendBuffer = new List<ArraySegment<byte>> { new byte[1] };
+            var sendBuffer = new ReadOnlyMemory<byte>[] { new byte[1] };
             await clientStream.InternalSendAsync(sendBuffer, false, default);
 
             // Accept the new stream on the incoming connection

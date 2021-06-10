@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -110,12 +109,10 @@ namespace IceRpc.Transports.Internal
             return buffer.Slice(0, received);
         }
 
-        public override ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException();
 
-        public override async ValueTask<int> SendDatagramAsync(
-            IList<ArraySegment<byte>> buffer,
-            CancellationToken cancel)
+        public override async ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
             if (_incoming)
             {
@@ -124,8 +121,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                return await _socket.SendAsync(buffer, SocketFlags.None).IceWaitAsync(cancel).ConfigureAwait(false);
+                return await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {

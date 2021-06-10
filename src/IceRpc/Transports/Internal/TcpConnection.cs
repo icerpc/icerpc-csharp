@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -163,13 +162,11 @@ namespace IceRpc.Transports.Internal
         public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
-        public override async ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel)
+        public override async ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
             try
             {
-                // TODO: Use cancellable API once https://github.com/dotnet/runtime/issues/33417 is fixed.
-                using CancellationTokenRegistration registration = cancel.Register(() => _socket.CloseNoThrow());
-                return await _socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
+                return await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -189,7 +186,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
         protected override void Dispose(bool disposing) => _socket.Dispose();

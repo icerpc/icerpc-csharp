@@ -5,6 +5,7 @@ using IceRpc.Slic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -212,7 +213,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // The send buffer for the Slic stream frame.
-            IList<ArraySegment<byte>>? sendBuffer = null;
+            IList<ReadOnlyMemory<byte>>? sendBuffer = null;
 
             // The amount of data sent so far.
             int offset = 0;
@@ -243,7 +244,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // The given buffer doesn't need to be fragmented as it's smaller than what we are allowed
                     // to send. We directly send the buffer.
-                    sendBuffer = buffers;
+                    sendBuffer = buffers.ToArray();
                     sendSize = size;
                     lastBuffer = endStream;
                 }
@@ -252,7 +253,7 @@ namespace IceRpc.Transports.Internal
                     if (sendBuffer == null)
                     {
                         // Sending first buffer fragment.
-                        sendBuffer = new List<ArraySegment<byte>>(buffers.Count);
+                        sendBuffer = new List<ReadOnlyMemory<byte>>(buffers.Length);
                         sendSize = -TransportHeader.Length;
                     }
                     else
@@ -260,27 +261,27 @@ namespace IceRpc.Transports.Internal
                         // If it's not the first fragment, we re-use the space reserved for the Slic header in
                         // the first segment of the given protocol buffer.
                         sendBuffer.Clear();
-                        sendBuffer.Add(buffers[0].Slice(0, TransportHeader.Length));
+                        sendBuffer.Add(buffers.Span[0].Slice(0, TransportHeader.Length));
                     }
 
                     // Append data until we reach the allowed packet size or the end of the buffer to send.
                     lastBuffer = false;
-                    for (int i = start.Segment; i < buffers.Count; ++i)
+                    for (int i = start.Segment; i < buffers.Length; ++i)
                     {
                         int segmentOffset = i == start.Segment ? start.Offset : 0;
-                        if (buffers[i].Slice(segmentOffset).Count > maxPacketSize - sendSize)
+                        if (buffers.Span[i].Slice(segmentOffset).Length > maxPacketSize - sendSize)
                         {
-                            sendBuffer.Add(buffers[i].Slice(segmentOffset, maxPacketSize - sendSize));
-                            start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Count);
-                            Debug.Assert(start.Offset < buffers[i].Count);
+                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset, maxPacketSize - sendSize));
+                            start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Length);
+                            Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;
                         }
                         else
                         {
-                            sendBuffer.Add(buffers[i].Slice(segmentOffset));
-                            sendSize += sendBuffer[^1].Count;
-                            lastBuffer = i + 1 == buffers.Count;
+                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset));
+                            sendSize += sendBuffer[^1].Length;
+                            lastBuffer = i + 1 == buffers.Length;
                         }
                     }
                 }
@@ -293,7 +294,7 @@ namespace IceRpc.Transports.Internal
                         this,
                         sendSize,
                         lastBuffer && endStream,
-                        sendBuffer,
+                        sendBuffer.ToArray(),
                         cancel).ConfigureAwait(false);
                 }
                 else
@@ -312,7 +313,7 @@ namespace IceRpc.Transports.Internal
                             this,
                             sendSize,
                             lastBuffer && endStream,
-                            sendBuffer,
+                            sendBuffer.ToArray(),
                             cancel).ConfigureAwait(false);
 
                         // If flow control allows sending more data, release the semaphore.

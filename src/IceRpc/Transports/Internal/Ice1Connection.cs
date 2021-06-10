@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -205,7 +206,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal Ice1Connection(
-            Endpoint endpoint, 
+            Endpoint endpoint,
             SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
@@ -284,9 +285,12 @@ namespace IceRpc.Transports.Internal
                 if (stream != null && !stream.IsStarted)
                 {
                     stream.Id = AllocateId(stream.IsBidirectional);
-                    if (buffers[0][8] == (byte)Ice1FrameType.Request)
+                    if (buffers.Span[0].Span[8] == (byte)Ice1FrameType.Request)
                     {
-                        buffers[0].AsSpan(Ice1Definitions.HeaderSize).WriteInt(stream.RequestId);
+                        Memory<byte> requestIdBuffer =
+                            MemoryMarshal.AsMemory(buffers.Span[0][Ice1Definitions.HeaderSize..]);
+
+                        requestIdBuffer.Span.WriteInt(stream.RequestId);
                     }
                 }
 
@@ -411,17 +415,26 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
+        private async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
-            int sent;
+            int sent = 0;
             if (IsDatagram)
             {
-                sent = await Underlying.SendDatagramAsync(buffers, cancel).ConfigureAwait(false);
+                for (int i = 0; i < buffers.Length; ++i)
+                {
+                    sent += await Underlying.SendDatagramAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                }
             }
             else
             {
-                sent = await Underlying.SendAsync(buffers, cancel).ConfigureAwait(false);
+                for (int i = 0; i < buffers.Length; ++i)
+                {
+                    sent += await Underlying.SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                }
             }
+
+            // TODO: what's the point of SendAsync/SendDatagramAsync returning the number of bytes sent since they
+            // always send the whole buffer?
             Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }

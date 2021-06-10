@@ -76,16 +76,16 @@ namespace IceRpc.Transports
         public abstract ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel);
 
         /// <summary>Send data over the connection.</summary>
-        /// <param name="buffers">The buffer containing the data to send.</param>
+        /// <param name="buffer">The buffer containing the data to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The number of bytes sent.</return>
-        public abstract ValueTask<int> SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel);
+        public abstract ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Send datagram over the connection.</summary>
         /// <param name="buffer">The buffer containing the data to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The number of bytes sent.</return>
-        public abstract ValueTask<int> SendDatagramAsync(IList<ArraySegment<byte>> buffer, CancellationToken cancel);
+        public abstract ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only

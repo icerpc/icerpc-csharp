@@ -58,8 +58,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(1024)]
         public async Task DatagramMulticast_SendReceiveAsync(int size)
         {
-            var sendBuffer = new List<ArraySegment<byte>>() { new byte[size] };
-            new Random().NextBytes(sendBuffer[0]);
+            var sendBuffer = new byte[size];
+            new Random().NextBytes(sendBuffer);
 
             // Datagrams aren't reliable, try up to 5 times in case a datagram is lost.
             int count = 5;
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Internal
                     {
                         ArraySegment<byte> receiveBuffer = await connection.ReceiveDatagramAsync(source.Token);
                         Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                        Assert.AreEqual(sendBuffer[0], receiveBuffer);
+                        Assert.AreEqual(sendBuffer, receiveBuffer);
                     }
                     break;
                 }

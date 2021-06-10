@@ -6,6 +6,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -408,8 +409,8 @@ namespace IceRpc.Transports.Internal
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
         internal SlicConnection(
-            Endpoint endpoint, 
-            SingleStreamConnection singleStreamConnection, 
+            Endpoint endpoint,
+            SingleStreamConnection singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
         {
@@ -486,7 +487,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                await SendPacketAsync(data).ConfigureAwait(false);
+                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
 
                 if (logAction != null)
                 {
@@ -544,7 +545,14 @@ namespace IceRpc.Transports.Internal
         internal async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             // Perform the write
-            int sent = await _bufferedConnection!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+            int sent = 0;
+
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
+                sent += await _bufferedConnection!.SendAsync(buffers.Span[i],
+                                                             CancellationToken.None).ConfigureAwait(false);
+            }
             Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
@@ -661,13 +669,15 @@ namespace IceRpc.Transports.Internal
                     // the first element points at the start of the Slic header. We'll restore the send buffer once
                     // the send is complete (it's important for the tracing code which might rely on the encoded
                     // data).
-                    ArraySegment<byte> previous = buffers[0];
-                    ArraySegment<byte> headerData =
-                        buffers[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1);
-                    headerData[0] = (byte)frameType;
-                    headerData.AsSpan(1, sizeLength).WriteFixedLengthSize20(packetSize);
-                    headerData.AsSpan(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
-                    buffers[0] = headerData;
+                    ReadOnlyMemory<byte> previous = buffers.Span[0];
+                    Memory<byte> headerData = MemoryMarshal.AsMemory(
+                        buffers.Span[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1));
+                    headerData.Span[0] = (byte)frameType;
+                    headerData.Span.Slice(1, sizeLength).WriteFixedLengthSize20(packetSize);
+                    headerData.Span.Slice(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
+
+                    // Update the first buffer entry
+                    MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
 
                     Logger.LogSentSlicFrame(frameType, packetSize);
 
@@ -677,7 +687,8 @@ namespace IceRpc.Transports.Internal
                     }
                     finally
                     {
-                        buffers[0] = previous; // Restore the original value of the send buffer.
+                        // Restore the original value of the send buffer.
+                        MemoryMarshal.AsMemory(buffers).Span[0] = previous;
                     }
                 }
                 finally
