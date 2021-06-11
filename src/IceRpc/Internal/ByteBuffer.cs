@@ -93,11 +93,11 @@ namespace IceRpc.Internal
             return (value, buffer[0].ReadVarLongLength());
         }
 
-        internal static ArraySegment<byte> ToArraySegment(this IList<Memory<byte>> bufferList)
+        internal static ReadOnlyMemory<byte> ToSingleBuffer(this IList<Memory<byte>> bufferList)
         {
-            if (bufferList.Count == 1 && MemoryMarshal.TryGetArray(bufferList[0], out ArraySegment<byte> segment))
+            if (bufferList.Count == 1)
             {
-                return segment;
+                return bufferList[0];
             }
             else
             {
@@ -112,12 +112,11 @@ namespace IceRpc.Internal
             }
         }
 
-        // temporary
-        internal static ArraySegment<byte> ToArraySegment(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal static ReadOnlyMemory<byte> ToSingleBuffer(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
-            if (buffers.Length == 1 && MemoryMarshal.TryGetArray(buffers.Span[0], out ArraySegment<byte> segment))
+            if (buffers.Length == 1)
             {
-                return segment;
+                return buffers.Span[0];
             }
             else
             {

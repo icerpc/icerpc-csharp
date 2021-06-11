@@ -98,7 +98,7 @@ namespace IceRpc
                 var ostr = new OutputStream(Encoding.V20, buffer);
                 WriteFields(ostr);
                 ostr.Finish();
-                return buffer.ToArraySegment().AsReadOnlyMemory().ReadFieldValue(istr => istr.ReadFieldDictionary());
+                return buffer.ToSingleBuffer().ReadFieldValue(istr => istr.ReadFieldDictionary());
             }
         }
 

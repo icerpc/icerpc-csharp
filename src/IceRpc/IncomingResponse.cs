@@ -113,7 +113,7 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            Payload = response.Payload.ToArraySegment();
+            Payload = response.Payload.ToSingleBuffer();
         }
 
         // Constructor for oneway response pseudo frame.
