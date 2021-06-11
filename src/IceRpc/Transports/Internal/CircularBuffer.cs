@@ -88,27 +88,27 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
-                Memory<byte> buffer;
+                Memory<byte> chunk;
                 if (_head > _tail)
                 {
                     int count = Math.Min(_head - _tail, size);
-                    buffer = new(_buffer, _tail, count);
+                    chunk = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else if (_tail < _buffer.Length)
                 {
                     int count = Math.Min(_buffer.Length - _tail, size);
-                    buffer = new(_buffer, _tail, count);
+                    chunk = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else
                 {
                     int count = Math.Min(_head, size);
-                    buffer = new(_buffer, 0, count);
+                    chunk = new(_buffer, 0, count);
                     _tail = count;
                 }
                 _full = _tail == _head;
-                return buffer;
+                return chunk;
             }
             finally
             {
