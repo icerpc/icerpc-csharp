@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Encoding
             bool r1 = _istr.ReadBool();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(bool), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(bool), _istr.Pos);
         }
@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Encoding
             byte r1 = _istr.ReadByte();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(byte), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(byte), _istr.Pos);
         }
@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Encoding
             short r1 = _istr.ReadShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(short), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(short), _istr.Pos);
         }
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Encoding
             ushort r1 = _istr.ReadUShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(ushort), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(ushort), _istr.Pos);
         }
@@ -89,7 +89,7 @@ namespace IceRpc.Tests.Encoding
             int r1 = _istr.ReadInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(int), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(int), _istr.Pos);
         }
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Encoding
             uint r1 = _istr.ReadUInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
         }
 
         [TestCase(long.MinValue)]
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Encoding
             long r1 = _istr.ReadLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(long), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(long), _istr.Pos);
         }
@@ -128,7 +128,7 @@ namespace IceRpc.Tests.Encoding
             ulong r1 = _istr.ReadULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarULongMinValue)]
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Encoding
             ulong r1 = _istr.ReadVarULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarLongMinValue)]
@@ -150,7 +150,7 @@ namespace IceRpc.Tests.Encoding
             long r1 = _istr.ReadVarLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
         }
 
         [TestCase(float.MinValue)]
@@ -162,7 +162,7 @@ namespace IceRpc.Tests.Encoding
             float r1 = _istr.ReadFloat();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(float), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(float), _istr.Pos);
         }
@@ -177,7 +177,7 @@ namespace IceRpc.Tests.Encoding
             double r1 = _istr.ReadDouble();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _ostr.Tail.Segment);
+            Assert.AreEqual(0, _ostr.Tail.Buffer);
             Assert.AreEqual(sizeof(double), _ostr.Tail.Offset);
             Assert.AreEqual(sizeof(double), _istr.Pos);
         }

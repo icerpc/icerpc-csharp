@@ -132,16 +132,6 @@ namespace IceRpc.Internal
             }
         }
 
-        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<ArraySegment<byte>> src)
-        {
-            var result = new ReadOnlyMemory<byte>[src.Count];
-            for (int i = 0; i < result.Length; ++i)
-            {
-                result[i] = src[i];
-            }
-            return result;
-        }
-
         internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<Memory<byte>> bufferList)
         {
             var result = new ReadOnlyMemory<byte>[bufferList.Count];

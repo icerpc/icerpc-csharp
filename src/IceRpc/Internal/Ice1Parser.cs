@@ -102,7 +102,7 @@ namespace IceRpc.Internal
                     ostr.WriteEndpoint11(opaqueEndpoint);
                     ostr.Finish();
                     Debug.Assert(bufferList.Count == 1);
-                    Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
+                    Debug.Assert(ostr.Tail.Buffer == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
                     return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
                 }

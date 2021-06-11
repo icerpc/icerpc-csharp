@@ -266,9 +266,9 @@ namespace IceRpc.Transports.Internal
 
                     // Append data until we reach the allowed packet size or the end of the buffer to send.
                     lastBuffer = false;
-                    for (int i = start.Segment; i < buffers.Length; ++i)
+                    for (int i = start.Buffer; i < buffers.Length; ++i)
                     {
-                        int segmentOffset = i == start.Segment ? start.Offset : 0;
+                        int segmentOffset = i == start.Buffer ? start.Offset : 0;
                         if (buffers.Span[i].Slice(segmentOffset).Length > maxPacketSize - sendSize)
                         {
                             sendBuffer.Add(buffers.Span[i].Slice(segmentOffset, maxPacketSize - sendSize));

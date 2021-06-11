@@ -39,21 +39,21 @@ namespace IceRpc
     public sealed partial class OutputStream
     {
         /// <summary>Represents a position in the OutputStream's buffer. This position consists of the index of the
-        /// segment in the list and the offset into the segment.</summary>
+        /// buffer in the list and the offset into the buffer.</summary>
         internal struct Position
         {
-            /// <summary>Creates a new position from the segment and offset values.</summary>
-            /// <param name="segment">The zero based index of the segment.</param>
-            /// <param name="offset">The offset into the segment.</param>
-            internal Position(int segment, int offset)
+            /// <summary>Creates a new position from the buffer and offset values.</summary>
+            /// <param name="buffer">The zero based index of the buffer.</param>
+            /// <param name="offset">The offset into the buffer.</param>
+            internal Position(int buffer, int offset)
             {
-                Segment = segment;
+                Buffer = buffer;
                 Offset = offset;
             }
 
-            /// <summary>The zero based index of the segment.</summary>
-            internal int Segment;
-            /// <summary>The offset into the segment.</summary>
+            /// <summary>The zero based index of the buffer.</summary>
+            internal int Buffer;
+            /// <summary>The offset into the buffer.</summary>
             internal int Offset;
         }
 
@@ -146,7 +146,7 @@ namespace IceRpc
         // Gets the position for the next write operation.
         internal Position Tail => _tail;
 
-        private const int DefaultSegmentSize = 256;
+        private const int DefaultBufferSize = 256;
 
         // The number of bytes we use by default when writing a size on a fixed number of byte with the 2.0 encoding.
         private const int DefaultSizeLength = 4;
@@ -161,9 +161,9 @@ namespace IceRpc
         // Data for the class or exception instance that is currently getting marshaled.
         private InstanceData _current;
 
-        // The segment currently used by write operations, this is usually the last segment of the segment list but it
+        // The buffer currently used by write operations, this is usually the last buffer of the buffer list but it
         // can occasionally be one before last after expanding the list. The tail Position always points to this
-        // segment, and the tail offset indicates how much of the segment has been used.
+        // buffer, and the tail offset indicates how much of the buffer has been used.
         private Memory<byte> _currentBuffer;
 
         // The current class/exception format, can be either Compact or Sliced.
@@ -175,7 +175,7 @@ namespace IceRpc
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
         private Dictionary<AnyClass, int>? _instanceMap;
 
-        // All segments before the tail segment are fully used.
+        // All buffers before the tail buffer are fully used.
         private readonly IList<Memory<byte>> _bufferList;
 
         // The position for the next write operation.
@@ -995,7 +995,7 @@ namespace IceRpc
             int remaining = _currentBuffer.Length - _tail.Offset;
             if (size <= remaining)
             {
-                // Expand above ensures _tail.Offset is not _currentSegment.Count.
+                // Expand above ensures _tail.Offset is not _currentBuffer.Count.
                 Span<byte> span = _currentBuffer.Span.Slice(_tail.Offset, size);
                 span.Fill(255);
                 _tail.Offset += size;
@@ -1006,7 +1006,7 @@ namespace IceRpc
             {
                 Span<byte> firstSpan = _currentBuffer.Span.Slice(_tail.Offset);
                 firstSpan.Fill(255);
-                _currentBuffer = _bufferList[++_tail.Segment];
+                _currentBuffer = _bufferList[++_tail.Buffer];
                 _tail.Offset = size - remaining;
                 Size += size;
                 Span<byte> secondSpan = _currentBuffer.Span.Slice(0, _tail.Offset);
@@ -1043,12 +1043,12 @@ namespace IceRpc
             }
             else
             {
-                _currentBuffer = _bufferList[_tail.Segment];
+                _currentBuffer = _bufferList[_tail.Buffer];
                 Size = Distance(default);
                 _capacity = 0;
-                foreach (Memory<byte> segment in _bufferList)
+                foreach (Memory<byte> buffer in _bufferList)
                 {
-                    _capacity += segment.Length;
+                    _capacity += buffer.Length;
                 }
             }
         }
@@ -1076,7 +1076,7 @@ namespace IceRpc
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         internal void Finish()
         {
-            Debug.Assert(_bufferList.Count - 1 == _tail.Segment);
+            Debug.Assert(_bufferList.Count - 1 == _tail.Buffer);
             _bufferList[^1] = _bufferList[^1].Slice(0, _tail.Offset);
         }
 
@@ -1086,7 +1086,7 @@ namespace IceRpc
         /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
         internal void RewriteFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
         {
-            Debug.Assert(pos.Segment < _bufferList.Count);
+            Debug.Assert(pos.Buffer < _bufferList.Count);
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
 
             Span<byte> data = stackalloc byte[sizeLength];
@@ -1130,7 +1130,7 @@ namespace IceRpc
 
             if (length > 0)
             {
-                _currentBuffer = _bufferList[++_tail.Segment];
+                _currentBuffer = _bufferList[++_tail.Buffer];
                 if (remaining == 0)
                 {
                     span.CopyTo(_currentBuffer.Span.Slice(0, length));
@@ -1190,19 +1190,19 @@ namespace IceRpc
 
         private static int Distance(IList<Memory<byte>> data, Position start, Position end)
         {
-            // If both the start and end position are in the same array segment just
+            // If both the start and end position are in the same array buffer just
             // compute the offsets distance.
-            if (start.Segment == end.Segment)
+            if (start.Buffer == end.Buffer)
             {
                 return end.Offset - start.Offset;
             }
 
-            // If start and end position are in different segments we need to accumulate the
-            // size from start offset to the end of the start segment, the size of the intermediary
-            // segments, and the current offset into the last segment.
-            Memory<byte> segment = data[start.Segment];
-            int size = segment.Length - start.Offset;
-            for (int i = start.Segment + 1; i < end.Segment; ++i)
+            // If start and end position are in different buffers we need to accumulate the
+            // size from start offset to the end of the start buffer, the size of the intermediary
+            // buffers, and the current offset into the last buffer.
+            Memory<byte> buffer = data[start.Buffer];
+            int size = buffer.Length - start.Offset;
+            for (int i = start.Buffer + 1; i < end.Buffer; ++i)
             {
                 checked
                 {
@@ -1260,8 +1260,8 @@ namespace IceRpc
         /// <returns>The distance in bytes from the current position to the start position.</returns>
         private int Distance(Position start)
         {
-            Debug.Assert(_tail.Segment > start.Segment ||
-                        (_tail.Segment == start.Segment && _tail.Offset >= start.Offset));
+            Debug.Assert(_tail.Buffer > start.Buffer ||
+                        (_tail.Buffer == start.Buffer && _tail.Offset >= start.Offset));
 
             return Distance(_bufferList, start, _tail);
         }
@@ -1276,7 +1276,7 @@ namespace IceRpc
             int remaining = _capacity - Size;
             if (n > remaining)
             {
-                int size = Math.Max(DefaultSegmentSize, _currentBuffer.Length * 2);
+                int size = Math.Max(DefaultBufferSize, _currentBuffer.Length * 2);
                 size = Math.Max(n - remaining, size);
                 byte[] buffer = new byte[size];
                 _bufferList.Add(buffer);
@@ -1290,7 +1290,7 @@ namespace IceRpc
                     // Patch _tail to point to the first byte in the new buffer.
                     Debug.Assert(_tail.Offset == _currentBuffer.Length);
                     _currentBuffer = buffer;
-                    _tail.Segment++;
+                    _tail.Buffer++;
                     _tail.Offset = 0;
                 }
                 _capacity += buffer.Length;
@@ -1311,17 +1311,17 @@ namespace IceRpc
         /// <param name="pos">The position to write to.</param>
         private void RewriteByte(byte v, Position pos)
         {
-            Memory<byte> segment = _bufferList[pos.Segment];
-            if (pos.Offset < segment.Length)
+            Memory<byte> buffer = _bufferList[pos.Buffer];
+            if (pos.Offset < buffer.Length)
             {
-                segment.Span[pos.Offset] = v;
+                buffer.Span[pos.Offset] = v;
             }
             else
             {
                 // (segN, segN.Count) points to the same byte as (segN + 1, 0)
-                Debug.Assert(pos.Offset == segment.Length);
-                segment = _bufferList[pos.Segment + 1];
-                segment.Span[0] = v;
+                Debug.Assert(pos.Offset == buffer.Length);
+                buffer = _bufferList[pos.Buffer + 1];
+                buffer.Span[0] = v;
             }
         }
 
@@ -1330,7 +1330,7 @@ namespace IceRpc
         /// <param name="pos">The position to write to.</param>
         internal void RewriteFixedLengthSize11(int size, Position pos)
         {
-            Debug.Assert(pos.Segment < _bufferList.Count);
+            Debug.Assert(pos.Buffer < _bufferList.Count);
 
             Span<byte> data = stackalloc byte[4];
             MemoryMarshal.Write(data, ref size);
@@ -1339,17 +1339,17 @@ namespace IceRpc
 
         private void RewriteByteSpan(Span<byte> data, Position pos)
         {
-            Memory<byte> segment = _bufferList[pos.Segment];
-            int remaining = Math.Min(data.Length, segment.Length - pos.Offset);
+            Memory<byte> buffer = _bufferList[pos.Buffer];
+            int remaining = Math.Min(data.Length, buffer.Length - pos.Offset);
             if (remaining > 0)
             {
-                data.Slice(0, remaining).CopyTo(segment.Span.Slice(pos.Offset, remaining));
+                data.Slice(0, remaining).CopyTo(buffer.Span.Slice(pos.Offset, remaining));
             }
 
             if (remaining < data.Length)
             {
-                segment = _bufferList[pos.Segment + 1];
-                data[remaining..].CopyTo(segment.Span.Slice(0, data.Length - remaining));
+                buffer = _bufferList[pos.Buffer + 1];
+                data[remaining..].CopyTo(buffer.Span.Slice(0, data.Length - remaining));
             }
         }
 
