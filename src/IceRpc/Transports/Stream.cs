@@ -84,7 +84,7 @@ namespace IceRpc.Transports
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
-        /// this header to be set at the start of the first segment.</summary>
+        /// this header to be set at the start of the first buffer.</summary>
         protected virtual ReadOnlyMemory<byte> TransportHeader => default;
 
         /// <summary>Get the cancellation dispatch source.</summary>

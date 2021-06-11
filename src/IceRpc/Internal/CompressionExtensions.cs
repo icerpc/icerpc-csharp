@@ -119,8 +119,8 @@ namespace IceRpc.Internal
                     } bytes is greater than the configured IncomingFrameMaxSize value ({maxSize} bytes)");
             }
 
-            // We are going to replace the Payload segment with a new Payload segment/array that contains a
-            // decompressed payload.
+            // We are going to replace the payload with a new payload segment/array that contains a decompressed
+            // payload.
             byte[] decompressedPayload = new byte[decompressedSize];
 
             int decompressedIndex = 0;

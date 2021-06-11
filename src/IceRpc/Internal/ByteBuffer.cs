@@ -17,9 +17,9 @@ namespace IceRpc.Internal
 
         internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
-        /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
-        /// <param name="bufferList">The list of segments.</param>
-        /// <returns>The byte count of the segment list.</returns>
+        /// <summary>Returns the sum of the count of all the buffers in the buffer list.</summary>
+        /// <param name="bufferList">The list of buffers.</param>
+        /// <returns>The byte count of the buffer list.</returns>
         internal static int GetByteCount(this IEnumerable<Memory<byte>> bufferList)
         {
             int count = 0;

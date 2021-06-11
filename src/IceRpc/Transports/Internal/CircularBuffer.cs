@@ -88,27 +88,27 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
-                Memory<byte> segment;
+                Memory<byte> buffer;
                 if (_head > _tail)
                 {
                     int count = Math.Min(_head - _tail, size);
-                    segment = new(_buffer, _tail, count);
+                    buffer = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else if (_tail < _buffer.Length)
                 {
                     int count = Math.Min(_buffer.Length - _tail, size);
-                    segment = new(_buffer, _tail, count);
+                    buffer = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else
                 {
                     int count = Math.Min(_head, size);
-                    segment = new(_buffer, 0, count);
+                    buffer = new(_buffer, 0, count);
                     _tail = count;
                 }
                 _full = _tail == _head;
-                return segment;
+                return buffer;
             }
             finally
             {
@@ -145,29 +145,29 @@ namespace IceRpc.Transports.Internal
                     // Remaining size that needs to be filled up in the buffer
                     int size = buffer.Length - offset;
 
-                    Memory<byte> segment;
+                    Memory<byte> chunk;
                     if (_head < _tail)
                     {
                         int count = Math.Min(_tail - _head, size);
-                        segment = new(_buffer, _head, count);
+                        chunk = new(_buffer, _head, count);
                         _head += count;
                     }
                     else if (_head < _buffer.Length)
                     {
                         int count = Math.Min(_buffer.Length - _head, size);
-                        segment = new(_buffer, _head, count);
+                        chunk = new(_buffer, _head, count);
                         _head += count;
                     }
                     else
                     {
                         int count = Math.Min(_tail, size);
-                        segment = new(_buffer, 0, count);
+                        chunk = new(_buffer, 0, count);
                         _head = count;
                     }
 
-                    Debug.Assert(segment.Length <= buffer.Length);
-                    segment.CopyTo(buffer[offset..]);
-                    offset += segment.Length;
+                    Debug.Assert(chunk.Length <= buffer.Length);
+                    chunk.CopyTo(buffer[offset..]);
+                    offset += chunk.Length;
 
                     _full = false;
                 }
