@@ -294,7 +294,8 @@ namespace IceRpc.Transports
 
             byte frameType = IsIce1 ? (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
 
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data =
+                await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
 
             long lastBidirectionalId;
             long lastUnidirectionalId;
@@ -328,7 +329,8 @@ namespace IceRpc.Transports
             using IDisposable? scope = StartScope();
 
             byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data =
+                await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
@@ -340,7 +342,8 @@ namespace IceRpc.Transports
 
             byte frameType = IsIce1 ? (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
 
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data =
+                await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             if (ReceivedEndOfStream)
             {
                 throw new InvalidDataException($"received unexpected end of stream after initialize frame");
@@ -348,10 +351,10 @@ namespace IceRpc.Transports
 
             if (IsIce1)
             {
-                if (data.Count > 0)
+                if (data.Length > 0)
                 {
                     throw new InvalidDataException(
-                        @$"received an ice1 frame with validate connection type and a size of '{data.Count}' bytes");
+                        @$"received an ice1 frame with validate connection type and a size of '{data.Length}' bytes");
                 }
             }
             else
@@ -393,7 +396,7 @@ namespace IceRpc.Transports
         internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             return new IncomingRequest(_connection.Protocol, data);
         }
 
@@ -401,7 +404,7 @@ namespace IceRpc.Transports
             CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             return new IncomingResponse(_connection.Protocol, data);
         }
 
@@ -532,7 +535,7 @@ namespace IceRpc.Transports
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
 
-        private protected virtual async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
+        private protected virtual async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel = default)
         {
@@ -564,7 +567,7 @@ namespace IceRpc.Transports
                     throw new InvalidDataException(
                         $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
                 }
-                buffer = size > buffer.Array!.Length ? new ArraySegment<byte>(new byte[size]) : buffer.Slice(0, size);
+                buffer = size > buffer.Count ? new ArraySegment<byte>(new byte[size]) : buffer.Slice(0, size);
                 await ReceiveFullAsync(buffer, cancel).ConfigureAwait(false);
             }
 

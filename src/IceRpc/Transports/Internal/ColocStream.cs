@@ -202,7 +202,7 @@ namespace IceRpc.Transports.Internal
             return frame;
         }
 
-        private protected override async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
+        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
         {
