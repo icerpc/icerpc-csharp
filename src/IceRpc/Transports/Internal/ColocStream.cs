@@ -2,8 +2,8 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -113,27 +113,28 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override async ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel)
         {
             if (_streamWriter == null)
             {
-                await _connection.SendFrameAsync(this, buffer, fin, cancel).ConfigureAwait(false);
+                await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
             }
             else
             {
-                if (buffer[0].Count > 0)
+                if (buffers.Span[0].Length > 0)
                 {
                     // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
                     // copying the data from the sender. Copying the data is necessary here because WriteAsync
                     // doesn't block if there's space in the channel and it's not possible to create a
                     // bounded channel with a null capacity.
-                    byte[] copy = new byte[buffer[0].Count];
-                    buffer[0].CopyTo(copy);
+                    // TODO: why are we copying only the first buffer??
+                    byte[] copy = new byte[buffers.Span[0].Length];
+                    buffers.Span[0].CopyTo(copy);
                     await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);
                 }
-                if (fin)
+                if (endStream)
                 {
                     _streamWriter.Complete();
                 }
@@ -200,19 +201,30 @@ namespace IceRpc.Transports.Internal
                 _receivedEndOfStream = true;
             }
 
-            if (frame is List<ArraySegment<byte>> data)
+            if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
             {
                 // Initialize or GoAway frame.
                 if (_connection.Protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(expectedFrameType == data[0][8]);
+                    Debug.Assert(expectedFrameType == data.Span[0].Span[8]);
                     return ArraySegment<byte>.Empty;
                 }
                 else
                 {
-                    Debug.Assert(expectedFrameType == data[0][0]);
-                    (int size, int sizeLength) = data[0][1..].AsReadOnlySpan().ReadSize20();
-                    return data[0].Slice(1 + sizeLength, size);
+                    Debug.Assert(expectedFrameType == data.Span[0].Span[0]);
+                    (int size, int sizeLength) = data.Span[0].Span[1..].ReadSize20();
+
+                    // temporary
+                    if (MemoryMarshal.TryGetArray(data.Span[0].Slice(1 + sizeLength, size),
+                                                  out ArraySegment<byte> result))
+                    {
+                        return result;
+                    }
+                    else
+                    {
+                        Debug.Assert(false);
+                        return default;
+                    }
                 }
             }
             else

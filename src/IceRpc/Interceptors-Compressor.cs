@@ -38,16 +38,16 @@ namespace IceRpc
                     if (compressorOptions.CompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
                         request.PayloadSize >= 1 &&
-                        request.Payload[0][0] == (byte)CompressionFormat.NotCompressed &&
+                        request.Payload.Span[0].Span[0] == (byte)CompressionFormat.NotCompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
-                        (CompressionResult result, ArraySegment<byte> compressedPayload) =
+                        (CompressionResult result, ReadOnlyMemory<byte> compressedPayload) =
                             request.Payload.Compress(request.PayloadSize,
                                                      compressorOptions.CompressionLevel,
                                                      compressorOptions.CompressionMinSize);
                         if (result == CompressionResult.Success)
                         {
-                            request.Payload = new List<ArraySegment<byte>> { compressedPayload };
+                            request.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
                         }
                     }
 

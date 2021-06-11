@@ -2190,7 +2190,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out << nl << "/// <returns>The payload.</returns>";
 
-                _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "
+                _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
                     << fixId(operationName(operation)) << "(IceRpc.IServicePrx proxy, ";
 
                 if (params.size() == 1)
@@ -2684,7 +2684,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "/// <param name=\"returnValueTuple\">The return values to write into the new response payload.</param>";
                 }
                 _out << nl << "/// <returns>A new response payload.</returns>";
-                _out << nl << "public static global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> "
+                _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
                      << fixId(operationName(operation))
                      << "(";
                 _out.inc();
@@ -2752,7 +2752,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.StreamWriter?)> IceRpc.IService"
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2764,7 +2764,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.StreamWriter?)> "
          << "DispatchAsync(";
     _out.inc();
     _out << nl <<  fixId(name) << " servant,"
@@ -2814,7 +2814,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
         _out << sb;
         _out << nl << "/// <summary>The payload holding the marshaled response.</summary>";
-        _out << nl << "public global::System.Collections.Generic.IList<global::System.ArraySegment<byte>> Payload { get; }";
+        _out << nl << "public global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload { get; }";
 
         emitEqualityOperators(name);
         _out << sp;
@@ -2854,7 +2854,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
 
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public bool Equals(" << name << " other) => Payload == other.Payload;";
+        _out << nl << "public bool Equals(" << name << " other) => Payload.Equals(other.Payload);";
 
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
@@ -2919,7 +2919,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.StreamWriter?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
@@ -35,7 +36,7 @@ namespace IceRpc
         /// <param name="streamWriter">The stream writer to encode the stream parameter.</param>
         public OutgoingResponse(
             IncomingRequest request,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             StreamWriter? streamWriter = null)
             : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamWriter)
         {
@@ -50,7 +51,7 @@ namespace IceRpc
         /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         public OutgoingResponse(
             Dispatch dispatch,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             StreamWriter? streamWriter = null)
             : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamWriter)
         {
@@ -76,13 +77,13 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            Payload = new List<ArraySegment<byte>>();
+            var payload = new List<ReadOnlyMemory<byte>>();
 
             ArraySegment<byte> incomingResponsePayload = response.Payload; // TODO: temporary
 
             if (Protocol == response.Protocol)
             {
-                Payload.Add(incomingResponsePayload);
+                payload.Add(incomingResponsePayload);
 
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
@@ -106,7 +107,7 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
                         // We slice-off the reply status that is part of the ice2 payload.
-                        Payload.Add(incomingResponsePayload.Slice(1));
+                        payload.Add(incomingResponsePayload.Slice(1));
                     }
                     else
                     {
@@ -114,17 +115,19 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice1);
 
                         // Prepend a little buffer in front of the ice2 response payload to hold the reply status
+                        // TODO: we don't want little buffers!
                         byte[] buffer = new byte[1];
                         buffer[0] = (byte)ReplyStatus;
-                        Payload.Add(buffer);
-                        Payload.Add(incomingResponsePayload);
+                        payload.Add(buffer);
+                        payload.Add(incomingResponsePayload);
                     }
                 }
                 else
                 {
-                    Payload.Add(incomingResponsePayload);
+                    payload.Add(incomingResponsePayload);
                 }
             }
+            Payload = payload.ToArray();
         }
 
         /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
@@ -136,7 +139,6 @@ namespace IceRpc
         {
             ResultType = ResultType.Failure;
             PayloadEncoding = request.PayloadEncoding;
-
             (Payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
 
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
@@ -188,7 +190,7 @@ namespace IceRpc
 
         private OutgoingResponse(
             Protocol protocol,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Encoding payloadEncoding,
             FeatureCollection features,
             StreamWriter? streamWriter)

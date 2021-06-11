@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task Stream_SendReceiveRequestAsync(int size)
         {
-            IList<ArraySegment<byte>> requestPayload = Payload.FromSingleArg(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromSingleArg(
                 Proxy,
                 new byte[size],
                 (OutputStream ostr, ReadOnlyMemory<byte> value) => ostr.WriteSequence(value.Span));
@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
             Stream clientStream = OutgoingConnection.CreateStream(true);
 
             // Send one byte.
-            var sendBuffer = new List<ArraySegment<byte>> { new byte[1] };
+            var sendBuffer = new ReadOnlyMemory<byte>[] { new byte[1] };
             await clientStream.InternalSendAsync(sendBuffer, false, default);
 
             // Accept the new stream on the incoming connection

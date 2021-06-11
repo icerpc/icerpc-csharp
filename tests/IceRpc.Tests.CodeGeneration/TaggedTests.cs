@@ -188,7 +188,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.IsNull(multiTagged1.MAnotherStructDict);
 
             // Build a request payload with 2 tagged values
-            IList<ArraySegment<byte>> requestPayload = Payload.FromArgs(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
                 _prx,
                 (15, "test"),
                 (OutputStream ostr, in (int n, string s) value) =>

@@ -2,8 +2,8 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -263,7 +263,7 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask SendFrameAsync(
             Ice1Stream? stream,
-            IList<ArraySegment<byte>> buffer,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue
@@ -284,14 +284,17 @@ namespace IceRpc.Transports.Internal
                 if (stream != null && !stream.IsStarted)
                 {
                     stream.Id = AllocateId(stream.IsBidirectional);
-                    if (buffer[0][8] == (byte)Ice1FrameType.Request)
+                    if (buffers.Span[0].Span[8] == (byte)Ice1FrameType.Request)
                     {
-                        buffer[0].AsSpan(Ice1Definitions.HeaderSize).WriteInt(stream.RequestId);
+                        Memory<byte> requestIdBuffer =
+                            MemoryMarshal.AsMemory(buffers.Span[0][Ice1Definitions.HeaderSize..]);
+
+                        requestIdBuffer.Span.WriteInt(stream.RequestId);
                     }
                 }
 
                 // Perform the sending.
-                await SendAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+                await SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {
@@ -411,21 +414,21 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask SendAsync(IList<ArraySegment<byte>> buffers, CancellationToken cancel = default)
+        private async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
         {
             int sent = 0;
             if (IsDatagram)
             {
-                foreach (ArraySegment<byte> buffer in buffers)
+                for (int i = 0; i < buffers.Length; ++i)
                 {
-                    sent += await Underlying.SendDatagramAsync(buffer, cancel).ConfigureAwait(false);
+                    sent += await Underlying.SendDatagramAsync(buffers.Span[i], cancel).ConfigureAwait(false);
                 }
             }
             else
             {
-                foreach (ArraySegment<byte> buffer in buffers)
+                for (int i = 0; i < buffers.Length; ++i)
                 {
-                    sent += await Underlying.SendAsync(buffer, cancel).ConfigureAwait(false);
+                    sent += await Underlying.SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
                 }
             }
 

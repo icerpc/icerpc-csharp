@@ -149,7 +149,7 @@ namespace IceRpc.Transports
                     var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(bufferSize), 0, bufferSize);
                     try
                     {
-                        var sendBuffers = new List<ArraySegment<byte>> { receiveBuffer };
+                        var sendBuffers = new List<Memory<byte>> { receiveBuffer };
                         int received;
                         do
                         {
@@ -160,7 +160,9 @@ namespace IceRpc.Transports
                                                                     cancel).ConfigureAwait(false);
 
                                 sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
-                                await SendAsync(sendBuffers, received == 0, cancel).ConfigureAwait(false);
+                                await SendAsync(sendBuffers.ToReadOnlyMemory(),
+                                                received == 0,
+                                                cancel).ConfigureAwait(false);
                             }
                             catch
                             {
@@ -248,11 +250,14 @@ namespace IceRpc.Transports
         /// <return>The number of bytes received.</return>
         protected abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Sends data from the given buffer and returns once the buffer is sent.</summary>
-        /// <param name="buffer">The buffer with the data to send.</param>
-        /// <param name="fin">True if no more data will be sent over this stream, False otherwise.</param>
+        /// <summary>Sends data from the given buffers and returns once the buffers are sent.</summary>
+        /// <param name="buffers">The buffers with the data to send.</param>
+        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        protected abstract ValueTask SendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel);
+        protected abstract ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
+            CancellationToken cancel);
 
         /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
         /// response or a streamable parameter. It un-registers the stream from the connection.</summary>
@@ -277,11 +282,15 @@ namespace IceRpc.Transports
             ReceiveAsync(buffer, cancel);
 
         // Internal method which should only be used by tests.
-        internal ValueTask InternalSendAsync(IList<ArraySegment<byte>> buffer, bool fin, CancellationToken cancel)
+        internal ValueTask InternalSendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
+            CancellationToken cancel)
         {
-            var sendBuffer = new List<ArraySegment<byte>> { TransportHeader.ToArray() };
-            sendBuffer.AddRange(buffer);
-            return SendAsync(sendBuffer, fin, cancel);
+            var array = new ReadOnlyMemory<byte>[buffers.Length + 1];
+            array[0] = TransportHeader.ToArray();
+            buffers.CopyTo(array.AsMemory()[1..]);
+            return SendAsync(array, endStream, cancel);
         }
 
         internal async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
@@ -434,7 +443,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<ArraySegment<byte>>() { new byte[1024] };
+                var data = new List<Memory<byte>>() { new byte[1024] };
                 var ostr = new OutputStream(Ice2Definitions.Encoding, data);
                 if (!TransportHeader.IsEmpty)
                 {
@@ -448,7 +457,7 @@ namespace IceRpc.Transports
                 ostr.EndFixedLengthSize(sizePos);
                 ostr.Finish();
 
-                await SendAsync(data, false, cancel).ConfigureAwait(false);
+                await SendAsync(data.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
@@ -459,7 +468,7 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
             using IDisposable? scope = StartScope();
 
-            var data = new List<ArraySegment<byte>>() { new byte[1024] };
+            var data = new List<Memory<byte>>() { new byte[1024] };
             var ostr = new OutputStream(Ice2Definitions.Encoding, data);
             if (!TransportHeader.IsEmpty)
             {
@@ -469,7 +478,7 @@ namespace IceRpc.Transports
             ostr.EndFixedLengthSize(ostr.StartFixedLengthSize());
             ostr.Finish();
 
-            await SendAsync(data, true, CancellationToken.None).ConfigureAwait(false);
+            await SendAsync(data.ToReadOnlyMemory(), true, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -482,7 +491,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<ArraySegment<byte>>() { new byte[1024] };
+                var data = new List<Memory<byte>>() { new byte[1024] };
                 var ostr = new OutputStream(Ice2Definitions.Encoding, data);
                 if (!TransportHeader.IsEmpty)
                 {
@@ -504,7 +513,7 @@ namespace IceRpc.Transports
                 ostr.EndFixedLengthSize(sizePos);
                 ostr.Finish();
 
-                await SendAsync(data, false, cancel).ConfigureAwait(false);
+                await SendAsync(data.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
             }
 
             using IDisposable? scope = StartScope();
@@ -577,8 +586,8 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var buffer = new List<ArraySegment<byte>>(frame.Payload.Count + 1);
-            var ostr = new OutputStream(Encoding.V20, buffer);
+            var headerBuffer = new List<Memory<byte>>(1);
+            var ostr = new OutputStream(Encoding.V20, headerBuffer);
             ostr.WriteByteSpan(TransportHeader.Span);
 
             ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
@@ -586,8 +595,10 @@ namespace IceRpc.Transports
             frame.WriteHeader(ostr);
             ostr.Finish();
 
-            buffer.AddRange(frame.Payload);
-            int frameSize = buffer.GetByteCount() - TransportHeader.Length - 1 - 4;
+            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
+            buffer[0] = headerBuffer[0];
+            frame.Payload.CopyTo(buffer.AsMemory(1));
+            int frameSize = buffer.AsReadOnlyMemory().GetByteCount() - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
@@ -609,7 +620,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer, fin: frame.StreamWriter == null, cancel).ConfigureAwait(false);
+            await SendAsync(buffer, endStream: frame.StreamWriter == null, cancel).ConfigureAwait(false);
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)
