@@ -218,24 +218,15 @@ namespace IceRpc.Transports.Internal
                 if (_connection.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(expectedFrameType == data.Span[0].Span[8]);
-                    return ArraySegment<byte>.Empty;
+                    return Memory<byte>.Empty;
                 }
                 else
                 {
                     Debug.Assert(expectedFrameType == data.Span[0].Span[0]);
                     (int size, int sizeLength) = data.Span[0].Span[1..].ReadSize20();
 
-                    // temporary
-                    if (MemoryMarshal.TryGetArray(data.Span[0].Slice(1 + sizeLength, size),
-                                                  out ArraySegment<byte> result))
-                    {
-                        return result;
-                    }
-                    else
-                    {
-                        Debug.Assert(false);
-                        return default;
-                    }
+                    // TODO: why are we returning only the first buffer?
+                    return data.Span[0].Slice(1 + sizeLength, size);
                 }
             }
             else
