@@ -469,7 +469,7 @@ namespace IceRpc.Transports.Internal
             SlicStream? stream = null,
             CancellationToken cancel = default)
         {
-            var data = new List<ArraySegment<byte>>();
+            var data = new List<Memory<byte>>();
             var ostr = new OutputStream(SlicDefinitions.Encoding, data);
             ostr.WriteByte((byte)type);
             OutputStream.Position sizePos = ostr.StartFixedLengthSize(4);

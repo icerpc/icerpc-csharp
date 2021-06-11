@@ -66,7 +66,7 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var payload = new List<ArraySegment<byte>>();
+            var payload = new List<Memory<byte>>();
 
             var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
             if (proxy.Encoding == Encoding.V20)
@@ -100,7 +100,7 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var payload = new List<ArraySegment<byte>>();
+            var payload = new List<Memory<byte>>();
 
             var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
             if (dispatch.Encoding == Encoding.V20)
@@ -128,7 +128,7 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var payload = new List<ArraySegment<byte>>();
+            var payload = new List<Memory<byte>>();
 
             var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
             if (proxy.Encoding == Encoding.V20)
@@ -156,7 +156,7 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var payload = new List<ArraySegment<byte>>();
+            var payload = new List<Memory<byte>>();
 
             var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
             if (dispatch.Encoding == Encoding.V20)
@@ -268,7 +268,7 @@ namespace IceRpc
                 };
             }
 
-            var payload = new List<ArraySegment<byte>>();
+            var payload = new List<Memory<byte>>();
 
             OutputStream ostr;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)

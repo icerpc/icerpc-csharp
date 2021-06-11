@@ -148,7 +148,7 @@ namespace IceRpc.Transports
                     var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(bufferSize), 0, bufferSize);
                     try
                     {
-                        var sendBuffers = new List<ArraySegment<byte>> { receiveBuffer };
+                        var sendBuffers = new List<Memory<byte>> { receiveBuffer };
                         int received;
                         do
                         {
@@ -435,7 +435,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<ArraySegment<byte>>() { new byte[1024] };
+                var data = new List<Memory<byte>>() { new byte[1024] };
                 var ostr = new OutputStream(Ice2Definitions.Encoding, data);
                 if (!TransportHeader.IsEmpty)
                 {
@@ -460,7 +460,7 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
             using IDisposable? scope = StartScope();
 
-            var data = new List<ArraySegment<byte>>() { new byte[1024] };
+            var data = new List<Memory<byte>>() { new byte[1024] };
             var ostr = new OutputStream(Ice2Definitions.Encoding, data);
             if (!TransportHeader.IsEmpty)
             {
@@ -483,7 +483,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<ArraySegment<byte>>() { new byte[1024] };
+                var data = new List<Memory<byte>>() { new byte[1024] };
                 var ostr = new OutputStream(Ice2Definitions.Encoding, data);
                 if (!TransportHeader.IsEmpty)
                 {
@@ -578,7 +578,7 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var headerBuffer = new List<ArraySegment<byte>>(1);
+            var headerBuffer = new List<Memory<byte>>(1);
             var ostr = new OutputStream(Encoding.V20, headerBuffer);
             ostr.WriteByteSpan(TransportHeader.Span);
 

@@ -14,14 +14,14 @@ namespace IceRpc.Tests.Encoding
     public class BuiltInTypesTests
     {
         private readonly IceRpc.Encoding _encoding;
-        private readonly List<ArraySegment<byte>> _data;
+        private readonly List<Memory<byte>> _data;
         private readonly OutputStream _ostr;
         private readonly InputStream _istr;
 
         public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            _data = new List<ArraySegment<byte>>() { new byte[256] };
+            _data = new List<Memory<byte>>() { new byte[256] };
             _ostr = new OutputStream(_encoding, _data);
             _istr = new InputStream(_data[0], _encoding);
         }

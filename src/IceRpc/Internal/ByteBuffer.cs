@@ -23,14 +23,14 @@ namespace IceRpc.Internal
             segment.AsSpan(start, length);
 
         /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
-        /// <param name="src">The list of segments.</param>
+        /// <param name="bufferList">The list of segments.</param>
         /// <returns>The byte count of the segment list.</returns>
-        internal static int GetByteCount(this IEnumerable<ArraySegment<byte>> src)
+        internal static int GetByteCount(this IEnumerable<Memory<byte>> bufferList)
         {
             int count = 0;
-            foreach (ArraySegment<byte> segment in src)
+            foreach (Memory<byte> buffer in bufferList)
             {
-                count += segment.Count;
+                count += buffer.Length;
             }
             return count;
         }
@@ -93,21 +93,20 @@ namespace IceRpc.Internal
             return (value, buffer[0].ReadVarLongLength());
         }
 
-        internal static ArraySegment<byte> ToArraySegment(this IList<ArraySegment<byte>> src)
+        internal static ArraySegment<byte> ToArraySegment(this IList<Memory<byte>> bufferList)
         {
-            if (src.Count == 1)
+            if (bufferList.Count == 1 && MemoryMarshal.TryGetArray(bufferList[0], out ArraySegment<byte> segment))
             {
-                return src[0];
+                return segment;
             }
             else
             {
-                byte[] data = new byte[src.GetByteCount()];
+                byte[] data = new byte[bufferList.GetByteCount()];
                 int offset = 0;
-                foreach (ArraySegment<byte> segment in src)
+                for (int i = 0; i < bufferList.Count; ++i)
                 {
-                    Debug.Assert(segment.Array != null);
-                    Buffer.BlockCopy(segment.Array, segment.Offset, data, offset, segment.Count);
-                    offset += segment.Count;
+                    bufferList[i].CopyTo(data.AsMemory(offset));
+                    offset += bufferList[i].Length;
                 }
                 return data;
             }
@@ -139,6 +138,16 @@ namespace IceRpc.Internal
             for (int i = 0; i < result.Length; ++i)
             {
                 result[i] = src[i];
+            }
+            return result;
+        }
+
+        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<Memory<byte>> bufferList)
+        {
+            var result = new ReadOnlyMemory<byte>[bufferList.Count];
+            for (int i = 0; i < result.Length; ++i)
+            {
+                result[i] = bufferList[i];
             }
             return result;
         }

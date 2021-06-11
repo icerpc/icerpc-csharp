@@ -80,7 +80,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var headerBuffer = new List<ArraySegment<byte>>(1);
+            var headerBuffer = new List<Memory<byte>>(1);
             var ostr = new OutputStream(Encoding.V11, headerBuffer);
 
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);

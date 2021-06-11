@@ -92,7 +92,7 @@ namespace IceRpc.Internal
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.
-                    var bufferList = new List<ArraySegment<byte>>
+                    var bufferList = new List<Memory<byte>>
                     {
                         // 8 = size of short + size of 1.1 encapsulation header
                         new byte[8 + opaqueEndpoint.Value.Length]

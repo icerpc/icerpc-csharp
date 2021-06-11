@@ -94,7 +94,7 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var buffer = new List<ArraySegment<byte>>();
+                var buffer = new List<Memory<byte>>();
                 var ostr = new OutputStream(Encoding.V20, buffer);
                 WriteFields(ostr);
                 ostr.Finish();
