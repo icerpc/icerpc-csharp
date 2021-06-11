@@ -37,7 +37,7 @@ namespace IceRpc
             /// <param name="proxy">Proxy to the target service.</param>
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
-            public static IList<ArraySegment<byte>> IceIsA(IServicePrx proxy, string arg) =>
+            public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
                 Payload.FromSingleArg(proxy, arg, OutputStream.IceWriterFromString);
         }
 
@@ -286,7 +286,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task<T> IceInvokeAsync<T>(
             string operation,
-            IList<ArraySegment<byte>> requestPayload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             ResponseReader<T> responseReader,
             Invocation? invocation,
             bool compress = false,
@@ -333,7 +333,7 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task IceInvokeAsync(
             string operation,
-            IList<ArraySegment<byte>> requestPayload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,

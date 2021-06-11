@@ -13,11 +13,11 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly List<ArraySegment<byte>> _data;
+        private readonly List<Memory<byte>> _data;
 
         public ProxyTests()
         {
-            _data = new List<ArraySegment<byte>>() { new byte[256] };
+            _data = new List<Memory<byte>>() { new byte[256] };
             _server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint()

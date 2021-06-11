@@ -40,7 +40,7 @@ namespace IceRpc
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
-        public IList<ArraySegment<byte>> Payload
+        public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload
         {
             get => _payload;
             set
@@ -76,7 +76,7 @@ namespace IceRpc
 
         private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
 
-        private IList<ArraySegment<byte>> _payload = ImmutableList<ArraySegment<byte>>.Empty;
+        private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
 
         /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
@@ -94,7 +94,7 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var buffer = new List<ArraySegment<byte>>();
+                var buffer = new List<Memory<byte>>();
                 var ostr = new OutputStream(Encoding.V20, buffer);
                 WriteFields(ostr);
                 ostr.Finish();

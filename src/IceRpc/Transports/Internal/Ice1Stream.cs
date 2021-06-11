@@ -27,10 +27,10 @@ namespace IceRpc.Transports.Internal
             throw new NotImplementedException();
 
         protected async override ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel) =>
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
 
         protected override void Shutdown()
         {
@@ -80,8 +80,8 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var buffer = new List<ArraySegment<byte>>(frame.Payload.Count + 1);
-            var ostr = new OutputStream(Encoding.V11, buffer);
+            var headerBuffer = new List<Memory<byte>>(1);
+            var ostr = new OutputStream(Encoding.V11, headerBuffer);
 
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
@@ -94,8 +94,10 @@ namespace IceRpc.Transports.Internal
             frame.WriteHeader(ostr);
             ostr.Finish();
 
-            buffer.AddRange(frame.Payload);
-            int frameSize = buffer.GetByteCount();
+            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
+            buffer[0] = headerBuffer[0];
+            frame.Payload.CopyTo(buffer.AsMemory(1));
+            int frameSize = buffer.AsReadOnlyMemory().GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
             await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);

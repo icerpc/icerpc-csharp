@@ -92,7 +92,7 @@ namespace IceRpc.Internal
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.
-                    var bufferList = new List<ArraySegment<byte>>
+                    var bufferList = new List<Memory<byte>>
                     {
                         // 8 = size of short + size of 1.1 encapsulation header
                         new byte[8 + opaqueEndpoint.Value.Length]
@@ -102,7 +102,7 @@ namespace IceRpc.Internal
                     ostr.WriteEndpoint11(opaqueEndpoint);
                     ostr.Finish();
                     Debug.Assert(bufferList.Count == 1);
-                    Debug.Assert(ostr.Tail.Segment == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
+                    Debug.Assert(ostr.Tail.Buffer == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
                     return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
                 }

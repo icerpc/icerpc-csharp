@@ -5,6 +5,7 @@ using IceRpc.Slic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -194,25 +195,25 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override async ValueTask SendAsync(
-            IList<ArraySegment<byte>> buffer,
-            bool fin,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel)
         {
             // Ensure the caller reserved space for the Slic header by checking for the sentinel header.
-            Debug.Assert(TransportHeader.Span.SequenceEqual(buffer[0].Slice(0, TransportHeader.Length)));
+            Debug.Assert(TransportHeader.Span.SequenceEqual(buffers.Span[0].Slice(0, TransportHeader.Length).Span));
 
-            int size = buffer.GetByteCount() - TransportHeader.Length;
+            int size = buffers.GetByteCount() - TransportHeader.Length;
             if (size == 0)
             {
                 // Send an empty last stream frame if there's no data to send. There's no need to check
                 // send flow control credit if there's no data to send.
-                Debug.Assert(fin);
-                await _connection.SendStreamFrameAsync(this, 0, true, buffer, cancel).ConfigureAwait(false);
+                Debug.Assert(endStream);
+                await _connection.SendStreamFrameAsync(this, 0, true, buffers, cancel).ConfigureAwait(false);
                 return;
             }
 
             // The send buffer for the Slic stream frame.
-            IList<ArraySegment<byte>>? sendBuffer = null;
+            IList<ReadOnlyMemory<byte>>? sendBuffer = null;
 
             // The amount of data sent so far.
             int offset = 0;
@@ -243,16 +244,16 @@ namespace IceRpc.Transports.Internal
                 {
                     // The given buffer doesn't need to be fragmented as it's smaller than what we are allowed
                     // to send. We directly send the buffer.
-                    sendBuffer = buffer;
+                    sendBuffer = buffers.ToArray();
                     sendSize = size;
-                    lastBuffer = fin;
+                    lastBuffer = endStream;
                 }
                 else
                 {
                     if (sendBuffer == null)
                     {
                         // Sending first buffer fragment.
-                        sendBuffer = new List<ArraySegment<byte>>(buffer.Count);
+                        sendBuffer = new List<ReadOnlyMemory<byte>>(buffers.Length);
                         sendSize = -TransportHeader.Length;
                     }
                     else
@@ -260,27 +261,27 @@ namespace IceRpc.Transports.Internal
                         // If it's not the first fragment, we re-use the space reserved for the Slic header in
                         // the first segment of the given protocol buffer.
                         sendBuffer.Clear();
-                        sendBuffer.Add(buffer[0].Slice(0, TransportHeader.Length));
+                        sendBuffer.Add(buffers.Span[0].Slice(0, TransportHeader.Length));
                     }
 
                     // Append data until we reach the allowed packet size or the end of the buffer to send.
                     lastBuffer = false;
-                    for (int i = start.Segment; i < buffer.Count; ++i)
+                    for (int i = start.Buffer; i < buffers.Length; ++i)
                     {
-                        int segmentOffset = i == start.Segment ? start.Offset : 0;
-                        if (buffer[i].Slice(segmentOffset).Count > maxPacketSize - sendSize)
+                        int segmentOffset = i == start.Buffer ? start.Offset : 0;
+                        if (buffers.Span[i].Slice(segmentOffset).Length > maxPacketSize - sendSize)
                         {
-                            sendBuffer.Add(buffer[i].Slice(segmentOffset, maxPacketSize - sendSize));
-                            start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Count);
-                            Debug.Assert(start.Offset < buffer[i].Count);
+                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset, maxPacketSize - sendSize));
+                            start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Length);
+                            Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;
                         }
                         else
                         {
-                            sendBuffer.Add(buffer[i].Slice(segmentOffset));
-                            sendSize += sendBuffer[^1].Count;
-                            lastBuffer = i + 1 == buffer.Count;
+                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset));
+                            sendSize += sendBuffer[^1].Length;
+                            lastBuffer = i + 1 == buffers.Length;
                         }
                     }
                 }
@@ -292,8 +293,8 @@ namespace IceRpc.Transports.Internal
                     await _connection.SendStreamFrameAsync(
                         this,
                         sendSize,
-                        lastBuffer && fin,
-                        sendBuffer,
+                        lastBuffer && endStream,
+                        sendBuffer.ToArray(),
                         cancel).ConfigureAwait(false);
                 }
                 else
@@ -311,8 +312,8 @@ namespace IceRpc.Transports.Internal
                         await _connection.SendStreamFrameAsync(
                             this,
                             sendSize,
-                            lastBuffer && fin,
-                            sendBuffer,
+                            lastBuffer && endStream,
+                            sendBuffer.ToArray(),
                             cancel).ConfigureAwait(false);
 
                         // If flow control allows sending more data, release the semaphore.

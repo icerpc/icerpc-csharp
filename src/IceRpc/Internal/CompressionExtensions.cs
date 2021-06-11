@@ -29,13 +29,13 @@ namespace IceRpc.Internal
         /// Compressed payloads are only supported with the 2.0 encoding.</summary>
         /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
         /// </returns>
-        internal static (CompressionResult, ArraySegment<byte>) Compress(
-            this IList<ArraySegment<byte>> payload,
+        internal static (CompressionResult, ReadOnlyMemory<byte>) Compress(
+            this ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             int payloadSize,
             CompressionLevel compressionLevel,
             int compressionMinSize)
         {
-            var payloadCompressionFormat = (CompressionFormat)payload[0][0];
+            var payloadCompressionFormat = (CompressionFormat)payload.Span[0].Span[0];
 
             if (payloadCompressionFormat != CompressionFormat.NotCompressed)
             {
@@ -44,7 +44,7 @@ namespace IceRpc.Internal
 
             if (payloadSize < compressionMinSize)
             {
-                return (CompressionResult.PayloadTooSmall, ArraySegment<byte>.Empty);
+                return (CompressionResult.PayloadTooSmall, default);
             }
             // Reserve memory for the compressed data, this should never be greater than the uncompressed data
             // otherwise we will just send the uncompressed data.
@@ -67,14 +67,14 @@ namespace IceRpc.Internal
             try
             {
                 // The data to compress starts after the compression status byte
-                if (payload[0].Count > 1)
+                if (payload.Span[0].Length > 1)
                 {
-                    deflateStream.Write(payload[0][1..]);
+                    deflateStream.Write(payload.Span[0][1..].Span);
                 }
 
-                foreach (ArraySegment<byte> segment in payload.Skip(1))
+                for (int i = 1; i < payload.Length; ++i) // skip first buffer that was written above
                 {
-                    deflateStream.Write(segment);
+                    deflateStream.Write(payload.Span[i].Span);
                 }
                 deflateStream.Flush();
             }
@@ -82,11 +82,11 @@ namespace IceRpc.Internal
             {
                 // If the data doesn't fit in the memory stream NotSupportedException is thrown when DeflateStream
                 // try to expand the fixed size MemoryStream.
-                return (CompressionResult.PayloadNotCompressible, ArraySegment<byte>.Empty);
+                return (CompressionResult.PayloadNotCompressible, default);
             }
 
             offset += (int)memoryStream.Position;
-            var compressedPayload = new ArraySegment<byte>(compressedData, 0, offset);
+            var compressedPayload = new ReadOnlyMemory<byte>(compressedData, 0, offset);
             return (CompressionResult.Success, compressedPayload);
         }
 
