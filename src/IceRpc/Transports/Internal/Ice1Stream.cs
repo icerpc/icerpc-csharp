@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The Ice1Stream class provides a stream implementation of the Ice1NetworkSocketSocket and
     /// Ice1 protocol.</summary>
-    internal class Ice1Stream : SignaledStream<(Ice1FrameType, ArraySegment<byte>)>
+    internal class Ice1Stream : SignaledStream<(Ice1FrameType, ReadOnlyMemory<byte>)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
         internal Ice1Stream(Ice1Connection connection, bool bidirectional, bool control)
             : base(connection, bidirectional, control) => _connection = connection;
 
-        internal void ReceivedFrame(Ice1FrameType frameType, ArraySegment<byte> frame)
+        internal void ReceivedFrame(Ice1FrameType frameType, ReadOnlyMemory<byte> frame)
         {
             if (frameType == Ice1FrameType.Reply && _connection.LastResponseStreamId < Id)
             {
@@ -59,7 +59,7 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
-            (Ice1FrameType frameType, ArraySegment<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
+            (Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)

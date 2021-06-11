@@ -159,7 +159,7 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
+        public override ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
             throw new InvalidOperationException("TCP doesn't support datagrams");
 
         public override async ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)

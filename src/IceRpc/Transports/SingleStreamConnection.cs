@@ -73,7 +73,7 @@ namespace IceRpc.Transports
         /// <summary>Receives a new datagram from the connection, only supported for datagram connections.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The received data.</return>
-        public abstract ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel);
+        public abstract ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel);
 
         /// <summary>Send data over the connection.</summary>
         /// <param name="buffer">The buffer containing the data to send.</param>

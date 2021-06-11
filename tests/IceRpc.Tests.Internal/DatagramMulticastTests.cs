@@ -71,9 +71,12 @@ namespace IceRpc.Tests.Internal
                     ValueTask<int> sendTask = OutgoingConnection.SendDatagramAsync(sendBuffer, default);
                     foreach (SingleStreamConnection connection in IncomingConnections)
                     {
-                        ArraySegment<byte> receiveBuffer = await connection.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                        Assert.AreEqual(sendBuffer, receiveBuffer);
+                        ReadOnlyMemory<byte> receiveBuffer = await connection.ReceiveDatagramAsync(source.Token);
+                        Assert.AreEqual(await sendTask, receiveBuffer.Length);
+                        for (int i = 0; i < receiveBuffer.Length; ++i)
+                        {
+                            Assert.AreEqual(sendBuffer[i], receiveBuffer.Span[i]);
+                        }
                     }
                     break;
                 }
