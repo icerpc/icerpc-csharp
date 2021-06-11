@@ -60,7 +60,7 @@ namespace IceRpc
         /// payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromArgs<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
             OutputStreamValueWriter<T> writer,
@@ -76,14 +76,14 @@ namespace IceRpc
 
             writer(ostr, in args);
             ostr.Finish();
-            return payload;
+            return payload.ToReadOnlyMemory();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromEmptyArgs(IServicePrx proxy) =>
-            new List<ArraySegment<byte>> { proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding) };
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(IServicePrx proxy) =>
+            new ReadOnlyMemory<byte>[] { proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding) };
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
         /// method when the operation returns a tuple.</summary>
@@ -94,7 +94,7 @@ namespace IceRpc
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromReturnValueTuple<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
             OutputStreamValueWriter<T> writer,
@@ -110,7 +110,7 @@ namespace IceRpc
 
             writer(ostr, in returnValueTuple);
             ostr.Finish();
-            return payload;
+            return payload.ToReadOnlyMemory();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -122,7 +122,7 @@ namespace IceRpc
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromSingleArg<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
             IServicePrx proxy,
             T arg,
             OutputStreamWriter<T> writer,
@@ -138,7 +138,7 @@ namespace IceRpc
 
             writer(ostr, arg);
             ostr.Finish();
-            return payload;
+            return payload.ToReadOnlyMemory();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -150,7 +150,7 @@ namespace IceRpc
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromSingleReturnValue<T>(
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
             OutputStreamWriter<T> writer,
@@ -166,20 +166,20 @@ namespace IceRpc
 
             writer(ostr, returnValue);
             ostr.Finish();
-            return payload;
+            return payload.ToReadOnlyMemory();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
         /// <param name="dispatch">The request's dispatch properties.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidReturnValue(Dispatch dispatch) =>
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(Dispatch dispatch) =>
             FromVoidReturnValue(dispatch.IncomingRequest);
 
         /// <summary>Creates a payload representing a void return value.</summary>
         /// <param name="request">The request.</param>
         /// <returns>A new payload.</returns>
-        public static IList<ArraySegment<byte>> FromVoidReturnValue(IncomingRequest request) =>
-            new List<ArraySegment<byte>> { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(IncomingRequest request) =>
+            new ReadOnlyMemory<byte>[] { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
         /// <summary>Reads a request payload and converts it into a list of arguments.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
@@ -250,7 +250,7 @@ namespace IceRpc
         /// <param name="request">The incoming request used to create this response payload. </param>
         /// <param name="exception">The exception.</param>
         /// <returns>A response payload containing the exception.</returns>
-        internal static (IList<ArraySegment<byte>> Payload, ReplyStatus ReplyStatus) FromRemoteException(
+        internal static (ReadOnlyMemory<ReadOnlyMemory<byte>> Payload, ReplyStatus ReplyStatus) FromRemoteException(
             IncomingRequest request,
             RemoteException exception)
         {
@@ -302,7 +302,7 @@ namespace IceRpc
             }
 
             ostr.Finish();
-            return (payload, replyStatus);
+            return (payload.ToReadOnlyMemory(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>

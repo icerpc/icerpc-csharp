@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task Stream_SendReceiveRequestAsync(int size)
         {
-            IList<ArraySegment<byte>> requestPayload = Payload.FromSingleArg(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromSingleArg(
                 Proxy,
                 new byte[size],
                 (OutputStream ostr, ReadOnlyMemory<byte> value) => ostr.WriteSequence(value.Span));

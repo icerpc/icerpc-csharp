@@ -174,7 +174,7 @@ namespace IceRpc
         public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
-            IList<ArraySegment<byte>> requestPayload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,

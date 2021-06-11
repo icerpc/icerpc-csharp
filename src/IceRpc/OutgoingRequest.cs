@@ -115,7 +115,7 @@ namespace IceRpc
         internal OutgoingRequest(
             IServicePrx proxy,
             string operation,
-            IList<ArraySegment<byte>> args,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> args,
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
@@ -129,7 +129,7 @@ namespace IceRpc
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
             IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
-            Payload = args.ToReadOnlyMemory();
+            Payload = args;
         }
 
         /// <inheritdoc/>
@@ -207,8 +207,7 @@ namespace IceRpc
 
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding; // TODO: extract from payload instead
-
+            PayloadEncoding = proxy.Encoding;
             Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }

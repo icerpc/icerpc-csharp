@@ -36,7 +36,7 @@ namespace IceRpc
         /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
         public OutgoingResponse(
             IncomingRequest request,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Action<Stream>? streamDataWriter = null)
             : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamDataWriter)
         {
@@ -51,7 +51,7 @@ namespace IceRpc
         /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
         public OutgoingResponse(
             Dispatch dispatch,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Action<Stream>? streamDataWriter = null)
             : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamDataWriter)
         {
@@ -139,10 +139,7 @@ namespace IceRpc
         {
             ResultType = ResultType.Failure;
             PayloadEncoding = request.PayloadEncoding;
-
-            IList<ArraySegment<byte>> payload;
-            (payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
-            Payload = payload.ToReadOnlyMemory();
+            (Payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
 
             if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
             {
@@ -193,14 +190,14 @@ namespace IceRpc
 
         private OutgoingResponse(
             Protocol protocol,
-            IList<ArraySegment<byte>> payload,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Encoding payloadEncoding,
             FeatureCollection features,
             Action<Stream>? streamDataWriter)
             : base(protocol, features, streamDataWriter)
         {
             PayloadEncoding = payloadEncoding;
-            Payload = payload.ToReadOnlyMemory();
+            Payload = payload;
         }
     }
 }

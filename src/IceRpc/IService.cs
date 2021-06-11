@@ -32,14 +32,14 @@ namespace IceRpc
             /// <param name="dispatch">The dispatch properties.</param>
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
-            public static IList<ArraySegment<byte>> IceId(Dispatch dispatch, string returnValue) =>
+            public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceId(Dispatch dispatch, string returnValue) =>
                 Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromString);
 
             /// <summary>Creates a response payload for operation ice_ids.</summary>
             /// <param name="dispatch">The dispatch properties.</param>
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
-            public static IList<ArraySegment<byte>> IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
+            public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIds(Dispatch dispatch, IEnumerable<string> returnValue) =>
                 Payload.FromSingleReturnValue(
                     dispatch,
                     returnValue,
@@ -49,7 +49,7 @@ namespace IceRpc
             /// <param name="dispatch">The dispatch properties.</param>
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
-            public static IList<ArraySegment<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
+            public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
                 Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
         }
 
@@ -59,7 +59,7 @@ namespace IceRpc
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload.</returns>
         // TODO: the stream data writer shouldn't depend on the Stream transport API.
-        public ValueTask<(IList<ArraySegment<byte>>, Action<Stream>?)> DispatchAsync(
+        public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<Stream>?)> DispatchAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel);
@@ -117,7 +117,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(IList<ArraySegment<byte>>, Action<Stream>?)> IceDIceIdAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<Stream>?)> IceDIceIdAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -134,7 +134,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(IList<ArraySegment<byte>>, Action<Stream>?)> IceDIceIdsAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<Stream>?)> IceDIceIdsAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -150,7 +150,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(IList<ArraySegment<byte>>, Action<Stream>?)> IceDIceIsAAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<Stream>?)> IceDIceIsAAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -166,7 +166,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(IList<ArraySegment<byte>>, Action<Stream>?)> IceDIcePingAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<Stream>?)> IceDIcePingAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -185,7 +185,7 @@ namespace IceRpc
 
                 // TODO: should the streamDataWriter just be System.Action since the stream can be captured with
                 // dispatch.Stream by the generated code?
-                (IList<ArraySegment<byte>> responsePayload, Action<Stream>? streamDataWriter) =
+                (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, Action<Stream>? streamDataWriter) =
                     await DispatchAsync(requestPayload, dispatch, cancel).ConfigureAwait(false);
 
                 return new OutgoingResponse(dispatch, responsePayload, streamDataWriter);
