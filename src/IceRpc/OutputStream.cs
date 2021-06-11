@@ -1033,23 +1033,19 @@ namespace IceRpc
             Encoding.CheckSupported();
             _format = format;
             _tail = default;
-
+            Size = 0;
+            _capacity = 0;
             _bufferList = data;
+
             if (_bufferList.Count == 0)
             {
                 _currentBuffer = Memory<byte>.Empty;
                 _capacity = 0;
-                Size = 0;
             }
             else
             {
-                _currentBuffer = _bufferList[_tail.Buffer];
-                Size = Distance(default);
-                _capacity = 0;
-                foreach (Memory<byte> buffer in _bufferList)
-                {
-                    _capacity += buffer.Length;
-                }
+                _currentBuffer = _bufferList[0];
+                _capacity = _bufferList.GetByteCount();
             }
         }
 
