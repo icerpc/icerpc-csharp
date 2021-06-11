@@ -12,17 +12,10 @@ namespace IceRpc.Internal
     {
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
-
         internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
             array;
 
         internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment) => segment;
-
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start, int length) =>
-            segment.AsSpan(start, length);
-
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this Memory<T> buffer) => buffer.Span;
 
         /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
         /// <param name="bufferList">The list of segments.</param>
