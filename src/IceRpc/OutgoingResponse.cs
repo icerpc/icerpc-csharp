@@ -79,7 +79,7 @@ namespace IceRpc
             PayloadEncoding = response.PayloadEncoding;
             var payload = new List<ReadOnlyMemory<byte>>();
 
-            ArraySegment<byte> incomingResponsePayload = response.Payload; // TODO: temporary
+            ReadOnlyMemory<byte> incomingResponsePayload = response.Payload; // TODO: temporary
 
             if (Protocol == response.Protocol)
             {
