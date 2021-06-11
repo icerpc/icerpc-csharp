@@ -145,7 +145,8 @@ namespace IceRpc.Transports
                         }
                     }
 
-                    var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(bufferSize), 0, bufferSize);
+                    byte[] receiveArray = ArrayPool<byte>.Shared.Rent(bufferSize);
+                    Memory<byte> receiveBuffer = receiveArray.AsMemory(0, bufferSize);
                     try
                     {
                         var sendBuffers = new List<Memory<byte>> { receiveBuffer };
@@ -155,7 +156,7 @@ namespace IceRpc.Transports
                             try
                             {
                                 TransportHeader.CopyTo(receiveBuffer);
-                                received = await ioStream.ReadAsync(receiveBuffer.Slice(TransportHeader.Length),
+                                received = await ioStream.ReadAsync(receiveBuffer[TransportHeader.Length..],
                                                                     cancel).ConfigureAwait(false);
 
                                 sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
@@ -174,7 +175,7 @@ namespace IceRpc.Transports
                     }
                     finally
                     {
-                        ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
+                        ArrayPool<byte>.Shared.Return(receiveArray);
 
                         Release();
                         ioStream.Dispose();
@@ -543,21 +544,21 @@ namespace IceRpc.Transports
             Debug.Assert(!IsIce1);
 
             // Read the Ice2 protocol header (byte frameType, varulong size)
-            ArraySegment<byte> buffer = new byte[256];
+            Memory<byte> buffer = new byte[256];
             await ReceiveFullAsync(buffer.Slice(0, 2), cancel).ConfigureAwait(false);
-            var frameType = (Ice2FrameType)buffer[0];
+            var frameType = (Ice2FrameType)buffer.Span[0];
             if ((byte)frameType != expectedFrameType)
             {
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
 
             // Read the remainder of the size if needed.
-            int sizeLength = buffer[1].ReadSizeLength20();
+            int sizeLength = buffer.Span[1].ReadSizeLength20();
             if (sizeLength > 1)
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = buffer.AsMemory(1).AsReadOnlySpan().ReadSize20().Size;
+            int size = buffer[1..].AsReadOnlySpan().ReadSize20().Size;
 
             // Read the frame data
             if (size > 0)
@@ -567,7 +568,7 @@ namespace IceRpc.Transports
                     throw new InvalidDataException(
                         $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
                 }
-                buffer = size > buffer.Count ? new ArraySegment<byte>(new byte[size]) : buffer.Slice(0, size);
+                buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
                 await ReceiveFullAsync(buffer, cancel).ConfigureAwait(false);
             }
 
