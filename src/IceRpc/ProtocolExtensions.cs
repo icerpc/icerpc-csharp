@@ -59,29 +59,29 @@ namespace IceRpc
             if (!protocol.IsSupported())
             {
                 throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
-                    })");
+                    @$"Ice protocol '{protocol.GetName()
+                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
             }
         }
 
-        internal static ArraySegment<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding) =>
+        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding) =>
             protocol switch
             {
                 Protocol.Ice1 => Ice1Definitions.GetEmptyArgsPayload(encoding),
                 Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding),
                 _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
-                    })"),
+                    @$"Ice protocol '{protocol.GetName()
+                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
             };
 
-        internal static ArraySegment<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding) =>
+        internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding) =>
             protocol switch
             {
                 Protocol.Ice1 => Ice1Definitions.GetVoidReturnValuePayload(encoding),
                 Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding),
                 _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
-                    })"),
+                    @$"Ice protocol '{protocol.GetName()
+                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
             };
 
         internal static bool IsSupported(this Protocol protocol) =>
