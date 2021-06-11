@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
-        private ArraySegment<byte> _receiveSegment;
+        private Memory<byte> _receiveBuffer;
         private readonly ColocConnection _connection;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
@@ -75,20 +75,20 @@ namespace IceRpc.Transports.Internal
             int received = 0;
             while (buffer.Length > 0)
             {
-                if (_receiveSegment.Count > 0)
+                if (_receiveBuffer.Length > 0)
                 {
-                    if (buffer.Length < _receiveSegment.Count)
+                    if (buffer.Length < _receiveBuffer.Length)
                     {
-                        _receiveSegment[0..buffer.Length].AsMemory().CopyTo(buffer);
+                        _receiveBuffer[0..buffer.Length].CopyTo(buffer);
                         received += buffer.Length;
-                        _receiveSegment = _receiveSegment[buffer.Length..];
+                        _receiveBuffer = _receiveBuffer[buffer.Length..];
                         buffer = buffer[buffer.Length..];
                     }
                     else
                     {
-                        _receiveSegment.AsMemory().CopyTo(buffer);
-                        received += _receiveSegment.Count;
-                        _receiveSegment = new ArraySegment<byte>();
+                        _receiveBuffer.CopyTo(buffer);
+                        received += _receiveBuffer.Length;
+                        _receiveBuffer = new ArraySegment<byte>();
                         buffer = Memory<byte>.Empty;
                     }
                 }
@@ -101,7 +101,7 @@ namespace IceRpc.Transports.Internal
 
                     try
                     {
-                        _receiveSegment = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
+                        _receiveBuffer = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
                     }
                     catch (ChannelClosedException)
                     {
