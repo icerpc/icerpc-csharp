@@ -150,11 +150,11 @@ namespace IceRpc.Tests.Internal
             async ValueTask Test(SingleStreamConnection connection1, SingleStreamConnection connection2)
             {
                 ValueTask<int> sendTask = connection1.SendAsync(sendBuffer, default);
-                ArraySegment<byte> receiveBuffer = new byte[size];
+                Memory<byte> receiveBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)
                 {
-                    offset += await connection2.ReceiveAsync(receiveBuffer.Slice(offset), default);
+                    offset += await connection2.ReceiveAsync(receiveBuffer[offset..], default);
                 }
                 Assert.AreEqual(await sendTask, size);
             }

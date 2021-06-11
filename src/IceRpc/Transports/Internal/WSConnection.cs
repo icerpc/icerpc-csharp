@@ -200,35 +200,35 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Try to read the client's upgrade request or the server's response.
-                var httpBuffer = new ArraySegment<byte>();
+                Memory<byte> httpBuffer = Memory<byte>.Empty;
                 while (true)
                 {
                     ReadOnlyMemory<byte> buffer = await _bufferedConnection.ReceiveAsync(0, cancel).ConfigureAwait(false);
-                    if (httpBuffer.Count + buffer.Length > 16 * 1024)
+                    if (httpBuffer.Length + buffer.Length > 16 * 1024)
                     {
                         throw new InvalidDataException("WebSocket HTTP upgrade request too large");
                     }
 
-                    ArraySegment<byte> tmpBuffer = new byte[httpBuffer.Count + buffer.Length];
-                    if (httpBuffer.Count > 0)
+                    Memory<byte> tmpBuffer = new byte[httpBuffer.Length + buffer.Length];
+                    if (httpBuffer.Length > 0)
                     {
                         httpBuffer.CopyTo(tmpBuffer);
                     }
-                    buffer.CopyTo(tmpBuffer.Slice(httpBuffer.Count));
+                    buffer.CopyTo(tmpBuffer[httpBuffer.Length..]);
                     httpBuffer = tmpBuffer;
 
                     // Check if we have enough data for a complete frame.
-                    int endPos = HttpParser.IsCompleteMessage(httpBuffer);
+                    int endPos = HttpParser.IsCompleteMessage(httpBuffer.Span);
                     if (endPos != -1)
                     {
                         // Add back the un-consumed data to the buffer.
-                        _bufferedConnection.Rewind(httpBuffer.Count - endPos);
+                        _bufferedConnection.Rewind(httpBuffer.Length - endPos);
                         httpBuffer = httpBuffer.Slice(0, endPos);
                         break; // Done
                     }
                 }
 
-                if (_parser.Parse(httpBuffer))
+                if (_parser.Parse(httpBuffer.Span))
                 {
                     if (_incoming)
                     {

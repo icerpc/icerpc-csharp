@@ -15,7 +15,7 @@ namespace IceRpc.Internal
         internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
             array;
 
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment) => segment;
+        internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
         /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
         /// <param name="bufferList">The list of segments.</param>

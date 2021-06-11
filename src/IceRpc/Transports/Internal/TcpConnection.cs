@@ -41,14 +41,14 @@ namespace IceRpc.Transports.Internal
                 if (endpoint.Protocol == Protocol.Ice2)
                 {
                     // Peek one byte into the tcp stream to see if it contains the TLS handshake record
-                    var buffer = new ArraySegment<byte>(new byte[1]);
+                    Memory<byte> buffer = new byte[1];
                     int received = await _socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
                     if (received == 0)
                     {
                         throw new ConnectionLostException();
                     }
                     Debug.Assert(received == 1);
-                    secure = buffer.Array![0] == TlsHandshakeRecord;
+                    secure = buffer.Span[0] == TlsHandshakeRecord;
                 }
 
                 // If a secure connection is needed, a new SslConnection is created and returned from this method.

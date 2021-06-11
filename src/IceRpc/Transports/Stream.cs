@@ -557,7 +557,7 @@ namespace IceRpc.Transports
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = buffer.Slice(1).AsReadOnlySpan().ReadSize20().Size;
+            int size = buffer.AsMemory(1).AsReadOnlySpan().ReadSize20().Size;
 
             // Read the frame data
             if (size > 0)
