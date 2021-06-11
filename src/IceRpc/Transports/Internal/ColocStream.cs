@@ -88,7 +88,7 @@ namespace IceRpc.Transports.Internal
                     {
                         _receiveBuffer.CopyTo(buffer);
                         received += _receiveBuffer.Length;
-                        _receiveBuffer = new ArraySegment<byte>();
+                        _receiveBuffer = Memory<byte>.Empty;
                         buffer = Memory<byte>.Empty;
                     }
                 }

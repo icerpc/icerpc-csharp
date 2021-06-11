@@ -188,7 +188,7 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("can't reset control streams");
                         }
 
-                        ArraySegment<byte> data = new byte[size];
+                        Memory<byte> data = new byte[size];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -731,14 +731,14 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask IgnoreDataAsync(int size, CancellationToken cancel)
         {
-            var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(size), 0, size);
+            byte[] byteArray = ArrayPool<byte>.Shared.Rent(size);
             try
             {
-                await ReceiveDataAsync(receiveBuffer, cancel).ConfigureAwait(false);
+                await ReceiveDataAsync(byteArray.AsMemory(0, size), cancel).ConfigureAwait(false);
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
+                ArrayPool<byte>.Shared.Return(byteArray);
             }
         }
 
