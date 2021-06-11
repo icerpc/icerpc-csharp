@@ -407,12 +407,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancel = default)
+        private async ValueTask ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {
             int offset = 0;
-            while (offset != buffer.Count)
+            while (offset != buffer.Length)
             {
-                int received = await Underlying.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
+                int received = await Underlying.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
                 offset += received;
                 Received(received);
             }

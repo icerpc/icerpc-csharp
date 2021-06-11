@@ -288,7 +288,7 @@ namespace IceRpc.Transports.Internal
 
             if (IsIncoming)
             {
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 if (type != SlicDefinitions.FrameType.Initialize)
@@ -301,7 +301,7 @@ namespace IceRpc.Transports.Internal
                 uint version = istr.ReadVarUInt();
                 if (version != 1)
                 {
-                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Count, version);
+                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
 
                     // If unsupported Slic version, we stop reading there and reply with a Version frame to provide
                     // the client the supported Slic versions.
@@ -329,7 +329,7 @@ namespace IceRpc.Transports.Internal
                 // Read initialize frame
                 var initializeBody = new InitializeHeaderBody(istr);
                 Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
-                Logger.LogReceivedSlicInitializeFrame(data.Count, version, initializeBody, parameters);
+                Logger.LogReceivedSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
                 try
@@ -373,7 +373,7 @@ namespace IceRpc.Transports.Internal
                     cancel: cancel).ConfigureAwait(false);
 
                 // Read the InitializeAck or Version frame from the server
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -384,7 +384,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read the version sequence provided by the server.
                     var versionBody = new VersionBody(istr);
-                    Logger.LogReceivedSlicVersionFrame(data.Count, versionBody);
+                    Logger.LogReceivedSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(
                         $"unsupported Slic version, server supports Slic '{string.Join(", ", versionBody.Versions)}'");
@@ -397,7 +397,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read and set parameters.
                     parameters = ReadParameters(istr);
-                    Logger.LogReceivedSlicInitializeAckFrame(data.Count, parameters);
+                    Logger.LogReceivedSlicInitializeAckFrame(data.Length, parameters);
                     SetParameters(parameters);
                 }
             }
@@ -803,11 +803,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask<(SlicDefinitions.FrameType, ArraySegment<byte>)> ReceiveFrameAsync(
+        private async ValueTask<(SlicDefinitions.FrameType, ReadOnlyMemory<byte>)> ReceiveFrameAsync(
             CancellationToken cancel)
         {
             (SlicDefinitions.FrameType type, int size, long? _) = await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
-            ArraySegment<byte> data;
+            Memory<byte> data;
             if (size > 0)
             {
                 data = new byte[size];
@@ -815,7 +815,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                data = ArraySegment<byte>.Empty;
+                data = Memory<byte>.Empty;
             }
             return (type, data);
         }
