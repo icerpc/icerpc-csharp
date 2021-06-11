@@ -33,7 +33,7 @@ namespace IceRpc
 
         /// <summary>Returns <c>True</c> if the stream that received this request is a bidirectional stream,
         /// <c>False</c> otherwise.</summary>
-        public bool IsBidirectional => Stream.Id % 4 < 2;
+        public bool IsBidirectional => StreamId % 4 < 2;
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
@@ -55,6 +55,15 @@ namespace IceRpc
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; } = Identity.Empty;
+
+        /// <summary>Id of the stream used to create this request.</summary>
+        internal long StreamId
+        {
+            get => _streamId ?? throw new InvalidOperationException("stream ID is not set");
+            set => _streamId = value;
+        }
+
+        private long? _streamId;
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>

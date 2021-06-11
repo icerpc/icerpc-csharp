@@ -358,7 +358,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class ClassOperationsUnexpectedClass : IService
         {
-            public ValueTask<(IList<ArraySegment<byte>>, Action<IceRpc.Transports.Stream>?)> DispatchAsync(
+            public ValueTask<(IList<ArraySegment<byte>>, StreamWriter?)> DispatchAsync(
                 ReadOnlyMemory<byte> payload,
                 Dispatch dispatch,
                 CancellationToken cancel) =>

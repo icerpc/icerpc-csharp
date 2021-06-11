@@ -172,15 +172,9 @@ namespace IceRpc.Transports.Internal
             (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
             Debug.Assert(frameObject is IncomingRequest);
             var frame = (IncomingRequest)frameObject;
-
             if (fin)
             {
                 _receivedEndOfStream = true;
-            }
-            else
-            {
-                frame.Stream = this;
-                Interlocked.Increment(ref _useCount);
             }
             return frame;
         }
@@ -192,11 +186,6 @@ namespace IceRpc.Transports.Internal
             if (fin)
             {
                 _receivedEndOfStream = true;
-            }
-            else
-            {
-                frame.Stream = this;
-                Interlocked.Increment(ref _useCount);
             }
             return frame;
         }
@@ -237,7 +226,7 @@ namespace IceRpc.Transports.Internal
             await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
-                fin: frame.StreamDataWriter == null,
+                fin: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
     }
 }

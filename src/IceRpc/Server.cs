@@ -305,7 +305,7 @@ namespace IceRpc
 
         private async Task AcceptAsync(IAcceptor acceptor)
         {
-            using IDisposable? scope = Logger.StartAcceptorScope(this, acceptor);
+            using IDisposable? scope = Logger.StartServerScope(acceptor);
             Logger.LogStartAcceptingConnections();
 
             while (true)

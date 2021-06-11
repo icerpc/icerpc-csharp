@@ -119,11 +119,11 @@ namespace IceRpc
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false,
-            Action<Stream>? streamDataWriter = null)
+            StreamWriter? streamWriter = null)
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                   streamDataWriter)
+                   streamWriter)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -190,8 +190,8 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             FeatureCollection features,
-            Action<Stream>? streamDataWriter)
-            : base(proxy.Protocol, features, streamDataWriter)
+            StreamWriter? streamWriter)
+            : base(proxy.Protocol, features, streamWriter)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;

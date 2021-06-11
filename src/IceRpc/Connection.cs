@@ -338,7 +338,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = _connection?.StartScope(Server);
+            using IDisposable? scope = StartScope();
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
         }
 
@@ -449,7 +449,7 @@ namespace IceRpc
 
                     // Start the scope only once the connection is connected/accepted to ensure that the .NET connection
                     // endpoints are available.
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
@@ -465,10 +465,10 @@ namespace IceRpc
 
                         Action logSuccess = (IsIncoming, IsDatagram) switch
                         {
-                            (false, false) => _connection.Logger.LogConnectionEstablished,
-                            (false, true) => _connection.Logger.LogStartSendingDatagrams,
-                            (true, false) => _connection.Logger.LogConnectionAccepted,
-                            (true, true) => _connection.Logger.LogStartReceivingDatagrams
+                            (false, false) => Logger.LogConnectionEstablished,
+                            (false, true) => Logger.LogStartSendingDatagrams,
+                            (true, false) => Logger.LogConnectionAccepted,
+                            (true, true) => Logger.LogStartReceivingDatagrams
                         };
                         logSuccess();
                     }
@@ -487,7 +487,7 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
                     await AbortAsync(exception).ConfigureAwait(false);
                     throw;
                 }
@@ -527,7 +527,7 @@ namespace IceRpc
                         _timer = new Timer(value => Monitor(), null, period, period);
                     }
 
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
 
                     // Start a task to wait for the GoAway frame on the peer's control stream.
                     if (!IsDatagram)
@@ -590,7 +590,11 @@ namespace IceRpc
                     new IncomingResponse(this, request.PayloadEncoding) :
                     await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
-                response.Stream = stream;
+                if (!request.IsOneway && !stream.ReceivedEndOfStream)
+                {
+                    response.StreamReader = new StreamReader(stream, releaseStream: true);
+                    stream = null; // The stream reader will release the stream.
+                }
                 return response;
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
@@ -724,7 +728,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => _connection?.StartScope();
+        internal IDisposable? StartScope() => Logger.StartConnectionScope(this, _server);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -764,10 +768,10 @@ namespace IceRpc
                         // trace.
                         Action<Exception> logFailure = (IsIncoming, IsDatagram) switch
                         {
-                            (false, false) => _connection.Logger.LogConnectionConnectFailed,
-                            (false, true) => _connection.Logger.LogStartSendingDatagramsFailed,
-                            (true, false) => _connection.Logger.LogConnectionAcceptFailed,
-                            (true, true) => _connection.Logger.LogStartReceivingDatagramsFailed
+                            (false, false) => Logger.LogConnectionConnectFailed,
+                            (false, true) => Logger.LogStartSendingDatagramsFailed,
+                            (true, false) => Logger.LogConnectionAcceptFailed,
+                            (true, true) => Logger.LogStartReceivingDatagramsFailed
                         };
                         logFailure(exception);
                     }
@@ -775,23 +779,23 @@ namespace IceRpc
                     {
                         if (IsDatagram && IsIncoming)
                         {
-                            _connection.Logger.LogStopReceivingDatagrams();
+                            Logger.LogStopReceivingDatagrams();
                         }
                         else if (exception is ConnectionClosedException closedException)
                         {
-                            _connection.Logger.LogConnectionClosed(exception.Message);
+                            Logger.LogConnectionClosed(exception.Message);
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            _connection.Logger.LogConnectionClosed(exception.Message);
+                            Logger.LogConnectionClosed(exception.Message);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            _connection.Logger.LogConnectionClosed("connection lost");
+                            Logger.LogConnectionClosed("connection lost");
                         }
                         else
                         {
-                            _connection.Logger.LogConnectionClosed(exception.Message, exception);
+                            Logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
                 }
@@ -850,7 +854,11 @@ namespace IceRpc
                 // Receives the request frame from the stream
                 IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
-                request.Stream = stream;
+                request.StreamId = stream.Id;
+                if (!stream.ReceivedEndOfStream)
+                {
+                    request.StreamReader = new StreamReader(stream, releaseStream: false);
+                }
 
                 OutgoingResponse? response = null;
 
@@ -974,7 +982,7 @@ namespace IceRpc
             {
                 Debug.Assert(_connection != null);
 
-                using IDisposable? scope = _connection.StartScope(Server);
+                using IDisposable? scope = StartScope();
                 TimeSpan now = Time.Elapsed;
                 try
                 {

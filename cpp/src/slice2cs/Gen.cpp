@@ -281,11 +281,11 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
             if (returnType)
             {
-                _out << " = stream.ReceiveData();";
+                _out << " = streamReader.ToIOStream();";
             }
             else
             {
-                _out << " = dispatch.Stream.ReceiveData();";
+                _out << " = dispatch.StreamReader.ToIOStream();";
             }
         }
 
@@ -2246,7 +2246,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                         << "of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Encoding payloadEncoding, ";
-                _out << "IceRpc.Connection connection, IceRpc.Transports.Stream stream, IceRpc.IInvoker? invoker) =>";
+                _out << "IceRpc.Connection connection, IceRpc.StreamReader streamReader, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
                 _out.inc();
@@ -2468,7 +2468,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << "(payload, payloadEncoding, connection, stream, invoker) => stream.ReceiveData(), ";
+        _out << "(payload, payloadEncoding, connection, streamReader, invoker) => streamReader.ToIOStream(), ";
     }
 
     _out << invocation << ", ";
@@ -2486,7 +2486,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (streamParam)
     {
-        _out << "streamDataWriter: stream => stream.SendData(" << paramName(streamParam) << "), ";
+        _out << "streamWriter: StreamWriter.FromIOStream(" << paramName(streamParam) << "), ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();
@@ -2752,7 +2752,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)> IceRpc.IService"
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2764,7 +2764,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)> "
          << "DispatchAsync(";
     _out.inc();
     _out << nl <<  fixId(name) << " servant,"
@@ -2919,7 +2919,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, global::System.Action<IceRpc.Transports.Stream>?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.Collections.Generic.IList<global::System.ArraySegment<byte>>, IceRpc.StreamWriter?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2946,7 +2946,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         if (streamParam)
         {
             _out << nl << "var " << paramName(streamParam, "iceP_");
-            _out << " = dispatch.Stream.ReceiveData();";
+            _out << " = dispatch.StreamReader.ToIOStream();";
         }
     }
     else
@@ -2998,7 +2998,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             if (streamReturnParam)
             {
                 _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
-                _out << "stream => stream.SendData(returnValue)";
+                _out << "StreamWriter.FromIOStream(returnValue)";
                 _out << ");";
             }
             else
@@ -3012,7 +3012,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             auto streamName = names.back();
             names.pop_back();
             _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
-            _out << "stream => stream.SendData(" << streamName << ")";
+            _out << "StreamWriter.FromIOStream(" << streamName << ")";
             _out << ");";
         }
         else

@@ -413,8 +413,6 @@ namespace IceRpc.Transports
             }
         }
 
-        internal IDisposable? StartScope(Server? server = null) => Logger.StartConnectionScope(this, server);
-
         internal async ValueTask WaitForEmptyIncomingStreamsAsync(CancellationToken cancel)
         {
             lock (_mutex)

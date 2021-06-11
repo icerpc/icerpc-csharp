@@ -2,7 +2,9 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +13,8 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
+    [TestFixture("slic")]
+    [TestFixture("coloc")]
     public class StreamTests
     {
         private readonly Connection _connection;
@@ -18,16 +22,29 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         private readonly IStreamsPrx _prx;
         private readonly byte[] _sendBuffer;
 
-        public StreamTests()
+        public StreamTests(string transport)
         {
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
 
-            _server = new Server
+            if (transport == "coloc")
             {
-                Dispatcher = new Streams(_sendBuffer),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2)
-            };
+                _server = new Server
+                {
+                    Dispatcher = new Streams(_sendBuffer),
+                    Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2),
+                };
+            }
+            else
+            {
+                _server = new Server
+                {
+                    Dispatcher = new Streams(_sendBuffer),
+                    Endpoint = TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
+                    ProxyHost = "127.0.0.1"
+                };
+            }
+
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
             _prx = IStreamsPrx.FromConnection(_connection);
@@ -41,7 +58,6 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Streams_Byte()
         {
             System.IO.Stream stream;

@@ -103,6 +103,7 @@ namespace IceRpc.Transports
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
+
         private readonly MultiStreamConnection _connection;
 
         /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
@@ -265,6 +266,12 @@ namespace IceRpc.Transports
             CancelDispatchSource?.Dispose();
         }
 
+        internal void Acquire()
+        {
+            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
+            Interlocked.Increment(ref _useCount);
+        }
+
         // Internal method which should only be used by tests.
         internal ValueTask<int> InternalReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             ReceiveAsync(buffer, cancel);
@@ -393,6 +400,7 @@ namespace IceRpc.Transports
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
+
             return new IncomingResponse(_connection.Protocol, data);
         }
 
@@ -508,8 +516,8 @@ namespace IceRpc.Transports
             // Send the request frame.
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
-            // If there's a stream data writer, we can start streaming the data.
-            request.StreamDataWriter?.Invoke(this);
+            // If there's a stream writer, we can start sending the data.
+            request.StreamWriter?.Send(this);
         }
 
         internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
@@ -517,8 +525,8 @@ namespace IceRpc.Transports
             // Send the response frame.
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
-            // If there's a stream data writer, we can start streaming the data.
-            response.StreamDataWriter?.Invoke(this);
+            // If there's a stream writer, we can start sending the data.
+            response.StreamWriter?.Send(this);
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
@@ -601,7 +609,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer, fin: frame.StreamDataWriter == null, cancel).ConfigureAwait(false);
+            await SendAsync(buffer, fin: frame.StreamWriter == null, cancel).ConfigureAwait(false);
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)
