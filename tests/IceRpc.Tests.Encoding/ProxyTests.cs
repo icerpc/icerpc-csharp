@@ -13,11 +13,11 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly List<Memory<byte>> _data;
+        private readonly Memory<byte> _buffer;
 
         public ProxyTests()
         {
-            _data = new List<Memory<byte>>() { new byte[256] };
+            _buffer = new byte[256];
             _server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -45,13 +45,13 @@ namespace IceRpc.Tests.Encoding
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var ostr = new OutputStream(encoding, _data);
+            var ostr = new OutputStream(encoding, _buffer);
 
             var prx = IServicePrx.Parse(str);
             ostr.WriteProxy(prx);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
-            var istr = new InputStream(_data[0], encoding, connection: null, prx.Invoker);
+            var istr = new InputStream(data[0], encoding, connection: null, prx.Invoker);
             var prx2 = IServicePrx.IceReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(prx, prx2);
@@ -69,12 +69,12 @@ namespace IceRpc.Tests.Encoding
             var regular = IServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var ostr = new OutputStream(encoding, _data);
+            var ostr = new OutputStream(encoding, _buffer);
             ostr.WriteProxy(endpointLess);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
-            var istr = new InputStream(_data[0], encoding, _connection);
+            var istr = new InputStream(data[0], encoding, _connection);
             var prx1 = IServicePrx.IceReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
 

@@ -158,6 +158,9 @@ namespace IceRpc
         // The number of bytes that the stream can hold.
         private int _capacity;
 
+        // The current class/exception format, can be either Compact or Sliced.
+        private readonly FormatType _classFormat;
+
         // Data for the class or exception instance that is currently getting marshaled.
         private InstanceData _current;
 
@@ -165,9 +168,6 @@ namespace IceRpc
         // can occasionally be one before last after expanding the list. The tail Position always points to this
         // buffer, and the tail offset indicates how much of the buffer has been used.
         private Memory<byte> _currentBuffer;
-
-        // The current class/exception format, can be either Compact or Sliced.
-        private readonly FormatType _format;
 
         // Map of class instance to instance ID, where the instance IDs start at 2.
         //  - Instance ID = 0 means null.
@@ -1027,25 +1027,19 @@ namespace IceRpc
         }
 
         // Constructs an OutputStream
-        internal OutputStream(Encoding encoding, IList<Memory<byte>> data, FormatType format = default)
+        internal OutputStream(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             Encoding = encoding;
             Encoding.CheckSupported();
-            _format = format;
+            _classFormat = classFormat;
             _tail = default;
             Size = 0;
-            _capacity = 0;
-            _bufferList = data;
-
-            if (_bufferList.Count == 0)
+            _bufferList = new List<Memory<byte>>(1);
+            _currentBuffer = initialBuffer;
+            _capacity = _currentBuffer.Length;
+            if (_capacity > 0)
             {
-                _currentBuffer = Memory<byte>.Empty;
-                _capacity = 0;
-            }
-            else
-            {
-                _currentBuffer = _bufferList[0];
-                _capacity = _bufferList.GetByteCount();
+                _bufferList.Add(_currentBuffer);
             }
         }
 
@@ -1067,13 +1061,15 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Finishes off the underlying buffer. You should not write additional data to this output stream or
-        /// its underlying buffer after calling Finish, however rewriting previous data (with for example
+        /// <summary>Finishes off the underlying buffer list and returns it. You should not write additional data to
+        /// this output stream after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
-        internal void Finish()
+        /// <returns>The buffer list.</returns>
+        internal IList<Memory<byte>> Finish()
         {
             Debug.Assert(_bufferList.Count - 1 == _tail.Buffer);
             _bufferList[^1] = _bufferList[^1].Slice(0, _tail.Offset);
+            return _bufferList;
         }
 
         /// <summary>Writes a size on a fixed number of bytes at the given position of the stream.</summary>

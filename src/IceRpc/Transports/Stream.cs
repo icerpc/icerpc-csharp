@@ -439,8 +439,8 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<Memory<byte>>() { new byte[1024] };
-                var ostr = new OutputStream(Ice2Definitions.Encoding, data);
+                var buffer = new byte[1024];
+                var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     ostr.WriteByteSpan(TransportHeader.Span);
@@ -451,9 +451,9 @@ namespace IceRpc.Transports
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
                 goAwayFrameBody.IceWrite(ostr);
                 ostr.EndFixedLengthSize(sizePos);
-                ostr.Finish();
+                IList<Memory<byte>> bufferList = ostr.Finish();
 
-                await SendAsync(data.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
+                await SendAsync(bufferList.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
@@ -464,17 +464,17 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
             using IDisposable? scope = StartScope();
 
-            var data = new List<Memory<byte>>() { new byte[1024] };
-            var ostr = new OutputStream(Ice2Definitions.Encoding, data);
+            var buffer = new byte[1024];
+            var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
                 ostr.WriteByteSpan(TransportHeader.Span);
             }
             ostr.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
             ostr.EndFixedLengthSize(ostr.StartFixedLengthSize());
-            ostr.Finish();
+            IList<Memory<byte>> bufferList = ostr.Finish();
 
-            await SendAsync(data.ToReadOnlyMemory(), true, CancellationToken.None).ConfigureAwait(false);
+            await SendAsync(bufferList.ToReadOnlyMemory(), true, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -487,8 +487,8 @@ namespace IceRpc.Transports
             }
             else
             {
-                var data = new List<Memory<byte>>() { new byte[1024] };
-                var ostr = new OutputStream(Ice2Definitions.Encoding, data);
+                var buffer = new byte[1024];
+                var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     ostr.WriteByteSpan(TransportHeader.Span);
@@ -507,9 +507,9 @@ namespace IceRpc.Transports
                                 OutputStream.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
-                ostr.Finish();
+                IList<Memory<byte>> bufferList = ostr.Finish();
 
-                await SendAsync(data.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
+                await SendAsync(bufferList.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
             }
 
             using IDisposable? scope = StartScope();
@@ -582,17 +582,17 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var headerBuffer = new List<Memory<byte>>(1);
-            var ostr = new OutputStream(Encoding.V20, headerBuffer);
+            var ostr = new OutputStream(Encoding.V20);
             ostr.WriteByteSpan(TransportHeader.Span);
 
             ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
-            ostr.Finish();
+            IList<Memory<byte>> headerBufferList = ostr.Finish();
+            Debug.Assert(headerBufferList.Count == 1);
 
             var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBuffer[0];
+            buffer[0] = headerBufferList[0];
             frame.Payload.CopyTo(buffer.AsMemory(1));
             int frameSize = buffer.AsReadOnlyMemory().GetByteCount() - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
