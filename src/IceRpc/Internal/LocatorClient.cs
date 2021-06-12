@@ -137,7 +137,6 @@ namespace IceRpc.Internal
             return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
 
-
         private void ClearCache(string location, string? category)
         {
             if (HasCache)
@@ -149,7 +148,16 @@ namespace IceRpc.Internal
                         out (TimeSpan _, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> Node) entry))
                     {
                         _cacheKeys.Remove(entry.Node);
-                        _logger.LogClearCacheEntry(location, category, entry.Endpoint, entry.AltEndpoints);
+                        if (category == null)
+                        {
+                            _logger.LogClearAdapterIdCacheEntry(location, entry.Endpoint, entry.AltEndpoints);
+                        }
+                        else
+                        {
+                            _logger.LogClearWellKnownCacheEntry(new Identity(location, category),
+                                                                             entry.Endpoint,
+                                                                             entry.AltEndpoints);
+                        }
                     }
                 }
             }
@@ -219,16 +227,37 @@ namespace IceRpc.Internal
             {
                 if (resolved)
                 {
-                    _logger.LogResolved(location, category, endpoint, altEndpoints);
+                    if (category == null)
+                    {
+                        _logger.LogResolvedAdapterId(location, endpoint, altEndpoints);
+                    }
+                    else
+                    {
+                        _logger.LogResolvedWellKnown(new Identity(location, category), endpoint, altEndpoints);
+                    }
                 }
                 else
                 {
-                    _logger.LogFoundEntryInCache(location, category, endpoint, altEndpoints);
+                    if (category == null)
+                    {
+                        _logger.LogFoundAdapterIdEntryInCache(location, endpoint, altEndpoints);
+                    }
+                    else
+                    {
+                        _logger.LogFoundWellKnownEntryInCache(new Identity(location, category), endpoint, altEndpoints);
+                    }
                 }
             }
             else
             {
-                _logger.LogCouldNotResolveEndpoint(location, category);
+                if (category == null)
+                {
+                    _logger.LogCouldNotResolveAdapterId(location);
+                }
+                else
+                {
+                    _logger.LogCouldNotResolveWellKnown(new Identity(location, category));
+                }
             }
 
             return (endpoint, altEndpoints, endpoint != null && !resolved);
@@ -239,7 +268,14 @@ namespace IceRpc.Internal
             string? category,
             CancellationToken cancel)
         {
-            _logger.LogResolving(location, category);
+            if (category == null)
+            {
+                _logger.LogResolvingAdapterId(location);
+            }
+            else
+            {
+                _logger.LogResolvingWellKnown(new Identity(location, category));
+            }
 
             Task<(Endpoint?, ImmutableList<Endpoint>)>? task;
             lock (_mutex)
@@ -304,7 +340,14 @@ namespace IceRpc.Internal
                           resolved.IsWellKnown ||
                           resolved.Protocol != Protocol.Ice1))
                     {
-                        _logger.LogReceivedInvalidProxy(location, category, resolved);
+                        if (category == null)
+                        {
+                            _logger.LogReceivedInvalidProxyForAdapterId(location, resolved);
+                        }
+                        else
+                        {
+                            _logger.LogReceivedInvalidProxyForWellKnown(new Identity(location, category), resolved);
+                        }
                         resolved = null;
                     }
 
@@ -339,7 +382,14 @@ namespace IceRpc.Internal
                 }
                 catch (Exception exception)
                 {
-                    _logger.LogResolveFailure(location, category, exception);
+                    if (category == null)
+                    {
+                        _logger.LogResolveAdapterIdFailure(location, exception);
+                    }
+                    else
+                    {
+                        _logger.LogResolveWellKnownFailure(new Identity(location, category), exception);
+                    }
                     throw;
                 }
                 finally
