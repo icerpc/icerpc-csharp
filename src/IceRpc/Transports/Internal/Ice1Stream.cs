@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -80,8 +81,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var headerBuffer = new List<Memory<byte>>(1);
-            var ostr = new OutputStream(Encoding.V11, headerBuffer);
+            var ostr = new OutputStream(Encoding.V11);
 
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
@@ -92,10 +92,11 @@ namespace IceRpc.Transports.Internal
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
-            ostr.Finish();
+            IList<Memory<byte>> headerBufferList = ostr.Finish();
+            Debug.Assert(headerBufferList.Count == 1);
 
             var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBuffer[0];
+            buffer[0] = headerBufferList[0];
             frame.Payload.CopyTo(buffer.AsMemory(1));
             int frameSize = buffer.AsReadOnlyMemory().GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);

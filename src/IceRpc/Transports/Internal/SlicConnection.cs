@@ -469,8 +469,7 @@ namespace IceRpc.Transports.Internal
             SlicStream? stream = null,
             CancellationToken cancel = default)
         {
-            var data = new List<Memory<byte>>();
-            var ostr = new OutputStream(SlicDefinitions.Encoding, data);
+            var ostr = new OutputStream(SlicDefinitions.Encoding);
             ostr.WriteByte((byte)type);
             OutputStream.Position sizePos = ostr.StartFixedLengthSize(4);
             if (stream != null)
@@ -480,14 +479,14 @@ namespace IceRpc.Transports.Internal
             writer?.Invoke(ostr);
             int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
             ostr.EndFixedLengthSize(sizePos, 4);
-            ostr.Finish();
+            IList<Memory<byte>> bufferList = ostr.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             try
             {
-                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
+                await SendPacketAsync(bufferList.ToReadOnlyMemory()).ConfigureAwait(false);
 
                 if (logAction != null)
                 {
