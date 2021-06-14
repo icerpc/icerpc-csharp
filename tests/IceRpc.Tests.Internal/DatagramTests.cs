@@ -48,9 +48,13 @@ namespace IceRpc.Tests.Internal
                         using var source = new CancellationTokenSource(1000);
                         ValueTask<int> sendTask = connection.SendDatagramAsync(sendBuffer, default);
 
-                        ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                        Assert.AreEqual(sendBuffer, receiveBuffer);
+                        ReadOnlyMemory<byte> receiveBuffer =
+                            await IncomingConnection.ReceiveDatagramAsync(source.Token);
+                        Assert.AreEqual(await sendTask, receiveBuffer.Length);
+                        for (int i = 0; i < receiveBuffer.Length; ++i)
+                        {
+                            Assert.AreEqual(sendBuffer[i], receiveBuffer.Span[i]);
+                        }
                     }
                     break;
                 }
@@ -72,8 +76,9 @@ namespace IceRpc.Tests.Internal
                     foreach (SingleStreamConnection connection in outgoingConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(sendBuffer.Length, receiveBuffer.Count);
+                        ReadOnlyMemory<byte> receiveBuffer =
+                            await IncomingConnection.ReceiveDatagramAsync(source.Token);
+                        Assert.AreEqual(sendBuffer.Length, receiveBuffer.Length);
                     }
                     break;
                 }
@@ -88,7 +93,7 @@ namespace IceRpc.Tests.Internal
         public void Datagram_ReceiveDatagramAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
-            ValueTask<ArraySegment<byte>> receiveTask = OutgoingConnection.ReceiveDatagramAsync(canceled.Token);
+            ValueTask<ReadOnlyMemory<byte>> receiveTask = OutgoingConnection.ReceiveDatagramAsync(canceled.Token);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
@@ -157,9 +162,12 @@ namespace IceRpc.Tests.Internal
                 {
                     using var source = new CancellationTokenSource(1000);
                     ValueTask<int> sendTask = OutgoingConnection.SendDatagramAsync(sendBuffer, default);
-                    ArraySegment<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
-                    Assert.AreEqual(await sendTask, receiveBuffer.Count);
-                    Assert.AreEqual(sendBuffer, receiveBuffer);
+                    ReadOnlyMemory<byte> receiveBuffer = await IncomingConnection.ReceiveDatagramAsync(source.Token);
+                    Assert.AreEqual(await sendTask, receiveBuffer.Length);
+                    for (int i = 0; i < receiveBuffer.Length; ++i)
+                    {
+                        Assert.AreEqual(sendBuffer[i], receiveBuffer.Span[i]);
+                    }
                     break;
                 }
                 catch (OperationCanceledException)

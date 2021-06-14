@@ -259,7 +259,7 @@ namespace IceRpc.Transports.Internal
                     else
                     {
                         // If it's not the first fragment, we re-use the space reserved for the Slic header in
-                        // the first segment of the given protocol buffer.
+                        // the first buffer of the given protocol buffer.
                         sendBuffer.Clear();
                         sendBuffer.Add(buffers.Span[0].Slice(0, TransportHeader.Length));
                     }
@@ -268,18 +268,18 @@ namespace IceRpc.Transports.Internal
                     lastBuffer = false;
                     for (int i = start.Buffer; i < buffers.Length; ++i)
                     {
-                        int segmentOffset = i == start.Buffer ? start.Offset : 0;
-                        if (buffers.Span[i].Slice(segmentOffset).Length > maxPacketSize - sendSize)
+                        int bufferOffset = i == start.Buffer ? start.Offset : 0;
+                        if (buffers.Span[i].Slice(bufferOffset).Length > maxPacketSize - sendSize)
                         {
-                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset, maxPacketSize - sendSize));
-                            start = new OutputStream.Position(i, segmentOffset + sendBuffer[^1].Length);
+                            sendBuffer.Add(buffers.Span[i].Slice(bufferOffset, maxPacketSize - sendSize));
+                            start = new OutputStream.Position(i, bufferOffset + sendBuffer[^1].Length);
                             Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;
                         }
                         else
                         {
-                            sendBuffer.Add(buffers.Span[i].Slice(segmentOffset));
+                            sendBuffer.Add(buffers.Span[i].Slice(bufferOffset));
                             sendSize += sendBuffer[^1].Length;
                             lastBuffer = i + 1 == buffers.Length;
                         }
@@ -464,12 +464,12 @@ namespace IceRpc.Transports.Internal
                     // Read and append the received data into the circular buffer.
                     for (int offset = 0; offset < size;)
                     {
-                        // Get a segment from the buffer to receive the data. The buffer might return a smaller
-                        // segment than the requested size. If this is the case, we loop to receive the remaining
-                        // data in a next available segment.
-                        Memory<byte> segment = _receiveBuffer.Enqueue(size - offset);
-                        await _connection.ReceiveDataAsync(segment, CancellationToken.None).ConfigureAwait(false);
-                        offset += segment.Length;
+                        // Get a chunk from the buffer to receive the data. The buffer might return a smaller
+                        // chunk than the requested size. If this is the case, we loop to receive the remaining
+                        // data in a next available chunk.
+                        Memory<byte> chunk = _receiveBuffer.Enqueue(size - offset);
+                        await _connection.ReceiveDataAsync(chunk, CancellationToken.None).ConfigureAwait(false);
+                        offset += chunk.Length;
                     }
                 }
                 catch (Exception ex)

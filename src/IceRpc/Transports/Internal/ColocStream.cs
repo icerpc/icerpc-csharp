@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
         private bool _receivedEndOfStream;
-        private ArraySegment<byte> _receiveSegment;
+        private Memory<byte> _receiveBuffer;
         private readonly ColocConnection _connection;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
@@ -75,20 +75,20 @@ namespace IceRpc.Transports.Internal
             int received = 0;
             while (buffer.Length > 0)
             {
-                if (_receiveSegment.Count > 0)
+                if (_receiveBuffer.Length > 0)
                 {
-                    if (buffer.Length < _receiveSegment.Count)
+                    if (buffer.Length < _receiveBuffer.Length)
                     {
-                        _receiveSegment[0..buffer.Length].AsMemory().CopyTo(buffer);
+                        _receiveBuffer[0..buffer.Length].CopyTo(buffer);
                         received += buffer.Length;
-                        _receiveSegment = _receiveSegment[buffer.Length..];
+                        _receiveBuffer = _receiveBuffer[buffer.Length..];
                         buffer = buffer[buffer.Length..];
                     }
                     else
                     {
-                        _receiveSegment.AsMemory().CopyTo(buffer);
-                        received += _receiveSegment.Count;
-                        _receiveSegment = new ArraySegment<byte>();
+                        _receiveBuffer.CopyTo(buffer);
+                        received += _receiveBuffer.Length;
+                        _receiveBuffer = Memory<byte>.Empty;
                         buffer = Memory<byte>.Empty;
                     }
                 }
@@ -101,7 +101,7 @@ namespace IceRpc.Transports.Internal
 
                     try
                     {
-                        _receiveSegment = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
+                        _receiveBuffer = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
                     }
                     catch (ChannelClosedException)
                     {
@@ -202,7 +202,7 @@ namespace IceRpc.Transports.Internal
             return frame;
         }
 
-        private protected override async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
+        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
         {
@@ -218,24 +218,15 @@ namespace IceRpc.Transports.Internal
                 if (_connection.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(expectedFrameType == data.Span[0].Span[8]);
-                    return ArraySegment<byte>.Empty;
+                    return Memory<byte>.Empty;
                 }
                 else
                 {
                     Debug.Assert(expectedFrameType == data.Span[0].Span[0]);
                     (int size, int sizeLength) = data.Span[0].Span[1..].ReadSize20();
 
-                    // temporary
-                    if (MemoryMarshal.TryGetArray(data.Span[0].Slice(1 + sizeLength, size),
-                                                  out ArraySegment<byte> result))
-                    {
-                        return result;
-                    }
-                    else
-                    {
-                        Debug.Assert(false);
-                        return default;
-                    }
+                    // TODO: why are we returning only the first buffer?
+                    return data.Span[0].Slice(1 + sizeLength, size);
                 }
             }
             else

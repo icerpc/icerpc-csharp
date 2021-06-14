@@ -12,19 +12,14 @@ namespace IceRpc.Internal
     {
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        internal static ReadOnlyMemory<T> AsReadOnlyMemory<T>(this ArraySegment<T> segment) => segment;
-
         internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
             array;
 
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment) => segment;
+        internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
-        internal static ReadOnlySpan<T> AsReadOnlySpan<T>(this ArraySegment<T> segment, int start, int length) =>
-            segment.AsSpan(start, length);
-
-        /// <summary>Returns the sum of the count of all the array segments in the source enumerable.</summary>
-        /// <param name="bufferList">The list of segments.</param>
-        /// <returns>The byte count of the segment list.</returns>
+        /// <summary>Returns the sum of the count of all the buffers in the buffer list.</summary>
+        /// <param name="bufferList">The list of buffers.</param>
+        /// <returns>The byte count of the buffer list.</returns>
         internal static int GetByteCount(this IEnumerable<Memory<byte>> bufferList)
         {
             int count = 0;
@@ -93,11 +88,11 @@ namespace IceRpc.Internal
             return (value, buffer[0].ReadVarLongLength());
         }
 
-        internal static ArraySegment<byte> ToArraySegment(this IList<Memory<byte>> bufferList)
+        internal static ReadOnlyMemory<byte> ToSingleBuffer(this IList<Memory<byte>> bufferList)
         {
-            if (bufferList.Count == 1 && MemoryMarshal.TryGetArray(bufferList[0], out ArraySegment<byte> segment))
+            if (bufferList.Count == 1)
             {
-                return segment;
+                return bufferList[0];
             }
             else
             {
@@ -112,12 +107,11 @@ namespace IceRpc.Internal
             }
         }
 
-        // temporary
-        internal static ArraySegment<byte> ToArraySegment(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal static ReadOnlyMemory<byte> ToSingleBuffer(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
-            if (buffers.Length == 1 && MemoryMarshal.TryGetArray(buffers.Span[0], out ArraySegment<byte> segment))
+            if (buffers.Length == 1)
             {
-                return segment;
+                return buffers.Span[0];
             }
             else
             {

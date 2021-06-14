@@ -62,10 +62,10 @@ namespace IceRpc.Transports.Internal
         public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             throw new InvalidOperationException();
 
-        public override async ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel)
+        public override async ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel)
         {
             int packetSize = Math.Min(MaxPacketSize, _rcvSize - UdpOverhead);
-            ArraySegment<byte> buffer = new byte[packetSize];
+            Memory<byte> buffer = new byte[packetSize];
 
             int received = 0;
             try
@@ -76,11 +76,11 @@ namespace IceRpc.Transports.Internal
                         _socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
                         0);
 
-                    // TODO: Use the cancellable API once https://github.com/dotnet/runtime/issues/33418 is fixed
                     SocketReceiveFromResult result =
                         await _socket.ReceiveFromAsync(buffer,
-                                                      SocketFlags.None,
-                                                      remoteAddress).IceWaitAsync(cancel).ConfigureAwait(false);
+                                                       SocketFlags.None,
+                                                       remoteAddress,
+                                                       cancel).ConfigureAwait(false);
 
                     received = result.ReceivedBytes;
                 }

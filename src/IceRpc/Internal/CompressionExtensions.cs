@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace IceRpc.Internal
 {
@@ -92,11 +93,11 @@ namespace IceRpc.Internal
 
         /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
         /// encoding.</summary>
-        internal static ArraySegment<byte> Decompress(this ArraySegment<byte> payload, int maxSize)
+        internal static ReadOnlyMemory<byte> Decompress(this ReadOnlyMemory<byte> payload, int maxSize)
         {
-            ReadOnlySpan<byte> buffer = payload;
+            ReadOnlySpan<byte> buffer = payload.Span;
 
-            var payloadCompressionFormat = (CompressionFormat)payload[0];
+            var payloadCompressionFormat = (CompressionFormat)buffer[0];
             if (payloadCompressionFormat == CompressionFormat.NotCompressed)
             {
                 throw new InvalidOperationException("the payload is not compressed");
@@ -118,8 +119,8 @@ namespace IceRpc.Internal
                     } bytes is greater than the configured IncomingFrameMaxSize value ({maxSize} bytes)");
             }
 
-            // We are going to replace the Payload segment with a new Payload segment/array that contains a
-            // decompressed payload.
+            // We are going to replace the payload with a new payload segment/array that contains a decompressed
+            // payload.
             byte[] decompressedPayload = new byte[decompressedSize];
 
             int decompressedIndex = 0;
@@ -134,12 +135,22 @@ namespace IceRpc.Internal
             // Skip compression status and decompressed size in compressed payload.
             int compressedIndex = 1 + decompressedSizeLength;
 
-            Debug.Assert(payload.Array != null);
-            using var compressed = new DeflateStream(
-                new MemoryStream(payload.Array,
-                                 payload.Offset + compressedIndex,
-                                 payload.Count - compressedIndex),
-                CompressionMode.Decompress);
+            Stream compressedByteStream;
+
+            // TODO: it would be nicer to use ReadOnlyMemoryExtensions.AsStream to build the byte stream
+            if (MemoryMarshal.TryGetArray(payload, out ArraySegment<byte> segment))
+            {
+                compressedByteStream = new MemoryStream(segment.Array!,
+                                                        segment.Offset + compressedIndex,
+                                                        segment.Count - compressedIndex,
+                                                        writable: false);
+            }
+            else
+            {
+                throw new InvalidOperationException("the payload is not backed by an array");
+            }
+
+            using var compressed = new DeflateStream(compressedByteStream, CompressionMode.Decompress);
             compressed.CopyTo(decompressedStream);
 
             // "1" corresponds to the compress format that is in the decompressed size but is not compressed

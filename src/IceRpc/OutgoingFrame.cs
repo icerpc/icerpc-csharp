@@ -94,11 +94,10 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var buffer = new List<Memory<byte>>();
-                var ostr = new OutputStream(Encoding.V20, buffer);
+                var ostr = new OutputStream(Encoding.V20);
                 WriteFields(ostr);
-                ostr.Finish();
-                return buffer.ToArraySegment().AsReadOnlyMemory().ReadFieldValue(istr => istr.ReadFieldDictionary());
+                IList<Memory<byte>> bufferList = ostr.Finish();
+                return bufferList.ToSingleBuffer().ReadFieldValue(istr => istr.ReadFieldDictionary());
             }
         }
 

@@ -51,7 +51,7 @@ namespace IceRpc
 
             if (_current.IndirectionTable?.Count > 0)
             {
-                Debug.Assert(_format == FormatType.Sliced);
+                Debug.Assert(_classFormat == FormatType.Sliced);
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasIndirectionTable;
 
                 WriteSize(_current.IndirectionTable.Count);
@@ -109,7 +109,7 @@ namespace IceRpc
                 // else keep going, we're still writing the first slice and we're ignoring slicedData.
             }
 
-            if (OldEncoding && _format == FormatType.Sliced)
+            if (OldEncoding && _classFormat == FormatType.Sliced)
             {
                 // With the 1.1 encoding in sliced format, all the slice headers are the same.
                 IceStartNextSlice(allTypeIds[0], compactTypeId);
@@ -127,7 +127,7 @@ namespace IceRpc
                 else
                 {
                     WriteTypeId20(allTypeIds, errorMessage, origin);
-                    if (_format == FormatType.Sliced)
+                    if (_classFormat == FormatType.Sliced)
                     {
                         // Encode the slice size if using the sliced format.
                         _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
@@ -150,12 +150,12 @@ namespace IceRpc
             _current.SliceFlagsPos = _tail;
             WriteByte(0); // Placeholder for the slice flags
 
-            if (OldEncoding && _format == FormatType.Sliced)
+            if (OldEncoding && _classFormat == FormatType.Sliced)
             {
                 WriteTypeId11(typeId, compactId);
             }
 
-            if (_format == FormatType.Sliced)
+            if (_classFormat == FormatType.Sliced)
             {
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
@@ -169,7 +169,7 @@ namespace IceRpc
         /// Use null when the type of the parameter/data member is AnyClass.</param>
         public void WriteClass(AnyClass v, string? formalTypeId)
         {
-            if (_current.InstanceType != InstanceType.None && _format == FormatType.Sliced)
+            if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
             {
                 // If writing an instance within a slice and using the sliced format, write an index of that slice's
                 // indirection table.
@@ -199,7 +199,7 @@ namespace IceRpc
         public void WriteException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
-            Debug.Assert(_format == FormatType.Sliced);
+            Debug.Assert(_classFormat == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
             v.Write(this);
             _current = default;
@@ -236,9 +236,9 @@ namespace IceRpc
 
             // We only remarshal preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
             // slices, which essentially "slices" the instance into the most-derived type known by the sender.
-            if (_format != FormatType.Sliced)
+            if (_classFormat != FormatType.Sliced)
             {
-                throw new NotSupportedException($"cannot write sliced data into payload using {_format} format");
+                throw new NotSupportedException($"cannot write sliced data into payload using {_classFormat} format");
             }
             if (Encoding != slicedData.Encoding)
             {
@@ -411,7 +411,7 @@ namespace IceRpc
                     int index = RegisterTypeId(typeId);
                     if (index < 0)
                     {
-                        if (_format == FormatType.Sliced)
+                        if (_classFormat == FormatType.Sliced)
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
                             WriteSequence(allTypeIds, IceWriterFromString);

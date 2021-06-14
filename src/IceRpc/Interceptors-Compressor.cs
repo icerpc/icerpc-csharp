@@ -58,9 +58,9 @@ namespace IceRpc
                         response.PayloadEncoding == Encoding.V20 &&
                         response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        ArraySegment<byte> payload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
+                        ReadOnlyMemory<byte> payload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
-                        if (payload.Count >= 1 && payload[0] == (byte)CompressionFormat.Deflate)
+                        if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
                         {
                             // TODO maxSize should come from the connection
                             response.Payload = payload.Decompress(maxSize: 1024 * 1024);

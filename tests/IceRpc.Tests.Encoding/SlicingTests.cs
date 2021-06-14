@@ -15,12 +15,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var data = new List<Memory<byte>>() { buffer };
-            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             ostr.WriteClass(p1, null);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var istr = new InputStream(data[0], encoding);
@@ -63,12 +62,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var data = new List<Memory<byte>>() { buffer };
-            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             ostr.WriteClass(p1, null);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var istr = new InputStream(data[0], encoding);
@@ -125,12 +123,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var data = new List<Memory<byte>>() { buffer };
-            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             ostr.WriteException(p1);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
             var istr = new InputStream(data[0], encoding);
@@ -181,9 +178,9 @@ namespace IceRpc.Tests.Encoding
             Assert.IsNotInstanceOf<MyBaseException>(r);
 
             // Marshal the exception again to ensure all Slices are correctly preserved
-            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
             ostr.WriteException(r);
-            ostr.Finish();
+            data = ostr.Finish();
 
             istr = new InputStream(data[0], encoding);
             r = istr.ReadException();
@@ -201,13 +198,12 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var data = new List<Memory<byte>>() { buffer };
-            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
             ostr.WriteClass(p1, null);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // Unmarshal the 'MyPreservedDerivedClass1' class without its factory ensure the class is Sliced
             // and the Slices are preserved.
@@ -224,10 +220,9 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            data = new List<Memory<byte>>() { buffer };
-            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
             ostr.WriteClass(r1, null);
-            ostr.Finish();
+            data = ostr.Finish();
 
             // now add back the factory and read a unmarshal again, the unmarshaled class should contain the preserved
             // Slices.
@@ -250,13 +245,12 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var data = new List<Memory<byte>>() { buffer };
-            var ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            var ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
             ostr.WriteClass(p1, null);
-            ostr.Finish();
+            IList<Memory<byte>> data = ostr.Finish();
 
             // Unmarshal the 'MyPreservedDerivedClass2' class without its factory to ensure that the class is Sliced
             // and the Slices are preserved.
@@ -273,10 +267,9 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            data = new List<Memory<byte>>() { buffer };
-            ostr = new OutputStream(encoding, data, format: FormatType.Sliced);
+            ostr = new OutputStream(encoding, buffer, classFormat: FormatType.Sliced);
             ostr.WriteClass(r1, null);
-            ostr.Finish();
+            data = ostr.Finish();
 
             // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved
             // Slices.
