@@ -58,8 +58,8 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
-        /// <param name="data">The frame data as an array segment.</param>
-        internal IncomingRequest(Protocol protocol, ArraySegment<byte> data)
+        /// <param name="data">The frame data.</param>
+        internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
             var istr = new InputStream(data, Protocol.GetEncoding());
@@ -141,14 +141,12 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            ArraySegment<byte> payload = data.Slice(istr.Pos);
-            if (PayloadSize != payload.Count)
+            Payload = data[istr.Pos..];
+            if (PayloadSize != Payload.Length)
             {
                 throw new InvalidDataException(
-                    $"request payload size mismatch: expected {PayloadSize} bytes, read {payload.Count} bytes");
+                    $"request payload size mismatch: expected {PayloadSize} bytes, read {Payload.Length} bytes");
             }
-
-            Payload = payload;
         }
 
         /// <summary>Constructs an incoming request from an outgoing request. Used for colocated calls.</summary>
@@ -185,7 +183,7 @@ namespace IceRpc
             Deadline = request.Deadline;
             PayloadEncoding = request.PayloadEncoding;
 
-            Payload = request.Payload.ToArraySegment();
+            Payload = request.Payload.ToSingleBuffer();
         }
     }
 }

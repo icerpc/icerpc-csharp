@@ -16,7 +16,6 @@ namespace IceRpc.Tests.Encoding
     {
         private IceRpc.Encoding _encoding;
         private byte[] _buffer;
-        private List<Memory<byte>> _data;
         private OutputStream _ostr;
         private InputStream _istr;
 
@@ -24,9 +23,8 @@ namespace IceRpc.Tests.Encoding
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[1024 * 1024];
-            _data = new List<Memory<byte>>() { _buffer };
-            _ostr = new OutputStream(_encoding, _data);
-            _istr = new InputStream(_data[0], _encoding);
+            _ostr = new OutputStream(_encoding, _buffer);
+            _istr = new InputStream(_buffer, _encoding);
         }
 
         [TestCase(0)]

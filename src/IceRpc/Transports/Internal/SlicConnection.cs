@@ -188,7 +188,7 @@ namespace IceRpc.Transports.Internal
                             throw new InvalidDataException("can't reset control streams");
                         }
 
-                        ArraySegment<byte> data = new byte[size];
+                        Memory<byte> data = new byte[size];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -288,7 +288,7 @@ namespace IceRpc.Transports.Internal
 
             if (IsIncoming)
             {
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 if (type != SlicDefinitions.FrameType.Initialize)
@@ -301,7 +301,7 @@ namespace IceRpc.Transports.Internal
                 uint version = istr.ReadVarUInt();
                 if (version != 1)
                 {
-                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Count, version);
+                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
 
                     // If unsupported Slic version, we stop reading there and reply with a Version frame to provide
                     // the client the supported Slic versions.
@@ -329,7 +329,7 @@ namespace IceRpc.Transports.Internal
                 // Read initialize frame
                 var initializeBody = new InitializeHeaderBody(istr);
                 Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
-                Logger.LogReceivedSlicInitializeFrame(data.Count, version, initializeBody, parameters);
+                Logger.LogReceivedSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
                 try
@@ -373,7 +373,7 @@ namespace IceRpc.Transports.Internal
                     cancel: cancel).ConfigureAwait(false);
 
                 // Read the InitializeAck or Version frame from the server
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -384,7 +384,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read the version sequence provided by the server.
                     var versionBody = new VersionBody(istr);
-                    Logger.LogReceivedSlicVersionFrame(data.Count, versionBody);
+                    Logger.LogReceivedSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(
                         $"unsupported Slic version, server supports Slic '{string.Join(", ", versionBody.Versions)}'");
@@ -397,7 +397,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read and set parameters.
                     parameters = ReadParameters(istr);
-                    Logger.LogReceivedSlicInitializeAckFrame(data.Count, parameters);
+                    Logger.LogReceivedSlicInitializeAckFrame(data.Length, parameters);
                     SetParameters(parameters);
                 }
             }
@@ -469,8 +469,7 @@ namespace IceRpc.Transports.Internal
             SlicStream? stream = null,
             CancellationToken cancel = default)
         {
-            var data = new List<Memory<byte>>();
-            var ostr = new OutputStream(SlicDefinitions.Encoding, data);
+            var ostr = new OutputStream(SlicDefinitions.Encoding);
             ostr.WriteByte((byte)type);
             OutputStream.Position sizePos = ostr.StartFixedLengthSize(4);
             if (stream != null)
@@ -480,14 +479,14 @@ namespace IceRpc.Transports.Internal
             writer?.Invoke(ostr);
             int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
             ostr.EndFixedLengthSize(sizePos, 4);
-            ostr.Finish();
+            IList<Memory<byte>> bufferList = ostr.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             try
             {
-                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
+                await SendPacketAsync(bufferList.ToReadOnlyMemory()).ConfigureAwait(false);
 
                 if (logAction != null)
                 {
@@ -731,15 +730,8 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask IgnoreDataAsync(int size, CancellationToken cancel)
         {
-            var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(size), 0, size);
-            try
-            {
-                await ReceiveDataAsync(receiveBuffer, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
-            }
+            using IMemoryOwner<byte> bufferOwner = MemoryPool<byte>.Shared.Rent(size);
+            await ReceiveDataAsync(bufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
         }
 
         private void SetParameters(Dictionary<ParameterKey, ulong> parameters)
@@ -803,11 +795,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask<(SlicDefinitions.FrameType, ArraySegment<byte>)> ReceiveFrameAsync(
+        private async ValueTask<(SlicDefinitions.FrameType, ReadOnlyMemory<byte>)> ReceiveFrameAsync(
             CancellationToken cancel)
         {
             (SlicDefinitions.FrameType type, int size, long? _) = await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
-            ArraySegment<byte> data;
+            Memory<byte> data;
             if (size > 0)
             {
                 data = new byte[size];
@@ -815,7 +807,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                data = ArraySegment<byte>.Empty;
+                data = Memory<byte>.Empty;
             }
             return (type, data);
         }
