@@ -52,24 +52,10 @@ namespace IceRpc.Transports.Internal
         internal static ColocEndpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
             throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
 
-        internal static ColocEndpoint ParseIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
+        internal static ColocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            Debug.Assert(transport == Transport.Coloc);
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
             return new(host, port, Protocol.Ice1);
-        }
-
-        internal static ColocEndpoint ParseIce2Endpoint(
-            Transport transport,
-            string host,
-            ushort port,
-            Dictionary<string, string> _)
-        {
-            Debug.Assert(transport == Transport.Coloc);
-            return new(host, port, Protocol.Ice2);
         }
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)

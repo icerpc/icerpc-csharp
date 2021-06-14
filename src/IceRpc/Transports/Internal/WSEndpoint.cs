@@ -76,13 +76,10 @@ namespace IceRpc.Transports.Internal
         }
 
         internal static new WSEndpoint ParseIce2Endpoint(
-            Transport transport,
             string host,
             ushort port,
             Dictionary<string, string> options)
         {
-            Debug.Assert(transport == Transport.WS);
-
             string? resource = null;
             bool? tls = null;
 
@@ -111,7 +108,7 @@ namespace IceRpc.Transports.Internal
             }
 
             var data = new EndpointData(
-                transport,
+                Transport.WS,
                 host,
                 port,
                 resource == null ? ImmutableList<string>.Empty : ImmutableList.Create(resource));

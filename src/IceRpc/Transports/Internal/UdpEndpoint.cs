@@ -238,23 +238,15 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        internal static UdpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
-        {
-            Debug.Assert(transport == Transport.UDP);
-            return new UdpEndpoint(new EndpointData(transport,
-                                                    host: istr.ReadString(),
-                                                    port: ReadPort(istr),
-                                                    ImmutableList<string>.Empty),
-                                   compress: istr.ReadBool());
-        }
+        internal static UdpEndpoint CreateIce1Endpoint(InputStream istr) =>
+            new UdpEndpoint(new EndpointData(Transport.UDP,
+                                             host: istr.ReadString(),
+                                             port: ReadPort(istr),
+                                             ImmutableList<string>.Empty),
+                            compress: istr.ReadBool());
 
-        internal static UdpEndpoint ParseIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
+        internal static UdpEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            Debug.Assert(transport == Transport.UDP);
-
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
             int ttl = -1;
@@ -314,7 +306,7 @@ namespace IceRpc.Transports.Internal
                 options.Remove("--interface");
             }
 
-            return new UdpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
+            return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
                                    ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface);

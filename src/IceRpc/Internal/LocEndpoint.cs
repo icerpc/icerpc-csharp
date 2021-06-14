@@ -29,30 +29,19 @@ namespace IceRpc.Internal
         internal static LocEndpoint Create(string location, Protocol protocol) =>
             new(new EndpointData(Transport.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
 
-        internal static LocEndpoint ParseIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
+        internal static LocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            Debug.Assert(transport == Transport.Loc);
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
-            return new(new EndpointData(transport,
+            return new(new EndpointData(Transport.Loc,
                                         host,
                                         port,
                                         ImmutableList<string>.Empty),
                         Protocol.Ice1);
         }
 
-        internal static LocEndpoint ParseIce2Endpoint(
-            Transport transport,
-            string host,
-            ushort port,
-            Dictionary<string, string> _)
-        {
-            Debug.Assert(transport == Transport.Loc);
-            return new(new EndpointData(transport, host, port, ImmutableList<string>.Empty), Protocol.Ice2);
-        }
+        internal static LocEndpoint ParseIce2Endpoint(string host, ushort port) =>
+            new(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty), Protocol.Ice2);
 
         // Constructor
         private LocEndpoint(EndpointData data, Protocol protocol)

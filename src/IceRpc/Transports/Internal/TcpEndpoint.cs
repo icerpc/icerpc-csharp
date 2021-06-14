@@ -184,21 +184,15 @@ namespace IceRpc.Transports.Internal
                                    ParseCompress(options, endpointString));
         }
 
-        internal static TcpEndpoint ParseIce2Endpoint(
-            Transport transport,
-            string host,
-            ushort port,
-            Dictionary<string, string> options)
+        internal static TcpEndpoint ParseIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
         {
-            Debug.Assert(transport == Transport.TCP);
-
             bool? tls = null;
             if (options.TryGetValue("tls", out string? value))
             {
                 tls = bool.Parse(value);
                 options.Remove("tls");
             }
-            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty), tls);
+            return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
         }
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)

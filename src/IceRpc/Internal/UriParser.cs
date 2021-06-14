@@ -199,7 +199,7 @@ namespace IceRpc.Internal
                 port = (ushort)uri.Port;
             }
 
-            Ice2EndpointParser? parser = null;
+            Func<string, ushort, Dictionary<string, string>, Endpoint>? parser = null;
             Transport transport = default;
             Endpoint? endpoint = null;
 
@@ -213,14 +213,17 @@ namespace IceRpc.Internal
                     // ice2 (otherwise, we return this UniversalEndpoint).
                     // Since all options have been consumed by Parse above, this works only for endpoints with no
                     // options.
-                    parser = Runtime.FindIce2EndpointParser(endpoint.Transport);
+                    if (TransportRegistry.TryGetValue(endpoint.Transport, out TransportDescriptor? descriptor))
+                    {
+                        parser = descriptor.Ice2EndpointParser;
+                    }
                     transport = endpoint.Transport;
                 }
             }
-            else if (Runtime.FindIce2EndpointParser(transportName) is (Ice2EndpointParser p, Transport t))
+            else if (TransportRegistry.TryGetValue(transportName, out var value))
             {
-                parser = p;
-                transport = t;
+                parser = value.Descriptor.Ice2EndpointParser;
+                transport = value.Transport;
             }
             else
             {
@@ -229,7 +232,7 @@ namespace IceRpc.Internal
 
             if (parser != null)
             {
-                endpoint = parser.Invoke(transport, uri.DnsSafeHost, port, options);
+                endpoint = parser(uri.DnsSafeHost, port, options);
             }
             else
             {
