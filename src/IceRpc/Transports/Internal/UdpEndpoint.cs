@@ -101,147 +101,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private MultiStreamConnection CreateOutgoingConnection(OutgoingConnectionOptions options, ILogger logger)
-        {
-            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-
-            if (MulticastInterface == "*")
-            {
-                throw new NotSupportedException($"endpoint '{this}' cannot use interface '*' to send datagrams");
-            }
-
-            Socket socket = HasDnsHost ?
-                new Socket(SocketType.Dgram, ProtocolType.Udp) :
-                new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-
-            try
-            {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
-                if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
-                {
-                    if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                    {
-                        socket.DualMode = !udpOptions.IsIPv6Only;
-                    }
-
-                    // IP multicast socket options require a socket created with the correct address family.
-                    if (MulticastInterface != null)
-                    {
-                        Debug.Assert(MulticastInterface.Length > 0);
-                        if (Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            socket.SetSocketOption(
-                                SocketOptionLevel.IP,
-                                SocketOptionName.MulticastInterface,
-                                GetIPv4InterfaceAddress(MulticastInterface).GetAddressBytes());
-                        }
-                        else
-                        {
-                            socket.SetSocketOption(
-                                SocketOptionLevel.IPv6,
-                                SocketOptionName.MulticastInterface,
-                                GetIPv6InterfaceIndex(MulticastInterface));
-                        }
-                    }
-
-                    if (MulticastTtl != -1)
-                    {
-                        socket.Ttl = (short)MulticastTtl;
-                    }
-                }
-
-                if (udpOptions.LocalEndPoint is IPEndPoint localEndPoint)
-                {
-                    socket.Bind(localEndPoint);
-                }
-
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-
-            return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
-        }
-
-        private MultiStreamConnection CreateIncomingConnection(
-            IncomingConnectionOptions options,
-            ILogger logger)
-        {
-            if (Address == IPAddress.None)
-            {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept datagram connections because it has a DNS name");
-            }
-
-            var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            try
-            {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
-
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
-                    socket.DualMode = !(OperatingSystem.IsMacOS() || udpOptions.IsIPv6Only);
-                }
-
-                socket.ExclusiveAddressUse = true;
-
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
-
-                var addr = new IPEndPoint(Address, Port);
-                IPEndPoint? multicastAddress = null;
-                if (IsMulticast(Address))
-                {
-                    multicastAddress = addr;
-
-                    socket.ExclusiveAddressUse = false;
-                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-
-                    if (OperatingSystem.IsWindows())
-                    {
-                        // Windows does not allow binding to the multicast address itself so we bind to the wildcard
-                        // instead. As a result, bidirectional connection won't work because the source address won't
-                        // be the multicast address and the client will therefore reject the datagram.
-                        addr = new IPEndPoint(
-                            addr.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
-                            addr.Port);
-                    }
-                }
-
-                socket.Bind(addr);
-
-                ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
-
-                if (multicastAddress != null)
-                {
-                    multicastAddress.Port = port;
-                    SetMulticastGroup(socket, multicastAddress.Address);
-                }
-
-                var udpSocket = new UdpConnection(socket, logger, isIncoming: true, multicastAddress);
-                return new Ice1Connection(Clone(port), udpSocket, options);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
-        }
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             base.WriteOptions11(ostr);
             ostr.WriteBool(_hasCompressionFlag);
         }
+        private protected override IPEndpoint Clone(string host, ushort port) =>
+            new UdpEndpoint(this, host, port);
 
         private static UdpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
@@ -419,6 +286,141 @@ namespace IceRpc.Transports.Internal
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
 
+        private MultiStreamConnection CreateOutgoingConnection(OutgoingConnectionOptions options, ILogger logger)
+        {
+            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+
+            if (MulticastInterface == "*")
+            {
+                throw new NotSupportedException($"endpoint '{this}' cannot use interface '*' to send datagrams");
+            }
+
+            Socket socket = HasDnsHost ?
+                new Socket(SocketType.Dgram, ProtocolType.Udp) :
+                new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+
+            try
+            {
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
+                if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
+                {
+                    if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        socket.DualMode = !udpOptions.IsIPv6Only;
+                    }
+
+                    // IP multicast socket options require a socket created with the correct address family.
+                    if (MulticastInterface != null)
+                    {
+                        Debug.Assert(MulticastInterface.Length > 0);
+                        if (Address.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            socket.SetSocketOption(
+                                SocketOptionLevel.IP,
+                                SocketOptionName.MulticastInterface,
+                                GetIPv4InterfaceAddress(MulticastInterface).GetAddressBytes());
+                        }
+                        else
+                        {
+                            socket.SetSocketOption(
+                                SocketOptionLevel.IPv6,
+                                SocketOptionName.MulticastInterface,
+                                GetIPv6InterfaceIndex(MulticastInterface));
+                        }
+                    }
+
+                    if (MulticastTtl != -1)
+                    {
+                        socket.Ttl = (short)MulticastTtl;
+                    }
+                }
+
+                if (udpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                {
+                    socket.Bind(localEndPoint);
+                }
+
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
+        }
+
+        private MultiStreamConnection CreateIncomingConnection(
+            IncomingConnectionOptions options,
+            ILogger logger)
+        {
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{this}' cannot accept datagram connections because it has a DNS name");
+            }
+
+            var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            try
+            {
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
+
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
+                    socket.DualMode = !(OperatingSystem.IsMacOS() || udpOptions.IsIPv6Only);
+                }
+
+                socket.ExclusiveAddressUse = true;
+
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
+
+                var addr = new IPEndPoint(Address, Port);
+                IPEndPoint? multicastAddress = null;
+                if (IsMulticast(Address))
+                {
+                    multicastAddress = addr;
+
+                    socket.ExclusiveAddressUse = false;
+                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        // Windows does not allow binding to the multicast address itself so we bind to the wildcard
+                        // instead. As a result, bidirectional connection won't work because the source address won't
+                        // be the multicast address and the client will therefore reject the datagram.
+                        addr = new IPEndPoint(
+                            addr.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
+                            addr.Port);
+                    }
+                }
+
+                socket.Bind(addr);
+
+                ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
+
+                if (multicastAddress != null)
+                {
+                    multicastAddress.Port = port;
+                    SetMulticastGroup(socket, multicastAddress.Address);
+                }
+
+                var udpSocket = new UdpConnection(socket, logger, isIncoming: true, multicastAddress);
+                return new Ice1Connection(Clone(port), udpSocket, options);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+        }
+
         private void SetMulticastGroup(Socket socket, IPAddress group)
         {
             if (MulticastInterface == null || MulticastInterface == "*")
@@ -476,8 +478,5 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new UdpEndpoint(this, host, port);
     }
 }

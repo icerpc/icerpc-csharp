@@ -25,6 +25,8 @@ namespace IceRpc.Transports.Internal
                 _ => WSTransportDescriptor
             };
 
+        protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
+
         internal static TransportDescriptor WSTransportDescriptor { get; } =
            new(Transport.WS, "ws", CreateEndpoint)
            {
@@ -51,13 +53,61 @@ namespace IceRpc.Transports.Internal
                     ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger)
             };
 
-        protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
-
         /// <summary>A URI specifying the resource associated with this endpoint. The value is passed as the target for
         /// GET in the WebSocket upgrade request.</summary>
         internal string Resource => Data.Options.Count > 0 ? Data.Options[0] : "/";
 
         // There is no Equals or GetHashCode because they are identical to the base.
+        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
+        {
+            base.AppendOptions(sb, optionSeparator);
+            if (Resource != "/")
+            {
+                if (Protocol == Protocol.Ice1)
+                {
+                    sb.Append(" -r ");
+                    bool addQuote = Resource.IndexOf(':') != -1;
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                    sb.Append(Resource);
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                }
+                else
+                {
+                    if (base.HasOptions)
+                    {
+                        sb.Append(optionSeparator);
+                    }
+                    sb.Append("resource=");
+                    // resource must be in a URI-compatible format, with for example spaces escaped as %20.
+                    sb.Append(Resource);
+                }
+            }
+        }
+
+        protected internal override void WriteOptions11(OutputStream ostr)
+        {
+            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
+            base.WriteOptions11(ostr);
+            ostr.WriteString(Resource);
+        }
+
+        internal override SingleStreamConnection CreateSingleStreamConnection(
+            EndPoint addr,
+            TcpOptions options,
+            ILogger logger) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(addr, options, logger));
+
+        internal override SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger));
+
+        private protected override IPEndpoint Clone(string host, ushort port) =>
+            new WSEndpoint(this, host, port);
 
         private static WSEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
@@ -74,7 +124,7 @@ namespace IceRpc.Transports.Internal
             return new WSEndpoint(new EndpointData(transport, host, port, options), timeout, compress);
         }
 
-        internal static new WSEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
+        private static new WSEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Count > 1)
             {
@@ -150,51 +200,6 @@ namespace IceRpc.Transports.Internal
             return new WSEndpoint(data, tls);
         }
 
-        protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
-        {
-            base.AppendOptions(sb, optionSeparator);
-            if (Resource != "/")
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    sb.Append(" -r ");
-                    bool addQuote = Resource.IndexOf(':') != -1;
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                    sb.Append(Resource);
-                    if (addQuote)
-                    {
-                        sb.Append('"');
-                    }
-                }
-                else
-                {
-                    if (base.HasOptions)
-                    {
-                        sb.Append(optionSeparator);
-                    }
-                    sb.Append("resource=");
-                    // resource must be in a URI-compatible format, with for example spaces escaped as %20.
-                    sb.Append(Resource);
-                }
-            }
-        }
-
-        protected internal override void WriteOptions11(OutputStream ostr)
-        {
-            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
-            base.WriteOptions11(ostr);
-            ostr.WriteString(Resource);
-        }
-
-        internal override SingleStreamConnection CreateSingleStreamConnection(EndPoint addr, TcpOptions options, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(addr, options, logger));
-
-        internal override SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger));
-
         // Constructor used for ice2 parsing.
         private WSEndpoint(EndpointData data, bool? tls)
             : base(data, tls)
@@ -218,8 +223,5 @@ namespace IceRpc.Transports.Internal
             : base(endpoint, host, port)
         {
         }
-
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new WSEndpoint(this, host, port);
     }
 }

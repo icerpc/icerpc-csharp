@@ -11,10 +11,9 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>An endpoint describes a server-side network sink for Ice requests: a server listens on one or
-    /// more endpoints and a client establishes a connection to a given server endpoint. Its properties are
-    /// a network transport protocol such as TCP or Bluetooth RFCOMM, a host or address, a port number, and
-    /// transport-specific options.</summary>
+    /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
+    /// and a client establishes a connection to a given endpoint. Its properties are a network transport protocol such
+    /// as TCP or Bluetooth RFCOMM, a host or address, a port number, and transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
@@ -100,8 +99,8 @@ namespace IceRpc
         /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
 
-        /// <summary>Indicates whether or not this endpoint has options with non default values that ToString would
-        /// print. Always true for ice1 endpoints.</summary>
+        /// <summary>Indicates whether or not this endpoint has options with non default values that ToString prints.
+        /// Always true for ice1 endpoints.</summary>
         protected internal virtual bool HasOptions => Protocol == Protocol.Ice1;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
