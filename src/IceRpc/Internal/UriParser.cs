@@ -220,10 +220,10 @@ namespace IceRpc.Internal
                     transport = endpoint.Transport;
                 }
             }
-            else if (TransportRegistry.TryGetValue(transportName, out var value))
+            else if (TransportRegistry.TryGetValue(transportName, out TransportDescriptor? descriptor))
             {
-                parser = value.Descriptor.Ice2EndpointParser;
-                transport = value.Transport;
+                parser = descriptor.Ice2EndpointParser;
+                transport = descriptor.Transport;
             }
             else
             {

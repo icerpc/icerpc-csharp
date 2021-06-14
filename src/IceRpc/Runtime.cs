@@ -121,8 +121,7 @@ namespace IceRpc
             Internal.UriParser.RegisterIceScheme();
 
             TransportRegistry.Add(
-                Transport.Loc,
-                new TransportDescriptor("loc", LocEndpoint.Create)
+                new TransportDescriptor(Transport.Loc, "loc", LocEndpoint.Create)
                 {
                     DefaultUriPort = LocEndpoint.DefaultLocPort,
                     Ice1EndpointParser = LocEndpoint.ParseIce1Endpoint,
@@ -130,8 +129,8 @@ namespace IceRpc
                 });
         }
 
-        // Must be called before parsing a Uri to make sure Runtime's static constructor executed and registered the
-        // URI schemes for the built-in transports.
+        // Must be called before parsing a Uri to make sure the static constructors of Runtime and TransportRegistry
+        // executed and registered the URI schemes for the built-in transports.
         internal static void UriInitialize() => TransportRegistry.UriInitialize();
 
         private static void LoadReferencedAssemblies(Assembly entryAssembly, HashSet<Assembly> seenAssembly)

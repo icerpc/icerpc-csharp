@@ -5,7 +5,8 @@ using System.Collections.Generic;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Holds various factory delegates and other properties of a transport.</summary>
+    /// <summary>Holds properties for a transport, including factories to create endpoints and connections for this
+    /// transport.</summary>
     public sealed class TransportDescriptor
     {
         /// <summary>The default port for URI endpoints that don't specify a port explicitly.</summary>
@@ -26,11 +27,18 @@ namespace IceRpc.Transports
         /// <summary>The name of this transport in lower case, for example "tcp".</summary>
         public string Name { get; }
 
+        /// <summary>The transport enumerator.</summary>
+        public Transport Transport { get; }
+
         /// <summary>Constructs a transport descriptor.</summary>
-        public TransportDescriptor(string name, Func<EndpointData, Protocol, Endpoint> endpointFactory)
+        public TransportDescriptor(
+            Transport transport,
+            string name,
+            Func<EndpointData, Protocol, Endpoint> endpointFactory)
         {
-            Name = name;
             EndpointFactory = endpointFactory;
+            Name = name;
+            Transport = transport;
         }
     }
 }

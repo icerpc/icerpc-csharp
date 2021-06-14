@@ -8,19 +8,18 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Keeps track of all transports known to this process.</summary>
+    /// <summary>Registry for all transports known to this process.</summary>
     public static class TransportRegistry
     {
-        private static readonly IDictionary<string, (Transport Transport, TransportDescriptor Descriptor)> _transportNameRegistry =
-            new ConcurrentDictionary<string, (Transport, TransportDescriptor)>();
+        private static readonly IDictionary<string, TransportDescriptor> _transportNameRegistry =
+            new ConcurrentDictionary<string, TransportDescriptor>();
 
         private static readonly IDictionary<Transport, TransportDescriptor> _transportRegistry =
             new ConcurrentDictionary<Transport, TransportDescriptor>();
 
         /// <summary>Registers a new transport.</summary>
-        /// <param name="transport">The transport.</param>
         /// <param name="descriptor">The transport descriptor.</param>
-        public static void Add(Transport transport, TransportDescriptor descriptor)
+        public static void Add(TransportDescriptor descriptor)
         {
             if (descriptor.Name.Length == 0)
             {
@@ -39,8 +38,8 @@ namespace IceRpc.Transports
                                                 nameof(descriptor));
             }
 
-            _transportRegistry.Add(transport, descriptor);
-            _transportNameRegistry.Add(descriptor.Name, (transport, descriptor));
+            _transportRegistry.Add(descriptor.Transport, descriptor);
+            _transportNameRegistry.Add(descriptor.Name, descriptor);
 
             if (descriptor.Ice2EndpointParser != null)
             {
@@ -55,21 +54,19 @@ namespace IceRpc.Transports
 
         internal static bool TryGetValue(
             string name,
-            out (Transport Transport, TransportDescriptor Descriptor) value) =>
-            _transportNameRegistry.TryGetValue(name, out value);
+            [NotNullWhen(true)] out TransportDescriptor? descriptor) =>
+            _transportNameRegistry.TryGetValue(name, out descriptor);
 
         static TransportRegistry()
         {
-            Add(Transport.Coloc,
-                new TransportDescriptor("coloc", ColocEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.Coloc, "coloc", ColocEndpoint.CreateEndpoint)
                 {
                     DefaultUriPort = ColocEndpoint.DefaultColocPort,
                     Ice1EndpointParser = ColocEndpoint.ParseIce1Endpoint,
                     Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
                 });
 
-            Add(Transport.TCP,
-                new TransportDescriptor("tcp", TcpEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.TCP, "tcp", TcpEndpoint.CreateEndpoint)
                 {
                     DefaultUriPort = IPEndpoint.DefaultIPPort,
                     Ice1EndpointFactory = istr => TcpEndpoint.CreateIce1Endpoint(Transport.TCP, istr),
@@ -78,23 +75,20 @@ namespace IceRpc.Transports
                     Ice2EndpointParser = TcpEndpoint.ParseIce2Endpoint,
                 });
 
-            Add(Transport.SSL,
-                new TransportDescriptor("ssl", TcpEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.SSL, "ssl", TcpEndpoint.CreateEndpoint)
                 {
                     Ice1EndpointFactory = istr => TcpEndpoint.CreateIce1Endpoint(Transport.SSL, istr),
                     Ice1EndpointParser = (options, endpointString) =>
                         TcpEndpoint.ParseIce1Endpoint(Transport.SSL, options, endpointString),
                 });
 
-            Add(Transport.UDP,
-                new TransportDescriptor("udp", UdpEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.UDP, "udp", UdpEndpoint.CreateEndpoint)
                 {
                     Ice1EndpointFactory = UdpEndpoint.CreateIce1Endpoint,
                     Ice1EndpointParser = UdpEndpoint.ParseIce1Endpoint,
                 });
 
-            Add(Transport.WS,
-                new TransportDescriptor("ws", WSEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.WS, "ws", WSEndpoint.CreateEndpoint)
                 {
                     DefaultUriPort = IPEndpoint.DefaultIPPort,
                     Ice1EndpointFactory = istr => WSEndpoint.CreateIce1Endpoint(Transport.WS, istr),
@@ -103,8 +97,7 @@ namespace IceRpc.Transports
                     Ice2EndpointParser = WSEndpoint.ParseIce2Endpoint,
                 });
 
-            Add(Transport.WSS,
-                new TransportDescriptor("wss", WSEndpoint.CreateEndpoint)
+            Add(new TransportDescriptor(Transport.WSS, "wss", WSEndpoint.CreateEndpoint)
                 {
                     Ice1EndpointFactory = istr => WSEndpoint.CreateIce1Endpoint(Transport.WSS, istr),
                     Ice1EndpointParser = (options, endpointString) =>
@@ -112,8 +105,7 @@ namespace IceRpc.Transports
                 });
         }
 
-        // Must be called before parsing a Uri to make sure Runtime's static constructor executed and registered the
-        // URI schemes for the built-in transports.
+        // See Runtime.UriInitialize
         internal static void UriInitialize()
         {
             if (_transportRegistry.Count == 0)
