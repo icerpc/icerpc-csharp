@@ -59,50 +59,12 @@ namespace IceRpc.Transports
 
         static TransportRegistry()
         {
-            Add(new TransportDescriptor(Transport.Coloc, "coloc", ColocEndpoint.CreateEndpoint)
-                {
-                    DefaultUriPort = ColocEndpoint.DefaultColocPort,
-                    Ice1EndpointParser = ColocEndpoint.ParseIce1Endpoint,
-                    Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
-                });
-
-            Add(new TransportDescriptor(Transport.TCP, "tcp", TcpEndpoint.CreateEndpoint)
-                {
-                    DefaultUriPort = IPEndpoint.DefaultIPPort,
-                    Ice1EndpointFactory = istr => TcpEndpoint.CreateIce1Endpoint(Transport.TCP, istr),
-                    Ice1EndpointParser = (options, endpointString) =>
-                        TcpEndpoint.ParseIce1Endpoint(Transport.TCP, options, endpointString),
-                    Ice2EndpointParser = TcpEndpoint.ParseIce2Endpoint,
-                });
-
-            Add(new TransportDescriptor(Transport.SSL, "ssl", TcpEndpoint.CreateEndpoint)
-                {
-                    Ice1EndpointFactory = istr => TcpEndpoint.CreateIce1Endpoint(Transport.SSL, istr),
-                    Ice1EndpointParser = (options, endpointString) =>
-                        TcpEndpoint.ParseIce1Endpoint(Transport.SSL, options, endpointString),
-                });
-
-            Add(new TransportDescriptor(Transport.UDP, "udp", UdpEndpoint.CreateEndpoint)
-                {
-                    Ice1EndpointFactory = UdpEndpoint.CreateIce1Endpoint,
-                    Ice1EndpointParser = UdpEndpoint.ParseIce1Endpoint,
-                });
-
-            Add(new TransportDescriptor(Transport.WS, "ws", WSEndpoint.CreateEndpoint)
-                {
-                    DefaultUriPort = IPEndpoint.DefaultIPPort,
-                    Ice1EndpointFactory = istr => WSEndpoint.CreateIce1Endpoint(Transport.WS, istr),
-                    Ice1EndpointParser = (options, endpointString) =>
-                        WSEndpoint.ParseIce1Endpoint(Transport.WS, options, endpointString),
-                    Ice2EndpointParser = WSEndpoint.ParseIce2Endpoint,
-                });
-
-            Add(new TransportDescriptor(Transport.WSS, "wss", WSEndpoint.CreateEndpoint)
-                {
-                    Ice1EndpointFactory = istr => WSEndpoint.CreateIce1Endpoint(Transport.WSS, istr),
-                    Ice1EndpointParser = (options, endpointString) =>
-                        WSEndpoint.ParseIce1Endpoint(Transport.WSS, options, endpointString),
-                });
+            Add(ColocEndpoint.ColocTransportDescriptor);
+            Add(TcpEndpoint.TcpTransportDescriptor);
+            Add(TcpEndpoint.SslTransportDescriptor);
+            Add(WSEndpoint.WSTransportDescriptor);
+            Add(WSEndpoint.WssTransportDescriptor);
+            Add(UdpEndpoint.UdpTransportDescriptor);
         }
 
         // See Runtime.UriInitialize

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -11,25 +12,30 @@ namespace IceRpc.Internal
     /// <see cref="Interceptors.Locator(Interop.ILocatorPrx)"/>.</summary>
     internal sealed class LocEndpoint : Endpoint
     {
-        protected internal override ushort DefaultPort => DefaultLocPort;
-
-        protected internal override bool HasConnect => false;
-
-        internal const ushort DefaultLocPort = 0;
-
         // There is no Equals as it's identical to the base.
 
+        /// <inherit-doc/>
+        public override TransportDescriptor TransportDescriptor => LocTransportDescriptor;
+
+        internal static TransportDescriptor LocTransportDescriptor { get; } =
+            new(Transport.Loc, "loc", Create)
+            {
+                Ice1EndpointParser = ParseIce1Endpoint,
+                Ice2EndpointParser = (host, port, _) =>
+                    new LocEndpoint(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty),
+                                    Protocol.Ice2)
+            };
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
         // Drop all options we don't understand.
-        internal static LocEndpoint Create(EndpointData data, Protocol protocol) =>
+        private static LocEndpoint Create(EndpointData data, Protocol protocol) =>
             new(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty), protocol);
 
         internal static LocEndpoint Create(string location, Protocol protocol) =>
             new(new EndpointData(Transport.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
 
-        internal static LocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+        private static LocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
@@ -39,9 +45,6 @@ namespace IceRpc.Internal
                                         ImmutableList<string>.Empty),
                         Protocol.Ice1);
         }
-
-        internal static LocEndpoint ParseIce2Endpoint(string host, ushort port) =>
-            new(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty), Protocol.Ice2);
 
         // Constructor
         private LocEndpoint(EndpointData data, Protocol protocol)

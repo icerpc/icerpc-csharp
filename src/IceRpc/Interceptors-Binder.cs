@@ -24,11 +24,13 @@ namespace IceRpc
                     if (request.Connection == null)
                     {
                         // Filter out endpoint we cannot connect to.
-                        if (request.Endpoint != null && !request.Endpoint.HasConnect)
+                        if (request.Endpoint != null &&
+                            request.Endpoint.TransportDescriptor?.OutgoingConnectionFactory == null)
                         {
                             request.Endpoint = null;
                         }
-                        request.AltEndpoints = request.AltEndpoints.Where(e => e.HasConnect);
+                        request.AltEndpoints =
+                            request.AltEndpoints.Where(e => e.TransportDescriptor?.OutgoingConnectionFactory != null);
 
                         if (!request.IsOneway)
                         {

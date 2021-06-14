@@ -169,9 +169,11 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamConnection = ClientEndpoint.CreateOutgoingConnection(
-                connectionOptions ?? OutgoingConnectionOptions,
-                Logger);
+            MultiStreamConnection multiStreamConnection =
+                ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                    ClientEndpoint,
+                    connectionOptions ?? OutgoingConnectionOptions,
+                    Logger);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
@@ -194,9 +196,14 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.TransportDescriptor!.AcceptorFactory!(
+            ServerEndpoint,
+            IncomingConnectionOptions,
+            Logger);
 
         protected MultiStreamConnection CreateIncomingConnection() =>
-            ServerEndpoint.CreateIncomingConnection(IncomingConnectionOptions, Logger);
+            ServerEndpoint.TransportDescriptor!.IncomingConnectionFactory!(ServerEndpoint,
+                                                                           IncomingConnectionOptions,
+                                                                           Logger);
     }
 }

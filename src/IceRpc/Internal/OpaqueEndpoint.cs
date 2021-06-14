@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -28,8 +29,9 @@ namespace IceRpc.Internal
 
         public override string Scheme => "opaque";
 
-        protected internal override ushort DefaultPort => 0;
-        protected internal override bool HasConnect => false;
+        /// <inherit-doc/>
+        public override TransportDescriptor? TransportDescriptor => null;
+
         protected internal override bool HasOptions => true;
 
         internal ReadOnlyMemory<byte> Value { get; }

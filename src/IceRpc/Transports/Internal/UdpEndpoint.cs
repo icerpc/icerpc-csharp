@@ -17,9 +17,12 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Endpoint class for the UDP transport.</summary>
     internal sealed class UdpEndpoint : IPEndpoint
     {
+        /// <inherit-doc/>
         public override bool IsDatagram => true;
+        /// <inherit-doc/>
         public override bool? IsSecure => false;
 
+        /// <inherit-doc/>
         public override string? this[string option] =>
             option switch
             {
@@ -27,6 +30,20 @@ namespace IceRpc.Transports.Internal
                 "ttl" => MulticastTtl.ToString(CultureInfo.InvariantCulture),
                 "compress" => _hasCompressionFlag ? "true" : null,
                 _ => base[option],
+            };
+
+        /// <inherit-doc/>
+        public override TransportDescriptor TransportDescriptor => UdpTransportDescriptor;
+
+        internal static TransportDescriptor UdpTransportDescriptor { get; } =
+            new(Transport.UDP, "udp", CreateEndpoint)
+            {
+                Ice1EndpointFactory = CreateIce1Endpoint,
+                Ice1EndpointParser = ParseIce1Endpoint,
+                IncomingConnectionFactory = (endpoint, options, logger) =>
+                     ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
+                OutgoingConnectionFactory = (endpoint, options, logger) =>
+                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
@@ -84,9 +101,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override MultiStreamConnection CreateOutgoingConnection(
-            OutgoingConnectionOptions options,
-            ILogger logger)
+        private MultiStreamConnection CreateOutgoingConnection(OutgoingConnectionOptions options, ILogger logger)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
@@ -151,7 +166,7 @@ namespace IceRpc.Transports.Internal
             return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
         }
 
-        protected internal override MultiStreamConnection CreateIncomingConnection(
+        private MultiStreamConnection CreateIncomingConnection(
             IncomingConnectionOptions options,
             ILogger logger)
         {
@@ -228,7 +243,7 @@ namespace IceRpc.Transports.Internal
             ostr.WriteBool(_hasCompressionFlag);
         }
 
-        internal static UdpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
+        private static UdpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Count > 0)
             {
@@ -238,14 +253,14 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        internal static UdpEndpoint CreateIce1Endpoint(InputStream istr) =>
+        private static UdpEndpoint CreateIce1Endpoint(InputStream istr) =>
             new UdpEndpoint(new EndpointData(Transport.UDP,
                                              host: istr.ReadString(),
                                              port: ReadPort(istr),
                                              ImmutableList<string>.Empty),
                             compress: istr.ReadBool());
 
-        internal static UdpEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+        private static UdpEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
 

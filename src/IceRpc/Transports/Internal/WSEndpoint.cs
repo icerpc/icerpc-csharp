@@ -17,6 +17,40 @@ namespace IceRpc.Transports.Internal
 
         public override string? this[string option] => option == "resource" ? Resource : base[option];
 
+        /// <inherit-doc/>
+        public override TransportDescriptor TransportDescriptor =>
+            Transport switch
+            {
+                Transport.WSS => WssTransportDescriptor,
+                _ => WSTransportDescriptor
+            };
+
+        internal static TransportDescriptor WSTransportDescriptor { get; } =
+           new(Transport.WS, "ws", CreateEndpoint)
+           {
+               AcceptorFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateAcceptor(options, logger),
+               DefaultUriPort = DefaultIPPort,
+               Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.WS, istr),
+               Ice1EndpointParser = (options, endpointString) =>
+                   ParseIce1Endpoint(Transport.WS, options, endpointString),
+               Ice2EndpointParser = ParseIce2Endpoint,
+               OutgoingConnectionFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+           };
+
+        internal static TransportDescriptor WssTransportDescriptor { get; } =
+            new(Transport.WSS, "wss", CreateEndpoint)
+            {
+                AcceptorFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateAcceptor(options, logger),
+                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.WSS, istr),
+                Ice1EndpointParser = (options, endpointString) =>
+                    ParseIce1Endpoint(Transport.WSS, options, endpointString),
+                OutgoingConnectionFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+            };
+
         protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
 
         /// <summary>A URI specifying the resource associated with this endpoint. The value is passed as the target for
@@ -25,7 +59,7 @@ namespace IceRpc.Transports.Internal
 
         // There is no Equals or GetHashCode because they are identical to the base.
 
-        internal static new WSEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
+        private static WSEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
             Debug.Assert(transport == Transport.WS || transport == Transport.WSS);
 
@@ -51,7 +85,7 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        internal static new WSEndpoint ParseIce1Endpoint(
+        private static WSEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
             string endpointString)
@@ -75,7 +109,7 @@ namespace IceRpc.Transports.Internal
                                   ParseCompress(options, endpointString));
         }
 
-        internal static new WSEndpoint ParseIce2Endpoint(
+        private static WSEndpoint ParseIce2Endpoint(
             string host,
             ushort port,
             Dictionary<string, string> options)

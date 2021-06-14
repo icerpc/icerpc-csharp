@@ -117,16 +117,9 @@ namespace IceRpc
         static Runtime()
         {
             // Register the ice and ice+universal schemes with the system UriParser.
-            Internal.UriParser.RegisterTransport("universal", UniversalEndpoint.DefaultUniversalPort);
+            Internal.UriParser.RegisterTransport("universal", defaultPort: 0);
             Internal.UriParser.RegisterIceScheme();
-
-            TransportRegistry.Add(
-                new TransportDescriptor(Transport.Loc, "loc", LocEndpoint.Create)
-                {
-                    DefaultUriPort = LocEndpoint.DefaultLocPort,
-                    Ice1EndpointParser = LocEndpoint.ParseIce1Endpoint,
-                    Ice2EndpointParser = (host, port, _) => LocEndpoint.ParseIce2Endpoint(host, port),
-                });
+            TransportRegistry.Add(LocEndpoint.LocTransportDescriptor);
         }
 
         // Must be called before parsing a Uri to make sure the static constructors of Runtime and TransportRegistry

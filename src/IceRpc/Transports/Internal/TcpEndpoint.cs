@@ -28,7 +28,39 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
-        protected internal override bool HasAcceptor => true;
+        /// <inherit-doc/>
+        public override TransportDescriptor TransportDescriptor =>
+            Transport switch
+            {
+                Transport.SSL => SslTransportDescriptor,
+                _ => TcpTransportDescriptor
+            };
+
+        internal static TransportDescriptor TcpTransportDescriptor { get; } =
+            new(Transport.TCP, "tcp", CreateEndpoint)
+            {
+                AcceptorFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
+                DefaultUriPort = DefaultIPPort,
+                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
+                Ice1EndpointParser = (options, endpointString) =>
+                    ParseIce1Endpoint(Transport.TCP, options, endpointString),
+                Ice2EndpointParser = ParseIce2Endpoint,
+                OutgoingConnectionFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+            };
+
+        internal static TransportDescriptor SslTransportDescriptor { get; } =
+            new(Transport.SSL, "ssl", CreateEndpoint)
+            {
+                AcceptorFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
+                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
+                Ice1EndpointParser = (options, endpointString) =>
+                    ParseIce1Endpoint(Transport.SSL, options, endpointString),
+                OutgoingConnectionFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+            };
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
@@ -84,9 +116,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override IAcceptor CreateAcceptor(
-            IncomingConnectionOptions options,
-            ILogger logger)
+        private protected IAcceptor CreateAcceptor(IncomingConnectionOptions options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
@@ -120,13 +150,15 @@ namespace IceRpc.Transports.Internal
             return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
         }
 
-        protected internal override MultiStreamConnection CreateOutgoingConnection(
+        private protected MultiStreamConnection CreateOutgoingConnection(
             OutgoingConnectionOptions options,
             ILogger logger)
         {
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamConnection singleStreamConnection = CreateSingleStreamConnection(endpoint, tcpOptions, logger);
+            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            SingleStreamConnection singleStreamConnection =
+                CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
+
             return Protocol switch
             {
                 Protocol.Ice1 => new Ice1Connection(this, singleStreamConnection, options),
@@ -148,7 +180,7 @@ namespace IceRpc.Transports.Internal
             ostr.WriteBool(HasCompressionFlag);
         }
 
-        internal static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
+        private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
 
@@ -172,7 +204,7 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        internal static TcpEndpoint ParseIce1Endpoint(
+        private static TcpEndpoint ParseIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
             string endpointString)
@@ -184,7 +216,7 @@ namespace IceRpc.Transports.Internal
                                    ParseCompress(options, endpointString));
         }
 
-        internal static TcpEndpoint ParseIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
+        private static TcpEndpoint ParseIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
         {
             bool? tls = null;
             if (options.TryGetValue("tls", out string? value))
