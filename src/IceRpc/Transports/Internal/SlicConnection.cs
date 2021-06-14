@@ -730,15 +730,8 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask IgnoreDataAsync(int size, CancellationToken cancel)
         {
-            byte[] byteArray = ArrayPool<byte>.Shared.Rent(size);
-            try
-            {
-                await ReceiveDataAsync(byteArray.AsMemory(0, size), cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(byteArray);
-            }
+            using IMemoryOwner<byte> bufferOwner = MemoryPool<byte>.Shared.Rent(size);
+            await ReceiveDataAsync(bufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
         }
 
         private void SetParameters(Dictionary<ParameterKey, ulong> parameters)

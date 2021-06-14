@@ -145,8 +145,8 @@ namespace IceRpc.Transports
                         }
                     }
 
-                    byte[] receiveArray = ArrayPool<byte>.Shared.Rent(bufferSize);
-                    Memory<byte> receiveBuffer = receiveArray.AsMemory(0, bufferSize);
+                    using IMemoryOwner<byte> receiveBufferOwner = MemoryPool<byte>.Shared.Rent(bufferSize);
+                    Memory<byte> receiveBuffer = receiveBufferOwner.Memory[0..bufferSize];
                     try
                     {
                         var sendBuffers = new List<Memory<byte>> { receiveBuffer };
@@ -175,8 +175,6 @@ namespace IceRpc.Transports
                     }
                     finally
                     {
-                        ArrayPool<byte>.Shared.Return(receiveArray);
-
                         Release();
                         ioStream.Dispose();
                     }
