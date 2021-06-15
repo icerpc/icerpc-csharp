@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -27,11 +28,10 @@ namespace IceRpc.Internal
 
         public override string Scheme => "ice+universal";
 
-        protected internal override ushort DefaultPort => DefaultUniversalPort;
-        protected internal override bool HasConnect => false;
-        protected internal override bool HasOptions => true;
+        /// <inherit-doc/>
+        public override TransportDescriptor? TransportDescriptor => null;
 
-        internal const ushort DefaultUniversalPort = 0;
+        protected internal override bool HasOptions => true;
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {

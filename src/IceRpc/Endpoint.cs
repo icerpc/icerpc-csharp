@@ -11,10 +11,9 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>An endpoint describes a server-side network sink for Ice requests: a server listens on one or
-    /// more endpoints and a client establishes a connection to a given server endpoint. Its properties are
-    /// a network transport protocol such as TCP or Bluetooth RFCOMM, a host or address, a port number, and
-    /// transport-specific options.</summary>
+    /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
+    /// and a client establishes a connection to a given endpoint. Its properties are a network transport protocol such
+    /// as TCP or Bluetooth RFCOMM, a host or address, a port number, and transport-specific options.</summary>
     public abstract class Endpoint : IEquatable<Endpoint>
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
@@ -67,7 +66,7 @@ namespace IceRpc
                     return option switch
                     {
                         "host" => Host.Length > 0 ? Host : null,
-                        "port" => Port != DefaultPort ? Port.ToString(CultureInfo.InvariantCulture) : null,
+                        "port" => Port != 0 ? Port.ToString(CultureInfo.InvariantCulture) : null,
                         _ => null,
                     };
                 }
@@ -91,23 +90,17 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.Transport"></see> of this endpoint.</summary>
         public Transport Transport => Data.Transport;
 
+        /// <summary>The descriptor for this endpoint's transport.</summary>
+        public abstract TransportDescriptor? TransportDescriptor { get; }
+
         /// <summary>The name of the endpoint's transport in lowercase.</summary>
-        public virtual string TransportName => Transport.ToString().ToLowerInvariant();
-
-        /// <summary>Gets the default port of this endpoint.</summary>
-        protected internal abstract ushort DefaultPort { get; }
-
-        /// <summary>Returns true if the endpoint supports the <see cref="CreateAcceptor"/> method.</summary>
-        protected internal virtual bool HasAcceptor => false;
-
-        /// <summary>Returns true if the endpoint supports the <see cref="CreateOutgoingConnection"/> method.</summary>
-        protected internal virtual bool HasConnect => true;
+        public string TransportName => TransportDescriptor?.Name ?? Transport.ToString().ToLowerInvariant();
 
         /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
 
-        /// <summary>Indicates whether or not this endpoint has options with non default values that ToString would
-        /// print. Always true for ice1 endpoints.</summary>
+        /// <summary>Indicates whether or not this endpoint has options with non default values that ToString prints.
+        /// Always true for ice1 endpoints.</summary>
         protected internal virtual bool HasOptions => Protocol == Protocol.Ice1;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -190,41 +183,6 @@ namespace IceRpc
             }
             // else by default, no option to append.
         }
-
-        /// <summary>Returns an acceptor for this endpoint. An acceptor listens for connection establishment requests
-        /// from clients and creates a new connection for each client. This is typically used to implement a
-        /// stream-based transport such as TCP or Quic. Datagram or serial transports don't implement this method but
-        /// instead implement the <see cref="CreateIncomingConnection"/> method.</summary>
-        /// <param name="options">The incoming connection options.</param>
-        /// <param name="logger">The logger.</param>
-        /// <returns>An acceptor for this endpoint.</returns>
-        protected internal virtual IAcceptor CreateAcceptor(
-            IncomingConnectionOptions options,
-            ILogger logger) =>
-            HasAcceptor ? throw new NotImplementedException($"endpoint '{this}' does not accept connections") :
-                throw new NotSupportedException($"endpoint '{this}' does not accept connections");
-
-        /// <summary>Creates an outgoing connection for this endpoint.</summary>
-        /// <param name="options">The outgoing connection options.</param>
-        /// <param name="logger">The logger.</param>
-        /// <returns>The outgoing connection.</returns>
-        protected internal virtual MultiStreamConnection CreateOutgoingConnection(
-            OutgoingConnectionOptions options,
-            ILogger logger) =>
-            HasConnect ? throw new NotImplementedException($"cannot establish a connection to endpoint '{this}'") :
-                throw new NotSupportedException($"cannot establish a connection to endpoint '{this}'");
-
-        /// <summary>Creates an incoming connection for this endpoint to receive data from one or multiple client.
-        /// This is used to implement a transport which can only communicate with a single client (e.g. a serial
-        /// based transport) or which can received data from multiple clients with a single connection (e.g: UDP).
-        /// </summary>
-        /// <param name="options">The incoming connection options.</param>
-        /// <param name="logger">The logger.</param>
-        /// <returns>The incoming connection.</returns>
-        protected internal virtual MultiStreamConnection CreateIncomingConnection(
-            IncomingConnectionOptions options,
-            ILogger logger) =>
-            throw new NotSupportedException($"endpoint '{this}' cannot create an incoming connection");
 
         /// <summary>Provides the same hash code for two equivalent endpoints. See <see cref="IsEquivalent"/>.</summary>
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();
@@ -316,9 +274,9 @@ namespace IceRpc
         /// ice1.</remarks>
         public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
         {
-            if (Runtime.FindEndpointFactory(data.Transport) is EndpointFactory factory)
+            if (TransportRegistry.TryGetValue(data.Transport, out TransportDescriptor? descriptor))
             {
-                return factory(data, protocol);
+                return descriptor.EndpointFactory(data, protocol);
             }
 
             return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
@@ -361,7 +319,7 @@ namespace IceRpc
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != endpoint.DefaultPort)
+            if (endpoint.Port != (endpoint.TransportDescriptor?.DefaultUriPort ?? 0))
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));

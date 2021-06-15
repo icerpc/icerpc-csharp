@@ -147,7 +147,9 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
+                acceptor = serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                IncomingConnectionOptions,
+                                                                                Logger);
             }
             else
             {
@@ -168,12 +170,16 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger).Dispose());
+                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                   IncomingConnectionOptions,
+                                                                                   Logger).Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger));
+                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                   IncomingConnectionOptions,
+                                                                                   Logger));
                 }
             }
             else
@@ -225,7 +231,8 @@ namespace IceRpc.Tests.Internal
         }
 
         private SingleStreamConnection CreateOutgoingConnection() =>
-            (ClientEndpoint.CreateOutgoingConnection(
+            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                ClientEndpoint,
                 OutgoingConnectionOptions,
                 Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
 

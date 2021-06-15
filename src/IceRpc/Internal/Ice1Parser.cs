@@ -65,9 +65,10 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (Runtime.FindIce1EndpointParser(transportName) is (Ice1EndpointParser parser, Transport transport))
+            if (TransportRegistry.TryGetValue(transportName, out TransportDescriptor? descriptor) &&
+                descriptor.Ice1EndpointParser is Func<Dictionary<string, string?>, string, Endpoint> parser)
             {
-                Endpoint endpoint = parser(transport, options, endpointString);
+                Endpoint endpoint = parser(options, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(
@@ -88,7 +89,8 @@ namespace IceRpc.Internal
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    Runtime.FindIce1EndpointFactory(opaqueEndpoint.Transport) != null)
+                    TransportRegistry.TryGetValue(opaqueEndpoint.Transport, out descriptor) &&
+                    descriptor.Ice1EndpointFactory != null)
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.

@@ -166,7 +166,8 @@ namespace IceRpc.Tests.Internal
 
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
-                using IAcceptor acceptor = serverEndpoint.CreateAcceptor(connectionOptions, Logger);
+                using IAcceptor acceptor =
+                    serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint, connectionOptions, Logger);
 
                 ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
@@ -246,16 +247,17 @@ namespace IceRpc.Tests.Internal
         {
             IncomingConnectionOptions connectionOptions = IncomingConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
-            return ServerEndpoint.CreateAcceptor(connectionOptions, Logger);
+            return ServerEndpoint.TransportDescriptor!.AcceptorFactory!(ServerEndpoint, connectionOptions, Logger);
         }
 
-        private SingleStreamConnection CreateOutgoingConnection(TcpOptions? tcpOptions = null, TcpEndpoint? endpoint = null)
+        private SingleStreamConnection CreateOutgoingConnection(TcpOptions? tcpOptions = null, Endpoint? endpoint = null)
         {
             OutgoingConnectionOptions options = OutgoingConnectionOptions.Clone();
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
-            return ((endpoint ?? ClientEndpoint).CreateOutgoingConnection(
-                   options,
-                   Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
+            endpoint ??= ClientEndpoint;
+
+            return (endpoint.TransportDescriptor!.OutgoingConnectionFactory!(endpoint, options, Logger) as
+                MultiStreamOverSingleStreamConnection)!.Underlying;
         }
 
         private static async ValueTask<SingleStreamConnection> CreateIncomingConnectionAsync(IAcceptor acceptor) =>

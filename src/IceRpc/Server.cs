@@ -166,18 +166,21 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint.HasAcceptor)
+                if (_endpoint.TransportDescriptor?.AcceptorFactory is
+                    Func<Endpoint, IncomingConnectionOptions, ILogger, IAcceptor> acceptorFactory)
                 {
-                    _acceptor = _endpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _acceptor = acceptorFactory(_endpoint, ConnectionOptions, Logger);
                     _endpoint = _acceptor.Endpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_acceptor));
                 }
-                else
+                else if (_endpoint.TransportDescriptor?.IncomingConnectionFactory is
+                    Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection> incomingConnectionFactory)
                 {
-                    MultiStreamConnection multiStreamConnection = _endpoint.CreateIncomingConnection(ConnectionOptions, Logger);
+                    MultiStreamConnection multiStreamConnection =
+                        incomingConnectionFactory(_endpoint, ConnectionOptions, Logger);
                     var incomingConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -185,6 +188,11 @@ namespace IceRpc
                     // Connect the connection to start accepting new streams.
                     _ = incomingConnection.ConnectAsync(default);
                     _connections.Add(incomingConnection);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"cannot create acceptor or incoming connection with endpoint '{_endpoint}'");
                 }
 
                 _listening = true;
@@ -195,7 +203,8 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _colocAcceptor =
+                        colocEndpoint.TransportDescriptor!.AcceptorFactory!(colocEndpoint, ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocAcceptor));
 
                     _colocRegistry.Add(_endpoint, colocEndpoint);
