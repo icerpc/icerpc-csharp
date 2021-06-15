@@ -93,15 +93,15 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
 
-            ReadOnlyMemory<byte> headerBuffer = ostr.FinishSingleBuffer();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
 
-            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBuffer;
-            frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = ByteBuffer.GetByteCount(buffer);
+            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
+            headerBuffers.CopyTo(buffers);
+            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
+            int frameSize = ByteBuffer.GetByteCount(buffers);
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
         }
     }
 }

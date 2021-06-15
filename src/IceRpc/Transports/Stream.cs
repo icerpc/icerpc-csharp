@@ -583,13 +583,12 @@ namespace IceRpc.Transports
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
 
-            // TODO: why is the header written in a single buffer?
-            ReadOnlyMemory<byte> headerBuffer = ostr.FinishSingleBuffer();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
 
-            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBuffer;
-            frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = ByteBuffer.GetByteCount(buffer) - TransportHeader.Length - 1 - 4;
+            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
+            headerBuffers.CopyTo(buffers);
+            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
+            int frameSize = ByteBuffer.GetByteCount(buffers) - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
@@ -611,7 +610,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer,
+            await SendAsync(buffers,
                             endStream: frame.StreamDataWriter == null,
                             cancel).ConfigureAwait(false);
         }
