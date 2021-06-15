@@ -39,7 +39,7 @@ namespace IceRpc
     public sealed partial class OutputStream
     {
         /// <summary>Represents a position in the OutputStream's buffer. This position consists of the index of the
-        /// buffer in the list and the offset into the buffer.</summary>
+        /// buffer in the vector and the offset into the buffer.</summary>
         internal struct Position
         {
             /// <summary>Creates a new position from the buffer and offset values.</summary>
@@ -53,6 +53,7 @@ namespace IceRpc
 
             /// <summary>The zero based index of the buffer.</summary>
             internal int Buffer;
+
             /// <summary>The offset into the buffer.</summary>
             internal int Offset;
         }
@@ -164,9 +165,8 @@ namespace IceRpc
         // Data for the class or exception instance that is currently getting marshaled.
         private InstanceData _current;
 
-        // The buffer currently used by write operations, this is usually the last buffer of the buffer list but it
-        // can occasionally be one before last after expanding the list. The tail Position always points to this
-        // buffer, and the tail offset indicates how much of the buffer has been used.
+        // The buffer currently used by write operations. The tail Position always points to this buffer, and the tail
+        // offset indicates how much of the buffer has been used.
         private Memory<byte> _currentBuffer;
 
         // Map of class instance to instance ID, where the instance IDs start at 2.
@@ -175,7 +175,8 @@ namespace IceRpc
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
         private Dictionary<AnyClass, int>? _instanceMap;
 
-        // All buffers before the tail buffer are fully used. This list is created only when we have 2 or more buffers.
+        // All buffers before the tail buffer are fully used. This vector is filled (Length > 0) only when we have at
+        // least 2 buffers; otherwise, _currentBuffer is the only buffer and is not included in this vector.
         private Memory<ReadOnlyMemory<byte>> _bufferVector = Memory<ReadOnlyMemory<byte>>.Empty;
 
         // The position for the next write operation.
@@ -1056,7 +1057,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Finishes off the underlying buffer list and returns it. You should not write additional data to
+        /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
         /// this output stream after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
@@ -1291,9 +1292,9 @@ namespace IceRpc
                 size = Math.Max(n - remaining, size);
                 byte[] buffer = new byte[size];
 
-                // First Expand for a new OutputStream constructed with no buffer.
                 if (_bufferVector.Length == 0 && _currentBuffer.Length == 0)
                 {
+                    // First Expand for a new OutputStream constructed with no buffer.
                     _currentBuffer = buffer;
                 }
                 else
@@ -1304,10 +1305,10 @@ namespace IceRpc
                     }
                     else
                     {
-                        var newVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
-                        _bufferVector.CopyTo(newVector.AsMemory());
-                        newVector[^1] = buffer;
-                        _bufferVector = newVector;
+                        var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
+                        _bufferVector.CopyTo(newBufferVector.AsMemory());
+                        newBufferVector[^1] = buffer;
+                        _bufferVector = newBufferVector;
                     }
                     if (remaining == 0)
                     {
