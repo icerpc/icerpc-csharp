@@ -589,7 +589,7 @@ namespace IceRpc.Transports
             var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
             buffer[0] = headerBuffer;
             frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = buffer.AsReadOnlyMemory().GetByteCount() - TransportHeader.Length - 1 - 4;
+            int frameSize = ByteBuffer.GetByteCount(buffer) - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)

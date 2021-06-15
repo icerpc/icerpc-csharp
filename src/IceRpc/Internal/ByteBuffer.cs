@@ -11,10 +11,6 @@ namespace IceRpc.Internal
     internal static class ByteBuffer
     {
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
-
-        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
-            array;
-
         internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
         internal static int GetByteCount(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
@@ -92,16 +88,6 @@ namespace IceRpc.Internal
                 }
                 return data;
             }
-        }
-
-        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<Memory<byte>> bufferList)
-        {
-            var result = new ReadOnlyMemory<byte>[bufferList.Count];
-            for (int i = 0; i < result.Length; ++i)
-            {
-                result[i] = bufferList[i];
-            }
-            return result;
         }
 
         /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>
