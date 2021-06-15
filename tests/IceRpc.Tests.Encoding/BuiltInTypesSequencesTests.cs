@@ -13,10 +13,10 @@ namespace IceRpc.Tests.Encoding
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesSequencesTests
     {
-        private IceRpc.Encoding _encoding;
-        private byte[] _buffer;
-        private OutputStream _ostr;
-        private InputStream _istr;
+        private readonly IceRpc.Encoding _encoding;
+        private readonly byte[] _buffer;
+        private readonly OutputStream _ostr;
+        private readonly InputStream _istr;
 
         public BuiltInTypesSequencesTests(byte encodingMajor, byte encodingMinor)
         {

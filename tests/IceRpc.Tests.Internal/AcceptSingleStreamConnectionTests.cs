@@ -86,11 +86,11 @@ namespace IceRpc.Tests.Internal
             // The SslConnection is returned if a secure connection is requested.
             if (IsSecure && TransportName != "ws")
             {
-                Assert.IsInstanceOf<SslConnection>(connection);
+                Assert.That(connection, Is.InstanceOf<SslConnection>());
             }
             else
             {
-                Assert.IsNotInstanceOf<SslConnection>(connection);
+                Assert.That(connection, Is.Not.InstanceOf<SslConnection>());
             }
         }
 

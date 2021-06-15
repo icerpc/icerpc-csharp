@@ -390,7 +390,7 @@ namespace IceRpc.Transports.Internal
                 {
                     int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
                     long streamId = ((requestId - 1) << 2) + (IsIncoming ? 1 : 0);
-                    return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
+                    return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }
 
                 case Ice1FrameType.ValidateConnection:

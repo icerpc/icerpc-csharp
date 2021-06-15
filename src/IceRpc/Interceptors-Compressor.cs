@@ -50,7 +50,7 @@ namespace IceRpc
                         }
                     }
 
-                    var response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                    IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                     if (compressorOptions.DecompressResponsePayload &&
                         response.ResultType == ResultType.Success &&

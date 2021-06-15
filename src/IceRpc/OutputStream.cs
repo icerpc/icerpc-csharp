@@ -1003,7 +1003,7 @@ namespace IceRpc
             }
             else
             {
-                Span<byte> firstSpan = _currentBuffer.Span.Slice(_tail.Offset);
+                Span<byte> firstSpan = _currentBuffer.Span[_tail.Offset..];
                 firstSpan.Fill(255);
                 _currentBuffer = _bufferList[++_tail.Buffer];
                 _tail.Offset = size - remaining;

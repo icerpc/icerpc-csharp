@@ -24,7 +24,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
             new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
@@ -44,7 +44,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
@@ -190,7 +190,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
@@ -224,7 +224,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             var istr = new InputStream(payload, payloadEncoding, connection, invoker);
