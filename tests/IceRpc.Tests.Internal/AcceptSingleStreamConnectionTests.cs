@@ -4,7 +4,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;

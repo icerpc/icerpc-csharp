@@ -5,7 +5,6 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;

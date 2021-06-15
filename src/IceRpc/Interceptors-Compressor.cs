@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 
 namespace IceRpc
 {

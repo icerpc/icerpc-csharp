@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 
 namespace IceRpc.Tests.Encoding
 {

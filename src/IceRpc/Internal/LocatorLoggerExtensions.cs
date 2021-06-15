@@ -4,7 +4,6 @@ using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 // TODO: log altEndpoints once https://github.com/dotnet/runtime/issues/51965 is fixed (not fixed in 6 preview 4)
 #pragma warning disable SYSLIB1015

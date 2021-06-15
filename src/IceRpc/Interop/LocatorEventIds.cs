@@ -11,7 +11,7 @@ namespace IceRpc.Interop
         ClearWellKnownCacheEntry,
         /// <summary>The locator could not resolve an adapter ID.</summary>
         CouldNotResolveAdapterId,
-           /// <summary>The locator could not resolve a well-known proxy</summary>
+        /// <summary>The locator could not resolve a well-known proxy</summary>
         CouldNotResolveWellKnown,
         /// <summary>The locator found an adapter ID entry in its cache.</summary>
         FoundAdapterIdEntryInCache,
