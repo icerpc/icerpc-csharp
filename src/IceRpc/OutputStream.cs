@@ -1075,9 +1075,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Finishes off the underlying buffer list and returns it. You should not write additional data to
-        /// this output stream after calling Finish, however rewriting previous data (with for example
-        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
+        /// <summary>Like <see cref="Finish"/> except it succeeds only when there is a single underlying buffer.
+        /// </summary>
         /// <returns>The buffer.</returns>
         internal ReadOnlyMemory<byte> FinishSingleBuffer()
         {
