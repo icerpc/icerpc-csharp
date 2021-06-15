@@ -1059,20 +1059,35 @@ namespace IceRpc
         /// <summary>Finishes off the underlying buffer list and returns it. You should not write additional data to
         /// this output stream after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
-        /// <returns>The buffer list.</returns>
-        internal IList<Memory<byte>> Finish()
+        /// <returns>The buffers.</returns>
+        internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
         {
             Debug.Assert(_bufferList == null || _bufferList.Count - 1 == _tail.Buffer);
-            if (_bufferList != null)
+            if (_bufferList == null)
             {
-                _bufferList[^1] = _bufferList[^1].Slice(0, _tail.Offset);
-                return _bufferList;
+                _currentBuffer = _currentBuffer.Slice(0, _tail.Offset);
+                return new ReadOnlyMemory<byte>[] { _currentBuffer };
             }
             else
             {
-                _currentBuffer = _currentBuffer.Slice(0, _tail.Offset);
-                return new Memory<byte>[] { _currentBuffer };
+                _bufferList[^1] = _bufferList[^1].Slice(0, _tail.Offset);
+                return _bufferList.ToReadOnlyMemory();
             }
+        }
+
+        /// <summary>Finishes off the underlying buffer list and returns it. You should not write additional data to
+        /// this output stream after calling Finish, however rewriting previous data (with for example
+        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
+        /// <returns>The buffer.</returns>
+        internal ReadOnlyMemory<byte> FinishSingleBuffer()
+        {
+            if (_bufferList != null)
+            {
+                throw new InvalidOperationException($"this output stream holds {_bufferList.Count} buffers");
+            }
+
+            _currentBuffer = _currentBuffer.Slice(0, _tail.Offset);
+            return _currentBuffer;
         }
 
         /// <summary>Writes a size on a fixed number of bytes at the given position of the stream.</summary>

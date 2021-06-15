@@ -479,14 +479,14 @@ namespace IceRpc.Transports.Internal
             writer?.Invoke(ostr);
             int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
             ostr.EndFixedLengthSize(sizePos, 4);
-            IList<Memory<byte>> bufferList = ostr.Finish();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             try
             {
-                await SendPacketAsync(bufferList.ToReadOnlyMemory()).ConfigureAwait(false);
+                await SendPacketAsync(buffers).ConfigureAwait(false);
 
                 if (logAction != null)
                 {

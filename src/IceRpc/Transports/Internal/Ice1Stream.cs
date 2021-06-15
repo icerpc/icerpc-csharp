@@ -92,11 +92,11 @@ namespace IceRpc.Transports.Internal
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
-            IList<Memory<byte>> headerBufferList = ostr.Finish();
-            Debug.Assert(headerBufferList.Count == 1);
+
+            ReadOnlyMemory<byte> headerBuffer = ostr.FinishSingleBuffer();
 
             var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBufferList[0];
+            buffer[0] = headerBuffer;
             frame.Payload.CopyTo(buffer.AsMemory(1));
             int frameSize = buffer.AsReadOnlyMemory().GetByteCount();
             ostr.RewriteFixedLengthSize11(frameSize, start);
