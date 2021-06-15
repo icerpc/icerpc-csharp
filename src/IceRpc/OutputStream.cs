@@ -176,7 +176,7 @@ namespace IceRpc
         private Dictionary<AnyClass, int>? _instanceMap;
 
         // All buffers before the tail buffer are fully used. This list is created only when we have 2 or more buffers.
-        private List<Memory<byte>>? _bufferList;
+        private List<ReadOnlyMemory<byte>>? _bufferList;
 
         // The position for the next write operation.
         private Position _tail;
@@ -1006,7 +1006,7 @@ namespace IceRpc
             {
                 Span<byte> firstSpan = _currentBuffer.Span.Slice(_tail.Offset);
                 firstSpan.Fill(255);
-                _currentBuffer = _bufferList![++_tail.Buffer];
+                _currentBuffer = MemoryMarshal.AsMemory(_bufferList![++_tail.Buffer]);
                 _tail.Offset = size - remaining;
                 Size += size;
                 Span<byte> secondSpan = _currentBuffer.Span.Slice(0, _tail.Offset);
@@ -1071,7 +1071,7 @@ namespace IceRpc
             else
             {
                 _bufferList[^1] = _bufferList[^1].Slice(0, _tail.Offset);
-                return _bufferList.ToReadOnlyMemory();
+                return _bufferList.ToArray();
             }
         }
 
@@ -1139,7 +1139,7 @@ namespace IceRpc
 
             if (length > 0)
             {
-                _currentBuffer = _bufferList![++_tail.Buffer];
+                _currentBuffer = MemoryMarshal.AsMemory(_bufferList![++_tail.Buffer]);
                 if (remaining == 0)
                 {
                     span.CopyTo(_currentBuffer.Span.Slice(0, length));
@@ -1197,7 +1197,7 @@ namespace IceRpc
             EndFixedLengthSize(pos, 2);
         }
 
-        private static int Distance(IList<Memory<byte>> data, Position start, Position end)
+        private static int Distance(IList<ReadOnlyMemory<byte>> data, Position start, Position end)
         {
             // If both the start and end position are in the same array buffer just
             // compute the offsets distance.
@@ -1209,7 +1209,7 @@ namespace IceRpc
             // If start and end position are in different buffers we need to accumulate the
             // size from start offset to the end of the start buffer, the size of the intermediary
             // buffers, and the current offset into the last buffer.
-            Memory<byte> buffer = data[start.Buffer];
+            ReadOnlyMemory<byte> buffer = data[start.Buffer];
             int size = buffer.Length - start.Offset;
             for (int i = start.Buffer + 1; i < end.Buffer; ++i)
             {
@@ -1305,7 +1305,7 @@ namespace IceRpc
                 {
                     if (_bufferList == null)
                     {
-                        _bufferList = new List<Memory<byte>> { _currentBuffer };
+                        _bufferList = new List<ReadOnlyMemory<byte>> { _currentBuffer };
                     }
                     _bufferList.Add(buffer);
 
@@ -1344,7 +1344,7 @@ namespace IceRpc
             }
             else
             {
-                buffer = _bufferList[pos.Buffer];
+                buffer = MemoryMarshal.AsMemory(_bufferList[pos.Buffer]);
             }
 
             if (pos.Offset < buffer.Length)
@@ -1355,7 +1355,7 @@ namespace IceRpc
             {
                 // (segN, segN.Count) points to the same byte as (segN + 1, 0)
                 Debug.Assert(pos.Offset == buffer.Length);
-                buffer = _bufferList![pos.Buffer + 1];
+                buffer = MemoryMarshal.AsMemory(_bufferList![pos.Buffer + 1]);
                 buffer.Span[0] = v;
             }
         }
@@ -1382,7 +1382,7 @@ namespace IceRpc
             }
             else
             {
-                buffer = _bufferList[pos.Buffer];
+                buffer = MemoryMarshal.AsMemory(_bufferList[pos.Buffer]);
             }
 
             int remaining = Math.Min(data.Length, buffer.Length - pos.Offset);
@@ -1393,7 +1393,7 @@ namespace IceRpc
 
             if (remaining < data.Length)
             {
-                buffer = _bufferList![pos.Buffer + 1];
+                buffer = MemoryMarshal.AsMemory(_bufferList![pos.Buffer + 1]);
                 data[remaining..].CopyTo(buffer.Span.Slice(0, data.Length - remaining));
             }
         }
