@@ -175,8 +175,7 @@ namespace IceRpc
         //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
         private Dictionary<AnyClass, int>? _instanceMap;
 
-        // All buffers before the tail buffer are fully used. This vector is filled (Length > 0) only when we have at
-        // least 2 buffers; otherwise, _currentBuffer is the only buffer and is not included in this vector.
+        // All buffers before the tail buffer are fully used.
         private Memory<ReadOnlyMemory<byte>> _bufferVector = Memory<ReadOnlyMemory<byte>>.Empty;
 
         // The position for the next write operation.
@@ -1036,6 +1035,11 @@ namespace IceRpc
             _tail = default;
             Size = 0;
             _currentBuffer = initialBuffer;
+            if (_currentBuffer.Length > 0)
+            {
+                _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
+            }
+
             _capacity = _currentBuffer.Length;
         }
 
@@ -1063,31 +1067,8 @@ namespace IceRpc
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
         {
-            if (_bufferVector.Length == 0)
-            {
-                _currentBuffer = _currentBuffer.Slice(0, _tail.Offset);
-                return new ReadOnlyMemory<byte>[] { _currentBuffer };
-            }
-            else
-            {
-                Debug.Assert(_bufferVector.Length >= 2);
-                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-                return _bufferVector;
-            }
-        }
-
-        /// <summary>Like <see cref="Finish"/> except it succeeds only when there is a single underlying buffer.
-        /// </summary>
-        /// <returns>The buffer.</returns>
-        internal ReadOnlyMemory<byte> FinishSingleBuffer()
-        {
-            if (_bufferVector.Length > 0)
-            {
-                throw new InvalidOperationException($"this output stream holds {_bufferVector.Length} buffers");
-            }
-
-            _currentBuffer = _currentBuffer.Slice(0, _tail.Offset);
-            return _currentBuffer;
+            _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+            return _bufferVector;
         }
 
         /// <summary>Writes a size on a fixed number of bytes at the given position of the stream.</summary>
@@ -1096,7 +1077,7 @@ namespace IceRpc
         /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
         internal void RewriteFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
         {
-            Debug.Assert(pos.Buffer == 0 || pos.Buffer < _bufferVector.Length);
+            Debug.Assert(pos.Buffer < _bufferVector.Length);
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
 
             Span<byte> data = stackalloc byte[sizeLength];
@@ -1207,8 +1188,6 @@ namespace IceRpc
                 return end.Offset - start.Offset;
             }
 
-            Debug.Assert(data.Length > 0);
-
             // If start and end position are in different buffers we need to accumulate the
             // size from start offset to the end of the start buffer, the size of the intermediary
             // buffers, and the current offset into the last buffer.
@@ -1292,24 +1271,20 @@ namespace IceRpc
                 size = Math.Max(n - remaining, size);
                 byte[] buffer = new byte[size];
 
-                if (_bufferVector.Length == 0 && _currentBuffer.Length == 0)
+                if (_bufferVector.Length == 0)
                 {
                     // First Expand for a new OutputStream constructed with no buffer.
+                    Debug.Assert(_currentBuffer.Length == 0);
+                    _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
                     _currentBuffer = buffer;
                 }
                 else
                 {
-                    if (_bufferVector.Length == 0)
-                    {
-                        _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer, buffer };
-                    }
-                    else
-                    {
-                        var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
-                        _bufferVector.CopyTo(newBufferVector.AsMemory());
-                        newBufferVector[^1] = buffer;
-                        _bufferVector = newBufferVector;
-                    }
+                    var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
+                    _bufferVector.CopyTo(newBufferVector.AsMemory());
+                    newBufferVector[^1] = buffer;
+                    _bufferVector = newBufferVector;
+
                     if (remaining == 0)
                     {
                         // Patch _tail to point to the first byte in the new buffer.
@@ -1327,9 +1302,7 @@ namespace IceRpc
         }
 
         /// <summary>Returns the buffer at the given index.</summary>
-        private Memory<byte> GetBuffer(int index) =>
-            index == 0 && _bufferVector.Length == 0 ?
-                _currentBuffer : MemoryMarshal.AsMemory(_bufferVector.Span[index]);
+        private Memory<byte> GetBuffer(int index) => MemoryMarshal.AsMemory(_bufferVector.Span[index]);
 
         /// <summary>Computes the minimum number of bytes needed to write a variable-length size with the current
         /// encoding.</summary>
@@ -1362,7 +1335,7 @@ namespace IceRpc
         /// <param name="pos">The position to write to.</param>
         internal void RewriteFixedLengthSize11(int size, Position pos)
         {
-            Debug.Assert(pos.Buffer == 0 || pos.Buffer < _bufferVector.Length);
+            Debug.Assert(pos.Buffer < _bufferVector.Length);
 
             Span<byte> data = stackalloc byte[4];
             MemoryMarshal.Write(data, ref size);

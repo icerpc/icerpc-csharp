@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Encoding
 
             var prx = IServicePrx.Parse(str);
             ostr.WriteProxy(prx);
-            ReadOnlyMemory<byte> data = ostr.FinishSingleBuffer();
+            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
 
             var istr = new InputStream(data, encoding, connection: null, prx.Invoker);
             var prx2 = IServicePrx.IceReader(istr);
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Encoding
             // Marshal the endpointless proxy
             var ostr = new OutputStream(encoding, _buffer);
             ostr.WriteProxy(endpointLess);
-            ReadOnlyMemory<byte> data = ostr.FinishSingleBuffer();
+            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
             var istr = new InputStream(data, encoding, _connection);
