@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<int> receiveTask = OutgoingConnection.ReceiveAsync(new byte[1], canceled.Token);
-            Assert.IsFalse(receiveTask.IsCompleted);
+            Assert.That(receiveTask.IsCompleted, Is.False);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
@@ -60,10 +60,8 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramConnection_ReceiveDatagramAsync_Exception()
-        {
+        public void NonDatagramConnection_ReceiveDatagramAsync_Exception() =>
             Assert.ThrowsAsync<InvalidOperationException>(async () => await OutgoingConnection.ReceiveDatagramAsync(default));
-        }
 
         [Test]
         public async Task NonDatagramConnection_SendAsync_CancellationAsync()
@@ -74,8 +72,8 @@ namespace IceRpc.Tests.Internal
             // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
             // are at least not larger than 16KB. The test below relies on the SendAsync to block when the connection
             // send/receive buffers fill up.
-            Assert.Less(IncomingConnection.NetworkSocket!.ReceiveBufferSize, 16 * 1024);
-            Assert.Less(OutgoingConnection.NetworkSocket!.SendBufferSize, 16 * 1024);
+            Assert.That(IncomingConnection.NetworkSocket!.ReceiveBufferSize, Is.LessThan(16 * 1024));
+            Assert.That(OutgoingConnection.NetworkSocket!.SendBufferSize, Is.LessThan(16 * 1024));
 
             using var canceled = new CancellationTokenSource();
 
@@ -88,7 +86,7 @@ namespace IceRpc.Tests.Internal
             }
             while (sendTask.IsCompleted);
             sendTask = OutgoingConnection.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
-            Assert.IsFalse(sendTask.IsCompleted);
+            Assert.That(sendTask.IsCompleted, Is.False);
 
             // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
             canceled.Cancel();
@@ -138,7 +136,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task NonDatagramConnection_SendReceiveAsync(int size)
         {
-            var sendBuffer = new byte[size];
+            byte[] sendBuffer = new byte[size];
 
             ValueTask test1 = Test(OutgoingConnection, IncomingConnection);
             ValueTask test2 = Test(IncomingConnection, OutgoingConnection);

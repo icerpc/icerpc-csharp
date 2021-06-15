@@ -670,7 +670,7 @@ namespace IceRpc.Transports.Internal
                     // data).
                     ReadOnlyMemory<byte> previous = buffers.Span[0];
                     Memory<byte> headerData = MemoryMarshal.AsMemory(
-                        buffers.Span[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1));
+                        buffers.Span[0][(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..]);
                     headerData.Span[0] = (byte)frameType;
                     headerData.Span.Slice(1, sizeLength).WriteFixedLengthSize20(packetSize);
                     headerData.Span.Slice(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);

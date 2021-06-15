@@ -162,7 +162,7 @@ namespace IceRpc.Tests.Internal
             _ = IncomingConnection.AcceptStreamAsync(default).AsTask();
 
             using var source = new CancellationTokenSource();
-            var responseTask = stream.ReceiveResponseFrameAsync(source.Token);
+            ValueTask<IncomingResponse> responseTask = stream.ReceiveResponseFrameAsync(source.Token);
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await responseTask);
 

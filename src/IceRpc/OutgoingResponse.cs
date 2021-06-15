@@ -106,7 +106,7 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
                         // We slice-off the reply status that is part of the ice2 payload.
-                        payload.Add(incomingResponsePayload.Slice(1));
+                        payload.Add(incomingResponsePayload[1..]);
                     }
                     else
                     {

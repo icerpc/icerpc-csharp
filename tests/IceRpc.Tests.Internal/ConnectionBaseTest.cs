@@ -180,8 +180,7 @@ namespace IceRpc.Tests.Internal
                 // indefinitely.
                 if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
                 {
-                    var buffer = new byte[1] { 0 };
-                    await connection.Underlying.SendAsync(buffer, default);
+                    await connection.Underlying.SendAsync(new byte[1] { 0 }, default);
                 }
             }
 
