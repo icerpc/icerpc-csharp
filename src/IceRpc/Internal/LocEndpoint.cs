@@ -28,22 +28,17 @@ namespace IceRpc.Internal
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
+        internal static LocEndpoint Create(string location, Protocol protocol) =>
+            new(new EndpointData(Transport.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
+
         // Drop all options we don't understand.
         private static LocEndpoint Create(EndpointData data, Protocol protocol) =>
             new(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty), protocol);
 
-        internal static LocEndpoint Create(string location, Protocol protocol) =>
-            new(new EndpointData(Transport.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
-
         private static LocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
-
-            return new(new EndpointData(Transport.Loc,
-                                        host,
-                                        port,
-                                        ImmutableList<string>.Empty),
-                        Protocol.Ice1);
+            return new(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty), Protocol.Ice1);
         }
 
         // Constructor

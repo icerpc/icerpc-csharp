@@ -30,11 +30,7 @@ namespace IceRpc.Transports.Internal
 
         /// <inherit-doc/>
         public override TransportDescriptor TransportDescriptor =>
-            Transport switch
-            {
-                Transport.SSL => SslTransportDescriptor,
-                _ => TcpTransportDescriptor
-            };
+            Transport == Transport.SSL ? SslTransportDescriptor : TcpTransportDescriptor;
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 

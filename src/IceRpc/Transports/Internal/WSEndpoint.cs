@@ -19,11 +19,7 @@ namespace IceRpc.Transports.Internal
 
         /// <inherit-doc/>
         public override TransportDescriptor TransportDescriptor =>
-            Transport switch
-            {
-                Transport.WSS => WssTransportDescriptor,
-                _ => WSTransportDescriptor
-            };
+            Transport == Transport.WSS ? WssTransportDescriptor : WSTransportDescriptor;
 
         protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
 

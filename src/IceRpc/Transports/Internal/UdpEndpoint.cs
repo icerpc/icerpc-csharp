@@ -121,11 +121,12 @@ namespace IceRpc.Transports.Internal
         }
 
         private static UdpEndpoint CreateIce1Endpoint(InputStream istr) =>
-            new UdpEndpoint(new EndpointData(Transport.UDP,
-                                             host: istr.ReadString(),
-                                             port: ReadPort(istr),
-                                             ImmutableList<string>.Empty),
-                            compress: istr.ReadBool());
+            // This is correct in C# since arguments are evaluated left-to-right.
+            new(new EndpointData(Transport.UDP,
+                                 host: istr.ReadString(),
+                                 port: ReadPort(istr),
+                                 ImmutableList<string>.Empty),
+                compress: istr.ReadBool());
 
         private static UdpEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
@@ -351,9 +352,7 @@ namespace IceRpc.Transports.Internal
             return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
         }
 
-        private MultiStreamConnection CreateIncomingConnection(
-            IncomingConnectionOptions options,
-            ILogger logger)
+        private MultiStreamConnection CreateIncomingConnection(IncomingConnectionOptions options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
