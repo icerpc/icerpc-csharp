@@ -558,6 +558,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            if (IsDatagram && !request.IsOneway)
+            {
+                throw new InvalidOperationException("cannot send twoway request over datagram connection");
+            }
+
             // Make sure the connection is connected.
             try
             {
