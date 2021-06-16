@@ -68,12 +68,13 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask<int> sendTask = OutgoingConnection.SendDatagramAsync(sendBuffer, default);
+                    ValueTask sendTask = OutgoingConnection.SendAsync(sendBuffer, default);
                     foreach (SingleStreamConnection connection in IncomingConnections)
                     {
-                        ReadOnlyMemory<byte> receiveBuffer = await connection.ReceiveDatagramAsync(source.Token);
-                        Assert.AreEqual(await sendTask, receiveBuffer.Length);
-                        for (int i = 0; i < receiveBuffer.Length; ++i)
+                        Memory<byte> receiveBuffer = new byte[connection.DatagramMaxReceiveSize];
+                        int received = await connection.ReceiveAsync(receiveBuffer, source.Token);
+                        Assert.AreEqual(sendBuffer.Length, received);
+                        for (int i = 0; i < received; ++i)
                         {
                             Assert.AreEqual(sendBuffer[i], receiveBuffer.Span[i]);
                         }

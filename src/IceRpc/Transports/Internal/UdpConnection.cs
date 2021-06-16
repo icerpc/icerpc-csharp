@@ -21,6 +21,9 @@ namespace IceRpc.Transports.Internal
             };
 
         /// <inheritdoc/>
+        public override int DatagramMaxReceiveSize { get; }
+
+        /// <inheritdoc/>
         internal override Socket? NetworkSocket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
@@ -32,7 +35,6 @@ namespace IceRpc.Transports.Internal
         private UdpConnectionInformation? _connectionInformation;
         private readonly bool _incoming;
         private readonly IPEndPoint? _multicastEndpoint;
-        private readonly int _rcvSize;
         private readonly Socket _socket;
 
         public override ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
@@ -59,17 +61,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            throw new InvalidOperationException();
-
-        public override async ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel)
+        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            int packetSize = Math.Min(MaxPacketSize, _rcvSize - UdpOverhead);
-            Memory<byte> buffer = new byte[packetSize];
-
-            int received = 0;
             try
             {
+                int received;
                 if (_incoming)
                 {
                     EndPoint remoteAddress = new IPEndPoint(
@@ -88,10 +84,13 @@ namespace IceRpc.Transports.Internal
                 {
                     received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
+                return received;
             }
             catch (SocketException e) when (e.SocketErrorCode == SocketError.MessageSize)
             {
                 // Ignore and return an empty buffer if the datagram is too large.
+                // TODO: is this still correct?
+                return 0;
             }
             catch (Exception ex) when (cancel.IsCancellationRequested)
             {
@@ -105,14 +104,9 @@ namespace IceRpc.Transports.Internal
             {
                 throw new TransportException(ex);
             }
-
-            return buffer.Slice(0, received);
         }
 
-        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            throw new InvalidOperationException();
-
-        public override async ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
             if (_incoming)
             {
@@ -121,7 +115,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                return await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
             {
@@ -150,7 +144,8 @@ namespace IceRpc.Transports.Internal
         {
             _socket = socket;
             _incoming = isIncoming;
-            _rcvSize = _socket.ReceiveBufferSize;
+            DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
+
             if (isIncoming)
             {
                 _multicastEndpoint = addr as IPEndPoint;

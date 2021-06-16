@@ -60,10 +60,6 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramConnection_ReceiveDatagramAsync_Exception() =>
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await OutgoingConnection.ReceiveDatagramAsync(default));
-
-        [Test]
         public async Task NonDatagramConnection_SendAsync_CancellationAsync()
         {
             IncomingConnection.NetworkSocket!.ReceiveBufferSize = 4096;
@@ -78,7 +74,7 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
 
             // Wait for the SendAsync call to block.
-            Task<int> sendTask;
+            Task sendTask;
             do
             {
                 sendTask = OutgoingConnection.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
@@ -123,13 +119,6 @@ namespace IceRpc.Tests.Internal
                 async () => await OutgoingConnection.SendAsync(OneBSendBuffer, canceled.Token));
         }
 
-        [Test]
-        public void NonDatagramConnection_SendDatagramAsync_Exception()
-        {
-            Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await OutgoingConnection.SendDatagramAsync(OneBSendBuffer, default));
-        }
-
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(16 * 1024)]
@@ -146,14 +135,13 @@ namespace IceRpc.Tests.Internal
 
             async ValueTask Test(SingleStreamConnection connection1, SingleStreamConnection connection2)
             {
-                ValueTask<int> sendTask = connection1.SendAsync(sendBuffer, default);
+                ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
                 Memory<byte> receiveBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)
                 {
                     offset += await connection2.ReceiveAsync(receiveBuffer[offset..], default);
                 }
-                Assert.AreEqual(await sendTask, size);
             }
         }
     }

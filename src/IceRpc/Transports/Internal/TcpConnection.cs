@@ -158,15 +158,11 @@ namespace IceRpc.Transports.Internal
             }
             return received;
         }
-
-        public override ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            throw new InvalidOperationException("TCP doesn't support datagrams");
-
-        public override async ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
             try
             {
-                return await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
             catch (SocketException ex) when (ex.IsConnectionLost())
             {
@@ -185,9 +181,6 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
         }
-
-        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            throw new InvalidOperationException("TCP doesn't support datagrams");
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
 
