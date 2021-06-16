@@ -23,6 +23,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("coloc -h header_request -p 10001")]
         public async Task Header_RequestResponseAsync(string endpoint)
         {
+            // This large value should be large enough to create multiple buffer for the request and responses headers.
             string largeValue = new string('C', 4000);
 
             var router = new Router();
