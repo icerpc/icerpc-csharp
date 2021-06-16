@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Construct a new Circular buffer with the given capacity.</summary>
         /// <param name="capacity">The capacity of the buffer.</param>
-        /// <exception cref="ArgumentOutRangeException">Raised if capacity is inferior to 1</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Raised if capacity is inferior to 1</exception>
         internal CircularBuffer(int capacity)
         {
             if (capacity < 1)
@@ -71,7 +71,7 @@ namespace IceRpc.Transports.Internal
         /// space for adding the data.</summary>
         /// <param name="size">The size of the data to add.</param>
         /// <return>A buffer of the given size.</return>
-        /// <exception cref="ArgumentOutRangeException">Raised if size if superior to the available space or inferior
+        /// <exception cref="ArgumentOutOfRangeException">Raised if size if superior to the available space or inferior
         /// to one byte.</exception>
         internal Memory<byte> Enqueue(int size)
         {
@@ -122,7 +122,7 @@ namespace IceRpc.Transports.Internal
         /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from
         /// this circular buffer. The caller must ensure that there's enough data available.</summary>
         /// <param name="buffer">The buffer to copy the consumed data to.</param>
-        /// <exception cref="ArgumentOutRangeException">Raised the buffer is empty or larger than the available data.
+        /// <exception cref="ArgumentOutOfRangeException">Raised the buffer is empty or larger than the available data.
         /// </exception>
         internal void Consume(Memory<byte> buffer)
         {
