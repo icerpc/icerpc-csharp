@@ -72,7 +72,7 @@ namespace IceRpc
             }
 
             writer(ostr, in args);
-            return ostr.Finish().ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
@@ -103,7 +103,7 @@ namespace IceRpc
             }
 
             writer(ostr, in returnValueTuple);
-            return ostr.Finish().ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -128,7 +128,7 @@ namespace IceRpc
             }
 
             writer(ostr, arg);
-            return ostr.Finish().ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -153,7 +153,7 @@ namespace IceRpc
             }
 
             writer(ostr, returnValue);
-            return ostr.Finish().ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -286,7 +286,7 @@ namespace IceRpc
                 ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
-            return (ostr.Finish().ToReadOnlyMemory(), replyStatus);
+            return (ostr.Finish(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>

@@ -149,7 +149,7 @@ namespace IceRpc.Transports
                     Memory<byte> receiveBuffer = receiveBufferOwner.Memory[0..bufferSize];
                     try
                     {
-                        var sendBuffers = new List<Memory<byte>> { receiveBuffer };
+                        var sendBuffers = new ReadOnlyMemory<byte>[1];
                         int received;
                         do
                         {
@@ -160,7 +160,7 @@ namespace IceRpc.Transports
                                                                     cancel).ConfigureAwait(false);
 
                                 sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
-                                await SendAsync(sendBuffers.ToReadOnlyMemory(),
+                                await SendAsync(sendBuffers,
                                                 received == 0,
                                                 cancel).ConfigureAwait(false);
                             }
@@ -449,9 +449,8 @@ namespace IceRpc.Transports
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
                 goAwayFrameBody.IceWrite(ostr);
                 ostr.EndFixedLengthSize(sizePos);
-                IList<Memory<byte>> bufferList = ostr.Finish();
 
-                await SendAsync(bufferList.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
+                await SendAsync(ostr.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
@@ -470,9 +469,7 @@ namespace IceRpc.Transports
             }
             ostr.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
             ostr.EndFixedLengthSize(ostr.StartFixedLengthSize());
-            IList<Memory<byte>> bufferList = ostr.Finish();
-
-            await SendAsync(bufferList.ToReadOnlyMemory(), true, CancellationToken.None).ConfigureAwait(false);
+            await SendAsync(ostr.Finish(), true, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -505,9 +502,8 @@ namespace IceRpc.Transports
                                 OutputStream.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
-                IList<Memory<byte>> bufferList = ostr.Finish();
 
-                await SendAsync(bufferList.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
+                await SendAsync(ostr.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             using IDisposable? scope = StartScope();
@@ -586,13 +582,13 @@ namespace IceRpc.Transports
             ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
-            IList<Memory<byte>> headerBufferList = ostr.Finish();
-            Debug.Assert(headerBufferList.Count == 1);
 
-            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBufferList[0];
-            frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = buffer.AsReadOnlyMemory().GetByteCount() - TransportHeader.Length - 1 - 4;
+            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
+
+            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
+            headerBuffers.CopyTo(buffers);
+            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
+            int frameSize = ByteBuffer.GetByteCount(buffers) - TransportHeader.Length - 1 - 4;
             ostr.RewriteFixedLengthSize20(frameSize, start, 4);
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
@@ -614,7 +610,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            await SendAsync(buffer,
+            await SendAsync(buffers,
                             endStream: frame.StreamDataWriter == null,
                             cancel).ConfigureAwait(false);
         }

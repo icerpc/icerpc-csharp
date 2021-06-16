@@ -92,16 +92,16 @@ namespace IceRpc.Transports.Internal
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
-            IList<Memory<byte>> headerBufferList = ostr.Finish();
-            Debug.Assert(headerBufferList.Count == 1);
 
-            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBufferList[0];
-            frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = buffer.AsReadOnlyMemory().GetByteCount();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
+
+            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
+            headerBuffers.CopyTo(buffers);
+            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
+            int frameSize = ByteBuffer.GetByteCount(buffers);
             ostr.RewriteFixedLengthSize11(frameSize, start);
 
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
         }
     }
 }

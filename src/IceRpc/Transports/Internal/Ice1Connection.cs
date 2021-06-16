@@ -423,10 +423,7 @@ namespace IceRpc.Transports.Internal
             int sent = 0;
             if (IsDatagram)
             {
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    sent += await Underlying.SendDatagramAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                }
+                sent = await Underlying.SendDatagramAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
             }
             else
             {

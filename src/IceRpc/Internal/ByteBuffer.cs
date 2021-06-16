@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -11,24 +10,7 @@ namespace IceRpc.Internal
     internal static class ByteBuffer
     {
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
-
-        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> AsReadOnlyMemory(this ReadOnlyMemory<byte>[] array) =>
-            array;
-
         internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
-
-        /// <summary>Returns the sum of the count of all the buffers in the buffer list.</summary>
-        /// <param name="bufferList">The list of buffers.</param>
-        /// <returns>The byte count of the buffer list.</returns>
-        internal static int GetByteCount(this IEnumerable<Memory<byte>> bufferList)
-        {
-            int count = 0;
-            foreach (Memory<byte> buffer in bufferList)
-            {
-                count += buffer.Length;
-            }
-            return count;
-        }
 
         internal static int GetByteCount(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
@@ -88,25 +70,6 @@ namespace IceRpc.Internal
             return (value, buffer[0].ReadVarLongLength());
         }
 
-        internal static ReadOnlyMemory<byte> ToSingleBuffer(this IList<Memory<byte>> bufferList)
-        {
-            if (bufferList.Count == 1)
-            {
-                return bufferList[0];
-            }
-            else
-            {
-                byte[] data = new byte[bufferList.GetByteCount()];
-                int offset = 0;
-                for (int i = 0; i < bufferList.Count; ++i)
-                {
-                    bufferList[i].CopyTo(data.AsMemory(offset));
-                    offset += bufferList[i].Length;
-                }
-                return data;
-            }
-        }
-
         internal static ReadOnlyMemory<byte> ToSingleBuffer(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             if (buffers.Length == 1)
@@ -124,16 +87,6 @@ namespace IceRpc.Internal
                 }
                 return data;
             }
-        }
-
-        internal static ReadOnlyMemory<ReadOnlyMemory<byte>> ToReadOnlyMemory(this IList<Memory<byte>> bufferList)
-        {
-            var result = new ReadOnlyMemory<byte>[bufferList.Count];
-            for (int i = 0; i < result.Length; ++i)
-            {
-                result[i] = bufferList[i];
-            }
-            return result;
         }
 
         /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>

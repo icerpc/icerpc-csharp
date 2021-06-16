@@ -98,11 +98,10 @@ namespace IceRpc.Internal
                     var buffer = new byte[8 + opaqueEndpoint.Value.Length];
                     var ostr = new OutputStream(Ice1Definitions.Encoding, buffer);
                     ostr.WriteEndpoint11(opaqueEndpoint);
-                    IList<Memory<byte>> bufferList = ostr.Finish();
-                    Debug.Assert(bufferList.Count == 1);
+                    ReadOnlyMemory<byte> readBuffer = ostr.Finish().ToSingleBuffer();
                     Debug.Assert(ostr.Tail.Buffer == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
-                    return new InputStream(bufferList[0], Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
+                    return new InputStream(readBuffer, Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
                 }
                 else
                 {
