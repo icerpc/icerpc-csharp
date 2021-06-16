@@ -12,10 +12,6 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-
-        /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
@@ -63,8 +59,7 @@ namespace IceRpc
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
         /// <param name="forwardFields">When true (the default), the new response uses the incoming response's fields as
-        /// a fallback - all the fields in this field dictionary are added before the response is sent, except for
-        /// fields previously added by middleware.</param>
+        /// defaults for its fields.</param>
             // TODO: support stream param forwarding
         public OutgoingResponse(
             IncomingRequest request,
@@ -87,7 +82,7 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
                     // Don't forward RetryPolicy
-                    InitialFields = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
+                    FieldsDefaults = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
                 }
             }
             else
@@ -144,7 +139,7 @@ namespace IceRpc
             {
                 RetryPolicy retryPolicy = exception.RetryPolicy;
 
-                FieldsOverride.Add(
+                Fields.Add(
                     (int)Ice2FieldKey.RetryPolicy,
                     ostr =>
                     {

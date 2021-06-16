@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -11,32 +12,33 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Returns a dictionary used to override the fields of this frame. The full fields are a combination
-        /// of the <see cref="InitialFields"/> plus these overrides.</summary>
+        /// <summary>Returns a dictionary used set the fields of this frame. The full fields are a combination of these
+        /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
-        public Dictionary<int, Action<OutputStream>> FieldsOverride
+        public Dictionary<int, Action<OutputStream>> Fields
         {
             get
             {
-                if (_fieldsOverride == null)
+                if (_fields == null)
                 {
                     if (Protocol == Protocol.Ice1)
                     {
                         throw new NotSupportedException("ice1 does not support header fields");
                     }
 
-                    _fieldsOverride = new Dictionary<int, Action<OutputStream>>();
+                    _fields = new Dictionary<int, Action<OutputStream>>();
                 }
-                return _fieldsOverride;
+                return _fields;
             }
         }
 
+        /// <summary>Returns the defaults fields set during construction of this frame. The fields are set only when
+        /// there is no corresponding entry in <see cref="Fields"/>.</summary>
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
+              ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
-
-        /// <summary>Returns the initial fields set during construction of this frame. See also
-        /// <see cref="FieldsOverride"/>.</summary>
-        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; }
 
         /// <summary>Gets or sets the payload of this frame.</summary>
         public ReadOnlyMemory<ReadOnlyMemory<byte>> Payload
@@ -73,7 +75,7 @@ namespace IceRpc
         /// called after the request or response frame is sent over a stream.</summary>
         internal Action<Stream>? StreamDataWriter { get; set; }
 
-        private Dictionary<int, Action<OutputStream>>? _fieldsOverride;
+        private Dictionary<int, Action<OutputStream>>? _fields;
 
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
@@ -82,13 +84,13 @@ namespace IceRpc
         /// calls.</summary>
         internal abstract IncomingFrame ToIncoming();
 
-        /// <summary>Gets or builds a combined fields dictionary using InitialFields and _fieldsOverride. This method is
-        /// used for colocated calls.</summary>
-        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetFields()
+        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and 
+        /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
+        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
         {
-            if (_fieldsOverride == null)
+            if (_fields == null)
             {
-                return InitialFields;
+                return FieldsDefaults;
             }
             else
             {
@@ -116,18 +118,19 @@ namespace IceRpc
             Debug.Assert(Protocol == Protocol.Ice2);
             Debug.Assert(ostr.Encoding == Encoding.V20);
 
+            // can be larger than necessary, which is fine
             int sizeLength =
-                OutputStream.GetSizeLength20(InitialFields.Count + (_fieldsOverride?.Count ?? 0));
+                OutputStream.GetSizeLength20(FieldsDefaults.Count + (_fields?.Count ?? 0));
 
             int size = 0;
 
             OutputStream.Position start = ostr.StartFixedLengthSize(sizeLength);
 
-            // First write the overrides, then the InitialFields lines that were not overridden.
+            // First write the fields then the remaining FieldsDefaults.
 
-            if (_fieldsOverride is Dictionary<int, Action<OutputStream>> fieldsOverride)
+            if (_fields is Dictionary<int, Action<OutputStream>> fields)
             {
-                foreach ((int key, Action<OutputStream> action) in fieldsOverride)
+                foreach ((int key, Action<OutputStream> action) in fields)
                 {
                     ostr.WriteVarInt(key);
                     OutputStream.Position startValue = ostr.StartFixedLengthSize(2);
@@ -136,9 +139,9 @@ namespace IceRpc
                     size++;
                 }
             }
-            foreach ((int key, ReadOnlyMemory<byte> value) in InitialFields)
+            foreach ((int key, ReadOnlyMemory<byte> value) in FieldsDefaults)
             {
-                if (_fieldsOverride == null || !_fieldsOverride.ContainsKey(key))
+                if (_fields == null || !_fields.ContainsKey(key))
                 {
                     ostr.WriteVarInt(key);
                     ostr.WriteSize(value.Length);

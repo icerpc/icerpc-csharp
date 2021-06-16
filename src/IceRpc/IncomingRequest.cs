@@ -166,7 +166,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice2)
             {
-                Fields = request.GetFields();
+                Fields = request.GetAllFields();
             }
 
             // For coloc calls, the context (and more generally the header) is not marshaled so we need to copy the
