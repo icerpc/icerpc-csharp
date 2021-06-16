@@ -34,7 +34,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a field value written using <see cref="OutgoingFrame.FieldsOverride"/>.</summary>
+        /// <summary>Reads a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The type of the contents.</typeparam>
         /// <param name="value">The field value.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the field value.</param>

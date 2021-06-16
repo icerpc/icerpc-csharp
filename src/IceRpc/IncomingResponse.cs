@@ -103,7 +103,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice2)
             {
-                Fields = response.GetFields();
+                Fields = response.GetAllFields();
             }
 
             ResultType = response.ResultType;
