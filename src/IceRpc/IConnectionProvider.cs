@@ -14,7 +14,7 @@ namespace IceRpc
         /// <param name="altEndpoints">A list of zero or more alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The connection.</returns>
-        /// <exception name="NoEndpointException">Thrown when none of the endpoint is usable.</exception>
+        /// <exception cref="NoEndpointException">Thrown when none of the endpoint is usable.</exception>
         // TODO: more exceptions
         // TODO: does it need to provide an active connection?
         ValueTask<Connection> GetConnectionAsync(

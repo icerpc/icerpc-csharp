@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
         /// <summary>Initializes a new instance of the asynchronous semaphore with the given maximum number of
         /// times to the semaphore can be entered.</summary>
         /// <param name="maxCount">The maximum number of times the semaphore can be entered.</param>
-        /// <exception name="ArgumentOutOfRangeException">Raised if maxCount is less than 1.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Raised if maxCount is less than 1.</exception>
         internal AsyncSemaphore(int maxCount)
         {
             if (maxCount < 1)
@@ -147,7 +147,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Release the semaphore to allow a waiting task to enter. If the semaphore is completed, this
         /// operation just returns since there's no longer any task waiting to enter the semaphore.</summary>
-        /// <exception name="SemaphoreFullException">Thrown when the semaphore is released too many times. It can't
+        /// <exception cref="SemaphoreFullException">Thrown when the semaphore is released too many times. It can't
         /// be released more times than the initial count provided to the constructor.</exception>
         internal void Release()
         {

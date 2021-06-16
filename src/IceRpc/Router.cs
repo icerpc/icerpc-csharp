@@ -60,7 +60,7 @@ namespace IceRpc
         /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
         /// must start with a <c>/</c>.</param>
         /// <param name="dispatcher">The target of this route. It is typically an <see cref="IService"/>.</param>
-        /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
@@ -81,7 +81,7 @@ namespace IceRpc
         /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
         /// the request.</param>
         /// <param name="dispatcher">The target of this route.</param>
-        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
@@ -95,7 +95,7 @@ namespace IceRpc
         /// <param name="prefix">The prefix of the route to the sub-router.</param>
         /// <param name="configure">A delegate that configures the new sub-router.</param>
         /// <returns>The new sub-router.</returns>
-        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
@@ -108,7 +108,7 @@ namespace IceRpc
         /// <summary>Unregisters a route previously registered with <see cref="Map(string, IDispatcher)"/>.</summary>
         /// <param name="path">The path of the route.</param>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        /// <exception name="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
         public bool Unmap(string path)
         {
             Internal.UriParser.CheckPath(path, nameof(path));
@@ -124,7 +124,7 @@ namespace IceRpc
         /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
         /// <param name="prefix">The prefix of the route.</param>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        /// <exception name="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
         public bool Unmount(string prefix)
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
@@ -134,7 +134,7 @@ namespace IceRpc
         /// <summary>Installs one or more middleware in this router. A middleware must be installed before calling
         /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
         /// <param name="middleware">One or more middleware.</param>
-        /// <exception name="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
         public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
         {

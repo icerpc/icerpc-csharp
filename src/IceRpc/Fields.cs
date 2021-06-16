@@ -41,7 +41,7 @@ namespace IceRpc
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the contents.</param>
         /// <returns>The contents of the value.</returns>
-        /// <exception name="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
         public static T ReadFieldValue<T>(
             this ReadOnlyMemory<byte> value,
             InputStreamReader<T> reader,
