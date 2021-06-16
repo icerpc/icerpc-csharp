@@ -188,10 +188,10 @@ namespace IceRpc
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();
 
         /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
-        /// <param name="proxyHost">The host portion of the proxy endpoint when the endpoint's type supports DNS
-        /// resolution of its hosts. Otherwise, <c>proxyHost</c> is not used.</param>
+        /// <param name="hostName">The host portion of the proxy endpoint when the endpoint's type supports DNS
+        /// resolution of its hosts. Otherwise, <c>hostName</c> is not used.</param>
         /// <returns>The proxy endpoint.</returns>
-        protected internal virtual Endpoint GetProxyEndpoint(string proxyHost) => this;
+        protected internal virtual Endpoint GetProxyEndpoint(string hostName) => this;
 
         /// <summary>Two endpoints are considered equivalent if they are equal or their differences should not trigger
         /// the establishment of separate connections to those endpoints. For example, two tcp endpoints that are

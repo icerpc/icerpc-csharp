@@ -22,8 +22,8 @@ namespace IceRpc.Tests.Api
                 // A DNS name cannot be used with a server endpoint
                 Assert.Throws<NotSupportedException>(() => server.Listen());
 
-                // ProxyHost can't be empty
-                Assert.Throws<ArgumentException>(() => server.ProxyHost = "");
+                // HostName can't be empty
+                Assert.Throws<ArgumentException>(() => server.HostName = "");
 
                 Assert.DoesNotThrow(() => IServicePrx.FromServer(server, "/foo"));
                 server.Endpoint = null;
@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Api
             };
 
             Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), server.ProxyEndpoint?.Host);
-            server.ProxyHost = "localhost";
+            server.HostName = "localhost";
             Assert.AreEqual("localhost", server.ProxyEndpoint?.Host);
 
             server.Listen();
@@ -174,16 +174,16 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Server_EndpointAsync()
         {
-            // Verifies that changing Endpoint or ProxyHost updates ProxyEndpoint.
+            // Verifies that changing Endpoint or HostName updates ProxyEndpoint.
 
             await using var server = new Server();
 
             Assert.IsNull(server.ProxyEndpoint);
             server.Endpoint = "ice+tcp://127.0.0.1";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.ProxyHost),
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.HostName),
                             server.ProxyEndpoint!.ToString());
-            server.ProxyHost = "foobar";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.ProxyHost),
+            server.HostName = "foobar";
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.HostName),
                             server.ProxyEndpoint.ToString());
 
             // Verifies that changing Endpoint updates Protocol

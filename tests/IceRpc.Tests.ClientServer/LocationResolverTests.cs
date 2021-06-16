@@ -71,7 +71,7 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = new Greeter(),
                 Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
                 // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                ProxyHost = "127.0.0.1"
+                HostName = "127.0.0.1"
             };
 
             _server.Listen();

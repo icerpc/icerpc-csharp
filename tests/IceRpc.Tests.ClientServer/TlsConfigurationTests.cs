@@ -433,7 +433,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     AuthenticationOptions = tlsServerOptions
                 },
-                ProxyHost = hostname ?? "::1"
+                HostName = hostname ?? "::1"
             };
 
             server.Listen();
