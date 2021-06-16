@@ -100,7 +100,10 @@ namespace IceRpc.Transports.Internal
                             stream.ReceivedFrame(size, fin);
 
                             // Wait for the stream to receive the data before reading a new Slic frame.
-                            await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
+                            if (size > 0)
+                            {
+                                await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
+                            }
                         }
                         else if (isIncoming && IsIncomingStreamUnknown(streamId.Value, isBidirectional))
                         {

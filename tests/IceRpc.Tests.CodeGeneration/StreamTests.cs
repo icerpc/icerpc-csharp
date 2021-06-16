@@ -65,35 +65,40 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             int r2;
             byte[] buffer = new byte[512];
 
-            stream = await _prx.OpStreamByteReceive0Async();
+            using var invocation = new Invocation();
+            stream = await _prx.OpStreamByteReceive0Async(invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
 
-            (r1, stream) = await _prx.OpStreamByteReceive1Async();
+            (r1, stream) = await _prx.OpStreamByteReceive1Async(invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
 
-            (r1, r2, stream) = await _prx.OpStreamByteReceive2Async();
+            (r1, r2, stream) = await _prx.OpStreamByteReceive2Async(invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
             Assert.That(r2, Is.EqualTo(6));
 
-            await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer));
-            await _prx.OpStreamByteSend2Async(0x08, 10, new MemoryStream(_sendBuffer));
+            await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer), invocation);
+            await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer), invocation);
+            await _prx.OpStreamByteSend2Async(0x08, 10, new MemoryStream(_sendBuffer), invocation);
 
-            stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer));
+            stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer), invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
 
-            (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer));
+            (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer), invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));
 
-            (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(0x08, 10, new MemoryStream(_sendBuffer));
+            (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
+                0x08,
+                10,
+                new MemoryStream(_sendBuffer),
+                invocation);
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));

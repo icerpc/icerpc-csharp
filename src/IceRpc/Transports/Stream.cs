@@ -271,12 +271,6 @@ namespace IceRpc.Transports
             CancelDispatchSource?.Dispose();
         }
 
-        internal void Acquire()
-        {
-            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
-            Interlocked.Increment(ref _useCount);
-        }
-
         // Internal method which should only be used by tests.
         internal ValueTask<int> InternalReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             ReceiveAsync(buffer, cancel);

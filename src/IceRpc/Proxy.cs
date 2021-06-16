@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -159,26 +160,26 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload, its encoding and the connection that received the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, StreamReader)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            StreamWriter? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            StreamWriter? streamWriter = null,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -190,6 +191,7 @@ namespace IceRpc
                 invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
             }
 
+            OutgoingRequest? request = null;
             try
             {
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
@@ -215,18 +217,18 @@ namespace IceRpc
                         } must be cancelable when the invocation deadline is set", nameof(cancel));
                 }
 
-                var request = new OutgoingRequest(proxy,
-                                                  operation,
-                                                  requestPayload,
-                                                  deadline,
-                                                  invocation,
-                                                  idempotent,
-                                                  oneway,
-                                                  streamWriter);
+                request = new OutgoingRequest(proxy,
+                                              operation,
+                                              requestPayload,
+                                              deadline,
+                                              invocation,
+                                              idempotent,
+                                              oneway,
+                                              streamWriter);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
-                return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
+                return ConvertResponseAsync(request, responseTask, timeoutSource, combinedSource);
             }
             catch
             {
@@ -235,19 +237,23 @@ namespace IceRpc
                 {
                     timeoutSource?.Dispose();
                 }
+                request?.Stream?.Release(); // Release the request stream if it's set.
                 throw;
 
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, StreamReader)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, StreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+                OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
             {
+                StreamReader? streamReader = null;
                 try
                 {
                     IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
@@ -264,7 +270,27 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    return (responsePayload, response.PayloadEncoding, response.Connection, response.StreamReader);
+                    // If there's still data available from the stream, create a stream reader and let the invocation
+                    // release the stream when it's disposed. The stream can be null if an interceptor returned the
+                    // response before the request reached the connection. In this case, there's no stream or stream
+                    // data.
+                    if (!request.Stream?.ReceivedEndOfStream ?? false)
+                    {
+                        if (invocation == null)
+                        {
+                            throw new ArgumentException(
+                                "invocation is null but stream data is available",
+                                nameof(invocation));
+                        }
+
+                        streamReader = new StreamReader(request.Stream);
+
+                        // The invocation is responsible for releasing the stream if the stream is still needed to
+                        // read the data from the stream param.
+                        invocation.Stream = request.Stream;
+                    }
+
+                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {
@@ -272,6 +298,13 @@ namespace IceRpc
                     if (timeoutSource != combinedSource)
                     {
                         timeoutSource?.Dispose();
+                    }
+
+                    if (streamReader == null)
+                    {
+                        // If there's no stream data to read, we can release the stream, otherwise the stream will
+                        // be released when the invocation is disposed by the application.
+                        request.Stream?.Release();
                     }
                 }
             }

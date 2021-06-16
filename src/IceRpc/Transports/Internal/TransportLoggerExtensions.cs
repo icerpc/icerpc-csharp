@@ -110,7 +110,7 @@ namespace IceRpc.Transports.Internal
         [LoggerMessage(
             EventId = (int)TransportEvent.SentData,
             EventName = nameof(TransportEvent.SentData),
-            Level = LogLevel.Debug,
+            Level = LogLevel.Trace,
             Message = "sent {Size} bytes")]
         internal static partial void LogSentData(this ILogger logger, int size);
 
@@ -205,7 +205,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        localEndpoint = connection.RemoteEndpoint?.ToString() ?? "undefined";
+                        localEndpoint = connection.LocalEndpoint?.ToString() ?? "undefined";
                     }
                     catch
                     {

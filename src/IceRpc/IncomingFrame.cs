@@ -48,13 +48,17 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream that received this frame.</summary>
-        public StreamReader StreamReader { get; internal set; } = StreamReader.NoStreamData;
+        internal Stream Stream
+        {
+            get => _stream ?? throw new InvalidOperationException("stream not set");
+            set => _stream = value;
+        }
 
         private protected bool IsPayloadSet => _payload != null;
 
         private Connection? _connection;
         private ArraySegment<byte>? _payload;
+        private Stream? _stream;
 
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>

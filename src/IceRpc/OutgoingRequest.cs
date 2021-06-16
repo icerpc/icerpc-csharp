@@ -82,6 +82,10 @@ namespace IceRpc
         /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
         internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
 
+        /// <summary>The stream used to send the request. The proxy code is responsible for releasing the stream
+        /// when the invoker returns.</summary>
+        internal Stream? Stream { get; set; }
+
         private string _path = "";
 
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>

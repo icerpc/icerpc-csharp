@@ -360,6 +360,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> DispatchAsync(
                 ReadOnlyMemory<byte> payload,
+                StreamReader? streamReader,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new((IceRpc.Payload.FromSingleReturnValue(dispatch,

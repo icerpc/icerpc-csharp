@@ -13,7 +13,8 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Stream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
-        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream =>
+            (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
         private bool _receivedEndOfStream;
         private ArraySegment<byte> _receiveSegment;
         private readonly ColocConnection _connection;

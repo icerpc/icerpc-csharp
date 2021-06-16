@@ -197,7 +197,7 @@ namespace IceRpc.Tests.CodeGeneration
                     ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
-            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection, StreamReader? _) =
+            (ReadOnlyMemory<byte> payload, StreamReader? _, Encoding payloadEncoding, Connection connection) =
                 await _prx.InvokeAsync("opVoid", requestPayload);
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));

@@ -40,6 +40,7 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Binder(_pool));
+            pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory));
 
             IProtocolBridgingTestPrx forwarderService =
                 SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
@@ -98,7 +99,7 @@ namespace IceRpc.Tests.ClientServer
             IInvoker invoker)
         {
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
-
+            _router.Use(Middleware.Logger(Runtime.DefaultLoggerFactory));
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();

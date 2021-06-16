@@ -569,37 +569,33 @@ namespace IceRpc
                 throw;
             }
 
-            Stream? stream = null;
             try
             {
                 using IDisposable? connectionScope = StartScope();
 
-                // Create the outgoing stream.
-                stream = _connection!.CreateStream(!request.IsOneway);
+                // Create the outgoing stream. The caller (the proxy InvokeAsync implementation) is responsible
+                // release the stream.
+                request.Stream = _connection!.CreateStream(!request.IsOneway);
 
                 // Send the request and wait for the sending to complete.
-                await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+                await request.Stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
                 // Mark the request as sent.
                 request.IsSent = true;
 
-                using IDisposable? streamScope = stream.StartScope();
+                using IDisposable? streamScope = request.Stream.StartScope();
 
                 // Wait for the reception of the response.
                 IncomingResponse response = request.IsOneway ?
                     new IncomingResponse(this, request.PayloadEncoding) :
-                    await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
-                if (!request.IsOneway && !stream.ReceivedEndOfStream)
-                {
-                    response.StreamReader = new StreamReader(stream, releaseStream: true);
-                    stream = null; // The stream reader will release the stream.
-                }
+
                 return response;
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                stream!.Reset(StreamErrorCode.InvocationCanceled);
+                request.Stream!.Reset(StreamErrorCode.InvocationCanceled);
                 throw;
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
@@ -644,11 +640,6 @@ namespace IceRpc
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
                 throw;
-            }
-            finally
-            {
-                // Release one ref-count
-                stream?.Release();
             }
         }
 
@@ -854,14 +845,9 @@ namespace IceRpc
                 // Receives the request frame from the stream
                 IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
-                request.StreamId = stream.Id;
-                if (!stream.ReceivedEndOfStream)
-                {
-                    request.StreamReader = new StreamReader(stream, releaseStream: false);
-                }
+                request.Stream = stream;
 
                 OutgoingResponse? response = null;
-
                 try
                 {
                     response =
@@ -906,7 +892,7 @@ namespace IceRpc
                 }
 
                 // Send the response if the stream is bidirectional.
-                if (response != null)
+                if (response != null && !request.IsOneway)
                 {
                     try
                     {
@@ -930,7 +916,7 @@ namespace IceRpc
             }
             finally
             {
-                stream?.Release();
+                stream.Release();
             }
         }
 

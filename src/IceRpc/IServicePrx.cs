@@ -12,17 +12,17 @@ namespace IceRpc
     /// <summary>A delegate that reads the return value from a response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="payload">The response payload.</param>
+    /// <param name="streamReader">The stream reader from the response.</param>
     /// <param name="payloadEncoding">The encoding of the response payload.</param>
     /// <param name="connection">The connection that received this response.</param>
-    /// <param name="streamReader">The stream reader from the response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseReader<T>(
         ReadOnlyMemory<byte> payload,
+        StreamReader? streamReader,
         Encoding payloadEncoding,
         Connection connection,
-        StreamReader streamReader,
         IInvoker? invoker);
 
     /// <summary>Base interface of all service proxies.</summary>
@@ -48,9 +48,9 @@ namespace IceRpc
             /// </summary>
             public static string IceId(
                 ReadOnlyMemory<byte> payload,
+                StreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
-                StreamReader _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding, InputStream.IceReaderIntoString, connection, invoker);
 
@@ -58,9 +58,9 @@ namespace IceRpc
             /// </summary>
             public static string[] IceIds(
                 ReadOnlyMemory<byte> payload,
+                StreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
-                StreamReader _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
                                       istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
@@ -71,9 +71,9 @@ namespace IceRpc
             /// </summary>
             public static bool IceIsA(
                 ReadOnlyMemory<byte> payload,
+                StreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
-                StreamReader _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
                                       InputStream.IceReaderIntoBool,
@@ -137,6 +137,21 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
+
+        /// <summary>A response delegate for invocations that returns only a System.IO.Stream value.</summary>
+        protected static System.IO.Stream IceByteStreamResponse(
+            ReadOnlyMemory<byte> payload,
+            StreamReader? streamReader,
+            Encoding payloadEncoding,
+            Connection connection,
+            IInvoker? invoker)
+        {
+            if (streamReader == null)
+            {
+                throw new InvalidDataException("no data available from the stream");
+            }
+            return streamReader.ToByteStream();
+        }
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
@@ -222,6 +237,7 @@ namespace IceRpc
         public Task<string> IceIdAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
             IceInvokeAsync("ice_id",
                            Payload.FromEmptyArgs(this),
+                           streamWriter: null,
                            Response.IceId,
                            invocation,
                            idempotent: true,
@@ -235,6 +251,7 @@ namespace IceRpc
         public Task<string[]> IceIdsAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
             IceInvokeAsync("ice_ids",
                            Payload.FromEmptyArgs(this),
+                           streamWriter: null,
                            Response.IceIds,
                            invocation,
                            idempotent: true,
@@ -248,6 +265,7 @@ namespace IceRpc
         public Task<bool> IceIsAAsync(string id, Invocation? invocation = null, CancellationToken cancel = default) =>
             IceInvokeAsync("ice_isA",
                            Request.IceIsA(this, id),
+                           streamWriter: null,
                            Response.IceIsA,
                            invocation,
                            idempotent: true,
@@ -260,6 +278,7 @@ namespace IceRpc
         public Task IcePingAsync(Invocation? invocation = null, CancellationToken cancel = default) =>
             IceInvokeAsync("ice_ping",
                            Payload.FromEmptyArgs(this),
+                           streamWriter: null,
                            invocation,
                            idempotent: true,
                            cancel: cancel);
@@ -272,12 +291,12 @@ namespace IceRpc
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="responseReader">The reader for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
-        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value read by response reader.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -287,50 +306,43 @@ namespace IceRpc
         protected Task<T> IceInvokeAsync<T>(
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            StreamWriter? streamWriter,
             ResponseReader<T> responseReader,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
-            StreamWriter? streamWriter = null,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, Encoding, Connection, StreamReader)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
+                streamWriter,
                 invocation,
                 compress,
                 idempotent,
                 oneway: false,
-                streamWriter,
                 cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection, StreamReader streamReader) =
+                (ReadOnlyMemory<byte> payload, StreamReader? streamReader, Encoding payloadEncoding, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
-                try
-                {
-                    return responseReader(payload, payloadEncoding, connection, streamReader, Invoker);
-                }
-                finally
-                {
-                    streamReader.Dispose();
-                }
+                return responseReader(payload, streamReader, payloadEncoding, connection, Invoker);
             }
         }
 
         /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="streamWriter">The writer to encode the stream parameter.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>A task that completes when the void response is returned.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -340,40 +352,34 @@ namespace IceRpc
         protected Task IceInvokeAsync(
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            StreamWriter? streamWriter,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            StreamWriter? streamWriter = null,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, Encoding, Connection, StreamReader)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
+                streamWriter,
                 invocation,
                 compress,
                 idempotent,
                 oneway,
-                streamWriter,
                 cancel);
 
             return ReadResponseAsync();
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, _, StreamReader streamReader) =
+                (ReadOnlyMemory<byte> payload, StreamReader? streamReader, Encoding payloadEncoding, _) =
                     await responseTask.ConfigureAwait(false);
-                try
+
+                payload.CheckVoidReturnValue(payloadEncoding);
+                if (streamReader != null)
                 {
-                    payload.CheckVoidReturnValue(payloadEncoding);
-                    if (streamReader != StreamReader.NoStreamData)
-                    {
-                        throw new InvalidDataException($"unexpected stream data from the response");
-                    }
-                }
-                finally
-                {
-                    streamReader?.Dispose();
+                    throw new InvalidDataException($"unexpected stream data from the response");
                 }
             }
         }

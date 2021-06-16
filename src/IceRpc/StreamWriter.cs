@@ -10,12 +10,16 @@ namespace IceRpc
     {
         private readonly Action<Stream> _writer;
 
-        /// <summary>Writes the data from the <see cref="System.IO.Stream"/> to the request stream.</summary>
-        /// <param name="ioStream">The stream to read data from.</param>
-        static public StreamWriter FromIOStream(System.IO.Stream ioStream) => new(stream => stream.SendData(ioStream));
-
         internal void Send(Stream stream) => _writer(stream);
 
-        internal StreamWriter(Action<Stream> writer) => _writer = writer;
+        /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
+        /// request stream.</summary>
+        /// <param name="byteStream">The stream to read data from.</param>
+        public StreamWriter(System.IO.Stream byteStream)
+            : this(stream => stream.SendData(byteStream))
+        {
+        }
+
+        private StreamWriter(Action<Stream> writer) => _writer = writer;
     }
 }

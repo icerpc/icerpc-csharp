@@ -12,7 +12,8 @@ namespace IceRpc.Transports.Internal
     /// Ice1 protocol.</summary>
     internal class Ice1Stream : SignaledStream<(Ice1FrameType, ArraySegment<byte>)>
     {
-        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream =>
+            (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private bool _receivedEndOfStream;
         private readonly Ice1Connection _connection;

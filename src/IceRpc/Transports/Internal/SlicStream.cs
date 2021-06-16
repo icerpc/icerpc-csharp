@@ -23,7 +23,8 @@ namespace IceRpc.Transports.Internal
     /// etc) are necessary to receive a simple response/request frame.</summary>
     internal class SlicStream : SignaledStream<(int, bool)>
     {
-        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
+        protected internal override bool ReceivedEndOfStream =>
+            (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
         private volatile CircularBuffer? _receiveBuffer;

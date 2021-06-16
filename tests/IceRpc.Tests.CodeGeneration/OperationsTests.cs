@@ -24,7 +24,9 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Dispatcher = new Operations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                // Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
+                ProxyHost = "127.0.0.1"
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
@@ -79,6 +81,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             // This is invoked as a oneway thanks to the metadata
             await _prx.OpOnewayMetadataAsync();
+
+            await _prx.IcePingAsync();
         }
 
         public class Operations : IOperations

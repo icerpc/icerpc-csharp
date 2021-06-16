@@ -278,15 +278,9 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
         if (streamParam)
         {
-            _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
-            if (returnType)
-            {
-                _out << " = streamReader.ToIOStream();";
-            }
-            else
-            {
-                _out << " = dispatch.StreamReader.ToIOStream();";
-            }
+            _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_")
+                 << " = streamReader?.ToByteStream() ?? "
+                 << "throw new InvalidDataException(\"no data available from the stream\");";
         }
 
         _out << nl << "return ";
@@ -424,25 +418,39 @@ vector<string>
 getInvocationParams(const OperationPtr& op, const string& ns, bool defaultValues, const string& prefix = "")
 {
     vector<string> params;
+    bool streamParam = false;
     for (const auto& p : op->params())
     {
         ostringstream param;
         param << getParamAttributes(p);
         param << CsGenerator::typeToString(p->type(), ns, true, true, p->stream()) << " " << paramName(p, prefix);
         params.push_back(param.str());
+        streamParam = p->stream();
     }
 
     string invocation = prefix.empty() ? getEscapedParamName(op, "invocation") : "invocation";
     string cancel = prefix.empty() ? getEscapedParamName(op, "cancel") : "cancel";
+    string invocationType = streamParam ? "IceRpc.Invocation" : "IceRpc.Invocation?";
 
-    if(defaultValues)
+    if (streamParam)
+    {
+        params.push_back("IceRpc.Invocation " + invocation);
+    }
+    else if (defaultValues)
     {
         params.push_back("IceRpc.Invocation? " + invocation + " = null");
-        params.push_back("global::System.Threading.CancellationToken " + cancel + " = default");
     }
     else
     {
         params.push_back("IceRpc.Invocation? " + invocation);
+    }
+
+    if (defaultValues)
+    {
+        params.push_back("global::System.Threading.CancellationToken " + cancel + " = default");
+    }
+    else
+    {
         params.push_back("global::System.Threading.CancellationToken " + cancel);
     }
     return params;
@@ -2245,8 +2253,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
                         << "of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Encoding payloadEncoding, ";
-                _out << "IceRpc.Connection connection, IceRpc.StreamReader streamReader, IceRpc.IInvoker? invoker) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamReader? streamReader, ";
+                _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
                 _out.inc();
@@ -2462,13 +2470,21 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         // can't use 'in' for tuple as it's an expression
         _out << "Request." << name << "(this, " << toTuple(params) << "), ";
     }
+    if (streamParam)
+    {
+        _out << "streamWriter: new StreamWriter(" << paramName(streamParam) << "), ";
+    }
+    else
+    {
+        _out << "streamWriter: null, ";
+    }
     if (!voidOp)
     {
         _out << "Response." << name << ", ";
     }
     else if (streamReturnParam)
     {
-        _out << "(payload, payloadEncoding, connection, streamReader, invoker) => streamReader.ToIOStream(), ";
+        _out << "IceByteStreamResponse, ";
     }
 
     _out << invocation << ", ";
@@ -2483,10 +2499,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     if (voidOp && oneway)
     {
         _out << "oneway: true, ";
-    }
-    if (streamParam)
-    {
-        _out << "streamWriter: StreamWriter.FromIOStream(" << paramName(streamParam) << "), ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();
@@ -2639,7 +2651,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamReader? streamReader, IceRpc.Dispatch dispatch) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToArgs(";
                 _out.inc();
@@ -2756,9 +2768,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
+          << nl << "IceRpc.StreamReader? streamReader,"
           << nl << "IceRpc.Dispatch dispatch,"
           << nl << "global::System.Threading.CancellationToken cancel) => "
-          << "DispatchAsync(this, payload, dispatch, cancel);";
+          << "DispatchAsync(this, payload, streamReader, dispatch, cancel);";
     _out.dec();
 
     _out << sp;
@@ -2767,8 +2780,9 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.StreamWriter?)> "
          << "DispatchAsync(";
     _out.inc();
-    _out << nl <<  fixId(name) << " servant,"
+    _out << nl << fixId(name) << " servant,"
          << nl << "global::System.ReadOnlyMemory<byte> payload,"
+         << nl << "IceRpc.StreamReader? streamReader,"
          << nl << "IceRpc.Dispatch dispatch,"
          << nl << "global::System.Threading.CancellationToken cancel) =>";
     _out.inc();
@@ -2786,7 +2800,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     for(const auto& opName : allOpNames)
     {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(payload, dispatch, cancel),";
+        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(payload, streamReader, dispatch, cancel),";
     }
 
     _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
@@ -2923,11 +2937,16 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
+         << nl << "IceRpc.StreamReader? streamReader,"
          << nl << "IceRpc.Dispatch dispatch,"
          << nl << "global::System.Threading.CancellationToken cancel)";
     _out.dec();
     _out << sb;
 
+    if (!streamParam)
+    {
+        _out << nl << "IceCheckNoStreamData(streamReader);";
+    }
     if (!isIdempotent(operation))
     {
          _out << nl << "IceCheckNonIdempotent(dispatch);";
@@ -2940,19 +2959,20 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params
     // that we skip).
-    if (params.empty() || (params.size() == 1 && streamParam))
+    if (params.empty())
     {
         _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch);";
-        if (streamParam)
-        {
-            _out << nl << "var " << paramName(streamParam, "iceP_");
-            _out << " = dispatch.StreamReader.ToIOStream();";
-        }
     }
-    else
+
+    if (params.size() == 1 && streamParam)
+    {
+        _out << nl << "var " << paramName(params.front(), "iceP_")
+             << " = IceByteStreamRequest(payload, streamReader, dispatch);";
+    }
+    else if (params.size() >= 1)
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(payload, dispatch);";
+             << " = Request." << fixId(opName) << "(payload, streamReader, dispatch);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
@@ -2998,7 +3018,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             if (streamReturnParam)
             {
                 _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
-                _out << "StreamWriter.FromIOStream(returnValue)";
+                _out << "new StreamWriter(returnValue)";
                 _out << ");";
             }
             else
@@ -3012,7 +3032,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             auto streamName = names.back();
             names.pop_back();
             _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
-            _out << "StreamWriter.FromIOStream(" << streamName << ")";
+            _out << "new StreamWriter(" << streamName << ")";
             _out << ");";
         }
         else
