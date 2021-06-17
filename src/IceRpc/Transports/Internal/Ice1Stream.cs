@@ -82,7 +82,6 @@ namespace IceRpc.Transports.Internal
             }
 
             var ostr = new OutputStream(Encoding.V11);
-
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             ostr.WriteByte(0); // compression status
@@ -93,13 +92,30 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
+            ostr.RewriteFixedLengthSize11(ostr.Size + frame.PayloadSize, start); // frame size
 
-            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
-            headerBuffers.CopyTo(buffers);
-            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
-            int frameSize = ByteBuffer.GetByteCount(buffers);
-            ostr.RewriteFixedLengthSize11(frameSize, start);
+            // Coalesce small payload buffers at the end of the current header buffer
+            int payloadIndex = 0;
+            while (payloadIndex < frame.Payload.Length &&
+                   frame.Payload.Span[payloadIndex].Length <= ostr.Capacity - ostr.Size)
+            {
+                ReadOnlyMemory<byte> buffer = frame.Payload.Span[payloadIndex++];
+                if (buffer.Length > 0)
+                {
+                    ostr.WriteByteSpan(buffer.Span);
+                }
+            }
+
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish(); // only headers so far
+
+            if (payloadIndex < frame.Payload.Length)
+            {
+                // Need to append the remaining payload buffers
+                var newBuffers = new ReadOnlyMemory<byte>[buffers.Length + frame.Payload.Length - payloadIndex];
+                buffers.CopyTo(newBuffers);
+                frame.Payload[payloadIndex..].CopyTo(newBuffers.AsMemory(buffers.Length));
+                buffers = newBuffers;
+            }
 
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
         }
