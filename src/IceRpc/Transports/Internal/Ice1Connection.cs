@@ -294,7 +294,9 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Perform the sending.
-                await SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                // TODO: add comment to explain CancellationToken.None
+                await Underlying.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                Sent(buffers.GetByteCount());
             }
             finally
             {
@@ -412,28 +414,6 @@ namespace IceRpc.Transports.Internal
                 offset += received;
                 Received(received);
             }
-        }
-
-        private async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
-        {
-            int sent = 0;
-            if (IsDatagram)
-            {
-                ReadOnlyMemory<byte> singleBuffer = buffers.ToSingleBuffer();
-
-                await Underlying.SendAsync(singleBuffer, cancel).ConfigureAwait(false);
-                sent = singleBuffer.Length;
-            }
-            else
-            {
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    await Underlying.SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                    sent += buffers.Span[i].Length;
-                }
-            }
-
-            Sent(sent);
         }
     }
 }

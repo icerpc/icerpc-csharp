@@ -541,19 +541,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        private async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             // Perform the write
-            int sent = 0;
 
-            for (int i = 0; i < buffers.Length; ++i)
-            {
-                // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
-                await _bufferedConnection!.SendAsync(buffers.Span[i],
-                                                     CancellationToken.None).ConfigureAwait(false);
-                sent += buffers.Span[i].Length;
-            }
-            Sent(sent);
+            // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
+            await _bufferedConnection!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+            Sent(buffers.GetByteCount());
         }
 
         internal async ValueTask SendStreamFrameAsync(

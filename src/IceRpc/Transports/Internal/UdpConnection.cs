@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
@@ -129,6 +130,9 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
         }
+
+        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            SendAsync(buffers.ToSingleBuffer(), cancel);
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
 

@@ -206,6 +206,16 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
+        {
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             _socket.Dispose();

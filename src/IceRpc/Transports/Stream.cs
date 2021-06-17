@@ -583,6 +583,8 @@ namespace IceRpc.Transports
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
 
+            // If ostr can hold the payload buffers, append them:
+
             ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
 
             var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
@@ -596,7 +598,7 @@ namespace IceRpc.Transports
                 if (frame is OutgoingRequest)
                 {
                     throw new ArgumentException(
-                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameSizeMax ({
+                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameMaxSize ({
                         _connection.PeerIncomingFrameMaxSize} bytes)",
                         nameof(frame));
                 }
@@ -605,7 +607,7 @@ namespace IceRpc.Transports
                     // Throw a remote exception instead of this response, the Ice connection will catch it and send it
                     // as the response instead of sending this response which is too large.
                     throw new DispatchException(
-                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameSizeMax ({
+                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
                         _connection.PeerIncomingFrameMaxSize} bytes)");
                 }
             }

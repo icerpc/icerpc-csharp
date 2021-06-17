@@ -151,6 +151,16 @@ namespace IceRpc.Transports.Internal
             _rand.Dispose();
         }
 
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
+        {
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+            }
+        }
+
         internal WSConnection(TcpConnection tcpConnection)
             : base(tcpConnection.Logger)
         {

@@ -60,8 +60,12 @@ namespace IceRpc.Transports.Internal
             }
             return received;
         }
+
         public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             Underlying.SendAsync(buffer, cancel);
+
+        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            Underlying.SendAsync(buffers, cancel);
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
