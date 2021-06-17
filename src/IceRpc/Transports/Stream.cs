@@ -583,15 +583,7 @@ namespace IceRpc.Transports
             OutputStream.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
 
-            // If ostr can hold the payload buffers, append them:
-
-            ReadOnlyMemory<ReadOnlyMemory<byte>> headerBuffers = ostr.Finish();
-
-            var buffers = new ReadOnlyMemory<byte>[headerBuffers.Length + frame.Payload.Length];
-            headerBuffers.CopyTo(buffers);
-            frame.Payload.CopyTo(buffers.AsMemory(headerBuffers.Length));
-            int frameSize = ByteBuffer.GetByteCount(buffers) - TransportHeader.Length - 1 - 4;
-            ostr.RewriteFixedLengthSize20(frameSize, start, 4);
+            int frameSize = ostr.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
             {
@@ -612,6 +604,33 @@ namespace IceRpc.Transports
                 }
             }
 
+            ostr.RewriteFixedLengthSize20(frameSize, start, 4);
+
+            // Coalesce small payload buffers at the end of the current header buffer
+            int payloadIndex = 0;
+            while (payloadIndex < frame.Payload.Length &&
+                   frame.Payload.Span[payloadIndex].Length <= ostr.Capacity - ostr.Size)
+            {
+                ReadOnlyMemory<byte> buffer = frame.Payload.Span[payloadIndex++];
+                if (buffer.Length > 0)
+                {
+                    ostr.WriteByteSpan(buffer.Span);
+                }
+            }
+
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish(); // only headers so far
+
+            if (payloadIndex < frame.Payload.Length)
+            {
+                // Need to append the remaining payload buffers
+                var newBuffers = new ReadOnlyMemory<byte>[buffers.Length + frame.Payload.Length - payloadIndex];
+                buffers.CopyTo(newBuffers);
+                frame.Payload[payloadIndex..].CopyTo(newBuffers.AsMemory(buffers.Length));
+                buffers = newBuffers;
+            }
+
+            // Since SendAsync writes the transport (e.g. Slic) header, we can't call SendAsync twice, once with the
+            // header buffers and a second time with the remaining payload buffers.
             await SendAsync(buffers,
                             endStream: frame.StreamDataWriter == null,
                             cancel).ConfigureAwait(false);

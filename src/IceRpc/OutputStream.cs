@@ -156,7 +156,7 @@ namespace IceRpc
         private bool OldEncoding => Encoding == Encoding.V11;
 
         // The number of bytes that the stream can hold.
-        private int _capacity;
+        internal int Capacity { get; private set; }
 
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
@@ -1039,7 +1039,7 @@ namespace IceRpc
                 _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
             }
 
-            _capacity = _currentBuffer.Length;
+            Capacity = _currentBuffer.Length;
         }
 
         /// <summary>Computes the amount of data written from the start position to the current position and writes that
@@ -1263,7 +1263,7 @@ namespace IceRpc
         private void Expand(int n)
         {
             Debug.Assert(n > 0);
-            int remaining = _capacity - Size;
+            int remaining = Capacity - Size;
             if (n > remaining)
             {
                 int size = Math.Max(DefaultBufferSize, _currentBuffer.Length * 2);
@@ -1293,7 +1293,7 @@ namespace IceRpc
                         _tail.Offset = 0;
                     }
                 }
-                _capacity += buffer.Length;
+                Capacity += buffer.Length;
             }
 
             // Once Expand returns, _tail points to a writeable byte.
