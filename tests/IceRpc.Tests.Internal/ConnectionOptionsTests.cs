@@ -113,7 +113,7 @@ namespace IceRpc.Tests.Internal
             });
             ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.Internal
 
                 using SingleStreamConnection outgoingConnection = CreateOutgoingConnection(endpoint: clientEndpoint);
 
-                ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
+                ValueTask<Endpoint> connectTask =
                     outgoingConnection.ConnectAsync(clientEndpoint, null, default);
 
                 if (ipv6Only)
@@ -193,8 +193,7 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     using SingleStreamConnection incomingConnection = await acceptTask;
-                    ValueTask<(SingleStreamConnection, Endpoint?)> task =
-                        incomingConnection.AcceptAsync(serverEndpoint, null, default);
+                    ValueTask<Endpoint?> task = incomingConnection.AcceptAsync(serverEndpoint, null, default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);

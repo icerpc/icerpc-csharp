@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-                ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
+                ValueTask<Endpoint> connectTask =
                     outgoingConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,

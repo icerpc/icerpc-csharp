@@ -26,30 +26,20 @@ namespace IceRpc.Transports.Internal
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
+        public override ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Endpoint? remoteEndpoint;
-            (Underlying, remoteEndpoint) =
-                await Underlying.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            return (this, remoteEndpoint);
-        }
+            CancellationToken cancel) =>
+            Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
             Underlying.CloseAsync(errorCode, cancel);
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
+        public override ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Endpoint localEndpoint;
-            (Underlying, localEndpoint) =
-                await Underlying.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            return (this, localEndpoint);
-        }
+            CancellationToken cancel) =>
+            Underlying.ConnectAsync(endpoint, authenticationOptions, cancel);
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {
