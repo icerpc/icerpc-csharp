@@ -647,82 +647,45 @@ namespace IceRpc.Transports.Internal
                 await _sendTask.ConfigureAwait(false);
 
                 int size = buffers.GetByteCount();
-                int payloadIndex = 0;
-                ReadOnlyMemory<byte> buffer = buffers.Span[payloadIndex++];
+                ReadOnlyMemory<byte> buffer = buffers.Span[0];
                 Memory<byte> sendBuffer = new byte[16 + buffer.Length];
                 int headerSize = PrepareHeaderForSend(opCode, size, sendBuffer);
-                sendBuffer = sendBuffer[0..(headerSize + buffer.Length)];
 
                 buffer.CopyTo(sendBuffer[headerSize..]);
                 if (!_incoming && opCode != OpCode.Pong)
                 {
-                    Mask(sendBuffer[headerSize..], 0);
+                    Mask(sendBuffer.Slice(headerSize, buffer.Length), 0);
                 }
                 int index = buffer.Length;
 
                 Logger.LogSendingWebSocketFrame(opCode, size);
 
-                /*
-                while (payloadIndex < buffers.Length &&
-                       buffers.Span[payloadIndex].Length <= sendBuffer.Length - index)
-                {
-                    ReadOnlyMemory<byte> buffer = buffers.Span[payloadIndex++];
-                    if (buffer.Length > 0)
-                    {
-                        buffer.CopyTo(sendBuffer[index..]);
-                        if (!_incoming && opCode != OpCode.Pong)
-                        {
-                            // For an outgoing connection, each frame must be masked with a random 32-bit value.
-                            Mask(sendBuffer.Slice(index, buffer.Length), index);
-                        }
-                        index += buffer.Length;
-                    }
-                }
-                */
-
-                await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
+                await _bufferedConnection.SendAsync(sendBuffer[0..(headerSize + buffer.Length)],
+                                                    cancel).ConfigureAwait(false);
 
                 // Send remaining buffers, if any.
-                buffers = buffers[payloadIndex..];
+                buffers = buffers[1..];
 
                 if (buffers.Length > 0)
                 {
                     // For an outgoing connection, each frame must be masked with a random 32-bit value.
                     if (!_incoming && opCode != OpCode.Pong)
                     {
-                        // reuse sendBuffer
-                        while (payloadIndex < buffers.Length)
+                        int buffersIndex = 0;
+                        while (buffersIndex < buffers.Length)
                         {
-                            // reuse sendBuffer to send the bytes
-                            buffer = buffers.Span[payloadIndex++];
+                            buffer = buffers.Span[buffersIndex++];
                             if (buffer.Length > 0)
                             {
-                                sendBuffer = new byte[buffer.Length];
+                                if (buffer.Length > sendBuffer.Length)
+                                {
+                                    sendBuffer = new byte[buffer.Length];
+                                }
                                 buffer.CopyTo(sendBuffer);
-                                Mask(sendBuffer, index);
+                                Mask(sendBuffer[0..buffer.Length], index);
                                 index += buffer.Length;
-                                await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
-
-                                /*
-                                while (buffer.Length > sendBuffer.Length)
-                                {
-                                    // send a full sendBuffer.Length of buffer
-                                    buffer[0..sendBuffer.Length].CopyTo(sendBuffer);
-                                    buffer = buffer[sendBuffer.Length..];
-                                    Mask(sendBuffer, index);
-                                    index += sendBuffer.Length;
-                                    await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
-                                }
-                                if (buffer.Length > 0)
-                                {
-                                    // send remaining bytes
-                                    buffer.CopyTo(sendBuffer[0..buffer.Length]);
-                                    Mask(sendBuffer[0..buffer.Length], index);
-                                    index += buffer.Length;
-                                    await _bufferedConnection.SendAsync(sendBuffer[0..buffer.Length],
-                                                                        cancel).ConfigureAwait(false);
-                                }
-                                */
+                                await _bufferedConnection.SendAsync(sendBuffer[0..buffer.Length],
+                                                                    cancel).ConfigureAwait(false);
                             }
                         }
                     }
