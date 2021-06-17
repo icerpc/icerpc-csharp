@@ -143,14 +143,8 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            _bufferedConnection.ReceiveDatagramAsync(cancel);
-
-        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-             SendImplAsync(OpCode.Data, buffer, cancel);
-
-        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            _bufferedConnection.SendDatagramAsync(buffer, cancel);
+        public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+            SendImplAsync(OpCode.Data, buffer, cancel);
 
         protected override void Dispose(bool disposing)
         {
@@ -616,31 +610,31 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask<int> SendImplAsync(
+        private async ValueTask SendImplAsync(
             OpCode opCode,
             ReadOnlyMemory<byte> buffer,
             CancellationToken cancel)
         {
             // Write can be called concurrently because it's called from both ReadAsync and WriteAsync. For example,
             // the reading of a ping frame requires writing a pong frame.
-            Task<int> task;
+            Task task;
             lock (_mutex)
             {
-                ValueTask<int> writeTask = PerformWriteAsync(opCode, buffer, cancel);
+                ValueTask writeTask = PerformWriteAsync(opCode, buffer, cancel);
 
                 // Optimization: we check if the write completed already and avoid creating a Task if it did.
                 if (writeTask.IsCompletedSuccessfully)
                 {
                     _sendTask = Task.CompletedTask;
-                    return writeTask.Result;
+                    return;
                 }
 
                 task = writeTask.AsTask();
                 _sendTask = task;
             }
-            return await task.ConfigureAwait(false);
+            await task.ConfigureAwait(false);
 
-            async ValueTask<int> PerformWriteAsync(
+            async ValueTask PerformWriteAsync(
                 OpCode opCode,
                 ReadOnlyMemory<byte> buffer,
                 CancellationToken cancel)
@@ -664,7 +658,6 @@ namespace IceRpc.Transports.Internal
                     Mask(payload);
                 }
                 await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
-                return size;
 
                 void Mask(Memory<byte> payload)
                 {

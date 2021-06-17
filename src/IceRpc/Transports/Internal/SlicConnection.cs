@@ -549,10 +549,10 @@ namespace IceRpc.Transports.Internal
             for (int i = 0; i < buffers.Length; ++i)
             {
                 // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
-                sent += await _bufferedConnection!.SendAsync(buffers.Span[i],
-                                                             CancellationToken.None).ConfigureAwait(false);
+                await _bufferedConnection!.SendAsync(buffers.Span[i],
+                                                     CancellationToken.None).ConfigureAwait(false);
+                sent += buffers.Span[i].Length;
             }
-            Debug.Assert(sent == buffers.GetByteCount());
             Sent(sent);
         }
 

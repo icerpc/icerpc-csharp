@@ -15,6 +15,10 @@ namespace IceRpc.Transports
         /// <summary>Returns information about the connection.</summary>
         public abstract ConnectionInformation ConnectionInformation { get; }
 
+        /// <summary>When this connection is a datagram connection, the maximum size of a datagram received over this
+        /// connection.</summary>
+        public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
+
         internal ILogger Logger { get; }
 
         /// <summary>This property should be used for testing purpose only.</summary>
@@ -36,7 +40,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accepts a new incoming connection. This is called after the acceptor accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
@@ -63,28 +67,17 @@ namespace IceRpc.Transports
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Receives data from the connection. This is used for stream based connections only.</summary>
+        /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes received.</return>
+        /// <returns>The number of bytes received.</returns>
         public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-        /// <summary>Receives a new datagram from the connection, only supported for datagram connections.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The received data.</return>
-        public abstract ValueTask<ReadOnlyMemory<byte>> ReceiveDatagramAsync(CancellationToken cancel);
-
-        /// <summary>Send data over the connection.</summary>
+        /// <summary>Sends data over the connection.</summary>
         /// <param name="buffer">The buffer containing the data to send.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes sent.</return>
-        public abstract ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
-
-        /// <summary>Send datagram over the connection.</summary>
-        /// <param name="buffer">The buffer containing the data to send.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes sent.</return>
-        public abstract ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
+        /// <returns>A value task that completes once the buffer is sent.</returns>
+        public abstract ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
