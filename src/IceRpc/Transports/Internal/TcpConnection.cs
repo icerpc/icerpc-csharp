@@ -208,7 +208,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing)
         {
-             _socket.Dispose();
+            _socket.Dispose();
             SslStream?.Dispose();
 
             try
