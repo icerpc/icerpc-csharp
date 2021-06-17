@@ -37,14 +37,14 @@ namespace IceRpc.Transports.Internal
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly Socket _socket;
 
-        public override ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
+        public override ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new((this, null));
+            CancellationToken cancel) => new(null as Endpoint);
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
+        public override async ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
@@ -53,7 +53,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                return (this, ((UdpEndpoint)endpoint).Clone(_socket.LocalEndPoint!));
+                return ((UdpEndpoint)endpoint).Clone(_socket.LocalEndPoint!);
             }
             catch (Exception ex)
             {

@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -62,14 +62,14 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
             using SingleStreamConnection incomingConnection = await acceptTask;
 
-            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask2 = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask2 = incomingConnection.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -81,16 +81,15 @@ namespace IceRpc.Tests.Internal
                 await outgoingConnection.SendAsync(new byte[1], default);
             }
 
-            (SingleStreamConnection connection, Endpoint _) = await acceptTask2;
+            await acceptTask2;
 
-            // The SslConnection is returned if a secure connection is requested.
-            if (IsSecure && TransportName != "ws")
+            if (TransportName == "ws")
             {
-                Assert.That(connection, Is.InstanceOf<SslConnection>());
+                Assert.That(incomingConnection, Is.InstanceOf<WSConnection>());
             }
             else
             {
-                Assert.That(connection, Is.Not.InstanceOf<SslConnection>());
+                Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
             }
         }
 
@@ -205,7 +204,7 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = CreateAcceptor();
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -214,7 +213,7 @@ namespace IceRpc.Tests.Internal
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask = incomingConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);

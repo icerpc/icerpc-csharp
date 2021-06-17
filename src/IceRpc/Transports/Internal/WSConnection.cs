@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
         public override ConnectionInformation ConnectionInformation =>
             new WSConnectionInformation(
                 _bufferedConnection.NetworkSocket!,
-                _bufferedConnection.Underlying is SslConnection sslConnection ? sslConnection.SslStream : null)
+                ((TcpConnection)_bufferedConnection.Underlying).SslStream)
             {
                 Headers = _parser.GetHeaders()
             };
@@ -64,17 +64,16 @@ namespace IceRpc.Transports.Internal
         private readonly byte[] _sendMask;
         private Task _sendTask = Task.CompletedTask;
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
+        public override async ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Endpoint? remoteEndpoint;
-            (_, remoteEndpoint) =
+            Endpoint? remoteEndpoint =
                 await _bufferedConnection.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(true, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
-            return (this, remoteEndpoint);
+            return remoteEndpoint;
         }
 
         public override async ValueTask CloseAsync(long errorCode, CancellationToken cancel)
@@ -98,17 +97,16 @@ namespace IceRpc.Transports.Internal
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
+        public override async ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Endpoint localEndpoint;
-            (_, localEndpoint) =
+            Endpoint localEndpoint =
                 await _bufferedConnection.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
             var wsEndpoint = (WSEndpoint)endpoint;
             await InitializeAsync(false, wsEndpoint.Host, wsEndpoint.Resource, cancel).ConfigureAwait(false);
-            return (this, localEndpoint);
+            return localEndpoint;
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)

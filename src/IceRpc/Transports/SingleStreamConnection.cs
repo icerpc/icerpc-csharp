@@ -45,10 +45,8 @@ namespace IceRpc.Transports
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A tuple with the single stream connection to use after the initialization and the remote endpoint.
-        /// The connection implementation might return a different connection based on information read on the
-        /// connection.</returns>
-        public abstract ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
+        /// <returns>The endpoint.</returns>
+        public abstract ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
@@ -59,10 +57,8 @@ namespace IceRpc.Transports
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A tuple with the single stream connection to use after the initialization and the local endpoint.
-        /// The connection implementation might return a different connection based on information read on the
-        /// connection.</returns>
-        public abstract ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
+        /// <returns>The endpoint.</returns>
+        public abstract ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
