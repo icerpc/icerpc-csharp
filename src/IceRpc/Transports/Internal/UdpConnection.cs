@@ -86,12 +86,6 @@ namespace IceRpc.Transports.Internal
                 }
                 return received;
             }
-            catch (SocketException e) when (e.SocketErrorCode == SocketError.MessageSize)
-            {
-                // Ignore and return an empty buffer if the datagram is too large.
-                // TODO: is this still correct?
-                return 0;
-            }
             catch (Exception ex) when (cancel.IsCancellationRequested)
             {
                 throw new OperationCanceledException(null, ex, cancel);
