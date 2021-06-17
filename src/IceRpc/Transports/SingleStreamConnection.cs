@@ -17,7 +17,7 @@ namespace IceRpc.Transports
 
         /// <summary>When this connection is a datagram connection, the maximum size of a datagram received over this
         /// connection.</summary>
-        public virtual int DatagramMaxReceiveSize => 0;
+        public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         internal ILogger Logger { get; }
 

@@ -142,6 +142,7 @@ namespace IceRpc.Transports.Internal
             _receivePayloadOffset += received;
             return received;
         }
+
         public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             SendImplAsync(OpCode.Data, buffer, cancel);
 

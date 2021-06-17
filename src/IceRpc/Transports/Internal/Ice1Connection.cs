@@ -49,7 +49,7 @@ namespace IceRpc.Transports.Internal
                 else
                 {
                     buffer = new byte[256];
-                    await ReceiveFullBufferAsync(buffer[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
+                    await ReceiveUntilFullAsync(buffer[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
                 }
 
                 // Check the header
@@ -101,7 +101,7 @@ namespace IceRpc.Transports.Internal
 
                 if (!IsDatagram && frameSize > Ice1Definitions.HeaderSize)
                 {
-                    await ReceiveFullBufferAsync(buffer[Ice1Definitions.HeaderSize..], cancel).ConfigureAwait(false);
+                    await ReceiveUntilFullAsync(buffer[Ice1Definitions.HeaderSize..], cancel).ConfigureAwait(false);
                 }
 
                 // Make sure the connection is marked as validated. This flag is necessary because incoming
@@ -403,7 +403,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask ReceiveFullBufferAsync(Memory<byte> buffer, CancellationToken cancel)
+        private async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int offset = 0;
             while (offset != buffer.Length)
