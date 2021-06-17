@@ -44,8 +44,8 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(Port);
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string proxyHost) =>
-            proxyHost == Host ? this : Clone(proxyHost, Port);
+        protected internal override Endpoint GetProxyEndpoint(string hostName) =>
+            hostName == Host ? this : Clone(hostName, Port);
 
         internal IPEndpoint Clone(EndPoint address)
         {

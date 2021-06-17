@@ -57,7 +57,7 @@ namespace IceRpc.Tests.ClientServer
                     HasColocEndpoint = false,
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    ProxyHost = "localhost"
+                    HostName = "localhost"
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = new Bidir(),
                 Endpoint = GetTestEndpoint(),
                 // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                ProxyHost = "127.0.0.1"
+                HostName = "127.0.0.1"
             };
             server.Listen();
 
@@ -439,7 +439,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     HasColocEndpoint = false,
                     Endpoint = GetTestEndpoint(port: i),
-                    ProxyHost = "localhost"
+                    HostName = "localhost"
                 }).ToArray();
 
             var routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -482,7 +482,7 @@ namespace IceRpc.Tests.ClientServer
                 Dispatcher = router,
                 HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ProxyHost = "localhost"
+                HostName = "localhost"
             };
             server.Listen();
 
