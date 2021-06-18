@@ -156,6 +156,7 @@ namespace IceRpc
         private bool OldEncoding => Encoding == Encoding.V11;
 
         // The number of bytes that the stream can hold.
+        // TODO: temporarily internal, should revert back to private field
         internal int Capacity { get; private set; }
 
         // The current class/exception format, can be either Compact or Sliced.
