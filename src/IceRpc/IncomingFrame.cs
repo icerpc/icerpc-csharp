@@ -24,17 +24,16 @@ namespace IceRpc
         /// <summary>Returns the fields of this frame.</summary>
         public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; }
 
-        /// <summary>The payload of this frame. The bytes inside the data should not be written to; they are writable
-        /// because of the <see cref="System.Net.Sockets.Socket"/> methods for sending.</summary>
-        public ArraySegment<byte> Payload
+        /// <summary>The payload of this frame.</summary>
+        public ReadOnlyMemory<byte> Payload
         {
             get =>
-                _payload is ArraySegment<byte> value ? value : throw new InvalidOperationException("payload not set");
+                _payload is ReadOnlyMemory<byte> value ? value : throw new InvalidOperationException("payload not set");
 
             set
             {
                 _payload = value;
-                PayloadSize = value.Count;
+                PayloadSize = value.Length;
             }
         }
 
@@ -57,13 +56,13 @@ namespace IceRpc
         private protected bool IsPayloadSet => _payload != null;
 
         private Connection? _connection;
-        private ArraySegment<byte>? _payload;
+        private ReadOnlyMemory<byte>? _payload;
         private Stream? _stream;
 
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The payload.</returns>
-        public virtual ValueTask<ArraySegment<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
+        public virtual ValueTask<ReadOnlyMemory<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
             IsPayloadSet ? new(Payload) : throw new NotImplementedException();
 
         /// <summary>Constructs a new <see cref="IncomingFrame"/>.</summary>

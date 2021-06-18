@@ -34,14 +34,14 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a field value written using <see cref="OutgoingFrame.FieldsOverride"/>.</summary>
+        /// <summary>Reads a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The type of the contents.</typeparam>
         /// <param name="value">The field value.</param>
         /// <param name="reader">The <see cref="InputStreamReader{T}"/> that reads the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the contents.</param>
         /// <returns>The contents of the value.</returns>
-        /// <exception name="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
         public static T ReadFieldValue<T>(
             this ReadOnlyMemory<byte> value,
             InputStreamReader<T> reader,

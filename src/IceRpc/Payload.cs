@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -25,7 +24,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
             new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
@@ -45,7 +44,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
@@ -66,17 +65,14 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var payload = new List<Memory<byte>>();
-
-            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
+            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
             writer(ostr, in args);
-            ostr.Finish();
-            return payload.ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
@@ -100,17 +96,14 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var payload = new List<Memory<byte>>();
-
-            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
             writer(ostr, in returnValueTuple);
-            ostr.Finish();
-            return payload.ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -128,17 +121,14 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var payload = new List<Memory<byte>>();
-
-            var ostr = new OutputStream(proxy.Encoding, payload, classFormat);
+            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
             writer(ostr, arg);
-            ostr.Finish();
-            return payload.ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -156,17 +146,14 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var payload = new List<Memory<byte>>();
-
-            var ostr = new OutputStream(dispatch.Encoding, payload, classFormat);
+            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
             writer(ostr, returnValue);
-            ostr.Finish();
-            return payload.ToReadOnlyMemory();
+            return ostr.Finish();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -203,7 +190,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
@@ -237,7 +224,7 @@ namespace IceRpc
                 {
                     throw new ArgumentException("cannot read compressed payload");
                 }
-                payload = payload.Slice(1);
+                payload = payload[1..];
             }
 
             var istr = new InputStream(payload, payloadEncoding, connection, invoker);
@@ -268,12 +255,10 @@ namespace IceRpc
                 };
             }
 
-            var payload = new List<Memory<byte>>();
-
             OutputStream ostr;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                ostr = new OutputStream(request.PayloadEncoding, payload, FormatType.Sliced);
+                ostr = new OutputStream(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
@@ -297,12 +282,11 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding, payload);
+                ostr = new OutputStream(Ice1Definitions.Encoding);
                 ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
-            ostr.Finish();
-            return (payload.ToReadOnlyMemory(), replyStatus);
+            return (ostr.Finish(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>

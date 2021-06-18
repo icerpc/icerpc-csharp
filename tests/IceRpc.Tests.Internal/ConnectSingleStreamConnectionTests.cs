@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-                ValueTask<(SingleStreamConnection, Endpoint)> connectTask =
+                ValueTask<Endpoint> connectTask =
                     outgoingConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
@@ -76,7 +76,8 @@ namespace IceRpc.Tests.Internal
         }
 
         private SingleStreamConnection CreateOutgoingConnection() =>
-            (ClientEndpoint.CreateOutgoingConnection(
+            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                ClientEndpoint,
                 OutgoingConnectionOptions,
                 Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
     }

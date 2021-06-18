@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 
 namespace IceRpc
 {
@@ -40,9 +39,9 @@ namespace IceRpc
                         request.PayloadEncoding == Encoding.V20 &&
                         request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
-                        ArraySegment<byte> payload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
+                        ReadOnlyMemory<byte> payload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
 
-                        if (payload.Count >= 1 && payload[0] == (byte)CompressionFormat.Deflate)
+                        if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
                         {
                             // TODO maxSize should come from the connection
                             request.Payload = payload.Decompress(maxSize: 1024 * 1024);

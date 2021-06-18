@@ -74,14 +74,18 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     incomingConnection = new Connection(
-                        Endpoint.CreateIncomingConnection(_server.ConnectionOptions, _server.Logger),
+                        Endpoint.TransportDescriptor!.IncomingConnectionFactory!(Endpoint,
+                                                                                _server.ConnectionOptions,
+                                                                                _server.Logger),
                         _server);
                     _ = incomingConnection.ConnectAsync(default);
                     outgoingConnection = await ConnectAsync(incomingConnection.LocalEndpoint!);
                 }
                 else
                 {
-                    using IAcceptor acceptor = Endpoint.CreateAcceptor(_server.ConnectionOptions, _server.Logger);
+                    using IAcceptor acceptor = Endpoint.TransportDescriptor!.AcceptorFactory!(Endpoint,
+                                                                                             _server.ConnectionOptions,
+                                                                                             _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
                     Task<Connection> clientTask = ConnectAsync(acceptor.Endpoint);
                     incomingConnection = await serverTask;
@@ -272,13 +276,16 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.CreateAcceptor(new IncomingConnectionOptions
-            {
-                TransportOptions = new TcpOptions()
+            using IAcceptor acceptor = factory.Endpoint.TransportDescriptor!.AcceptorFactory!(
+                factory.Endpoint,
+                new IncomingConnectionOptions
                 {
-                    ListenerBackLog = 1
-                }
-            }, factory.Logger);
+                    TransportOptions = new TcpOptions()
+                    {
+                        ListenerBackLog = 1
+                    }
+                },
+                factory.Logger);
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
             // is handled by the outgoing connection factory.

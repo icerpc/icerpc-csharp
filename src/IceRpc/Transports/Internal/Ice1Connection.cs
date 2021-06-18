@@ -33,75 +33,76 @@ namespace IceRpc.Transports.Internal
             while (true)
             {
                 // Receive the Ice1 frame header.
-                ArraySegment<byte> buffer;
+                Memory<byte> buffer;
                 if (IsDatagram)
                 {
-                    buffer = await Underlying.ReceiveDatagramAsync(cancel).ConfigureAwait(false);
-                    if (buffer.Count < Ice1Definitions.HeaderSize)
+                    buffer = new byte[Underlying.DatagramMaxReceiveSize];
+                    int received = await Underlying.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    if (received < Ice1Definitions.HeaderSize)
                     {
-                        Logger.LogReceivedInvalidDatagram(buffer.Count);
-                        continue;
+                        Logger.LogReceivedInvalidDatagram(received);
+                        continue; // while
                     }
+
+                    buffer = buffer[0..received];
                     Received(buffer);
                 }
                 else
                 {
-                    buffer = new ArraySegment<byte>(new byte[256], 0, Ice1Definitions.HeaderSize);
-                    await ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    buffer = new byte[256];
+                    await ReceiveUntilFullAsync(buffer[0..Ice1Definitions.HeaderSize], cancel).ConfigureAwait(false);
                 }
 
                 // Check the header
-                Ice1Definitions.CheckHeader(buffer.AsReadOnlySpan(0, Ice1Definitions.HeaderSize));
-                int size = buffer.AsReadOnlySpan(10, 4).ReadInt();
-                if (size < Ice1Definitions.HeaderSize)
+                Ice1Definitions.CheckHeader(buffer.Span.Slice(0, Ice1Definitions.HeaderSize));
+                int frameSize = buffer.AsReadOnlySpan().Slice(10, 4).ReadInt();
+                if (frameSize < Ice1Definitions.HeaderSize)
                 {
                     if (IsDatagram)
                     {
-                        Logger.LogReceivedInvalidDatagram(size);
+                        Logger.LogReceivedInvalidDatagram(frameSize);
                     }
                     else
                     {
-                        throw new InvalidDataException($"received ice1 frame with only {size} bytes");
+                        throw new InvalidDataException($"received ice1 frame with only {frameSize} bytes");
                     }
-                    continue;
+                    continue; // while
                 }
-                if (size > IncomingFrameMaxSize)
+                if (frameSize > IncomingFrameMaxSize)
                 {
                     if (IsDatagram)
                     {
-                        Logger.LogDatagramSizeExceededIncomingFrameMaxSize(size);
+                        Logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
                     }
                     else
                     {
                         throw new InvalidDataException(
-                            $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
+                            $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
                     }
                 }
 
                 // Read the remainder of the frame if needed.
-                if (size > buffer.Count)
+                if (frameSize > buffer.Length)
                 {
                     if (IsDatagram)
                     {
-                        Logger.LogDatagramMaximumSizeExceeded(buffer.Count);
+                        Logger.LogDatagramMaximumSizeExceeded(frameSize);
                         continue;
                     }
 
-                    if (size > buffer.Array!.Length)
-                    {
-                        // Allocate a new array and copy the header over.
-                        var tmpBuffer = new ArraySegment<byte>(new byte[size], 0, size);
-                        buffer.AsSpan().CopyTo(tmpBuffer.AsSpan(0, Ice1Definitions.HeaderSize));
-                        buffer = tmpBuffer;
-                    }
-                    else
-                    {
-                        buffer = new ArraySegment<byte>(buffer.Array!, 0, size);
-                    }
-                    Debug.Assert(size == buffer.Count);
+                    Memory<byte> newBuffer = new byte[frameSize];
+                    buffer[0..Ice1Definitions.HeaderSize].CopyTo(newBuffer[0..Ice1Definitions.HeaderSize]);
+                    buffer = newBuffer;
+                }
+                else if (!IsDatagram)
+                {
+                    buffer = buffer[0..frameSize];
+                }
 
-                    await ReceiveAsync(buffer.Slice(Ice1Definitions.HeaderSize), cancel).ConfigureAwait(false);
+                if (!IsDatagram && frameSize > Ice1Definitions.HeaderSize)
+                {
+                    await ReceiveUntilFullAsync(buffer[Ice1Definitions.HeaderSize..], cancel).ConfigureAwait(false);
                 }
 
                 // Make sure the connection is marked as validated. This flag is necessary because incoming
@@ -114,7 +115,7 @@ namespace IceRpc.Transports.Internal
 
                 // Parse the received frame and translate it into a stream ID, frame type and frame data. The returned
                 // stream ID can be negative if the Ice1 frame is no longer supported (batch requests).
-                (long streamId, Ice1FrameType frameType, ArraySegment<byte> frame) = ParseFrame(buffer);
+                (long streamId, Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = ParseFrame(buffer);
                 if (streamId >= 0)
                 {
                     if (TryGetStream(streamId, out Ice1Stream? stream))
@@ -294,7 +295,9 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Perform the sending.
-                await SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                // An Ice1 frame must always be sent entirely even if the sending of the stream data is canceled.
+                await Underlying.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                Sent(buffers);
             }
             finally
             {
@@ -334,11 +337,11 @@ namespace IceRpc.Transports.Internal
             return id;
         }
 
-        private (long, Ice1FrameType, ArraySegment<byte>) ParseFrame(ArraySegment<byte> readBuffer)
+        private (long, Ice1FrameType, ReadOnlyMemory<byte>) ParseFrame(ReadOnlyMemory<byte> readBuffer)
         {
             // The magic and version fields have already been checked.
-            var frameType = (Ice1FrameType)readBuffer[8];
-            byte compressionStatus = readBuffer[9];
+            var frameType = (Ice1FrameType)readBuffer.Span[8];
+            byte compressionStatus = readBuffer.Span[9];
             if (compressionStatus == 2)
             {
                 throw new NotSupportedException("cannot decompress ice1 frame");
@@ -353,7 +356,7 @@ namespace IceRpc.Transports.Internal
 
                 case Ice1FrameType.Request:
                 {
-                    int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
 
                     // Compute the stream ID out of the request ID. For one-way requests which use a null request ID,
                     // we generate a new stream ID using the _nextPeerUnidirectionalId counter.
@@ -366,12 +369,12 @@ namespace IceRpc.Transports.Internal
                     {
                         streamId = ((requestId - 1) << 2) + (IsIncoming ? 0 : 1);
                     }
-                    return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
+                    return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }
 
                 case Ice1FrameType.RequestBatch:
                 {
-                    int invokeNum = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int invokeNum = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
                     Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                     if (invokeNum < 0)
@@ -384,9 +387,9 @@ namespace IceRpc.Transports.Internal
 
                 case Ice1FrameType.Reply:
                 {
-                    int requestId = readBuffer.AsReadOnlySpan(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
                     long streamId = ((requestId - 1) << 2) + (IsIncoming ? 1 : 0);
-                    return (streamId, frameType, readBuffer.Slice(Ice1Definitions.HeaderSize + 4));
+                    return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }
 
                 case Ice1FrameType.ValidateConnection:
@@ -403,38 +406,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancel = default)
+        private async ValueTask ReceiveUntilFullAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             int offset = 0;
-            while (offset != buffer.Count)
+            while (offset != buffer.Length)
             {
-                offset += await Underlying.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
+                offset += await Underlying.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
             Received(buffer);
-        }
-
-        private async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
-        {
-            int sent = 0;
-            if (IsDatagram)
-            {
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    sent += await Underlying.SendDatagramAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    sent += await Underlying.SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
-                }
-            }
-
-            // TODO: what's the point of SendAsync/SendDatagramAsync returning the number of bytes sent since they
-            // always send the whole buffer?
-            Debug.Assert(sent == buffers.GetByteCount());
-            Sent(buffers);
         }
     }
 }

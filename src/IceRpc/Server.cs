@@ -58,6 +58,25 @@ namespace IceRpc
         /// value is true.</value>
         public bool HasColocEndpoint { get; set; } = true;
 
+        /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
+        /// address.</summary>
+        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
+        /// <see cref="Dns.GetHostName()"/>.</value>
+        public string HostName
+        {
+            get => _hostName;
+            set
+            {
+                if (value.Length == 0)
+                {
+                    throw new ArgumentException($"{nameof(HostName)} must have at least one character",
+                                                nameof(HostName));
+                }
+                _hostName = value;
+                UpdateProxyEndpoint();
+            }
+        }
+
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
         /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
         /// <value>The logger factory of this server.</value>
@@ -77,34 +96,9 @@ namespace IceRpc
 
         /// <summary>Returns the endpoint included in proxies created by
         /// <see cref="IServicePrx.FromServer(Server, string?)"/>. This endpoint is computed from the values of
-        /// <see cref="Endpoint"/> and <see cref="ProxyHost"/>.</summary>
+        /// <see cref="Endpoint"/> and <see cref="HostName"/>.</summary>
         /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
         public Endpoint? ProxyEndpoint { get; private set; }
-
-        /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
-        /// address.</summary>
-        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
-        /// <see cref="Dns.GetHostName()"/>.</value>
-        public string ProxyHost
-        {
-            get => _proxyHost;
-            set
-            {
-                if (_listening)
-                {
-                    throw new InvalidOperationException(
-                        "cannot change the proxy host of a server after calling Listen");
-                }
-
-                if (value.Length == 0)
-                {
-                    throw new ArgumentException($"{nameof(ProxyHost)} must have at least one character",
-                                                nameof(ProxyHost));
-                }
-                _proxyHost = value;
-                UpdateProxyEndpoint();
-            }
-        }
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
@@ -123,6 +117,8 @@ namespace IceRpc
 
         private Endpoint? _endpoint;
 
+        private string _hostName = Dns.GetHostName().ToLowerInvariant();
+
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
 
@@ -130,8 +126,6 @@ namespace IceRpc
 
         // protects _shutdownTask
         private readonly object _mutex = new();
-
-        private string _proxyHost = Dns.GetHostName().ToLowerInvariant();
 
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -166,18 +160,21 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint.HasAcceptor)
+                if (_endpoint.TransportDescriptor?.AcceptorFactory is
+                    Func<Endpoint, IncomingConnectionOptions, ILogger, IAcceptor> acceptorFactory)
                 {
-                    _acceptor = _endpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _acceptor = acceptorFactory(_endpoint, ConnectionOptions, Logger);
                     _endpoint = _acceptor.Endpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_acceptor));
                 }
-                else
+                else if (_endpoint.TransportDescriptor?.IncomingConnectionFactory is
+                    Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection> incomingConnectionFactory)
                 {
-                    MultiStreamConnection multiStreamConnection = _endpoint.CreateIncomingConnection(ConnectionOptions, Logger);
+                    MultiStreamConnection multiStreamConnection =
+                        incomingConnectionFactory(_endpoint, ConnectionOptions, Logger);
                     var incomingConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -185,6 +182,11 @@ namespace IceRpc
                     // Connect the connection to start accepting new streams.
                     _ = incomingConnection.ConnectAsync(default);
                     _connections.Add(incomingConnection);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"cannot create acceptor or incoming connection with endpoint '{_endpoint}'");
                 }
 
                 _listening = true;
@@ -195,7 +197,8 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocAcceptor = colocEndpoint.CreateAcceptor(ConnectionOptions, Logger);
+                    _colocAcceptor =
+                        colocEndpoint.TransportDescriptor!.AcceptorFactory!(colocEndpoint, ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocAcceptor));
 
                     _colocRegistry.Add(_endpoint, colocEndpoint);
@@ -301,7 +304,7 @@ namespace IceRpc
             endpoint.Transport == Transport.Coloc ? endpoint :
                 (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 
-        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(ProxyHost);
+        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
 
         private async Task AcceptAsync(IAcceptor acceptor)
         {

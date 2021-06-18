@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,7 +11,7 @@ namespace IceRpc.Transports.Internal
 {
     /// <summary>The Ice1Stream class provides a stream implementation of the Ice1NetworkSocketSocket and
     /// Ice1 protocol.</summary>
-    internal class Ice1Stream : SignaledStream<(Ice1FrameType, ArraySegment<byte>)>
+    internal class Ice1Stream : SignaledStream<(Ice1FrameType, ReadOnlyMemory<byte>)>
     {
         protected internal override bool ReceivedEndOfStream =>
             (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
@@ -45,7 +46,7 @@ namespace IceRpc.Transports.Internal
         internal Ice1Stream(Ice1Connection connection, bool bidirectional, bool control)
             : base(connection, bidirectional, control) => _connection = connection;
 
-        internal void ReceivedFrame(Ice1FrameType frameType, ArraySegment<byte> frame)
+        internal void ReceivedFrame(Ice1FrameType frameType, ReadOnlyMemory<byte> frame)
         {
             if (frameType == Ice1FrameType.Reply && _connection.LastResponseStreamId < Id)
             {
@@ -55,12 +56,12 @@ namespace IceRpc.Transports.Internal
             SetResult((frameType, frame));
         }
 
-        private protected override async ValueTask<ArraySegment<byte>> ReceiveFrameAsync(
+        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
-            (Ice1FrameType frameType, ArraySegment<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
+            (Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)
@@ -81,9 +82,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var headerBuffer = new List<Memory<byte>>(1);
-            var ostr = new OutputStream(Encoding.V11, headerBuffer);
-
+            var ostr = new OutputStream(Encoding.V11);
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             ostr.WriteByte(0); // compression status
@@ -93,15 +92,29 @@ namespace IceRpc.Transports.Internal
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
             ostr.WriteInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(ostr);
-            ostr.Finish();
 
-            var buffer = new ReadOnlyMemory<byte>[1 + frame.Payload.Length];
-            buffer[0] = headerBuffer[0];
-            frame.Payload.CopyTo(buffer.AsMemory(1));
-            int frameSize = buffer.AsReadOnlyMemory().GetByteCount();
-            ostr.RewriteFixedLengthSize11(frameSize, start);
+            ostr.RewriteFixedLengthSize11(ostr.Size + frame.PayloadSize, start); // frame size
 
-            await _connection.SendFrameAsync(this, buffer, cancel).ConfigureAwait(false);
+            // Coalesce small payload buffers at the end of the current header buffer
+            int payloadIndex = 0;
+            while (payloadIndex < frame.Payload.Length &&
+                   frame.Payload.Span[payloadIndex].Length <= ostr.Capacity - ostr.Size)
+            {
+                ostr.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+            }
+
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish(); // only headers so far
+
+            if (payloadIndex < frame.Payload.Length)
+            {
+                // Need to append the remaining payload buffers
+                var newBuffers = new ReadOnlyMemory<byte>[buffers.Length + frame.Payload.Length - payloadIndex];
+                buffers.CopyTo(newBuffers);
+                frame.Payload[payloadIndex..].CopyTo(newBuffers.AsMemory(buffers.Length));
+                buffers = newBuffers;
+            }
+
+            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
         }
     }
 }

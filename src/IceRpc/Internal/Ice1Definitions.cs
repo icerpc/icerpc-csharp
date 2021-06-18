@@ -61,10 +61,11 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly byte[] _voidReturnValuePayload11 = Array.Empty<byte>();
+        // TODO: some tests fail on macOS when the value is ReadOnlyMemory<byte>.Empty. Need to figure out why.
+        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = Array.Empty<byte>();
 
         // The single byte corresponds to the compression format.
-        private static readonly byte[] _voidReturnValuePayload20 = new byte[] { 0 };
+        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload20 = new byte[] { 0 };
 
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
@@ -92,17 +93,15 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Returns the payload of an ice1 request frame for an operation with no argument.</summary>
-        /// <param name="encoding">The encoding of this empty args payload. The header of this payload is always encoded
-        /// using ice1's header encoding (1.1).</param>
+        /// <param name="encoding">The encoding of this empty args payload.</param>
         /// <returns>The payload.</returns>
-        internal static ArraySegment<byte> GetEmptyArgsPayload(Encoding encoding) =>
+        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(Encoding encoding) =>
             GetVoidReturnValuePayload(encoding);
 
         /// <summary>Returns the payload of an ice1 response frame for an operation returning void.</summary>
-        /// <param name="encoding">The encoding of this void return. The header of this payload is always encoded
-        /// using ice1's header encoding (1.1).</param>
+        /// <param name="encoding">The encoding of this void return.</param>
         /// <returns>The payload.</returns>
-        internal static ArraySegment<byte> GetVoidReturnValuePayload(Encoding encoding)
+        internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(Encoding encoding)
         {
             encoding.CheckSupported();
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;

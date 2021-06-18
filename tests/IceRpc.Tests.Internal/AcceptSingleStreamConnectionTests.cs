@@ -4,7 +4,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -42,7 +41,7 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -63,14 +62,14 @@ namespace IceRpc.Tests.Internal
             ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
             using SingleStreamConnection incomingConnection = await acceptTask;
 
-            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask2 = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask2 = incomingConnection.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -82,16 +81,15 @@ namespace IceRpc.Tests.Internal
                 await outgoingConnection.SendAsync(new byte[1], default);
             }
 
-            (SingleStreamConnection connection, Endpoint _) = await acceptTask2;
+            await acceptTask2;
 
-            // The SslConnection is returned if a secure connection is requested.
-            if (IsSecure && TransportName != "ws")
+            if (TransportName == "ws")
             {
-                Assert.IsInstanceOf<SslConnection>(connection);
+                Assert.That(incomingConnection, Is.InstanceOf<WSConnection>());
             }
             else
             {
-                Assert.IsNotInstanceOf<SslConnection>(connection);
+                Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
             }
         }
 
@@ -148,7 +146,9 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
+                acceptor = serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                IncomingConnectionOptions,
+                                                                                Logger);
             }
             else
             {
@@ -169,12 +169,16 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger).Dispose());
+                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                   IncomingConnectionOptions,
+                                                                                   Logger).Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => serverEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger));
+                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
+                                                                                   IncomingConnectionOptions,
+                                                                                   Logger));
                 }
             }
             else
@@ -200,7 +204,7 @@ namespace IceRpc.Tests.Internal
             using IAcceptor acceptor = CreateAcceptor();
 
             using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<(SingleStreamConnection, Endpoint)> connectTask = outgoingConnection.ConnectAsync(
+            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
@@ -209,7 +213,7 @@ namespace IceRpc.Tests.Internal
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<(SingleStreamConnection, Endpoint?)> acceptTask = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask = incomingConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);
@@ -226,7 +230,8 @@ namespace IceRpc.Tests.Internal
         }
 
         private SingleStreamConnection CreateOutgoingConnection() =>
-            (ClientEndpoint.CreateOutgoingConnection(
+            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                ClientEndpoint,
                 OutgoingConnectionOptions,
                 Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
 

@@ -5,7 +5,6 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -169,9 +168,11 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamConnection = ClientEndpoint.CreateOutgoingConnection(
-                connectionOptions ?? OutgoingConnectionOptions,
-                Logger);
+            MultiStreamConnection multiStreamConnection =
+                ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                    ClientEndpoint,
+                    connectionOptions ?? OutgoingConnectionOptions,
+                    Logger);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
@@ -181,8 +182,7 @@ namespace IceRpc.Tests.Internal
                 // indefinitely.
                 if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
                 {
-                    var buffer = new byte[1] { 0 };
-                    await connection.Underlying.SendAsync(buffer, default);
+                    await connection.Underlying.SendAsync(new byte[1] { 0 }, default);
                 }
             }
 
@@ -194,9 +194,14 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.CreateAcceptor(IncomingConnectionOptions, Logger);
+        protected IAcceptor CreateAcceptor() => ServerEndpoint.TransportDescriptor!.AcceptorFactory!(
+            ServerEndpoint,
+            IncomingConnectionOptions,
+            Logger);
 
         protected MultiStreamConnection CreateIncomingConnection() =>
-            ServerEndpoint.CreateIncomingConnection(IncomingConnectionOptions, Logger);
+            ServerEndpoint.TransportDescriptor!.IncomingConnectionFactory!(ServerEndpoint,
+                                                                           IncomingConnectionOptions,
+                                                                           Logger);
     }
 }

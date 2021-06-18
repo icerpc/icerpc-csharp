@@ -24,7 +24,7 @@ namespace IceRpc
 
         /// <summary>Installs one or more interceptors.</summary>
         /// <param name="interceptor">One or more interceptors.</param>
-        /// <exception name="InvalidOperationException">Thrown if this method is called after the first call to
+        /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
         /// <see cref="InvokeAsync"/>.</exception>
         public void Use(params Func<IInvoker, IInvoker>[] interceptor)
         {

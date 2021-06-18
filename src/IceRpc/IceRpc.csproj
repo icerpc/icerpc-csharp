@@ -22,7 +22,7 @@
         <PackageTags>IceRPC</PackageTags>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.4.21253.7" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.5.21301.5" PrivateAssets="All" />
         <SliceCompile Include="../../slice/$(AssemblyName)/*.ice" Exclude="../../slice/$(AssemblyName)/BuiltinSequences.ice;../../slice/$(AssemblyName)/Context.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)" />
         <SliceCompile Include="../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop" />
         <Compile Update="generated\IceRpc\Interop\Discovery.cs">

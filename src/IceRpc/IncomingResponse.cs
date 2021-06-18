@@ -30,8 +30,8 @@ namespace IceRpc
 
         /// <summary>Constructs an incoming response frame.</summary>
         /// <param name="protocol">The protocol of this response</param>
-        /// <param name="data">The frame data as an array segment.</param>
-        internal IncomingResponse(Protocol protocol, ArraySegment<byte> data)
+        /// <param name="data">The frame data.</param>
+        internal IncomingResponse(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
             var istr = new InputStream(data, Protocol.GetEncoding());
@@ -44,22 +44,21 @@ namespace IceRpc
                 {
                     var responseHeader = new Ice1ResponseHeader(istr);
                     PayloadEncoding = responseHeader.PayloadEncoding;
-                    ArraySegment<byte> payload = data.Slice(istr.Pos);
+                    Payload = data[istr.Pos..];
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
-                    if (payloadSize != payload.Count)
+                    if (payloadSize != Payload.Length)
                     {
                         throw new InvalidDataException(
-                            @$"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count
+                            @$"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length
                             } bytes");
                     }
-                    Payload = payload;
                 }
                 else
                 {
                     // "special" exception
                     PayloadEncoding = Encoding.V11;
-                    Payload = data.Slice(istr.Pos);
+                    Payload = data[istr.Pos..];
                 }
             }
             else
@@ -78,13 +77,12 @@ namespace IceRpc
                         @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
                         } bytes");
                 }
-                ArraySegment<byte> payload = data.Slice(istr.Pos);
-                if (payloadSize != payload.Count)
+                Payload = data[istr.Pos..];
+                if (payloadSize != Payload.Length)
                 {
                     throw new InvalidDataException(
-                        $"response payload size mismatch: expected {payloadSize} bytes, read {payload.Count} bytes");
+                        $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length} bytes");
                 }
-                Payload = payload;
 
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
@@ -105,14 +103,14 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice2)
             {
-                Fields = response.GetFields();
+                Fields = response.GetAllFields();
             }
 
             ResultType = response.ResultType;
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            Payload = response.Payload.ToArraySegment();
+            Payload = response.Payload.ToSingleBuffer();
         }
 
         // Constructor for oneway response pseudo frame.

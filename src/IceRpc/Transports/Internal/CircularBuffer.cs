@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
 
         /// <summary>Construct a new Circular buffer with the given capacity.</summary>
         /// <param name="capacity">The capacity of the buffer.</param>
-        /// <exception name="ArgumentOutRangeException">Raised if capacity is inferior to 1</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Raised if capacity is inferior to 1</exception>
         internal CircularBuffer(int capacity)
         {
             if (capacity < 1)
@@ -71,7 +71,7 @@ namespace IceRpc.Transports.Internal
         /// space for adding the data.</summary>
         /// <param name="size">The size of the data to add.</param>
         /// <return>A buffer of the given size.</return>
-        /// <exception name="ArgumentOutRangeException">Raised if size if superior to the available space or inferior
+        /// <exception cref="ArgumentOutOfRangeException">Raised if size if superior to the available space or inferior
         /// to one byte.</exception>
         internal Memory<byte> Enqueue(int size)
         {
@@ -88,27 +88,27 @@ namespace IceRpc.Transports.Internal
             try
             {
                 _lock.Enter(ref lockTaken);
-                Memory<byte> segment;
+                Memory<byte> chunk;
                 if (_head > _tail)
                 {
                     int count = Math.Min(_head - _tail, size);
-                    segment = new(_buffer, _tail, count);
+                    chunk = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else if (_tail < _buffer.Length)
                 {
                     int count = Math.Min(_buffer.Length - _tail, size);
-                    segment = new(_buffer, _tail, count);
+                    chunk = new(_buffer, _tail, count);
                     _tail += count;
                 }
                 else
                 {
                     int count = Math.Min(_head, size);
-                    segment = new(_buffer, 0, count);
+                    chunk = new(_buffer, 0, count);
                     _tail = count;
                 }
                 _full = _tail == _head;
-                return segment;
+                return chunk;
             }
             finally
             {
@@ -122,7 +122,7 @@ namespace IceRpc.Transports.Internal
         /// <summary>Consumes data from the buffer. The data is copied to the given buffer and removed from
         /// this circular buffer. The caller must ensure that there's enough data available.</summary>
         /// <param name="buffer">The buffer to copy the consumed data to.</param>
-        /// <exception name="ArgumentOutRangeException">Raised the buffer is empty or larger than the available data.
+        /// <exception cref="ArgumentOutOfRangeException">Raised the buffer is empty or larger than the available data.
         /// </exception>
         internal void Consume(Memory<byte> buffer)
         {
@@ -145,29 +145,29 @@ namespace IceRpc.Transports.Internal
                     // Remaining size that needs to be filled up in the buffer
                     int size = buffer.Length - offset;
 
-                    Memory<byte> segment;
+                    Memory<byte> chunk;
                     if (_head < _tail)
                     {
                         int count = Math.Min(_tail - _head, size);
-                        segment = new(_buffer, _head, count);
+                        chunk = new(_buffer, _head, count);
                         _head += count;
                     }
                     else if (_head < _buffer.Length)
                     {
                         int count = Math.Min(_buffer.Length - _head, size);
-                        segment = new(_buffer, _head, count);
+                        chunk = new(_buffer, _head, count);
                         _head += count;
                     }
                     else
                     {
                         int count = Math.Min(_tail, size);
-                        segment = new(_buffer, 0, count);
+                        chunk = new(_buffer, 0, count);
                         _head = count;
                     }
 
-                    Debug.Assert(segment.Length <= buffer.Length);
-                    segment.CopyTo(buffer[offset..]);
-                    offset += segment.Length;
+                    Debug.Assert(chunk.Length <= buffer.Length);
+                    chunk.CopyTo(buffer[offset..]);
+                    offset += chunk.Length;
 
                     _full = false;
                 }

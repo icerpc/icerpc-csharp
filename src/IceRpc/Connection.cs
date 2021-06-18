@@ -388,7 +388,16 @@ namespace IceRpc
                             throw new InvalidOperationException("outgoing connection has local endpoint set");
                         }
 
-                        _connection = _remoteEndpoint.CreateOutgoingConnection(outgoingOptions, Logger);
+                        if (_remoteEndpoint.TransportDescriptor?.OutgoingConnectionFactory is
+                            Func<Endpoint, OutgoingConnectionOptions, ILogger, MultiStreamConnection> connectionFactory)
+                        {
+                            _connection = connectionFactory(_remoteEndpoint, outgoingOptions, Logger);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(
+                                $"cannot create outgoing connection for remote endpoint '{_remoteEndpoint}'");
+                        }
                     }
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
@@ -558,6 +567,11 @@ namespace IceRpc
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
+            if (IsDatagram && !request.IsOneway)
+            {
+                throw new InvalidOperationException("cannot send twoway request over datagram connection");
+            }
+
             // Make sure the connection is connected.
             try
             {

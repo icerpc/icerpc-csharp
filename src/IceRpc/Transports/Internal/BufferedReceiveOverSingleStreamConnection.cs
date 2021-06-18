@@ -26,30 +26,20 @@ namespace IceRpc.Transports.Internal
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint?)> AcceptAsync(
+        public override ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Endpoint? remoteEndpoint;
-            (Underlying, remoteEndpoint) =
-                await Underlying.AcceptAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            return (this, remoteEndpoint);
-        }
+            CancellationToken cancel) =>
+            Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
             Underlying.CloseAsync(errorCode, cancel);
 
-        public override async ValueTask<(SingleStreamConnection, Endpoint)> ConnectAsync(
+        public override ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Endpoint localEndpoint;
-            (Underlying, localEndpoint) =
-                await Underlying.ConnectAsync(endpoint, authenticationOptions, cancel).ConfigureAwait(false);
-            return (this, localEndpoint);
-        }
+            CancellationToken cancel) =>
+            Underlying.ConnectAsync(endpoint, authenticationOptions, cancel);
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {
@@ -71,14 +61,11 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        public override ValueTask<ArraySegment<byte>> ReceiveDatagramAsync(CancellationToken cancel) =>
-            Underlying.ReceiveDatagramAsync(cancel);
-
-        public override ValueTask<int> SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
+        public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
             Underlying.SendAsync(buffer, cancel);
 
-        public override ValueTask<int> SendDatagramAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            Underlying.SendDatagramAsync(buffer, cancel);
+        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
+            Underlying.SendAsync(buffers, cancel);
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 

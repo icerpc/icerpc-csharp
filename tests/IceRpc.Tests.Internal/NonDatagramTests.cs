@@ -3,7 +3,6 @@
 using IceRpc.Transports;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +27,7 @@ namespace IceRpc.Tests.Internal
         {
             using var canceled = new CancellationTokenSource();
             ValueTask<int> receiveTask = OutgoingConnection.ReceiveAsync(new byte[1], canceled.Token);
-            Assert.IsFalse(receiveTask.IsCompleted);
+            Assert.That(receiveTask.IsCompleted, Is.False);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
@@ -61,12 +60,6 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NonDatagramConnection_ReceiveDatagramAsync_Exception()
-        {
-            Assert.ThrowsAsync<InvalidOperationException>(async () => await OutgoingConnection.ReceiveDatagramAsync(default));
-        }
-
-        [Test]
         public async Task NonDatagramConnection_SendAsync_CancellationAsync()
         {
             IncomingConnection.NetworkSocket!.ReceiveBufferSize = 4096;
@@ -75,21 +68,19 @@ namespace IceRpc.Tests.Internal
             // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
             // are at least not larger than 16KB. The test below relies on the SendAsync to block when the connection
             // send/receive buffers fill up.
-            Assert.Less(IncomingConnection.NetworkSocket!.ReceiveBufferSize, 16 * 1024);
-            Assert.Less(OutgoingConnection.NetworkSocket!.SendBufferSize, 16 * 1024);
+            Assert.That(IncomingConnection.NetworkSocket!.ReceiveBufferSize, Is.LessThan(16 * 1024));
+            Assert.That(OutgoingConnection.NetworkSocket!.SendBufferSize, Is.LessThan(16 * 1024));
 
             using var canceled = new CancellationTokenSource();
 
             // Wait for the SendAsync call to block.
-            Task<int> sendTask;
+            Task sendTask;
             do
             {
                 sendTask = OutgoingConnection.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
                 await Task.WhenAny(Task.Delay(500), sendTask);
             }
             while (sendTask.IsCompleted);
-            sendTask = OutgoingConnection.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
-            Assert.IsFalse(sendTask.IsCompleted);
 
             // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
             canceled.Cancel();
@@ -126,20 +117,13 @@ namespace IceRpc.Tests.Internal
                 async () => await OutgoingConnection.SendAsync(OneBSendBuffer, canceled.Token));
         }
 
-        [Test]
-        public void NonDatagramConnection_SendDatagramAsync_Exception()
-        {
-            Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await OutgoingConnection.SendDatagramAsync(OneBSendBuffer, default));
-        }
-
         [TestCase(1)]
         [TestCase(1024)]
         [TestCase(16 * 1024)]
         [TestCase(512 * 1024)]
         public async Task NonDatagramConnection_SendReceiveAsync(int size)
         {
-            var sendBuffer = new byte[size];
+            byte[] sendBuffer = new byte[size];
 
             ValueTask test1 = Test(OutgoingConnection, IncomingConnection);
             ValueTask test2 = Test(IncomingConnection, OutgoingConnection);
@@ -149,14 +133,13 @@ namespace IceRpc.Tests.Internal
 
             async ValueTask Test(SingleStreamConnection connection1, SingleStreamConnection connection2)
             {
-                ValueTask<int> sendTask = connection1.SendAsync(sendBuffer, default);
-                ArraySegment<byte> receiveBuffer = new byte[size];
+                ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
+                Memory<byte> receiveBuffer = new byte[size];
                 int offset = 0;
                 while (offset < size)
                 {
-                    offset += await connection2.ReceiveAsync(receiveBuffer.Slice(offset), default);
+                    offset += await connection2.ReceiveAsync(receiveBuffer[offset..], default);
                 }
-                Assert.AreEqual(await sendTask, size);
             }
         }
     }

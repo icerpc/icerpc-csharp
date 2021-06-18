@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
@@ -12,10 +11,6 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame sent by the application.</summary>
     public sealed class OutgoingResponse : OutgoingFrame
     {
-        /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; private protected set; }
 
@@ -64,8 +59,7 @@ namespace IceRpc
         /// <param name="request">The request on which this constructor creates a response.</param>
         /// <param name="response">The incoming response used to construct the new outgoing response.</param>
         /// <param name="forwardFields">When true (the default), the new response uses the incoming response's fields as
-        /// a fallback - all the fields in this field dictionary are added before the response is sent, except for
-        /// fields previously added by middleware.</param>
+        /// defaults for its fields.</param>
             // TODO: support stream param forwarding
         public OutgoingResponse(
             IncomingRequest request,
@@ -79,7 +73,7 @@ namespace IceRpc
             PayloadEncoding = response.PayloadEncoding;
             var payload = new List<ReadOnlyMemory<byte>>();
 
-            ArraySegment<byte> incomingResponsePayload = response.Payload; // TODO: temporary
+            ReadOnlyMemory<byte> incomingResponsePayload = response.Payload; // TODO: temporary
 
             if (Protocol == response.Protocol)
             {
@@ -88,7 +82,7 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
                     // Don't forward RetryPolicy
-                    InitialFields = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
+                    FieldsDefaults = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
                 }
             }
             else
@@ -107,7 +101,7 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
                         // We slice-off the reply status that is part of the ice2 payload.
-                        payload.Add(incomingResponsePayload.Slice(1));
+                        payload.Add(incomingResponsePayload[1..]);
                     }
                     else
                     {
@@ -145,7 +139,7 @@ namespace IceRpc
             {
                 RetryPolicy retryPolicy = exception.RetryPolicy;
 
-                FieldsOverride.Add(
+                Fields.Add(
                     (int)Ice2FieldKey.RetryPolicy,
                     ostr =>
                     {

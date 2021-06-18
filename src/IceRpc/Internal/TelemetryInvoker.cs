@@ -103,7 +103,7 @@ namespace IceRpc.Internal
                 //    Baggage baggage;
                 // }
 
-                request.FieldsOverride.Add(
+                request.Fields.Add(
                     (int)Ice2FieldKey.TraceContext,
                     ostr =>
                     {

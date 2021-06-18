@@ -1,7 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,19 +13,17 @@ namespace IceRpc.Tests.Encoding
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesSequencesTests
     {
-        private IceRpc.Encoding _encoding;
-        private byte[] _buffer;
-        private List<Memory<byte>> _data;
-        private OutputStream _ostr;
-        private InputStream _istr;
+        private readonly IceRpc.Encoding _encoding;
+        private readonly byte[] _buffer;
+        private readonly OutputStream _ostr;
+        private readonly InputStream _istr;
 
         public BuiltInTypesSequencesTests(byte encodingMajor, byte encodingMinor)
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[1024 * 1024];
-            _data = new List<Memory<byte>>() { _buffer };
-            _ostr = new OutputStream(_encoding, _data);
-            _istr = new InputStream(_data[0], _encoding);
+            _ostr = new OutputStream(_encoding, _buffer);
+            _istr = new InputStream(_buffer, _encoding);
         }
 
         [TestCase(0)]

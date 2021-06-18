@@ -121,7 +121,7 @@ namespace IceRpc.Tests.ClientServer
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
                     HasColocEndpoint = false,
-                    ProxyHost = "127.0.0.1"
+                    HostName = "127.0.0.1"
                 };
         }
 

@@ -12,12 +12,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
-        // An attempt to connect to an IP endpoint with port 0 will always fail.
-        protected internal override bool HasConnect => Port != 0;
-
-        // The default port with ice1 is 0.
-        protected internal override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultIPPort;
-
         protected internal override bool HasDnsHost => Address == IPAddress.None;
 
         internal const ushort DefaultIPPort = 4062;
@@ -50,8 +44,8 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(Port);
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string proxyHost) =>
-            proxyHost == Host ? this : Clone(proxyHost, Port);
+        protected internal override Endpoint GetProxyEndpoint(string hostName) =>
+            hostName == Host ? this : Clone(hostName, Port);
 
         internal IPEndpoint Clone(EndPoint address)
         {

@@ -195,7 +195,7 @@ namespace IceRpc.Transports.Internal
                         using IDisposable? scope = Logger.StartStreamScope(streamId);
                         Logger.LogReceivingSlicFrame(type, frameSize);
 
-                        ArraySegment<byte> data = new byte[dataSize];
+                        Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -292,7 +292,7 @@ namespace IceRpc.Transports.Internal
 
             if (IsIncoming)
             {
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 if (type != SlicDefinitions.FrameType.Initialize)
@@ -305,7 +305,7 @@ namespace IceRpc.Transports.Internal
                 uint version = istr.ReadVarUInt();
                 if (version != 1)
                 {
-                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Count, version);
+                    Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
 
                     // If unsupported Slic version, we stop reading there and reply with a Version frame to provide
                     // the client the supported Slic versions.
@@ -333,7 +333,7 @@ namespace IceRpc.Transports.Internal
                 // Read initialize frame
                 var initializeBody = new InitializeHeaderBody(istr);
                 Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
-                Logger.LogReceivingSlicInitializeFrame(data.Count, version, initializeBody, parameters);
+                Logger.LogReceivingSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
                 try
@@ -377,7 +377,7 @@ namespace IceRpc.Transports.Internal
                     cancel: cancel).ConfigureAwait(false);
 
                 // Read the InitializeAck or Version frame from the server
-                (SlicDefinitions.FrameType type, ArraySegment<byte> data) =
+                (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
                 var istr = new InputStream(data, SlicDefinitions.Encoding);
@@ -388,7 +388,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read the version sequence provided by the server.
                     var versionBody = new VersionBody(istr);
-                    Logger.LogReceivingSlicVersionFrame(data.Count, versionBody);
+                    Logger.LogReceivingSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(
                         $"unsupported Slic version, server supports Slic '{string.Join(", ", versionBody.Versions)}'");
@@ -401,7 +401,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read and set parameters.
                     parameters = ReadParameters(istr);
-                    Logger.LogReceivingSlicInitializeAckFrame(data.Count, parameters);
+                    Logger.LogReceivingSlicInitializeAckFrame(data.Length, parameters);
                     SetParameters(parameters);
                 }
             }
@@ -474,8 +474,7 @@ namespace IceRpc.Transports.Internal
                 type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
-            var data = new List<Memory<byte>>();
-            var ostr = new OutputStream(SlicDefinitions.Encoding, data);
+            var ostr = new OutputStream(SlicDefinitions.Encoding);
             ostr.WriteByte((byte)type);
             OutputStream.Position sizePos = ostr.StartFixedLengthSize(4);
             if (stream != null)
@@ -485,7 +484,7 @@ namespace IceRpc.Transports.Internal
             writer?.Invoke(ostr);
             int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
             ostr.EndFixedLengthSize(sizePos, 4);
-            ostr.Finish();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -501,7 +500,7 @@ namespace IceRpc.Transports.Internal
                 {
                     Logger.LogSendingSlicFrame(type, frameSize);
                 }
-                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
+                await SendPacketAsync(buffers).ConfigureAwait(false);
             }
             finally
             {
@@ -546,13 +545,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        private async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
-            for (int i = 0; i < buffers.Length; ++i)
-            {
-                // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
-                await _bufferedConnection!.SendAsync(buffers.Span[i], CancellationToken.None).ConfigureAwait(false);
-            }
+            // Perform the write
+
+            // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
+            await _bufferedConnection!.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
             Sent(buffers);
         }
 
@@ -666,7 +664,7 @@ namespace IceRpc.Transports.Internal
                     // data).
                     ReadOnlyMemory<byte> previous = buffers.Span[0];
                     Memory<byte> headerData = MemoryMarshal.AsMemory(
-                        buffers.Span[0].Slice(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1));
+                        buffers.Span[0][(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..]);
                     headerData.Span[0] = (byte)frameType;
                     headerData.Span.Slice(1, sizeLength).WriteFixedLengthSize20(packetSize);
                     headerData.Span.Slice(1 + sizeLength, streamIdLength).WriteFixedLengthSize20(stream.Id);
@@ -726,15 +724,8 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask IgnoreDataAsync(int size, CancellationToken cancel)
         {
-            var receiveBuffer = new ArraySegment<byte>(ArrayPool<byte>.Shared.Rent(size), 0, size);
-            try
-            {
-                await ReceiveDataAsync(receiveBuffer, cancel).ConfigureAwait(false);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(receiveBuffer.Array!);
-            }
+            using IMemoryOwner<byte> bufferOwner = MemoryPool<byte>.Shared.Rent(size);
+            await ReceiveDataAsync(bufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
         }
 
         private void SetParameters(Dictionary<ParameterKey, ulong> parameters)
@@ -798,11 +789,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private async ValueTask<(SlicDefinitions.FrameType, ArraySegment<byte>)> ReceiveFrameAsync(
+        private async ValueTask<(SlicDefinitions.FrameType, ReadOnlyMemory<byte>)> ReceiveFrameAsync(
             CancellationToken cancel)
         {
             (SlicDefinitions.FrameType type, int size) = await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
-            ArraySegment<byte> data;
+            Memory<byte> data;
             if (size > 0)
             {
                 data = new byte[size];
@@ -810,7 +801,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                data = ArraySegment<byte>.Empty;
+                data = Memory<byte>.Empty;
             }
             return (type, data);
         }

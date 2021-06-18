@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
 using System;
@@ -33,10 +32,6 @@ namespace IceRpc
         /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
         /// expected to enforce this deadline.</remarks>
         public DateTime Deadline { get; set; }
-
-        /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> InitialFields { get; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>When true, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
@@ -92,8 +87,7 @@ namespace IceRpc
         /// <param name="proxy">The proxy sending the outgoing request.</param>
         /// <param name="request">The incoming request from which to create an outgoing request.</param>
         /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
-        /// fields as a fallback - all the fields lines in this fields dictionary are added before the request is sent,
-        /// except for lines added by interceptors.</param>
+        /// fields as defaults for its fields.</param>
         public OutgoingRequest(
             IServicePrx proxy,
             IncomingRequest request,
@@ -111,7 +105,7 @@ namespace IceRpc
 
             if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
             {
-                InitialFields = request.Fields;
+                FieldsDefaults = request.Fields;
             }
         }
 
@@ -161,10 +155,10 @@ namespace IceRpc
 
                 requestHeaderBody.IceWrite(ostr);
 
-                if (InitialFields.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
+                if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
                     // Writes or overrides context
-                    FieldsOverride[(int)Ice2FieldKey.Context] =
+                    Fields[(int)Ice2FieldKey.Context] =
                         ostr => ostr.WriteDictionary(context,
                                                      OutputStream.IceWriterFromString,
                                                      OutputStream.IceWriterFromString);

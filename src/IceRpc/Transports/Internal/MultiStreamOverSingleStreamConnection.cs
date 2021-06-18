@@ -21,11 +21,11 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Endpoint? remoteEndpoint;
-            (Underlying, remoteEndpoint) = await Underlying.AcceptAsync(
+            Endpoint? remoteEndpoint = await Underlying.AcceptAsync(
                 LocalEndpoint!,
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
+
             if (remoteEndpoint != null)
             {
                 RemoteEndpoint = remoteEndpoint;
@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask ConnectAsync(
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) =>
-            (Underlying, LocalEndpoint) = await Underlying.ConnectAsync(
+            LocalEndpoint = await Underlying.ConnectAsync(
                 RemoteEndpoint!,
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
