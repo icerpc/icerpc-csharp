@@ -700,6 +700,8 @@ namespace IceRpc.Transports.Internal
                         }
                         else
                         {
+                            sendBufferOwner.Dispose();
+                            sendBufferOwner = null;
                             await _bufferedConnection.SendAsync(buffers, cancel).ConfigureAwait(false);
                         }
                     }
