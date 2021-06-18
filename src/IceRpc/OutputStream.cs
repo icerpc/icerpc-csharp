@@ -138,6 +138,9 @@ namespace IceRpc
         /// <value>The encoding.</value>
         public Encoding Encoding { get; private set; }
 
+        /// <summary>The number of bytes that the underlying buffer can hold without further allocation.</summary>
+        internal int Capacity { get; private set; }
+
         /// <summary>Determines the current size of the stream. This corresponds to the number of bytes already written
         /// to the stream.</summary>
         /// <value>The current size.</value>
@@ -154,10 +157,6 @@ namespace IceRpc
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private bool OldEncoding => Encoding == Encoding.V11;
-
-        // The number of bytes that the stream can hold.
-        // TODO: temporarily internal, should revert back to private field
-        internal int Capacity { get; private set; }
 
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
