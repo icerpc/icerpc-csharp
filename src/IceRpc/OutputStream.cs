@@ -138,6 +138,9 @@ namespace IceRpc
         /// <value>The encoding.</value>
         public Encoding Encoding { get; private set; }
 
+        /// <summary>The number of bytes that the underlying buffer can hold without further allocation.</summary>
+        internal int Capacity { get; private set; }
+
         /// <summary>Determines the current size of the stream. This corresponds to the number of bytes already written
         /// to the stream.</summary>
         /// <value>The current size.</value>
@@ -154,9 +157,6 @@ namespace IceRpc
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         private bool OldEncoding => Encoding == Encoding.V11;
-
-        // The number of bytes that the stream can hold.
-        private int _capacity;
 
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
@@ -1039,7 +1039,7 @@ namespace IceRpc
                 _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
             }
 
-            _capacity = _currentBuffer.Length;
+            Capacity = _currentBuffer.Length;
         }
 
         /// <summary>Computes the amount of data written from the start position to the current position and writes that
@@ -1101,35 +1101,38 @@ namespace IceRpc
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
             int length = span.Length;
-            Expand(length);
-            Size += length;
-            int offset = _tail.Offset;
-            int remaining = _currentBuffer.Length - offset;
-            Debug.Assert(remaining > 0); // guaranteed by Expand
-            int sz = Math.Min(length, remaining);
-            if (length > remaining)
-            {
-                span.Slice(0, remaining).CopyTo(_currentBuffer.Span.Slice(offset, sz));
-            }
-            else
-            {
-                span.CopyTo(_currentBuffer.Span.Slice(offset, length));
-            }
-            _tail.Offset += sz;
-            length -= sz;
-
             if (length > 0)
             {
-                _currentBuffer = GetBuffer(++_tail.Buffer);
-                if (remaining == 0)
+                Expand(length);
+                Size += length;
+                int offset = _tail.Offset;
+                int remaining = _currentBuffer.Length - offset;
+                Debug.Assert(remaining > 0); // guaranteed by Expand
+                int sz = Math.Min(length, remaining);
+                if (length > remaining)
                 {
-                    span.CopyTo(_currentBuffer.Span.Slice(0, length));
+                    span.Slice(0, remaining).CopyTo(_currentBuffer.Span.Slice(offset, sz));
                 }
                 else
                 {
-                    span.Slice(remaining, length).CopyTo(_currentBuffer.Span.Slice(0, length));
+                    span.CopyTo(_currentBuffer.Span.Slice(offset, length));
                 }
-                _tail.Offset = length;
+                _tail.Offset += sz;
+                length -= sz;
+
+                if (length > 0)
+                {
+                    _currentBuffer = GetBuffer(++_tail.Buffer);
+                    if (remaining == 0)
+                    {
+                        span.CopyTo(_currentBuffer.Span.Slice(0, length));
+                    }
+                    else
+                    {
+                        span.Slice(remaining, length).CopyTo(_currentBuffer.Span.Slice(0, length));
+                    }
+                    _tail.Offset = length;
+                }
             }
         }
 
@@ -1263,7 +1266,7 @@ namespace IceRpc
         private void Expand(int n)
         {
             Debug.Assert(n > 0);
-            int remaining = _capacity - Size;
+            int remaining = Capacity - Size;
             if (n > remaining)
             {
                 int size = Math.Max(DefaultBufferSize, _currentBuffer.Length * 2);
@@ -1293,7 +1296,7 @@ namespace IceRpc
                         _tail.Offset = 0;
                     }
                 }
-                _capacity += buffer.Length;
+                Capacity += buffer.Length;
             }
 
             // Once Expand returns, _tail points to a writeable byte.

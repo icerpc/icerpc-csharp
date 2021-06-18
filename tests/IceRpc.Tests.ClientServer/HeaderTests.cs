@@ -16,8 +16,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
         [TestCase("tcp -h 127.0.0.1 -p 0")]
         [TestCase("ice+ws://127.0.0.1:0?tls=false")]
-        // TODO: figure out why this fails
-        // [TestCase("ws -h 127.0.0.1 -p 0")]
+        [TestCase("ws -h 127.0.0.1 -p 0")]
         [TestCase("udp -h 127.0.0.1 -p 0")]
         [TestCase("ice+coloc://header_request:10000")]
         [TestCase("coloc -h header_request -p 10001")]

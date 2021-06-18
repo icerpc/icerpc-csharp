@@ -75,6 +75,12 @@ namespace IceRpc.Transports
         /// <returns>A value task that completes once the buffer is sent.</returns>
         public abstract ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel);
 
+        /// <summary>Sends data over the connection.</summary>
+        /// <param name="buffers">The buffers containing the data to send.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        /// <returns>A value task that completes once the buffers are sent.</returns>
+        public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
+
         /// <summary>Releases the resources used by the connection.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>

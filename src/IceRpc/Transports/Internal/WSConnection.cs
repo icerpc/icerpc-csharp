@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -92,7 +93,7 @@ namespace IceRpc.Transports.Internal
             byte[] payload = new byte[2];
             short reason = IPAddress.HostToNetworkOrder((short)ClosureStatusCode.Shutdown);
             MemoryMarshal.Write(payload, ref reason);
-            await SendImplAsync(OpCode.Close, payload, cancel).ConfigureAwait(false);
+            await SendImplAsync(OpCode.Close, new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
 
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
@@ -142,7 +143,11 @@ namespace IceRpc.Transports.Internal
         }
 
         public override ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel) =>
-            SendImplAsync(OpCode.Data, buffer, cancel);
+            SendAsync(new ReadOnlyMemory<byte>[] { buffer }, cancel);
+
+        public override ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel) => SendImplAsync(OpCode.Data, buffers, cancel);
 
         protected override void Dispose(bool disposing)
         {
@@ -419,7 +424,8 @@ namespace IceRpc.Transports.Internal
                         }
 
                         // Send back a close frame.
-                        await SendImplAsync(OpCode.Close, payload, cancel).ConfigureAwait(false);
+                        await SendImplAsync(OpCode.Close,
+                                            new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Ping:
@@ -429,7 +435,8 @@ namespace IceRpc.Transports.Internal
                             await _bufferedConnection.ReceiveAsync(payloadLength, cancel).ConfigureAwait(false);
 
                         // Send a Pong frame with the received payload.
-                        await SendImplAsync(OpCode.Pong, payload, cancel).ConfigureAwait(false);
+                        await SendImplAsync(OpCode.Pong,
+                                            new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Pong:
@@ -610,7 +617,7 @@ namespace IceRpc.Transports.Internal
 
         private async ValueTask SendImplAsync(
             OpCode opCode,
-            ReadOnlyMemory<byte> buffer,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
             // Write can be called concurrently because it's called from both ReadAsync and WriteAsync. For example,
@@ -618,7 +625,7 @@ namespace IceRpc.Transports.Internal
             Task task;
             lock (_mutex)
             {
-                ValueTask writeTask = PerformWriteAsync(opCode, buffer, cancel);
+                ValueTask writeTask = PerformWriteAsync(opCode, buffers, cancel);
 
                 // Optimization: we check if the write completed already and avoid creating a Task if it did.
                 if (writeTask.IsCompletedSuccessfully)
@@ -634,35 +641,82 @@ namespace IceRpc.Transports.Internal
 
             async ValueTask PerformWriteAsync(
                 OpCode opCode,
-                ReadOnlyMemory<byte> buffer,
+                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
                 CancellationToken cancel)
             {
                 // Wait for the current write to be done.
                 await _sendTask.ConfigureAwait(false);
 
-                int size = buffer.Length;
-                Memory<byte> sendBuffer = new byte[size + 16];
+                int size = buffers.GetByteCount();
+                ReadOnlyMemory<byte> buffer = buffers.Span[0];
 
-                int index = PrepareHeaderForSend(opCode, size, sendBuffer);
-                Logger.LogSendingWebSocketFrame(opCode, size);
-
-                sendBuffer = sendBuffer[0..(size + index)];
-                Memory<byte> payload = sendBuffer[index..];
-                buffer.CopyTo(payload);
-
-                if (!_incoming && opCode != OpCode.Pong)
+                IMemoryOwner<byte>? sendBufferOwner = MemoryPool<byte>.Shared.Rent(minBufferSize: 16 + buffer.Length);
+                try
                 {
-                    // For an outgoing connection, each frame must be masked with a random 32-bit value.
-                    Mask(payload);
-                }
-                await _bufferedConnection.SendAsync(sendBuffer, cancel).ConfigureAwait(false);
+                    Memory<byte> sendBuffer = sendBufferOwner.Memory;
 
-                void Mask(Memory<byte> payload)
+                    int headerSize = PrepareHeaderForSend(opCode, size, sendBuffer);
+
+                    buffer.CopyTo(sendBuffer[headerSize..]);
+                    if (!_incoming && opCode != OpCode.Pong)
+                    {
+                        Mask(sendBuffer.Slice(headerSize, buffer.Length), 0);
+                    }
+                    int index = buffer.Length;
+
+                    Logger.LogSendingWebSocketFrame(opCode, size);
+
+                    await _bufferedConnection.SendAsync(sendBuffer[0..(headerSize + buffer.Length)],
+                                                        cancel).ConfigureAwait(false);
+
+                    // Send remaining buffers, if any.
+                    buffers = buffers[1..];
+
+                    if (buffers.Length > 0)
+                    {
+                        // For an outgoing connection, each frame must be masked with a random 32-bit value.
+                        if (!_incoming && opCode != OpCode.Pong)
+                        {
+                            int buffersIndex = 0;
+                            while (buffersIndex < buffers.Length)
+                            {
+                                buffer = buffers.Span[buffersIndex++];
+                                if (buffer.Length > 0)
+                                {
+                                    if (buffer.Length > sendBuffer.Length)
+                                    {
+                                        sendBufferOwner.Dispose();
+                                        sendBufferOwner = null;
+                                        sendBufferOwner = MemoryPool<byte>.Shared.Rent(buffer.Length);
+                                        sendBuffer = sendBufferOwner.Memory;
+                                    }
+                                    buffer.CopyTo(sendBuffer);
+                                    Mask(sendBuffer[0..buffer.Length], index);
+                                    index += buffer.Length;
+                                    await _bufferedConnection.SendAsync(sendBuffer[0..buffer.Length],
+                                                                        cancel).ConfigureAwait(false);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            sendBufferOwner.Dispose();
+                            sendBufferOwner = null;
+                            await _bufferedConnection.SendAsync(buffers, cancel).ConfigureAwait(false);
+                        }
+                    }
+                }
+                finally
+                {
+                    sendBufferOwner?.Dispose();
+                }
+
+                void Mask(Memory<byte> payload, int start)
                 {
                     Span<byte> bufferAsSpan = payload.Span;
                     for (int i = 0; i < payload.Length; ++i)
                     {
-                        bufferAsSpan[i] = (byte)(bufferAsSpan[i] ^ _sendMask[i % 4]);
+                        bufferAsSpan[i] = (byte)(bufferAsSpan[i] ^ _sendMask[(start + i) % 4]);
                     }
                 }
             }

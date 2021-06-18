@@ -81,8 +81,6 @@ namespace IceRpc.Tests.Internal
                 await Task.WhenAny(Task.Delay(500), sendTask);
             }
             while (sendTask.IsCompleted);
-            sendTask = OutgoingConnection.SendAsync(OneMBSendBuffer, canceled.Token).AsTask();
-            Assert.That(sendTask.IsCompleted, Is.False);
 
             // Cancel the blocked SendAsync and ensure OperationCanceledException is raised.
             canceled.Cancel();

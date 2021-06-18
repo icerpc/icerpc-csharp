@@ -27,7 +27,6 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
-        private BufferedStream? _writeStream;
 
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
@@ -174,10 +173,9 @@ namespace IceRpc.Transports.Internal
         {
             try
             {
-                if (_writeStream is BufferedStream writeStream)
+                if (SslStream is SslStream sslStream)
                 {
-                    await _writeStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
-                    await _writeStream.FlushAsync(cancel).ConfigureAwait(false);
+                    await sslStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
                 else
                 {
@@ -206,19 +204,22 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
+        {
+            // We assume the caller already coalesced small buffers.
+
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             _socket.Dispose();
             SslStream?.Dispose();
-
-            try
-            {
-                _writeStream?.Dispose();
-            }
-            catch
-            {
-                // Ignore: the buffer flush which will fail since the underlying transport is closed.
-            }
         }
 
         internal TcpConnection(Socket fd, ILogger logger, EndPoint? addr = null)
@@ -253,10 +254,6 @@ namespace IceRpc.Transports.Internal
             }
 
             Logger.LogTlsAuthenticationSucceeded(SslStream);
-
-            // Use a buffered stream for writes. This ensures that small requests which are composed of multiple
-            // small buffers will be sent within a single SSL frame.
-            _writeStream = new BufferedStream(SslStream);
         }
     }
 }
