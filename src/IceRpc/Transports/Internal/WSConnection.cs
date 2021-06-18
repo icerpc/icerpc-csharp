@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -648,51 +649,64 @@ namespace IceRpc.Transports.Internal
 
                 int size = buffers.GetByteCount();
                 ReadOnlyMemory<byte> buffer = buffers.Span[0];
-                Memory<byte> sendBuffer = new byte[16 + buffer.Length];
-                int headerSize = PrepareHeaderForSend(opCode, size, sendBuffer);
 
-                buffer.CopyTo(sendBuffer[headerSize..]);
-                if (!_incoming && opCode != OpCode.Pong)
+                IMemoryOwner<byte>? sendBufferOwner = MemoryPool<byte>.Shared.Rent(minBufferSize: 16 + buffer.Length);
+                try
                 {
-                    Mask(sendBuffer.Slice(headerSize, buffer.Length), 0);
-                }
-                int index = buffer.Length;
+                    Memory<byte> sendBuffer = sendBufferOwner.Memory;
 
-                Logger.LogSendingWebSocketFrame(opCode, size);
+                    int headerSize = PrepareHeaderForSend(opCode, size, sendBuffer);
 
-                await _bufferedConnection.SendAsync(sendBuffer[0..(headerSize + buffer.Length)],
-                                                    cancel).ConfigureAwait(false);
-
-                // Send remaining buffers, if any.
-                buffers = buffers[1..];
-
-                if (buffers.Length > 0)
-                {
-                    // For an outgoing connection, each frame must be masked with a random 32-bit value.
+                    buffer.CopyTo(sendBuffer[headerSize..]);
                     if (!_incoming && opCode != OpCode.Pong)
                     {
-                        int buffersIndex = 0;
-                        while (buffersIndex < buffers.Length)
+                        Mask(sendBuffer.Slice(headerSize, buffer.Length), 0);
+                    }
+                    int index = buffer.Length;
+
+                    Logger.LogSendingWebSocketFrame(opCode, size);
+
+                    await _bufferedConnection.SendAsync(sendBuffer[0..(headerSize + buffer.Length)],
+                                                        cancel).ConfigureAwait(false);
+
+                    // Send remaining buffers, if any.
+                    buffers = buffers[1..];
+
+                    if (buffers.Length > 0)
+                    {
+                        // For an outgoing connection, each frame must be masked with a random 32-bit value.
+                        if (!_incoming && opCode != OpCode.Pong)
                         {
-                            buffer = buffers.Span[buffersIndex++];
-                            if (buffer.Length > 0)
+                            int buffersIndex = 0;
+                            while (buffersIndex < buffers.Length)
                             {
-                                if (buffer.Length > sendBuffer.Length)
+                                buffer = buffers.Span[buffersIndex++];
+                                if (buffer.Length > 0)
                                 {
-                                    sendBuffer = new byte[buffer.Length];
+                                    if (buffer.Length > sendBuffer.Length)
+                                    {
+                                        sendBufferOwner.Dispose();
+                                        sendBufferOwner = null;
+                                        sendBufferOwner = MemoryPool<byte>.Shared.Rent(buffer.Length);
+                                        sendBuffer = sendBufferOwner.Memory;
+                                    }
+                                    buffer.CopyTo(sendBuffer);
+                                    Mask(sendBuffer[0..buffer.Length], index);
+                                    index += buffer.Length;
+                                    await _bufferedConnection.SendAsync(sendBuffer[0..buffer.Length],
+                                                                        cancel).ConfigureAwait(false);
                                 }
-                                buffer.CopyTo(sendBuffer);
-                                Mask(sendBuffer[0..buffer.Length], index);
-                                index += buffer.Length;
-                                await _bufferedConnection.SendAsync(sendBuffer[0..buffer.Length],
-                                                                    cancel).ConfigureAwait(false);
                             }
                         }
+                        else
+                        {
+                            await _bufferedConnection.SendAsync(buffers, cancel).ConfigureAwait(false);
+                        }
                     }
-                    else
-                    {
-                        await _bufferedConnection.SendAsync(buffers, cancel).ConfigureAwait(false);
-                    }
+                }
+                finally
+                {
+                    sendBufferOwner?.Dispose();
                 }
 
                 void Mask(Memory<byte> payload, int start)
