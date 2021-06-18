@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -122,28 +123,17 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            // TODO: since cancel is always None, should we remove this parameter?
-            Debug.Assert(cancel == CancellationToken.None);
-
-            if (_incoming)
-            {
-                throw new TransportException("cannot send datagram with incoming connection");
-            }
-
             if (buffers.Length == 1)
             {
                 await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
             }
             else
             {
-                try
-                {
-                    await _socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    ExceptionUtil.Throw(TcpConnection.ConvertSocketSendAsyncException(ex, cancel));
-                }
+                // Coalesce all buffers into a singled rented buffer.
+                int size = buffers.GetByteCount();
+                using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
+                buffers.CopyTo(writeBufferOwner.Memory);
+                await SendAsync(writeBufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
             }
         }
 

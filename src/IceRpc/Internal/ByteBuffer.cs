@@ -13,6 +13,16 @@ namespace IceRpc.Internal
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
         internal static ReadOnlySpan<byte> AsReadOnlySpan(this Memory<byte> buffer) => buffer.Span;
 
+        internal static void CopyTo(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, Memory<byte> destination)
+        {
+            int offset = 0;
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                buffers.Span[i].CopyTo(destination[offset..]);
+                offset += buffers.Span[i].Length;
+            }
+        }
+
         internal static int GetByteCount(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             ReadOnlySpan<ReadOnlyMemory<byte>> span = buffers.Span;
@@ -97,12 +107,7 @@ namespace IceRpc.Internal
             else
             {
                 byte[] data = new byte[buffers.GetByteCount()];
-                int offset = 0;
-                for (int i = 0; i < buffers.Length; ++i)
-                {
-                    buffers.Span[i].CopyTo(data.AsMemory(offset));
-                    offset += buffers.Span[i].Length;
-                }
+                buffers.CopyTo(data);
                 return data;
             }
         }
