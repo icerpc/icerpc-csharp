@@ -583,8 +583,6 @@ namespace IceRpc
                 // Mark the request as sent.
                 request.IsSent = true;
 
-                using IDisposable? streamScope = request.Stream.StartScope();
-
                 // Wait for the reception of the response.
                 IncomingResponse response = request.IsOneway ?
                     new IncomingResponse(this, request.PayloadEncoding) :
@@ -719,7 +717,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => Logger.StartConnectionScope(this, _server);
+        internal IDisposable? StartScope() => Logger.StartConnectionScope(this);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -832,8 +830,6 @@ namespace IceRpc
 
             // Start a new accept stream task to accept another stream.
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync());
-
-            using IDisposable? streamScope = stream.StartScope();
 
             Debug.Assert(stream != null);
             try

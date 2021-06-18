@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -210,32 +211,60 @@ namespace IceRpc.Transports
 
         /// <summary>Traces the given received amount of data. Transport implementations should call this method
         /// to trace the received data.</summary>
-        /// <param name="size">The size in bytes of the received data.</param>
-        protected void Received(int size)
+        /// <param name="buffer">The received data.</param>
+        protected void Received(ReadOnlyMemory<byte> buffer)
         {
             lock (_mutex)
             {
-                Debug.Assert(size > 0);
                 LastActivity = Time.Elapsed;
             }
 
-            Logger.LogReceivedData(size);
+            if (Logger.IsEnabled(LogLevel.Trace))
+            {
+                var sb = new StringBuilder();
+                for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
+                {
+                    sb.Append($"0x{buffer.Span[i]:X2} ");
+                }
+                if (buffer.Length > 32)
+                {
+                    sb.Append("...");
+                }
+                Logger.LogReceivedData(buffer.Length, sb.ToString().Trim());
+            }
         }
 
         /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
         /// trace the data sent.</summary>
-        /// <param name="size">The size in bytes of the data sent.</param>
-        protected void Sent(int size)
+        /// <param name="buffers">The buffers sent.</param>
+        protected void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             lock (_mutex)
             {
-                Debug.Assert(size > 0);
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0)
+            if (Logger.IsEnabled(LogLevel.Trace))
             {
-                Logger.LogSentData(size);
+                var sb = new StringBuilder();
+                int size = 0;
+                for (int i = 0; i < buffers.Length; ++i)
+                {
+                    ReadOnlyMemory<byte> buffer = buffers.Span[i];
+                    if (size < 32)
+                    {
+                        for (int j = 0; j < Math.Min(buffer.Length, 32 - size); ++j)
+                        {
+                            sb.Append($"0x{buffer.Span[j]:X2} ");
+                        }
+                    }
+                    size += buffer.Length;
+                    if (size == 32 && i != buffers.Length)
+                    {
+                        sb.Append("...");
+                    }
+                }
+                Logger.LogSentData(size, sb.ToString().Trim());
             }
         }
 

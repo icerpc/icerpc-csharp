@@ -291,8 +291,6 @@ namespace IceRpc.Transports
         {
             Debug.Assert(IsStarted);
 
-            using IDisposable? scope = StartScope();
-
             byte frameType = IsIce1 ? (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
 
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
@@ -326,10 +324,8 @@ namespace IceRpc.Transports
         {
             Debug.Assert(IsStarted && !IsIce1);
 
-            using IDisposable? scope = StartScope();
-
             byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
-            ArraySegment<byte> data = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+            _ = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
@@ -337,7 +333,6 @@ namespace IceRpc.Transports
         internal virtual async ValueTask ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
             Debug.Assert(IsStarted);
-            using IDisposable? scope = StartScope();
 
             byte frameType = IsIce1 ? (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
 
@@ -403,7 +398,6 @@ namespace IceRpc.Transports
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
             ArraySegment<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
             return new IncomingResponse(_connection.Protocol, data);
         }
 
@@ -429,7 +423,6 @@ namespace IceRpc.Transports
             CancellationToken cancel = default)
         {
             Debug.Assert(IsStarted);
-            using IDisposable? scope = StartScope();
 
             if (IsIce1)
             {
@@ -460,7 +453,6 @@ namespace IceRpc.Transports
         internal virtual async ValueTask SendGoAwayCanceledFrameAsync()
         {
             Debug.Assert(IsStarted && !IsIce1);
-            using IDisposable? scope = StartScope();
 
             var data = new List<Memory<byte>>() { new byte[1024] };
             var ostr = new OutputStream(Ice2Definitions.Encoding, data);
@@ -510,7 +502,6 @@ namespace IceRpc.Transports
                 await SendAsync(data.ToReadOnlyMemory(), false, cancel).ConfigureAwait(false);
             }
 
-            using IDisposable? scope = StartScope();
             _connection.Logger.LogSentInitializeFrame(_connection, _connection.IncomingFrameMaxSize);
         }
 

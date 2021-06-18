@@ -116,7 +116,6 @@ namespace IceRpc.Transports.Internal
                 // Don't auto reset the task completion source after obtaining the result. This is necessary to
                 // ensure that the exception won't be cleared if the task is canceled.
                 taskCompletionSource = new(autoReset: false);
-                taskCompletionSource.RunContinuationAsynchronously = true;
                 if (cancel.CanBeCanceled)
                 {
                     cancel.ThrowIfCancellationRequested();

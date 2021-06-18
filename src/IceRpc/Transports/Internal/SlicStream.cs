@@ -25,6 +25,7 @@ namespace IceRpc.Transports.Internal
     {
         protected internal override bool ReceivedEndOfStream =>
             (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
+
         protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
         private volatile CircularBuffer? _receiveBuffer;
@@ -70,7 +71,7 @@ namespace IceRpc.Transports.Internal
                             new StreamResetBody((ulong)errorCode).IceWrite(ostr);
                         }
                     },
-                    frameSize => _connection.Logger.LogSentSlicResetFrame(frameSize, errorCode),
+                    frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                     this);
             }
         }
@@ -140,10 +141,6 @@ namespace IceRpc.Transports.Internal
                 (_receivedSize, _receivedEndOfStream) = await WaitAsync(cancel).ConfigureAwait(false);
                 if (_receivedSize == 0)
                 {
-                    if (_receiveBuffer == null)
-                    {
-                        _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
-                    }
                     return 0;
                 }
             }
@@ -153,12 +150,13 @@ namespace IceRpc.Transports.Internal
             if (_receiveBuffer == null)
             {
                 // Read and append the received stream frame data into the given buffer.
+                using IDisposable? scope = StartScope();
                 await _connection.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
 
                 // If we've consumed the whole Slic frame, notify the connection that it can start receiving a new frame.
                 if (_receivedOffset == _receivedSize)
                 {
-                    _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, 0);
+                    _connection.FinishedReceivedStreamData(0);
                 }
             }
             else
@@ -185,7 +183,7 @@ namespace IceRpc.Transports.Internal
                                 new StreamConsumedBody((ulong)consumed).IceWrite(ostr);
                             }
                         },
-                        frameSize => _connection.Logger.LogSentSlicFrame(
+                        frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
                         this,
@@ -343,21 +341,17 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    using IDisposable? scope = StartScope();
                     if (_receivedOffset == _receivedSize)
                     {
                         ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
                         Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _receivedEndOfStream) = valueTask.Result;
-                        _connection.FinishedReceivedStreamData(_receivedSize, _receivedEndOfStream, _receivedSize);
                     }
-                    else
+
+                    if (_receivedSize - _receivedOffset > 0)
                     {
-                        _connection.FinishedReceivedStreamData(
-                            _receivedSize,
-                            _receivedEndOfStream,
-                            _receivedSize - _receivedOffset);
+                        _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                     }
                 }
                 catch
@@ -432,7 +426,7 @@ namespace IceRpc.Transports.Internal
                     {
                         // Ignore, the stream has been aborted. Notify the connection that we're not interested
                         // with the data to allow it to receive data for other streams.
-                        _connection.FinishedReceivedStreamData(size, fin, size);
+                        _connection.FinishedReceivedStreamData(size);
                     }
                 }
                 else
@@ -459,6 +453,7 @@ namespace IceRpc.Transports.Internal
 
             async Task PerformReceiveInBufferAsync()
             {
+                using IDisposable? scope = StartScope();
                 Debug.Assert(_receiveBuffer != null);
                 try
                 {
@@ -489,7 +484,11 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore exceptions, the stream has been aborted.
                 }
-                _connection.FinishedReceivedStreamData(size, fin, 0);
+
+                if (size > 0)
+                {
+                    _connection.FinishedReceivedStreamData(0);
+                }
             }
         }
 

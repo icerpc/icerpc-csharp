@@ -86,8 +86,8 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.ReceivedData,
             EventName = nameof(TransportEvent.ReceivedData),
             Level = LogLevel.Trace,
-            Message = "received {Size} bytes")]
-        internal static partial void LogReceivedData(this ILogger logger, int size);
+            Message = "received {Size} bytes ({Data})")]
+        internal static partial void LogReceivedData(this ILogger logger, int size, string data);
 
         [LoggerMessage(
             EventId = (int)TransportEvent.ReceivedInvalidDatagram,
@@ -111,8 +111,8 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.SentData,
             EventName = nameof(TransportEvent.SentData),
             Level = LogLevel.Trace,
-            Message = "sent {Size} bytes")]
-        internal static partial void LogSentData(this ILogger logger, int size);
+            Message = "sent {Size} bytes ({Data})")]
+        internal static partial void LogSentData(this ILogger logger, int size, string data);
 
         [LoggerMessage(
            EventId = (int)TransportEvent.StartAcceptingConnections,
@@ -172,18 +172,14 @@ namespace IceRpc.Transports.Internal
             return _acceptorScope(logger, acceptor.Endpoint.ToString());
         }
 
-        internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection, Server? server)
+        internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
                 return null;
             }
 
-            if (server != null)
-            {
-                return _acceptorScope(logger, connection.LocalEndpoint?.ToString() ?? "undefined");
-            }
-            else if (connection.IsIncoming)
+            if (connection.IsIncoming)
             {
                 string? remoteEndpoint = null;
                 if (connection.State > ConnectionState.NotConnected)

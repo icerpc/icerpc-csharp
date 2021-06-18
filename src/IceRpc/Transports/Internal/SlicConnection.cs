@@ -48,21 +48,20 @@ namespace IceRpc.Transports.Internal
 
             while (true)
             {
-                (SlicDefinitions.FrameType type, int size, long? streamId) =
-                         await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
+                (SlicDefinitions.FrameType type, int frameSize) =
+                    await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
 
                 switch (type)
                 {
                     case SlicDefinitions.FrameType.Close:
                     {
-                        Logger.LogReceivedSlicFrame(type, size);
+                        Logger.LogReceivingSlicFrame(type, frameSize);
                         throw new ConnectionClosedException();
                     }
                     case SlicDefinitions.FrameType.Ping:
                     {
-                        Logger.LogReceivedSlicFrame(type, size);
-
-                        if (size != 0)
+                        Logger.LogReceivingSlicFrame(type, frameSize);
+                        if (frameSize != 0)
                         {
                             throw new InvalidDataException("unexpected data for Slic Ping fame");
                         }
@@ -72,45 +71,51 @@ namespace IceRpc.Transports.Internal
                     }
                     case SlicDefinitions.FrameType.Pong:
                     {
-                        Logger.LogReceivedSlicFrame(type, size);
-
-                        // TODO: setup and reset timer here for the pong frame response?
-                        if (size != 0)
+                        Logger.LogReceivingSlicFrame(type, frameSize);
+                        if (frameSize != 0)
                         {
                             throw new InvalidDataException("unexpected data for Slic Pong fame");
                         }
+                        // TODO: setup and reset timer here for the pong frame response?
                         break;
                     }
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
                     {
-                        Debug.Assert(streamId != null);
-                        bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
-                        bool isBidirectional = streamId.Value % 4 < 2;
-                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
 
-                        if (size == 0 && type == SlicDefinitions.FrameType.Stream)
+                        if (dataSize == 0 && type == SlicDefinitions.FrameType.Stream)
                         {
                             throw new InvalidDataException("received empty stream frame");
                         }
 
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
+                        using (IDisposable? scope = Logger.StartStreamScope(streamId))
+                        {
+                            Logger.LogReceivingSlicFrame(type, frameSize);
+                        }
+
+                        bool isIncoming = streamId % 2 == (IsIncoming ? 0 : 1);
+                        bool isBidirectional = streamId % 4 < 2;
+                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
+
+                        if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             // Notify the stream that data is available for read.
-                            stream.ReceivedFrame(size, fin);
+                            stream.ReceivedFrame(dataSize, fin);
 
                             // Wait for the stream to receive the data before reading a new Slic frame.
-                            if (size > 0)
+                            if (dataSize > 0)
                             {
                                 await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
                         }
-                        else if (isIncoming && IsIncomingStreamUnknown(streamId.Value, isBidirectional))
+                        else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
                         {
                             // Create a new stream if the incoming stream is unknown (the client could be sending
                             // frames for old canceled incoming streams, these are ignored).
 
-                            if (size == 0)
+                            if (dataSize == 0)
                             {
                                 throw new InvalidDataException("received empty stream frame on new stream");
                             }
@@ -118,7 +123,7 @@ namespace IceRpc.Transports.Internal
                             // Accept the new incoming stream and notify the stream that data is available.
                             try
                             {
-                                stream = new SlicStream(this, streamId.Value);
+                                stream = new SlicStream(this, streamId);
                             }
                             catch
                             {
@@ -126,7 +131,7 @@ namespace IceRpc.Transports.Internal
                                 // connection is being closed gracefully, the connection waits for the connection to
                                 // receive the RST from the peer so it's important to receive and skip all the
                                 // data until the RST is received.
-                                await IgnoreDataAsync(size, cancel).ConfigureAwait(false);
+                                await IgnoreDataAsync(dataSize, cancel).ConfigureAwait(false);
                                 continue;
                             }
 
@@ -152,7 +157,7 @@ namespace IceRpc.Transports.Internal
                                 }
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
-                            stream.ReceivedFrame(size, fin);
+                            stream.ReceivedFrame(dataSize, fin);
                             return stream;
                         }
                         else
@@ -171,40 +176,39 @@ namespace IceRpc.Transports.Internal
                             }
 
                             // The stream has been destroyed, read and ignore the data.
-                            if (size > 0)
+                            if (dataSize > 0)
                             {
-                                await IgnoreDataAsync(size, cancel).ConfigureAwait(false);
+                                await IgnoreDataAsync(dataSize, cancel).ConfigureAwait(false);
                             }
-
-                            using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
-                            Logger.LogReceivedSlicFrame(
-                                fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream, size);
                         }
                         break;
                     }
                     case SlicDefinitions.FrameType.StreamReset:
                     {
-                        Debug.Assert(streamId != null);
-
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
                         if (streamId == 2 || streamId == 3)
                         {
                             throw new InvalidDataException("can't reset control streams");
                         }
 
-                        ArraySegment<byte> data = new byte[size];
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+                        Logger.LogReceivingSlicFrame(type, frameSize);
+
+                        ArraySegment<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
                         var streamReset = new StreamResetBody(istr);
                         var errorCode = (StreamErrorCode)streamReset.ApplicationProtocolErrorCode;
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedReset(errorCode);
                         }
                         else
                         {
-                            bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
-                            bool isBidirectional = streamId.Value % 4 < 2;
+                            bool isIncoming = streamId % 2 == (IsIncoming ? 0 : 1);
+                            bool isBidirectional = streamId % 4 < 2;
                             // Release the stream count for the destroyed stream if it's an outgoing stream. For
                             // incoming streams, the stream count is released on shutdown of the stream.
                             if (!isIncoming)
@@ -219,34 +223,31 @@ namespace IceRpc.Transports.Internal
                                 }
                             }
                         }
-
-                        using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
-                        Logger.LogReceivedSlicResetFrame(size, errorCode);
                         break;
                     }
                     case SlicDefinitions.FrameType.StreamConsumed:
                     {
-                        Debug.Assert(streamId != null);
-
-                        using IDisposable? scope = Logger.StartStreamScope(streamId.Value);
-                        Logger.LogReceivedSlicFrame(type, size);
-
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
                         if (streamId == 2 || streamId == 3)
                         {
                             throw new InvalidDataException("control streams don't support flow control");
                         }
-                        if (size > 8)
+                        if (frameSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
                         }
 
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+                        Logger.LogReceivingSlicFrame(type, frameSize);
+
                         _streamConsumedBuffer ??= new byte[8];
 
-                        await ReceiveDataAsync(_streamConsumedBuffer.Value[0..size], cancel).ConfigureAwait(false);
+                        await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
-                        var istr = new InputStream(_streamConsumedBuffer.Value[0..size], SlicDefinitions.Encoding);
+                        var istr = new InputStream(_streamConsumedBuffer.Value[0..dataSize], SlicDefinitions.Encoding);
                         var streamConsumed = new StreamConsumedBody(istr);
-                        if (TryGetStream(streamId.Value, out SlicStream? stream))
+                        if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
                         }
@@ -273,7 +274,7 @@ namespace IceRpc.Transports.Internal
                         new CloseBody((ulong)errorCode).IceWrite(ostr);
                     }
                 },
-                frameSize => Logger.LogSentSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
+                frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
                 cancel: cancel).ConfigureAwait(false);
         }
 
@@ -312,7 +313,7 @@ namespace IceRpc.Transports.Internal
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
                         ostr => versionBody.IceWrite(ostr),
-                        frameSize => Logger.LogSentSlicVersionFrame(frameSize, versionBody),
+                        frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
                     (type, data) = await ReceiveFrameAsync(cancel).ConfigureAwait(false);
@@ -332,7 +333,7 @@ namespace IceRpc.Transports.Internal
                 // Read initialize frame
                 var initializeBody = new InitializeHeaderBody(istr);
                 Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
-                Logger.LogReceivedSlicInitializeFrame(data.Count, version, initializeBody, parameters);
+                Logger.LogReceivingSlicInitializeFrame(data.Count, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
                 try
@@ -355,7 +356,7 @@ namespace IceRpc.Transports.Internal
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.InitializeAck,
                     ostr => WriteParameters(ostr, parameters),
-                    frameSize => Logger.LogSentSlicInitializeAckFrame(frameSize, parameters),
+                    frameSize => Logger.LogSendingSlicInitializeAckFrame(frameSize, parameters),
                     cancel: cancel).ConfigureAwait(false);
             }
             else
@@ -372,7 +373,7 @@ namespace IceRpc.Transports.Internal
                         initializeBody.IceWrite(ostr);
                         WriteParameters(ostr, parameters);
                     },
-                    frameSize => Logger.LogSentSlicInitializeFrame(frameSize, version, initializeBody, parameters),
+                    frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),
                     cancel: cancel).ConfigureAwait(false);
 
                 // Read the InitializeAck or Version frame from the server
@@ -387,7 +388,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read the version sequence provided by the server.
                     var versionBody = new VersionBody(istr);
-                    Logger.LogReceivedSlicVersionFrame(data.Count, versionBody);
+                    Logger.LogReceivingSlicVersionFrame(data.Count, versionBody);
 
                     throw new InvalidDataException(
                         $"unsupported Slic version, server supports Slic '{string.Join(", ", versionBody.Versions)}'");
@@ -400,7 +401,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Read and set parameters.
                     parameters = ReadParameters(istr);
-                    Logger.LogReceivedSlicInitializeAckFrame(data.Count, parameters);
+                    Logger.LogReceivingSlicInitializeAckFrame(data.Count, parameters);
                     SetParameters(parameters);
                 }
             }
@@ -418,7 +419,6 @@ namespace IceRpc.Transports.Internal
             : base(endpoint, singleStreamConnection, options)
         {
             _idleTimeout = options.IdleTimeout;
-            _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
@@ -457,11 +457,9 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamSemaphore?.Complete(exception);
         }
 
-        internal void FinishedReceivedStreamData(int frameSize, bool fin, int remainingSize)
+        internal void FinishedReceivedStreamData(int remainingSize)
         {
-            Logger.LogReceivedSlicFrame(
-                fin ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream,
-                frameSize);
+            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
             _receiveStreamCompletionTaskSource.SetResult(remainingSize);
         }
 
@@ -472,6 +470,10 @@ namespace IceRpc.Transports.Internal
             SlicStream? stream = null,
             CancellationToken cancel = default)
         {
+            Debug.Assert(stream == null ?
+                type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
+                type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
+
             var data = new List<Memory<byte>>();
             var ostr = new OutputStream(SlicDefinitions.Encoding, data);
             ostr.WriteByte((byte)type);
@@ -490,16 +492,16 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
-
+                using IDisposable? scope = stream?.StartScope();
                 if (logAction != null)
                 {
                     logAction?.Invoke(frameSize);
                 }
                 else
                 {
-                    Logger.LogSentSlicFrame(type, frameSize);
+                    Logger.LogSendingSlicFrame(type, frameSize);
                 }
+                await SendPacketAsync(data.ToReadOnlyMemory()).ConfigureAwait(false);
             }
             finally
             {
@@ -511,10 +513,9 @@ namespace IceRpc.Transports.Internal
         {
             for (int offset = 0; offset != buffer.Length;)
             {
-                int received = await _bufferedConnection!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
-                offset += received;
-                Received(received);
+                offset += await _bufferedConnection!.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
+            Received(buffer);
         }
 
         internal void ReleaseStream(SlicStream stream)
@@ -547,17 +548,12 @@ namespace IceRpc.Transports.Internal
 
         internal async ValueTask SendPacketAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
-            // Perform the write
-            int sent = 0;
-
             for (int i = 0; i < buffers.Length; ++i)
             {
                 // A Slic packet must always be sent entirely even if the sending of the stream data is canceled.
-                sent += await _bufferedConnection!.SendAsync(buffers.Span[i],
-                                                             CancellationToken.None).ConfigureAwait(false);
+                await _bufferedConnection!.SendAsync(buffers.Span[i], CancellationToken.None).ConfigureAwait(false);
             }
-            Debug.Assert(sent == buffers.GetByteCount());
-            Sent(sent);
+            Sent(buffers);
         }
 
         internal async ValueTask SendStreamFrameAsync(
@@ -646,10 +642,6 @@ namespace IceRpc.Transports.Internal
                 throw exception;
             }
 
-            // If the stream wasn't started, we start the scope here because the caller can't start it until
-            // the stream is started.
-            using IDisposable? streamScope = started ? null : stream.StartScope();
-
             // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't
             // interrupt a send on the underlying connection and we want to make sure that once a stream is started,
             // the peer will always receive at least one stream frame.
@@ -682,8 +674,8 @@ namespace IceRpc.Transports.Internal
                     // Update the first buffer entry
                     MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
 
-                    Logger.LogSentSlicFrame(frameType, packetSize);
-
+                    using IDisposable? scope = stream.StartScope();
+                    Logger.LogSendingSlicFrame(frameType, packetSize);
                     try
                     {
                         await SendPacketAsync(buffers).ConfigureAwait(false);
@@ -809,7 +801,7 @@ namespace IceRpc.Transports.Internal
         private async ValueTask<(SlicDefinitions.FrameType, ArraySegment<byte>)> ReceiveFrameAsync(
             CancellationToken cancel)
         {
-            (SlicDefinitions.FrameType type, int size, long? _) = await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
+            (SlicDefinitions.FrameType type, int size) = await ReceiveHeaderAsync(cancel).ConfigureAwait(false);
             ArraySegment<byte> data;
             if (size > 0)
             {
@@ -823,7 +815,7 @@ namespace IceRpc.Transports.Internal
             return (type, data);
         }
 
-        private async ValueTask<(SlicDefinitions.FrameType, int, long?)> ReceiveHeaderAsync(CancellationToken cancel)
+        private async ValueTask<(SlicDefinitions.FrameType, int)> ReceiveHeaderAsync(CancellationToken cancel)
         {
             // Receive at most 2 bytes for the Slic header (the minimum size of a Slic header). The first byte
             // will be the frame type and the second is the first byte of the Slic frame size.
@@ -833,36 +825,38 @@ namespace IceRpc.Transports.Internal
             int size;
             if (sizeLength > 1)
             {
+                Received(buffer.Slice(0, 1));
                 _bufferedConnection!.Rewind(1);
                 buffer = await _bufferedConnection!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
                 size = buffer.Span.ReadSize20().Size;
+                Received(buffer.Slice(0, sizeLength));
             }
             else
             {
                 size = buffer.Span[1..2].ReadSize20().Size;
+                Received(buffer.Slice(0, 2));
             }
 
-            // Receive the stream ID if the frame includes a stream ID. We receive at most 8 or size bytes and rewind
-            // the connection buffered position if we read too much data.
-            (ulong? streamId, int streamIdLength) = (null, 0);
-            if (type >= SlicDefinitions.FrameType.Stream && type <= SlicDefinitions.FrameType.StreamConsumed)
-            {
-                int receiveSize = Math.Min(size, 8);
-                buffer = await _bufferedConnection!.ReceiveAsync(receiveSize, cancel).ConfigureAwait(false);
-                (streamId, streamIdLength) = buffer.Span.ReadVarULong();
-                _bufferedConnection!.Rewind(receiveSize - streamIdLength);
-            }
-
-            Received(1 + sizeLength + streamIdLength);
-
-            // The size check doesn't include the stream ID length
-            size -= streamIdLength;
-            if (size > PeerPacketMaxSize)
+            if (size - 8 > PeerPacketMaxSize)
             {
                 throw new InvalidDataException("peer sent Slic packet larger than the configured packet maximum size");
             }
 
-            return (type, size, (long?)streamId);
+            return (type, size);
+        }
+
+        private async ValueTask<(long, int)> ReceiveStreamIdAsync(int frameSize, CancellationToken cancel)
+        {
+            // We receive at most 8 or maxSize bytes and rewind the connection buffered position if we read
+            // too much data.
+            int size = Math.Min(frameSize, 8);
+            ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(size, cancel).ConfigureAwait(false);
+            (ulong streamId, int streamIdLength) = buffer.Span.ReadVarULong();
+            _bufferedConnection!.Rewind(size - streamIdLength);
+            Received(buffer[0..streamIdLength]);
+
+            // Return the stream ID and the size of the data remaining to read for the frame.
+            return ((long)streamId, frameSize - streamIdLength);
         }
 
         private async ValueTask WaitForReceivedStreamDataCompletionAsync(CancellationToken cancel)

@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
                         Logger.LogReceivedInvalidDatagram(buffer.Count);
                         continue;
                     }
-                    Received(buffer.Count);
+                    Received(buffer);
                 }
                 else
                 {
@@ -408,10 +408,9 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
             while (offset != buffer.Count)
             {
-                int received = await Underlying.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
-                offset += received;
-                Received(received);
+                offset += await Underlying.ReceiveAsync(buffer.Slice(offset), cancel).ConfigureAwait(false);
             }
+            Received(buffer);
         }
 
         private async ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel)
@@ -435,7 +434,7 @@ namespace IceRpc.Transports.Internal
             // TODO: what's the point of SendAsync/SendDatagramAsync returning the number of bytes sent since they
             // always send the whole buffer?
             Debug.Assert(sent == buffers.GetByteCount());
-            Sent(sent);
+            Sent(buffers);
         }
     }
 }

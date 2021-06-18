@@ -3031,7 +3031,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             auto names = getNames(returnType, [](const MemberPtr &param) { return "returnValue." + fieldName(param); });
             auto streamName = names.back();
             names.pop_back();
-            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "), ";
             _out << "new StreamWriter(" << streamName << ")";
             _out << ");";
         }
