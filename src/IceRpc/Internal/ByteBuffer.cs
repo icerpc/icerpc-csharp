@@ -82,7 +82,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    throw new ArgumentException($"{nameof(buffers)} are not backed by arrays");
+                    throw new ArgumentException($"{nameof(buffers)} are not backed by arrays", nameof(buffers));
                 }
             }
             return segments;
