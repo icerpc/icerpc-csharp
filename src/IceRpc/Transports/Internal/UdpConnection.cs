@@ -112,27 +112,40 @@ namespace IceRpc.Transports.Internal
             {
                 await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
-            {
-                // Don't retry if the datagram can't be sent because its too large.
-                throw new TransportException(ex);
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException();
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                ExceptionUtil.Throw(TcpConnection.ConvertSocketSendAsyncException(ex, cancel));
             }
         }
 
-        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            SendAsync(buffers.ToSingleBuffer(), cancel);
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
+        {
+            // TODO: since cancel is always None, should we remove this parameter?
+            Debug.Assert(cancel == CancellationToken.None);
+
+            if (_incoming)
+            {
+                throw new TransportException("cannot send datagram with incoming connection");
+            }
+
+            if (buffers.Length == 1)
+            {
+                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                try
+                {
+                    await _socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    ExceptionUtil.Throw(TcpConnection.ConvertSocketSendAsyncException(ex, cancel));
+                }
+            }
+        }
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
 

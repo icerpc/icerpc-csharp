@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -68,6 +69,23 @@ namespace IceRpc.Internal
             };
 
             return (value, buffer[0].ReadVarLongLength());
+        }
+
+        internal static IList<ArraySegment<byte>> ToSegmentList(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        {
+            var segments = new ArraySegment<byte>[buffers.Length];
+            for (int i = 0; i < buffers.Length; ++i)
+            {
+                if (MemoryMarshal.TryGetArray(buffers.Span[i], out ArraySegment<byte> segment))
+                {
+                    segments[i] = segment;
+                }
+                else
+                {
+                    throw new ArgumentException($"{nameof(buffers)} are not backed by arrays");
+                }
+            }
+            return segments;
         }
 
         internal static ReadOnlyMemory<byte> ToSingleBuffer(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
