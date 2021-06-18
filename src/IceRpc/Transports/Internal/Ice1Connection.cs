@@ -294,7 +294,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Perform the sending.
-                // TODO: add comment to explain CancellationToken.None
+                // An Ice1 frame must always be sent entirely even if the sending of the stream data is canceled.
                 await Underlying.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
                 Sent(buffers.GetByteCount());
             }

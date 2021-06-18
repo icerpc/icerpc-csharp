@@ -611,11 +611,7 @@ namespace IceRpc.Transports
             while (payloadIndex < frame.Payload.Length &&
                    frame.Payload.Span[payloadIndex].Length <= ostr.Capacity - ostr.Size)
             {
-                ReadOnlyMemory<byte> buffer = frame.Payload.Span[payloadIndex++];
-                if (buffer.Length > 0)
-                {
-                    ostr.WriteByteSpan(buffer.Span);
-                }
+                ostr.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish(); // only headers so far

@@ -1101,35 +1101,38 @@ namespace IceRpc
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
             int length = span.Length;
-            Expand(length);
-            Size += length;
-            int offset = _tail.Offset;
-            int remaining = _currentBuffer.Length - offset;
-            Debug.Assert(remaining > 0); // guaranteed by Expand
-            int sz = Math.Min(length, remaining);
-            if (length > remaining)
-            {
-                span.Slice(0, remaining).CopyTo(_currentBuffer.Span.Slice(offset, sz));
-            }
-            else
-            {
-                span.CopyTo(_currentBuffer.Span.Slice(offset, length));
-            }
-            _tail.Offset += sz;
-            length -= sz;
-
             if (length > 0)
             {
-                _currentBuffer = GetBuffer(++_tail.Buffer);
-                if (remaining == 0)
+                Expand(length);
+                Size += length;
+                int offset = _tail.Offset;
+                int remaining = _currentBuffer.Length - offset;
+                Debug.Assert(remaining > 0); // guaranteed by Expand
+                int sz = Math.Min(length, remaining);
+                if (length > remaining)
                 {
-                    span.CopyTo(_currentBuffer.Span.Slice(0, length));
+                    span.Slice(0, remaining).CopyTo(_currentBuffer.Span.Slice(offset, sz));
                 }
                 else
                 {
-                    span.Slice(remaining, length).CopyTo(_currentBuffer.Span.Slice(0, length));
+                    span.CopyTo(_currentBuffer.Span.Slice(offset, length));
                 }
-                _tail.Offset = length;
+                _tail.Offset += sz;
+                length -= sz;
+
+                if (length > 0)
+                {
+                    _currentBuffer = GetBuffer(++_tail.Buffer);
+                    if (remaining == 0)
+                    {
+                        span.CopyTo(_currentBuffer.Span.Slice(0, length));
+                    }
+                    else
+                    {
+                        span.Slice(remaining, length).CopyTo(_currentBuffer.Span.Slice(0, length));
+                    }
+                    _tail.Offset = length;
+                }
             }
         }
 
