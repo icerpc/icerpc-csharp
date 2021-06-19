@@ -59,7 +59,8 @@ namespace IceRpc.Tests.Internal
                 async () => await OutgoingConnection.ReceiveAsync(new byte[1], canceled.Token));
         }
 
-        [Test]
+        // [Test]
+        // TODO: why support cancellation of SendAsync on a TCP connection?
         public async Task NonDatagramConnection_SendAsync_CancellationAsync()
         {
             IncomingConnection.NetworkSocket!.ReceiveBufferSize = 4096;
@@ -108,7 +109,8 @@ namespace IceRpc.Tests.Internal
             Assert.CatchAsync<TransportException>(async () => await OutgoingConnection.SendAsync(OneBSendBuffer, default));
         }
 
-        [Test]
+        // [Test]
+        // See TODO above
         public void NonDatagramConnection_SendAsync_Exception()
         {
             using var canceled = new CancellationTokenSource();

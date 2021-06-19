@@ -294,8 +294,10 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Perform the sending.
-                // An Ice1 frame must always be sent entirely even if the sending of the stream data is canceled.
-                await Underlying.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+                // When an an Ice1 frame is sent over a connection (such as a TCP connection), we need to send the
+                // entire frame even when cancel gets canceled since the recipient cannot read a partial frame and then
+                // keep going.
+                await Underlying.SendAsync(buffers, IsDatagram ? cancel : CancellationToken.None).ConfigureAwait(false);
                 Sent(buffers.GetByteCount());
             }
             finally

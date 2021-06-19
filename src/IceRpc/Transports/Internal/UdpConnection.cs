@@ -88,17 +88,9 @@ namespace IceRpc.Transports.Internal
                 }
                 return received;
             }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException();
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(TcpConnection.ConvertException(ex, cancel));
             }
         }
 
@@ -115,7 +107,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                ExceptionUtil.Throw(TcpConnection.ConvertSocketSendAsyncException(ex, cancel));
+                throw ExceptionUtil.Throw(TcpConnection.ConvertException(ex, cancel));
             }
         }
 

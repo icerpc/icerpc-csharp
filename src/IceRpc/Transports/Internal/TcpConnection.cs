@@ -72,17 +72,9 @@ namespace IceRpc.Transports.Internal
                 }
                 return ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!);
             }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
             }
         }
 
@@ -145,25 +137,9 @@ namespace IceRpc.Transports.Internal
                     received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch (IOException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (SocketException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
             }
 
             if (received == 0)
@@ -175,6 +151,12 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
+            if (cancel.CanBeCanceled)
+            {
+                throw new NotSupportedException(
+                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
+            }
+
             try
             {
                 if (SslStream is SslStream sslStream)
@@ -188,7 +170,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                ExceptionUtil.Throw(ConvertSocketSendAsyncException(ex, cancel));
+                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
             }
         }
 
@@ -198,8 +180,11 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(buffers.Length > 0);
 
-            // TODO: since cancel is always None, should we remove this parameter?
-            Debug.Assert(cancel == CancellationToken.None);
+            if (cancel.CanBeCanceled)
+            {
+                throw new NotSupportedException(
+                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
+            }
 
             if (buffers.Length == 1)
             {
@@ -215,7 +200,7 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (Exception ex)
                     {
-                        ExceptionUtil.Throw(ConvertSocketSendAsyncException(ex, cancel));
+                        throw ExceptionUtil.Throw(ConvertException(ex, cancel));
                     }
                 }
                 else
@@ -269,17 +254,15 @@ namespace IceRpc.Transports.Internal
             SslStream?.Dispose();
         }
 
-        // works for socket exceptions and SslStream exceptions
-        internal static Exception ConvertSocketSendAsyncException(
-            Exception socketException,
-            CancellationToken cancel) =>
-            socketException switch
+        // works for all exceptions
+        internal static Exception ConvertException(Exception exception, CancellationToken cancel = default) =>
+            exception switch
             {
-                IOException ex when ex.IsConnectionLost() => new ConnectionLostException(ex),
-                SocketException ex when ex.IsConnectionLost() => new ConnectionLostException(ex),
                 OperationCanceledException ex => ex,
+                TransportException ex => ex,
                 Exception ex when cancel.IsCancellationRequested => new OperationCanceledException(null, ex, cancel),
-                _ => new TransportException(socketException)
+                Exception ex when ex.IsConnectionLost() => new ConnectionLostException(ex),
+                _ => new TransportException(exception)
             };
 
         internal TcpConnection(Socket fd, ILogger logger, EndPoint? addr = null)
@@ -299,18 +282,14 @@ namespace IceRpc.Transports.Internal
             {
                 await authenticate(SslStream).ConfigureAwait(false);
             }
-            catch (IOException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (IOException ex)
-            {
-                throw new TransportException(ex);
-            }
             catch (AuthenticationException ex)
             {
                 Logger.LogTlsAuthenticationFailed(ex);
                 throw new TransportException(ex);
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ConvertException(ex));
             }
 
             Logger.LogTlsAuthenticationSucceeded(SslStream);
