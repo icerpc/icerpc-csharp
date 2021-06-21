@@ -224,7 +224,12 @@ namespace IceRpc.Transports.Internal
                         }
                     } while (index < buffers.Length);
 
-                    if (writeBufferSize > 0)
+                    if (index == 1)
+                    {
+                        // There is no point copying only the first buffer into another buffer
+                        index = 0;
+                    }
+                    else if (writeBufferSize > 0)
                     {
                         using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
                         Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
@@ -235,7 +240,7 @@ namespace IceRpc.Transports.Internal
                             buffer.CopyTo(writeBuffer[offset..]);
                             offset += buffer.Length;
                         }
-                        // Send the "coalesced" initial buffer
+                        // Send the "coalesced" initial buffers
                         await SendAsync(writeBuffer, cancel).ConfigureAwait(false);
                     }
 
