@@ -90,7 +90,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(TcpConnection.ConvertException(ex, cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -107,7 +107,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(TcpConnection.ConvertException(ex, cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 

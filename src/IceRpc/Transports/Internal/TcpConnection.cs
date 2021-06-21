@@ -26,6 +26,7 @@ namespace IceRpc.Transports.Internal
 
         internal SslStream? SslStream { get; private set; }
 
+        // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
@@ -74,7 +75,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -139,7 +140,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
 
             if (received == 0)
@@ -170,7 +171,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ConvertException(ex, cancel));
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -200,7 +201,7 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (Exception ex)
                     {
-                        throw ExceptionUtil.Throw(ConvertException(ex, cancel));
+                        throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
                     }
                 }
                 else
@@ -226,7 +227,7 @@ namespace IceRpc.Transports.Internal
                     if (writeBufferSize > 0)
                     {
                         using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
-                        Memory<byte> writeBuffer = writeBufferOwner.Memory;
+                        Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
                         int offset = 0;
                         for (int i = 0; i < index; ++i)
                         {
@@ -234,7 +235,6 @@ namespace IceRpc.Transports.Internal
                             buffer.CopyTo(writeBuffer[offset..]);
                             offset += buffer.Length;
                         }
-                        writeBuffer = writeBuffer[0..offset];
                         // Send the "coalesced" initial buffer
                         await SendAsync(writeBuffer, cancel).ConfigureAwait(false);
                     }
@@ -253,17 +253,6 @@ namespace IceRpc.Transports.Internal
             _socket.Dispose();
             SslStream?.Dispose();
         }
-
-        // works for all exceptions
-        internal static Exception ConvertException(Exception exception, CancellationToken cancel = default) =>
-            exception switch
-            {
-                OperationCanceledException ex => ex,
-                TransportException ex => ex,
-                Exception ex when cancel.IsCancellationRequested => new OperationCanceledException(null, ex, cancel),
-                Exception ex when ex.IsConnectionLost() => new ConnectionLostException(ex),
-                _ => new TransportException(exception)
-            };
 
         internal TcpConnection(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
@@ -289,7 +278,7 @@ namespace IceRpc.Transports.Internal
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ConvertException(ex));
+                throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
             Logger.LogTlsAuthenticationSucceeded(SslStream);
