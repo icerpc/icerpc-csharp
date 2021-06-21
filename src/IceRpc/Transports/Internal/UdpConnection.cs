@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -87,17 +88,9 @@ namespace IceRpc.Transports.Internal
                 }
                 return received;
             }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException();
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -112,27 +105,29 @@ namespace IceRpc.Transports.Internal
             {
                 await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
             }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.MessageSize)
-            {
-                // Don't retry if the datagram can't be sent because its too large.
-                throw new TransportException(ex);
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException();
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
-        public override ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel) =>
-            SendAsync(buffers.ToSingleBuffer(), cancel);
+        public override async ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            CancellationToken cancel)
+        {
+            if (buffers.Length == 1)
+            {
+                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                // Coalesce all buffers into a singled rented buffer.
+                int size = buffers.GetByteCount();
+                using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(size);
+                buffers.CopyTo(writeBufferOwner.Memory);
+                await SendAsync(writeBufferOwner.Memory[0..size], cancel).ConfigureAwait(false);
+            }
+        }
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
 

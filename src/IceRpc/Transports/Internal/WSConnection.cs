@@ -93,7 +93,9 @@ namespace IceRpc.Transports.Internal
             byte[] payload = new byte[2];
             short reason = IPAddress.HostToNetworkOrder((short)ClosureStatusCode.Shutdown);
             MemoryMarshal.Write(payload, ref reason);
-            await SendImplAsync(OpCode.Close, new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
+            await SendImplAsync(OpCode.Close,
+                                new ReadOnlyMemory<byte>[] { payload },
+                                CancellationToken.None).ConfigureAwait(false);
 
             await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
@@ -192,7 +194,7 @@ namespace IceRpc.Transports.Internal
                     _key = Convert.ToBase64String(key);
                     sb.Append(_key + "\r\n\r\n"); // EOM
                     byte[] data = _utf8.GetBytes(sb.ToString());
-                    await _bufferedConnection.SendAsync(data, cancel).ConfigureAwait(false);
+                    await _bufferedConnection.SendAsync(data, CancellationToken.None).ConfigureAwait(false);
                 }
 
                 // Try to read the client's upgrade request or the server's response.
@@ -256,7 +258,7 @@ namespace IceRpc.Transports.Internal
                         sb.Append(Convert.ToBase64String(hash) + "\r\n" + "\r\n"); // EOM
 
                         byte[] data = _utf8.GetBytes(sb.ToString());
-                        await _bufferedConnection.SendAsync(data, cancel).ConfigureAwait(false);
+                        await _bufferedConnection.SendAsync(data, CancellationToken.None).ConfigureAwait(false);
                     }
                     else
                     {
@@ -425,7 +427,8 @@ namespace IceRpc.Transports.Internal
 
                         // Send back a close frame.
                         await SendImplAsync(OpCode.Close,
-                                            new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
+                                            new ReadOnlyMemory<byte>[] { payload },
+                                            CancellationToken.None).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Ping:
@@ -436,7 +439,8 @@ namespace IceRpc.Transports.Internal
 
                         // Send a Pong frame with the received payload.
                         await SendImplAsync(OpCode.Pong,
-                                            new ReadOnlyMemory<byte>[] { payload }, cancel).ConfigureAwait(false);
+                                            new ReadOnlyMemory<byte>[] { payload },
+                                            CancellationToken.None).ConfigureAwait(false);
                         break;
                     }
                     case OpCode.Pong:

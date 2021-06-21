@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -24,12 +26,15 @@ namespace IceRpc.Transports.Internal
 
         internal SslStream? SslStream { get; private set; }
 
-        private readonly EndPoint? _addr;
-        private TcpConnectionInformation? _connectionInformation;
-        private readonly Socket _socket;
+        // The MaxDataSize of the SSL implementation.
+        private const int MaxSslDataSize = 16 * 1024;
 
         // See https://tools.ietf.org/html/rfc5246#appendix-A.4
         private const byte TlsHandshakeRecord = 0x16;
+
+        private readonly EndPoint? _addr;
+        private TcpConnectionInformation? _connectionInformation;
+        private readonly Socket _socket;
 
         public override async ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
@@ -68,17 +73,9 @@ namespace IceRpc.Transports.Internal
                 }
                 return ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!);
             }
-            catch (Exception ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -141,25 +138,9 @@ namespace IceRpc.Transports.Internal
                     received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch (IOException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (SocketException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
 
             if (received == 0)
@@ -171,6 +152,12 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
+            if (cancel.CanBeCanceled)
+            {
+                throw new NotSupportedException(
+                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
+            }
+
             try
             {
                 if (SslStream is SslStream sslStream)
@@ -182,25 +169,9 @@ namespace IceRpc.Transports.Internal
                     await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
-            catch (IOException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException();
-            }
-            catch (SocketException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
             catch (Exception ex)
             {
-                throw new TransportException(ex);
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
 
@@ -208,11 +179,77 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            // We assume the caller already coalesced small buffers.
+            Debug.Assert(buffers.Length > 0);
 
-            for (int i = 0; i < buffers.Length; ++i)
+            if (cancel.CanBeCanceled)
             {
-                await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                throw new NotSupportedException(
+                    $"{nameof(SendAsync)} on a tcp connection does not support cancellation");
+            }
+
+            if (buffers.Length == 1)
+            {
+                await SendAsync(buffers.Span[0], cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                if (SslStream == null)
+                {
+                    try
+                    {
+                        await _socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+                    }
+                }
+                else
+                {
+                    // Coalesce leading small buffers up to MaxSslDataSize. We assume buffers later on are large enough
+                    // and don't need coalescing.
+                    int index = 0;
+                    int writeBufferSize = 0;
+                    do
+                    {
+                        ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                        if (writeBufferSize + buffer.Length < MaxSslDataSize)
+                        {
+                            index++;
+                            writeBufferSize += buffer.Length;
+                        }
+                        else
+                        {
+                            break; // while
+                        }
+                    } while (index < buffers.Length);
+
+                    if (index == 1)
+                    {
+                        // There is no point copying only the first buffer into another buffer.
+                        index = 0;
+                    }
+                    else if (writeBufferSize > 0)
+                    {
+                        using IMemoryOwner<byte> writeBufferOwner = MemoryPool<byte>.Shared.Rent(writeBufferSize);
+                        Memory<byte> writeBuffer = writeBufferOwner.Memory[0..writeBufferSize];
+                        int offset = 0;
+                        for (int i = 0; i < index; ++i)
+                        {
+                            ReadOnlyMemory<byte> buffer = buffers.Span[index];
+                            buffer.CopyTo(writeBuffer[offset..]);
+                            offset += buffer.Length;
+                        }
+                        // Send the "coalesced" initial buffers
+                        await SendAsync(writeBuffer, cancel).ConfigureAwait(false);
+                    }
+
+                    // Send the remaining buffers one by one
+                    for (int i = index; i < buffers.Length; ++i)
+                    {
+                        await SendAsync(buffers.Span[i], cancel).ConfigureAwait(false);
+                    }
+                }
             }
         }
 
@@ -239,18 +276,14 @@ namespace IceRpc.Transports.Internal
             {
                 await authenticate(SslStream).ConfigureAwait(false);
             }
-            catch (IOException ex) when (ex.IsConnectionLost())
-            {
-                throw new ConnectionLostException(ex);
-            }
-            catch (IOException ex)
-            {
-                throw new TransportException(ex);
-            }
             catch (AuthenticationException ex)
             {
                 Logger.LogTlsAuthenticationFailed(ex);
                 throw new TransportException(ex);
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
             Logger.LogTlsAuthenticationSucceeded(SslStream);
