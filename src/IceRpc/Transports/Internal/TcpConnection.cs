@@ -226,7 +226,7 @@ namespace IceRpc.Transports.Internal
 
                     if (index == 1)
                     {
-                        // There is no point copying only the first buffer into another buffer
+                        // There is no point copying only the first buffer into another buffer.
                         index = 0;
                     }
                     else if (writeBufferSize > 0)
