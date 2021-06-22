@@ -217,7 +217,7 @@ namespace IceRpc.Transports.Internal
             return timeout;
         }
 
-        private (SingleStreamConnection, Endpoint) CreateListeningConnection(ITransportOptions? options, ILogger logger)
+        private protected (SingleStreamConnection, Endpoint) CreateListeningConnection(ITransportOptions? options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
