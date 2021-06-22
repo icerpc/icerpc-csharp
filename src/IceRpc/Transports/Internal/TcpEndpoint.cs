@@ -256,56 +256,6 @@ namespace IceRpc.Transports.Internal
             return (CreateSingleStreamConnection(socket, logger, address), Clone((ushort)address.Port));
         }
 
-        private protected IAcceptor CreateAcceptor(IncomingConnectionOptions options, ILogger logger)
-        {
-            if (Address == IPAddress.None)
-            {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
-            }
-
-            var address = new IPEndPoint(Address, Port);
-            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                socket.ExclusiveAddressUse = true;
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
-
-                socket.Bind(address);
-                address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(tcpOptions.ListenerBackLog);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
-        }
-
-        private protected MultiStreamConnection CreateOutgoingConnection(
-            OutgoingConnectionOptions options,
-            ILogger logger)
-        {
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamConnection singleStreamConnection =
-                CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
-
-            return Protocol switch
-            {
-                Protocol.Ice1 => new Ice1Connection(this, singleStreamConnection, options),
-                _ => new SlicConnection(this, singleStreamConnection, options)
-            };
-        }
-
         private protected SingleStreamConnection CreateOutgoingConnection(
             ITransportOptions? options,
             ILogger logger)
