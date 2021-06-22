@@ -34,22 +34,6 @@ namespace IceRpc.Transports.Internal
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
-        /*
-        internal static TransportDescriptor TcpTransportDescriptor { get; } =
-            new(Transport.TCP, "tcp", CreateEndpoint)
-            {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
-                DefaultUriPort = DefaultIPPort,
-                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
-                Ice1EndpointParser = (options, endpointString) =>
-                    ParseIce1Endpoint(Transport.TCP, options, endpointString),
-                Ice2EndpointParser = ParseIce2Endpoint,
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
-            };
-        */
-
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new SingleStreamConnectionTransportDescriptor(
                 Transport.TCP,
@@ -57,7 +41,7 @@ namespace IceRpc.Transports.Internal
                 CreateEndpoint,
                 clientConnectionFactory: (endpoint, options, logger) =>
                     ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
-                listeningConnectionFactory: (endpoint, options, logger) =>
+                serverConnectionFactory: (endpoint, options, logger) =>
                     ((TcpEndpoint)endpoint).CreateListeningConnection(options, logger))
             {
                 DefaultUriPort = DefaultIPPort,
@@ -68,15 +52,18 @@ namespace IceRpc.Transports.Internal
             };
 
         internal static TransportDescriptor SslTransportDescriptor { get; } =
-            new(Transport.SSL, "ssl", CreateEndpoint)
+            new SingleStreamConnectionTransportDescriptor(
+                Transport.SSL,
+                "ssl",
+                CreateEndpoint,
+                clientConnectionFactory: (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                serverConnectionFactory: (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateListeningConnection(options, logger))
             {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
-                    ParseIce1Endpoint(Transport.SSL, options, endpointString),
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+                    ParseIce1Endpoint(Transport.SSL, options, endpointString)
             };
 
         private protected bool HasCompressionFlag { get; }

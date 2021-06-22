@@ -62,23 +62,42 @@ namespace IceRpc.Transports
     /// <summary>Descriptor for a transport implemented using a single stream connection.</summary>
     public class SingleStreamConnectionTransportDescriptor : TransportDescriptor
     {
+        // Sets AcceptorFactory + OutgoingConnectionFactory
         public SingleStreamConnectionTransportDescriptor(
             Transport transport,
             string name,
             Func<EndpointData, Protocol, Endpoint> endpointFactory,
             Func<Endpoint, ITransportOptions?, ILogger, SingleStreamConnection> clientConnectionFactory,
-            Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)> listeningConnectionFactory)
+            Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)> serverConnectionFactory,
+            bool useAcceptor = true)
                 : base(transport, name, endpointFactory)
         {
-            AcceptorFactory = (endpoint, options, logger) =>
+            if (useAcceptor)
             {
-                SingleStreamConnection listeningConnection;
-                Endpoint listeningEndpoint;
-                (listeningConnection, listeningEndpoint) =
-                    listeningConnectionFactory(endpoint, options.TransportOptions, logger);
+                AcceptorFactory = (endpoint, options, logger) =>
+                {
+                    SingleStreamConnection listeningConnection;
+                    Endpoint listeningEndpoint;
+                    (listeningConnection, listeningEndpoint) =
+                        serverConnectionFactory(endpoint, options.TransportOptions, logger);
 
-                return new SingleStreamConnectionAcceptor(listeningEndpoint, options, listeningConnection);
-            };
+                    return new SingleStreamConnectionAcceptor(listeningEndpoint, options, listeningConnection);
+                };
+            }
+            else
+            {
+                IncomingConnectionFactory = (endpoint, options, logger) =>
+                {
+                    SingleStreamConnection serverConnection;
+                    Endpoint serverEndpoint;
+                    (serverConnection, serverEndpoint) =
+                        serverConnectionFactory(endpoint, options.TransportOptions, logger);
+
+                    return endpoint.Protocol == Protocol.Ice1 ?
+                        new Ice1Connection(endpoint, serverConnection, options) :
+                        new SlicConnection(endpoint, serverConnection, options);
+                };
+            }
 
             OutgoingConnectionFactory = (endpoint, options, logger) =>
             {
