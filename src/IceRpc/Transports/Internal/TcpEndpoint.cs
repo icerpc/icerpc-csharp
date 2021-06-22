@@ -178,8 +178,11 @@ namespace IceRpc.Transports.Internal
             return new TcpConnection(socket, logger, addr);
         }
 
-        internal virtual SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
-            new TcpConnection(socket, logger);
+        internal virtual SingleStreamConnection CreateSingleStreamConnection(
+            Socket socket,
+            ILogger logger,
+            EndPoint? addr = null) =>
+            new TcpConnection(socket, logger, addr);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
@@ -217,7 +220,9 @@ namespace IceRpc.Transports.Internal
             return timeout;
         }
 
-        private protected (SingleStreamConnection, Endpoint) CreateListeningConnection(ITransportOptions? options, ILogger logger)
+        private protected (SingleStreamConnection, Endpoint) CreateListeningConnection(
+            ITransportOptions? options,
+            ILogger logger)
         {
             if (Address == IPAddress.None)
             {
@@ -248,7 +253,7 @@ namespace IceRpc.Transports.Internal
                 socket.Dispose();
                 throw new TransportException(ex);
             }
-            return (new TcpConnection(socket, logger, address), Clone((ushort)address.Port));
+            return (CreateSingleStreamConnection(socket, logger, address), Clone((ushort)address.Port));
         }
 
         private protected IAcceptor CreateAcceptor(IncomingConnectionOptions options, ILogger logger)

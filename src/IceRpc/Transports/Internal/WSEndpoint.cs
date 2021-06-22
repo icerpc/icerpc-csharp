@@ -105,8 +105,11 @@ namespace IceRpc.Transports.Internal
             ILogger logger) =>
             new WSConnection((TcpConnection)base.CreateSingleStreamConnection(addr, options, logger));
 
-        internal override SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger));
+        internal override SingleStreamConnection CreateSingleStreamConnection(
+            Socket socket,
+            ILogger logger,
+            EndPoint? addr = null) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger, addr));
 
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new WSEndpoint(this, host, port);
@@ -224,16 +227,6 @@ namespace IceRpc.Transports.Internal
         private WSEndpoint(WSEndpoint endpoint, string host, ushort port)
             : base(endpoint, host, port)
         {
-        }
-
-        private new (SingleStreamConnection, Endpoint) CreateListeningConnection(
-            ITransportOptions? options,
-            ILogger logger)
-        {
-            (SingleStreamConnection tcpConnection, Endpoint listeningEndpoint) =
-                 base.CreateListeningConnection(options, logger);
-
-            return (new WSConnection((TcpConnection)tcpConnection), listeningEndpoint);
         }
     }
 }
