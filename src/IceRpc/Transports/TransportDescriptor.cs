@@ -76,9 +76,7 @@ namespace IceRpc.Transports
             {
                 AcceptorFactory = (endpoint, options, logger) =>
                 {
-                    SingleStreamConnection listeningConnection;
-                    Endpoint listeningEndpoint;
-                    (listeningConnection, listeningEndpoint) =
+                    (SingleStreamConnection listeningConnection, Endpoint listeningEndpoint) =
                         serverConnectionFactory(endpoint, options.TransportOptions, logger);
 
                     return new SingleStreamConnectionAcceptor(listeningEndpoint, options, listeningConnection);
@@ -88,14 +86,12 @@ namespace IceRpc.Transports
             {
                 IncomingConnectionFactory = (endpoint, options, logger) =>
                 {
-                    SingleStreamConnection serverConnection;
-                    Endpoint serverEndpoint;
-                    (serverConnection, serverEndpoint) =
+                    (SingleStreamConnection serverConnection, Endpoint serverEndpoint) =
                         serverConnectionFactory(endpoint, options.TransportOptions, logger);
 
                     return endpoint.Protocol == Protocol.Ice1 ?
-                        new Ice1Connection(endpoint, serverConnection, options) :
-                        new SlicConnection(endpoint, serverConnection, options);
+                        new Ice1Connection(serverEndpoint, serverConnection, options) :
+                        new SlicConnection(serverEndpoint, serverConnection, options);
                 };
             }
 
