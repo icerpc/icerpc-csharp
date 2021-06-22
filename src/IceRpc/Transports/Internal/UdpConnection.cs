@@ -44,6 +44,19 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new(null as Endpoint);
 
+        public override async ValueTask<SingleStreamConnection> AcceptAsync()
+        {
+            try
+            {
+                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+                return new UdpConnection(fd, Logger, isIncoming: true, null); // TODO: last arg
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ex.ToTransportException(default));
+            }
+        }
+
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
         public override async ValueTask<Endpoint> ConnectAsync(

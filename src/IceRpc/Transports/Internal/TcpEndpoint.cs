@@ -34,6 +34,7 @@ namespace IceRpc.Transports.Internal
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
+        /*
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
@@ -46,6 +47,24 @@ namespace IceRpc.Transports.Internal
                 Ice2EndpointParser = ParseIce2Endpoint,
                 OutgoingConnectionFactory = (endpoint, options, logger) =>
                     ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+            };
+        */
+
+        internal static TransportDescriptor TcpTransportDescriptor { get; } =
+            new SingleStreamConnectionTransportDescriptor(
+                Transport.TCP,
+                "tcp",
+                CreateEndpoint,
+                clientConnectionFactory: (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                listeningConnectionFactory: (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateListeningConnection(options, logger))
+            {
+                DefaultUriPort = DefaultIPPort,
+                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
+                Ice1EndpointParser = (options, endpointString) =>
+                    ParseIce1Endpoint(Transport.TCP, options, endpointString),
+                Ice2EndpointParser = ParseIce2Endpoint
             };
 
         internal static TransportDescriptor SslTransportDescriptor { get; } =
@@ -211,6 +230,40 @@ namespace IceRpc.Transports.Internal
             return timeout;
         }
 
+        private (SingleStreamConnection, Endpoint) CreateListeningConnection(ITransportOptions? options, ILogger logger)
+        {
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
+            }
+
+            var address = new IPEndPoint(Address, Port);
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                socket.ExclusiveAddressUse = true;
+
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+
+                socket.Bind(address);
+                address = (IPEndPoint)socket.LocalEndPoint!;
+                socket.Listen(tcpOptions.ListenerBackLog);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+            return (new TcpConnection(socket, logger, address), Clone((ushort)address.Port));
+        }
+
         private protected IAcceptor CreateAcceptor(IncomingConnectionOptions options, ILogger logger)
         {
             if (Address == IPAddress.None)
@@ -259,6 +312,15 @@ namespace IceRpc.Transports.Internal
                 Protocol.Ice1 => new Ice1Connection(this, singleStreamConnection, options),
                 _ => new SlicConnection(this, singleStreamConnection, options)
             };
+        }
+
+        private protected SingleStreamConnection CreateOutgoingConnection(
+            ITransportOptions? options,
+            ILogger logger)
+        {
+            TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
+            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+            return CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
         }
 
         // Constructor for ice1 unmarshaling and parsing

@@ -51,6 +51,8 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
+        public abstract ValueTask<SingleStreamConnection> AcceptAsync();
+
         /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform socket level initialization (TLS handshake, etc).
         /// </summary>

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ namespace IceRpc.Transports
 {
     /// <summary>Holds properties for a transport, such as factory functions to create endpoints and connections.
     /// </summary>
-    public sealed class TransportDescriptor
+    public class TransportDescriptor
     {
         /// <summary>Creates an acceptor. An acceptor listens for connection establishment requests from clients and
         /// creates a new connection for each client. This is typically used to implement a stream-based transport such
@@ -55,6 +56,39 @@ namespace IceRpc.Transports
             EndpointFactory = endpointFactory;
             Name = name;
             Transport = transport;
+        }
+    }
+
+    /// <summary>Descriptor for a transport implemented using a single stream connection.</summary>
+    public class SingleStreamConnectionTransportDescriptor : TransportDescriptor
+    {
+        public SingleStreamConnectionTransportDescriptor(
+            Transport transport,
+            string name,
+            Func<EndpointData, Protocol, Endpoint> endpointFactory,
+            Func<Endpoint, ITransportOptions?, ILogger, SingleStreamConnection> clientConnectionFactory,
+            Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)> listeningConnectionFactory)
+                : base(transport, name, endpointFactory)
+        {
+            AcceptorFactory = (endpoint, options, logger) =>
+            {
+                SingleStreamConnection listeningConnection;
+                Endpoint listeningEndpoint;
+                (listeningConnection, listeningEndpoint) =
+                    listeningConnectionFactory(endpoint, options.TransportOptions, logger);
+
+                return new SingleStreamConnectionAcceptor(listeningEndpoint, options, listeningConnection);
+            };
+
+            OutgoingConnectionFactory = (endpoint, options, logger) =>
+            {
+                SingleStreamConnection singleStreamConnection =
+                    clientConnectionFactory(endpoint, options.TransportOptions, logger);
+
+                return endpoint.Protocol == Protocol.Ice1 ?
+                    new Ice1Connection(endpoint, singleStreamConnection, options) :
+                    new SlicConnection(endpoint, singleStreamConnection, options);
+            };
         }
     }
 }

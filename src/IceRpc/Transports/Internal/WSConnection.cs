@@ -77,6 +77,12 @@ namespace IceRpc.Transports.Internal
             return remoteEndpoint;
         }
 
+        public override async ValueTask<SingleStreamConnection> AcceptAsync()
+        {
+            SingleStreamConnection connection = await _bufferedConnection.AcceptAsync().ConfigureAwait(false);
+            return new WSConnection((TcpConnection)connection);
+        }
+
         public override async ValueTask CloseAsync(long errorCode, CancellationToken cancel)
         {
             lock (_mutex)
