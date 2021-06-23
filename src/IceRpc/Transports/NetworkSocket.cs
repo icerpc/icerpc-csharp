@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Security;
@@ -85,5 +86,38 @@ namespace IceRpc.Transports
         protected abstract void Dispose(bool disposing);
 
         internal NetworkSocket(ILogger logger) => Logger = logger;
+    }
+
+    /// <summary>Provides static methods that create multi-stream connection factories from network socket factories.
+    /// </summary>
+    public static class MultiStreamConnectionFactory
+    {
+        /// <summary>Creates an acceptor from a network socket acceptor.</summary>
+        /// <param name="networkSocketAcceptor">An acceptor for network sockets.</param>
+        /// <returns>An acceptor suitable for <see cref="TransportDescriptor.Acceptor"/>.</returns>
+        public static Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> FromNetworkSocketAcceptor(
+            this Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)> networkSocketAcceptor) =>
+            (endpoint, options, logger) =>
+            {
+                (NetworkSocket serverSocket, Endpoint serverEndpoint) =
+                    networkSocketAcceptor(endpoint, options.TransportOptions, logger);
+
+                return endpoint.Protocol == Protocol.Ice1 ?
+                    new Ice1Connection(serverEndpoint, serverSocket, options) :
+                    new SlicConnection(serverEndpoint, serverSocket, options);
+            };
+
+        /// <summary>Creates a connector from a network socket connection.</summary>
+        /// <param name="networkSocketConnector">A connector for network sockets.</param>
+        /// <returns>A connector suitable for <see cref="TransportDescriptor.Connector"/>.</returns>
+        public static Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> FromNetworkSocketConnector(
+            this Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket> networkSocketConnector) =>
+            (endpoint, options, logger) =>
+            {
+                NetworkSocket clientSocket = networkSocketConnector(endpoint, options.TransportOptions, logger);
+                return endpoint.Protocol == Protocol.Ice1 ?
+                    new Ice1Connection(endpoint, clientSocket, options) :
+                    new SlicConnection(endpoint, clientSocket, options);
+            };
     }
 }

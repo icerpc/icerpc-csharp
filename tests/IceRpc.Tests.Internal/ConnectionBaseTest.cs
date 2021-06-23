@@ -169,7 +169,7 @@ namespace IceRpc.Tests.Internal
             }
 
             MultiStreamConnection multiStreamConnection =
-                ClientEndpoint.TransportDescriptor!.ClientConnectionFactory!(
+                ClientEndpoint.TransportDescriptor!.Connector!(
                     ClientEndpoint,
                     connectionOptions ?? ClientConnectionOptions,
                     Logger);
@@ -200,7 +200,7 @@ namespace IceRpc.Tests.Internal
             Logger);
 
         protected MultiStreamConnection CreateServerConnection() =>
-            ServerEndpoint.TransportDescriptor!.ServerConnectionFactory!(ServerEndpoint,
+            ServerEndpoint.TransportDescriptor!.Acceptor!(ServerEndpoint,
                                                                            ServerConnectionOptions,
                                                                            Logger);
     }

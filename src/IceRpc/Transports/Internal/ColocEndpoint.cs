@@ -22,12 +22,12 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor ColocTransportDescriptor { get; } =
             new(Transport.Coloc, "coloc", CreateEndpoint)
             {
-                ListenerFactory = (endpoint, options, logger) =>
-                    new ColocListener((ColocEndpoint)endpoint, options, logger),
+                Connector = CreateClientConnection,
                 DefaultUriPort = 4062,
                 Ice1EndpointParser = ParseIce1Endpoint,
                 Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
-                ClientConnectionFactory = CreateClientConnection
+                ListenerFactory = (endpoint, options, logger) =>
+                    new ColocListener((ColocEndpoint)endpoint, options, logger),
             };
 
         public override bool Equals(Endpoint? other) =>

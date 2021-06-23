@@ -389,10 +389,10 @@ namespace IceRpc
                             throw new InvalidOperationException("client connection has local endpoint set");
                         }
 
-                        if (_remoteEndpoint.TransportDescriptor?.ClientConnectionFactory is
-                            Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> connectionFactory)
+                        if (_remoteEndpoint.TransportDescriptor?.Connector is
+                            Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> connector)
                         {
-                            _connection = connectionFactory(_remoteEndpoint, clientOptions, Logger);
+                            _connection = connector(_remoteEndpoint, clientOptions, Logger);
                         }
                         else
                         {

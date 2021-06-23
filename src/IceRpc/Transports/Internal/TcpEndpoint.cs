@@ -37,8 +37,8 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                ClientNetworkSocketFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateClientSocket(options, logger),
+                Connector = MultiStreamConnectionFactory.FromNetworkSocketConnector(
+                    (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
@@ -47,11 +47,12 @@ namespace IceRpc.Transports.Internal
                 ListenerFactory = (endpoint, options, logger) =>
                     ((TcpEndpoint)endpoint).CreateListener(options, logger),
             };
+
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                ClientNetworkSocketFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateClientSocket(options, logger),
+                Connector = MultiStreamConnectionFactory.FromNetworkSocketConnector(
+                    (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
@@ -206,7 +207,7 @@ namespace IceRpc.Transports.Internal
             return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
         }
 
-        private TcpSocket CreateClientSocket(ITransportOptions? options, ILogger logger)
+        private TcpSocket Connect(ITransportOptions? options, ILogger logger)
         {
             TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
             EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);

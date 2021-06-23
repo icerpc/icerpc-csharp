@@ -11,33 +11,19 @@ namespace IceRpc.Transports
     /// </summary>
     public sealed class TransportDescriptor
     {
-        /// <summary>The client connection factory.</summary>
-        /// <seealso cref="ClientNetworkSocketFactory"/>
-        public Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection>? ClientConnectionFactory
+        /// <summary>Creates a connection that receives data from one or multiple clients. This factory is used to
+        /// implement a transport that can only communicate with a single client (e.g. a serial based transport) or that
+        /// can receive data from multiple clients with a single connection (e.g: UDP). Most transports should provide
+        /// instead a <see cref="ListenerFactory"/>.</summary>
+        public Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection>? Acceptor
         {
             get; init;
         }
 
-        /// <summary>The client network socket factory. Setting this value sets <see cref="ClientConnectionFactory"/>.
-        /// Set this value when describing a <see cref="NetworkSocket"/>-based transport.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket>? ClientNetworkSocketFactory
+        /// <summary>Creates a connection to a remote endpoint.</summary>
+        public Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection>? Connector
         {
-            get => _clientNetworkSocketFactory;
-
-            init
-            {
-                _clientNetworkSocketFactory = value;
-                ClientConnectionFactory = _clientNetworkSocketFactory == null ? null :
-                (endpoint, options, logger) =>
-                {
-                    NetworkSocket singleStreamConnection =
-                        _clientNetworkSocketFactory(endpoint, options.TransportOptions, logger);
-
-                    return endpoint.Protocol == Protocol.Ice1 ?
-                        new Ice1Connection(endpoint, singleStreamConnection, options) :
-                        new SlicConnection(endpoint, singleStreamConnection, options);
-                };
-            }
+            get; init;
         }
 
         /// <summary>The default port for URI endpoints that don't specify a port explicitly.</summary>
@@ -57,53 +43,15 @@ namespace IceRpc.Transports
         /// </summary>
         public Func<string, ushort, Dictionary<string, string>, Endpoint>? Ice2EndpointParser { get; init; }
 
-        /// <summary>The listener factory. An listener listens for connection establishment requests from clients and
-        /// creates (accepts) a new connection for each client. This is typically used to implement a stream-based
-        /// transport such as TCP or QUIC. Datagram or serial transports provide instead
-        /// <see cref="ServerConnectionFactory"/>.</summary>
+        /// <summary>Creates a listener that listens on a local endpoint. This listener then accepts connections from
+        /// clients.</summary>
         public Func<Endpoint, ServerConnectionOptions, ILogger, IListener>? ListenerFactory { get; init; }
 
         /// <summary>The name of this transport in lower case, for example "tcp".</summary>
         public string Name { get; }
 
-        /// <summary>The server connection factory. It creates server connections that receive data from one or
-        /// multiple clients. This factory is used to implement a transport that can only communicate with a single
-        /// client (e.g. a serial based transport) or that can receive data from multiple clients with a single
-        /// connection (e.g: UDP).</summary>
-        /// <seealso cref="ServerNetworkSocketFactory"/>
-        public Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection>? ServerConnectionFactory
-        {
-            get; init;
-        }
-
-        /// <summary>The server network socket factory. Setting this value sets <see cref="ServerConnectionFactory"/>.
-        /// Set this value when describing a <see cref="NetworkSocket"/>-based transport that does not provide a
-        /// listener.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ServerNetworkSocketFactory
-        {
-            get => _serverNetworkSocketFactory;
-
-            init
-            {
-                _serverNetworkSocketFactory = value;
-                ServerConnectionFactory = _serverNetworkSocketFactory == null ? null :
-                (endpoint, options, logger) =>
-                {
-                    (NetworkSocket serverConnection, Endpoint serverEndpoint) =
-                        _serverNetworkSocketFactory(endpoint, options.TransportOptions, logger);
-
-                    return endpoint.Protocol == Protocol.Ice1 ?
-                        new Ice1Connection(serverEndpoint, serverConnection, options) :
-                        new SlicConnection(serverEndpoint, serverConnection, options);
-                };
-            }
-        }
-
         /// <summary>The transport enumerator.</summary>
         public Transport Transport { get; }
-
-        private Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket>? _clientNetworkSocketFactory;
-        private Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? _serverNetworkSocketFactory;
 
         /// <summary>Constructs a transport descriptor.</summary>
         public TransportDescriptor(

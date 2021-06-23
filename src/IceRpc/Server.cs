@@ -172,11 +172,10 @@ namespace IceRpc
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
                 }
-                else if (_endpoint.TransportDescriptor?.ServerConnectionFactory is
-                    Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> serverConnectionFactory)
+                else if (_endpoint.TransportDescriptor?.Acceptor is
+                    Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> acceptor)
                 {
-                    MultiStreamConnection multiStreamConnection =
-                        serverConnectionFactory(_endpoint, ConnectionOptions, Logger);
+                    MultiStreamConnection multiStreamConnection = acceptor(_endpoint, ConnectionOptions, Logger);
                     var serverConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
