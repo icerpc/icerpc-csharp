@@ -101,7 +101,7 @@ namespace IceRpc.Transports.Internal
         {
             if (_incoming)
             {
-                throw new TransportException("cannot send datagram with incoming connection");
+                throw new TransportException("cannot send datagram with server connection");
             }
 
             try

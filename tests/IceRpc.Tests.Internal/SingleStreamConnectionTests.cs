@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Internal
             try
             {
                 // This will either complete successfully or with an OperationCanceledException
-                await OutgoingConnection.CloseAsync(0, canceled.Token);
+                await ClientConnection.CloseAsync(0, canceled.Token);
             }
             catch (OperationCanceledException)
             {
@@ -39,17 +39,17 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void NetworkSocketConnection_Dispose()
         {
-            OutgoingConnection.Dispose();
-            IncomingConnection.Dispose();
-            OutgoingConnection.Dispose();
-            IncomingConnection.Dispose();
+            ClientConnection.Dispose();
+            ServerConnection.Dispose();
+            ClientConnection.Dispose();
+            ServerConnection.Dispose();
         }
 
         [Test]
         public void NetworkSocketConnection_Properties()
         {
-            Test(OutgoingConnection);
-            Test(IncomingConnection);
+            Test(ClientConnection);
+            Test(ServerConnection);
 
             static void Test(NetworkSocket connection)
             {

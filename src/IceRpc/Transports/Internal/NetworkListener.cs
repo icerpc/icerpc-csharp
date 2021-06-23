@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
         public Endpoint Endpoint { get; }
 
         private readonly NetworkSocket _listeningConnection;
-        private readonly IncomingConnectionOptions _options;
+        private readonly ServerConnectionOptions _options;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
@@ -34,7 +34,7 @@ namespace IceRpc.Transports.Internal
         internal NetworkListener(
             NetworkSocket listeningConnection,
             Endpoint endpoint,
-            IncomingConnectionOptions options)
+            ServerConnectionOptions options)
         {
             _listeningConnection = listeningConnection;
             Endpoint = endpoint;

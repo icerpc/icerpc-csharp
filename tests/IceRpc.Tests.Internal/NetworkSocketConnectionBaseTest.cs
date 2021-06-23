@@ -11,10 +11,10 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class NetworkSocketConnectionBaseTest : ConnectionBaseTest
     {
-        protected NetworkSocket OutgoingConnection => _outgoingConnection!;
-        protected NetworkSocket IncomingConnection => _incomingConnection!;
-        private NetworkSocket? _outgoingConnection;
-        private NetworkSocket? _incomingConnection;
+        protected NetworkSocket ClientConnection => _clientConnection!;
+        protected NetworkSocket ServerConnection => _serverConnection!;
+        private NetworkSocket? _clientConnection;
+        private NetworkSocket? _serverConnection;
 
         public NetworkSocketConnectionBaseTest(
             Protocol protocol,
@@ -30,25 +30,25 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.IsDatagram)
             {
-                _incomingConnection = ((NetworkSocketConnection)CreateIncomingConnection()).Underlying;
+                _serverConnection = ((NetworkSocketConnection)CreateServerConnection()).Underlying;
                 ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
-                _outgoingConnection = await connectTask;
+                _clientConnection = await connectTask;
             }
             else
             {
                 ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
                 ValueTask<NetworkSocket> acceptTask = NetworkSocketConnectionAsync(AcceptAsync());
 
-                _outgoingConnection = await connectTask;
-                _incomingConnection = await acceptTask;
+                _clientConnection = await connectTask;
+                _serverConnection = await acceptTask;
             }
         }
 
         [TearDown]
         public void TearDown()
         {
-            _outgoingConnection?.Dispose();
-            _incomingConnection?.Dispose();
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
         }
     }
 }

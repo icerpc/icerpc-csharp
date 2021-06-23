@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
 
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _outgoingConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _clientConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, Description={Description})");
 
@@ -21,33 +21,33 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
 
-        private static readonly Func<ILogger, long, IDisposable> _colocIncomingConnectionScope =
+        private static readonly Func<ILogger, long, IDisposable> _colocServerConnectionScope =
             LoggerMessage.DefineScope<long>("connection(ID={ID})");
 
-        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocOutgoingConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocClientConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, long, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionIncomingConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionServerConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "LocalEndPoint={LocalEndPoint})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramIncomingConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramServerConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
                 "Description={Description})");
 
-        private static readonly Func<ILogger, string, IDisposable> _overConnectionIncomingConnectionScope =
+        private static readonly Func<ILogger, string, IDisposable> _overConnectionServerConnectionScope =
             LoggerMessage.DefineScope<string>(
                 "connection(RemoteEndPoint={RemoteEndpoint})");
 
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overConnectionOutgoingConnectionScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overConnectionClientConnectionScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
                 "RemoteEndPoint={RemoteEndpoint})");
 
-        private static readonly Func<ILogger, string, IDisposable> _incomingConnectionScope =
+        private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
             LoggerMessage.DefineScope<string>("connection(Description={Description})");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
@@ -239,12 +239,12 @@ namespace IceRpc.Transports.Internal
                 {
                     if (connection.IsIncoming)
                     {
-                        return _colocIncomingConnectionScope(logger, colocatedConnection.Id);
+                        return _colocServerConnectionScope(logger, colocatedConnection.Id);
                     }
                     else
                     {
                         // TODO: revisit
-                        return _colocOutgoingConnectionScope(
+                        return _colocClientConnectionScope(
                             logger,
                             connection.TransportName,
                             connection.Protocol,
@@ -258,7 +258,7 @@ namespace IceRpc.Transports.Internal
                     {
                         try
                         {
-                            return _datagramOverConnectionIncomingConnectionScope(
+                            return _datagramOverConnectionServerConnectionScope(
                                 logger,
                                 connection.TransportName,
                                 connection.Protocol,
@@ -267,7 +267,7 @@ namespace IceRpc.Transports.Internal
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
-                            return _datagramIncomingConnectionScope(
+                            return _datagramServerConnectionScope(
                                 logger,
                                 connection.TransportName,
                                 connection.Protocol,
@@ -281,13 +281,13 @@ namespace IceRpc.Transports.Internal
                         {
                             if (connection.IsIncoming)
                             {
-                                return _overConnectionIncomingConnectionScope(
+                                return _overConnectionServerConnectionScope(
                                     logger,
                                     tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                             else
                             {
-                                return _overConnectionOutgoingConnectionScope(
+                                return _overConnectionClientConnectionScope(
                                     logger,
                                     connection.TransportName,
                                     connection.Protocol,
@@ -299,11 +299,11 @@ namespace IceRpc.Transports.Internal
                         {
                             if (connection.IsIncoming)
                             {
-                                return _incomingConnectionScope(logger, "not connected");
+                                return _serverConnectionScope(logger, "not connected");
                             }
                             else
                             {
-                                return _outgoingConnectionScope(
+                                return _clientConnectionScope(
                                     logger,
                                     connection.TransportName,
                                     connection.Protocol,
@@ -316,7 +316,7 @@ namespace IceRpc.Transports.Internal
                 {
                     if (connection.IsDatagram && server != null)
                     {
-                        return _datagramIncomingConnectionScope(
+                        return _datagramServerConnectionScope(
                             logger,
                             connection.TransportName,
                             connection.Protocol,
@@ -325,11 +325,11 @@ namespace IceRpc.Transports.Internal
                     }
                     else if (connection.IsIncoming)
                     {
-                        return _incomingConnectionScope(logger, connection.ToString()!);
+                        return _serverConnectionScope(logger, connection.ToString()!);
                     }
                     else
                     {
-                        return _outgoingConnectionScope(logger, connection.TransportName, connection.Protocol, connection.ToString()!);
+                        return _clientConnectionScope(logger, connection.TransportName, connection.Protocol, connection.ToString()!);
                     }
                 }
             }

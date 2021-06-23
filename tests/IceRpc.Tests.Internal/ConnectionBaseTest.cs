@@ -21,15 +21,15 @@ namespace IceRpc.Tests.Internal
         protected static readonly byte[] OneBSendBuffer = new byte[1];
         protected static readonly byte[] OneMBSendBuffer = new byte[1024 * 1024];
         private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? OutgoingConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
-        protected IncomingConnectionOptions IncomingConnectionOptions { get; }
+        protected ServerConnectionOptions ServerConnectionOptions { get; }
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected OutgoingConnectionOptions OutgoingConnectionOptions { get; }
+        protected ClientConnectionOptions ClientConnectionOptions { get; }
         private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? IncomingConnectionOptions.AuthenticationOptions : null;
+            IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Internal
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            OutgoingConnectionOptions = new OutgoingConnectionOptions
+            ClientConnectionOptions = new ClientConnectionOptions
             {
                 AuthenticationOptions = new()
                 {
@@ -72,7 +72,7 @@ namespace IceRpc.Tests.Internal
                 }
             };
 
-            IncomingConnectionOptions = new IncomingConnectionOptions()
+            ServerConnectionOptions = new ServerConnectionOptions()
             {
                 AuthenticationOptions = new()
                 {
@@ -158,7 +158,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamConnection> ConnectAsync(OutgoingConnectionOptions? connectionOptions = null)
+        protected async Task<MultiStreamConnection> ConnectAsync(ClientConnectionOptions? connectionOptions = null)
         {
             if (!ClientEndpoint.IsDatagram)
             {
@@ -169,9 +169,9 @@ namespace IceRpc.Tests.Internal
             }
 
             MultiStreamConnection multiStreamConnection =
-                ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+                ClientEndpoint.TransportDescriptor!.ClientConnectionFactory!(
                     ClientEndpoint,
-                    connectionOptions ?? OutgoingConnectionOptions,
+                    connectionOptions ?? ClientConnectionOptions,
                     Logger);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
@@ -196,12 +196,12 @@ namespace IceRpc.Tests.Internal
 
         protected IListener CreateListener() => ServerEndpoint.TransportDescriptor!.ListenerFactory!(
             ServerEndpoint,
-            IncomingConnectionOptions,
+            ServerConnectionOptions,
             Logger);
 
-        protected MultiStreamConnection CreateIncomingConnection() =>
-            ServerEndpoint.TransportDescriptor!.IncomingConnectionFactory!(ServerEndpoint,
-                                                                           IncomingConnectionOptions,
+        protected MultiStreamConnection CreateServerConnection() =>
+            ServerEndpoint.TransportDescriptor!.ServerConnectionFactory!(ServerEndpoint,
+                                                                           ServerConnectionOptions,
                                                                            Logger);
     }
 }

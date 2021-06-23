@@ -25,16 +25,16 @@ namespace IceRpc.Tests.Internal
         [TestCase(1, 4096)]
         [TestCase(2, 1024)]
         [TestCase(10, 1024)]
-        public async Task Datagram_MultipleSendReceiveAsync(int outgoingConnectionCount, int size)
+        public async Task Datagram_MultipleSendReceiveAsync(int clientConnectionCount, int size)
         {
             var sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
 
-            List<NetworkSocket> outgoingConnections = new();
-            outgoingConnections.Add(OutgoingConnection);
-            for (int i = 0; i < outgoingConnectionCount; ++i)
+            List<NetworkSocket> clientConnections = new();
+            clientConnections.Add(ClientConnection);
+            for (int i = 0; i < clientConnectionCount; ++i)
             {
-                outgoingConnections.Add(await NetworkSocketConnectionAsync(ConnectAsync()));
+                clientConnections.Add(await NetworkSocketConnectionAsync(ConnectAsync()));
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
@@ -43,13 +43,13 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (NetworkSocket connection in outgoingConnections)
+                    foreach (NetworkSocket connection in clientConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ValueTask sendTask = connection.SendAsync(sendBuffer, default);
 
-                        Memory<byte> receiveBuffer = new byte[IncomingConnection.DatagramMaxReceiveSize];
-                        int received = await IncomingConnection.ReceiveAsync(receiveBuffer, source.Token);
+                        Memory<byte> receiveBuffer = new byte[ServerConnection.DatagramMaxReceiveSize];
+                        int received = await ServerConnection.ReceiveAsync(receiveBuffer, source.Token);
 
                         Assert.AreEqual(sendBuffer.Length, received);
                         for (int i = 0; i < received; ++i)
@@ -70,15 +70,15 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (NetworkSocket connection in outgoingConnections)
+                    foreach (NetworkSocket connection in clientConnections)
                     {
                         await connection.SendAsync(sendBuffer, default);
                     }
-                    foreach (NetworkSocket connection in outgoingConnections)
+                    foreach (NetworkSocket connection in clientConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
-                        Memory<byte> receiveBuffer = new byte[IncomingConnection.DatagramMaxReceiveSize];
-                        int received = await IncomingConnection.ReceiveAsync(receiveBuffer, source.Token);
+                        Memory<byte> receiveBuffer = new byte[ServerConnection.DatagramMaxReceiveSize];
+                        int received = await ServerConnection.ReceiveAsync(receiveBuffer, source.Token);
                         Assert.AreEqual(sendBuffer.Length, received);
                     }
                     break;
@@ -94,8 +94,8 @@ namespace IceRpc.Tests.Internal
         public void Datagram_ReceiveAsync_Cancellation()
         {
             using var canceled = new CancellationTokenSource();
-            Memory<byte> receiveBuffer = new byte[OutgoingConnection.DatagramMaxReceiveSize];
-            ValueTask<int> receiveTask = OutgoingConnection.ReceiveAsync(receiveBuffer, canceled.Token);
+            Memory<byte> receiveBuffer = new byte[ClientConnection.DatagramMaxReceiveSize];
+            ValueTask<int> receiveTask = ClientConnection.ReceiveAsync(receiveBuffer, canceled.Token);
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
         }
@@ -103,9 +103,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void Datagram_ReceiveAsync_Dispose()
         {
-            OutgoingConnection.Dispose();
+            ClientConnection.Dispose();
             Assert.CatchAsync<TransportException>(async () =>
-                await OutgoingConnection.ReceiveAsync(new byte[256], default));
+                await ClientConnection.ReceiveAsync(new byte[256], default));
         }
 
         [Test]
@@ -115,15 +115,15 @@ namespace IceRpc.Tests.Internal
             canceled.Cancel();
             var buffer = new byte[1];
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await OutgoingConnection.SendAsync(buffer, canceled.Token));
+                async () => await ClientConnection.SendAsync(buffer, canceled.Token));
         }
 
         [Test]
         public void Datagram_SendAsync_Dispose()
         {
-            OutgoingConnection.Dispose();
+            ClientConnection.Dispose();
             Assert.CatchAsync<TransportException>(
-                async () => await OutgoingConnection.SendAsync(OneBSendBuffer, default));
+                async () => await ClientConnection.SendAsync(OneBSendBuffer, default));
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Internal
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await OutgoingConnection.SendAsync(OneBSendBuffer, canceled.Token));
+                async () => await ClientConnection.SendAsync(OneBSendBuffer, canceled.Token));
         }
 
         [TestCase(1)]
@@ -150,9 +150,9 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask sendTask = OutgoingConnection.SendAsync(sendBuffer, default);
-                    Memory<byte> receiveBuffer = new byte[IncomingConnection.DatagramMaxReceiveSize];
-                    int received = await IncomingConnection.ReceiveAsync(receiveBuffer, source.Token);
+                    ValueTask sendTask = ClientConnection.SendAsync(sendBuffer, default);
+                    Memory<byte> receiveBuffer = new byte[ServerConnection.DatagramMaxReceiveSize];
+                    int received = await ServerConnection.ReceiveAsync(receiveBuffer, source.Token);
                     Assert.AreEqual(sendBuffer.Length, received);
                     for (int i = 0; i < received; ++i)
                     {

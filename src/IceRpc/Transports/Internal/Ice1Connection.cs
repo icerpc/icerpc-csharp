@@ -234,8 +234,8 @@ namespace IceRpc.Transports.Internal
         internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here we
-            // only expect the connection validation message for an outgoing connection and just return the
-            // control stream immediately for an incoming connection.
+            // only expect the connection validation message for an client connection and just return the
+            // control stream immediately for an server connection.
             if (IsIncoming)
             {
                 return new ValueTask<RpcStream>(new Ice1Stream(this, 2));
@@ -309,8 +309,8 @@ namespace IceRpc.Transports.Internal
         internal override ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here
-            // we only expect the connection validation message for an incoming connection and just return the
-            // control stream immediately for an outgoing connection.
+            // we only expect the connection validation message for an server connection and just return the
+            // control stream immediately for an client connection.
             if (IsIncoming)
             {
                 return base.SendInitializeFrameAsync(cancel);

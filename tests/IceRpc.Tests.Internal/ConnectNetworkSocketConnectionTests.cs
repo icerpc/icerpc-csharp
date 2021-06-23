@@ -33,9 +33,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectNetworkSocketConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using NetworkSocket outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket clientConnection = CreateClientConnection();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await outgoingConnection.ConnectAsync(
+                async () => await clientConnection.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     default));
@@ -53,9 +53,9 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using NetworkSocket outgoingConnection = CreateOutgoingConnection();
+                using NetworkSocket clientConnection = CreateClientConnection();
                 ValueTask<Endpoint> connectTask =
-                    outgoingConnection.ConnectAsync(
+                    clientConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
                         source.Token);
@@ -65,18 +65,18 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using NetworkSocket outgoingConnection2 = CreateOutgoingConnection();
+            using NetworkSocket clientConnection2 = CreateClientConnection();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await outgoingConnection2.ConnectAsync(
+                async () => await clientConnection2.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     source2.Token));
         }
 
-        private NetworkSocket CreateOutgoingConnection() =>
-            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+        private NetworkSocket CreateClientConnection() =>
+            (ClientEndpoint.TransportDescriptor!.ClientConnectionFactory!(
                 ClientEndpoint,
-                OutgoingConnectionOptions,
+                ClientConnectionOptions,
                 Logger) as NetworkSocketConnection)!.Underlying;
     }
 }

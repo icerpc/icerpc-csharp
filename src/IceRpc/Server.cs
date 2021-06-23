@@ -24,8 +24,8 @@ namespace IceRpc
         /// instances for dispatches.</summary>
         public ActivitySource? ActivitySource { get; set; }
 
-        /// <summary>Gets or sets the options of incoming connections created by this server.</summary>
-        public IncomingConnectionOptions ConnectionOptions { get; set; } = new();
+        /// <summary>Gets or sets the options of server connections created by this server.</summary>
+        public ServerConnectionOptions ConnectionOptions { get; set; } = new();
 
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
@@ -163,7 +163,7 @@ namespace IceRpc
                 }
 
                 if (_endpoint.TransportDescriptor?.ListenerFactory is
-                    Func<Endpoint, IncomingConnectionOptions, ILogger, IListener> listenerFactory)
+                    Func<Endpoint, ServerConnectionOptions, ILogger, IListener> listenerFactory)
                 {
                     _listener = listenerFactory(_endpoint, ConnectionOptions, Logger);
                     _endpoint = _listener.Endpoint;
@@ -172,23 +172,23 @@ namespace IceRpc
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
                 }
-                else if (_endpoint.TransportDescriptor?.IncomingConnectionFactory is
-                    Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection> incomingConnectionFactory)
+                else if (_endpoint.TransportDescriptor?.ServerConnectionFactory is
+                    Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> serverConnectionFactory)
                 {
                     MultiStreamConnection multiStreamConnection =
-                        incomingConnectionFactory(_endpoint, ConnectionOptions, Logger);
-                    var incomingConnection = new Connection(multiStreamConnection, this);
+                        serverConnectionFactory(_endpoint, ConnectionOptions, Logger);
+                    var serverConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
 
                     // Connect the connection to start accepting new streams.
-                    _ = incomingConnection.ConnectAsync(default);
-                    _connections.Add(incomingConnection);
+                    _ = serverConnection.ConnectAsync(default);
+                    _connections.Add(serverConnection);
                 }
                 else
                 {
                     throw new InvalidOperationException(
-                        $"cannot create listener or incoming connection with endpoint '{_endpoint}'");
+                        $"cannot create listener or server connection with endpoint '{_endpoint}'");
                 }
 
                 _listening = true;
@@ -215,7 +215,7 @@ namespace IceRpc
         }
 
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
-        /// outstanding dispatches to complete and gracefully closes all its incoming connections. Once shut down, a
+        /// outstanding dispatches to complete and gracefully closes all its server connections. Once shut down, a
         /// server is disposed and can no longer be used. This method can be safely called multiple times, including
         /// from multiple threads.</summary>
         /// <param name="cancel">The cancellation token. When this token is canceled, the cancellation token of all

@@ -18,13 +18,13 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class DatagramMulticastTests : ConnectionBaseTest
     {
-        protected NetworkSocket OutgoingConnection => _outgoingConnection!;
-        protected IList<NetworkSocket> IncomingConnections => _incomingConnections;
-        private NetworkSocket? _outgoingConnection;
-        private readonly int _incomingConnectionCount;
-        private readonly List<NetworkSocket> _incomingConnections = new();
+        protected NetworkSocket ClientConnection => _clientConnection!;
+        protected IList<NetworkSocket> ServerConnections => _serverConnections;
+        private NetworkSocket? _clientConnection;
+        private readonly int _serverConnectionCount;
+        private readonly List<NetworkSocket> _serverConnections = new();
 
-        public DatagramMulticastTests(int incomingConnectionCount, AddressFamily addressFamily)
+        public DatagramMulticastTests(int serverConnectionCount, AddressFamily addressFamily)
             : base(
                 Protocol.Ice1,
                 "udp",
@@ -32,26 +32,26 @@ namespace IceRpc.Tests.Internal
                 addressFamily,
                 clientEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: true),
                 serverEndpoint: (host, port) => GetEndpoint(host, port, addressFamily, outgoing: false)) =>
-            _incomingConnectionCount = incomingConnectionCount;
+            _serverConnectionCount = serverConnectionCount;
 
         [SetUp]
         public async Task SetupAsync()
         {
-            _incomingConnections.Clear();
-            for (int i = 0; i < _incomingConnectionCount; ++i)
+            _serverConnections.Clear();
+            for (int i = 0; i < _serverConnectionCount; ++i)
             {
-                _incomingConnections.Add(((NetworkSocketConnection)CreateIncomingConnection()).Underlying);
+                _serverConnections.Add(((NetworkSocketConnection)CreateServerConnection()).Underlying);
             }
 
             ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
-            _outgoingConnection = await connectTask;
+            _clientConnection = await connectTask;
         }
 
         [TearDown]
         public void TearDown()
         {
-            _outgoingConnection?.Dispose();
-            _incomingConnections.ForEach(connection => connection.Dispose());
+            _clientConnection?.Dispose();
+            _serverConnections.ForEach(connection => connection.Dispose());
         }
 
         [TestCase(1)]
@@ -68,8 +68,8 @@ namespace IceRpc.Tests.Internal
                 try
                 {
                     using var source = new CancellationTokenSource(1000);
-                    ValueTask sendTask = OutgoingConnection.SendAsync(sendBuffer, default);
-                    foreach (NetworkSocket connection in IncomingConnections)
+                    ValueTask sendTask = ClientConnection.SendAsync(sendBuffer, default);
+                    foreach (NetworkSocket connection in ServerConnections)
                     {
                         Memory<byte> receiveBuffer = new byte[connection.DatagramMaxReceiveSize];
                         int received = await connection.ReceiveAsync(receiveBuffer, source.Token);

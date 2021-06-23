@@ -14,11 +14,11 @@ namespace IceRpc.Transports
         /// <summary>The listener factory. An listener listens for connection establishment requests from clients and
         /// creates (accepts) a new connection for each client. This is typically used to implement a stream-based
         /// transport such as TCP or QUIC. Datagram or serial transports provide instead
-        /// <see cref="IncomingConnectionFactory"/>.</summary>
+        /// <see cref="ServerConnectionFactory"/>.</summary>
         /// <seealso cref="ListeningSocketFactory"/>
-        public Func<Endpoint, IncomingConnectionOptions, ILogger, IListener>? ListenerFactory { get; init; }
+        public Func<Endpoint, ServerConnectionOptions, ILogger, IListener>? ListenerFactory { get; init; }
 
-        /// <summary>The client socket factory. Setting this value sets <see cref="OutgoingConnectionFactory"/>. Set
+        /// <summary>The client socket factory. Setting this value sets <see cref="ClientConnectionFactory"/>. Set
         /// this value when describing a <see cref="NetworkSocket"/>-based transport.</summary>
         public Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket>? ClientSocketFactory
         {
@@ -27,7 +27,7 @@ namespace IceRpc.Transports
             init
             {
                 _clientSocketFactory = value;
-                OutgoingConnectionFactory = _clientSocketFactory == null ? null :
+                ClientConnectionFactory = _clientSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
                     NetworkSocket singleStreamConnection =
@@ -57,12 +57,12 @@ namespace IceRpc.Transports
         /// </summary>
         public Func<string, ushort, Dictionary<string, string>, Endpoint>? Ice2EndpointParser { get; init; }
 
-        /// <summary>The incoming connection factory. It creates incoming connections that receive data from one or
+        /// <summary>The server connection factory. It creates server connections that receive data from one or
         /// multiple clients. This factory is used to implement a transport that can only communicate with a single
         /// client (e.g. a serial based transport) or that can receive data from multiple clients with a single
         /// connection (e.g: UDP).</summary>
         /// <seealso cref="ServerSocketFactory"/>
-        public Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection>? IncomingConnectionFactory
+        public Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection>? ServerConnectionFactory
         {
             get; init;
         }
@@ -90,14 +90,14 @@ namespace IceRpc.Transports
         /// <summary>The name of this transport in lower case, for example "tcp".</summary>
         public string Name { get; }
 
-        /// <summary>The outgoing connection factory.</summary>
+        /// <summary>The client connection factory.</summary>
         /// <seealso cref="ClientSocketFactory"/>
-        public Func<Endpoint, OutgoingConnectionOptions, ILogger, MultiStreamConnection>? OutgoingConnectionFactory
+        public Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection>? ClientConnectionFactory
         {
             get; init;
         }
 
-        /// <summary>The server socket factory. Setting this value sets <see cref="IncomingConnectionFactory"/>. Set
+        /// <summary>The server socket factory. Setting this value sets <see cref="ServerConnectionFactory"/>. Set
         /// this value when describing a <see cref="NetworkSocket"/>-based transport that does not provide an
         /// listener.</summary>
         public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ServerSocketFactory
@@ -107,7 +107,7 @@ namespace IceRpc.Transports
             init
             {
                 _serverSocketFactory = value;
-                IncomingConnectionFactory = _serverSocketFactory == null ? null :
+                ServerConnectionFactory = _serverSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
                     (NetworkSocket serverConnection, Endpoint serverEndpoint) =

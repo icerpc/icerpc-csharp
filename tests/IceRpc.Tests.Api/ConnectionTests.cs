@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_Options_ArgumentException()
         {
-            var options = new OutgoingConnectionOptions();
+            var options = new ClientConnectionOptions();
             Assert.Throws<ArgumentException>(() => options.BidirectionalStreamMaxCount = 0);
             Assert.Throws<ArgumentException>(() => options.CloseTimeout = TimeSpan.Zero);
             Assert.Throws<ArgumentException>(() => options.IdleTimeout = TimeSpan.Zero);
@@ -19,30 +19,30 @@ namespace IceRpc.Tests.Api
 
             Assert.Throws<ArgumentException>(() => options.ConnectTimeout = TimeSpan.Zero);
 
-            var incoming = new IncomingConnectionOptions();
+            var incoming = new ServerConnectionOptions();
             Assert.Throws<ArgumentException>(() => incoming.AcceptTimeout = TimeSpan.Zero);
         }
 
         [Test]
         public void Connection_Options_Clone()
         {
-            var options = new OutgoingConnectionOptions
+            var options = new ClientConnectionOptions
             {
                 TransportOptions = new TcpOptions(),
                 AuthenticationOptions = new System.Net.Security.SslClientAuthenticationOptions()
             };
 
-            OutgoingConnectionOptions clonedOptions = options.Clone();
+            ClientConnectionOptions clonedOptions = options.Clone();
             Assert.AreNotSame(clonedOptions, options);
             Assert.AreNotSame(clonedOptions.TransportOptions, options.TransportOptions);
             Assert.AreNotSame(clonedOptions.AuthenticationOptions, options.AuthenticationOptions);
 
-            var incoming = new IncomingConnectionOptions()
+            var incoming = new ServerConnectionOptions()
             {
                 AuthenticationOptions = new()
             };
 
-            IncomingConnectionOptions clonedIncoming = incoming.Clone();
+            ServerConnectionOptions clonedIncoming = incoming.Clone();
             Assert.AreNotSame(clonedIncoming.AuthenticationOptions, incoming.AuthenticationOptions);
         }
 

@@ -38,7 +38,7 @@ namespace IceRpc.Transports.Internal
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
                 ClientSocketFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                    ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
@@ -51,7 +51,7 @@ namespace IceRpc.Transports.Internal
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
                 ClientSocketFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                    ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
@@ -248,7 +248,7 @@ namespace IceRpc.Transports.Internal
             return (CreateTcpSocket(socket, logger, address), Clone((ushort)address.Port));
         }
 
-        private protected NetworkSocket CreateOutgoingConnection(
+        private protected NetworkSocket CreateClientConnection(
             ITransportOptions? options,
             ILogger logger)
         {

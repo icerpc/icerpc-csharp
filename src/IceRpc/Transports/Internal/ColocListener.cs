@@ -26,7 +26,7 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
         private long _nextId;
-        private readonly IncomingConnectionOptions _options;
+        private readonly ServerConnectionOptions _options;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
@@ -49,7 +49,7 @@ namespace IceRpc.Transports.Internal
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(ColocEndpoint endpoint, IncomingConnectionOptions options, ILogger logger)
+        internal ColocListener(ColocEndpoint endpoint, ServerConnectionOptions options, ILogger logger)
         {
             _endpoint = endpoint;
             _logger = logger;
@@ -73,7 +73,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal (ColocChannelReader, ColocChannelWriter, long) NewOutgoingConnection()
+        internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
         {
             var reader = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions

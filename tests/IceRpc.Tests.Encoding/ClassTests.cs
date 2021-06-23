@@ -191,7 +191,7 @@ namespace IceRpc.Tests.Encoding
         {
             await using var server = new Server
             {
-                ConnectionOptions = new IncomingConnectionOptions()
+                ConnectionOptions = new ServerConnectionOptions()
                 {
                     ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
@@ -203,7 +203,7 @@ namespace IceRpc.Tests.Encoding
             await using var connection = new Connection
             {
                 RemoteEndpoint = server.ProxyEndpoint,
-                Options = new OutgoingConnectionOptions
+                Options = new ClientConnectionOptions
                 {
                     ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }

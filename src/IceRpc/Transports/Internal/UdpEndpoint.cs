@@ -39,11 +39,11 @@ namespace IceRpc.Transports.Internal
             new(Transport.UDP, "udp", CreateEndpoint)
             {
                 ClientSocketFactory = (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                    ((UdpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
                 ServerSocketFactory = (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
+                    ((UdpEndpoint)endpoint).CreateServerConnection(options, logger),
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
@@ -287,7 +287,7 @@ namespace IceRpc.Transports.Internal
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
 
-        private NetworkSocket CreateOutgoingConnection(ITransportOptions? options, ILogger logger)
+        private NetworkSocket CreateClientConnection(ITransportOptions? options, ILogger logger)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
@@ -352,7 +352,7 @@ namespace IceRpc.Transports.Internal
             return new UdpSocket(socket, logger, isIncoming: false, endpoint);
         }
 
-        private (NetworkSocket, Endpoint) CreateIncomingConnection(ITransportOptions? options, ILogger logger)
+        private (NetworkSocket, Endpoint) CreateServerConnection(ITransportOptions? options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {

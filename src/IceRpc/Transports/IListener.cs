@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>An listener listens and accepts incoming connection requests from clients.</summary>
+    /// <summary>An listener listens and accepts server connection requests from clients.</summary>
     public interface IListener : IDisposable
     {
         /// <summary>The listening endpoint. The listener endpoint might be different from the endpoint used
