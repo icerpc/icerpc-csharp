@@ -38,12 +38,12 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
-                Connector = MultiStreamConnectionFactory.FromNetworkSocketConnector(
+                Acceptor = NetworkSocket.CreateAcceptor(
+                    (endpoint, options, logger) => ((UdpEndpoint)endpoint).Accept(options, logger)),
+                Connector = NetworkSocket.CreateConnector(
                     (endpoint, options, logger) => ((UdpEndpoint)endpoint).Connect(options, logger)),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
-                Acceptor = MultiStreamConnectionFactory.FromNetworkSocketAcceptor(
-                    ((endpoint, options, logger) => ((UdpEndpoint)endpoint).Accept(options, logger))),
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>

@@ -37,7 +37,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                Connector = MultiStreamConnectionFactory.FromNetworkSocketConnector(
+                Connector = NetworkSocket.CreateConnector(
                     (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
@@ -51,7 +51,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                Connector = MultiStreamConnectionFactory.FromNetworkSocketConnector(
+                Connector = NetworkSocket.CreateConnector(
                     (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
