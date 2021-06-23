@@ -26,7 +26,7 @@ namespace IceRpc
     public sealed class CompactTypeIdAttribute : Attribute
     {
         /// <summary>Retrieves the compact type ID.</summary>
-        /// <value>The compact type ID string.</value>
+        /// <value>The compact type ID numeric value.</value>
         public int Value { get; }
 
         /// <summary>Constructs a CompactTypeIdAttribute.</summary>
