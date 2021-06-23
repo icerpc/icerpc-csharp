@@ -22,7 +22,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor ColocTransportDescriptor { get; } =
             new(Transport.Coloc, "coloc", CreateEndpoint)
             {
-                AcceptorFactory = (endpoint, options, logger) =>
+                ListenerFactory = (endpoint, options, logger) =>
                     new ColocListener((ColocEndpoint)endpoint, options, logger),
                 DefaultUriPort = 4062,
                 Ice1EndpointParser = ParseIce1Endpoint,
@@ -51,9 +51,9 @@ namespace IceRpc.Transports.Internal
         {
             if (endpoint is ColocEndpoint colocEndpoint)
             {
-                if (ColocListener.TryGetValue(colocEndpoint, out ColocListener? acceptor))
+                if (ColocListener.TryGetValue(colocEndpoint, out ColocListener? listener))
                 {
-                    (ColocChannelReader reader, ColocChannelWriter writer, long id) = acceptor.NewOutgoingConnection();
+                    (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewOutgoingConnection();
                     return new ColocConnection(colocEndpoint, id, writer, reader, options, logger);
                 }
                 else

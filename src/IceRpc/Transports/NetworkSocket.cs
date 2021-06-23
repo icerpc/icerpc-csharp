@@ -40,7 +40,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
 
-        /// <summary>Accepts a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accepts a new incoming connection. This is called after the listener accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>

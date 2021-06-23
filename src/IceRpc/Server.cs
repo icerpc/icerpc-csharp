@@ -162,7 +162,7 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint.TransportDescriptor?.AcceptorFactory is
+                if (_endpoint.TransportDescriptor?.ListenerFactory is
                     Func<Endpoint, IncomingConnectionOptions, ILogger, IListener> listenerFactory)
                 {
                     _listener = listenerFactory(_endpoint, ConnectionOptions, Logger);
@@ -200,7 +200,7 @@ namespace IceRpc
                                                           protocol: _endpoint.Protocol);
 
                     _colocListener =
-                        colocEndpoint.TransportDescriptor!.AcceptorFactory!(colocEndpoint, ConnectionOptions, Logger);
+                        colocEndpoint.TransportDescriptor!.ListenerFactory!(colocEndpoint, ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocListener));
 
                     _colocRegistry.Add(_endpoint, colocEndpoint);
@@ -310,7 +310,7 @@ namespace IceRpc
 
         private async Task AcceptAsync(IListener listener)
         {
-            using IDisposable? scope = Logger.StartAcceptorScope(this, listener);
+            using IDisposable? scope = Logger.StartListenerScope(this, listener);
             Logger.LogStartAcceptingConnections();
 
             while (true)

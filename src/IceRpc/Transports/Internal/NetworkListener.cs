@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>Provides an acceptor that works with any <see cref="NetworkSocket"/> transport.
+    /// <summary>Provides an listener that works with any <see cref="NetworkSocket"/> transport.
     /// </summary>
     internal class NetworkListener : IListener
     {
@@ -27,9 +27,9 @@ namespace IceRpc.Transports.Internal
 
         public override string ToString() => Endpoint.ToString();
 
-        /// <summary>Constructs an acceptor for a single-stream connection transport.</summary>
+        /// <summary>Constructs an listener for a single-stream connection transport.</summary>
         /// <param name="listeningConnection">A socket that accepts connections from clients.</param>
-        /// <param name="endpoint">The endpoint this acceptor is listening on.</param>
+        /// <param name="endpoint">The endpoint this listener is listening on.</param>
         /// <param name="options">The options to use when creating (accepting) connections from clients.</param>
         internal NetworkListener(
             NetworkSocket listeningConnection,

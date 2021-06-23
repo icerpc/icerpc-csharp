@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public void TcpOptions_Client_BufferSize(int size)
         {
-            using IListener acceptor = CreateAcceptor();
+            using IListener listener = CreateListener();
             using NetworkSocket outgoingConnection = CreateOutgoingConnection(new TcpOptions
             {
                 SendBufferSize = size,
@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void TcpOptions_Client_IsIPv6Only()
         {
-            using IListener acceptor = CreateAcceptor();
+            using IListener listener = CreateListener();
             using NetworkSocket outgoingConnection = CreateOutgoingConnection(new TcpOptions
             {
                 IsIPv6Only = true
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    using IListener acceptor = CreateAcceptor();
+                    using IListener listener = CreateListener();
                     var localEndPoint = new IPEndPoint(IsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
                     using NetworkSocket outgoingConnection = CreateOutgoingConnection(new TcpOptions
                     {
@@ -98,12 +98,12 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener acceptor = CreateAcceptorWithTcpOptions(new TcpOptions
+            IListener listener = CreateListenerWithTcpOptions(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
             });
-            ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
             using NetworkSocket outgoingConnection = CreateOutgoingConnection();
             ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.Internal
                 Assert.LessOrEqual(incomingConnection.Socket!.SendBufferSize, 1.5 * size);
                 Assert.LessOrEqual(incomingConnection.Socket!.ReceiveBufferSize, 1.5 * size);
             }
-            acceptor.Dispose();
+            listener.Dispose();
         }
 
         [TestCase(false)]
@@ -158,10 +158,10 @@ namespace IceRpc.Tests.Internal
 
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
-                using IListener acceptor =
-                    serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint, connectionOptions, Logger);
+                using IListener listener =
+                    serverEndpoint.TransportDescriptor!.ListenerFactory!(serverEndpoint, connectionOptions, Logger);
 
-                ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
+                ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
                 var data = new EndpointData(
@@ -191,7 +191,7 @@ namespace IceRpc.Tests.Internal
                     Assert.DoesNotThrowAsync(async () => await connectTask);
                 }
 
-                acceptor.Dispose();
+                listener.Dispose();
             }
         }
 
@@ -202,11 +202,11 @@ namespace IceRpc.Tests.Internal
             // (TLS handshake or WebSocket initialization).
             if (TransportName == "tcp" && !IsSecure)
             {
-                IListener acceptor = CreateAcceptorWithTcpOptions(new TcpOptions
+                IListener listener = CreateListenerWithTcpOptions(new TcpOptions
                 {
                     ListenerBackLog = 18
                 });
-                ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
+                ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
                 var connections = new List<NetworkSocket>();
                 while (true)
                 {
@@ -230,15 +230,15 @@ namespace IceRpc.Tests.Internal
                 Assert.LessOrEqual(connections.Count, 25);
 
                 connections.ForEach(connection => connection.Dispose());
-                acceptor.Dispose();
+                listener.Dispose();
             }
         }
 
-        private IListener CreateAcceptorWithTcpOptions(TcpOptions options)
+        private IListener CreateListenerWithTcpOptions(TcpOptions options)
         {
             IncomingConnectionOptions connectionOptions = IncomingConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
-            return ServerEndpoint.TransportDescriptor!.AcceptorFactory!(ServerEndpoint, connectionOptions, Logger);
+            return ServerEndpoint.TransportDescriptor!.ListenerFactory!(ServerEndpoint, connectionOptions, Logger);
         }
 
         private NetworkSocket CreateOutgoingConnection(TcpOptions? tcpOptions = null, Endpoint? endpoint = null)
@@ -251,7 +251,7 @@ namespace IceRpc.Tests.Internal
                 NetworkSocketConnection)!.Underlying;
         }
 
-        private static async ValueTask<NetworkSocket> CreateIncomingConnectionAsync(IListener acceptor) =>
-            ((await acceptor.AcceptAsync()) as NetworkSocketConnection)!.Underlying;
+        private static async ValueTask<NetworkSocket> CreateIncomingConnectionAsync(IListener listener) =>
+            ((await listener.AcceptAsync()) as NetworkSocketConnection)!.Underlying;
     }
 }

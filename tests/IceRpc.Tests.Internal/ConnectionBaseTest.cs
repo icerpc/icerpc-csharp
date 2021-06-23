@@ -33,9 +33,9 @@ namespace IceRpc.Tests.Internal
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
-        private IListener? _acceptor;
+        private IListener? _listener;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
-        // Protects the _acceptor data member
+        // Protects the _listener data member
         private readonly object _mutex = new();
         private static int _nextBasePort;
 
@@ -117,7 +117,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [OneTimeTearDown]
-        public void Shutdown() => _acceptor?.Dispose();
+        public void Shutdown() => _listener?.Dispose();
 
         static protected async ValueTask<NetworkSocket> SingleStreamConnectionAsync(Task<MultiStreamConnection> connection) =>
             (await connection as NetworkSocketConnection)!.Underlying;
@@ -126,13 +126,13 @@ namespace IceRpc.Tests.Internal
         {
             lock (_mutex)
             {
-                _acceptor ??= CreateAcceptor();
+                _listener ??= CreateListener();
             }
 
             await _acceptSemaphore.EnterAsync();
             try
             {
-                MultiStreamConnection multiStreamConnection = await _acceptor.AcceptAsync();
+                MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
                 Debug.Assert(multiStreamConnection.TransportName == TransportName);
                 await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
                 if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.ConnectionInformation.IsSecure)
@@ -164,7 +164,7 @@ namespace IceRpc.Tests.Internal
             {
                 lock (_mutex)
                 {
-                    _acceptor ??= CreateAcceptor();
+                    _listener ??= CreateListener();
                 }
             }
 
@@ -194,7 +194,7 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IListener CreateAcceptor() => ServerEndpoint.TransportDescriptor!.AcceptorFactory!(
+        protected IListener CreateListener() => ServerEndpoint.TransportDescriptor!.ListenerFactory!(
             ServerEndpoint,
             IncomingConnectionOptions,
             Logger);

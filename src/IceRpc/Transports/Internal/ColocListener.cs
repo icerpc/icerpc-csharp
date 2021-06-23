@@ -12,13 +12,13 @@ using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamI
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The IAcceptor implementation for the colocated transport.</summary>
+    /// <summary>The IListener implementation for the colocated transport.</summary>
     internal class ColocListener : IListener
     {
         public Endpoint Endpoint => _endpoint;
 
-        /// <summary>A dictionary that keeps track of all coloc acceptors.</summary>
-        private static readonly IDictionary<ColocEndpoint, ColocListener> _colocAcceptorDictionary =
+        /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
+        private static readonly IDictionary<ColocEndpoint, ColocListener> _colocListenerDictionary =
             new ConcurrentDictionary<ColocEndpoint, ColocListener>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
@@ -39,15 +39,15 @@ namespace IceRpc.Transports.Internal
         public void Dispose()
         {
             _channel.Writer.Complete();
-            _colocAcceptorDictionary.Remove(_endpoint);
+            _colocListenerDictionary.Remove(_endpoint);
         }
 
         public override string ToString() => $"{base.ToString()} {_endpoint}";
 
         internal static bool TryGetValue(
             ColocEndpoint endpoint,
-            [NotNullWhen(returnValue: true)] out ColocListener? acceptor) =>
-            _colocAcceptorDictionary.TryGetValue(endpoint, out acceptor);
+            [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
+            _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
         internal ColocListener(ColocEndpoint endpoint, IncomingConnectionOptions options, ILogger logger)
         {
@@ -55,9 +55,9 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
 
-            // There's always a single reader (the acceptor) but there might be several writers calling Write
+            // There's always a single reader (the listener) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads. Not allowing
-            // synchronous continuations is safer as otherwise disposal of the acceptor could end up running
+            // synchronous continuations is safer as otherwise disposal of the listener could end up running
             // the continuation of AcceptAsync.
             _channel = Channel.CreateUnbounded<(long, ColocChannelWriter, ColocChannelReader)>(
                 new UnboundedChannelOptions
@@ -67,7 +67,7 @@ namespace IceRpc.Transports.Internal
                     AllowSynchronousContinuations = false
                 });
 
-            if (!_colocAcceptorDictionary.TryAdd(_endpoint, this))
+            if (!_colocListenerDictionary.TryAdd(_endpoint, this))
             {
                 throw new TransportException($"endpoint '{endpoint}' is already in use");
             }

@@ -25,7 +25,7 @@ namespace IceRpc.Transports
         public bool IsDatagram => _endpoint.IsDatagram;
 
         /// <summary><c>true</c> for incoming connections; otherwise, <c>false</c>. An incoming connection is created
-        /// by a server-side acceptor while an outgoing connection is created from the endpoint by the client-side.
+        /// by a server-side listener while an outgoing connection is created from the endpoint by the client-side.
         /// </summary>
         public bool IsIncoming { get; }
 
@@ -105,7 +105,7 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accept a new incoming connection. This is called after the listener accepted a new connection
         /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

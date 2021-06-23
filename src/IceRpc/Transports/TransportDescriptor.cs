@@ -11,12 +11,12 @@ namespace IceRpc.Transports
     /// </summary>
     public sealed class TransportDescriptor
     {
-        /// <summary>The acceptor factory. An acceptor listens for connection establishment requests from clients and
+        /// <summary>The listener factory. An listener listens for connection establishment requests from clients and
         /// creates (accepts) a new connection for each client. This is typically used to implement a stream-based
         /// transport such as TCP or QUIC. Datagram or serial transports provide instead
         /// <see cref="IncomingConnectionFactory"/>.</summary>
         /// <seealso cref="ListeningSocketFactory"/>
-        public Func<Endpoint, IncomingConnectionOptions, ILogger, IListener>? AcceptorFactory { get; init; }
+        public Func<Endpoint, IncomingConnectionOptions, ILogger, IListener>? ListenerFactory { get; init; }
 
         /// <summary>The client socket factory. Setting this value sets <see cref="OutgoingConnectionFactory"/>. Set
         /// this value when describing a <see cref="NetworkSocket"/>-based transport.</summary>
@@ -67,8 +67,8 @@ namespace IceRpc.Transports
             get; init;
         }
 
-        /// <summary>The listening socket factory. Setting this value sets <see cref="AcceptorFactory"/>. Set this value
-        /// when describing a <see cref="NetworkSocket"/>-based transport that provides an acceptor.</summary>
+        /// <summary>The listening socket factory. Setting this value sets <see cref="ListenerFactory"/>. Set this value
+        /// when describing a <see cref="NetworkSocket"/>-based transport that provides an listener.</summary>
         public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ListeningSocketFactory
         {
             get => _listeningSocketFactory;
@@ -76,7 +76,7 @@ namespace IceRpc.Transports
             init
             {
                 _listeningSocketFactory = value;
-                AcceptorFactory = _listeningSocketFactory == null ? null :
+                ListenerFactory = _listeningSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
                     (NetworkSocket listeningConnection, Endpoint listeningEndpoint) =
@@ -99,7 +99,7 @@ namespace IceRpc.Transports
 
         /// <summary>The server socket factory. Setting this value sets <see cref="IncomingConnectionFactory"/>. Set
         /// this value when describing a <see cref="NetworkSocket"/>-based transport that does not provide an
-        /// acceptor.</summary>
+        /// listener.</summary>
         public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ServerSocketFactory
         {
             get => _serverSocketFactory;

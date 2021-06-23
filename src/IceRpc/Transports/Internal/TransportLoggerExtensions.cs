@@ -9,7 +9,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static partial class TransportLoggerExtensions
     {
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _acceptorScope =
+        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _listenerScope =
             LoggerMessage.DefineScope<string, Protocol, string, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
 
@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "connection(Transport={Transport}, Protocol={Protocol}, Description={Description})");
 
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocAcceptorScope =
+        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocListenerScope =
             LoggerMessage.DefineScope<string, Protocol, string>(
                 "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
 
@@ -194,32 +194,32 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IListener acceptor)
+        internal static IDisposable? StartListenerScope(this ILogger logger, Server server, IListener listener)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
                 return null;
             }
 
-            string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
+            string transportName = listener.Endpoint.Transport.ToString().ToLowerInvariant();
 
-            // TODO: add scope for SingleStreamConnectionAcceptor or remove scope for ColocListener
-            if (acceptor is ColocListener)
+            // TODO: add scope for SingleStreamConnectionListener or remove scope for ColocListener
+            if (listener is ColocListener)
             {
-                return _colocAcceptorScope(
+                return _colocListenerScope(
                     logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
+                    listener.Endpoint.TransportName,
+                    listener.Endpoint.Protocol,
                     server.ToString());
             }
             else
             {
-                return _acceptorScope(
+                return _listenerScope(
                     logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
+                    listener.Endpoint.TransportName,
+                    listener.Endpoint.Protocol,
                     server.ToString(),
-                    acceptor.ToString()!);
+                    listener.ToString()!);
             }
         }
 
