@@ -23,17 +23,12 @@ namespace IceRpc.Internal
         {
             if (request.Protocol == Protocol.Ice2)
             {
-                // TODO Use CreateActivity from ActivitySource once we move to .NET 6, to avoid starting the activity
-                // before we restore its context.
-                Activity? activity = _options.ActivitySource?.StartActivity(
+                Activity? activity = _options.ActivitySource?.CreateActivity(
                     $"{request.Path}/{request.Operation}",
                     ActivityKind.Server);
                 if (activity == null && (_logger.IsEnabled(LogLevel.Critical) || Activity.Current != null))
                 {
                     activity = new Activity($"{request.Path}/{request.Operation}");
-                    // TODO we should start the activity after restoring its context, we should update this once
-                    // we move to CreateActivity in .NET 6
-                    activity.Start();
                 }
 
                 if (activity != null)
@@ -44,6 +39,7 @@ namespace IceRpc.Internal
                     // TODO add additional attributes
                     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/semantic_conventions/rpc.md#common-remote-procedure-call-conventions
                     RestoreActivityContext(request, activity);
+                    activity.Start();
                 }
 
                 try
