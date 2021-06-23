@@ -37,29 +37,27 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.TCP, options, endpointString),
                 Ice2EndpointParser = ParseIce2Endpoint,
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+                ListeningSocketFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateListeningConnection(options, logger),
             };
-
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateAcceptor(options, logger),
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+                ListeningSocketFactory = (endpoint, options, logger) =>
+                    ((TcpEndpoint)endpoint).CreateListeningConnection(options, logger),
             };
-
         private protected bool HasCompressionFlag { get; }
         private protected TimeSpan Timeout { get; } = DefaultTimeout;
 
@@ -137,7 +135,7 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        internal virtual SingleStreamConnection CreateSingleStreamConnection(
+        private protected virtual SingleStreamConnection CreateSingleStreamConnection(
             EndPoint addr,
             TcpOptions options,
             ILogger logger)
@@ -172,8 +170,11 @@ namespace IceRpc.Transports.Internal
             return new TcpConnection(socket, logger, addr);
         }
 
-        internal virtual SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
-            new TcpConnection(socket, logger);
+        private protected virtual SingleStreamConnection CreateSingleStreamConnection(
+            Socket socket,
+            ILogger logger,
+            EndPoint? addr = null) =>
+            new TcpConnection(socket, logger, addr);
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
@@ -211,7 +212,9 @@ namespace IceRpc.Transports.Internal
             return timeout;
         }
 
-        private protected IAcceptor CreateAcceptor(IncomingConnectionOptions options, ILogger logger)
+        private protected (SingleStreamConnection, Endpoint) CreateListeningConnection(
+            ITransportOptions? options,
+            ILogger logger)
         {
             if (Address == IPAddress.None)
             {
@@ -223,7 +226,7 @@ namespace IceRpc.Transports.Internal
             var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             try
             {
-                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+                TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
                     socket.DualMode = !tcpOptions.IsIPv6Only;
@@ -242,23 +245,16 @@ namespace IceRpc.Transports.Internal
                 socket.Dispose();
                 throw new TransportException(ex);
             }
-            return new TcpAcceptor(socket, (TcpEndpoint)Clone((ushort)address.Port), options, logger);
+            return (CreateSingleStreamConnection(socket, logger, address), Clone((ushort)address.Port));
         }
 
-        private protected MultiStreamConnection CreateOutgoingConnection(
-            OutgoingConnectionOptions options,
+        private protected SingleStreamConnection CreateOutgoingConnection(
+            ITransportOptions? options,
             ILogger logger)
         {
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
             EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            SingleStreamConnection singleStreamConnection =
-                CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
-
-            return Protocol switch
-            {
-                Protocol.Ice1 => new Ice1Connection(this, singleStreamConnection, options),
-                _ => new SlicConnection(this, singleStreamConnection, options)
-            };
+            return CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
         }
 
         // Constructor for ice1 unmarshaling and parsing

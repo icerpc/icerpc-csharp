@@ -79,6 +79,19 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override async ValueTask<SingleStreamConnection> AcceptAsync()
+        {
+            try
+            {
+                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
+                return new TcpConnection(fd, Logger);
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ex.ToTransportException(default));
+            }
+        }
+
         // We can't shutdown the socket write side because it might block.
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 

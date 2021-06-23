@@ -53,11 +53,6 @@ namespace IceRpc.Transports.Internal
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
 
-        private static readonly Func<ILogger, string, Protocol, string, EndPoint, IDisposable> _tcpAcceptorScope =
-            LoggerMessage.DefineScope<string, Protocol, string, EndPoint>(
-                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
-                "LocalEndPoint={LocalEndPoint})");
-
         [LoggerMessage(
             EventId = (int)TransportEvent.AcceptingConnectionFailed,
             EventName = nameof(TransportEvent.AcceptingConnectionFailed),
@@ -207,16 +202,9 @@ namespace IceRpc.Transports.Internal
             }
 
             string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
-            if (acceptor is TcpAcceptor tcpAcceptor)
-            {
-                return _tcpAcceptorScope(
-                    logger,
-                    acceptor.Endpoint.TransportName,
-                    acceptor.Endpoint.Protocol,
-                    server.ToString(),
-                    tcpAcceptor.IPEndPoint);
-            }
-            else if (acceptor is ColocAcceptor)
+
+            // TODO: add scope for SingleStreamConnectionAcceptor or remove scope for ColocAcceptor
+            if (acceptor is ColocAcceptor)
             {
                 return _colocAcceptorScope(
                     logger,

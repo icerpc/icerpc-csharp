@@ -24,29 +24,29 @@ namespace IceRpc.Transports.Internal
         protected internal override bool HasOptions => Data.Options.Count > 0 || base.HasOptions;
 
         internal static TransportDescriptor WSTransportDescriptor { get; } =
-           new(Transport.WS, "ws", CreateEndpoint)
-           {
-               AcceptorFactory = (endpoint, options, logger) =>
-                    ((WSEndpoint)endpoint).CreateAcceptor(options, logger),
-               DefaultUriPort = DefaultIPPort,
-               Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.WS, istr),
-               Ice1EndpointParser = (options, endpointString) =>
+            new(Transport.WS, "ws", CreateEndpoint)
+            {
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                DefaultUriPort = DefaultIPPort,
+                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.WS, istr),
+                Ice1EndpointParser = (options, endpointString) =>
                    ParseIce1Endpoint(Transport.WS, options, endpointString),
-               Ice2EndpointParser = ParseIce2Endpoint,
-               OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger)
-           };
+                Ice2EndpointParser = ParseIce2Endpoint,
+                ListeningSocketFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateListeningConnection(options, logger),
+            };
 
         internal static TransportDescriptor WssTransportDescriptor { get; } =
             new(Transport.WSS, "wss", CreateEndpoint)
             {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    ((WSEndpoint)endpoint).CreateAcceptor(options, logger),
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.WSS, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.WSS, options, endpointString),
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((WSEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+                ListeningSocketFactory = (endpoint, options, logger) =>
+                    ((WSEndpoint)endpoint).CreateListeningConnection(options, logger),
             };
 
         /// <summary>A URI specifying the resource associated with this endpoint. The value is passed as the target for
@@ -93,14 +93,17 @@ namespace IceRpc.Transports.Internal
             ostr.WriteString(Resource);
         }
 
-        internal override SingleStreamConnection CreateSingleStreamConnection(
+        private protected override SingleStreamConnection CreateSingleStreamConnection(
             EndPoint addr,
             TcpOptions options,
             ILogger logger) =>
             new WSConnection((TcpConnection)base.CreateSingleStreamConnection(addr, options, logger));
 
-        internal override SingleStreamConnection CreateSingleStreamConnection(Socket socket, ILogger logger) =>
-            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger));
+        private protected override SingleStreamConnection CreateSingleStreamConnection(
+            Socket socket,
+            ILogger logger,
+            EndPoint? addr = null) =>
+            new WSConnection((TcpConnection)base.CreateSingleStreamConnection(socket, logger, addr));
 
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new WSEndpoint(this, host, port);
