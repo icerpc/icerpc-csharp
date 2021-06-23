@@ -65,15 +65,7 @@ namespace IceRpc.Tests.Internal
             {
                 IsIPv6Only = true
             });
-            if (IsIPv6)
-            {
-                Assert.IsFalse(outgoingConnection.NetworkSocket!.DualMode);
-            }
-            else
-            {
-                // Accessing DualMode for an IPv4 connection throws NotSupportedException
-                Assert.Catch<NotSupportedException>(() => _ = outgoingConnection.NetworkSocket!.DualMode);
-            }
+            Assert.IsFalse(outgoingConnection.NetworkSocket!.DualMode);
         }
 
         [Test]
