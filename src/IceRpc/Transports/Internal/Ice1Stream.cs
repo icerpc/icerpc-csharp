@@ -9,8 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Ice1Stream class provides a stream implementation of the Ice1NetworkSocketSocket and
-    /// Ice1 protocol.</summary>
+    /// <summary>The Ice1Stream class implements RpcStream.</summary>
     internal class Ice1Stream : SignaledStream<(Ice1FrameType, ReadOnlyMemory<byte>)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;

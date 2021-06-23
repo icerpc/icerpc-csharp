@@ -12,8 +12,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements a multi-stream transport on top of a single-stream transport such
-    /// as TCP. It supports the same set of features as Quic.</summary>
+    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as TCP. It 
+    /// supports the same set of features as Quic.</summary>
     internal class SlicConnection : NetworkSocketConnection
     {
         public override TimeSpan IdleTimeout

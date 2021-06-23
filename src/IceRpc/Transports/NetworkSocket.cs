@@ -8,15 +8,14 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A single-stream connection represents a network connection that supports a single stream of binary
-    /// data.</summary>
+    /// <summary>Represents a socket or socket-like object that can send and receive bytes.</summary>
     public abstract class NetworkSocket : IDisposable
     {
         /// <summary>Returns information about the connection.</summary>
         public abstract ConnectionInformation ConnectionInformation { get; }
 
-        /// <summary>When this connection is a datagram connection, the maximum size of a datagram received over this
-        /// connection.</summary>
+        /// <summary>When this socket is a datagram socket, the maximum size of a datagram received by this socket.
+        /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         internal ILogger Logger { get; }
@@ -24,13 +23,13 @@ namespace IceRpc.Transports
         /// <summary>This property should be used for testing purpose only.</summary>
         internal abstract System.Net.Sockets.Socket? Socket { get; }
 
-        /// <summary>Closes the connection. The connection might use this method to send a notification to the peer
+        /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
         /// of the connection closure.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
+        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the connection.</summary>
+        /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
         {
             Dispose(true);
@@ -40,7 +39,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
 
-        /// <summary>Accepts a new incoming connection. This is called after the listener accepted a new connection
+        /// <summary>Accepts a new connection. This is called after the listener accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
@@ -51,14 +50,13 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Accepts a new incoming connection. This method is called by the implementation of
-        /// <see cref="IListener.AcceptAsync"/> for single-stream connections.</summary>
+        /// <summary>Accepts a new connection. This method is called by the implementation of
+        /// <see cref="IListener.AcceptAsync"/> for network sockets.</summary>
         /// <returns>The accepted connection.</returns>
         public abstract ValueTask<NetworkSocket> AcceptAsync();
 
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
-        /// to establish the connection and perform socket level initialization (TLS handshake, etc).
-        /// </summary>
+        /// <summary>Connects a new client socket. This is called after the endpoint created a new socket to establish
+        /// the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

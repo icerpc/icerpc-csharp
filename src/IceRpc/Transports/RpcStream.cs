@@ -40,7 +40,7 @@ namespace IceRpc.Transports
         ConnectionAborted,
     }
 
-    /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
+    /// <summary>The RpcStream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
     public abstract class RpcStream
     {

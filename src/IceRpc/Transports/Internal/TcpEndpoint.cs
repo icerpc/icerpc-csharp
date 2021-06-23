@@ -135,7 +135,7 @@ namespace IceRpc.Transports.Internal
             return new(data, protocol);
         }
 
-        private protected virtual NetworkSocket CreateSingleStreamConnection(
+        private NetworkSocket CreateTcpSocket(
             EndPoint addr,
             TcpOptions options,
             ILogger logger)
@@ -170,7 +170,7 @@ namespace IceRpc.Transports.Internal
             return new TcpSocket(socket, logger, addr);
         }
 
-        private protected virtual NetworkSocket CreateSingleStreamConnection(
+        private NetworkSocket CreateTcpSocket(
             Socket socket,
             ILogger logger,
             EndPoint? addr = null) =>
@@ -245,7 +245,7 @@ namespace IceRpc.Transports.Internal
                 socket.Dispose();
                 throw new TransportException(ex);
             }
-            return (CreateSingleStreamConnection(socket, logger, address), Clone((ushort)address.Port));
+            return (CreateTcpSocket(socket, logger, address), Clone((ushort)address.Port));
         }
 
         private protected NetworkSocket CreateOutgoingConnection(
@@ -254,7 +254,7 @@ namespace IceRpc.Transports.Internal
         {
             TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
             EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-            return CreateSingleStreamConnection(netEndPoint, tcpOptions, logger);
+            return CreateTcpSocket(netEndPoint, tcpOptions, logger);
         }
 
         // Constructor for ice1 unmarshaling and parsing
