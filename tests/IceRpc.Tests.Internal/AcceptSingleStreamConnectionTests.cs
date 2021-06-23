@@ -35,37 +35,37 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamConnection_Acceptor_AcceptAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener acceptor = CreateAcceptor();
+            ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket outgoingConnection = CreateOutgoingConnection();
             ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket incomingConnection = await acceptTask;
         }
 
         [Test]
         public void AcceptSingleStreamConnection_Acceptor_Constructor_TransportException()
         {
-            using IAcceptor acceptor = CreateAcceptor();
+            using IListener acceptor = CreateAcceptor();
             Assert.Throws<TransportException>(() => CreateAcceptor());
         }
 
         [Test]
         public async Task AcceptSingleStreamConnection_AcceptAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener acceptor = CreateAcceptor();
+            ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket outgoingConnection = CreateOutgoingConnection();
             ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket incomingConnection = await acceptTask;
 
             ValueTask<Endpoint?> acceptTask2 = incomingConnection.AcceptAsync(
                 ServerEndpoint,
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Internal
 
             await acceptTask2;
 
-            Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
+            Assert.That(incomingConnection, Is.InstanceOf<TcpSocket>());
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
@@ -89,17 +89,17 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener acceptor = CreateAcceptor();
+            ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(acceptor);
 
-            SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            NetworkSocket outgoingConnection = CreateOutgoingConnection();
 
             // We don't use outgoingConnection.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            await outgoingConnection.NetworkSocket!.ConnectAsync(
+            await outgoingConnection.Socket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket incomingConnection = await acceptTask;
 
             outgoingConnection.Dispose();
 
@@ -128,7 +128,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, true)]
         public void AcceptSingleStreamConnection_Acceptor_AddressReuse(bool wildcard1, bool wildcard2)
         {
-            IAcceptor acceptor;
+            IListener acceptor;
             if (wildcard1)
             {
                 var serverData = new EndpointData(
@@ -192,15 +192,15 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task AcceptSingleStreamConnection_AcceptAsync_OperationCanceledExceptionAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
+            using IListener acceptor = CreateAcceptor();
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket outgoingConnection = CreateOutgoingConnection();
             ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamConnection incomingConnection = await CreateIncomingConnectionAsync(acceptor);
+            using NetworkSocket incomingConnection = await CreateIncomingConnectionAsync(acceptor);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -220,13 +220,13 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamConnection CreateOutgoingConnection() =>
+        private NetworkSocket CreateOutgoingConnection() =>
             (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
                 ClientEndpoint,
                 OutgoingConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
+                Logger) as NetworkSocketConnection)!.Underlying;
 
-        private static async ValueTask<SingleStreamConnection> CreateIncomingConnectionAsync(IAcceptor acceptor) =>
-            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamConnection)!.Underlying;
+        private static async ValueTask<NetworkSocket> CreateIncomingConnectionAsync(IListener acceptor) =>
+            (await acceptor.AcceptAsync() as NetworkSocketConnection)!.Underlying;
     }
 }

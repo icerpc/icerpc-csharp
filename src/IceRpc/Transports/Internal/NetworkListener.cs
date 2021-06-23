@@ -4,18 +4,18 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>Provides an acceptor that works with any <see cref="SingleStreamConnection"/> transport.
+    /// <summary>Provides an acceptor that works with any <see cref="NetworkSocket"/> transport.
     /// </summary>
-    internal class SingleStreamConnectionAcceptor : IAcceptor
+    internal class NetworkListener : IListener
     {
         public Endpoint Endpoint { get; }
 
-        private readonly SingleStreamConnection _listeningConnection;
+        private readonly NetworkSocket _listeningConnection;
         private readonly IncomingConnectionOptions _options;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
-            SingleStreamConnection serverConnection =
+            NetworkSocket serverConnection =
                 await _listeningConnection.AcceptAsync().ConfigureAwait(false);
 
             return Endpoint.Protocol == Protocol.Ice1 ?
@@ -31,8 +31,8 @@ namespace IceRpc.Transports.Internal
         /// <param name="listeningConnection">A socket that accepts connections from clients.</param>
         /// <param name="endpoint">The endpoint this acceptor is listening on.</param>
         /// <param name="options">The options to use when creating (accepting) connections from clients.</param>
-        internal SingleStreamConnectionAcceptor(
-            SingleStreamConnection listeningConnection,
+        internal NetworkListener(
+            NetworkSocket listeningConnection,
             Endpoint endpoint,
             IncomingConnectionOptions options)
         {

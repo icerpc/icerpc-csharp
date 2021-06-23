@@ -13,13 +13,13 @@ using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamI
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The IAcceptor implementation for the colocated transport.</summary>
-    internal class ColocAcceptor : IAcceptor
+    internal class ColocListener : IListener
     {
         public Endpoint Endpoint => _endpoint;
 
         /// <summary>A dictionary that keeps track of all coloc acceptors.</summary>
-        private static readonly IDictionary<ColocEndpoint, ColocAcceptor> _colocAcceptorDictionary =
-            new ConcurrentDictionary<ColocEndpoint, ColocAcceptor>();
+        private static readonly IDictionary<ColocEndpoint, ColocListener> _colocAcceptorDictionary =
+            new ConcurrentDictionary<ColocEndpoint, ColocListener>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
         private readonly ColocEndpoint _endpoint;
@@ -46,10 +46,10 @@ namespace IceRpc.Transports.Internal
 
         internal static bool TryGetValue(
             ColocEndpoint endpoint,
-            [NotNullWhen(returnValue: true)] out ColocAcceptor? acceptor) =>
+            [NotNullWhen(returnValue: true)] out ColocListener? acceptor) =>
             _colocAcceptorDictionary.TryGetValue(endpoint, out acceptor);
 
-        internal ColocAcceptor(ColocEndpoint endpoint, IncomingConnectionOptions options, ILogger logger)
+        internal ColocListener(ColocEndpoint endpoint, IncomingConnectionOptions options, ILogger logger)
         {
             _endpoint = endpoint;
             _logger = logger;

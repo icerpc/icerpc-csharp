@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
             var sendBuffer = new byte[size];
             new Random().NextBytes(sendBuffer);
 
-            List<SingleStreamConnection> outgoingConnections = new();
+            List<NetworkSocket> outgoingConnections = new();
             outgoingConnections.Add(OutgoingConnection);
             for (int i = 0; i < outgoingConnectionCount; ++i)
             {
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamConnection connection in outgoingConnections)
+                    foreach (NetworkSocket connection in outgoingConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
                         ValueTask sendTask = connection.SendAsync(sendBuffer, default);
@@ -70,11 +70,11 @@ namespace IceRpc.Tests.Internal
             {
                 try
                 {
-                    foreach (SingleStreamConnection connection in outgoingConnections)
+                    foreach (NetworkSocket connection in outgoingConnections)
                     {
                         await connection.SendAsync(sendBuffer, default);
                     }
-                    foreach (SingleStreamConnection connection in outgoingConnections)
+                    foreach (NetworkSocket connection in outgoingConnections)
                     {
                         using var source = new CancellationTokenSource(1000);
                         Memory<byte> receiveBuffer = new byte[IncomingConnection.DatagramMaxReceiveSize];

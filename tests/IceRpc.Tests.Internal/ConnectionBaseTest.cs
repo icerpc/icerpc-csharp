@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
         private protected Endpoint ServerEndpoint { get; }
         private protected string TransportName { get; }
 
-        private IAcceptor? _acceptor;
+        private IListener? _acceptor;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
         // Protects the _acceptor data member
         private readonly object _mutex = new();
@@ -119,8 +119,8 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _acceptor?.Dispose();
 
-        static protected async ValueTask<SingleStreamConnection> SingleStreamConnectionAsync(Task<MultiStreamConnection> connection) =>
-            (await connection as MultiStreamOverSingleStreamConnection)!.Underlying;
+        static protected async ValueTask<NetworkSocket> SingleStreamConnectionAsync(Task<MultiStreamConnection> connection) =>
+            (await connection as NetworkSocketConnection)!.Underlying;
 
         protected async Task<MultiStreamConnection> AcceptAsync()
         {
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Internal
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
-                    if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
+                    if (multiStreamConnection is NetworkSocketConnection connection)
                     {
                         Memory<byte> buffer = new byte[1];
                         await connection.Underlying.ReceiveAsync(buffer, default);
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.Internal
                 // a single byte over the connection to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (multiStreamConnection is MultiStreamOverSingleStreamConnection connection)
+                if (multiStreamConnection is NetworkSocketConnection connection)
                 {
                     await connection.Underlying.SendAsync(new byte[1] { 0 }, default);
                 }
@@ -194,7 +194,7 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IAcceptor CreateAcceptor() => ServerEndpoint.TransportDescriptor!.AcceptorFactory!(
+        protected IListener CreateAcceptor() => ServerEndpoint.TransportDescriptor!.AcceptorFactory!(
             ServerEndpoint,
             IncomingConnectionOptions,
             Logger);

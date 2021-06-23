@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports
 {
     /// <summary>An acceptor listens and accepts incoming connection requests from clients.</summary>
-    public interface IAcceptor : IDisposable
+    public interface IListener : IDisposable
     {
         /// <summary>The listening endpoint. The acceptor endpoint might be different from the endpoint used
         /// to create the acceptor if for example the binding of the server socket assigned a port.</summary>

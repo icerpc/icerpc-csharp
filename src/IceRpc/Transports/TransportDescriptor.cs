@@ -16,11 +16,11 @@ namespace IceRpc.Transports
         /// transport such as TCP or QUIC. Datagram or serial transports provide instead
         /// <see cref="IncomingConnectionFactory"/>.</summary>
         /// <seealso cref="ListeningSocketFactory"/>
-        public Func<Endpoint, IncomingConnectionOptions, ILogger, IAcceptor>? AcceptorFactory { get; init; }
+        public Func<Endpoint, IncomingConnectionOptions, ILogger, IListener>? AcceptorFactory { get; init; }
 
         /// <summary>The client socket factory. Setting this value sets <see cref="OutgoingConnectionFactory"/>. Set
-        /// this value when describing a <see cref="SingleStreamConnection"/>-based transport.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, SingleStreamConnection>? ClientSocketFactory
+        /// this value when describing a <see cref="NetworkSocket"/>-based transport.</summary>
+        public Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket>? ClientSocketFactory
         {
             get => _clientSocketFactory;
 
@@ -30,7 +30,7 @@ namespace IceRpc.Transports
                 OutgoingConnectionFactory = _clientSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
-                    SingleStreamConnection singleStreamConnection =
+                    NetworkSocket singleStreamConnection =
                         _clientSocketFactory(endpoint, options.TransportOptions, logger);
 
                     return endpoint.Protocol == Protocol.Ice1 ?
@@ -68,8 +68,8 @@ namespace IceRpc.Transports
         }
 
         /// <summary>The listening socket factory. Setting this value sets <see cref="AcceptorFactory"/>. Set this value
-        /// when describing a <see cref="SingleStreamConnection"/>-based transport that provides an acceptor.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ListeningSocketFactory
+        /// when describing a <see cref="NetworkSocket"/>-based transport that provides an acceptor.</summary>
+        public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ListeningSocketFactory
         {
             get => _listeningSocketFactory;
 
@@ -79,10 +79,10 @@ namespace IceRpc.Transports
                 AcceptorFactory = _listeningSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
-                    (SingleStreamConnection listeningConnection, Endpoint listeningEndpoint) =
+                    (NetworkSocket listeningConnection, Endpoint listeningEndpoint) =
                         _listeningSocketFactory(endpoint, options.TransportOptions, logger);
 
-                    return new SingleStreamConnectionAcceptor(listeningConnection, listeningEndpoint, options);
+                    return new NetworkListener(listeningConnection, listeningEndpoint, options);
                 };
             }
         }
@@ -98,9 +98,9 @@ namespace IceRpc.Transports
         }
 
         /// <summary>The server socket factory. Setting this value sets <see cref="IncomingConnectionFactory"/>. Set
-        /// this value when describing a <see cref="SingleStreamConnection"/>-based transport that does not provide an
+        /// this value when describing a <see cref="NetworkSocket"/>-based transport that does not provide an
         /// acceptor.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ServerSocketFactory
+        public Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? ServerSocketFactory
         {
             get => _serverSocketFactory;
 
@@ -110,7 +110,7 @@ namespace IceRpc.Transports
                 IncomingConnectionFactory = _serverSocketFactory == null ? null :
                 (endpoint, options, logger) =>
                 {
-                    (SingleStreamConnection serverConnection, Endpoint serverEndpoint) =
+                    (NetworkSocket serverConnection, Endpoint serverEndpoint) =
                         _serverSocketFactory(endpoint, options.TransportOptions, logger);
 
                     return endpoint.Protocol == Protocol.Ice1 ?
@@ -123,9 +123,9 @@ namespace IceRpc.Transports
         /// <summary>The transport enumerator.</summary>
         public Transport Transport { get; }
 
-        private Func<Endpoint, ITransportOptions?, ILogger, SingleStreamConnection>? _clientSocketFactory;
-        private Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? _listeningSocketFactory;
-        private Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? _serverSocketFactory;
+        private Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket>? _clientSocketFactory;
+        private Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? _listeningSocketFactory;
+        private Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)>? _serverSocketFactory;
 
         /// <summary>Constructs a transport descriptor.</summary>
         public TransportDescriptor(

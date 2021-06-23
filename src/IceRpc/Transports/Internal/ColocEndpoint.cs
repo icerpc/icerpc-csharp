@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
             new(Transport.Coloc, "coloc", CreateEndpoint)
             {
                 AcceptorFactory = (endpoint, options, logger) =>
-                    new ColocAcceptor((ColocEndpoint)endpoint, options, logger),
+                    new ColocListener((ColocEndpoint)endpoint, options, logger),
                 DefaultUriPort = 4062,
                 Ice1EndpointParser = ParseIce1Endpoint,
                 Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
@@ -51,7 +51,7 @@ namespace IceRpc.Transports.Internal
         {
             if (endpoint is ColocEndpoint colocEndpoint)
             {
-                if (ColocAcceptor.TryGetValue(colocEndpoint, out ColocAcceptor? acceptor))
+                if (ColocListener.TryGetValue(colocEndpoint, out ColocListener? acceptor))
                 {
                     (ColocChannelReader reader, ColocChannelWriter writer, long id) = acceptor.NewOutgoingConnection();
                     return new ColocConnection(colocEndpoint, id, writer, reader, options, logger);

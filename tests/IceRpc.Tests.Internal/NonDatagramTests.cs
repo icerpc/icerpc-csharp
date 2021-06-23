@@ -61,14 +61,14 @@ namespace IceRpc.Tests.Internal
         // TODO: why support cancellation of SendAsync on a TCP connection?
         public async Task NonDatagramConnection_SendAsync_CancellationAsync()
         {
-            IncomingConnection.NetworkSocket!.ReceiveBufferSize = 4096;
-            OutgoingConnection.NetworkSocket!.SendBufferSize = 4096;
+            IncomingConnection.Socket!.ReceiveBufferSize = 4096;
+            OutgoingConnection.Socket!.SendBufferSize = 4096;
 
             // On some platforms the setting of the buffer sizes might not be granted, we make sure the buffers
             // are at least not larger than 16KB. The test below relies on the SendAsync to block when the connection
             // send/receive buffers fill up.
-            Assert.That(IncomingConnection.NetworkSocket!.ReceiveBufferSize, Is.LessThan(16 * 1024));
-            Assert.That(OutgoingConnection.NetworkSocket!.SendBufferSize, Is.LessThan(16 * 1024));
+            Assert.That(IncomingConnection.Socket!.ReceiveBufferSize, Is.LessThan(16 * 1024));
+            Assert.That(OutgoingConnection.Socket!.SendBufferSize, Is.LessThan(16 * 1024));
 
             using var canceled = new CancellationTokenSource();
 
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Internal
             await test1;
             await test2;
 
-            async ValueTask Test(SingleStreamConnection connection1, SingleStreamConnection connection2)
+            async ValueTask Test(NetworkSocket connection1, NetworkSocket connection2)
             {
                 ValueTask sendTask = connection1.SendAsync(sendBuffer, default);
                 Memory<byte> receiveBuffer = new byte[size];

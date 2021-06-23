@@ -22,7 +22,7 @@ namespace IceRpc
         ReadOnlyMemory<byte> payload,
         Encoding payloadEncoding,
         Connection connection,
-        Stream stream,
+        RpcStream stream,
         IInvoker? invoker);
 
     /// <summary>Base interface of all service proxies.</summary>
@@ -50,7 +50,7 @@ namespace IceRpc
                 ReadOnlyMemory<byte> payload,
                 Encoding payloadEncoding,
                 Connection connection,
-                Stream _,
+                RpcStream _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding, InputStream.IceReaderIntoString, connection, invoker);
 
@@ -60,7 +60,7 @@ namespace IceRpc
                 ReadOnlyMemory<byte> payload,
                 Encoding payloadEncoding,
                 Connection connection,
-                Stream _,
+                RpcStream _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
                                       istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
@@ -73,7 +73,7 @@ namespace IceRpc
                 ReadOnlyMemory<byte> payload,
                 Encoding payloadEncoding,
                 Connection connection,
-                Stream _,
+                RpcStream _,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
                                       InputStream.IceReaderIntoBool,
@@ -291,10 +291,10 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<Stream>? streamDataWriter = null,
+            Action<RpcStream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
                 invocation,
@@ -308,7 +308,7 @@ namespace IceRpc
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection, Stream stream) =
+                (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection connection, RpcStream stream) =
                     await responseTask.ConfigureAwait(false);
 
                 return responseReader(payload, payloadEncoding, connection, stream, Invoker);
@@ -338,10 +338,10 @@ namespace IceRpc
             bool idempotent = false,
             bool oneway = false,
             // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<Stream>? streamDataWriter = null,
+            Action<RpcStream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
                 invocation,

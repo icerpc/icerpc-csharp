@@ -8,19 +8,19 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The BufferedReceiveOverSingleStreamConnection is a wrapper around SingleStreamConnection to provide
+    /// <summary>The BufferedReceiveOverNetworkSocket is a wrapper around SingleStreamConnection to provide
     /// buffered data receive. This helps to limit the number of operating system Receive calls when the user
     /// needs to read only few bytes before reading more (typically to read a frame header) by receiving the
     /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by
     /// <c>SlicConnection</c>.</summary>
-    internal class BufferedReceiveOverSingleStreamConnection : SingleStreamConnection
+    internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
         public override ConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
 
         /// <inheritdoc/>
-        internal override System.Net.Sockets.Socket? NetworkSocket => Underlying.NetworkSocket;
+        internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
 
-        internal SingleStreamConnection Underlying { get; private set; }
+        internal NetworkSocket Underlying { get; private set; }
 
         // The buffered data.
         private ArraySegment<byte> _buffer;
@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
 
-        public override ValueTask<SingleStreamConnection> AcceptAsync() =>
+        public override ValueTask<NetworkSocket> AcceptAsync() =>
             Underlying.AcceptAsync();
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
@@ -71,7 +71,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing) => Underlying.Dispose();
 
-        internal BufferedReceiveOverSingleStreamConnection(SingleStreamConnection underlying, int bufferSize = 256)
+        internal BufferedReceiveOverNetworkSocket(NetworkSocket underlying, int bufferSize = 256)
             : base(underlying.Logger)
         {
             Underlying = underlying;

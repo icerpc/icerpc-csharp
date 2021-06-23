@@ -106,18 +106,19 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        private IAcceptor? _acceptor;
-        private IAcceptor? _colocAcceptor;
-
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
         private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
             new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
+
+        private IListener? _colocListener;
 
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
 
         private string _hostName = Dns.GetHostName().ToLowerInvariant();
+
+        private IListener? _listener;
 
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
@@ -127,11 +128,12 @@ namespace IceRpc
         // protects _shutdownTask
         private readonly object _mutex = new();
 
+        private CancellationTokenSource? _shutdownCancelSource;
+
         private readonly TaskCompletionSource<object?> _shutdownCompleteSource =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private Task? _shutdownTask;
-        private CancellationTokenSource? _shutdownCancelSource;
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
@@ -161,14 +163,14 @@ namespace IceRpc
                 }
 
                 if (_endpoint.TransportDescriptor?.AcceptorFactory is
-                    Func<Endpoint, IncomingConnectionOptions, ILogger, IAcceptor> acceptorFactory)
+                    Func<Endpoint, IncomingConnectionOptions, ILogger, IListener> listenerFactory)
                 {
-                    _acceptor = acceptorFactory(_endpoint, ConnectionOptions, Logger);
-                    _endpoint = _acceptor.Endpoint;
+                    _listener = listenerFactory(_endpoint, ConnectionOptions, Logger);
+                    _endpoint = _listener.Endpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
-                    Task.Run(() => AcceptAsync(_acceptor));
+                    Task.Run(() => AcceptAsync(_listener));
                 }
                 else if (_endpoint.TransportDescriptor?.IncomingConnectionFactory is
                     Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection> incomingConnectionFactory)
@@ -186,7 +188,7 @@ namespace IceRpc
                 else
                 {
                     throw new InvalidOperationException(
-                        $"cannot create acceptor or incoming connection with endpoint '{_endpoint}'");
+                        $"cannot create listener or incoming connection with endpoint '{_endpoint}'");
                 }
 
                 _listening = true;
@@ -197,9 +199,9 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocAcceptor =
+                    _colocListener =
                         colocEndpoint.TransportDescriptor!.AcceptorFactory!(colocEndpoint, ConnectionOptions, Logger);
-                    Task.Run(() => AcceptAsync(_colocAcceptor));
+                    Task.Run(() => AcceptAsync(_colocListener));
 
                     _colocRegistry.Add(_endpoint, colocEndpoint);
                     if (ProxyEndpoint != _endpoint)
@@ -261,9 +263,9 @@ namespace IceRpc
                         }
                     }
 
-                    // Stop accepting new connections by disposing of the acceptors.
-                    _acceptor?.Dispose();
-                    _colocAcceptor?.Dispose();
+                    // Stop accepting new connections by disposing of the listeners.
+                    _listener?.Dispose();
+                    _colocListener?.Dispose();
 
                     // Yield to ensure the mutex is released while we shutdown the connections.
                     await Task.Yield();
@@ -306,9 +308,9 @@ namespace IceRpc
 
         private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
 
-        private async Task AcceptAsync(IAcceptor acceptor)
+        private async Task AcceptAsync(IListener listener)
         {
-            using IDisposable? scope = Logger.StartAcceptorScope(this, acceptor);
+            using IDisposable? scope = Logger.StartAcceptorScope(this, listener);
             Logger.LogStartAcceptingConnections();
 
             while (true)
@@ -316,7 +318,7 @@ namespace IceRpc
                 MultiStreamConnection multiStreamConnection;
                 try
                 {
-                    multiStreamConnection = await acceptor.AcceptAsync().ConfigureAwait(false);
+                    multiStreamConnection = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

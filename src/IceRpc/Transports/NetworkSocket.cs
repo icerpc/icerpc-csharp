@@ -10,7 +10,7 @@ namespace IceRpc.Transports
 {
     /// <summary>A single-stream connection represents a network connection that supports a single stream of binary
     /// data.</summary>
-    public abstract class SingleStreamConnection : IDisposable
+    public abstract class NetworkSocket : IDisposable
     {
         /// <summary>Returns information about the connection.</summary>
         public abstract ConnectionInformation ConnectionInformation { get; }
@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
 
         /// <summary>This property should be used for testing purpose only.</summary>
-        internal abstract System.Net.Sockets.Socket? NetworkSocket { get; }
+        internal abstract System.Net.Sockets.Socket? Socket { get; }
 
         /// <summary>Closes the connection. The connection might use this method to send a notification to the peer
         /// of the connection closure.</summary>
@@ -52,9 +52,9 @@ namespace IceRpc.Transports
             CancellationToken cancel);
 
         /// <summary>Accepts a new incoming connection. This method is called by the implementation of
-        /// <see cref="IAcceptor.AcceptAsync"/> for single-stream connections.</summary>
+        /// <see cref="IListener.AcceptAsync"/> for single-stream connections.</summary>
         /// <returns>The accepted connection.</returns>
-        public abstract ValueTask<SingleStreamConnection> AcceptAsync();
+        public abstract ValueTask<NetworkSocket> AcceptAsync();
 
         /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform socket level initialization (TLS handshake, etc).
@@ -91,6 +91,6 @@ namespace IceRpc.Transports
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
 
-        internal SingleStreamConnection(ILogger logger) => Logger = logger;
+        internal NetworkSocket(ILogger logger) => Logger = logger;
     }
 }

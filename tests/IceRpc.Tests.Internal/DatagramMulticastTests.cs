@@ -18,11 +18,11 @@ namespace IceRpc.Tests.Internal
     [Timeout(5000)]
     public class DatagramMulticastTests : ConnectionBaseTest
     {
-        protected SingleStreamConnection OutgoingConnection => _outgoingConnection!;
-        protected IList<SingleStreamConnection> IncomingConnections => _incomingConnections;
-        private SingleStreamConnection? _outgoingConnection;
+        protected NetworkSocket OutgoingConnection => _outgoingConnection!;
+        protected IList<NetworkSocket> IncomingConnections => _incomingConnections;
+        private NetworkSocket? _outgoingConnection;
         private readonly int _incomingConnectionCount;
-        private readonly List<SingleStreamConnection> _incomingConnections = new();
+        private readonly List<NetworkSocket> _incomingConnections = new();
 
         public DatagramMulticastTests(int incomingConnectionCount, AddressFamily addressFamily)
             : base(
@@ -40,10 +40,10 @@ namespace IceRpc.Tests.Internal
             _incomingConnections.Clear();
             for (int i = 0; i < _incomingConnectionCount; ++i)
             {
-                _incomingConnections.Add(((MultiStreamOverSingleStreamConnection)CreateIncomingConnection()).Underlying);
+                _incomingConnections.Add(((NetworkSocketConnection)CreateIncomingConnection()).Underlying);
             }
 
-            ValueTask<SingleStreamConnection> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+            ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
             _outgoingConnection = await connectTask;
         }
 
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.Internal
                 {
                     using var source = new CancellationTokenSource(1000);
                     ValueTask sendTask = OutgoingConnection.SendAsync(sendBuffer, default);
-                    foreach (SingleStreamConnection connection in IncomingConnections)
+                    foreach (NetworkSocket connection in IncomingConnections)
                     {
                         Memory<byte> receiveBuffer = new byte[connection.DatagramMaxReceiveSize];
                         int received = await connection.ReceiveAsync(receiveBuffer, source.Token);

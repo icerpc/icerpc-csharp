@@ -15,14 +15,14 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class TcpConnection : SingleStreamConnection
+    internal class TcpSocket : NetworkSocket
     {
         /// <inheritdoc/>
         public override ConnectionInformation ConnectionInformation =>
             _connectionInformation ??= new TcpConnectionInformation(_socket, SslStream);
 
         /// <inheritdoc/>
-        internal override Socket? NetworkSocket => _socket;
+        internal override Socket? Socket => _socket;
 
         internal SslStream? SslStream { get; private set; }
 
@@ -79,12 +79,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask<SingleStreamConnection> AcceptAsync()
+        public override async ValueTask<NetworkSocket> AcceptAsync()
         {
             try
             {
                 Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-                return new TcpConnection(fd, Logger);
+                return new TcpSocket(fd, Logger);
             }
             catch (Exception ex)
             {
@@ -272,7 +272,7 @@ namespace IceRpc.Transports.Internal
             SslStream?.Dispose();
         }
 
-        internal TcpConnection(Socket fd, ILogger logger, EndPoint? addr = null)
+        internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;

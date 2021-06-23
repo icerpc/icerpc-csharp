@@ -171,7 +171,7 @@ namespace IceRpc
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
@@ -180,7 +180,7 @@ namespace IceRpc
             bool idempotent = false,
             bool oneway = false,
             // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<Stream>? streamDataWriter = null,
+            Action<RpcStream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -242,7 +242,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, Stream)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, RpcStream)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)

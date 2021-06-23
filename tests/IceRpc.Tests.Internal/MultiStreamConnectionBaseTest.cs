@@ -25,10 +25,10 @@ namespace IceRpc.Tests.Internal
         protected MultiStreamConnection IncomingConnection => _incomingConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _outgoingConnection;
-        private Stream? _controlStreamForClient;
-        private Stream? _controlStreamForServer;
-        private Stream? _peerControlStreamForClient;
-        private Stream? _peerControlStreamForServer;
+        private RpcStream? _controlStreamForClient;
+        private RpcStream? _controlStreamForServer;
+        private RpcStream? _peerControlStreamForClient;
+        private RpcStream? _peerControlStreamForServer;
         private MultiStreamConnection? _incomingConnection;
 
         public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)

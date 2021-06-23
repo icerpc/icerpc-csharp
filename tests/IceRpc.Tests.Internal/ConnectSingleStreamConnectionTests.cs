@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectSingleStreamConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket outgoingConnection = CreateOutgoingConnection();
             Assert.ThrowsAsync<ConnectionRefusedException>(
                 async () => await outgoingConnection.ConnectAsync(
                     ClientEndpoint,
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectSingleStreamConnection_ConnectAsync_OperationCanceledException()
         {
-            using IAcceptor acceptor = CreateAcceptor();
+            using IListener acceptor = CreateAcceptor();
 
             using var source = new CancellationTokenSource();
             if (!IsSecure && TransportName == "tcp")
@@ -53,7 +53,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+                using NetworkSocket outgoingConnection = CreateOutgoingConnection();
                 ValueTask<Endpoint> connectTask =
                     outgoingConnection.ConnectAsync(
                         ClientEndpoint,
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamConnection outgoingConnection2 = CreateOutgoingConnection();
+            using NetworkSocket outgoingConnection2 = CreateOutgoingConnection();
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await outgoingConnection2.ConnectAsync(
                     ClientEndpoint,
@@ -73,10 +73,10 @@ namespace IceRpc.Tests.Internal
                     source2.Token));
         }
 
-        private SingleStreamConnection CreateOutgoingConnection() =>
+        private NetworkSocket CreateOutgoingConnection() =>
             (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
                 ClientEndpoint,
                 OutgoingConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
+                Logger) as NetworkSocketConnection)!.Underlying;
     }
 }

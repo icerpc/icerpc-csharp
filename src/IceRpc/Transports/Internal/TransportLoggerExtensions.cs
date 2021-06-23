@@ -194,7 +194,7 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IAcceptor acceptor)
+        internal static IDisposable? StartAcceptorScope(this ILogger logger, Server server, IListener acceptor)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
@@ -203,8 +203,8 @@ namespace IceRpc.Transports.Internal
 
             string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
 
-            // TODO: add scope for SingleStreamConnectionAcceptor or remove scope for ColocAcceptor
-            if (acceptor is ColocAcceptor)
+            // TODO: add scope for SingleStreamConnectionAcceptor or remove scope for ColocListener
+            if (acceptor is ColocListener)
             {
                 return _colocAcceptorScope(
                     logger,

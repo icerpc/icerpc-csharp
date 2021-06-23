@@ -307,7 +307,7 @@ namespace IceRpc
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
-        private Stream? _controlStream;
+        private RpcStream? _controlStream;
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
@@ -319,7 +319,7 @@ namespace IceRpc
         // performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
-        private Stream? _peerControlStream;
+        private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private Server? _server;
@@ -583,7 +583,7 @@ namespace IceRpc
                 throw;
             }
 
-            Stream? stream = null;
+            RpcStream? stream = null;
             try
             {
                 using IDisposable? connectionScope = StartScope();
@@ -612,24 +612,24 @@ namespace IceRpc
                 stream!.Reset(StreamErrorCode.InvocationCanceled);
                 throw;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer");
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdown)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdown)
             {
                 // Invocations are canceled immediately when Shutdown is called on the connection.
                 Debug.Assert(Protocol == Protocol.Ice1);
                 throw new OperationCanceledException("connection shutdown");
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdownByPeer)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer");
             }
-            catch (StreamAbortedException ex)
+            catch (RpcStreamAbortedException ex)
             {
                 if (request.IsIdempotent || !request.IsSent)
                 {
@@ -832,7 +832,7 @@ namespace IceRpc
 
         private async Task AcceptStreamAsync()
         {
-            Stream? stream = null;
+            RpcStream? stream = null;
             try
             {
                 // Accept a new stream.
@@ -926,7 +926,7 @@ namespace IceRpc
                     }
                 }
             }
-            catch (StreamAbortedException)
+            catch (RpcStreamAbortedException)
             {
                 // Ignore
             }

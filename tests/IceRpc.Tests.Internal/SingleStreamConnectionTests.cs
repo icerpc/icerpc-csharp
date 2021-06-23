@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Internal
             Test(OutgoingConnection);
             Test(IncomingConnection);
 
-            static void Test(SingleStreamConnection connection)
+            static void Test(NetworkSocket connection)
             {
                 Assert.NotNull(connection.ConnectionInformation);
                 Assert.IsNotEmpty(connection.ToString());

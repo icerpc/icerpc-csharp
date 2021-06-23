@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using IAcceptor acceptor = Endpoint.TransportDescriptor!.AcceptorFactory!(Endpoint,
+                    using IListener acceptor = Endpoint.TransportDescriptor!.AcceptorFactory!(Endpoint,
                                                                                              _server.ConnectionOptions,
                                                                                              _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(acceptor);
@@ -94,7 +94,7 @@ namespace IceRpc.Tests.Internal
 
                 return (incomingConnection, outgoingConnection);
 
-                async Task<Connection> AcceptAsync(IAcceptor acceptor)
+                async Task<Connection> AcceptAsync(IListener acceptor)
                 {
                     var connection = new Connection(await acceptor.AcceptAsync(), _server);
                     await connection.ConnectAsync(default);
@@ -270,7 +270,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IAcceptor acceptor = factory.Endpoint.TransportDescriptor!.AcceptorFactory!(
+            using IListener acceptor = factory.Endpoint.TransportDescriptor!.AcceptorFactory!(
                 factory.Endpoint,
                 new IncomingConnectionOptions
                 {

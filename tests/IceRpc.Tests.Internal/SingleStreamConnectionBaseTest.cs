@@ -11,10 +11,10 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class SingleStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected SingleStreamConnection OutgoingConnection => _outgoingConnection!;
-        protected SingleStreamConnection IncomingConnection => _incomingConnection!;
-        private SingleStreamConnection? _outgoingConnection;
-        private SingleStreamConnection? _incomingConnection;
+        protected NetworkSocket OutgoingConnection => _outgoingConnection!;
+        protected NetworkSocket IncomingConnection => _incomingConnection!;
+        private NetworkSocket? _outgoingConnection;
+        private NetworkSocket? _incomingConnection;
 
         public SingleStreamConnectionBaseTest(
             Protocol protocol,
@@ -30,14 +30,14 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.IsDatagram)
             {
-                _incomingConnection = ((MultiStreamOverSingleStreamConnection)CreateIncomingConnection()).Underlying;
-                ValueTask<SingleStreamConnection> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+                _incomingConnection = ((NetworkSocketConnection)CreateIncomingConnection()).Underlying;
+                ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
                 _outgoingConnection = await connectTask;
             }
             else
             {
-                ValueTask<SingleStreamConnection> connectTask = SingleStreamConnectionAsync(ConnectAsync());
-                ValueTask<SingleStreamConnection> acceptTask = SingleStreamConnectionAsync(AcceptAsync());
+                ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+                ValueTask<NetworkSocket> acceptTask = SingleStreamConnectionAsync(AcceptAsync());
 
                 _outgoingConnection = await connectTask;
                 _incomingConnection = await acceptTask;

@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
     /// The streams created by the Ice1 connection are always finished once the request or response frames are
     /// sent or received. Data streaming is not supported. Initialize or GoAway frames sent over the control streams
     /// are translated to connection validation or close connection Ice1 frames.</summary>
-    internal class Ice1Connection : MultiStreamOverSingleStreamConnection
+    internal class Ice1Connection : NetworkSocketConnection
     {
         public override TimeSpan IdleTimeout { get; internal set; }
 
@@ -28,7 +28,7 @@ namespace IceRpc.Transports.Internal
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
             await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
 
-        public override Stream CreateStream(bool bidirectional) =>
+        public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new Ice1Stream(
                 this,
@@ -206,7 +206,7 @@ namespace IceRpc.Transports.Internal
 
         internal Ice1Connection(
             Endpoint endpoint,
-            SingleStreamConnection singleStreamConnection,
+            NetworkSocket singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
         {
@@ -231,14 +231,14 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<Stream> ReceiveInitializeFrameAsync(CancellationToken cancel)
+        internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here we
             // only expect the connection validation message for an outgoing connection and just return the
             // control stream immediately for an incoming connection.
             if (IsIncoming)
             {
-                return new ValueTask<Stream>(new Ice1Stream(this, 2));
+                return new ValueTask<RpcStream>(new Ice1Stream(this, 2));
             }
             else
             {
@@ -306,7 +306,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<Stream> SendInitializeFrameAsync(CancellationToken cancel)
+        internal override ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here
             // we only expect the connection validation message for an incoming connection and just return the
@@ -317,7 +317,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                return new ValueTask<Stream>(new Ice1Stream(this, AllocateId(false)));
+                return new ValueTask<RpcStream>(new Ice1Stream(this, AllocateId(false)));
             }
         }
 
