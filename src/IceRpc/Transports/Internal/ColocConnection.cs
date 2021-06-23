@@ -196,7 +196,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(StreamErrorCode errorCode)
+        internal override void AbortStreams(RpcStreamErrorCode errorCode)
         {
             base.AbortStreams(errorCode);
 

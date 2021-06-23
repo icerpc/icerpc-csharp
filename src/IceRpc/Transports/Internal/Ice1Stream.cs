@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
         private bool _receivedEndOfStream;
         private readonly Ice1Connection _connection;
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamErrorCode errorCode)
         {
             // Stream reset is not supported with Ice1
         }

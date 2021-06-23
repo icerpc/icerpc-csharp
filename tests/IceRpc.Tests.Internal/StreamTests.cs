@@ -68,10 +68,10 @@ namespace IceRpc.Tests.Internal
             stream.Release();
         }
 
-        [TestCase(StreamErrorCode.DispatchCanceled)]
-        [TestCase(StreamErrorCode.InvocationCanceled)]
-        [TestCase((StreamErrorCode)10)]
-        public async Task Stream_Reset(StreamErrorCode errorCode)
+        [TestCase(RpcStreamErrorCode.DispatchCanceled)]
+        [TestCase(RpcStreamErrorCode.InvocationCanceled)]
+        [TestCase((RpcStreamErrorCode)10)]
+        public async Task Stream_Reset(RpcStreamErrorCode errorCode)
         {
             // SendAsync/ReceiveAsync is only supported with Slic
             if (ConnectionType != MultiStreamConnectionType.Slic)
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Internal
 
             if (ConnectionType != MultiStreamConnectionType.Ice1)
             {
-                stream.Reset(StreamErrorCode.InvocationCanceled);
+                stream.Reset(RpcStreamErrorCode.InvocationCanceled);
 
                 // Ensure the stream cancel dispatch source is canceled
                 Assert.CatchAsync<OperationCanceledException>(async () =>

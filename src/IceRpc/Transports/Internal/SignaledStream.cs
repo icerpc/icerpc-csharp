@@ -51,10 +51,10 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
         private static readonly Exception _closedException =
-            new RpcStreamAbortedException(StreamErrorCode.ConnectionAborted);
+            new RpcStreamAbortedException(RpcStreamErrorCode.ConnectionAborted);
 
         /// <summary>Aborts the stream.</summary>
-        protected override void AbortRead(StreamErrorCode errorCode) =>
+        protected override void AbortRead(RpcStreamErrorCode errorCode) =>
             SetException(new RpcStreamAbortedException(errorCode));
 
         protected SignaledStream(MultiStreamConnection connection, long streamId)

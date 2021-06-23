@@ -36,8 +36,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamConnection_AbortStreams_EmptyStreams()
         {
-            OutgoingConnection.AbortStreams(StreamErrorCode.ConnectionAborted);
-            IncomingConnection.AbortStreams(StreamErrorCode.ConnectionAborted);
+            OutgoingConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
+            IncomingConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
 
             (long clientBidirectional, long clientUnidirectional) = OutgoingConnection.Shutdown();
             (long serverBidirectional, long serverUnidirectional) = IncomingConnection.Shutdown();
@@ -54,14 +54,14 @@ namespace IceRpc.Tests.Internal
             var clientStream = OutgoingConnection.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            OutgoingConnection.AbortStreams(StreamErrorCode.ConnectionAborted);
+            OutgoingConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
             (long clientBidirectional, long clientUnidirectional) = OutgoingConnection.Shutdown();
 
             RpcStreamAbortedException? ex;
             // Stream is aborted
             ex = Assert.ThrowsAsync<RpcStreamAbortedException>(
                 async () => await clientStream.ReceiveResponseFrameAsync(default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(StreamErrorCode.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(RpcStreamErrorCode.ConnectionAborted));
             clientStream.Release();
 
             // Can't create new stream
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
 
-            OutgoingConnection.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
+            OutgoingConnection.AbortOutgoingStreams(RpcStreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
 
             // Stream is not aborted
             _ = OutgoingConnection.AcceptStreamAsync(default).AsTask();
