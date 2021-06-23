@@ -1,13 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
+    /// <summary>Provides an acceptor that works with any <see cref="SingleStreamConnection"/> transport.
+    /// </summary>
     internal class SingleStreamConnectionAcceptor : IAcceptor
     {
         public Endpoint Endpoint { get; }
@@ -29,15 +27,18 @@ namespace IceRpc.Transports.Internal
 
         public override string ToString() => Endpoint.ToString();
 
+        /// <summary>Constructs an acceptor for a single-stream connection transport.</summary>
+        /// <param name="listeningConnection">A socket that accepts connections from clients.</param>
+        /// <param name="endpoint">The endpoint this acceptor is listening on.</param>
+        /// <param name="options">The options to use when creating (accepting) connections from clients.</param>
         internal SingleStreamConnectionAcceptor(
+            SingleStreamConnection listeningConnection,
             Endpoint endpoint,
-            IncomingConnectionOptions options,
-            SingleStreamConnection listeningConnection)
+            IncomingConnectionOptions options)
         {
-            _options = options;
             _listeningConnection = listeningConnection;
-
             Endpoint = endpoint;
+            _options = options;
         }
     }
 }

@@ -9,7 +9,7 @@ namespace IceRpc.Transports
 {
     /// <summary>Holds properties for a transport, such as factory functions to create endpoints and connections.
     /// </summary>
-    public class TransportDescriptor
+    public sealed class TransportDescriptor
     {
         /// <summary>The acceptor factory. An acceptor listens for connection establishment requests from clients and
         /// creates (accepts) a new connection for each client. This is typically used to implement a stream-based
@@ -56,7 +56,7 @@ namespace IceRpc.Transports
                     (SingleStreamConnection listeningConnection, Endpoint listeningEndpoint) =
                         _listeningSocketFactory(endpoint, options.TransportOptions, logger);
 
-                    return new SingleStreamConnectionAcceptor(listeningEndpoint, options, listeningConnection);
+                    return new SingleStreamConnectionAcceptor(listeningConnection, listeningEndpoint, options);
                 };
             }
         }
