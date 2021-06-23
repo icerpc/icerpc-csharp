@@ -44,9 +44,6 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new(null as Endpoint);
 
-        public override ValueTask<NetworkSocket> AcceptAsync() =>
-            throw new NotSupportedException();
-
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
         public override async ValueTask<Endpoint> ConnectAsync(

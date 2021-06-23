@@ -50,11 +50,6 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Accepts a new connection. This method is called by the implementation of
-        /// <see cref="IListener.AcceptAsync"/> for network sockets.</summary>
-        /// <returns>The accepted connection.</returns>
-        public abstract ValueTask<NetworkSocket> AcceptAsync();
-
         /// <summary>Connects a new client socket. This is called after the endpoint created a new socket to establish
         /// the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
@@ -84,7 +79,7 @@ namespace IceRpc.Transports
         /// <returns>A value task that completes once the buffers are sent.</returns>
         public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the connection.</summary>
+        /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);

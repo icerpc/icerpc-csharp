@@ -38,11 +38,11 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
-                ClientSocketFactory = (endpoint, options, logger) =>
+                ClientNetworkSocketFactory = (endpoint, options, logger) =>
                     ((UdpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
-                ServerSocketFactory = (endpoint, options, logger) =>
+                ServerNetworkSocketFactory = (endpoint, options, logger) =>
                     ((UdpEndpoint)endpoint).CreateServerConnection(options, logger),
             };
 

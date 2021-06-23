@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The BufferedReceiveOverNetworkSocket is a wrapper around NetworkSocket to provide buffered data 
+    /// <summary>The BufferedReceiveOverNetworkSocket is a wrapper around NetworkSocket to provide buffered data
     /// receive. This helps to limit the number of operating system Receive calls when the user needs to read only few
-    /// bytes before reading more (typically to read a frame header) by receiving the data in a small buffer. It's 
+    /// bytes before reading more (typically to read a frame header) by receiving the data in a small buffer. It's
     /// similar to the C# System.IO.BufferedStream class. It's used by <see cref="SlicConnection"/>.</summary>
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
@@ -29,9 +29,6 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) =>
             Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
-
-        public override ValueTask<NetworkSocket> AcceptAsync() =>
-            Underlying.AcceptAsync();
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
             Underlying.CloseAsync(errorCode, cancel);
