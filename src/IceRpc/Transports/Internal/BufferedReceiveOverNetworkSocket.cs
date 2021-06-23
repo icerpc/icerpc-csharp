@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The BufferedReceiveOverNetworkSocket is a wrapper around NetworkSocket to provide buffered data
-    /// receive. This helps to limit the number of operating system Receive calls when the user needs to read only few
+    /// receive. This helps to limit the number of operating system Receive calls when the user needs to read only a few
     /// bytes before reading more (typically to read a frame header) by receiving the data in a small buffer. It's
     /// similar to the C# System.IO.BufferedStream class. It's used by <see cref="SlicConnection"/>.</summary>
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
         /// <inheritdoc/>
         internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
 
-        internal NetworkSocket Underlying { get; private set; }
+        internal NetworkSocket Underlying { get; }
 
         // The buffered data.
         private ArraySegment<byte> _buffer;

@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>An abstract multi-stream connection which is using a network socket for receiving and sending data.
-    /// </summary>
+    /// <summary>Helper base class used to implement a multi-stream connection over a network socket.</summary>
     internal abstract class NetworkSocketConnection : MultiStreamConnection
     {
         /// <inheritdoc/>

@@ -19,12 +19,10 @@ namespace IceRpc.Transports.Internal
     {
         /// <inheritdoc/>
         public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new TcpConnectionInformation(_socket, SslStream);
+            _connectionInformation ??= new TcpConnectionInformation(_socket, _sslStream);
 
         /// <inheritdoc/>
         internal override Socket? Socket => _socket;
-
-        internal SslStream? SslStream { get; private set; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
@@ -35,6 +33,7 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
+        private SslStream? _sslStream;
 
         public override async ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
@@ -129,7 +128,7 @@ namespace IceRpc.Transports.Internal
             int received;
             try
             {
-                if (SslStream is SslStream sslStream)
+                if (_sslStream is SslStream sslStream)
                 {
                     received = await sslStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 }
@@ -160,7 +159,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                if (SslStream is SslStream sslStream)
+                if (_sslStream is SslStream sslStream)
                 {
                     await sslStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
@@ -193,7 +192,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                if (SslStream == null)
+                if (_sslStream == null)
                 {
                     try
                     {
@@ -256,7 +255,7 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing)
         {
             _socket.Dispose();
-            SslStream?.Dispose();
+            _sslStream?.Dispose();
         }
 
         internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
@@ -271,10 +270,10 @@ namespace IceRpc.Transports.Internal
         private async Task AuthenticateAsync(Func<SslStream, Task> authenticate)
         {
             // This can only be created with a connected socket.
-            SslStream = new SslStream(new NetworkStream(_socket, false), false);
+            _sslStream = new SslStream(new NetworkStream(_socket, false), false);
             try
             {
-                await authenticate(SslStream).ConfigureAwait(false);
+                await authenticate(_sslStream).ConfigureAwait(false);
             }
             catch (AuthenticationException ex)
             {
@@ -286,7 +285,7 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
-            Logger.LogTlsAuthenticationSucceeded(SslStream);
+            Logger.LogTlsAuthenticationSucceeded(_sslStream);
         }
     }
 }
