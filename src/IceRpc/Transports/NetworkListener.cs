@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using System.Threading.Tasks;
 
-namespace IceRpc.Transports.Internal
+namespace IceRpc.Transports
 {
     /// <summary>Provides an listener that works with any <see cref="NetworkSocket"/> transport.
     /// </summary>
-    internal class NetworkListener : IListener
+    public class NetworkListener : IListener
     {
         public Endpoint Endpoint { get; }
 
