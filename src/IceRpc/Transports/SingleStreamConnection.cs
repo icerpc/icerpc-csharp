@@ -51,6 +51,9 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
+        /// <summary>Accepts a new incoming connection. This method is called by the implementation of
+        /// <see cref="IAcceptor.AcceptAsync"/> for single-stream connections.</summary>
+        /// <returns>The accepted connection.</returns>
         public abstract ValueTask<SingleStreamConnection> AcceptAsync();
 
         /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection

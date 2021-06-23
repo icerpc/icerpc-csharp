@@ -203,7 +203,7 @@ namespace IceRpc.Transports.Internal
 
             string transportName = acceptor.Endpoint.Transport.ToString().ToLowerInvariant();
 
-            // TODO: add scope for SingleStreamConnectionAcceptor
+            // TODO: add scope for SingleStreamConnectionAcceptor or remove scope for ColocAcceptor
             if (acceptor is ColocAcceptor)
             {
                 return _colocAcceptorScope(

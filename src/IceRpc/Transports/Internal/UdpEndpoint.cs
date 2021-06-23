@@ -36,18 +36,14 @@ namespace IceRpc.Transports.Internal
         public override TransportDescriptor TransportDescriptor => UdpTransportDescriptor;
 
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
-            new SingleStreamConnectionTransportDescriptor(
-                Transport.UDP,
-                "udp",
-                CreateEndpoint,
-                clientConnectionFactory: (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
-                serverConnectionFactory: (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
-                useAcceptor: false)
+            new(Transport.UDP, "udp", CreateEndpoint)
             {
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
-                Ice1EndpointParser = ParseIce1Endpoint
+                Ice1EndpointParser = ParseIce1Endpoint,
+                ServerSocketFactory = (endpoint, options, logger) =>
+                    ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
