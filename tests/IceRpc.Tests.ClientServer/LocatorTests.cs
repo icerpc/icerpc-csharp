@@ -46,7 +46,7 @@ namespace IceRpc.Tests.ClientServer
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
         [TestCase("adapt2", "bar:ssl -h host1 -p 10000:udp -h host2 -p 20000")]
-        [TestCase("adapt3", "xyz:wss -h host1 -p 10000 -z")]
+        [TestCase("adapt3", "xyz:ssl -h host1 -p 10000 -z")]
         /// <summary>Verifies the interceptor works properly for proxies with an @ adapter endpoint.</summary>
         public async Task Locator_AdapterResolveAsync(string adapter, string proxy)
         {
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.ClientServer
 
         [TestCase("foo:tcp -h host1 -p 10000")]
         [TestCase("bar:ssl -h host1 -p 10000:udp -h host2 -p 20000")]
-        [TestCase("cat/xyz:wss -h host1 -p 10000 -z")]
+        [TestCase("cat/xyz:ssl -h host1 -p 10000 -z")]
         /// <summary>Verifies the interceptor works properly for well-known proxies.</summary>
         public async Task Locator_WellKnownProxyResolveAsync(string proxy)
         {

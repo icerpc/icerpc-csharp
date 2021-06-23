@@ -38,8 +38,8 @@ namespace IceRpc.Tests.Encoding
             await _connection.ShutdownAsync();
         }
 
-        [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
-        [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
+        [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
+        [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
         [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)

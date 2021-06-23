@@ -16,8 +16,6 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", false, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]

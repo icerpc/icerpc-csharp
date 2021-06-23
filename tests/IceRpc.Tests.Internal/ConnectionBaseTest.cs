@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Internal
                 if (protocol == Protocol.Ice2)
                 {
                     string tlsOption = "";
-                    if ((transport == "tcp" || transport == "ws") && !IsSecure)
+                    if (transport == "tcp" && !IsSecure)
                     {
                         tlsOption = "?tls=false";
                     }

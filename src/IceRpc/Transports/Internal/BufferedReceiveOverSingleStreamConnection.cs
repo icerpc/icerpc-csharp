@@ -11,9 +11,8 @@ namespace IceRpc.Transports.Internal
     /// <summary>The BufferedReceiveOverSingleStreamConnection is a wrapper around SingleStreamConnection to provide
     /// buffered data receive. This helps to limit the number of operating system Receive calls when the user
     /// needs to read only few bytes before reading more (typically to read a frame header) by receiving the
-    /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by the
-    /// <c>SlicConnection</c> and <c>WSConnection</c>.
-    /// </summary>
+    /// data in a small buffer. It's similar to the C# System.IO.BufferedStream class. It's used by
+    /// <c>SlicConnection</c>.</summary>
     internal class BufferedReceiveOverSingleStreamConnection : SingleStreamConnection
     {
         public override ConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
