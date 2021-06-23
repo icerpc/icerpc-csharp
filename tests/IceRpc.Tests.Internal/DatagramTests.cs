@@ -13,7 +13,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(AddressFamily.InterNetwork)]
     [TestFixture(AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class DatagramTests : SingleStreamConnectionBaseTest
+    public class DatagramTests : NetworkSocketConnectionBaseTest
     {
         public DatagramTests(AddressFamily addressFamily)
             : base(Protocol.Ice1, "udp", tls: false, addressFamily)

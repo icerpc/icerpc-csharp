@@ -21,9 +21,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class AcceptSingleStreamConnectionTests : ConnectionBaseTest
+    public class AcceptNetworkSocketConnectionTests : ConnectionBaseTest
     {
-        public AcceptSingleStreamConnectionTests(
+        public AcceptNetworkSocketConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,

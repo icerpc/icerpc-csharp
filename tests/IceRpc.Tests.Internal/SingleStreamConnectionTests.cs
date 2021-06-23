@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", true)]
     [TestFixture("udp", false)]
     [Timeout(10000)]
-    public class SingleStreamConnectionTests : SingleStreamConnectionBaseTest
+    public class SingleStreamConnectionTests : NetworkSocketConnectionBaseTest
     {
         public SingleStreamConnectionTests(string transport, bool tls)
             : base(transport == "udp" ? Protocol.Ice1 : Protocol.Ice2, transport, tls)

@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    public class SingleStreamConnectionBaseTest : ConnectionBaseTest
+    public class NetworkSocketConnectionBaseTest : ConnectionBaseTest
     {
         protected NetworkSocket OutgoingConnection => _outgoingConnection!;
         protected NetworkSocket IncomingConnection => _incomingConnection!;
         private NetworkSocket? _outgoingConnection;
         private NetworkSocket? _incomingConnection;
 
-        public SingleStreamConnectionBaseTest(
+        public NetworkSocketConnectionBaseTest(
             Protocol protocol,
             string transport,
             bool tls,
