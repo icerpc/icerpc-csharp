@@ -19,7 +19,7 @@ namespace IceRpc.Transports
         public Func<Endpoint, IncomingConnectionOptions, ILogger, IAcceptor>? AcceptorFactory { get; init; }
 
         /// <summary>The client socket factory. Setting this value sets <see cref="OutgoingConnectionFactory"/>. Set
-        /// this value for a transport implemented using a <see cref="SingleStreamConnection"/>.</summary>
+        /// this value when describing a <see cref="SingleStreamConnection"/>-based transport.</summary>
         public Func<Endpoint, ITransportOptions?, ILogger, SingleStreamConnection>? ClientSocketFactory
         {
             get => _clientSocketFactory;
@@ -36,50 +36,6 @@ namespace IceRpc.Transports
                     return endpoint.Protocol == Protocol.Ice1 ?
                         new Ice1Connection(endpoint, singleStreamConnection, options) :
                         new SlicConnection(endpoint, singleStreamConnection, options);
-                };
-            }
-        }
-
-        /// <summary>The listening socket factory. Setting this value sets <see cref="AcceptorFactory"/>. Set this value
-        /// for a transport implemented using a <see cref="SingleStreamConnection"/> that provides an acceptor.
-        /// </summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ListeningSocketFactory
-        {
-            get => _listeningSocketFactory;
-
-            init
-            {
-                _listeningSocketFactory = value;
-                AcceptorFactory = _listeningSocketFactory == null ? null :
-                (endpoint, options, logger) =>
-                {
-                    (SingleStreamConnection listeningConnection, Endpoint listeningEndpoint) =
-                        _listeningSocketFactory(endpoint, options.TransportOptions, logger);
-
-                    return new SingleStreamConnectionAcceptor(listeningConnection, listeningEndpoint, options);
-                };
-            }
-        }
-
-        /// <summary>The server socket factory. Setting this value sets <see cref="IncomingConnectionFactory"/>. Set
-        /// this value for a transport implemented using a <see cref="SingleStreamConnection"/> that does not provide an
-        /// acceptor.</summary>
-        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ServerSocketFactory
-        {
-            get => _serverSocketFactory;
-
-            init
-            {
-                _serverSocketFactory = value;
-                IncomingConnectionFactory = _serverSocketFactory == null ? null :
-                (endpoint, options, logger) =>
-                {
-                    (SingleStreamConnection serverConnection, Endpoint serverEndpoint) =
-                        _serverSocketFactory(endpoint, options.TransportOptions, logger);
-
-                    return endpoint.Protocol == Protocol.Ice1 ?
-                        new Ice1Connection(serverEndpoint, serverConnection, options) :
-                        new SlicConnection(serverEndpoint, serverConnection, options);
                 };
             }
         }
@@ -106,14 +62,63 @@ namespace IceRpc.Transports
         /// client (e.g. a serial based transport) or that can receive data from multiple clients with a single
         /// connection (e.g: UDP).</summary>
         /// <seealso cref="ServerSocketFactory"/>
-        public Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection>? IncomingConnectionFactory { get; init; }
+        public Func<Endpoint, IncomingConnectionOptions, ILogger, MultiStreamConnection>? IncomingConnectionFactory
+        {
+            get; init;
+        }
+
+        /// <summary>The listening socket factory. Setting this value sets <see cref="AcceptorFactory"/>. Set this value
+        /// when describing a <see cref="SingleStreamConnection"/>-based transport that provides an acceptor.</summary>
+        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ListeningSocketFactory
+        {
+            get => _listeningSocketFactory;
+
+            init
+            {
+                _listeningSocketFactory = value;
+                AcceptorFactory = _listeningSocketFactory == null ? null :
+                (endpoint, options, logger) =>
+                {
+                    (SingleStreamConnection listeningConnection, Endpoint listeningEndpoint) =
+                        _listeningSocketFactory(endpoint, options.TransportOptions, logger);
+
+                    return new SingleStreamConnectionAcceptor(listeningConnection, listeningEndpoint, options);
+                };
+            }
+        }
 
         /// <summary>The name of this transport in lower case, for example "tcp".</summary>
         public string Name { get; }
 
         /// <summary>The outgoing connection factory.</summary>
         /// <seealso cref="ClientSocketFactory"/>
-        public Func<Endpoint, OutgoingConnectionOptions, ILogger, MultiStreamConnection>? OutgoingConnectionFactory { get; init; }
+        public Func<Endpoint, OutgoingConnectionOptions, ILogger, MultiStreamConnection>? OutgoingConnectionFactory
+        {
+            get; init;
+        }
+
+        /// <summary>The server socket factory. Setting this value sets <see cref="IncomingConnectionFactory"/>. Set
+        /// this value when describing a <see cref="SingleStreamConnection"/>-based transport that does not provide an
+        /// acceptor.</summary>
+        public Func<Endpoint, ITransportOptions?, ILogger, (SingleStreamConnection, Endpoint)>? ServerSocketFactory
+        {
+            get => _serverSocketFactory;
+
+            init
+            {
+                _serverSocketFactory = value;
+                IncomingConnectionFactory = _serverSocketFactory == null ? null :
+                (endpoint, options, logger) =>
+                {
+                    (SingleStreamConnection serverConnection, Endpoint serverEndpoint) =
+                        _serverSocketFactory(endpoint, options.TransportOptions, logger);
+
+                    return endpoint.Protocol == Protocol.Ice1 ?
+                        new Ice1Connection(serverEndpoint, serverConnection, options) :
+                        new SlicConnection(serverEndpoint, serverConnection, options);
+                };
+            }
+        }
 
         /// <summary>The transport enumerator.</summary>
         public Transport Transport { get; }
