@@ -14,15 +14,15 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", true)]
     [TestFixture("udp", false)]
     [Timeout(10000)]
-    public class SingleStreamConnectionTests : NetworkSocketConnectionBaseTest
+    public class NetworkSocketConnectionTests : NetworkSocketConnectionBaseTest
     {
-        public SingleStreamConnectionTests(string transport, bool tls)
+        public NetworkSocketConnectionTests(string transport, bool tls)
             : base(transport == "udp" ? Protocol.Ice1 : Protocol.Ice2, transport, tls)
         {
         }
 
         [Test]
-        public async Task SingleStreamConnection_CloseAsync_ExceptionAsync()
+        public async Task NetworkSocketConnection_CloseAsync_ExceptionAsync()
         {
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -37,7 +37,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamConnection_Dispose()
+        public void NetworkSocketConnection_Dispose()
         {
             OutgoingConnection.Dispose();
             IncomingConnection.Dispose();
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void SingleStreamConnection_Properties()
+        public void NetworkSocketConnection_Properties()
         {
             Test(OutgoingConnection);
             Test(IncomingConnection);

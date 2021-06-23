@@ -34,7 +34,7 @@ namespace IceRpc.Tests.Internal
             outgoingConnections.Add(OutgoingConnection);
             for (int i = 0; i < outgoingConnectionCount; ++i)
             {
-                outgoingConnections.Add(await SingleStreamConnectionAsync(ConnectAsync()));
+                outgoingConnections.Add(await NetworkSocketConnectionAsync(ConnectAsync()));
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.

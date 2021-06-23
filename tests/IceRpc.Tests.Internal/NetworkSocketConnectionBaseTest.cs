@@ -31,13 +31,13 @@ namespace IceRpc.Tests.Internal
             if (ClientEndpoint.IsDatagram)
             {
                 _incomingConnection = ((NetworkSocketConnection)CreateIncomingConnection()).Underlying;
-                ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+                ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
                 _outgoingConnection = await connectTask;
             }
             else
             {
-                ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
-                ValueTask<NetworkSocket> acceptTask = SingleStreamConnectionAsync(AcceptAsync());
+                ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
+                ValueTask<NetworkSocket> acceptTask = NetworkSocketConnectionAsync(AcceptAsync());
 
                 _outgoingConnection = await connectTask;
                 _incomingConnection = await acceptTask;

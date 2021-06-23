@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_Listener_AcceptAsync()
+        public async Task AcceptNetworkSocketConnection_Listener_AcceptAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
@@ -47,14 +47,14 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void AcceptSingleStreamConnection_Listener_Constructor_TransportException()
+        public void AcceptNetworkSocketConnection_Listener_Constructor_TransportException()
         {
             using IListener listener = CreateListener();
             Assert.Throws<TransportException>(() => CreateListener());
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Internal
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
         // example the server SSL handshake completes before the RST is received.
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IListener listener = CreateListener();
             ValueTask<NetworkSocket> acceptTask = CreateIncomingConnectionAsync(listener);
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public void AcceptSingleStreamConnection_Listener_AddressReuse(bool wildcard1, bool wildcard2)
+        public void AcceptNetworkSocketConnection_Listener_AddressReuse(bool wildcard1, bool wildcard2)
         {
             IListener listener;
             if (wildcard1)
@@ -190,7 +190,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync_OperationCanceledExceptionAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync_OperationCanceledExceptionAsync()
         {
             using IListener listener = CreateListener();
 

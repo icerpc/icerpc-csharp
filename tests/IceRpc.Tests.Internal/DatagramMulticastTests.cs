@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Internal
                 _incomingConnections.Add(((NetworkSocketConnection)CreateIncomingConnection()).Underlying);
             }
 
-            ValueTask<NetworkSocket> connectTask = SingleStreamConnectionAsync(ConnectAsync());
+            ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
             _outgoingConnection = await connectTask;
         }
 
