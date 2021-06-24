@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
     /// </summary>
-    internal abstract class SignaledStream<T> : Stream, IValueTaskSource<T>
+    internal abstract class SignaledStream<T> : RpcStream, IValueTaskSource<T>
     {
         internal Exception? AbortException => _exception;
         internal bool IsAborted => _exception != null;
@@ -51,11 +51,11 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
         private static readonly Exception _closedException =
-            new StreamAbortedException(StreamErrorCode.ConnectionAborted);
+            new RpcStreamAbortedException(RpcStreamError.ConnectionAborted);
 
         /// <summary>Aborts the stream.</summary>
-        protected override void AbortRead(StreamErrorCode errorCode) =>
-            SetException(new StreamAbortedException(errorCode));
+        protected override void AbortRead(RpcStreamError errorCode) =>
+            SetException(new RpcStreamAbortedException(errorCode));
 
         protected SignaledStream(MultiStreamConnection connection, long streamId)
             : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;

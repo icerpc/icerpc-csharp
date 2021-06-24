@@ -68,12 +68,11 @@ namespace IceRpc
         /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
-        /// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
-        /// <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the 
+        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
         /// <param name="path">The path of the proxy. If null, the path is set to
         /// <see cref="ProxyFactory{T}.DefaultPath"/>.</param>
-        /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
-        /// the server's invoker.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
         public static T Create<T>(
             this ProxyFactory<T> factory,
@@ -90,7 +89,7 @@ namespace IceRpc
             {
                 impl.Identity = Identity.FromPath(path);
             }
-            impl.Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint;
+            impl.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
             impl.Connection = connection;
             impl.Invoker = invoker;
             return proxy;
@@ -171,7 +170,7 @@ namespace IceRpc
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, Stream)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
@@ -180,7 +179,7 @@ namespace IceRpc
             bool idempotent = false,
             bool oneway = false,
             // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<Stream>? streamDataWriter = null,
+            Action<RpcStream>? streamDataWriter = null,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -242,7 +241,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, Stream)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, RpcStream)> ConvertResponseAsync(
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)

@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => default;
 
-        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
             while (true)
             {
@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
                             // Ignore the stream has been aborted.
                         }
                     }
-                    else if (frame is IncomingRequest || streamId == (IsIncoming ? 2 : 3))
+                    else if (frame is IncomingRequest || streamId == (IsServer ? 2 : 3))
                     {
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
@@ -113,7 +113,7 @@ namespace IceRpc.Transports.Internal
         public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
             _writer.WriteAsync((-1, errorCode, true), cancel);
 
-        public override Stream CreateStream(bool bidirectional) =>
+        public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new ColocStream(
                 this,
@@ -184,7 +184,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
-            if (IsIncoming)
+            if (IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;
@@ -196,7 +196,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(StreamErrorCode errorCode)
+        internal override void AbortStreams(RpcStreamError errorCode)
         {
             base.AbortStreams(errorCode);
 

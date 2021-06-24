@@ -6,14 +6,13 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>An abstract multi-stream connection which is using a single stream connection for receiving and sending
-    /// data.</summary>
-    internal abstract class MultiStreamOverSingleStreamConnection : MultiStreamConnection
+    /// <summary>Helper base class used to implement a multi-stream connection over a network socket.</summary>
+    internal abstract class NetworkSocketConnection : MultiStreamConnection
     {
         /// <inheritdoc/>
         public override ConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
 
-        internal SingleStreamConnection Underlying { get; private set; }
+        internal NetworkSocket Underlying { get; private set; }
 
         public override string ToString() => $"{base.ToString()} ({Underlying})";
 
@@ -51,10 +50,10 @@ namespace IceRpc.Transports.Internal
             base.Dispose(disposing);
         }
 
-        protected MultiStreamOverSingleStreamConnection(
+        protected NetworkSocketConnection(
             Endpoint endpoint,
-            SingleStreamConnection singleStreamConnection,
+            NetworkSocket networkSocket,
             ConnectionOptions options)
-            : base(endpoint, options, singleStreamConnection.Logger) => Underlying = singleStreamConnection;
+            : base(endpoint, options, networkSocket.Logger) => Underlying = networkSocket;
     }
 }

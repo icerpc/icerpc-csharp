@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class UdpConnection : SingleStreamConnection
+    internal sealed class UdpSocket : NetworkSocket
     {
         /// <inheritdoc/>
         public override ConnectionInformation ConnectionInformation =>
@@ -26,7 +26,7 @@ namespace IceRpc.Transports.Internal
         public override int DatagramMaxReceiveSize { get; }
 
         /// <inheritdoc/>
-        internal override Socket? NetworkSocket => _socket;
+        internal override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -43,9 +43,6 @@ namespace IceRpc.Transports.Internal
             Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new(null as Endpoint);
-
-        public override ValueTask<SingleStreamConnection> AcceptAsync() =>
-            throw new NotSupportedException();
 
         public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
 
@@ -101,7 +98,7 @@ namespace IceRpc.Transports.Internal
         {
             if (_incoming)
             {
-                throw new TransportException("cannot send datagram with incoming connection");
+                throw new TransportException("cannot send datagram with server connection");
             }
 
             try
@@ -135,7 +132,7 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing) => _socket.Dispose();
 
         // Only for use by UdpEndpoint.
-        internal UdpConnection(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
+        internal UdpSocket(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
             : base(logger)
         {
             _socket = socket;

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure incoming
-    // connections: with Ice2, the acceptor peeks a byte on the connection to figure out if it's secure or not.
+    // connections: with Ice2, the listener peeks a byte on the connection to figure out if it's secure or not.
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
@@ -19,9 +19,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class ConnectSingleStreamConnectionTests : ConnectionBaseTest
+    public class ConnectNetworkSocketConnectionTests : ConnectionBaseTest
     {
-        public ConnectSingleStreamConnectionTests(
+        public ConnectNetworkSocketConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,
@@ -31,20 +31,20 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectSingleStreamConnection_ConnectAsync_ConnectionRefusedException()
+        public void ConnectNetworkSocketConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            using NetworkSocket clientConnection = CreateClientConnection();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await outgoingConnection.ConnectAsync(
+                async () => await clientConnection.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     default));
         }
 
         [Test]
-        public void ConnectSingleStreamConnection_ConnectAsync_OperationCanceledException()
+        public void ConnectNetworkSocketConnection_ConnectAsync_OperationCanceledException()
         {
-            using IAcceptor acceptor = CreateAcceptor();
+            using IListener listener = CreateListener();
 
             using var source = new CancellationTokenSource();
             if (!IsSecure && TransportName == "tcp")
@@ -53,9 +53,9 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+                using NetworkSocket clientConnection = CreateClientConnection();
                 ValueTask<Endpoint> connectTask =
-                    outgoingConnection.ConnectAsync(
+                    clientConnection.ConnectAsync(
                         ClientEndpoint,
                         ClientAuthenticationOptions,
                         source.Token);
@@ -65,18 +65,18 @@ namespace IceRpc.Tests.Internal
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using SingleStreamConnection outgoingConnection2 = CreateOutgoingConnection();
+            using NetworkSocket clientConnection2 = CreateClientConnection();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await outgoingConnection2.ConnectAsync(
+                async () => await clientConnection2.ConnectAsync(
                     ClientEndpoint,
                     ClientAuthenticationOptions,
                     source2.Token));
         }
 
-        private SingleStreamConnection CreateOutgoingConnection() =>
-            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+        private NetworkSocket CreateClientConnection() =>
+            (ClientEndpoint.TransportDescriptor!.Connector!(
                 ClientEndpoint,
-                OutgoingConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
+                ClientConnectionOptions,
+                Logger) as NetworkSocketConnection)!.Underlying;
     }
 }

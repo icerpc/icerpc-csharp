@@ -371,7 +371,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             var prx = IGreeterPrx.FromConnection(connection);
 
-            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection responseConnection, IceRpc.Transports.Stream? _) =
+            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection responseConnection, IceRpc.Transports.RpcStream? _) =
                 await prx.InvokeAsync("SayHello", Payload.FromEmptyArgs(prx));
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
@@ -508,7 +508,7 @@ namespace IceRpc.Tests.Api
             {
                 capture = new
                 {
-                    IncomingConnection = request.Connection,
+                    ServerConnection = request.Connection,
                     Service = IServicePrx.FromConnection(request.Connection),
                     Greeter = IGreeterPrx.FromConnection(request.Connection)
                 };
@@ -549,12 +549,12 @@ namespace IceRpc.Tests.Api
 
             Assert.IsNotNull(capture);
             Assert.AreEqual(IServicePrx.DefaultPath, capture.Service.Path);
-            Assert.AreEqual(capture.IncomingConnection, capture.Service.Connection);
+            Assert.AreEqual(capture.ServerConnection, capture.Service.Connection);
             Assert.IsNull(capture.Service.Endpoint);
 
             Assert.IsNotNull(greeter);
             Assert.AreEqual(IGreeterPrx.DefaultPath, capture.Greeter.Path);
-            Assert.AreEqual(capture.IncomingConnection, capture.Greeter.Connection);
+            Assert.AreEqual(capture.ServerConnection, capture.Greeter.Connection);
             Assert.IsNull(capture.Greeter.Endpoint);
         }
 

@@ -12,8 +12,8 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     // Testing the Ice1 and Ice2 protocol here is useful because of the handling of secure vs non-secure
-    // incoming connection which is different (with Ice2, the acceptor peeks a byte on the connection to
-    // figure out if the outgoing connection is a secure or non-secure connection).
+    // server connection which is different (with Ice2, the listener peeks a byte on the connection to
+    // figure out if the client connection is a secure or non-secure connection).
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
@@ -21,9 +21,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class AcceptSingleStreamConnectionTests : ConnectionBaseTest
+    public class AcceptNetworkSocketConnectionTests : ConnectionBaseTest
     {
-        public AcceptSingleStreamConnectionTests(
+        public AcceptNetworkSocketConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,
@@ -33,41 +33,41 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_Acceptor_AcceptAsync()
+        public async Task AcceptNetworkSocketConnection_Listener_AcceptAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener listener = CreateListener();
+            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
+            using NetworkSocket clientConnection = CreateClientConnection();
+            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket serverConnection = await acceptTask;
         }
 
         [Test]
-        public void AcceptSingleStreamConnection_Acceptor_Constructor_TransportException()
+        public void AcceptNetworkSocketConnection_Listener_Constructor_TransportException()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            Assert.Throws<TransportException>(() => CreateAcceptor());
+            using IListener listener = CreateListener();
+            Assert.Throws<TransportException>(() => CreateListener());
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener listener = CreateListener();
+            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
+            using NetworkSocket clientConnection = CreateClientConnection();
+            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket serverConnection = await acceptTask;
 
-            ValueTask<Endpoint?> acceptTask2 = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask2 = serverConnection.AcceptAsync(
                 ServerEndpoint,
                 ServerAuthenticationOptions,
                 default);
@@ -76,46 +76,46 @@ namespace IceRpc.Tests.Internal
 
             if (ClientEndpoint.Protocol == Protocol.Ice2 && TransportName == "tcp")
             {
-                await outgoingConnection.SendAsync(new byte[1], default);
+                await clientConnection.SendAsync(new byte[1], default);
             }
 
             await acceptTask2;
 
-            Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
+            Assert.That(serverConnection, Is.InstanceOf<TcpSocket>());
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
         // example the server SSL handshake completes before the RST is received.
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync_ConnectionLostExceptionAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
-            ValueTask<SingleStreamConnection> acceptTask = CreateIncomingConnectionAsync(acceptor);
+            using IListener listener = CreateListener();
+            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
-            SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
+            NetworkSocket clientConnection = CreateClientConnection();
 
-            // We don't use outgoingConnection.ConnectAsync() here as this would start the TLS handshake for secure
+            // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            await outgoingConnection.NetworkSocket!.ConnectAsync(
+            await clientConnection.Socket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
-            using SingleStreamConnection incomingConnection = await acceptTask;
+            using NetworkSocket serverConnection = await acceptTask;
 
-            outgoingConnection.Dispose();
+            clientConnection.Dispose();
 
             AsyncTestDelegate testDelegate;
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
                 // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-                await incomingConnection.AcceptAsync(
+                await serverConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     default);
-                testDelegate = async () => await incomingConnection.ReceiveAsync(new byte[1], default);
+                testDelegate = async () => await serverConnection.ReceiveAsync(new byte[1], default);
             }
             else
             {
-                testDelegate = async () => await incomingConnection.AcceptAsync(
+                testDelegate = async () => await serverConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     default);
@@ -126,9 +126,9 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(false, true)]
-        public void AcceptSingleStreamConnection_Acceptor_AddressReuse(bool wildcard1, bool wildcard2)
+        public void AcceptNetworkSocketConnection_Listener_AddressReuse(bool wildcard1, bool wildcard2)
         {
-            IAcceptor acceptor;
+            IListener listener;
             if (wildcard1)
             {
                 var serverData = new EndpointData(
@@ -137,13 +137,13 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                acceptor = serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
-                                                                                IncomingConnectionOptions,
+                listener = serverEndpoint.TransportDescriptor!.ListenerFactory!(serverEndpoint,
+                                                                                ServerConnectionOptions,
                                                                                 Logger);
             }
             else
             {
-                acceptor = CreateAcceptor();
+                listener = CreateListener();
             }
 
             if (wildcard2)
@@ -160,15 +160,15 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
-                                                                                   IncomingConnectionOptions,
+                        () => serverEndpoint.TransportDescriptor!.ListenerFactory!(serverEndpoint,
+                                                                                   ServerConnectionOptions,
                                                                                    Logger).Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => serverEndpoint.TransportDescriptor!.AcceptorFactory!(serverEndpoint,
-                                                                                   IncomingConnectionOptions,
+                        () => serverEndpoint.TransportDescriptor!.ListenerFactory!(serverEndpoint,
+                                                                                   ServerConnectionOptions,
                                                                                    Logger));
                 }
             }
@@ -178,33 +178,33 @@ namespace IceRpc.Tests.Internal
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
-                    Assert.DoesNotThrow(() => CreateAcceptor().Dispose());
+                    Assert.DoesNotThrow(() => CreateListener().Dispose());
                 }
                 else
                 {
-                    Assert.Catch<TransportException>(() => CreateAcceptor());
+                    Assert.Catch<TransportException>(() => CreateListener());
                 }
             }
 
-            acceptor.Dispose();
+            listener.Dispose();
         }
 
         [Test]
-        public async Task AcceptSingleStreamConnection_AcceptAsync_OperationCanceledExceptionAsync()
+        public async Task AcceptNetworkSocketConnection_AcceptAsync_OperationCanceledExceptionAsync()
         {
-            using IAcceptor acceptor = CreateAcceptor();
+            using IListener listener = CreateListener();
 
-            using SingleStreamConnection outgoingConnection = CreateOutgoingConnection();
-            ValueTask<Endpoint> connectTask = outgoingConnection.ConnectAsync(
+            using NetworkSocket clientConnection = CreateClientConnection();
+            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
                 ClientEndpoint,
                 ClientAuthenticationOptions,
                 default);
 
-            using SingleStreamConnection incomingConnection = await CreateIncomingConnectionAsync(acceptor);
+            using NetworkSocket serverConnection = await CreateServerConnectionAsync(listener);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<Endpoint?> acceptTask = incomingConnection.AcceptAsync(
+            ValueTask<Endpoint?> acceptTask = serverConnection.AcceptAsync(
                     ServerEndpoint,
                     ServerAuthenticationOptions,
                     source.Token);
@@ -220,13 +220,13 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private SingleStreamConnection CreateOutgoingConnection() =>
-            (ClientEndpoint.TransportDescriptor!.OutgoingConnectionFactory!(
+        private NetworkSocket CreateClientConnection() =>
+            (ClientEndpoint.TransportDescriptor!.Connector!(
                 ClientEndpoint,
-                OutgoingConnectionOptions,
-                Logger) as MultiStreamOverSingleStreamConnection)!.Underlying;
+                ClientConnectionOptions,
+                Logger) as NetworkSocketConnection)!.Underlying;
 
-        private static async ValueTask<SingleStreamConnection> CreateIncomingConnectionAsync(IAcceptor acceptor) =>
-            (await acceptor.AcceptAsync() as MultiStreamOverSingleStreamConnection)!.Underlying;
+        private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
+            (await listener.AcceptAsync() as NetworkSocketConnection)!.Underlying;
     }
 }

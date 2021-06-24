@@ -39,7 +39,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {
@@ -86,7 +86,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {
@@ -193,7 +193,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = tlsClientOptions
                 },
@@ -251,7 +251,7 @@ namespace IceRpc.Tests.ClientServer
             await using Server server = CreateServer(tlsServerOptions);
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = tlsClientOptions
                 },
@@ -298,7 +298,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {
@@ -341,7 +341,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {
@@ -386,7 +386,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new OutgoingConnectionOptions()
+                Options = new ClientConnectionOptions()
                 {
                     AuthenticationOptions = new()
                     {

@@ -15,7 +15,7 @@ namespace IceRpc.Transports
 {
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent streams of
     /// binary data.</summary>
-    /// <seealso cref="Stream"/>
+    /// <seealso cref="RpcStream"/>
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
@@ -24,10 +24,10 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
-        /// <summary><c>true</c> for incoming connections; otherwise, <c>false</c>. An incoming connection is created
-        /// by a server-side acceptor while an outgoing connection is created from the endpoint by the client-side.
+        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
+        /// by a server-side listener while a client connection is created from the endpoint by the client-side.
         /// </summary>
-        public bool IsIncoming { get; }
+        public bool IsServer { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
@@ -90,7 +90,7 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the connection. If it's a incoming connection, it's the local endpoint or the remote
+        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or the remote
         // endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
@@ -102,10 +102,10 @@ namespace IceRpc.Transports
         private int _outgoingStreamCount;
         private TaskCompletionSource? _outgoingStreamsEmptySource;
         private Endpoint? _remoteEndpoint;
-        private readonly ConcurrentDictionary<long, Stream> _streams = new();
+        private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accept a new server connection. This is called after the listener accepted a new connection
         /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -116,9 +116,9 @@ namespace IceRpc.Transports
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
-        public abstract ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel);
+        public abstract ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel);
 
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
+        /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
         /// </summary>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
@@ -137,7 +137,7 @@ namespace IceRpc.Transports
         /// call on the stream.</summary>
         /// <param name="bidirectional"><c>True</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
         /// <return>The outgoing stream.</return>
-        public abstract Stream CreateStream(bool bidirectional);
+        public abstract RpcStream CreateStream(bool bidirectional);
 
         /// <summary>Releases the resources used by the connection.</summary>
         public void Dispose()
@@ -164,9 +164,9 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             _endpoint = endpoint;
-            IsIncoming = options is IncomingConnectionOptions;
-            _localEndpoint = IsIncoming ? _endpoint : null;
-            _remoteEndpoint = IsIncoming ? null : _endpoint;
+            IsServer = options is ServerConnectionOptions;
+            _localEndpoint = IsServer ? _endpoint : null;
+            _remoteEndpoint = IsServer ? null : _endpoint;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;
@@ -178,7 +178,7 @@ namespace IceRpc.Transports
         protected virtual void Dispose(bool disposing)
         {
             // Release the remaining streams.
-            foreach (Stream stream in _streams.Values)
+            foreach (RpcStream stream in _streams.Values)
             {
                 try
                 {
@@ -245,9 +245,9 @@ namespace IceRpc.Transports
         /// <param name="value">If found, value is assigned to the stream value, null otherwise.</param>
         /// <return>True if the stream was found and value contains a non-null value, False otherwise.</return>
         protected bool TryGetStream<T>(long streamId, [NotNullWhen(returnValue: true)] out T? value)
-            where T : Stream
+            where T : RpcStream
         {
-            if (_streams.TryGetValue(streamId, out Stream? stream))
+            if (_streams.TryGetValue(streamId, out RpcStream? stream))
             {
                 value = (T)stream;
                 return true;
@@ -257,13 +257,13 @@ namespace IceRpc.Transports
         }
 
         internal virtual void AbortOutgoingStreams(
-            StreamErrorCode errorCode,
+            RpcStreamError errorCode,
             (long Bidirectional, long Unidirectional)? ids = null)
         {
             // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer
             // so we mark the stream as retryable. This is used by the connection to figure out whether or not the
             // request can safely be retried.
-            foreach (Stream stream in _streams.Values)
+            foreach (RpcStream stream in _streams.Values)
             {
                 if (!stream.IsIncoming &&
                     !stream.IsControl &&
@@ -275,9 +275,9 @@ namespace IceRpc.Transports
             }
         }
 
-        internal virtual void AbortStreams(StreamErrorCode errorCode)
+        internal virtual void AbortStreams(RpcStreamError errorCode)
         {
-            foreach (Stream stream in _streams.Values)
+            foreach (RpcStream stream in _streams.Values)
             {
                 // Control streams are never aborted.
                 if (!stream.IsControl)
@@ -297,7 +297,7 @@ namespace IceRpc.Transports
 
         internal void CancelDispatch()
         {
-            foreach (Stream stream in _streams.Values)
+            foreach (RpcStream stream in _streams.Values)
             {
                 try
                 {
@@ -310,7 +310,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void AddStream(long id, Stream stream, bool control, ref long streamId)
+        internal void AddStream(long id, RpcStream stream, bool control, ref long streamId)
         {
             lock (_mutex)
             {
@@ -354,9 +354,9 @@ namespace IceRpc.Transports
             }
         }
 
-        internal virtual async ValueTask<Stream> ReceiveInitializeFrameAsync(CancellationToken cancel = default)
+        internal virtual async ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel = default)
         {
-            Stream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
+            RpcStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
             Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
@@ -366,7 +366,7 @@ namespace IceRpc.Transports
         {
             lock (_mutex)
             {
-                if (_streams.TryRemove(id, out Stream? stream))
+                if (_streams.TryRemove(id, out RpcStream? stream))
                 {
                     if (!stream.IsControl)
                     {
@@ -394,9 +394,9 @@ namespace IceRpc.Transports
             }
         }
 
-        internal virtual async ValueTask<Stream> SendInitializeFrameAsync(CancellationToken cancel = default)
+        internal virtual async ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel = default)
         {
-            Stream stream = CreateStream(bidirectional: false);
+            RpcStream stream = CreateStream(bidirectional: false);
             Debug.Assert(stream.IsControl); // The first stream is always the control stream
             await stream.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
             return stream;
