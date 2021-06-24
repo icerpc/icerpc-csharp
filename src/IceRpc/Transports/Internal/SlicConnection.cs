@@ -160,26 +160,14 @@ namespace IceRpc.Transports.Internal
                             stream.ReceivedFrame(dataSize, fin);
                             return stream;
                         }
+                        else if (!isBidirectional && fin && streamId != 2 && streamId != 3)
+                        {
+                            // Release the stream count for the unidirectional stream.
+                            _unidirectionalStreamSemaphore!.Release();
+                        }
                         else
                         {
-                            if (!isIncoming && fin)
-                            {
-                                // Release the stream count for the destroyed stream.
-                                if (isBidirectional)
-                                {
-                                    _bidirectionalStreamSemaphore!.Release();
-                                }
-                                else
-                                {
-                                    _unidirectionalStreamSemaphore!.Release();
-                                }
-                            }
-
-                            // The stream has been destroyed, read and ignore the data.
-                            if (dataSize > 0)
-                            {
-                                await IgnoreDataAsync(dataSize, cancel).ConfigureAwait(false);
-                            }
+                            throw new InvalidDataException("received stream frame for unknown stream");
                         }
                         break;
                     }
@@ -263,8 +251,6 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel)
         {
-            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
-
             await PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.Close,
                 ostr =>
@@ -276,6 +262,8 @@ namespace IceRpc.Transports.Internal
                 },
                 frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
                 cancel: cancel).ConfigureAwait(false);
+
+            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
         }
 
         public override Stream CreateStream(bool bidirectional) =>
@@ -412,6 +400,21 @@ namespace IceRpc.Transports.Internal
             // the pong from is received? which timeout to use for expecting the pong frame?
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                _bufferedConnection?.Dispose();
+
+                // Unblock requests waiting on the semaphores.
+                var exception = new ConnectionClosedException();
+                _bidirectionalStreamSemaphore?.Complete(exception);
+                _unidirectionalStreamSemaphore?.Complete(exception);
+            }
+        }
+
         internal SlicConnection(
             Endpoint endpoint,
             SingleStreamConnection singleStreamConnection,
@@ -445,16 +448,6 @@ namespace IceRpc.Transports.Internal
                 _nextBidirectionalId = 0;
                 _nextUnidirectionalId = 2;
             }
-        }
-
-        internal override void AbortStreams(StreamErrorCode errorCode)
-        {
-            base.AbortStreams(errorCode);
-
-            // Unblock requests waiting on the semaphores.
-            var exception = new ConnectionClosedException();
-            _bidirectionalStreamSemaphore?.Complete(exception);
-            _unidirectionalStreamSemaphore?.Complete(exception);
         }
 
         internal void FinishedReceivedStreamData(int remainingSize)
@@ -519,28 +512,27 @@ namespace IceRpc.Transports.Internal
 
         internal void ReleaseStream(SlicStream stream)
         {
-            Debug.Assert(!stream.IsControl);
-
-            if (stream.IsIncoming)
+            if (!stream.IsControl)
             {
-                if (stream.IsBidirectional)
+                if (stream.IsIncoming)
                 {
-                    Interlocked.Decrement(ref _bidirectionalStreamCount);
+                    if (stream.IsBidirectional)
+                    {
+                        Interlocked.Decrement(ref _bidirectionalStreamCount);
+                    }
+                    else
+                    {
+                        Interlocked.Decrement(ref _unidirectionalStreamCount);
+                    }
                 }
-                else
-                {
-                    Interlocked.Decrement(ref _unidirectionalStreamCount);
-                }
-            }
-            else
-            {
-                if (stream.IsBidirectional)
+                else if (stream.IsBidirectional)
                 {
                     _bidirectionalStreamSemaphore!.Release();
                 }
                 else
                 {
-                    _unidirectionalStreamSemaphore!.Release();
+                    // Don't release the semaphore for unidirectional streams. The semaphore will be released
+                    // by AcceptStreamAsync when the peer sends a StreamLast frame.
                 }
             }
         }
@@ -561,49 +553,32 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             CancellationToken cancel)
         {
-            if (stream.IsStarted || stream.IsControl)
-            {
-                // Wait for queued packets to be sent. If this is canceled, the caller is responsible for
-                // ensuring that the stream is released. If it's an incoming stream, the stream is released
-                // by SlicStream.Destroy(). For outgoing streams, the stream is released once the peer sends
-                // the StreamLast frame after receiving the stream reset frame.
-                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                // If the outgoing stream isn't started, we need to increase the semaphore count to
-                // ensure we don't open more streams than the peer allows. The semaphore provides FIFO
-                // guarantee to ensure that the sending of requests is serialized.
-                Debug.Assert(!stream.IsIncoming);
-                if (stream.IsBidirectional)
-                {
-                    await _bidirectionalStreamSemaphore!.EnterAsync(cancel).ConfigureAwait(false);
-                }
-                else
-                {
-                    await _unidirectionalStreamSemaphore!.EnterAsync(cancel).ConfigureAwait(false);
-                }
+            AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
+                _bidirectionalStreamSemaphore! :
+                _unidirectionalStreamSemaphore!;
 
+            if (!stream.IsStarted && !stream.IsControl)
+            {
+                // If the outgoing stream isn't started, we need to acquire the stream semaphore to ensure we
+                // don't open more streams than the peer allows.
+                await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            }
+
+            try
+            {
                 // Wait for queued packets to be sent.
-                try
-                {
-                    await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                    // The stream isn't started so we're responsible for releasing it. No stream reset will be
-                    // sent to the peer for streams which are not started.
-                    stream.ReleaseStreamCount();
-                    throw;
-                }
-            }
+                await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
-            bool started = stream.IsStarted;
-            if (!started)
-            {
-                try
+                // If the stream is aborted, stop sending stream frames.
+                if (stream.AbortException is Exception exception)
                 {
-                    // Allocate a new ID according to the Quic numbering scheme.
+                    _sendSemaphore.Release();
+                    throw exception;
+                }
+
+                // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send semaphore.
+                if (!stream.IsStarted)
+                {
                     if (stream.IsBidirectional)
                     {
                         stream.Id = _nextBidirectionalId;
@@ -615,29 +590,22 @@ namespace IceRpc.Transports.Internal
                         _nextUnidirectionalId += 4;
                     }
                 }
-                catch
+            }
+            catch
+            {
+                if (!stream.IsStarted && !stream.IsControl)
                 {
-                    _sendSemaphore.Release();
-                    throw;
+                    streamSemaphore.Release();
                 }
+                throw;
             }
 
-            if (IsIncoming && endStream)
+            if (endStream)
             {
-                // Release the stream count if it's the last frame. It's important to release the count before to
-                // send the last frame to prevent a race condition with the client.
-                if (!stream.ReleaseStreamCount())
-                {
-                    // If the stream is already released, it's because it was aborted.
-                    Debug.Assert(stream.IsAborted);
-                }
-            }
-
-            // If the stream is aborted, stop sending stream frames.
-            if (stream.AbortException is Exception exception)
-            {
-                _sendSemaphore.Release();
-                throw exception;
+                // At this point writes are considered completed on the stream. It's important to call this before
+                // sending the last packet to avoid a race condition where the peer could start a new stream before
+                // the Slic connection stream count is decreased.
+                stream.TrySetWriteCompleted();
             }
 
             // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't

@@ -24,9 +24,7 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Dispatcher = new Operations(),
-                // Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
-                Endpoint = TestHelper.GetTestEndpoint(protocol: protocol),
-                ProxyHost = "127.0.0.1"
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };

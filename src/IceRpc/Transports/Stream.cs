@@ -23,13 +23,13 @@ namespace IceRpc.Transports
     public enum StreamErrorCode : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
-        InvocationCanceled = 0,
+        InvocationCanceled,
 
         /// <summary>The stream was aborted because the dispatch was canceled.</summary>
-        DispatchCanceled = 1,
+        DispatchCanceled,
 
         /// <summary>An error was encountered while streaming data.</summary>
-        StreamingError = 2,
+        StreamingError,
 
         /// <summary>The stream was aborted because the connection was shutdown.</summary>
         ConnectionShutdown,
@@ -39,6 +39,9 @@ namespace IceRpc.Transports
 
         /// <summary>The stream was aborted because the connection was aborted.</summary>
         ConnectionAborted,
+
+        /// <summary>Stream data is not expected.</summary>
+        UnexpectedStreamData,
     }
 
     /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
@@ -77,8 +80,16 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
         public bool IsControl { get; }
 
-        /// <summary>Returns <c>true</c> if the end of stream has been reached, <c>false</c> otherwise.</summary>
-        protected internal abstract bool ReceivedEndOfStream { get; }
+        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
+        protected bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
+
+        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        protected bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
+
+        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        protected bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
@@ -95,28 +106,18 @@ namespace IceRpc.Transports
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
 
-        // The use count indicates if the stream is being used to process an invocation or dispatch or
-        // to process stream parameters. The stream is disposed only once this count drops to 0.
-        private protected int _useCount = 1;
-
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
 
         private readonly MultiStreamConnection _connection;
-
-        /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
-        internal void Abort(StreamErrorCode errorCode) => AbortRead(errorCode);
+        private int _state;
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
         public System.IO.Stream ReceiveData()
         {
-            if (ReceivedEndOfStream)
-            {
-                throw new InvalidOperationException("end of stream already reached");
-            }
             EnableReceiveFlowControl();
             return new IOStream(this);
         }
@@ -148,37 +149,30 @@ namespace IceRpc.Transports
 
                     using IMemoryOwner<byte> receiveBufferOwner = MemoryPool<byte>.Shared.Rent(bufferSize);
                     Memory<byte> receiveBuffer = receiveBufferOwner.Memory[0..bufferSize];
-                    try
+                    var sendBuffers = new ReadOnlyMemory<byte>[1];
+                    int received;
+                    do
                     {
-                        var sendBuffers = new ReadOnlyMemory<byte>[1];
-                        int received;
-                        do
+                        try
                         {
-                            try
-                            {
-                                TransportHeader.CopyTo(receiveBuffer);
-                                received = await ioStream.ReadAsync(receiveBuffer[TransportHeader.Length..],
-                                                                    cancel).ConfigureAwait(false);
+                            TransportHeader.CopyTo(receiveBuffer);
+                            received = await ioStream.ReadAsync(receiveBuffer[TransportHeader.Length..],
+                                                                cancel).ConfigureAwait(false);
 
-                                sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
-                                await SendAsync(sendBuffers,
-                                                received == 0,
-                                                cancel).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                // Don't await the sending of the reset since it might block if sending is blocking.
-                                Reset(StreamErrorCode.StreamingError);
-                                break;
-                            }
+                            sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
+                            await SendAsync(sendBuffers,
+                                            received == 0,
+                                            cancel).ConfigureAwait(false);
                         }
-                        while (received > 0);
+                        catch
+                        {
+                            AbortWrite(StreamErrorCode.StreamingError);
+                            break;
+                        }
                     }
-                    finally
-                    {
-                        Release();
-                        ioStream.Dispose();
-                    }
+                    while (received > 0);
+
+                    ioStream.Dispose();
                 },
                 cancel);
         }
@@ -198,6 +192,18 @@ namespace IceRpc.Transports
             if (IsIncoming)
             {
                 CancelDispatchSource = new CancellationTokenSource();
+                if (!IsBidirectional)
+                {
+                    // Write-side of incoming unidirectional stream is marked as completed since there should be
+                    // no writes on the stream.
+                    TrySetWriteCompleted();
+                }
+            }
+            else if (!IsBidirectional)
+            {
+                // Read-side of outgoing unidirectional stream is marked as completed since there should be
+                // no reads on the stream.
+                TrySetReadCompleted();
             }
         }
 
@@ -210,12 +216,20 @@ namespace IceRpc.Transports
             _connection = connection;
             IsBidirectional = bidirectional;
             IsControl = control;
+            if (!IsBidirectional)
+            {
+                // Read-side of outgoing unidirectional stream is marked as completed since there should be
+                // no reads on the stream.
+                TrySetReadCompleted();
+            }
         }
 
-        /// <summary>Abort the stream received side.</summary>
+        /// <summary>Abort the stream read side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
         protected abstract void AbortRead(StreamErrorCode errorCode);
 
-        /// <summary>Abort the stream send size.</summary>
+        /// <summary>Abort the stream write side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
         protected abstract void AbortWrite(StreamErrorCode errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
@@ -225,23 +239,11 @@ namespace IceRpc.Transports
         /// parameters, whose size is not limited, it's important that the transport doesn't send an unlimited
         /// amount of data if the receiver doesn't process it. For TCP based transports, this would cause the
         /// send buffer to fill up and this would prevent other streams to be processed.</summary>
-        protected virtual void EnableReceiveFlowControl()
-        {
-            // Increment the use count of this stream to ensure it's not going to be disposed until receiving
-            // all the data from the stream.
-            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
-            Interlocked.Increment(ref _useCount);
-        }
+        protected abstract void EnableReceiveFlowControl();
 
         /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
         /// sending a request or response frame to send data from a stream parameter.</summary>
-        protected virtual void EnableSendFlowControl()
-        {
-            // Increment the use count of this stream to ensure it's not going to be disposed before sending
-            // all the data with the stream.
-            Debug.Assert(Thread.VolatileRead(ref _useCount) > 0);
-            Interlocked.Increment(ref _useCount);
-        }
+        protected abstract void EnableSendFlowControl();
 
         /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
         /// <param name="buffer">The buffer to store the received data.</param>
@@ -258,16 +260,51 @@ namespace IceRpc.Transports
             bool endStream,
             CancellationToken cancel);
 
-        /// <summary>Releases the stream. This is called when the stream is no longer used either for a request,
-        /// response or a streamable parameter. It un-registers the stream from the connection.</summary>
+        /// <summary>Shutdown the stream. This is called when the stream read and write sides are completed.</summary>
         protected virtual void Shutdown()
         {
-            if (IsStarted && !_connection.RemoveStream(Id))
-            {
-                Debug.Assert(false);
-                throw new ObjectDisposedException($"{typeof(Stream).FullName}");
-            }
+            Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
+
+            // Eventually cancel the dispatch if there's one.
+            CancelDispatchSource?.Cancel();
+
             CancelDispatchSource?.Dispose();
+            _connection.RemoveStream(Id);
+        }
+
+        /// <summary>Mark reads as completed for this stream.</summary>
+        /// <returns><c>true</c> if the stream reads were successfully marked as completed, <c>false</c> if the stream
+        /// reads were already completed.</returns>
+        internal protected bool TrySetReadCompleted(bool shutdown = true) =>
+            TrySetState(State.ReadCompleted, shutdown);
+
+        /// <summary>Mark writes as completed for this stream.</summary>
+        /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if the stream
+        /// writes were already completed.</returns>
+        internal protected bool TrySetWriteCompleted(bool shutdown = true) =>
+            TrySetState(State.WriteCompleted, shutdown);
+
+        /// <summary>Shutdown the stream if it's not already shutdown.</summary>
+        /// <returns><c>true</c> if the stream was shutdown, <c>false</c> if the stream was already shutdown.</returns>
+        protected void TryShutdown()
+        {
+            // If both reads and writes are completed, the stream is started and not already shutdown, call shutdown.
+            if (ReadCompleted && WriteCompleted && TrySetState(State.Shutdown, false) && IsStarted)
+            {
+                Shutdown();
+            }
+        }
+
+        internal void Abort(StreamErrorCode errorCode)
+        {
+            // Abort writes unless the abort is triggered by the generated code not expecting stream data.
+            if (errorCode != StreamErrorCode.UnexpectedStreamData)
+            {
+                AbortWrite(errorCode);
+            }
+
+            // Abort reads.
+            AbortRead(errorCode);
         }
 
         // Internal method which should only be used by tests.
@@ -306,7 +343,7 @@ namespace IceRpc.Transports
                 // due to the thread scheduling.
                 lastBidirectionalId = _connection.LastResponseStreamId;
                 lastUnidirectionalId = 0;
-                message = "connection closed gracefull by peer";
+                message = "connection closed gracefully by peer";
             }
             else
             {
@@ -338,10 +375,6 @@ namespace IceRpc.Transports
 
             ReadOnlyMemory<byte> data =
                 await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-            if (ReceivedEndOfStream)
-            {
-                throw new InvalidDataException($"received unexpected end of stream after initialize frame");
-            }
 
             if (IsIce1)
             {
@@ -400,22 +433,6 @@ namespace IceRpc.Transports
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
             ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             return new IncomingResponse(_connection.Protocol, data);
-        }
-
-        internal void Release()
-        {
-            if (Interlocked.Decrement(ref _useCount) == 0)
-            {
-                Shutdown();
-            }
-        }
-
-        internal void Reset(StreamErrorCode errorCode)
-        {
-            if (!IsControl)
-            {
-                AbortWrite(errorCode);
-            }
         }
 
         internal virtual async ValueTask SendGoAwayFrameAsync(
@@ -639,6 +656,22 @@ namespace IceRpc.Transports
             }
         }
 
+        private bool TrySetState(State state, bool shutdown)
+        {
+            if (((State)Interlocked.Or(ref _state, (int)state)).HasFlag(state))
+            {
+                return false;
+            }
+            else
+            {
+                if (shutdown)
+                {
+                    TryShutdown();
+                }
+                return true;
+            }
+        }
+
         private class IOStream : System.IO.Stream
         {
             public override bool CanRead => true;
@@ -684,11 +717,18 @@ namespace IceRpc.Transports
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.Release();
+                    _stream.AbortRead(StreamErrorCode.StreamingError);
                 }
             }
 
             internal IOStream(Stream stream) => _stream = stream;
+        }
+
+        private enum State : int
+        {
+            ReadCompleted = 1,
+            WriteCompleted = 2,
+            Shutdown = 4
         }
     }
 }

@@ -18,8 +18,25 @@ namespace IceRpc.Transports.Internal
     /// </summary>
     internal abstract class SignaledStream<T> : Stream, IValueTaskSource<T>
     {
-        internal Exception? AbortException => _exception;
-        internal bool IsAborted => _exception != null;
+        internal Exception? AbortException
+        {
+            get
+            {
+                bool lockTaken = false;
+                try
+                {
+                    _lock.Enter(ref lockTaken);
+                    return _exception;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        _lock.Exit();
+                    }
+                }
+            }
+        }
 
         internal bool IsSignaled
         {
@@ -50,12 +67,6 @@ namespace IceRpc.Transports.Internal
         private Queue<T>? _resultQueue;
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
-        private static readonly Exception _closedException =
-            new StreamAbortedException(StreamErrorCode.ConnectionAborted);
-
-        /// <summary>Aborts the stream.</summary>
-        protected override void AbortRead(StreamErrorCode errorCode) =>
-            SetException(new StreamAbortedException(errorCode));
 
         protected SignaledStream(MultiStreamConnection connection, long streamId)
             : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;
@@ -66,9 +77,6 @@ namespace IceRpc.Transports.Internal
         protected override void Shutdown()
         {
             base.Shutdown();
-
-            // Ensure the stream signaling fails after destruction of the stream.
-            SetException(_closedException);
 
             // Unregister the cancellation token callback
             _tokenRegistration.Dispose();

@@ -296,6 +296,7 @@ namespace IceRpc
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
+        /// <param name="responseHasStreamValue">True if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value read by response reader.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -310,6 +311,7 @@ namespace IceRpc
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
+            bool responseHasStreamValue = false,
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
@@ -320,6 +322,7 @@ namespace IceRpc
                 compress,
                 idempotent,
                 oneway: false,
+                returnStreamReader: responseHasStreamValue,
                 cancel);
 
             return ReadResponseAsync();
@@ -366,20 +369,17 @@ namespace IceRpc
                 compress,
                 idempotent,
                 oneway,
+                returnStreamReader: false,
                 cancel);
 
             return ReadResponseAsync();
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamReader? streamReader, Encoding payloadEncoding, _) =
+                (ReadOnlyMemory<byte> payload, StreamReader? _, Encoding payloadEncoding, _) =
                     await responseTask.ConfigureAwait(false);
 
                 payload.CheckVoidReturnValue(payloadEncoding);
-                if (streamReader != null)
-                {
-                    throw new InvalidDataException($"unexpected stream data from the response");
-                }
             }
         }
     }

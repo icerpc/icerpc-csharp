@@ -18,10 +18,9 @@ namespace IceRpc
         {
             /// <summary>Reads the argument of operation ice_isA.</summary>
             /// <param name="payload">The payload of the incoming request.</param>
-            /// <param name="streamReader">The stream reader.</param>
             /// <param name="dispatch">The dispatch properties.</param>
             /// <returns>The argument carried by the payload.</returns>
-            public static string IceIsA(ReadOnlyMemory<byte> payload, StreamReader? streamReader, Dispatch dispatch) =>
+            public static string IceIsA(ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
                 payload.ToArgs(dispatch, InputStream.IceReaderIntoString);
         }
 
@@ -55,25 +54,23 @@ namespace IceRpc
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="streamReader">The stream reader.</param>
         /// <param name="dispatch">The dispatch properties, which include properties of both the request and response</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload and optional stream writer.</returns>
         public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> DispatchAsync(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
             Dispatch dispatch,
             CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
         /// </param>
         /// <returns>The Slice type ID of the most-derived interface.</returns>
         public ValueTask<string> IceIdAsync(Dispatch dispatch, CancellationToken cancel) => new("::Ice::Object");
 
         /// <summary>Returns the Slice type IDs of the interfaces supported by this object.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The Slice type IDs of the interfaces supported by this object, in alphabetical order.</returns>
@@ -82,7 +79,7 @@ namespace IceRpc
 
         /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>True if this object implements the interface specified by typeId.</returns>
@@ -93,38 +90,16 @@ namespace IceRpc
         }
 
         /// <summary>Tests whether this object can be reached.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
-        /// <summary>Reads the argument of operation ice_isA.</summary>
-        /// <param name="payload">The payload of the incoming request.</param>
-        /// <param name="streamReader">The stream reader.</param>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <returns>The argument carried by the payload.</returns>
-        protected static System.IO.Stream IceByteStreamRequest(
-            ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
-            Dispatch dispatch)
-        {
-            if (streamReader == null)
-            {
-                throw new InvalidDataException("no data available from the stream");
-            }
-            return streamReader.ToByteStream();
-        }
-
-        /// <summary>The generated code calls this method to ensure that no stream data is available when the operation
+        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
         /// doesn't specify a stream parameter.</summary>
-        /// <param name="streamReader">The streamReader, null if no stream data is availble from the stream.</param>
-        protected static void IceCheckNoStreamData(StreamReader? streamReader)
-        {
-            if (streamReader != null)
-            {
-                throw new InvalidDataException("data availble from the stream but no stream param is specified");
-            }
-        }
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        protected static void IceNoStreamData(Dispatch dispatch) =>
+            dispatch.IncomingRequest.Stream.Abort(Transports.StreamErrorCode.UnexpectedStreamData);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -142,18 +117,16 @@ namespace IceRpc
 
         /// <summary>Dispatches an ice_id request.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="streamReader">The stream reader.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> IceDIceIdAsync(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceCheckNoStreamData(streamReader);
+            IceNoStreamData(dispatch);
             payload.CheckEmptyArgs(dispatch);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceId(dispatch, returnValue), null);
@@ -161,18 +134,16 @@ namespace IceRpc
 
         /// <summary>Dispatches an ice_ids request.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="streamReader">The stream reader.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> IceDIceIdsAsync(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceCheckNoStreamData(streamReader);
+            IceNoStreamData(dispatch);
             payload.CheckEmptyArgs(dispatch);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIds(dispatch, returnValue), null);
@@ -180,37 +151,33 @@ namespace IceRpc
 
         /// <summary>Dispatches an ice_isA request.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="streamReader">The stream reader.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> IceDIceIsAAsync(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceCheckNoStreamData(streamReader);
-            string id = Request.IceIsA(payload, streamReader, dispatch);
+            IceNoStreamData(dispatch);
+            string id = Request.IceIsA(payload, dispatch);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIsA(dispatch, returnValue), null);
         }
 
         /// <summary>Dispatches an ice_ping request.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="streamReader">The stream reader.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, StreamWriter?)> IceDIcePingAsync(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceCheckNoStreamData(streamReader);
+            IceNoStreamData(dispatch);
             payload.CheckEmptyArgs(dispatch);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return (Payload.FromVoidReturnValue(dispatch), null);
@@ -222,10 +189,8 @@ namespace IceRpc
             try
             {
                 ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
-                StreamReader? streamReader =
-                    request.Stream.ReceivedEndOfStream ? null : new StreamReader(request.Stream);
                 (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, StreamWriter? streamWriter) =
-                    await DispatchAsync(requestPayload, streamReader, dispatch, cancel).ConfigureAwait(false);
+                    await DispatchAsync(requestPayload, dispatch, cancel).ConfigureAwait(false);
 
                 return new OutgoingResponse(dispatch, responsePayload, streamWriter);
             }

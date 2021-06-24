@@ -91,8 +91,8 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the connection. If it's a incoming connection, it's the local endpoint or the remote
-        // endpoint otherwise.
+        // The endpoint which created the connection. If it's an incoming connection, it's the local endpoint or the
+        // remote endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
         private TaskCompletionSource? _incomingStreamsEmptySource;
@@ -178,16 +178,15 @@ namespace IceRpc.Transports
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            // Release the remaining streams.
             foreach (Stream stream in _streams.Values)
             {
                 try
                 {
-                    stream.Release();
+                    stream.Abort(StreamErrorCode.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {
-                    Debug.Assert(false, $"unexpected exception on Stream.TryRelease: {ex}");
+                    Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
                 }
             }
         }
@@ -289,9 +288,7 @@ namespace IceRpc.Transports
             StreamErrorCode errorCode,
             (long Bidirectional, long Unidirectional)? ids = null)
         {
-            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer
-            // so we mark the stream as retryable. This is used by the connection to figure out whether or not the
-            // request can safely be retried.
+            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer.
             foreach (Stream stream in _streams.Values)
             {
                 if (!stream.IsIncoming &&
@@ -300,26 +297,6 @@ namespace IceRpc.Transports
                      stream.Id > (stream.IsBidirectional ? ids.Value.Bidirectional : ids.Value.Unidirectional)))
                 {
                     stream.Abort(errorCode);
-                }
-            }
-        }
-
-        internal virtual void AbortStreams(StreamErrorCode errorCode)
-        {
-            foreach (Stream stream in _streams.Values)
-            {
-                // Control streams are never aborted.
-                if (!stream.IsControl)
-                {
-                    try
-                    {
-                        stream.Abort(errorCode);
-                        stream.CancelDispatchSource?.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // Ignore
-                    }
                 }
             }
         }
@@ -391,7 +368,7 @@ namespace IceRpc.Transports
             return stream;
         }
 
-        internal bool RemoveStream(long id)
+        internal void RemoveStream(long id)
         {
             lock (_mutex)
             {
@@ -414,11 +391,10 @@ namespace IceRpc.Transports
                             }
                         }
                     }
-                    return true;
                 }
                 else
                 {
-                    return false;
+                    Debug.Assert(false);
                 }
             }
         }
@@ -469,8 +445,7 @@ namespace IceRpc.Transports
                 }
                 // Run the continuations asynchronously to ensure continuations are not ran from
                 // the code that aborts the last stream.
-                _outgoingStreamsEmptySource ??=
-                    new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
             await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }

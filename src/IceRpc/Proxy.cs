@@ -166,8 +166,10 @@ namespace IceRpc
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
+        /// <param name="returnStreamReader">When true, a stream reader will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, its encoding and the connection that received the response.</returns>
+        /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
+        /// the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
@@ -180,6 +182,7 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
+            bool returnStreamReader = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -191,7 +194,7 @@ namespace IceRpc
                 invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
             }
 
-            OutgoingRequest? request = null;
+            OutgoingRequest? request;
             try
             {
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
@@ -237,7 +240,6 @@ namespace IceRpc
                 {
                     timeoutSource?.Dispose();
                 }
-                request?.Stream?.Release(); // Release the request stream if it's set.
                 throw;
 
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
@@ -270,24 +272,9 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    // If there's still data available from the stream, create a stream reader and let the invocation
-                    // release the stream when it's disposed. The stream can be null if an interceptor returned the
-                    // response before the request reached the connection. In this case, there's no stream or stream
-                    // data.
-                    if (!request.Stream?.ReceivedEndOfStream ?? false)
+                    if (returnStreamReader)
                     {
-                        if (invocation == null)
-                        {
-                            throw new ArgumentException(
-                                "invocation is null but stream data is available",
-                                nameof(invocation));
-                        }
-
-                        streamReader = new StreamReader(request.Stream);
-
-                        // The invocation is responsible for releasing the stream if the stream is still needed to
-                        // read the data from the stream param.
-                        invocation.Stream = request.Stream;
+                        streamReader = new StreamReader(request.Stream!);
                     }
 
                     return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
@@ -298,13 +285,6 @@ namespace IceRpc
                     if (timeoutSource != combinedSource)
                     {
                         timeoutSource?.Dispose();
-                    }
-
-                    if (streamReader == null)
-                    {
-                        // If there's no stream data to read, we can release the stream, otherwise the stream will
-                        // be released when the invocation is disposed by the application.
-                        request.Stream?.Release();
                     }
                 }
             }

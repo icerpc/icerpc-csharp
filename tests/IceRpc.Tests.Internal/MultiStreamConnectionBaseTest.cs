@@ -56,11 +56,6 @@ namespace IceRpc.Tests.Internal
 
         public void TearDownConnections()
         {
-            _controlStreamForClient?.Release();
-            _peerControlStreamForClient?.Release();
-            _controlStreamForServer?.Release();
-            _peerControlStreamForServer?.Release();
-
             _outgoingConnection?.Dispose();
             _incomingConnection?.Dispose();
         }

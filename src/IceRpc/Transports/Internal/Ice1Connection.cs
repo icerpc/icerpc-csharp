@@ -164,7 +164,6 @@ namespace IceRpc.Transports.Internal
                         catch
                         {
                             // Ignore, if the stream has been aborted or the connection is being shutdown.
-                            stream?.Release();
                         }
                     }
                     else if (frameType == Ice1FrameType.ValidateConnection)
@@ -297,6 +296,7 @@ namespace IceRpc.Transports.Internal
                 // Perform the sending.
                 // An Ice1 frame must always be sent entirely even if the sending of the stream data is canceled.
                 await Underlying.SendAsync(buffers, CancellationToken.None).ConfigureAwait(false);
+
                 Sent(buffers);
             }
             finally

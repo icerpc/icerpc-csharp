@@ -522,6 +522,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
+        [Log(LogAttributeLevel.Debug)]
         [Repeat(10)]
         public async Task Connection_ShutdownAsync(Protocol protocol, string transport, bool closeClientSide)
         {
@@ -537,11 +538,11 @@ namespace IceRpc.Tests.Internal
                     return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
                 }));
 
-            // Perform an invocation
+            // Perform an invocation.
             Task pingTask = factory.Proxy.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
-            // Shutdown the connection
+            // Shutdown the connection.
             Task shutdownTask = (closeClientSide ? factory.Client : factory.Server).ShutdownAsync("message");
             Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             await shutdownTask;
@@ -551,15 +552,14 @@ namespace IceRpc.Tests.Internal
                 // With Ice1, when closing the connection with a pending invocation, invocations are aborted
                 // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
                 Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
-
             }
             else
             {
-                // Ensure the invocation is successful
+                // Ensure the invocation is successful.
                 Assert.DoesNotThrowAsync(async () => await pingTask);
             }
 
-            // Next invocation on the connection should throw ConnectionClosedException
+            // Next invocation on the connection should throw ConnectionClosedException.
             Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
         }
 

@@ -13,26 +13,49 @@ namespace IceRpc.Transports.Internal
     /// Ice1 protocol.</summary>
     internal class Ice1Stream : SignaledStream<(Ice1FrameType, ReadOnlyMemory<byte>)>
     {
-        protected internal override bool ReceivedEndOfStream =>
-            (!IsIncoming && !IsBidirectional) || _receivedEndOfStream;
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
-        private bool _receivedEndOfStream;
         private readonly Ice1Connection _connection;
+
+        protected override void AbortRead(StreamErrorCode errorCode)
+        {
+            if (TrySetReadCompleted())
+            {
+                // Abort the receive call waiting on WaitAsync().
+                SetException(new StreamAbortedException(errorCode));
+            }
+        }
 
         protected override void AbortWrite(StreamErrorCode errorCode)
         {
-            // Stream reset is not supported with Ice1
+            if (TrySetWriteCompleted())
+            {
+                // Ensure further SendAsync calls raise StreamAbortException
+                SetException(new StreamAbortedException(errorCode));
+            }
         }
 
+        protected override void EnableReceiveFlowControl() =>
+            // This is never called because streaming isn't supported with Ice1.
+            throw new NotImplementedException();
+
+        protected override void EnableSendFlowControl() =>
+            // This is never called because streaming isn't supported with Ice1.
+            throw new NotImplementedException();
+
         protected override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            // This is never called because we override the default ReceiveFrameAsync implementation
+            // This is never called because we override the default ReceiveFrameAsync implementation.
             throw new NotImplementedException();
 
         protected async override ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
-            CancellationToken cancel) =>
+            CancellationToken cancel)
+        {
+            // This method is used for sending validation connection and close connection messages on the control
+            // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
+            Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
+        }
 
         protected override void Shutdown()
         {
@@ -69,7 +92,10 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
 
-            _receivedEndOfStream = frameType != Ice1FrameType.ValidateConnection;
+            if (frameType != Ice1FrameType.ValidateConnection && !TrySetReadCompleted())
+            {
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+            }
 
             // No more data will ever be received over this stream unless it's the validation connection frame.
             return frame;
@@ -115,6 +141,8 @@ namespace IceRpc.Transports.Internal
             }
 
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
+
+            TrySetWriteCompleted();
         }
     }
 }

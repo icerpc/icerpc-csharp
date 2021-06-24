@@ -9,7 +9,7 @@ namespace IceRpc
 {
     /// <summary>Holds properties to customize a request and to get back information from the corresponding response.
     /// </summary>
-    public sealed class Invocation : IDisposable
+    public sealed class Invocation
     {
         /// <summary>Gets or sets the marshaling format for classes.</summary>
         public FormatType ClassFormat { get; set; }
@@ -52,23 +52,6 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
         }
 
-        /// <summary>The stream associated with the invocation. The invocation is responsible for releasing the
-        /// stream when it's disposed or when the stream is re-assigned because the invocation object is reused.
-        /// </summary>
-        internal Stream? Stream
-        {
-            get => _stream;
-            set
-            {
-                _stream?.Release();
-                _stream = value;
-            }
-        }
-
-        private Stream? _stream;
         private TimeSpan? _timeout;
-
-        /// <inheritdoc/>
-        public void Dispose() => Stream?.Release();
     }
 }

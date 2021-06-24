@@ -607,7 +607,7 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                request.Stream!.Reset(StreamErrorCode.InvocationCanceled);
+                request.Stream!.Abort(StreamErrorCode.InvocationCanceled);
                 throw;
             }
             catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
@@ -758,9 +758,6 @@ namespace IceRpc
 
                 if (_connection != null)
                 {
-                    // Abort the streams.
-                    _connection.AbortStreams(StreamErrorCode.ConnectionAborted);
-
                     _connection.Dispose();
 
                     // Log the connection closure
@@ -852,7 +849,7 @@ namespace IceRpc
                 // peer or when the stream is aborted because the connection shutdown is canceled or failed.
                 CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
-                // Receives the request frame from the stream
+                // Receives the request frame from the stream.
                 IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
                 request.Stream = stream;
@@ -872,7 +869,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        stream.Reset(StreamErrorCode.DispatchCanceled);
+                        stream.Abort(StreamErrorCode.DispatchCanceled);
                     }
                 }
                 catch (Exception exception)
@@ -916,17 +913,13 @@ namespace IceRpc
                     }
                 }
             }
-            catch (StreamAbortedException)
+            catch (StreamAbortedException ex)
             {
-                // Ignore
+                stream.Abort(ex.ErrorCode);
             }
             catch (Exception ex)
             {
                 _ = AbortAsync(ex);
-            }
-            finally
-            {
-                stream.Release();
             }
         }
 
@@ -1142,7 +1135,7 @@ namespace IceRpc
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked.
                 await Task.Yield();
 
-                // Abort non-processed outgoing streams before closing the connection to ensure the invocation
+                // Abort non-processed outgoing streams before closing the connection to ensure the invocations
                 // will fail with a retryable exception.
                 _connection.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
 
