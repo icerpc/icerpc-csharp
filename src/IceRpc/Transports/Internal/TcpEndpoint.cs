@@ -37,8 +37,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                Connector = NetworkSocket.CreateConnector(
-                    (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
+                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
@@ -51,8 +50,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                Connector = NetworkSocket.CreateConnector(
-                    (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger)),
+                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
@@ -207,9 +205,9 @@ namespace IceRpc.Transports.Internal
             return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
         }
 
-        private TcpSocket Connect(ITransportOptions? options, ILogger logger)
+        private MultiStreamConnection Connect(ClientConnectionOptions options, ILogger logger)
         {
-            TcpOptions tcpOptions = options as TcpOptions ?? TcpOptions.Default;
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
             EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
             // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
@@ -239,7 +237,8 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new TcpSocket(socket, logger, netEndPoint);
+            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
+            return tcpSocket.CreateConnection(this, options);
         }
 
         // Constructor for ice1 unmarshaling and parsing

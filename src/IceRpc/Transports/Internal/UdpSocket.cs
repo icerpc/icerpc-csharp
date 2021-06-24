@@ -132,14 +132,14 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing) => _socket.Dispose();
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(Socket socket, ILogger logger, bool isIncoming, EndPoint? addr)
+        internal UdpSocket(Socket socket, ILogger logger, bool isServer, EndPoint? addr)
             : base(logger)
         {
             _socket = socket;
-            _incoming = isIncoming;
+            _incoming = isServer;
             DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
 
-            if (isIncoming)
+            if (isServer)
             {
                 _multicastEndpoint = addr as IPEndPoint;
             }

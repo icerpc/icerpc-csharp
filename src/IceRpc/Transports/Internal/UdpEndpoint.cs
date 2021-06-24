@@ -38,10 +38,8 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
-                Acceptor = NetworkSocket.CreateAcceptor(
-                    (endpoint, options, logger) => ((UdpEndpoint)endpoint).Accept(options, logger)),
-                Connector = NetworkSocket.CreateConnector(
-                    (endpoint, options, logger) => ((UdpEndpoint)endpoint).Connect(options, logger)),
+                Acceptor = (endpoint, options, logger) => ((UdpEndpoint)endpoint).Accept(options, logger),
+                Connector = (endpoint, options, logger) => ((UdpEndpoint)endpoint).Connect(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
             };
@@ -287,7 +285,7 @@ namespace IceRpc.Transports.Internal
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
 
-        private UdpSocket Connect(ITransportOptions? options, ILogger logger)
+        private MultiStreamConnection Connect(ClientConnectionOptions options, ILogger logger)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
@@ -302,7 +300,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                UdpOptions udpOptions = options as UdpOptions ?? UdpOptions.Default;
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
                 if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
                 {
                     if (Address.AddressFamily == AddressFamily.InterNetworkV6)
@@ -349,20 +347,24 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new UdpSocket(socket, logger, isIncoming: false, endpoint);
+            var udpSocket = new UdpSocket(socket, logger, isServer: false, endpoint);
+            return udpSocket.CreateConnection(this, options);
         }
 
-        private (NetworkSocket, Endpoint) Accept(ITransportOptions? options, ILogger logger)
+        private MultiStreamConnection Accept(ServerConnectionOptions options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
                 throw new NotSupportedException($"endpoint '{this}' cannot accept datagrams because it has a DNS name");
             }
 
+            IPEndPoint? multicastAddress = null;
+            ushort port = 0;
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+
             try
             {
-                UdpOptions udpOptions = options as UdpOptions ?? UdpOptions.Default;
+                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
 
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
@@ -375,7 +377,6 @@ namespace IceRpc.Transports.Internal
                 SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
 
                 var addr = new IPEndPoint(Address, Port);
-                IPEndPoint? multicastAddress = null;
                 if (IsMulticast(Address))
                 {
                     multicastAddress = addr;
@@ -396,15 +397,13 @@ namespace IceRpc.Transports.Internal
 
                 socket.Bind(addr);
 
-                ushort port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
+                port = (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
 
                 if (multicastAddress != null)
                 {
                     multicastAddress.Port = port;
                     SetMulticastGroup(socket, multicastAddress.Address);
                 }
-
-                return (new UdpSocket(socket, logger, isIncoming: true, multicastAddress), Clone(port));
             }
             catch (SocketException ex)
             {
@@ -416,6 +415,9 @@ namespace IceRpc.Transports.Internal
                 socket.Dispose();
                 throw;
             }
+
+            var udpSocket = new UdpSocket(socket, logger, isServer: true, multicastAddress);
+            return udpSocket.CreateConnection(Clone(port), options);
         }
 
         private void SetMulticastGroup(Socket socket, IPAddress group)

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as TCP. It 
+    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as TCP. It
     /// supports the same set of features as Quic.</summary>
     internal class SlicConnection : NetworkSocketConnection
     {
@@ -408,11 +408,8 @@ namespace IceRpc.Transports.Internal
             // the pong from is received? which timeout to use for expecting the pong frame?
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
-        internal SlicConnection(
-            Endpoint endpoint,
-            NetworkSocket singleStreamConnection,
-            ConnectionOptions options)
-            : base(endpoint, singleStreamConnection, options)
+        internal SlicConnection(Endpoint endpoint, NetworkSocket networkSocket, ConnectionOptions options)
+            : base(endpoint, networkSocket, options)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;
