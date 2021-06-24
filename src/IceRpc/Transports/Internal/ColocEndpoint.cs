@@ -22,12 +22,12 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor ColocTransportDescriptor { get; } =
             new(Transport.Coloc, "coloc", CreateEndpoint)
             {
-                AcceptorFactory = (endpoint, options, logger) =>
-                    new ColocAcceptor((ColocEndpoint)endpoint, options, logger),
+                Connector = CreateClientConnection,
                 DefaultUriPort = 4062,
                 Ice1EndpointParser = ParseIce1Endpoint,
                 Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
-                OutgoingConnectionFactory = CreateOutgoingConnection
+                ListenerFactory = (endpoint, options, logger) =>
+                    new ColocListener((ColocEndpoint)endpoint, options, logger),
             };
 
         public override bool Equals(Endpoint? other) =>
@@ -44,16 +44,16 @@ namespace IceRpc.Transports.Internal
         private static ColocEndpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
             throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
 
-        private static MultiStreamConnection CreateOutgoingConnection(
+        private static MultiStreamConnection CreateClientConnection(
             Endpoint endpoint,
-            OutgoingConnectionOptions options,
+            ClientConnectionOptions options,
             ILogger logger)
         {
             if (endpoint is ColocEndpoint colocEndpoint)
             {
-                if (ColocAcceptor.TryGetValue(colocEndpoint, out ColocAcceptor? acceptor))
+                if (ColocListener.TryGetValue(colocEndpoint, out ColocListener? listener))
                 {
-                    (ColocChannelReader reader, ColocChannelWriter writer, long id) = acceptor.NewOutgoingConnection();
+                    (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
                     return new ColocConnection(colocEndpoint, id, writer, reader, options, logger);
                 }
                 else

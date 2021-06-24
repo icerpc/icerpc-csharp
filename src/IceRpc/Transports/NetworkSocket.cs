@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Security;
@@ -8,29 +9,56 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A single-stream connection represents a network connection that supports a single stream of binary
-    /// data.</summary>
-    public abstract class SingleStreamConnection : IDisposable
+    /// <summary>Represents a socket or socket-like object that can send and receive bytes.</summary>
+    public abstract class NetworkSocket : IDisposable
     {
         /// <summary>Returns information about the connection.</summary>
         public abstract ConnectionInformation ConnectionInformation { get; }
 
-        /// <summary>When this connection is a datagram connection, the maximum size of a datagram received over this
-        /// connection.</summary>
+        /// <summary>When this socket is a datagram socket, the maximum size of a datagram received by this socket.
+        /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
         internal ILogger Logger { get; }
 
         /// <summary>This property should be used for testing purpose only.</summary>
-        internal abstract System.Net.Sockets.Socket? NetworkSocket { get; }
+        internal abstract System.Net.Sockets.Socket? Socket { get; }
 
-        /// <summary>Closes the connection. The connection might use this method to send a notification to the peer
+        /// <summary>Creates an acceptor from a network socket acceptor.</summary>
+        /// <param name="networkSocketAcceptor">An acceptor for network sockets.</param>
+        /// <returns>An acceptor suitable for <see cref="TransportDescriptor.Acceptor"/>.</returns>
+        public static Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> CreateAcceptor(
+            Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)> networkSocketAcceptor) =>
+            (endpoint, options, logger) =>
+            {
+                (NetworkSocket serverSocket, Endpoint serverEndpoint) =
+                    networkSocketAcceptor(endpoint, options.TransportOptions, logger);
+
+                return endpoint.Protocol == Protocol.Ice1 ?
+                    new Ice1Connection(serverEndpoint, serverSocket, options) :
+                    new SlicConnection(serverEndpoint, serverSocket, options);
+            };
+
+        /// <summary>Creates a connector from a network socket connection.</summary>
+        /// <param name="networkSocketConnector">A connector for network sockets.</param>
+        /// <returns>A connector suitable for <see cref="TransportDescriptor.Connector"/>.</returns>
+        public static Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> CreateConnector(
+            Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket> networkSocketConnector) =>
+            (endpoint, options, logger) =>
+            {
+                NetworkSocket clientSocket = networkSocketConnector(endpoint, options.TransportOptions, logger);
+                return endpoint.Protocol == Protocol.Ice1 ?
+                    new Ice1Connection(endpoint, clientSocket, options) :
+                    new SlicConnection(endpoint, clientSocket, options);
+            };
+
+        /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
         /// of the connection closure.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
+        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the connection.</summary>
+        /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
         {
             Dispose(true);
@@ -40,7 +68,7 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
 
-        /// <summary>Accepts a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accepts a new connection. This is called after the listener accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
@@ -51,14 +79,8 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Accepts a new incoming connection. This method is called by the implementation of
-        /// <see cref="IAcceptor.AcceptAsync"/> for single-stream connections.</summary>
-        /// <returns>The accepted connection.</returns>
-        public abstract ValueTask<SingleStreamConnection> AcceptAsync();
-
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
-        /// to establish the connection and perform socket level initialization (TLS handshake, etc).
-        /// </summary>
+        /// <summary>Connects a new client socket. This is called after the endpoint created a new socket to establish
+        /// the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -86,11 +108,11 @@ namespace IceRpc.Transports
         /// <returns>A value task that completes once the buffers are sent.</returns>
         public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
-        /// <summary>Releases the resources used by the connection.</summary>
+        /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
 
-        internal SingleStreamConnection(ILogger logger) => Logger = logger;
+        internal NetworkSocket(ILogger logger) => Logger = logger;
     }
 }

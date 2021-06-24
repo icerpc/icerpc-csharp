@@ -38,12 +38,12 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
-                ClientSocketFactory = (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
+                Acceptor = NetworkSocket.CreateAcceptor(
+                    (endpoint, options, logger) => ((UdpEndpoint)endpoint).Accept(options, logger)),
+                Connector = NetworkSocket.CreateConnector(
+                    (endpoint, options, logger) => ((UdpEndpoint)endpoint).Connect(options, logger)),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
-                ServerSocketFactory = (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
@@ -287,7 +287,7 @@ namespace IceRpc.Transports.Internal
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
 
-        private SingleStreamConnection CreateOutgoingConnection(ITransportOptions? options, ILogger logger)
+        private UdpSocket Connect(ITransportOptions? options, ILogger logger)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
@@ -349,15 +349,14 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new UdpConnection(socket, logger, isIncoming: false, endpoint);
+            return new UdpSocket(socket, logger, isIncoming: false, endpoint);
         }
 
-        private (SingleStreamConnection, Endpoint) CreateIncomingConnection(ITransportOptions? options, ILogger logger)
+        private (NetworkSocket, Endpoint) Accept(ITransportOptions? options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept datagram connections because it has a DNS name");
+                throw new NotSupportedException($"endpoint '{this}' cannot accept datagrams because it has a DNS name");
             }
 
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
@@ -405,7 +404,7 @@ namespace IceRpc.Transports.Internal
                     SetMulticastGroup(socket, multicastAddress.Address);
                 }
 
-                return (new UdpConnection(socket, logger, isIncoming: true, multicastAddress), Clone(port));
+                return (new UdpSocket(socket, logger, isIncoming: true, multicastAddress), Clone(port));
             }
             catch (SocketException ex)
             {

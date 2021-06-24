@@ -29,7 +29,7 @@ namespace IceRpc
         public IPEndPoint? LocalEndPoint { get; set; }
 
         /// <summary>Configures the length of a server socket queue for accepting new connections. If a new
-        /// connection request arrives and the queue is full, the outgoing connection establishment will fail
+        /// connection request arrives and the queue is full, the client connection establishment will fail
         /// with a <see cref="ConnectionRefusedException"/> exception. The default value is 511.</summary>
         /// <value>The server socket backlog size.</value>
         public int ListenerBackLog
@@ -244,9 +244,9 @@ namespace IceRpc
     }
 
     /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
-    public sealed class OutgoingConnectionOptions : ConnectionOptions
+    public sealed class ClientConnectionOptions : ConnectionOptions
     {
-        /// <summary>The SSL authentication options to configure TLS outgoing connections.</summary>
+        /// <summary>The SSL authentication options to configure TLS client connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslClientAuthenticationOptions? AuthenticationOptions
         {
@@ -263,24 +263,24 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
-        internal static OutgoingConnectionOptions Default = new();
+        internal static ClientConnectionOptions Default = new();
 
         private SslClientAuthenticationOptions? _authenticationOptions;
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
 
         /// <inheritdoc/>
-        public new OutgoingConnectionOptions Clone()
+        public new ClientConnectionOptions Clone()
         {
-            var options = (OutgoingConnectionOptions)base.Clone();
+            var options = (ClientConnectionOptions)base.Clone();
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }
     }
 
     /// <summary>An options class for configuring incoming IceRPC connections.</summary>
-    public sealed class IncomingConnectionOptions : ConnectionOptions
+    public sealed class ServerConnectionOptions : ConnectionOptions
     {
-        /// <summary>The SSL authentication options to configure TLS incoming connections.</summary>
+        /// <summary>The SSL authentication options to configure TLS server connections.</summary>
         /// <value>The SSL authentication options.</value>
         public SslServerAuthenticationOptions? AuthenticationOptions
         {
@@ -288,7 +288,7 @@ namespace IceRpc
             set => _authenticationOptions = value?.Clone();
         }
 
-        /// <summary>The connection accept timeout. If a new incoming connection takes longer than the accept timeout
+        /// <summary>The connection accept timeout. If a new server connection takes longer than the accept timeout
         /// to be initialized, the server will abandon and close the connection. It can't be 0 and the default value
         /// is 10s.</summary>
         /// <value>The connection accept timeout value.</value>
@@ -299,15 +299,15 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
 
-        internal static OutgoingConnectionOptions Default = new();
+        internal static ClientConnectionOptions Default = new();
 
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;
 
         /// <inheritdoc/>
-        public new IncomingConnectionOptions Clone()
+        public new ServerConnectionOptions Clone()
         {
-            var options = (IncomingConnectionOptions)base.Clone();
+            var options = (ServerConnectionOptions)base.Clone();
             options.AuthenticationOptions = AuthenticationOptions;
             return options;
         }

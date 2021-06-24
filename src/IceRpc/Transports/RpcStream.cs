@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,15 +11,15 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class StreamAbortedException : Exception
+    public class RpcStreamAbortedException : Exception
     {
-        internal StreamErrorCode ErrorCode { get; }
+        internal RpcStreamError ErrorCode { get; }
 
-        internal StreamAbortedException(StreamErrorCode errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum StreamErrorCode : byte
+    public enum RpcStreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled = 0,
@@ -41,9 +40,9 @@ namespace IceRpc.Transports
         ConnectionAborted,
     }
 
-    /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
+    /// <summary>The RpcStream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
-    public abstract class Stream
+    public abstract class RpcStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the connection.</summary>
@@ -69,7 +68,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
-        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsIncoming ? 0 : 1);
+        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }
@@ -106,7 +105,7 @@ namespace IceRpc.Transports
         private readonly MultiStreamConnection _connection;
 
         /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
-        internal void Abort(StreamErrorCode errorCode) => AbortRead(errorCode);
+        internal void Abort(RpcStreamError errorCode) => AbortRead(errorCode);
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
@@ -167,7 +166,7 @@ namespace IceRpc.Transports
                             catch
                             {
                                 // Don't await the sending of the reset since it might block if sending is blocking.
-                                Reset(StreamErrorCode.StreamingError);
+                                Reset(RpcStreamError.StreamingError);
                                 break;
                             }
                         }
@@ -188,7 +187,7 @@ namespace IceRpc.Transports
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="connection">The parent connection.</param>
-        protected Stream(MultiStreamConnection connection, long streamId)
+        protected RpcStream(MultiStreamConnection connection, long streamId)
         {
             _connection = connection;
             IsBidirectional = streamId % 4 < 2;
@@ -204,7 +203,7 @@ namespace IceRpc.Transports
         /// <param name="bidirectional">True to create a bidirectional stream, False otherwise.</param>
         /// <param name="control">True to create a control stream, False otherwise.</param>
         /// <param name="connection">The parent connection.</param>
-        protected Stream(MultiStreamConnection connection, bool bidirectional, bool control)
+        protected RpcStream(MultiStreamConnection connection, bool bidirectional, bool control)
         {
             _connection = connection;
             IsBidirectional = bidirectional;
@@ -212,10 +211,10 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Abort the stream received side.</summary>
-        protected abstract void AbortRead(StreamErrorCode errorCode);
+        protected abstract void AbortRead(RpcStreamError errorCode);
 
         /// <summary>Abort the stream send size.</summary>
-        protected abstract void AbortWrite(StreamErrorCode errorCode);
+        protected abstract void AbortWrite(RpcStreamError errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -264,7 +263,7 @@ namespace IceRpc.Transports
             if (IsStarted && !_connection.RemoveStream(Id))
             {
                 Debug.Assert(false);
-                throw new ObjectDisposedException($"{typeof(Stream).FullName}");
+                throw new ObjectDisposedException($"{typeof(RpcStream).FullName}");
             }
             CancelDispatchSource?.Dispose();
         }
@@ -415,7 +414,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Reset(StreamErrorCode errorCode)
+        internal void Reset(RpcStreamError errorCode)
         {
             if (!IsControl)
             {
@@ -660,7 +659,7 @@ namespace IceRpc.Transports
                 set => throw new NotImplementedException();
             }
 
-            private readonly Stream _stream;
+            private readonly RpcStream _stream;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -696,7 +695,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            internal IOStream(Stream stream) => _stream = stream;
+            internal IOStream(RpcStream stream) => _stream = stream;
         }
     }
 }

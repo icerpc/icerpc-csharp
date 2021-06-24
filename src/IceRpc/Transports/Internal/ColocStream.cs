@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Stream class for the colocated transport.</summary>
+    /// <summary>The RpcStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
         protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
             return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamError errorCode)
         {
             // If the stream is aborted, either because it was reset by the peer or because the connection was
             // aborted, there's no need to send a reset frame.
@@ -156,7 +156,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(object frame, bool fin)
         {
-            if (frame is StreamErrorCode errorCode)
+            if (frame is RpcStreamError errorCode)
             {
                 AbortRead(errorCode);
                 CancelDispatchSource?.Cancel();

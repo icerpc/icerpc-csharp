@@ -87,10 +87,10 @@ namespace IceRpc
 
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
-        /// connection. For outgoing connections, set can be called during configuration.</summary>
+        /// connection. For client connections, set can be called during configuration.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
         /// set.</value>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is an incoming connection.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is a server connection.</exception>
         public IDispatcher? Dispatcher
         {
             get => Server?.Dispatcher ?? _dispatcher;
@@ -103,7 +103,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    throw new InvalidOperationException("cannot change the dispatcher of an incoming connection");
+                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
                 }
             }
         }
@@ -129,12 +129,13 @@ namespace IceRpc
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => (_localEndpoint ?? _remoteEndpoint)?.IsDatagram ?? false;
 
-        /// <summary><c>true</c> for incoming connections <c>false</c> otherwise.</summary>
-        public bool IsIncoming => _localEndpoint != null;
-
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
         public bool IsSecure => ConnectionInformation.IsSecure;
+
+        /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
+        /// client.</summary>
+        public bool IsServer => _localEndpoint != null;
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
@@ -210,7 +211,7 @@ namespace IceRpc
 
         /// <summary>The connection remote endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
-        /// the remote endpoint is not allowed (the connection is connected or it's an incoming connection).</exception>
+        /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
         public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint ?? _connection?.RemoteEndpoint;
@@ -225,7 +226,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The server that created this incoming connection.</summary>
+        /// <summary>The server that accepted this connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
         /// <c>ConnectionState.NotConnected</c>.</exception>
         public Server? Server
@@ -305,7 +306,7 @@ namespace IceRpc
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
-        private Stream? _controlStream;
+        private RpcStream? _controlStream;
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
@@ -317,14 +318,14 @@ namespace IceRpc
         // performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
-        private Stream? _peerControlStream;
+        private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private Server? _server;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
-        /// <summary>Constructs a new outgoing connection.</summary>
+        /// <summary>Constructs a new client connection.</summary>
         public Connection()
         {
         }
@@ -343,7 +344,7 @@ namespace IceRpc
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set or if
-        /// <see cref="Options"/> is set to an <see cref="IncomingConnectionOptions"/> instance</exception>
+        /// <see cref="Options"/> is set to an <see cref="ServerConnectionOptions"/> instance</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             lock (_mutex)
@@ -363,36 +364,36 @@ namespace IceRpc
                 }
                 Debug.Assert(_state == ConnectionState.NotConnected);
 
-                _options ??= IsIncoming ? IncomingConnectionOptions.Default : OutgoingConnectionOptions.Default;
+                _options ??= IsServer ? ServerConnectionOptions.Default : ClientConnectionOptions.Default;
                 ValueTask connectTask;
-                if (_options is OutgoingConnectionOptions outgoingOptions)
+                if (_options is ClientConnectionOptions clientOptions)
                 {
-                    if (IsIncoming)
+                    if (IsServer)
                     {
                         throw new InvalidOperationException(
-                            "invalid outgoing connection options for incoming connection");
+                            "invalid client connection options for server connection");
                     }
 
                     if (_connection == null)
                     {
                         if (_remoteEndpoint == null)
                         {
-                            throw new InvalidOperationException("outgoing connection has no remote endpoint set");
+                            throw new InvalidOperationException("client connection has no remote endpoint set");
                         }
                         else if (_localEndpoint != null)
                         {
-                            throw new InvalidOperationException("outgoing connection has local endpoint set");
+                            throw new InvalidOperationException("client connection has local endpoint set");
                         }
 
-                        if (_remoteEndpoint.TransportDescriptor?.OutgoingConnectionFactory is
-                            Func<Endpoint, OutgoingConnectionOptions, ILogger, MultiStreamConnection> connectionFactory)
+                        if (_remoteEndpoint.TransportDescriptor?.Connector is
+                            Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> connector)
                         {
-                            _connection = connectionFactory(_remoteEndpoint, outgoingOptions, Logger);
+                            _connection = connector(_remoteEndpoint, clientOptions, Logger);
                         }
                         else
                         {
                             throw new InvalidOperationException(
-                                $"cannot create outgoing connection for remote endpoint '{_remoteEndpoint}'");
+                                $"cannot create client connection for remote endpoint '{_remoteEndpoint}'");
                         }
                     }
 
@@ -400,7 +401,7 @@ namespace IceRpc
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
                     if (_connection.RemoteEndpoint.IsSecure ?? true)
                     {
-                        clientAuthenticationOptions = outgoingOptions.AuthenticationOptions?.Clone() ?? new();
+                        clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
                         clientAuthenticationOptions.TargetHost ??= _connection.RemoteEndpoint.Host;
                         clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
                             new SslApplicationProtocol(Protocol.GetName())
@@ -411,23 +412,23 @@ namespace IceRpc
                 }
                 else
                 {
-                    var incomingOptions = (IncomingConnectionOptions)_options;
-                    if (!IsIncoming)
+                    var serverOptions = (ServerConnectionOptions)_options;
+                    if (!IsServer)
                     {
                         throw new InvalidOperationException(
-                            "invalid incoming connection options for outgoing connection");
+                            "invalid server connection options for client connection");
                     }
                     else if (_connection == null)
                     {
                         throw new InvalidOperationException(
-                            $"incoming connection can only be created by a {nameof(Server)}");
+                            $"server connection can only be created by a {nameof(Server)}");
                     }
 
                     // If the endpoint is secure, accept with the SSL server authentication options.
                     SslServerAuthenticationOptions? serverAuthenticationOptions = null;
                     if (_connection.LocalEndpoint.IsSecure ?? true)
                     {
-                        serverAuthenticationOptions = incomingOptions.AuthenticationOptions?.Clone() ?? new();
+                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
                         serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
                             new SslApplicationProtocol(Protocol.GetName())
                         };
@@ -468,7 +469,7 @@ namespace IceRpc
                         // trace the correct message.
                         _connected = true;
 
-                        Action logSuccess = (IsIncoming, IsDatagram) switch
+                        Action logSuccess = (IsServer, IsDatagram) switch
                         {
                             (false, false) => _connection.Logger.LogConnectionEstablished,
                             (false, true) => _connection.Logger.LogStartSendingDatagrams,
@@ -579,7 +580,7 @@ namespace IceRpc
                 throw;
             }
 
-            Stream? stream = null;
+            RpcStream? stream = null;
             try
             {
                 using IDisposable? connectionScope = StartScope();
@@ -605,34 +606,34 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                stream!.Reset(StreamErrorCode.InvocationCanceled);
+                stream!.Reset(RpcStreamError.InvocationCanceled);
                 throw;
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.DispatchCanceled)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer");
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdown)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
             {
                 // Invocations are canceled immediately when Shutdown is called on the connection.
                 Debug.Assert(Protocol == Protocol.Ice1);
                 throw new OperationCanceledException("connection shutdown");
             }
-            catch (StreamAbortedException ex) when (ex.ErrorCode == StreamErrorCode.ConnectionShutdownByPeer)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer");
             }
-            catch (StreamAbortedException ex)
+            catch (RpcStreamAbortedException ex)
             {
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
-                Debug.Assert(ex.ErrorCode == StreamErrorCode.ConnectionAborted);
+                Debug.Assert(ex.ErrorCode == RpcStreamError.ConnectionAborted);
                 throw new ConnectionLostException();
             }
             catch (TransportException ex)
@@ -681,9 +682,9 @@ namespace IceRpc
         /// <returns>The description of the connection as human readable text.</returns>
         // TODO: get on ConnectionInformation can throw!
         public override string ToString() => ConnectionInformation == null ? "" :
-            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsIncoming})";
+            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsServer={IsServer})";
 
-        /// <summary>Constructs an incoming connection from an accepted connection.</summary>
+        /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)
         {
             _connection = connection;
@@ -762,7 +763,7 @@ namespace IceRpc
                 if (_connection != null)
                 {
                     // Abort the streams.
-                    _connection.AbortStreams(StreamErrorCode.ConnectionAborted);
+                    _connection.AbortStreams(RpcStreamError.ConnectionAborted);
 
                     _connection.Dispose();
 
@@ -772,7 +773,7 @@ namespace IceRpc
                         // If the connection is connecting but not active yet, we print a trace to show that
                         // the connection got connected or accepted before printing out the connection closed
                         // trace.
-                        Action<Exception> logFailure = (IsIncoming, IsDatagram) switch
+                        Action<Exception> logFailure = (IsServer, IsDatagram) switch
                         {
                             (false, false) => _connection.Logger.LogConnectionConnectFailed,
                             (false, true) => _connection.Logger.LogStartSendingDatagramsFailed,
@@ -783,7 +784,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (IsDatagram && IsIncoming)
+                        if (IsDatagram && IsServer)
                         {
                             _connection.Logger.LogStopReceivingDatagrams();
                         }
@@ -828,7 +829,7 @@ namespace IceRpc
 
         private async Task AcceptStreamAsync()
         {
-            Stream? stream = null;
+            RpcStream? stream = null;
             try
             {
                 // Accept a new stream.
@@ -878,7 +879,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        stream.Reset(StreamErrorCode.DispatchCanceled);
+                        stream.Reset(RpcStreamError.DispatchCanceled);
                     }
                 }
                 catch (Exception exception)
@@ -922,7 +923,7 @@ namespace IceRpc
                     }
                 }
             }
-            catch (StreamAbortedException)
+            catch (RpcStreamAbortedException)
             {
                 // Ignore
             }
@@ -1005,7 +1006,7 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1)
                     {
                         // Abort outgoing streams.
-                        _connection.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdown);
+                        _connection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown);
 
                         // Wait for incoming streams to complete before sending the CloseConnetion frame. Ice1 doesn't
                         // support sending the largest request ID with the CloseConnection frame. When the peer
@@ -1150,7 +1151,7 @@ namespace IceRpc
 
                 // Abort non-processed outgoing streams before closing the connection to ensure the invocation
                 // will fail with a retryable exception.
-                _connection.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
+                _connection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer, lastOutgoingStreamIds);
 
                 try
                 {

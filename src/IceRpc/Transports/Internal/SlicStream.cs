@@ -47,7 +47,7 @@ namespace IceRpc.Transports.Internal
         // A value which is used as a gate to ensure the stream isn't released twice with the connection.
         private int _streamReleased;
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamError errorCode)
         {
             if (IsIncoming && !ReleaseStreamCount())
             {
@@ -492,7 +492,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedReset(StreamErrorCode errorCode)
+        internal void ReceivedReset(RpcStreamError errorCode)
         {
             if (!IsIncoming && !ReleaseStreamCount())
             {

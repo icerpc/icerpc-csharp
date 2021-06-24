@@ -32,7 +32,7 @@ namespace IceRpc
         public OutgoingResponse(
             IncomingRequest request,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Action<Stream>? streamDataWriter = null)
+            Action<RpcStream>? streamDataWriter = null)
             : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamDataWriter)
         {
             ResultType = ResultType.Success;
@@ -47,7 +47,7 @@ namespace IceRpc
         public OutgoingResponse(
             Dispatch dispatch,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Action<Stream>? streamDataWriter = null)
+            Action<RpcStream>? streamDataWriter = null)
             : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamDataWriter)
         {
             ResultType = ResultType.Success;
@@ -187,7 +187,7 @@ namespace IceRpc
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Encoding payloadEncoding,
             FeatureCollection features,
-            Action<Stream>? streamDataWriter)
+            Action<RpcStream>? streamDataWriter)
             : base(protocol, features, streamDataWriter)
         {
             PayloadEncoding = payloadEncoding;

@@ -156,9 +156,9 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
         [TestCase("ice+tcp://host.zeroc.com/category/name%20with%20space", "/category/name%20with%20space")]
         [TestCase("ice+tcp://host.zeroc.com/category/name with space", "/category/name%20with%20space")]
-        [TestCase("ice+ws://host.zeroc.com//identity")]
-        [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
-        [TestCase("ice+ws://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
+        [TestCase("ice+tcp://host.zeroc.com//identity")]
+        [TestCase("ice+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com")]
+        [TestCase("ice+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
         [TestCase("ice:location//identity#facet", "/location//identity%23facet")]
@@ -172,7 +172,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
         [TestCase("ice+universal://[::ab:cd:ef:00]/identity?transport=bt")]
-        [TestCase("ice+ws://host.zeroc.com/identity?resource=/foo%2Fbar?/xyz")]
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
@@ -215,7 +214,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice://host:1000/identity")] // host not allowed
         [TestCase("ice+universal:/identity")] // missing host
         [TestCase("ice+tcp://host.zeroc.com/identity?protocol=3")] // unknown protocol (must use universal)
-        [TestCase("ice+ws://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
+        [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
         [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
         [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
@@ -340,7 +339,7 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
-        [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+ws://[::1]")]
+        [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
             var prx1 = IServicePrx.Parse(proxyString);
@@ -372,7 +371,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
             var prx = IGreeterPrx.FromConnection(connection);
 
-            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection responseConnection, IceRpc.Transports.Stream? _) =
+            (ReadOnlyMemory<byte> payload, Encoding payloadEncoding, Connection responseConnection, IceRpc.Transports.RpcStream? _) =
                 await prx.InvokeAsync("SayHello", Payload.FromEmptyArgs(prx));
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
@@ -456,14 +455,13 @@ namespace IceRpc.Tests.Api
 
             Assert.AreEqual("/test", prx.Path);
 
-            string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+ws://localhost?resource=/x/y";
+            string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+tcp://localhost";
             prx = IServicePrx.Parse(complicated);
 
             Assert.AreEqual(Encoding.V11, prx.Encoding);
             Endpoint altEndpoint = prx.AltEndpoints[0];
             Assert.AreEqual(1, prx.AltEndpoints.Count);
-            Assert.AreEqual(Transport.WS, altEndpoint.Transport);
-            Assert.AreEqual("/x/y", altEndpoint["resource"]);
+            Assert.AreEqual(Transport.TCP, altEndpoint.Transport);
         }
 
         [TestCase("1.3")]
@@ -510,7 +508,7 @@ namespace IceRpc.Tests.Api
             {
                 capture = new
                 {
-                    IncomingConnection = request.Connection,
+                    ServerConnection = request.Connection,
                     Service = IServicePrx.FromConnection(request.Connection),
                     Greeter = IGreeterPrx.FromConnection(request.Connection)
                 };
@@ -551,12 +549,12 @@ namespace IceRpc.Tests.Api
 
             Assert.IsNotNull(capture);
             Assert.AreEqual(IServicePrx.DefaultPath, capture.Service.Path);
-            Assert.AreEqual(capture.IncomingConnection, capture.Service.Connection);
+            Assert.AreEqual(capture.ServerConnection, capture.Service.Connection);
             Assert.IsNull(capture.Service.Endpoint);
 
             Assert.IsNotNull(greeter);
             Assert.AreEqual(IGreeterPrx.DefaultPath, capture.Greeter.Path);
-            Assert.AreEqual(capture.IncomingConnection, capture.Greeter.Connection);
+            Assert.AreEqual(capture.ServerConnection, capture.Greeter.Connection);
             Assert.IsNull(capture.Greeter.Endpoint);
         }
 

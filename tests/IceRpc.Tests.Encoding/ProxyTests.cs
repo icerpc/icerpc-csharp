@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Encoding
             _connection = new Connection
             {
                 RemoteEndpoint = _server.ProxyEndpoint,
-                Options = OutgoingConnectionOptions.Default // TODO: it's required due to a bug in the Connection code
+                Options = ClientConnectionOptions.Default // TODO: it's required due to a bug in the Connection code
             };
         }
 
@@ -38,8 +38,8 @@ namespace IceRpc.Tests.Encoding
             await _connection.ShutdownAsync();
         }
 
-        [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
-        [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+ws://localhost:10000")]
+        [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
+        [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
         [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Encoding
             ostr.WriteProxy(endpointLess);
             ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
 
-            // Unmarshals the endpointless proxy using the outgoing connection. We get back a 1-endpoint proxy
+            // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             var istr = new InputStream(data, encoding, _connection);
             var prx1 = IServicePrx.IceReader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);

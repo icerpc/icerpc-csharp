@@ -73,7 +73,7 @@ namespace IceRpc
 
         /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
         /// called after the request or response frame is sent over a stream.</summary>
-        internal Action<Stream>? StreamDataWriter { get; set; }
+        internal Action<RpcStream>? StreamDataWriter { get; set; }
 
         private Dictionary<int, Action<OutputStream>>? _fields;
 
@@ -105,7 +105,7 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, Action<Stream>? streamDataWriter)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, Action<RpcStream>? streamDataWriter)
         {
             Protocol = protocol;
             Protocol.CheckSupported();

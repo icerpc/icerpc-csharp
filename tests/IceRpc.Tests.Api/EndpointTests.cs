@@ -13,8 +13,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://[::0]")]
         [TestCase("ice+tcp://[::0]?tls=true")]
         [TestCase("ice+tcp://[::0]?tls=false")]
-        [TestCase("ice+ws://[::0]?tls=true")]
-        [TestCase("ice+ws://[::0]?tls=false")]
         [TestCase("ice+universal://host:10000?transport=tcp&protocol=ice2")]
         [TestCase("ice+universal://host:10000?transport=tcp&protocol=3")]
         [TestCase("ice+coloc://host:10000")]

@@ -251,9 +251,9 @@ namespace IceRpc
         /// <inheritdoc/>
         public void IceWrite(OutputStream ostr)
         {
-            if (_connection?.IsIncoming ?? false)
+            if (_connection?.IsServer ?? false)
             {
-                throw new InvalidOperationException("cannot marshal a proxy bound to an incoming connection");
+                throw new InvalidOperationException("cannot marshal a proxy bound to a server connection");
             }
 
             if (ostr.Encoding == Encoding.V11)

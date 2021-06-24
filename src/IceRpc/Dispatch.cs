@@ -56,7 +56,7 @@ namespace IceRpc
 
         /// <summary>The <see cref="Stream"/> that received the request.</summary>
         // TODO: This shouldn't depend on the stream transport API.
-        public IceRpc.Transports.Stream Stream => IncomingRequest.Stream;
+        public IceRpc.Transports.RpcStream Stream => IncomingRequest.Stream;
 
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }

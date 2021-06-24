@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(Proxy, "op", requestPayload, DateTime.MaxValue);
             ValueTask receiveTask = PerformReceiveAsync();
 
-            Stream stream = OutgoingConnection.CreateStream(false);
+            RpcStream stream = ClientConnection.CreateStream(false);
             await stream.SendRequestFrameAsync(request);
             stream.Release();
 
@@ -49,8 +49,8 @@ namespace IceRpc.Tests.Internal
 
             async ValueTask PerformReceiveAsync()
             {
-                Stream serverStream = await IncomingConnection.AcceptStreamAsync(default);
-                ValueTask<Stream> _ = IncomingConnection.AcceptStreamAsync(default);
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+                ValueTask<RpcStream> _ = ServerConnection.AcceptStreamAsync(default);
                 await serverStream.ReceiveRequestFrameAsync();
                 serverStream.Release();
             }
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void Stream_SendRequestAsync_Cancellation()
         {
-            Stream stream = OutgoingConnection.CreateStream(true);
+            RpcStream stream = ClientConnection.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
 
@@ -68,10 +68,10 @@ namespace IceRpc.Tests.Internal
             stream.Release();
         }
 
-        [TestCase(StreamErrorCode.DispatchCanceled)]
-        [TestCase(StreamErrorCode.InvocationCanceled)]
-        [TestCase((StreamErrorCode)10)]
-        public async Task Stream_Reset(StreamErrorCode errorCode)
+        [TestCase(RpcStreamError.DispatchCanceled)]
+        [TestCase(RpcStreamError.InvocationCanceled)]
+        [TestCase((RpcStreamError)10)]
+        public async Task Stream_Reset(RpcStreamError errorCode)
         {
             // SendAsync/ReceiveAsync is only supported with Slic
             if (ConnectionType != MultiStreamConnectionType.Slic)
@@ -79,25 +79,25 @@ namespace IceRpc.Tests.Internal
                 return;
             }
 
-            Stream clientStream = OutgoingConnection.CreateStream(true);
+            RpcStream clientStream = ClientConnection.CreateStream(true);
 
             // Send one byte.
             var sendBuffer = new ReadOnlyMemory<byte>[] { new byte[1] };
             await clientStream.InternalSendAsync(sendBuffer, false, default);
 
-            // Accept the new stream on the incoming connection
-            Stream serverStream = await IncomingConnection.AcceptStreamAsync(default);
+            // Accept the new stream on the server connection
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
 
-            // Continue reading from on the incoming connection and receive the byte sent over the client stream.
-            _ = IncomingConnection.AcceptStreamAsync(default).AsTask();
+            // Continue reading from on the server connection and receive the byte sent over the client stream.
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
             int received = await serverStream.InternalReceiveAsync(new byte[256], default);
             Assert.That(received, Is.EqualTo(1));
 
             // Reset the stream
             clientStream.Reset(errorCode);
 
-            // Ensure that receive on the incoming connection raises OperationCanceledException
-            StreamAbortedException? ex = Assert.CatchAsync<StreamAbortedException>(
+            // Ensure that receive on the server connection raises OperationCanceledException
+            RpcStreamAbortedException? ex = Assert.CatchAsync<RpcStreamAbortedException>(
                 async () => await serverStream.InternalReceiveAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
             Assert.That(serverStream.CancelDispatchSource!.Token.IsCancellationRequested);
@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Internal
             serverStream.Release();
 
             // Ensure we can still send a request after the cancellation
-            Stream clientStream2 = OutgoingConnection.CreateStream(true);
+            RpcStream clientStream2 = ClientConnection.CreateStream(true);
             await clientStream2.InternalSendAsync(sendBuffer, false, default);
             clientStream2.Release();
         }
@@ -113,10 +113,10 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Stream_SendResponse_CancellationAsync()
         {
-            Stream stream = OutgoingConnection.CreateStream(true);
+            RpcStream stream = ClientConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
 
-            Stream serverStream = await IncomingConnection.AcceptStreamAsync(default);
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
 
             using var source = new CancellationTokenSource();
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void Stream_ReceiveRequest_Cancellation()
         {
-            Stream stream = OutgoingConnection.CreateStream(false);
+            RpcStream stream = ClientConnection.CreateStream(false);
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Stream_ReceiveResponse_Cancellation1Async()
         {
-            Stream stream = OutgoingConnection.CreateStream(true);
+            RpcStream stream = ClientConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
             using var source = new CancellationTokenSource();
             source.Cancel();
@@ -154,12 +154,12 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Stream_ReceiveResponse_Cancellation2Async()
         {
-            Stream stream = OutgoingConnection.CreateStream(true);
+            RpcStream stream = ClientConnection.CreateStream(true);
             await stream.SendRequestFrameAsync(DummyRequest);
 
-            Stream serverStream = await IncomingConnection.AcceptStreamAsync(default);
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
-            _ = IncomingConnection.AcceptStreamAsync(default).AsTask();
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
 
             using var source = new CancellationTokenSource();
             ValueTask<IncomingResponse> responseTask = stream.ReceiveResponseFrameAsync(source.Token);
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.Internal
 
             if (ConnectionType != MultiStreamConnectionType.Ice1)
             {
-                stream.Reset(StreamErrorCode.InvocationCanceled);
+                stream.Reset(RpcStreamError.InvocationCanceled);
 
                 // Ensure the stream cancel dispatch source is canceled
                 Assert.CatchAsync<OperationCanceledException>(async () =>

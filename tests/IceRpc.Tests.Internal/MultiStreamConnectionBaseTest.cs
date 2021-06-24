@@ -19,17 +19,17 @@ namespace IceRpc.Tests.Internal
     {
         protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
 
-        protected MultiStreamConnection OutgoingConnection => _outgoingConnection!;
+        protected MultiStreamConnection ClientConnection => _clientConnection!;
 
         protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
-        protected MultiStreamConnection IncomingConnection => _incomingConnection!;
+        protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
-        private MultiStreamConnection? _outgoingConnection;
-        private Stream? _controlStreamForClient;
-        private Stream? _controlStreamForServer;
-        private Stream? _peerControlStreamForClient;
-        private Stream? _peerControlStreamForServer;
-        private MultiStreamConnection? _incomingConnection;
+        private MultiStreamConnection? _clientConnection;
+        private RpcStream? _controlStreamForClient;
+        private RpcStream? _controlStreamForServer;
+        private RpcStream? _peerControlStreamForClient;
+        private RpcStream? _peerControlStreamForServer;
+        private MultiStreamConnection? _serverConnection;
 
         public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)
             : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
@@ -40,18 +40,18 @@ namespace IceRpc.Tests.Internal
         public async Task SetUpConnectionsAsync()
         {
             Task<MultiStreamConnection> acceptTask = AcceptAsync();
-            _outgoingConnection = await ConnectAsync();
-            _incomingConnection = await acceptTask;
+            _clientConnection = await ConnectAsync();
+            _serverConnection = await acceptTask;
 
-            ValueTask initializeTask = _incomingConnection.InitializeAsync(default);
-            await _outgoingConnection.InitializeAsync(default);
+            ValueTask initializeTask = _serverConnection.InitializeAsync(default);
+            await _clientConnection.InitializeAsync(default);
             await initializeTask;
 
-            _controlStreamForClient = await OutgoingConnection.SendInitializeFrameAsync(default);
-            _controlStreamForServer = await IncomingConnection.SendInitializeFrameAsync(default);
+            _controlStreamForClient = await ClientConnection.SendInitializeFrameAsync(default);
+            _controlStreamForServer = await ServerConnection.SendInitializeFrameAsync(default);
 
-            _peerControlStreamForClient = await OutgoingConnection.ReceiveInitializeFrameAsync(default);
-            _peerControlStreamForServer = await IncomingConnection.ReceiveInitializeFrameAsync(default);
+            _peerControlStreamForClient = await ClientConnection.ReceiveInitializeFrameAsync(default);
+            _peerControlStreamForServer = await ServerConnection.ReceiveInitializeFrameAsync(default);
         }
 
         public void TearDownConnections()
@@ -61,8 +61,8 @@ namespace IceRpc.Tests.Internal
             _controlStreamForServer?.Release();
             _peerControlStreamForServer?.Release();
 
-            _outgoingConnection?.Dispose();
-            _incomingConnection?.Dispose();
+            _clientConnection?.Dispose();
+            _serverConnection?.Dispose();
         }
 
         static protected OutgoingResponse GetResponseFrame(IncomingRequest request) =>
