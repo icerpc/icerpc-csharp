@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly bool _hasCompressionFlag;
 
-        public MultiStreamConnection AcceptConnection(ServerConnectionOptions options, ILogger logger)
+        public MultiStreamConnection Accept(ServerConnectionOptions options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {

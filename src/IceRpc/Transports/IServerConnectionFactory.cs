@@ -16,6 +16,6 @@ namespace IceRpc.Transports
         /// <param name="options">The connection options.</param>
         /// <param name="logger">The logger.</param>
         /// <returns>The new connection. This connection is not yet connected.</returns>
-        MultiStreamConnection AcceptConnection(ServerConnectionOptions options, ILogger logger);
+        MultiStreamConnection Accept(ServerConnectionOptions options, ILogger logger);
     }
 }

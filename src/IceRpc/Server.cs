@@ -174,7 +174,7 @@ namespace IceRpc
                 else if (_endpoint is IServerConnectionFactory serverConnectionFactory)
                 {
                     MultiStreamConnection multiStreamConnection =
-                        serverConnectionFactory.AcceptConnection(ConnectionOptions, Logger);
+                        serverConnectionFactory.Accept(ConnectionOptions, Logger);
                     var serverConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();

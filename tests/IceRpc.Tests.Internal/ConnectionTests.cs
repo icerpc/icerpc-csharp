@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        ((IServerConnectionFactory)Endpoint).AcceptConnection(_server.ConnectionOptions,
+                        ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions,
                                                                               _server.Logger),
                         _server);
                     _ = serverConnection.ConnectAsync(default);

@@ -198,7 +198,7 @@ namespace IceRpc.Tests.Internal
             Logger);
 
         protected MultiStreamConnection CreateServerConnection() =>
-            ((IServerConnectionFactory)ServerEndpoint).AcceptConnection(ServerConnectionOptions,
+            ((IServerConnectionFactory)ServerEndpoint).Accept(ServerConnectionOptions,
                                                                         Logger);
     }
 }
