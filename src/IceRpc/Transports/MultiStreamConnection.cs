@@ -257,7 +257,7 @@ namespace IceRpc.Transports
         }
 
         internal virtual void AbortOutgoingStreams(
-            RpcStreamErrorCode errorCode,
+            RpcStreamError errorCode,
             (long Bidirectional, long Unidirectional)? ids = null)
         {
             // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer
@@ -275,7 +275,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal virtual void AbortStreams(RpcStreamErrorCode errorCode)
+        internal virtual void AbortStreams(RpcStreamError errorCode)
         {
             foreach (RpcStream stream in _streams.Values)
             {

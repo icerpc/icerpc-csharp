@@ -193,7 +193,7 @@ namespace IceRpc.Transports.Internal
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
                         var streamReset = new StreamResetBody(istr);
-                        var errorCode = (RpcStreamErrorCode)streamReset.ApplicationProtocolErrorCode;
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
                         if (TryGetStream(streamId.Value, out SlicStream? stream))
                         {
                             stream.ReceivedReset(errorCode);
@@ -444,7 +444,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(RpcStreamErrorCode errorCode)
+        internal override void AbortStreams(RpcStreamError errorCode)
         {
             base.AbortStreams(errorCode);
 

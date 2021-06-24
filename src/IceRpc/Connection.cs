@@ -226,7 +226,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The server that created this server connection.</summary>
+        /// <summary>The server that accepted this connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
         /// <c>ConnectionState.NotConnected</c>.</exception>
         public Server? Server
@@ -606,20 +606,20 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                stream!.Reset(RpcStreamErrorCode.InvocationCanceled);
+                stream!.Reset(RpcStreamError.InvocationCanceled);
                 throw;
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamErrorCode.DispatchCanceled)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer");
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamErrorCode.ConnectionShutdown)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
             {
                 // Invocations are canceled immediately when Shutdown is called on the connection.
                 Debug.Assert(Protocol == Protocol.Ice1);
                 throw new OperationCanceledException("connection shutdown");
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamErrorCode.ConnectionShutdownByPeer)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
@@ -633,7 +633,7 @@ namespace IceRpc
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
-                Debug.Assert(ex.ErrorCode == RpcStreamErrorCode.ConnectionAborted);
+                Debug.Assert(ex.ErrorCode == RpcStreamError.ConnectionAborted);
                 throw new ConnectionLostException();
             }
             catch (TransportException ex)
@@ -763,7 +763,7 @@ namespace IceRpc
                 if (_connection != null)
                 {
                     // Abort the streams.
-                    _connection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
+                    _connection.AbortStreams(RpcStreamError.ConnectionAborted);
 
                     _connection.Dispose();
 
@@ -879,7 +879,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        stream.Reset(RpcStreamErrorCode.DispatchCanceled);
+                        stream.Reset(RpcStreamError.DispatchCanceled);
                     }
                 }
                 catch (Exception exception)
@@ -1006,7 +1006,7 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1)
                     {
                         // Abort outgoing streams.
-                        _connection.AbortOutgoingStreams(RpcStreamErrorCode.ConnectionShutdown);
+                        _connection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown);
 
                         // Wait for incoming streams to complete before sending the CloseConnetion frame. Ice1 doesn't
                         // support sending the largest request ID with the CloseConnection frame. When the peer
@@ -1151,7 +1151,7 @@ namespace IceRpc
 
                 // Abort non-processed outgoing streams before closing the connection to ensure the invocation
                 // will fail with a retryable exception.
-                _connection.AbortOutgoingStreams(RpcStreamErrorCode.ConnectionShutdownByPeer, lastOutgoingStreamIds);
+                _connection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer, lastOutgoingStreamIds);
 
                 try
                 {

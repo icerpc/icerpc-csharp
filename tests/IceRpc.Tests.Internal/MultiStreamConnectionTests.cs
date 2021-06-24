@@ -36,8 +36,8 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void MultiStreamConnection_AbortStreams_EmptyStreams()
         {
-            ClientConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
-            ServerConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
+            ClientConnection.AbortStreams(RpcStreamError.ConnectionAborted);
+            ServerConnection.AbortStreams(RpcStreamError.ConnectionAborted);
 
             (long clientBidirectional, long clientUnidirectional) = ClientConnection.Shutdown();
             (long serverBidirectional, long serverUnidirectional) = ServerConnection.Shutdown();
@@ -54,14 +54,14 @@ namespace IceRpc.Tests.Internal
             var clientStream = ClientConnection.CreateStream(true);
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
-            ClientConnection.AbortStreams(RpcStreamErrorCode.ConnectionAborted);
+            ClientConnection.AbortStreams(RpcStreamError.ConnectionAborted);
             (long clientBidirectional, long clientUnidirectional) = ClientConnection.Shutdown();
 
             RpcStreamAbortedException? ex;
             // Stream is aborted
             ex = Assert.ThrowsAsync<RpcStreamAbortedException>(
                 async () => await clientStream.ReceiveResponseFrameAsync(default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(RpcStreamErrorCode.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(RpcStreamError.ConnectionAborted));
             clientStream.Release();
 
             // Can't create new stream
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.Internal
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
 
-            ClientConnection.AbortOutgoingStreams(RpcStreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
+            ClientConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown, (clientStream.Id, 0));
 
             // Stream is not aborted
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();

@@ -13,13 +13,13 @@ namespace IceRpc.Transports
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
     public class RpcStreamAbortedException : Exception
     {
-        internal RpcStreamErrorCode ErrorCode { get; }
+        internal RpcStreamError ErrorCode { get; }
 
-        internal RpcStreamAbortedException(RpcStreamErrorCode errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum RpcStreamErrorCode : byte
+    public enum RpcStreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled = 0,
@@ -105,7 +105,7 @@ namespace IceRpc.Transports
         private readonly MultiStreamConnection _connection;
 
         /// <summary>Aborts the stream. This is called by the connection when it's shutdown or aborted.</summary>
-        internal void Abort(RpcStreamErrorCode errorCode) => AbortRead(errorCode);
+        internal void Abort(RpcStreamError errorCode) => AbortRead(errorCode);
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>
         /// <return>The IO stream which can be used to read the data received from the stream.</return>
@@ -166,7 +166,7 @@ namespace IceRpc.Transports
                             catch
                             {
                                 // Don't await the sending of the reset since it might block if sending is blocking.
-                                Reset(RpcStreamErrorCode.StreamingError);
+                                Reset(RpcStreamError.StreamingError);
                                 break;
                             }
                         }
@@ -211,10 +211,10 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Abort the stream received side.</summary>
-        protected abstract void AbortRead(RpcStreamErrorCode errorCode);
+        protected abstract void AbortRead(RpcStreamError errorCode);
 
         /// <summary>Abort the stream send size.</summary>
-        protected abstract void AbortWrite(RpcStreamErrorCode errorCode);
+        protected abstract void AbortWrite(RpcStreamError errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -414,7 +414,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Reset(RpcStreamErrorCode errorCode)
+        internal void Reset(RpcStreamError errorCode)
         {
             if (!IsControl)
             {
