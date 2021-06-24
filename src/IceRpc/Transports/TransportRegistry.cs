@@ -11,58 +11,46 @@ namespace IceRpc.Transports
     /// <summary>Registry for all transports known to this process.</summary>
     public static class TransportRegistry
     {
-        private static readonly IDictionary<string, TransportDescriptor> _transportNameRegistry =
-            new ConcurrentDictionary<string, TransportDescriptor>();
+        private static readonly IDictionary<string, ITransportDescriptor> _transportNameRegistry =
+            new ConcurrentDictionary<string, ITransportDescriptor>();
 
-        private static readonly IDictionary<Transport, TransportDescriptor> _transportRegistry =
-            new ConcurrentDictionary<Transport, TransportDescriptor>();
+        private static readonly IDictionary<Transport, ITransportDescriptor> _transportRegistry =
+            new ConcurrentDictionary<Transport, ITransportDescriptor>();
 
         /// <summary>Registers a new transport.</summary>
         /// <param name="descriptor">The transport descriptor.</param>
-        public static void Add(TransportDescriptor descriptor)
+        public static void Add(ITransportDescriptor descriptor)
         {
             if (descriptor.Name.Length == 0)
             {
                 throw new ArgumentException($"{nameof(descriptor.Name)} cannot be empty", nameof(descriptor));
             }
 
-            if (descriptor.Ice1EndpointFactory != null && descriptor.Ice1EndpointParser == null)
-            {
-                throw new ArgumentNullException($"{nameof(descriptor.Ice1EndpointParser)} cannot be null",
-                                                nameof(descriptor));
-            }
-
-            if (descriptor.Ice1EndpointFactory == null && descriptor.Ice2EndpointParser == null)
-            {
-                throw new ArgumentNullException($"{nameof(descriptor.Ice2EndpointParser)} cannot be null",
-                                                nameof(descriptor));
-            }
-
             _transportRegistry.Add(descriptor.Transport, descriptor);
             _transportNameRegistry.Add(descriptor.Name, descriptor);
 
-            if (descriptor.Ice2EndpointParser != null)
+            if (descriptor is IIce2TransportDescriptor ice2Descriptor)
             {
-                IceRpc.Internal.UriParser.RegisterTransport(descriptor.Name, descriptor.DefaultUriPort);
+                IceRpc.Internal.UriParser.RegisterTransport(descriptor.Name, ice2Descriptor.DefaultUriPort);
             }
         }
 
         internal static bool TryGetValue(
             Transport transport,
-            [NotNullWhen(true)] out TransportDescriptor? descriptor) =>
+            [NotNullWhen(true)] out ITransportDescriptor? descriptor) =>
             _transportRegistry.TryGetValue(transport, out descriptor);
 
         internal static bool TryGetValue(
             string name,
-            [NotNullWhen(true)] out TransportDescriptor? descriptor) =>
+            [NotNullWhen(true)] out ITransportDescriptor? descriptor) =>
             _transportNameRegistry.TryGetValue(name, out descriptor);
 
         static TransportRegistry()
         {
-            Add(ColocEndpoint.ColocTransportDescriptor);
-            Add(TcpEndpoint.TcpTransportDescriptor);
-            Add(TcpEndpoint.SslTransportDescriptor);
-            Add(UdpEndpoint.UdpTransportDescriptor);
+            Add(ColocEndpoint.TransportDescriptor);
+            Add(TcpEndpoint.GetTransportDescriptor(Transport.TCP));
+            Add(TcpEndpoint.GetTransportDescriptor(Transport.SSL));
+            Add(UdpEndpoint.TransportDescriptor);
         }
 
         // See Runtime.UriInitialize

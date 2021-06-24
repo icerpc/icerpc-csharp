@@ -19,13 +19,7 @@ namespace IceRpc.Transports.Internal
 
         internal const ushort DefaultUriPort = 4062;
 
-        internal static TransportDescriptor ColocTransportDescriptor { get; } =
-            new(Transport.Coloc, "coloc", CreateEndpoint)
-            {
-                DefaultUriPort = DefaultUriPort,
-                Ice1EndpointParser = ParseIce1Endpoint,
-                Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
-            };
+        internal static ITransportDescriptor TransportDescriptor { get; } = new ColocTransportDescriptor();
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
         {
@@ -54,13 +48,28 @@ namespace IceRpc.Transports.Internal
         {
         }
 
-        private static ColocEndpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
-            throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
-
-        private static ColocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+        private class ColocTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
         {
-            (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new(host, port, Protocol.Ice1);
+            public ushort DefaultUriPort => ColocEndpoint.DefaultUriPort;
+
+            public string Name => "coloc";
+
+            public Transport Transport => Transport.Coloc;
+
+            public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
+                throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
+
+            public Endpoint CreateEndpoint(InputStream _) =>
+                throw new InvalidDataException($"received ice1 endpoint for coloc transport");
+
+            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
+            {
+                (string host, ushort port) = Endpoint.ParseHostAndPort(options, endpointString);
+                return new ColocEndpoint(host, port, Protocol.Ice1);
+            }
+
+            public Endpoint CreateEndpoint(string host, ushort port, Dictionary<string, string> _) =>
+                new ColocEndpoint(host, port, Protocol.Ice2);
         }
     }
 }

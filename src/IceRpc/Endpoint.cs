@@ -274,9 +274,9 @@ namespace IceRpc
         /// ice1.</remarks>
         public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
         {
-            if (TransportRegistry.TryGetValue(data.Transport, out TransportDescriptor? descriptor))
+            if (TransportRegistry.TryGetValue(data.Transport, out ITransportDescriptor? descriptor))
             {
-                return descriptor.EndpointFactory(data, protocol);
+                return descriptor.CreateEndpoint(data, protocol);
             }
 
             return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :

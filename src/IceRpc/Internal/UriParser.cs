@@ -199,7 +199,7 @@ namespace IceRpc.Internal
                 port = (ushort)uri.Port;
             }
 
-            Func<string, ushort, Dictionary<string, string>, Endpoint>? parser = null;
+            IIce2TransportDescriptor? ice2TransportDescriptor = null;
             Transport transport = default;
             Endpoint? endpoint = null;
 
@@ -209,20 +209,20 @@ namespace IceRpc.Internal
 
                 if (endpoint.Protocol == Protocol.Ice2)
                 {
-                    // It's possible we have a factory for this transport, and we check it only when the protocol is
-                    // ice2 (otherwise, we return this UniversalEndpoint).
+                    // It's possible we have a transport descriptor for this transport, and we check it only when the
+                    // protocol is ice2 (otherwise, we return this UniversalEndpoint).
                     // Since all options have been consumed by Parse above, this works only for endpoints with no
                     // options.
-                    if (TransportRegistry.TryGetValue(endpoint.Transport, out TransportDescriptor? descriptor))
+                    if (TransportRegistry.TryGetValue(endpoint.Transport, out ITransportDescriptor? descriptor))
                     {
-                        parser = descriptor.Ice2EndpointParser;
+                        ice2TransportDescriptor = descriptor as IIce2TransportDescriptor;
                     }
                     transport = endpoint.Transport;
                 }
             }
-            else if (TransportRegistry.TryGetValue(transportName, out TransportDescriptor? descriptor))
+            else if (TransportRegistry.TryGetValue(transportName, out ITransportDescriptor? descriptor))
             {
-                parser = descriptor.Ice2EndpointParser;
+                ice2TransportDescriptor = descriptor as IIce2TransportDescriptor;
                 transport = descriptor.Transport;
             }
             else
@@ -230,9 +230,9 @@ namespace IceRpc.Internal
                 throw new FormatException($"unknown transport '{transportName}'");
             }
 
-            if (parser != null)
+            if (ice2TransportDescriptor != null)
             {
-                endpoint = parser(uri.DnsSafeHost, port, options);
+                endpoint = ice2TransportDescriptor.CreateEndpoint(uri.DnsSafeHost, port, options);
             }
             else
             {

@@ -101,23 +101,6 @@ namespace IceRpc.Transports.Internal
             return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
         }
 
-        internal static TransportDescriptor TcpTransportDescriptor { get; } =
-            new(Transport.TCP, "tcp", CreateEndpoint)
-            {
-                DefaultUriPort = DefaultUriPort,
-                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
-                Ice1EndpointParser = (options, endpointString) =>
-                    ParseIce1Endpoint(Transport.TCP, options, endpointString),
-                Ice2EndpointParser = ParseIce2Endpoint,
-            };
-
-        internal static TransportDescriptor SslTransportDescriptor { get; } =
-            new(Transport.SSL, "ssl", CreateEndpoint)
-            {
-                Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
-                Ice1EndpointParser = (options, endpointString) =>
-                    ParseIce1Endpoint(Transport.SSL, options, endpointString),
-            };
         private protected bool HasCompressionFlag { get; }
         private protected TimeSpan Timeout { get; } = DefaultTimeout;
 
@@ -184,7 +167,7 @@ namespace IceRpc.Transports.Internal
             ostr.WriteBool(HasCompressionFlag);
         }
 
-        // internal for some tests
+        // internal because it's used by some tests
         internal static TcpEndpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
             if (data.Options.Count > 0)
@@ -192,8 +175,16 @@ namespace IceRpc.Transports.Internal
                 // Drop all options since we don't understand any.
                 data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
             }
-            return new(data, protocol);
+            return new TcpEndpoint(data, protocol);
         }
+
+        internal static ITransportDescriptor GetTransportDescriptor(Transport transport) =>
+            transport switch
+            {
+                Transport.TCP => new TcpTransportDescriptor(),
+                Transport.SSL => new SslTransportDescriptor(),
+                _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
+            };
 
         private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
@@ -276,7 +267,7 @@ namespace IceRpc.Transports.Internal
                                    compress: istr.ReadBool());
         }
 
-        private static TcpEndpoint ParseIce1Endpoint(
+        private static TcpEndpoint CreateIce1Endpoint(
             Transport transport,
             Dictionary<string, string?> options,
             string endpointString)
@@ -288,15 +279,47 @@ namespace IceRpc.Transports.Internal
                                    ParseCompress(options, endpointString));
         }
 
-        private static TcpEndpoint ParseIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
+        private class TcpTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
         {
-            bool? tls = null;
-            if (options.TryGetValue("tls", out string? value))
+            public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
+
+            public string Name => "tcp";
+
+            public Transport Transport => Transport.TCP;
+
+            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
+                TcpEndpoint.CreateEndpoint(endpointData, protocol);
+
+            public Endpoint CreateEndpoint(InputStream istr) => CreateIce1Endpoint(Transport, istr);
+
+            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString) =>
+                CreateIce1Endpoint(Transport, options, endpointString);
+
+            public Endpoint CreateEndpoint(string host, ushort port, Dictionary<string, string> options)
             {
-                tls = bool.Parse(value);
-                options.Remove("tls");
+                bool? tls = null;
+                if (options.TryGetValue("tls", out string? value))
+                {
+                    tls = bool.Parse(value);
+                    options.Remove("tls");
+                }
+                return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
             }
-            return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
+        }
+
+        private class SslTransportDescriptor : IIce1TransportDescriptor
+        {
+            public string Name => "ssl";
+
+            public Transport Transport => Transport.SSL;
+
+            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
+                TcpEndpoint.CreateEndpoint(endpointData, protocol);
+
+            public Endpoint CreateEndpoint(InputStream istr) => CreateIce1Endpoint(Transport, istr);
+
+            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString) =>
+                CreateIce1Endpoint(Transport, options, endpointString);
         }
     }
 }
