@@ -104,7 +104,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                DefaultUriPort = DefaultIPPort,
+                DefaultUriPort = DefaultUriPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.TCP, options, endpointString),
