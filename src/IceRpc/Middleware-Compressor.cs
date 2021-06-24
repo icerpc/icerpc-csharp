@@ -43,8 +43,8 @@ namespace IceRpc
 
                         if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
                         {
-                            // TODO maxSize should come from the connection
-                            request.Payload = payload.Decompress(maxSize: 1024 * 1024);
+                            request.Payload = payload.Decompress(
+                                maxSize: request.Connection.Options!.IncomingFrameMaxSize);
                         }
                     }
 
