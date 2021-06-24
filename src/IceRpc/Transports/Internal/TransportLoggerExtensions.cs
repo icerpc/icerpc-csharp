@@ -79,7 +79,10 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEvent.ConnectionClosed),
             Level = LogLevel.Debug,
             Message = "closed connection (Reason={Reason})")]
-        internal static partial void LogConnectionClosed(this ILogger logger, string reason, Exception? exception = null);
+        internal static partial void LogConnectionClosed(
+            this ILogger logger,
+            string reason,
+            Exception? exception = null);
 
         [LoggerMessage(
             EventId = (int)TransportEvent.ConnectionConnectFailed,
@@ -203,12 +206,11 @@ namespace IceRpc.Transports.Internal
 
             string transportName = listener.Endpoint.Transport.ToString().ToLowerInvariant();
 
-            // TODO: add back scope for TcpListener
             if (listener is ColocListener)
             {
                 return _colocListenerScope(
                     logger,
-                    listener.Endpoint.TransportName,
+                    transportName,
                     listener.Endpoint.Protocol,
                     server.ToString());
             }
@@ -216,7 +218,7 @@ namespace IceRpc.Transports.Internal
             {
                 return _listenerScope(
                     logger,
-                    listener.Endpoint.TransportName,
+                    transportName,
                     listener.Endpoint.Protocol,
                     server.ToString(),
                     listener.ToString()!);
@@ -329,7 +331,10 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
-                        return _clientConnectionScope(logger, connection.TransportName, connection.Protocol, connection.ToString()!);
+                        return _clientConnectionScope(logger,
+                                                      connection.TransportName,
+                                                      connection.Protocol,
+                                                      connection.ToString()!);
                     }
                 }
             }
