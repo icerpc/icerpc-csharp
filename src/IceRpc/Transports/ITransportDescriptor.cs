@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Describes a transport.</summary>
+    /// <summary>Describes a transport registered with the IceRPC runtime.</summary>
     /// <seealso cref="TransportRegistry"/>
     public interface ITransportDescriptor
     {
@@ -18,9 +18,9 @@ namespace IceRpc.Transports
         Transport Transport { get; }
 
         /// <summary>Creates a new endpoint.</summary>
-        /// <param name="endpointData">The endpoint data.</param>
+        /// <param name="data">The endpoint data.</param>
         /// <param name="protocol">The Ice protocol of the new endpoint.</param>
-        Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol);
+        Endpoint CreateEndpoint(EndpointData data, Protocol protocol);
     }
 
     /// <summary>A transport descriptor for a transport that supports the ice1 protocol.</summary>
