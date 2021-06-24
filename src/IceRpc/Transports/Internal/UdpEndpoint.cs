@@ -29,8 +29,6 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
-        public override TransportDescriptor TransportDescriptor => UdpTransportDescriptor;
-
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {

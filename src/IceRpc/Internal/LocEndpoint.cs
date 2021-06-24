@@ -14,9 +14,6 @@ namespace IceRpc.Internal
     {
         // There is no Equals as it's identical to the base.
 
-        /// <inherit-doc/>
-        public override TransportDescriptor TransportDescriptor => LocTransportDescriptor;
-
         internal static TransportDescriptor LocTransportDescriptor { get; } =
             new(Transport.Loc, "loc", Create)
             {

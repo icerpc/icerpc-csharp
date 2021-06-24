@@ -28,10 +28,6 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
-        /// <inherit-doc/>
-        public override TransportDescriptor TransportDescriptor =>
-            Transport == Transport.SSL ? SslTransportDescriptor : TcpTransportDescriptor;
-
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)

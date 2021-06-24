@@ -13,11 +13,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Endpoint class for the colocated transport.</summary>
     internal class ColocEndpoint : Endpoint, IClientConnectionFactory, IListenerFactory
     {
-        /// <inherit-doc/>
         public override bool? IsSecure => true;
-
-        /// <inherit-doc/>
-        public override TransportDescriptor TransportDescriptor => ColocTransportDescriptor;
 
         internal static TransportDescriptor ColocTransportDescriptor { get; } =
             new(Transport.Coloc, "coloc", CreateEndpoint)
