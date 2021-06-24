@@ -5,9 +5,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
-// TODO: log altEndpoints once https://github.com/dotnet/runtime/issues/51965 is fixed (not fixed in 6 preview 4)
-#pragma warning disable SYSLIB1015
-
 namespace IceRpc.Internal
 {
     /// <summary>This class contains ILogger extensions methods for the locator interceptor.</summary>
@@ -17,7 +14,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.ClearAdapterIdCacheEntry,
             EventName = nameof(LocatorEvent.ClearAdapterIdCacheEntry),
             Level = LogLevel.Trace,
-            Message = "removed endpoints for adapter ID {AdapterId}, endpoint = {Endpoint}")]
+            Message = "removed endpoints for adapter ID {AdapterId}, endpoint = {Endpoint}, " +
+                      "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogClearAdapterIdCacheEntry(
             this ILogger logger,
             string adapterId,
@@ -28,7 +26,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.ClearWellKnownCacheEntry,
             EventName = nameof(LocatorEvent.ClearWellKnownCacheEntry),
             Level = LogLevel.Trace,
-            Message = "removed endpoints for well-known proxy {Identity}, endpoint = {Endpoint}")]
+            Message = "removed endpoints for well-known proxy {Identity}, endpoint = {Endpoint}, " +
+                      "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogClearWellKnownCacheEntry(
             this ILogger logger,
             Identity identity,
@@ -53,7 +52,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.FoundAdapterIdEntryInCache,
             EventName = nameof(LocatorEvent.FoundAdapterIdEntryInCache),
             Level = LogLevel.Trace,
-            Message = "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}")]
+            Message = "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}, " +
+                      "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogFoundAdapterIdEntryInCache(
             this ILogger logger,
             string adapterId,
@@ -64,7 +64,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.FoundWellKnownEntryInCache,
             EventName = nameof(LocatorEvent.FoundWellKnownEntryInCache),
             Level = LogLevel.Trace,
-            Message = "found entry for well-known proxy {Identity} in cache, endpoint = {Endpoint}")]
+            Message = "found entry for well-known proxy {Identity} in cache, endpoint = {Endpoint}, " +
+                      "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogFoundWellKnownEntryInCache(
             this ILogger logger,
             Identity identity,
@@ -86,7 +87,7 @@ namespace IceRpc.Internal
             EventName = nameof(LocatorEvent.ReceivedInvalidProxyForWellKnown),
             Level = LogLevel.Debug,
             Message = "locator returned an invalid proxy when resolving well-known proxy = {Identity}, " +
-                "received = {Proxy}")]
+                      "received = {Proxy}")]
         internal static partial void LogReceivedInvalidProxyForWellKnown(
             this ILogger logger,
             Identity identity,
@@ -116,7 +117,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.ResolvedAdapterId,
             EventName = nameof(LocatorEvent.ResolvedAdapterId),
             Level = LogLevel.Debug,
-            Message = "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoint = {Endpoint}")]
+            Message = "resolved adapter ID using locator, adapter ID = {AdapterId}, endpoint = {Endpoint}, " +
+                      "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogResolvedAdapterId(
             this ILogger logger,
             string adapterId,
@@ -128,7 +130,7 @@ namespace IceRpc.Internal
             EventName = nameof(LocatorEvent.ResolvedWellKnown),
             Level = LogLevel.Debug,
             Message = "resolved well-known proxy using locator, well-known proxy = {Identity}, " +
-                      "endpoint = {Endpoint}")]
+                      "endpoint = {Endpoint}, alt-endpoints = {AltEndpoints}")]
         internal static partial void LogResolvedWellKnown(
             this ILogger logger,
             Identity identity,
