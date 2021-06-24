@@ -62,8 +62,6 @@ namespace IceRpc.Transports
             Add(ColocEndpoint.ColocTransportDescriptor);
             Add(TcpEndpoint.TcpTransportDescriptor);
             Add(TcpEndpoint.SslTransportDescriptor);
-            Add(WSEndpoint.WSTransportDescriptor);
-            Add(WSEndpoint.WssTransportDescriptor);
             Add(UdpEndpoint.UdpTransportDescriptor);
         }
 

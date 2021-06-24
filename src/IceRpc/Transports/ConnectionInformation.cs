@@ -135,18 +135,4 @@ namespace IceRpc.Transports
         {
         }
     }
-
-    /// <summary>Provides information about a WebSocket connection.</summary>
-    public class WSConnectionInformation : TcpConnectionInformation
-    {
-        /// <summary>The HTTP headers for the WebSocket connection.</summary>
-        public IReadOnlyDictionary<string, string> Headers { get; internal init; } =
-            ImmutableDictionary<string, string>.Empty;
-
-        /// <summary>Constructs a WebSocket connection information.</summary>
-        internal WSConnectionInformation(Socket socket, SslStream? sslStream)
-            : base(socket, sslStream)
-        {
-        }
-    }
 }

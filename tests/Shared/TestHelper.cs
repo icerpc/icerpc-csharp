@@ -25,7 +25,7 @@ namespace IceRpc.Tests
             if (protocol == Protocol.Ice2)
             {
                 string endpoint = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}";
-                if ((transport == "tcp" || transport == "ws") && !tls)
+                if (transport == "tcp" && !tls)
                 {
                     endpoint = $"{endpoint}?tls=false";
                 }
@@ -48,7 +48,7 @@ namespace IceRpc.Tests
             if (protocol == Protocol.Ice2)
             {
                 string proxy = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}{path}";
-                if ((transport == "tcp" || transport == "ws") && !tls)
+                if (transport == "tcp" && !tls)
                 {
                     proxy = $"{proxy}?tls=false";
                 }

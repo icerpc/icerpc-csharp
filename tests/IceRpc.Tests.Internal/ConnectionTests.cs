@@ -172,10 +172,6 @@ namespace IceRpc.Tests.Internal
                         {
                             transport = "ssl";
                         }
-                        else if (transport == "ws")
-                        {
-                            transport = "wss";
-                        }
                     }
                     Endpoint = $"{transport} -h 127.0.0.1";
                 }
@@ -188,8 +184,6 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice2, "tcp", false)]
         [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice2, "ws", false)]
-        [TestCase(Protocol.Ice2, "ws", true)]
         [TestCase(Protocol.Ice1, "tcp", false)]
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
@@ -292,9 +286,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase("tcp", false)]
-        [TestCase("ws", false)]
         [TestCase("tcp", true)]
-        [TestCase("ws", true)]
         [TestCase("udp", false)]
         public async Task Connection_InformationAsync(string transport, bool secure)
         {
@@ -350,20 +342,10 @@ namespace IceRpc.Tests.Internal
             {
                 Assert.That(outgoingConnectionInformation, Is.AssignableTo<TcpConnectionInformation>());
             }
-            if (transport == "ws")
-            {
-                Assert.That(outgoingConnectionInformation, Is.AssignableTo<WSConnectionInformation>());
-                var wsConnectionInformation = (WSConnectionInformation)outgoingConnectionInformation;
-
-                Assert.AreEqual("websocket", wsConnectionInformation.Headers["Upgrade"]);
-                Assert.AreEqual("Upgrade", wsConnectionInformation.Headers["Connection"]);
-                Assert.AreEqual("ice.zeroc.com", wsConnectionInformation.Headers["Sec-WebSocket-Protocol"]);
-                Assert.That(wsConnectionInformation.Headers["Sec-WebSocket-Accept"], Is.Not.Null);
-            }
 
             if (secure)
             {
-                CollectionAssert.Contains(new List<string> { "tcp", "ws" }, transport);
+                CollectionAssert.Contains(new List<string> { "tcp" }, transport);
                 var tcpOutgoingConnectionInformation = (TcpConnectionInformation)outgoingConnectionInformation;
                 var tcpIncomingConnectionInformation = (TcpConnectionInformation)incomingConnectionInformation;
 
@@ -516,8 +498,6 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice2, "tcp", false)]
         [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice2, "ws", false)]
-        [TestCase(Protocol.Ice2, "ws", true)]
         [TestCase(Protocol.Ice1, "tcp", false)]
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
@@ -647,8 +627,6 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice2, "tcp", false)]
         [TestCase(Protocol.Ice2, "tcp", true)]
-        [TestCase(Protocol.Ice2, "ws", false)]
-        [TestCase(Protocol.Ice2, "ws", true)]
         [TestCase(Protocol.Ice1, "tcp", false)]
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]

@@ -10,9 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Internal
 {
     [TestFixture("tcp", false, AddressFamily.InterNetwork)]
-    [TestFixture("ws", false, AddressFamily.InterNetwork)]
     [TestFixture("tcp", true, AddressFamily.InterNetwork)]
-    [TestFixture("ws", true, AddressFamily.InterNetwork)]
     [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(30000)]
     public class NonDatagramTests : SingleStreamConnectionBaseTest

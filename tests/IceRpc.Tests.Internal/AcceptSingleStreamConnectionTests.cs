@@ -16,8 +16,6 @@ namespace IceRpc.Tests.Internal
     // figure out if the outgoing connection is a secure or non-secure connection).
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", false, AddressFamily.InterNetwork)]
-    [TestFixture(Protocol.Ice2, "ws", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "ssl", true, AddressFamily.InterNetwork)]
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
@@ -83,14 +81,7 @@ namespace IceRpc.Tests.Internal
 
             await acceptTask2;
 
-            if (TransportName == "ws")
-            {
-                Assert.That(incomingConnection, Is.InstanceOf<WSConnection>());
-            }
-            else
-            {
-                Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
-            }
+            Assert.That(incomingConnection, Is.InstanceOf<TcpConnection>());
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for

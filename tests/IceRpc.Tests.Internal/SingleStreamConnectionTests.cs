@@ -11,9 +11,7 @@ namespace IceRpc.Tests.Internal
     // Test the various single stream connection implementations. We don't test Ice1 + WS here as it doesn't really
     // provide additional test coverage given that the WS connection has no protocol specific code.
     [TestFixture("tcp", false)]
-    [TestFixture("ws", false)]
     [TestFixture("tcp", true)]
-    [TestFixture("ws", true)]
     [TestFixture("udp", false)]
     [Timeout(10000)]
     public class SingleStreamConnectionTests : SingleStreamConnectionBaseTest
