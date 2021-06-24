@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The listener implementation for the TCP transport.</summary>
     internal sealed class TcpListener : IListener
     {
-        public Endpoint ListenerEndpoint { get; }
+        public Endpoint Endpoint { get; }
 
         private ILogger _logger;
         private readonly ServerConnectionOptions _options;
@@ -29,16 +29,16 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
-            return tcpSocket.CreateConnection(ListenerEndpoint, _options);
+            return tcpSocket.CreateConnection(Endpoint, _options);
         }
 
         public void Dispose() => _socket.Dispose();
 
-        public override string ToString() => ListenerEndpoint.ToString();
+        public override string ToString() => Endpoint.ToString();
 
         internal TcpListener(Socket socket, Endpoint endpoint, ILogger logger, ServerConnectionOptions options)
         {
-            ListenerEndpoint = endpoint;
+            Endpoint = endpoint;
             _logger = logger;
             _options = options;
             _socket = socket;

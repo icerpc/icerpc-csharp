@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
                     using IListener listener = ((IListenerFactory)Endpoint).CreateListener(_server.ConnectionOptions,
                                                                                            _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(listener);
-                    Task<Connection> clientTask = ConnectAsync(listener.ListenerEndpoint);
+                    Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
                     clientConnection = await clientTask;
                 }

@@ -165,7 +165,7 @@ namespace IceRpc
                 if (_endpoint is IListenerFactory listenerFactory)
                 {
                     _listener = listenerFactory.CreateListener(ConnectionOptions, Logger);
-                    _endpoint = _listener.ListenerEndpoint;
+                    _endpoint = _listener.Endpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
