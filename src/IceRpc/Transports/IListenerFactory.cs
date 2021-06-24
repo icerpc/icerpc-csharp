@@ -13,7 +13,7 @@ namespace IceRpc.Transports
         /// <summary>Creates a new listener that listens on the endpoint of this factory.</summary>
         /// <param name="options">The connection options that the listener uses when accepting new connections.</param>
         /// <param name="logger">The logger.</param>
-        /// <returns>The new listner.</returns>
+        /// <returns>The new listener.</returns>
         IListener CreateListener(ServerConnectionOptions options, ILogger logger);
     }
 }

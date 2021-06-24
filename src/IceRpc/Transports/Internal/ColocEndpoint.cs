@@ -17,9 +17,9 @@ namespace IceRpc.Transports.Internal
 
         public override bool? IsSecure => true;
 
-        internal const ushort DefaultUriPort = 4062;
-
         internal static ITransportDescriptor TransportDescriptor { get; } = new ColocTransportDescriptor();
+
+        private const ushort DefaultUriPort = 4062;
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
         {
