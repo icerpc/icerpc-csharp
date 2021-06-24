@@ -34,8 +34,6 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
-                Acceptor = (endpoint, options, logger) => ((UdpEndpoint)endpoint).AcceptConnection(options, logger),
-                Connector = (endpoint, options, logger) => ((UdpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
             };

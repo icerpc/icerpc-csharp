@@ -108,25 +108,19 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.TCP, options, endpointString),
                 Ice2EndpointParser = ParseIce2Endpoint,
-                ListenerFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateListener(options, logger),
             };
 
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
-                ListenerFactory = (endpoint, options, logger) =>
-                    ((TcpEndpoint)endpoint).CreateListener(options, logger),
             };
         private protected bool HasCompressionFlag { get; }
         private protected TimeSpan Timeout { get; } = DefaultTimeout;

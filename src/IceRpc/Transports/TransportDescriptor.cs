@@ -11,21 +11,6 @@ namespace IceRpc.Transports
     /// </summary>
     public sealed class TransportDescriptor
     {
-        /// <summary>Creates a connection that receives data from one or multiple clients. This factory is used to
-        /// implement a transport that can only communicate with a single client (e.g. a serial based transport) or that
-        /// can receive data from multiple clients with a single connection (e.g: UDP). Most transports should provide
-        /// instead a <see cref="ListenerFactory"/>.</summary>
-        public Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection>? Acceptor
-        {
-            get; init;
-        }
-
-        /// <summary>Creates a connection to a remote endpoint.</summary>
-        public Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection>? Connector
-        {
-            get; init;
-        }
-
         /// <summary>The default port for URI endpoints that don't specify a port explicitly.</summary>
         public ushort DefaultUriPort { get; init; }
 
@@ -42,10 +27,6 @@ namespace IceRpc.Transports
         /// <summary>The ice2 endpoint parser. It creates an ice2 endpoint from a host, port and options dictionary.
         /// </summary>
         public Func<string, ushort, Dictionary<string, string>, Endpoint>? Ice2EndpointParser { get; init; }
-
-        /// <summary>Creates a listener that listens on a local endpoint. This listener then accepts connections from
-        /// clients.</summary>
-        public Func<Endpoint, ServerConnectionOptions, ILogger, IListener>? ListenerFactory { get; init; }
 
         /// <summary>The name of this transport in lower case, for example "tcp".</summary>
         public string Name { get; }
