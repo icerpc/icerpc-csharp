@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The IListener implementation for the colocated transport.</summary>
     internal class ColocListener : IListener
     {
-        public Endpoint Endpoint => _endpoint;
+        public Endpoint ListenerEndpoint => _endpoint;
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
         private static readonly IDictionary<ColocEndpoint, ColocListener> _colocListenerDictionary =

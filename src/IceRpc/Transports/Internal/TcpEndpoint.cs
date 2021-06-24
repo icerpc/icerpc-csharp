@@ -13,7 +13,7 @@ using System.Text;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the TCP transport.</summary>
-    internal class TcpEndpoint : IPEndpoint
+    internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
     {
         public override bool IsDatagram => false;
         public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.SSL : _tls;
@@ -34,10 +34,81 @@ namespace IceRpc.Transports.Internal
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
+        public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
+        {
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
+
+            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
+            // created if the address is an IPv4 address.
+            Socket socket = HasDnsHost ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            try
+            {
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                {
+                    socket.Bind(localEndPoint);
+                }
+
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+                socket.NoDelay = true;
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
+            return tcpSocket.CreateConnection(this, options);
+        }
+
+        public IListener CreateListener(ServerConnectionOptions options, ILogger logger)
+        {
+            if (Address == IPAddress.None)
+            {
+                throw new NotSupportedException(
+                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
+            }
+
+            var address = new IPEndPoint(Address, Port);
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                socket.ExclusiveAddressUse = true;
+
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+
+                socket.Bind(address);
+                address = (IPEndPoint)socket.LocalEndPoint!;
+                socket.Listen(tcpOptions.ListenerBackLog);
+            }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
+        }
+
         internal static TransportDescriptor TcpTransportDescriptor { get; } =
             new(Transport.TCP, "tcp", CreateEndpoint)
             {
-                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger),
+                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 DefaultUriPort = DefaultIPPort,
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.TCP, istr),
                 Ice1EndpointParser = (options, endpointString) =>
@@ -50,7 +121,7 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor SslTransportDescriptor { get; } =
             new(Transport.SSL, "ssl", CreateEndpoint)
             {
-                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).Connect(options, logger),
+                Connector = (endpoint, options, logger) => ((TcpEndpoint)endpoint).CreateClientConnection(options, logger),
                 Ice1EndpointFactory = istr => CreateIce1Endpoint(Transport.SSL, istr),
                 Ice1EndpointParser = (options, endpointString) =>
                     ParseIce1Endpoint(Transport.SSL, options, endpointString),
@@ -168,77 +239,6 @@ namespace IceRpc.Transports.Internal
                 options.Remove("-t");
             }
             return timeout;
-        }
-
-        private TcpListener CreateListener(ServerConnectionOptions options, ILogger logger)
-        {
-            if (Address == IPAddress.None)
-            {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
-            }
-
-            var address = new IPEndPoint(Address, Port);
-            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                socket.ExclusiveAddressUse = true;
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
-
-                socket.Bind(address);
-                address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(tcpOptions.ListenerBackLog);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-
-            return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
-        }
-
-        private MultiStreamConnection Connect(ClientConnectionOptions options, ILogger logger)
-        {
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-
-            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
-            // created if the address is an IPv4 address.
-            Socket socket = HasDnsHost ?
-                new Socket(SocketType.Stream, ProtocolType.Tcp) :
-                new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            try
-            {
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
-                {
-                    socket.Bind(localEndPoint);
-                }
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
-                socket.NoDelay = true;
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-
-            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
-            return tcpSocket.CreateConnection(this, options);
         }
 
         // Constructor for ice1 unmarshaling and parsing

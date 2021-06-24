@@ -87,7 +87,7 @@ namespace IceRpc.Tests.Internal
                                                                                              _server.ConnectionOptions,
                                                                                              _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(listener);
-                    Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
+                    Task<Connection> clientTask = ConnectAsync(listener.ListenerEndpoint);
                     serverConnection = await serverTask;
                     clientConnection = await clientTask;
                 }

@@ -12,7 +12,7 @@ namespace IceRpc.Transports
         /// <summary>The endpoint this listener is listening on. This endpoint can be different from the endpoint used
         /// to create the listener if for example the binding of the server socket assigned a port.</summary>
         /// <return>The bound endpoint.</return>
-        Endpoint Endpoint { get; }
+        Endpoint ListenerEndpoint { get; }
 
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>

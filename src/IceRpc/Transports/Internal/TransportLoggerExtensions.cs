@@ -201,23 +201,23 @@ namespace IceRpc.Transports.Internal
                 return null;
             }
 
-            string transportName = listener.Endpoint.Transport.ToString().ToLowerInvariant();
+            string transportName = listener.ListenerEndpoint.Transport.ToString().ToLowerInvariant();
 
             // TODO: add back scope for TcpListener
             if (listener is ColocListener)
             {
                 return _colocListenerScope(
                     logger,
-                    listener.Endpoint.TransportName,
-                    listener.Endpoint.Protocol,
+                    listener.ListenerEndpoint.TransportName,
+                    listener.ListenerEndpoint.Protocol,
                     server.ToString());
             }
             else
             {
                 return _listenerScope(
                     logger,
-                    listener.Endpoint.TransportName,
-                    listener.Endpoint.Protocol,
+                    listener.ListenerEndpoint.TransportName,
+                    listener.ListenerEndpoint.Protocol,
                     server.ToString(),
                     listener.ToString()!);
             }

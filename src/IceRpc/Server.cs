@@ -166,7 +166,7 @@ namespace IceRpc
                     Func<Endpoint, ServerConnectionOptions, ILogger, IListener> listenerFactory)
                 {
                     _listener = listenerFactory(_endpoint, ConnectionOptions, Logger);
-                    _endpoint = _listener.Endpoint;
+                    _endpoint = _listener.ListenerEndpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
