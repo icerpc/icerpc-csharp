@@ -214,9 +214,9 @@ namespace IceRpc
         }
 
         /// <summary>Shuts down this server: the server stops accepting new connections and requests, waits for all
-        /// outstanding dispatches to complete and gracefully closes all its server connections. Once shut down, a
-        /// server is disposed and can no longer be used. This method can be safely called multiple times, including
-        /// from multiple threads.</summary>
+        /// outstanding dispatches to complete and gracefully closes all its connections. Once shut down, a server is
+        /// disposed and can no longer be used. This method can be safely called multiple times, including from multiple
+        /// threads.</summary>
         /// <param name="cancel">The cancellation token. When this token is canceled, the cancellation token of all
         /// outstanding dispatches is canceled, which can speed up the shutdown provided the operation implementations
         /// check their cancellation tokens.</param>

@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
-        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. An server connection is created
+        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
         /// </summary>
         public bool IsServer { get; }
