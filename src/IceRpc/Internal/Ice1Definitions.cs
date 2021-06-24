@@ -61,8 +61,7 @@ namespace IceRpc.Internal
                 }
             };
 
-        // TODO: some tests fail on macOS when the value is ReadOnlyMemory<byte>.Empty. Need to figure out why.
-        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = Array.Empty<byte>();
+        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = ReadOnlyMemory<byte>.Empty;
 
         // The single byte corresponds to the compression format.
         private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload20 = new byte[] { 0 };
