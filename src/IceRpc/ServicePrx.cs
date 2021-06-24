@@ -253,7 +253,7 @@ namespace IceRpc
         {
             if (_connection?.IsServer ?? false)
             {
-                throw new InvalidOperationException("cannot marshal a proxy bound to an server connection");
+                throw new InvalidOperationException("cannot marshal a proxy bound to a server connection");
             }
 
             if (ostr.Encoding == Encoding.V11)

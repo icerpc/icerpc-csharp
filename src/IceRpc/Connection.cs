@@ -90,7 +90,7 @@ namespace IceRpc
         /// connection. For client connections, set can be called during configuration.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
         /// set.</value>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is an server connection.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the connection is a server connection.</exception>
         public IDispatcher? Dispatcher
         {
             get => Server?.Dispatcher ?? _dispatcher;
@@ -103,7 +103,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    throw new InvalidOperationException("cannot change the dispatcher of an server connection");
+                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
                 }
             }
         }
@@ -211,7 +211,7 @@ namespace IceRpc
 
         /// <summary>The connection remote endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
-        /// the remote endpoint is not allowed (the connection is connected or it's an server connection).</exception>
+        /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
         public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint ?? _connection?.RemoteEndpoint;
@@ -684,7 +684,7 @@ namespace IceRpc
         public override string ToString() => ConnectionInformation == null ? "" :
             $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsServer})";
 
-        /// <summary>Constructs an server connection from an accepted connection.</summary>
+        /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)
         {
             _connection = connection;

@@ -95,10 +95,10 @@ namespace IceRpc
             istr => Proxy.Read(Factory, istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
-        /// <param name="connection">The connection. If it's an client connection, the endpoint of the new proxy is
+        /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
         /// <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
         /// <param name="path">The path of the proxy. If null, the path is set to <see cref="DefaultPath"/>.</param>
-        /// <param name="invoker">The invoker. If null and connection is an server connection, the invoker is set to
+        /// <param name="invoker">The invoker. If null and connection is a server connection, the invoker is set to
         /// the server's invoker.</param>
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromConnection(

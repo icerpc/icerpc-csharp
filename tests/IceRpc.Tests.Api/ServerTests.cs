@@ -129,7 +129,7 @@ namespace IceRpc.Tests.Api
 
                 IDispatcher dispatcher = new Greeter();
 
-                // We can set Dispatcher on an client connection
+                // We can set Dispatcher on a client connection
                 Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
                 Assert.DoesNotThrow(() => connection.Dispatcher = null);
             }
