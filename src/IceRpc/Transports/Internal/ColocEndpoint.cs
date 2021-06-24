@@ -64,7 +64,7 @@ namespace IceRpc.Transports.Internal
 
             public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
             {
-                (string host, ushort port) = Endpoint.ParseHostAndPort(options, endpointString);
+                (string host, ushort port) = ParseHostAndPort(options, endpointString);
                 return new ColocEndpoint(host, port, Protocol.Ice1);
             }
 

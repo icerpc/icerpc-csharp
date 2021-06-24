@@ -186,7 +186,36 @@ namespace IceRpc.Transports.Internal
                 _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
             };
 
-        private protected static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
+        private protected override IPEndpoint Clone(string host, ushort port) =>
+            new TcpEndpoint(this, host, port);
+
+        private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
+        {
+            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
+
+            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++ where
+            // the order of evaluation of function arguments is undefined.
+            return new TcpEndpoint(new EndpointData(transport,
+                                                    host: istr.ReadString(),
+                                                    port: ReadPort(istr),
+                                                    ImmutableList<string>.Empty),
+                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
+                                   compress: istr.ReadBool());
+        }
+
+        private static TcpEndpoint CreateIce1Endpoint(
+            Transport transport,
+            Dictionary<string, string?> options,
+            string endpointString)
+        {
+            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
+            (string host, ushort port) = ParseHostAndPort(options, endpointString);
+            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
+                                   ParseTimeout(options, endpointString),
+                                   ParseCompress(options, endpointString));
+        }
+
+        private static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
             TimeSpan timeout = DefaultTimeout;
 
@@ -223,7 +252,7 @@ namespace IceRpc.Transports.Internal
         }
 
         // Constructor for ice1 unmarshaling and parsing
-        private protected TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
+        private TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
             : base(data, Protocol.Ice1)
         {
             Timeout = timeout;
@@ -231,52 +260,23 @@ namespace IceRpc.Transports.Internal
         }
 
         // Constructor for unmarshaling with the 2.0 encoding.
-        private protected TcpEndpoint(EndpointData data, Protocol protocol)
+        private TcpEndpoint(EndpointData data, Protocol protocol)
             : base(data, protocol)
         {
         }
 
         // Constructor for ice2 parsing.
-        private protected TcpEndpoint(EndpointData data, bool? tls)
+        private TcpEndpoint(EndpointData data, bool? tls)
             : base(data, Protocol.Ice2) =>
             _tls = tls;
 
         // Clone constructor
-        private protected TcpEndpoint(TcpEndpoint endpoint, string host, ushort port)
+        private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port)
             : base(endpoint, host, port)
         {
             HasCompressionFlag = endpoint.HasCompressionFlag;
             Timeout = endpoint.Timeout;
             _tls = endpoint._tls;
-        }
-
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new TcpEndpoint(this, host, port);
-
-        private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
-        {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-
-            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++ where
-            // the order of evaluation of function arguments is undefined.
-            return new TcpEndpoint(new EndpointData(transport,
-                                                    host: istr.ReadString(),
-                                                    port: ReadPort(istr),
-                                                    ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                   compress: istr.ReadBool());
-        }
-
-        private static TcpEndpoint CreateIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
-        {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
-                                   ParseTimeout(options, endpointString),
-                                   ParseCompress(options, endpointString));
         }
 
         private class TcpTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor

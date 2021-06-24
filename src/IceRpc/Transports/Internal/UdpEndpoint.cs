@@ -406,7 +406,7 @@ namespace IceRpc.Transports.Internal
 
             public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
             {
-                (string host, ushort port) = Endpoint.ParseHostAndPort(options, endpointString);
+                (string host, ushort port) = ParseHostAndPort(options, endpointString);
 
                 int ttl = -1;
 
@@ -468,7 +468,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
-                                       IPEndpoint.ParseCompress(options, endpointString),
+                                       ParseCompress(options, endpointString),
                                        ttl,
                                        multicastInterface);
             }
