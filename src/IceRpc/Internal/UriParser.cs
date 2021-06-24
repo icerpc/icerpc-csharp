@@ -209,8 +209,8 @@ namespace IceRpc.Internal
 
                 if (endpoint.Protocol == Protocol.Ice2)
                 {
-                    // It's possible we have a transport descriptor for this transport, and we check it only when the
-                    // protocol is ice2 (otherwise, we return this UniversalEndpoint).
+                    // It's possible we have an ice2 transport descriptor for this transport, and we check it only when
+                    // the protocol is ice2 (otherwise, we return this UniversalEndpoint).
                     // Since all options have been consumed by Parse above, this works only for endpoints with no
                     // options.
                     if (TransportRegistry.TryGetValue(endpoint.Transport, out ITransportDescriptor? descriptor))
