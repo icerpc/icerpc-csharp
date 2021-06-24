@@ -27,7 +27,7 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. An server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
         /// </summary>
-        public bool IsIncoming { get; }
+        public bool IsServer { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
@@ -164,9 +164,9 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             _endpoint = endpoint;
-            IsIncoming = options is ServerConnectionOptions;
-            _localEndpoint = IsIncoming ? _endpoint : null;
-            _remoteEndpoint = IsIncoming ? null : _endpoint;
+            IsServer = options is ServerConnectionOptions;
+            _localEndpoint = IsServer ? _endpoint : null;
+            _remoteEndpoint = IsServer ? null : _endpoint;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;

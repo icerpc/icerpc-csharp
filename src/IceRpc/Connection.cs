@@ -133,7 +133,7 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
         public bool IsSecure => ConnectionInformation.IsSecure;
 
-        /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection creates by a
+        /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
         public bool IsServer => _localEndpoint != null;
 
@@ -682,7 +682,7 @@ namespace IceRpc
         /// <returns>The description of the connection as human readable text.</returns>
         // TODO: get on ConnectionInformation can throw!
         public override string ToString() => ConnectionInformation == null ? "" :
-            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsIncoming={IsServer})";
+            $"{ConnectionInformation.GetType().FullName} ({ConnectionInformation}, IsServer={IsServer})";
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(MultiStreamConnection connection, Server server)

@@ -68,7 +68,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
-        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsIncoming ? 0 : 1);
+        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }

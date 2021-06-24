@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>An listener listens and accepts server connection requests from clients.</summary>
+    /// <summary>A listener listens for connection requests from clients. It creates a server connection when it accepts
+    /// a connection from a client.</summary>
     public interface IListener : IDisposable
     {
-        /// <summary>The listening endpoint. The listener endpoint might be different from the endpoint used
+        /// <summary>The endpoint this listener is listening on. This endpoint can be different from the endpoint used
         /// to create the listener if for example the binding of the server socket assigned a port.</summary>
         /// <return>The bound endpoint.</return>
         Endpoint Endpoint { get; }

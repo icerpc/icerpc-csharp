@@ -471,8 +471,8 @@ namespace IceRpc.Tests.Internal
             Test(ClientConnection);
             Test(ServerConnection);
 
-            Assert.IsTrue(!ClientConnection.IsIncoming);
-            Assert.IsTrue(ServerConnection.IsIncoming);
+            Assert.IsTrue(!ClientConnection.IsServer);
+            Assert.IsTrue(ServerConnection.IsServer);
 
             static void Test(MultiStreamConnection connection)
             {

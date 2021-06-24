@@ -203,7 +203,7 @@ namespace IceRpc.Transports.Internal
 
             string transportName = listener.Endpoint.Transport.ToString().ToLowerInvariant();
 
-            // TODO: add scope for SingleStreamConnectionListener or remove scope for ColocListener
+            // TODO: add back scope for TcpListener
             if (listener is ColocListener)
             {
                 return _colocListenerScope(
@@ -237,7 +237,7 @@ namespace IceRpc.Transports.Internal
             {
                 if (connection is ColocConnection colocatedConnection)
                 {
-                    if (connection.IsIncoming)
+                    if (connection.IsServer)
                     {
                         return _colocServerConnectionScope(logger, colocatedConnection.Id);
                     }
@@ -279,7 +279,7 @@ namespace IceRpc.Transports.Internal
                     {
                         try
                         {
-                            if (connection.IsIncoming)
+                            if (connection.IsServer)
                             {
                                 return _overConnectionServerConnectionScope(
                                     logger,
@@ -297,7 +297,7 @@ namespace IceRpc.Transports.Internal
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
-                            if (connection.IsIncoming)
+                            if (connection.IsServer)
                             {
                                 return _serverConnectionScope(logger, "not connected");
                             }
@@ -323,7 +323,7 @@ namespace IceRpc.Transports.Internal
                             server.ToString(),
                             connection.ToString()!);
                     }
-                    else if (connection.IsIncoming)
+                    else if (connection.IsServer)
                     {
                         return _serverConnectionScope(logger, connection.ToString()!);
                     }

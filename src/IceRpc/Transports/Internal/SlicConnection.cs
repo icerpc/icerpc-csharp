@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
                     case SlicDefinitions.FrameType.StreamLast:
                     {
                         Debug.Assert(streamId != null);
-                        bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
+                        bool isIncoming = streamId.Value % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId.Value % 4 < 2;
                         bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
@@ -200,7 +200,7 @@ namespace IceRpc.Transports.Internal
                         }
                         else
                         {
-                            bool isIncoming = streamId.Value % 2 == (IsIncoming ? 0 : 1);
+                            bool isIncoming = streamId.Value % 2 == (IsServer ? 0 : 1);
                             bool isBidirectional = streamId.Value % 4 < 2;
                             // Release the stream count for the destroyed stream if it's an outgoing stream. For
                             // incoming streams, the stream count is released on shutdown of the stream.
@@ -286,7 +286,7 @@ namespace IceRpc.Transports.Internal
             // Create a buffered receive single stream on top of the underlying connection.
             _bufferedConnection = new BufferedReceiveOverNetworkSocket(Underlying);
 
-            if (IsIncoming)
+            if (IsServer)
             {
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
@@ -432,7 +432,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
-            if (IsIncoming)
+            if (IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;
@@ -618,7 +618,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            if (IsIncoming && endStream)
+            if (IsServer && endStream)
             {
                 // Release the stream count if it's the last frame. It's important to release the count before to
                 // send the last frame to prevent a race condition with the client.
@@ -776,7 +776,7 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
             }
 
-            if (IsIncoming && peerIdleTimeout == null)
+            if (IsServer && peerIdleTimeout == null)
             {
                 // The client must send its idle timeout parameter. A server can however omit the idle timeout if its
                 // configured idle timeout is larger than the client's idle timeout.
