@@ -170,12 +170,7 @@ namespace IceRpc.Transports.Internal
                 return null;
             }
 
-            return _acceptorScope(
-                logger,
-                acceptor.Endpoint.TransportName,
-                acceptor.Endpoint.Protocol,
-                server.ToString(),
-                acceptor.ToString()!);
+            return _acceptorScope(logger, acceptor.Endpoint.ToString());
         }
 
         internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
