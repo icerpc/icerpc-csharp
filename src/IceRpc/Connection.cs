@@ -301,9 +301,7 @@ namespace IceRpc
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
-#pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private MultiStreamConnection? _connection;
-#pragma warning restore CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
@@ -324,9 +322,7 @@ namespace IceRpc
         private Action<Connection>? _remove;
         private Server? _server;
         private ConnectionState _state = ConnectionState.NotConnected;
-#pragma warning disable CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
         private Timer? _timer;
-#pragma warning restore CA2213 // IDisposable type not disposed by Dispose (it's disposed by AbortAsync)
 
         /// <summary>Constructs a new outgoing connection.</summary>
         public Connection()
