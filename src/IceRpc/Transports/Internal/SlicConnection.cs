@@ -643,7 +643,11 @@ namespace IceRpc.Transports.Internal
             // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't
             // interrupt a send on the underlying connection and we want to make sure that once a stream is started,
             // the peer will always receive at least one stream frame.
-            await PerformSendPacketAsync().IceWaitAsync(cancel).ConfigureAwait(false);
+            ValueTask sendPacketTask = PerformSendPacketAsync();
+            if (!sendPacketTask.IsCompletedSuccessfully)
+            {
+                await sendPacketTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
 
             async ValueTask PerformSendPacketAsync()
             {
@@ -852,7 +856,17 @@ namespace IceRpc.Transports.Internal
         {
             // If the stream didn't fully read the stream data, finish reading it here before returning. The stream
             // might not have fully received the data if it was aborted or canceled.
-            int size = await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+            int size;
+            if (_receiveStreamCompletionTaskSource.ValueTask.IsCompletedSuccessfully)
+            {
+                size = _receiveStreamCompletionTaskSource.ValueTask.Result;
+            }
+            else
+            {
+                size = await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(
+                    cancel).ConfigureAwait(false);
+            }
+
             if (size > 0)
             {
                 await IgnoreDataAsync(size, cancel).ConfigureAwait(false);

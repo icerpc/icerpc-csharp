@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
                                 new ReadOnlyMemory<byte>[] { payload },
                                 CancellationToken.None).ConfigureAwait(false);
 
-            await _closingTaskCompletionSource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+            await _closingTaskCompletionSource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         public override async ValueTask<Endpoint> ConnectAsync(

@@ -961,7 +961,7 @@ namespace IceRpc
 
             try
             {
-                await shutdownTask.IceWaitAsync(cancel).ConfigureAwait(false);
+                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -1075,7 +1075,7 @@ namespace IceRpc
             // Wait for the peer to close the connection and return.
             while (State != ConnectionState.Closed)
             {
-                await _acceptStreamTask.IceWaitAsync(cancel).ConfigureAwait(false);
+                await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
             }
             throw new ConnectionClosedException();
         }
