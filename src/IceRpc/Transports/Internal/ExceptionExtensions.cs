@@ -2,6 +2,7 @@
 
 using System;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace IceRpc.Transports.Internal
 {
@@ -53,5 +54,17 @@ namespace IceRpc.Transports.Internal
             }
             return false;
         }
+
+        /// <summary>Converts an exception into a <see cref="TransportException"/> or
+        /// <see cref="OperationCanceledException"/>.</summary>
+        internal static Exception ToTransportException(this Exception exception, CancellationToken cancel) =>
+            exception switch
+            {
+                OperationCanceledException ex => ex,
+                TransportException ex => ex,
+                Exception ex when cancel.IsCancellationRequested => new OperationCanceledException(null, ex, cancel),
+                Exception ex when ex.IsConnectionLost() => new ConnectionLostException(ex),
+                _ => new TransportException(exception)
+            };
     }
 }

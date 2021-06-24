@@ -38,12 +38,12 @@ namespace IceRpc.Transports.Internal
         internal static TransportDescriptor UdpTransportDescriptor { get; } =
             new(Transport.UDP, "udp", CreateEndpoint)
             {
+                ClientSocketFactory = (endpoint, options, logger) =>
+                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger),
                 Ice1EndpointFactory = CreateIce1Endpoint,
                 Ice1EndpointParser = ParseIce1Endpoint,
-                IncomingConnectionFactory = (endpoint, options, logger) =>
-                     ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
-                OutgoingConnectionFactory = (endpoint, options, logger) =>
-                    ((UdpEndpoint)endpoint).CreateOutgoingConnection(options, logger)
+                ServerSocketFactory = (endpoint, options, logger) =>
+                    ((UdpEndpoint)endpoint).CreateIncomingConnection(options, logger),
             };
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
@@ -287,7 +287,7 @@ namespace IceRpc.Transports.Internal
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
 
-        private MultiStreamConnection CreateOutgoingConnection(OutgoingConnectionOptions options, ILogger logger)
+        private SingleStreamConnection CreateOutgoingConnection(ITransportOptions? options, ILogger logger)
         {
             EndPoint endpoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
 
@@ -302,7 +302,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
+                UdpOptions udpOptions = options as UdpOptions ?? UdpOptions.Default;
                 if (endpoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
                 {
                     if (Address.AddressFamily == AddressFamily.InterNetworkV6)
@@ -349,10 +349,10 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(ex);
             }
 
-            return new Ice1Connection(this, new UdpConnection(socket, logger, isIncoming: false, endpoint), options);
+            return new UdpConnection(socket, logger, isIncoming: false, endpoint);
         }
 
-        private MultiStreamConnection CreateIncomingConnection(IncomingConnectionOptions options, ILogger logger)
+        private (SingleStreamConnection, Endpoint) CreateIncomingConnection(ITransportOptions? options, ILogger logger)
         {
             if (Address == IPAddress.None)
             {
@@ -363,7 +363,7 @@ namespace IceRpc.Transports.Internal
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             try
             {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
+                UdpOptions udpOptions = options as UdpOptions ?? UdpOptions.Default;
 
                 if (Address.AddressFamily == AddressFamily.InterNetworkV6)
                 {
@@ -405,8 +405,7 @@ namespace IceRpc.Transports.Internal
                     SetMulticastGroup(socket, multicastAddress.Address);
                 }
 
-                var udpSocket = new UdpConnection(socket, logger, isIncoming: true, multicastAddress);
-                return new Ice1Connection(Clone(port), udpSocket, options);
+                return (new UdpConnection(socket, logger, isIncoming: true, multicastAddress), Clone(port));
             }
             catch (SocketException ex)
             {
