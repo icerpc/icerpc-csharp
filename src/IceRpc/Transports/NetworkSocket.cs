@@ -24,12 +24,6 @@ namespace IceRpc.Transports
         /// <summary>This property should be used for testing purpose only.</summary>
         internal abstract System.Net.Sockets.Socket? Socket { get; }
 
-        /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
-        /// of the connection closure.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
-
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()
         {

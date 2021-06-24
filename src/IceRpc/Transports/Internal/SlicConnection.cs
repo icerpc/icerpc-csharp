@@ -257,22 +257,18 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel)
-        {
-            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
-
-            await PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.Close,
-                ostr =>
-                {
-                    checked
+        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
+            new(PrepareAndSendFrameAsync(
+                    SlicDefinitions.FrameType.Close,
+                    ostr =>
                     {
-                        new CloseBody((ulong)errorCode).IceWrite(ostr);
-                    }
-                },
-                frameSize => Logger.LogSentSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
-                cancel: cancel).ConfigureAwait(false);
-        }
+                        checked
+                        {
+                            new CloseBody((ulong)errorCode).IceWrite(ostr);
+                        }
+                    },
+                    frameSize => Logger.LogSentSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
+                    cancel: cancel));
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream

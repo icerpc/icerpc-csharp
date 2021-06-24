@@ -183,8 +183,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
+        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) => default;
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream

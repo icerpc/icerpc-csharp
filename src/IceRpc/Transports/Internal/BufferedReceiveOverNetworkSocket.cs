@@ -30,9 +30,6 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
 
-        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) =>
-            Underlying.CloseAsync(errorCode, cancel);
-
         public override ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
