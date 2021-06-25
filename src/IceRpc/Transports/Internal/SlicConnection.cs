@@ -12,9 +12,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Slic connection implements a multi-stream transport on top of a single-stream transport such
-    /// as TCP. It supports the same set of features as Quic.</summary>
-    internal class SlicConnection : MultiStreamOverSingleStreamConnection
+    /// <summary>The Slic connection implements a multi-stream connection on top of a network socket such as TCP. It
+    /// supports the same set of features as Quic.</summary>
+    internal class SlicConnection : NetworkSocketConnection
     {
         public override TimeSpan IdleTimeout
         {
@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private BufferedReceiveOverSingleStreamConnection? _bufferedConnection;
+        private BufferedReceiveOverNetworkSocket? _bufferedConnection;
         private Memory<byte>? _streamConsumedBuffer;
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -95,7 +95,7 @@ namespace IceRpc.Transports.Internal
                             Logger.LogReceivingSlicFrame(type, frameSize);
                         }
 
-                        bool isIncoming = streamId % 2 == (IsIncoming ? 0 : 1);
+                        bool isServer = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
                         bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
@@ -110,7 +110,7 @@ namespace IceRpc.Transports.Internal
                                 await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
                         }
-                        else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
+                        else if (isServer && IsIncomingStreamUnknown(streamId, isBidirectional))
                         {
                             // Create a new stream if the incoming stream is unknown (the client could be sending
                             // frames for old canceled incoming streams, these are ignored).
@@ -195,11 +195,11 @@ namespace IceRpc.Transports.Internal
                         }
                         else
                         {
-                            bool isIncoming = streamId % 2 == (IsIncoming ? 0 : 1);
+                            bool isServer = streamId % 2 == (IsServer ? 0 : 1);
                             bool isBidirectional = streamId % 4 < 2;
                             // Release the stream count for the destroyed stream if it's an outgoing stream. For
                             // incoming streams, the stream count is released on shutdown of the stream.
-                            if (!isIncoming)
+                            if (!isServer)
                             {
                                 if (isBidirectional)
                                 {
@@ -276,9 +276,9 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             // Create a buffered receive single stream on top of the underlying connection.
-            _bufferedConnection = new BufferedReceiveOverSingleStreamConnection(Underlying);
+            _bufferedConnection = new BufferedReceiveOverNetworkSocket(Underlying);
 
-            if (IsIncoming)
+            if (IsServer)
             {
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
@@ -417,7 +417,7 @@ namespace IceRpc.Transports.Internal
 
         internal SlicConnection(
             Endpoint endpoint,
-            SingleStreamConnection singleStreamConnection,
+            NetworkSocket singleStreamConnection,
             ConnectionOptions options)
             : base(endpoint, singleStreamConnection, options)
         {
@@ -438,7 +438,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
-            if (IsIncoming)
+            if (IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;
@@ -744,7 +744,7 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException("missing MaxUnidirectionalStreams Slic connection parameter");
             }
 
-            if (IsIncoming && peerIdleTimeout == null)
+            if (IsServer && peerIdleTimeout == null)
             {
                 // The client must send its idle timeout parameter. A server can however omit the idle timeout if its
                 // configured idle timeout is larger than the client's idle timeout.

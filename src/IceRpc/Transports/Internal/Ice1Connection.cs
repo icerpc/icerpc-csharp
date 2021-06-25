@@ -14,7 +14,7 @@ namespace IceRpc.Transports.Internal
     /// The streams created by the Ice1 connection are always finished once the request or response frames are
     /// sent or received. Data streaming is not supported. Initialize or GoAway frames sent over the control streams
     /// are translated to connection validation or close connection Ice1 frames.</summary>
-    internal class Ice1Connection : MultiStreamOverSingleStreamConnection
+    internal class Ice1Connection : NetworkSocketConnection
     {
         public override TimeSpan IdleTimeout { get; internal set; }
 
@@ -212,9 +212,9 @@ namespace IceRpc.Transports.Internal
 
         internal Ice1Connection(
             Endpoint endpoint,
-            SingleStreamConnection singleStreamConnection,
+            NetworkSocket networkSocket,
             ConnectionOptions options)
-            : base(endpoint, singleStreamConnection, options)
+            : base(endpoint, networkSocket, options)
         {
             IdleTimeout = options.IdleTimeout;
 
@@ -225,7 +225,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
 
             // We use the same stream ID numbering scheme as Quic.
-            if (IsIncoming)
+            if (IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;
@@ -248,9 +248,9 @@ namespace IceRpc.Transports.Internal
         internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here we
-            // only expect the connection validation message for an outgoing connection and just return the
-            // control stream immediately for an incoming connection.
-            if (IsIncoming)
+            // only expect the connection validation message for a client connection and just return the
+            // control stream immediately for a server connection.
+            if (IsServer)
             {
                 return new ValueTask<RpcStream>(new Ice1Stream(this, 2));
             }
@@ -324,9 +324,9 @@ namespace IceRpc.Transports.Internal
         internal override ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel)
         {
             // With Ice1, the connection validation message is only sent by the server to the client. So here
-            // we only expect the connection validation message for an incoming connection and just return the
-            // control stream immediately for an outgoing connection.
-            if (IsIncoming)
+            // we only expect the connection validation message for a server connection and just return the
+            // control stream immediately for a client connection.
+            if (IsServer)
             {
                 return base.SendInitializeFrameAsync(cancel);
             }
@@ -367,7 +367,7 @@ namespace IceRpc.Transports.Internal
             {
                 case Ice1FrameType.CloseConnection:
                 {
-                    return (IsIncoming ? 2 : 3, frameType, default);
+                    return (IsServer ? 2 : 3, frameType, default);
                 }
 
                 case Ice1FrameType.Request:
@@ -383,7 +383,7 @@ namespace IceRpc.Transports.Internal
                     }
                     else
                     {
-                        streamId = ((requestId - 1) << 2) + (IsIncoming ? 0 : 1);
+                        streamId = ((requestId - 1) << 2) + (IsServer ? 0 : 1);
                     }
                     return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }
@@ -404,7 +404,7 @@ namespace IceRpc.Transports.Internal
                 case Ice1FrameType.Reply:
                 {
                     int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
-                    long streamId = ((requestId - 1) << 2) + (IsIncoming ? 1 : 0);
+                    long streamId = ((requestId - 1) << 2) + (IsServer ? 1 : 0);
                     return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }
 
@@ -412,7 +412,7 @@ namespace IceRpc.Transports.Internal
                 {
                     // Notify the control stream of the reception of a Ping frame.
                     PingReceived?.Invoke();
-                    return (IsIncoming ? 2 : 3, frameType, default);
+                    return (IsServer ? 2 : 3, frameType, default);
                 }
 
                 default:

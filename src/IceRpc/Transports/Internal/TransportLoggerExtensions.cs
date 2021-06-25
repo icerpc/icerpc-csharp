@@ -9,13 +9,13 @@ namespace IceRpc.Transports.Internal
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static partial class TransportLoggerExtensions
     {
-        private static readonly Func<ILogger, string, IDisposable> _acceptorScope =
+        private static readonly Func<ILogger, string, IDisposable> _listenerScope =
             LoggerMessage.DefineScope<string>("server(Endpoint={Server})");
 
-        private static readonly Func<ILogger, string, IDisposable> _incomingConnectionScope =
+        private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
             LoggerMessage.DefineScope<string>("connection(RemoteEndpoint={RemoteEndpoint})");
 
-        private static readonly Func<ILogger, string, string, IDisposable> _outgoingConnectionScope =
+        private static readonly Func<ILogger, string, string, IDisposable> _clientConnectionScope =
             LoggerMessage.DefineScope<string, string>(
                 "connection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
@@ -163,14 +163,14 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartServerScope(this ILogger logger, IAcceptor acceptor)
+        internal static IDisposable? StartServerScope(this ILogger logger, IListener listener)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
                 return null;
             }
 
-            return _acceptorScope(logger, acceptor.Endpoint.ToString());
+            return _listenerScope(logger, listener.Endpoint.ToString());
         }
 
         internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
@@ -180,7 +180,7 @@ namespace IceRpc.Transports.Internal
                 return null;
             }
 
-            if (connection.IsIncoming)
+            if (connection.IsServer)
             {
                 string? remoteEndpoint = null;
                 if (connection.State > ConnectionState.NotConnected)
@@ -193,7 +193,7 @@ namespace IceRpc.Transports.Internal
                     {
                     }
                 }
-                return _incomingConnectionScope(logger, remoteEndpoint ?? "not connected");
+                return _serverConnectionScope(logger, remoteEndpoint ?? "not connected");
             }
             else
             {
@@ -221,7 +221,7 @@ namespace IceRpc.Transports.Internal
                     }
                 }
 
-                return _outgoingConnectionScope(
+                return _clientConnectionScope(
                     logger,
                     localEndpoint ?? "not connected",
                     remoteEndpoint ?? "not connected");

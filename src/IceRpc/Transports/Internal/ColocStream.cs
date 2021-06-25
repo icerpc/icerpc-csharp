@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    /// <summary>The Stream class for the colocated transport.</summary>
+    /// <summary>The RpcStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
         private Memory<byte> _receiveBuffer;

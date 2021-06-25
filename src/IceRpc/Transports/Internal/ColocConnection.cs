@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
                             // Ignore the stream has been aborted.
                         }
                     }
-                    else if (frame is IncomingRequest || streamId == (IsIncoming ? 2 : 3))
+                    else if (frame is IncomingRequest || streamId == (IsServer ? 2 : 3))
                     {
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
@@ -187,7 +187,7 @@ namespace IceRpc.Transports.Internal
             _unidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
-            if (IsIncoming)
+            if (IsServer)
             {
                 _nextBidirectionalId = 1;
                 _nextUnidirectionalId = 3;

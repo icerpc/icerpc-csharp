@@ -25,10 +25,10 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
-        /// <summary><c>true</c> for incoming connections; otherwise, <c>false</c>. An incoming connection is created
-        /// by a server-side acceptor while an outgoing connection is created from the endpoint by the client-side.
+        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
+        /// by a server-side listener while a client connection is created from the endpoint by the client-side.
         /// </summary>
-        public bool IsIncoming { get; }
+        public bool IsServer { get; }
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
@@ -91,7 +91,7 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the connection. If it's an incoming connection, it's the local endpoint or the
+        // The endpoint which created the connection. If it's an server connection, it's the local endpoint or the
         // remote endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
@@ -106,7 +106,7 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new incoming connection. This is called after the acceptor accepted a new connection
+        /// <summary>Accept a new server connection. This is called after the listener accepted a new connection
         /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -119,7 +119,7 @@ namespace IceRpc.Transports
         /// <return>The accepted stream.</return>
         public abstract ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel);
 
-        /// <summary>Connects a new outgoing connection. This is called after the endpoint created a new connection
+        /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
         /// </summary>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
@@ -165,9 +165,9 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             _endpoint = endpoint;
-            IsIncoming = options is IncomingConnectionOptions;
-            _localEndpoint = IsIncoming ? _endpoint : null;
-            _remoteEndpoint = IsIncoming ? null : _endpoint;
+            IsServer = options is ServerConnectionOptions;
+            _localEndpoint = IsServer ? _endpoint : null;
+            _remoteEndpoint = IsServer ? null : _endpoint;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;

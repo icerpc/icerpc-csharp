@@ -126,26 +126,12 @@ namespace IceRpc.Transports
         public override bool IsSecure => false;
 
         /// <summary>The multicast IP-endpoint for a multicast connection otherwise null.</summary>
-        // TODO: fix description. Is this only for incoming connections???
+        // TODO: fix description. Is this only for server connections???
         public IPEndPoint? MulticastEndpoint { get; internal init; }
 
         /// <summary>Constructs a UDP connection information.</summary>
         internal UdpConnectionInformation(Socket socket)
             : base(socket)
-        {
-        }
-    }
-
-    /// <summary>Provides information about a WebSocket connection.</summary>
-    public class WSConnectionInformation : TcpConnectionInformation
-    {
-        /// <summary>The HTTP headers for the WebSocket connection.</summary>
-        public IReadOnlyDictionary<string, string> Headers { get; internal init; } =
-            ImmutableDictionary<string, string>.Empty;
-
-        /// <summary>Constructs a WebSocket connection information.</summary>
-        internal WSConnectionInformation(Socket socket, SslStream? sslStream)
-            : base(socket, sslStream)
         {
         }
     }

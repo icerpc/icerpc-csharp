@@ -80,7 +80,7 @@ namespace IceRpc.Internal
                     if (attempt == _maxAttempts ||
                         retryPolicy == RetryPolicy.NoRetry ||
                         (request.IsSent && releaseRequestAfterSent) ||
-                        (retryPolicy == RetryPolicy.OtherReplica && (request.Connection?.IsIncoming ?? false)))
+                        (retryPolicy == RetryPolicy.OtherReplica && (request.Connection?.IsServer ?? false)))
                     {
                         tryAgain = false;
                     }
@@ -92,7 +92,7 @@ namespace IceRpc.Internal
                         // request.Endpoint/AltEndpoints because an interceptor down the line can change Endpoint /
                         // AltEndpoints, for example by re-resolving the original loc endpoint.
                         if (request.Connection != null &&
-                            !request.Connection.IsIncoming &&
+                            !request.Connection.IsServer &&
                             retryPolicy == RetryPolicy.OtherReplica)
                         {
                             request.ExcludedEndpoints =
@@ -134,7 +134,7 @@ namespace IceRpc.Internal
                         }
 
                         if (request.Connection != null &&
-                            !request.Connection.IsIncoming &&
+                            !request.Connection.IsServer &&
                             (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsActive))
                         {
                             // Retry with a new connection

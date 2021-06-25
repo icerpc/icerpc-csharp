@@ -68,12 +68,11 @@ namespace IceRpc
         /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
-        /// <param name="connection">The connection. If it's an outgoing connection, the endpoint of the new proxy is
-        /// <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
+        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
         /// <param name="path">The path of the proxy. If null, the path is set to
         /// <see cref="ProxyFactory{T}.DefaultPath"/>.</param>
-        /// <param name="invoker">The invoker. If null and connection is an incoming connection, the invoker is set to
-        /// the server's invoker.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
         /// <returns>The new proxy.</returns>
         public static T Create<T>(
             this ProxyFactory<T> factory,
@@ -90,7 +89,7 @@ namespace IceRpc
             {
                 impl.Identity = Identity.FromPath(path);
             }
-            impl.Endpoint = connection.IsIncoming ? null : connection.RemoteEndpoint;
+            impl.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
             impl.Connection = connection;
             impl.Invoker = invoker;
             return proxy;

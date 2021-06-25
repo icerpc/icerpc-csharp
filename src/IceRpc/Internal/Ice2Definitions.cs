@@ -10,8 +10,7 @@ namespace IceRpc.Internal
     {
         internal static readonly Encoding Encoding = Encoding.V20;
 
-        // TODO: some tests fail on macOS when the value is ReadOnlyMemory<byte>.Empty. Need to figure out why.
-        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = Array.Empty<byte>();
+        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = ReadOnlyMemory<byte>.Empty;
 
         // The only byte is for the compression format.
         private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload20 = new byte[] { 0 };

@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -44,7 +43,7 @@ namespace IceRpc.Transports
         UnexpectedStreamData,
     }
 
-    /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
+    /// <summary>The RpcStream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
     public abstract class RpcStream
     {
@@ -72,7 +71,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Returns <c>true</c> if the stream is an incoming stream, <c>false</c> otherwise.</summary>
-        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsIncoming ? 0 : 1);
+        public bool IsIncoming => _id != -1 && _id % 2 == (_connection.IsServer ? 0 : 1);
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }
@@ -447,7 +446,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var buffer = new byte[1024];
+                byte[] buffer = new byte[1024];
                 var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
@@ -470,7 +469,7 @@ namespace IceRpc.Transports
         {
             Debug.Assert(IsStarted && !IsIce1);
 
-            var buffer = new byte[1024];
+            byte[] buffer = new byte[1024];
             var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
@@ -491,7 +490,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var buffer = new byte[1024];
+                byte[] buffer = new byte[1024];
                 var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
