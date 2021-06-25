@@ -178,11 +178,11 @@ namespace IceRpc.Transports.Internal
             return new TcpEndpoint(data, protocol);
         }
 
-        internal static ITransportDescriptor GetTransportDescriptor(Transport transport) =>
+        internal static IEndpointFactory GetEndpointFactory(Transport transport) =>
             transport switch
             {
-                Transport.TCP => new TcpTransportDescriptor(),
-                Transport.SSL => new SslTransportDescriptor(),
+                Transport.TCP => new TcpEndpointFactory(),
+                Transport.SSL => new SslEndpointFactory(),
                 _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
             };
 
@@ -301,7 +301,7 @@ namespace IceRpc.Transports.Internal
             _tls = tls ?? endpoint._tls;
         }
 
-        private class TcpTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
+        private class TcpEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
         {
             public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
 
@@ -312,12 +312,12 @@ namespace IceRpc.Transports.Internal
             public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
                 TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-            public Endpoint CreateEndpoint(InputStream istr) => CreateIce1Endpoint(Transport, istr);
+            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
 
-            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString) =>
-                CreateIce1Endpoint(Transport, options, endpointString);
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
+                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
 
-            public Endpoint CreateEndpoint(string host, ushort port, Dictionary<string, string> options)
+            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
             {
                 bool? tls = null;
                 if (options.TryGetValue("tls", out string? value))
@@ -329,7 +329,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private class SslTransportDescriptor : IIce1TransportDescriptor
+        private class SslEndpointFactory : IIce1EndpointFactory
         {
             public string Name => "ssl";
 
@@ -338,10 +338,10 @@ namespace IceRpc.Transports.Internal
             public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
                 TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-            public Endpoint CreateEndpoint(InputStream istr) => CreateIce1Endpoint(Transport, istr);
+            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
 
-            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString) =>
-                CreateIce1Endpoint(Transport, options, endpointString);
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
+                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
 
         private readonly EndPoint? _addr;
         private UdpConnectionInformation? _connectionInformation;
-        private readonly bool _incoming;
+        private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly Socket _socket;
 
@@ -63,7 +63,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 int received;
-                if (_incoming)
+                if (_isServer)
                 {
                     EndPoint remoteAddress = new IPEndPoint(
                         _socket.AddressFamily == AddressFamily.InterNetwork ? IPAddress.Any : IPAddress.IPv6Any,
@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask SendAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
         {
-            if (_incoming)
+            if (_isServer)
             {
                 throw new TransportException("cannot send datagram with server connection");
             }
@@ -131,7 +131,7 @@ namespace IceRpc.Transports.Internal
             : base(logger)
         {
             _socket = socket;
-            _incoming = isServer;
+            _isServer = isServer;
             DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
 
             if (isServer)

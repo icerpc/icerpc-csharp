@@ -29,7 +29,7 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
-        internal static ITransportDescriptor TransportDescriptor { get; } = new UdpTransportDescriptor();
+        internal static IEndpointFactory EndpointFactory { get; } = new UdpEndpointFactory();
 
         /// <summary>The local network interface used to send multicast datagrams.</summary>
         internal string? MulticastInterface { get; }
@@ -380,7 +380,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private class UdpTransportDescriptor : IIce1TransportDescriptor
+        private class UdpEndpointFactory : IIce1EndpointFactory
         {
             public string Name => "udp";
 
@@ -396,7 +396,7 @@ namespace IceRpc.Transports.Internal
                 return new UdpEndpoint(data, protocol);
             }
 
-            public Endpoint CreateEndpoint(InputStream istr) =>
+            public Endpoint CreateIce1Endpoint(InputStream istr) =>
                 // This is correct in C# since arguments are evaluated left-to-right.
                 new UdpEndpoint(new EndpointData(Transport,
                                                  host: istr.ReadString(),
@@ -404,7 +404,7 @@ namespace IceRpc.Transports.Internal
                                                  ImmutableList<string>.Empty),
                                 compress: istr.ReadBool());
 
-            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
             {
                 (string host, ushort port) = ParseHostAndPort(options, endpointString);
 

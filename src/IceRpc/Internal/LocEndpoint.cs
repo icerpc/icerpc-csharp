@@ -15,7 +15,7 @@ namespace IceRpc.Internal
     {
         // There is no Equals as it's identical to the base.
 
-        internal static ITransportDescriptor TransportDescriptor { get; } = new LocTransportDescriptor();
+        internal static IEndpointFactory EndpointFactory { get; } = new LocEndpointFactory();
         protected internal override void WriteOptions11(OutputStream ostr) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
@@ -28,7 +28,7 @@ namespace IceRpc.Internal
         {
         }
 
-        private class LocTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
+        private class LocEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
         {
             public ushort DefaultUriPort => 0;
 
@@ -41,17 +41,17 @@ namespace IceRpc.Internal
                 new LocEndpoint(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty),
                                 protocol);
 
-            public Endpoint CreateEndpoint(InputStream istr) =>
+            public Endpoint CreateIce1Endpoint(InputStream istr) =>
                 throw new InvalidOperationException("an ice1 loc endpoint cannot be read like a regular endpoint");
 
-            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
             {
                 (string host, ushort port) = ParseHostAndPort(options, endpointString);
                 return new LocEndpoint(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty),
                                        Protocol.Ice1);
             }
 
-            public Endpoint CreateEndpoint(string host, ushort port, Dictionary<string, string> options) =>
+            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options) =>
                 new LocEndpoint(new EndpointData(Transport.Loc, host, port, ImmutableList<string>.Empty),
                                 Protocol.Ice2);
         }
