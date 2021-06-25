@@ -130,8 +130,39 @@ namespace IceRpc
         public bool IsDatagram => (_localEndpoint ?? _remoteEndpoint)?.IsDatagram ?? false;
 
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        public bool IsSecure => ConnectionInformation.IsSecure;
+        public bool IsSecure
+        {
+            get
+            {
+                if (_connection is MultiStreamConnection connection)
+                {
+                    // TODO: it would be nicer if the get accessors did not throw.
+
+                    bool secure = false;
+
+                    try
+                    {
+                        secure |= (connection.RemoteEndpoint.IsSecure ?? false);
+                    }
+                    catch
+                    {
+                        // TODO: it would be nicer if the get accessors did not throw.
+                    }
+                    try
+                    {
+                        secure |= (connection.LocalEndpoint.IsSecure ?? false);
+                    }
+                    catch
+                    {
+                    }
+                    return secure;
+                }
+                else
+                {
+                    return _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? false;
+                }
+            }
+        }
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>

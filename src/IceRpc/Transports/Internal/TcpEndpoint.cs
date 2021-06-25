@@ -28,7 +28,18 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
+        /// <summary>The default timeout for ice1 endpoints.</summary>
+        protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
+
+        private protected bool HasCompressionFlag { get; }
+        private protected TimeSpan Timeout { get; } = DefaultTimeout;
+
+        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
+        /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
+        /// </value>
+        private readonly bool? _tls;
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
         {
@@ -100,17 +111,6 @@ namespace IceRpc.Transports.Internal
 
             return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
         }
-
-        private protected bool HasCompressionFlag { get; }
-        private protected TimeSpan Timeout { get; } = DefaultTimeout;
-
-        /// <summary>The default timeout for ice1 endpoints.</summary>
-        protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
-
-        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
-        /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
-        /// </value>
-        private readonly bool? _tls;
 
         public override bool Equals(Endpoint? other)
         {
@@ -185,6 +185,28 @@ namespace IceRpc.Transports.Internal
                 Transport.SSL => new SslTransportDescriptor(),
                 _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
             };
+
+        internal TcpEndpoint Clone(EndPoint address, bool tls)
+        {
+            if (address is IPEndPoint ipAddress)
+            {
+                string host = ipAddress.Address.ToString();
+                ushort port = (ushort)ipAddress.Port;
+
+                if (Host == host && Port == port && (Protocol == Protocol.Ice1 || _tls == tls))
+                {
+                    return this;
+                }
+                else
+                {
+                    return new TcpEndpoint(this, host, port, tls);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("unsupported address");
+            }
+        }
 
         private protected override IPEndpoint Clone(string host, ushort port) =>
             new TcpEndpoint(this, host, port);
@@ -271,12 +293,12 @@ namespace IceRpc.Transports.Internal
             _tls = tls;
 
         // Clone constructor
-        private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port)
+        private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port, bool? tls = null)
             : base(endpoint, host, port)
         {
             HasCompressionFlag = endpoint.HasCompressionFlag;
             Timeout = endpoint.Timeout;
-            _tls = endpoint._tls;
+            _tls = tls ?? endpoint._tls;
         }
 
         private class TcpTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
