@@ -281,8 +281,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
             if (returnType)
             {
-                _out << " = streamReader?.ToByteStream() ?? "
-                    << "throw new InvalidDataException(\"no data available from the stream\");";
+                _out << " = streamReader!.ToByteStream();";
             }
             else
             {
@@ -439,18 +438,11 @@ getInvocationParams(const OperationPtr& op, const string& ns, bool defaultValues
     if (defaultValues)
     {
         params.push_back("IceRpc.Invocation? " + invocation + " = null");
-    }
-    else
-    {
-        params.push_back("IceRpc.Invocation? " + invocation);
-    }
-
-    if (defaultValues)
-    {
         params.push_back("global::System.Threading.CancellationToken " + cancel + " = default");
     }
     else
     {
+        params.push_back("IceRpc.Invocation? " + invocation);
         params.push_back("global::System.Threading.CancellationToken " + cancel);
     }
     return params;

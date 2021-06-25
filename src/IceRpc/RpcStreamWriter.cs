@@ -5,7 +5,7 @@ using System;
 
 namespace IceRpc
 {
-    /// <summary>A stream writer to write a stream param.</summary>
+    /// <summary>A stream writer to write a stream param from a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamWriter
     {
         private readonly Action<RpcStream> _writer;
@@ -13,7 +13,7 @@ namespace IceRpc
         internal void Send(RpcStream stream) => _writer(stream);
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
-        /// request stream.</summary>
+        /// request <see cref="RpcStream"/>.</summary>
         /// <param name="byteStream">The stream to read data from.</param>
         public RpcStreamWriter(System.IO.Stream byteStream)
             : this(stream => stream.SendData(byteStream))

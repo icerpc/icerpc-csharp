@@ -105,12 +105,13 @@ namespace IceRpc.Transports
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
 
+        private readonly MultiStreamConnection _connection;
+
         // Depending on the stream implementation, the _id can be assigned on construction or only once SendAsync
         // is called. Once it's assigned, it's immutable. The specialization of the stream is responsible for not
         // accessing this data member concurrently when it's not safe.
         private long _id = -1;
 
-        private readonly MultiStreamConnection _connection;
         private int _state;
 
         /// <summary>Receives data from the stream into the returned IO stream.</summary>

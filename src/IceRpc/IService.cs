@@ -95,12 +95,6 @@ namespace IceRpc
         /// </param>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
-        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
-        /// doesn't specify a stream parameter.</summary>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
-        protected static void IceNoStreamData(Dispatch dispatch) =>
-            dispatch.IncomingRequest.Stream.Abort(Transports.RpcStreamError.UnexpectedStreamData);
-
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
         /// incorrectly believes this operation is idempotent.</summary>
@@ -114,6 +108,12 @@ namespace IceRpc
                         }': received request marked idempotent for a non-idempotent operation");
             }
         }
+
+        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
+        /// doesn't specify a stream parameter.</summary>
+        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        protected static void IceNoStreamData(Dispatch dispatch) =>
+            dispatch.IncomingRequest.Stream.Abort(Transports.RpcStreamError.UnexpectedStreamData);
 
         /// <summary>Dispatches an ice_id request.</summary>
         /// <param name="payload">The request payload.</param>
