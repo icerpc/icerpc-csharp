@@ -5,7 +5,7 @@ using System;
 
 namespace IceRpc
 {
-    /// <summary>A stream writer to write a stream param from a <see cref="RpcStream"/>.</summary>
+    /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamWriter
     {
         private readonly Action<RpcStream> _writer;

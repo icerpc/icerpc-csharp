@@ -256,7 +256,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [TestCase(false)]
-        // [TestCase(true)]
+        [TestCase(true)]
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?

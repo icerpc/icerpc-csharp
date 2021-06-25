@@ -194,7 +194,6 @@ namespace IceRpc
                 invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
             }
 
-            OutgoingRequest? request;
             try
             {
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
@@ -220,14 +219,14 @@ namespace IceRpc
                         } must be cancelable when the invocation deadline is set", nameof(cancel));
                 }
 
-                request = new OutgoingRequest(proxy,
-                                              operation,
-                                              requestPayload,
-                                              deadline,
-                                              invocation,
-                                              idempotent,
-                                              oneway,
-                                              streamWriter);
+                var request = new OutgoingRequest(proxy,
+                                                  operation,
+                                                  requestPayload,
+                                                  deadline,
+                                                  invocation,
+                                                  idempotent,
+                                                  oneway,
+                                                  streamWriter);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
