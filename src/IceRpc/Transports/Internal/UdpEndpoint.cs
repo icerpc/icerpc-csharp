@@ -221,14 +221,28 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        protected internal override Endpoint GetProxyEndpoint(string host) => Clone(host);
+
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             base.WriteOptions11(ostr);
             ostr.WriteBool(_hasCompressionFlag);
         }
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new UdpEndpoint(this, host, port);
+        internal UdpEndpoint Clone(EndPoint address)
+        {
+            if (address is IPEndPoint ipAddress)
+            {
+                string host = ipAddress.Address.ToString();
+                ushort port = (ushort)ipAddress.Port;
+
+                return (Host == host && Port == port) ? this : new UdpEndpoint(this, host, port);
+            }
+            else
+            {
+                throw new InvalidOperationException("unsupported address");
+            }
+        }
 
         private static IPAddress GetIPv4InterfaceAddress(string @interface)
         {
@@ -321,6 +335,11 @@ namespace IceRpc.Transports.Internal
             MulticastTtl = endpoint.MulticastTtl;
             _hasCompressionFlag = endpoint._hasCompressionFlag;
         }
+
+        private UdpEndpoint Clone(string hostName) =>
+            hostName == Host ? this : new UdpEndpoint(this, hostName, Port);
+
+        private UdpEndpoint Clone(ushort port) => port == Port ? this : new UdpEndpoint(this, Host, port);
 
         private void SetMulticastGroup(Socket socket, IPAddress group)
         {

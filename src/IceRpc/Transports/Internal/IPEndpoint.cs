@@ -46,34 +46,6 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(Port);
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string hostName) =>
-            hostName == Host ? this : Clone(hostName, Port);
-
-        internal IPEndpoint Clone(EndPoint address)
-        {
-            if (address is IPEndPoint ipAddress)
-            {
-                return Clone(ipAddress.Address.ToString(), (ushort)ipAddress.Port);
-            }
-            else
-            {
-                throw new InvalidOperationException("unsupported address");
-            }
-        }
-
-        internal IPEndpoint Clone(ushort port)
-        {
-            if (port == Port)
-            {
-                return this;
-            }
-            else
-            {
-                IPEndpoint clone = Clone(Host, port);
-                return clone;
-            }
-        }
-
         private protected static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
         {
             bool compress = false;
@@ -113,14 +85,11 @@ namespace IceRpc.Transports.Internal
         }
 
         // Constructor for Clone
-        private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
+        private protected IPEndpoint(Endpoint endpoint, string host, ushort port)
             : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
                    endpoint.Protocol)
         {
         }
-
-        /// <summary>Creates a clone with the specified host and port.</summary>
-        private protected abstract IPEndpoint Clone(string host, ushort port);
 
         private protected void SetBufferSize(Socket socket, int? receiveSize, int? sendSize, ILogger logger)
         {

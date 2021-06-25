@@ -153,6 +153,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
+
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
         protected internal override bool IsEquivalent(Endpoint? other) =>
             ReferenceEquals(this, other) ||
@@ -193,23 +195,14 @@ namespace IceRpc.Transports.Internal
                 string host = ipAddress.Address.ToString();
                 ushort port = (ushort)ipAddress.Port;
 
-                if (Host == host && Port == port && (Protocol == Protocol.Ice1 || _tls == tls))
-                {
-                    return this;
-                }
-                else
-                {
-                    return new TcpEndpoint(this, host, port, tls);
-                }
+                return (Host == host && Port == port && (Protocol == Protocol.Ice1 || _tls == tls)) ?
+                    this : new TcpEndpoint(this, host, port, tls);
             }
             else
             {
                 throw new InvalidOperationException("unsupported address");
             }
         }
-
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new TcpEndpoint(this, host, port);
 
         private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
         {
@@ -300,6 +293,9 @@ namespace IceRpc.Transports.Internal
             Timeout = endpoint.Timeout;
             _tls = tls ?? endpoint._tls;
         }
+
+        private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
+        private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
 
         private class TcpEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
         {
