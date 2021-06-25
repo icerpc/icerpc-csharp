@@ -172,11 +172,11 @@ namespace IceRpc
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            StreamWriter? streamWriter = null,
+            RpcStreamWriter? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
@@ -244,13 +244,13 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, StreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, RpcStreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
                 OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
             {
-                StreamReader? streamReader = null;
+                RpcStreamReader? streamReader = null;
                 try
                 {
                     IncomingResponse response = await responseTask.ConfigureAwait(false);
@@ -273,7 +273,7 @@ namespace IceRpc
 
                     if (returnStreamReader)
                     {
-                        streamReader = new StreamReader(request.Stream!);
+                        streamReader = new RpcStreamReader(request.Stream);
                     }
 
                     return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);

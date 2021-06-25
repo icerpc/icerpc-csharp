@@ -3,6 +3,7 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
+using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -54,6 +55,15 @@ namespace IceRpc
 
         /// <summary>The identity of the target service. ice1 only.</summary>
         internal Identity Identity { get; } = Identity.Empty;
+
+        /// <summary>The stream used to receive the request.</summary>
+        internal RpcStream Stream
+        {
+            get => _stream ?? throw new InvalidOperationException("stream not set");
+            set => _stream = value;
+        }
+
+        private RpcStream? _stream;
 
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>

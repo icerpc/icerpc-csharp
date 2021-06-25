@@ -77,11 +77,15 @@ namespace IceRpc
         /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
         internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
 
-        /// <summary>The stream used to send the request. The proxy code is responsible for releasing the stream
-        /// when the invoker returns.</summary>
-        internal RpcStream? Stream { get; set; }
+        /// <summary>The stream used to send the request.</summary>
+        internal RpcStream Stream
+        {
+            get => _stream ?? throw new InvalidOperationException("stream not set");
+            set => _stream = value;
+        }
 
         private string _path = "";
+        private RpcStream? _stream;
 
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
         /// <param name="proxy">The proxy sending the outgoing request.</param>
@@ -118,7 +122,7 @@ namespace IceRpc
             Invocation? invocation = null,
             bool idempotent = false,
             bool oneway = false,
-            StreamWriter? streamWriter = null)
+            RpcStreamWriter? streamWriter = null)
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,
@@ -189,7 +193,7 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             FeatureCollection features,
-            StreamWriter? streamWriter)
+            RpcStreamWriter? streamWriter)
             : base(proxy.Protocol, features, streamWriter)
         {
             AltEndpoints = proxy.AltEndpoints;

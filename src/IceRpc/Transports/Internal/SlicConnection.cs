@@ -95,7 +95,7 @@ namespace IceRpc.Transports.Internal
                             Logger.LogReceivingSlicFrame(type, frameSize);
                         }
 
-                        bool isServer = streamId % 2 == (IsServer ? 0 : 1);
+                        bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
                         bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
@@ -110,7 +110,7 @@ namespace IceRpc.Transports.Internal
                                 await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
                             }
                         }
-                        else if (isServer && IsIncomingStreamUnknown(streamId, isBidirectional))
+                        else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
                         {
                             // Create a new stream if the incoming stream is unknown (the client could be sending
                             // frames for old canceled incoming streams, these are ignored).
@@ -195,11 +195,11 @@ namespace IceRpc.Transports.Internal
                         }
                         else
                         {
-                            bool isServer = streamId % 2 == (IsServer ? 0 : 1);
+                            bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
                             bool isBidirectional = streamId % 4 < 2;
                             // Release the stream count for the destroyed stream if it's an outgoing stream. For
                             // incoming streams, the stream count is released on shutdown of the stream.
-                            if (!isServer)
+                            if (!isIncoming)
                             {
                                 if (isBidirectional)
                                 {

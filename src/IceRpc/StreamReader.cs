@@ -6,7 +6,7 @@ using System;
 namespace IceRpc
 {
     /// <summary>A stream reader to read a stream param.</summary>
-    public sealed class StreamReader
+    public sealed class RpcStreamReader
     {
         private readonly RpcStream _stream;
 
@@ -18,6 +18,6 @@ namespace IceRpc
         /// <returns>The read-only stream to read the data from the request stream.</returns>
         public System.IO.Stream ToByteStream() => _stream.ReceiveData();
 
-        internal StreamReader(RpcStream stream) => _stream = stream;
+        internal RpcStreamReader(RpcStream stream) => _stream = stream;
     }
 }

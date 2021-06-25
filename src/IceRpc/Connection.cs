@@ -604,7 +604,7 @@ namespace IceRpc
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                request.Stream!.Abort(RpcStreamError.InvocationCanceled);
+                request.Stream.Abort(RpcStreamError.InvocationCanceled);
                 throw;
             }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)

@@ -19,7 +19,7 @@ namespace IceRpc
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseReader<T>(
         ReadOnlyMemory<byte> payload,
-        StreamReader? streamReader,
+        RpcStreamReader? streamReader,
         Encoding payloadEncoding,
         Connection connection,
         IInvoker? invoker);
@@ -47,7 +47,7 @@ namespace IceRpc
             /// </summary>
             public static string IceId(
                 ReadOnlyMemory<byte> payload,
-                StreamReader? _,
+                RpcStreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
@@ -57,7 +57,7 @@ namespace IceRpc
             /// </summary>
             public static string[] IceIds(
                 ReadOnlyMemory<byte> payload,
-                StreamReader? _,
+                RpcStreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
@@ -70,7 +70,7 @@ namespace IceRpc
             /// </summary>
             public static bool IceIsA(
                 ReadOnlyMemory<byte> payload,
-                StreamReader? _,
+                RpcStreamReader? _,
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
@@ -140,7 +140,7 @@ namespace IceRpc
         /// <summary>A response delegate for invocations that returns only a System.IO.Stream value.</summary>
         protected static System.IO.Stream IceByteStreamResponse(
             ReadOnlyMemory<byte> payload,
-            StreamReader? streamReader,
+            RpcStreamReader? streamReader,
             Encoding payloadEncoding,
             Connection connection,
             IInvoker? invoker)
@@ -306,7 +306,7 @@ namespace IceRpc
         protected Task<T> IceInvokeAsync<T>(
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            StreamWriter? streamWriter,
+            RpcStreamWriter? streamWriter,
             ResponseReader<T> responseReader,
             Invocation? invocation,
             bool compress = false,
@@ -314,7 +314,7 @@ namespace IceRpc
             bool responseHasStreamValue = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
                 streamWriter,
@@ -329,7 +329,7 @@ namespace IceRpc
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamReader? streamReader, Encoding payloadEncoding, Connection connection) =
+                (ReadOnlyMemory<byte> payload, RpcStreamReader? streamReader, Encoding payloadEncoding, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
                 return responseReader(payload, streamReader, payloadEncoding, connection, Invoker);
@@ -354,14 +354,14 @@ namespace IceRpc
         protected Task IceInvokeAsync(
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            StreamWriter? streamWriter,
+            RpcStreamWriter? streamWriter,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> responseTask = this.InvokeAsync(
                 operation,
                 requestPayload,
                 streamWriter,
@@ -376,7 +376,7 @@ namespace IceRpc
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamReader? _, Encoding payloadEncoding, _) =
+                (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, _) =
                     await responseTask.ConfigureAwait(false);
 
                 payload.CheckVoidReturnValue(payloadEncoding);

@@ -334,7 +334,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
-            var clientStreams = new List<Stream>();
+            var clientStreams = new List<RpcStream>();
             for (int i = 0; i < ServerConnectionOptions.UnidirectionalStreamMaxCount; ++i)
             {
                 var stream = ClientConnection.CreateStream(false);
@@ -343,7 +343,7 @@ namespace IceRpc.Tests.Internal
             }
 
             // Ensure the client side accepts streams to receive acknowledgement of stream completion.
-            ValueTask<Stream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
+            ValueTask<RpcStream> acceptClientStream = ClientConnection.AcceptStreamAsync(default);
 
             var clientStream = ClientConnection.CreateStream(false);
             ValueTask sendTask = clientStream.SendRequestFrameAsync(DummyRequest);

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -47,17 +46,10 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        internal RpcStream Stream
-        {
-            get => _stream ?? throw new InvalidOperationException("stream not set");
-            set => _stream = value;
-        }
-
         private protected bool IsPayloadSet => _payload != null;
 
         private Connection? _connection;
         private ReadOnlyMemory<byte>? _payload;
-        private RpcStream? _stream;
 
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>
