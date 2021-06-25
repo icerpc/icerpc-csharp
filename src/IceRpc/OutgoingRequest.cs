@@ -79,7 +79,7 @@ namespace IceRpc
 
         /// <summary>The stream used to send the request. The proxy code is responsible for releasing the stream
         /// when the invoker returns.</summary>
-        internal Stream? Stream { get; set; }
+        internal RpcStream? Stream { get; set; }
 
         private string _path = "";
 

@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
     /// or values can be queued using QueueResult. QueueResult might require allocating a queue on the
     /// heap. Stream implementations will typically only use it when needed.
     /// </summary>
-    internal abstract class SignaledStream<T> : Stream, IValueTaskSource<T>
+    internal abstract class SignaledStream<T> : RpcStream, IValueTaskSource<T>
     {
         internal Exception? AbortException
         {

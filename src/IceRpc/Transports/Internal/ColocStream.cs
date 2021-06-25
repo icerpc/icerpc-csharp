@@ -23,12 +23,12 @@ namespace IceRpc.Transports.Internal
             return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
-        protected override void AbortRead(StreamErrorCode errorCode)
+        protected override void AbortRead(RpcStreamError errorCode)
         {
             if(TrySetReadCompleted(shutdown: false))
             {
                 // Abort the receive call waiting on WaitAsync().
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
 
                 // Send stop sending frame before shutting down.
                 // TODO
@@ -38,10 +38,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != StreamErrorCode.ConnectionAborted)
+            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
                 _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
             }
@@ -49,7 +49,7 @@ namespace IceRpc.Transports.Internal
             if (TrySetWriteCompleted(shutdown: false))
             {
                 // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
 
                 // Shutdown the stream if not already done.
                 TryShutdown();
@@ -189,7 +189,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(object frame, bool fin)
         {
-            if (frame is StreamErrorCode errorCode)
+            if (frame is RpcStreamError errorCode)
             {
                 AbortRead(errorCode);
                 CancelDispatchSource?.Cancel();

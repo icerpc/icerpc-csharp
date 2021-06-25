@@ -99,7 +99,7 @@ namespace IceRpc
         /// doesn't specify a stream parameter.</summary>
         /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
         protected static void IceNoStreamData(Dispatch dispatch) =>
-            dispatch.IncomingRequest.Stream.Abort(Transports.StreamErrorCode.UnexpectedStreamData);
+            dispatch.IncomingRequest.Stream.Abort(Transports.RpcStreamError.UnexpectedStreamData);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller

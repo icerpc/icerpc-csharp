@@ -12,15 +12,15 @@ using System.Threading.Tasks;
 namespace IceRpc.Transports
 {
     /// <summary>Raised if a stream is aborted. This exception is internal.</summary>
-    public class StreamAbortedException : Exception
+    public class RpcStreamAbortedException : Exception
     {
-        internal StreamErrorCode ErrorCode { get; }
+        internal RpcStreamError ErrorCode { get; }
 
-        internal StreamAbortedException(StreamErrorCode errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
-    public enum StreamErrorCode : byte
+    public enum RpcStreamError : byte
     {
         /// <summary>The stream was aborted because the invocation was canceled.</summary>
         InvocationCanceled,
@@ -46,7 +46,7 @@ namespace IceRpc.Transports
 
     /// <summary>The Stream abstract base class to be overridden by multi-stream transport implementations.
     /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
-    public abstract class Stream
+    public abstract class RpcStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the
         /// stream ID registers the stream with the connection.</summary>
@@ -166,7 +166,7 @@ namespace IceRpc.Transports
                         }
                         catch
                         {
-                            AbortWrite(StreamErrorCode.StreamingError);
+                            AbortWrite(RpcStreamError.StreamingError);
                             break;
                         }
                     }
@@ -183,7 +183,7 @@ namespace IceRpc.Transports
         /// <summary>Constructs a stream with the given ID.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="connection">The parent connection.</param>
-        protected Stream(MultiStreamConnection connection, long streamId)
+        protected RpcStream(MultiStreamConnection connection, long streamId)
         {
             _connection = connection;
             IsBidirectional = streamId % 4 < 2;
@@ -211,7 +211,7 @@ namespace IceRpc.Transports
         /// <param name="bidirectional">True to create a bidirectional stream, False otherwise.</param>
         /// <param name="control">True to create a control stream, False otherwise.</param>
         /// <param name="connection">The parent connection.</param>
-        protected Stream(MultiStreamConnection connection, bool bidirectional, bool control)
+        protected RpcStream(MultiStreamConnection connection, bool bidirectional, bool control)
         {
             _connection = connection;
             IsBidirectional = bidirectional;
@@ -226,11 +226,11 @@ namespace IceRpc.Transports
 
         /// <summary>Abort the stream read side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        protected abstract void AbortRead(StreamErrorCode errorCode);
+        protected abstract void AbortRead(RpcStreamError errorCode);
 
         /// <summary>Abort the stream write side.</summary>
         /// <param name="errorCode">The reason of the abort.</param>
-        protected abstract void AbortWrite(StreamErrorCode errorCode);
+        protected abstract void AbortWrite(RpcStreamError errorCode);
 
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
@@ -295,10 +295,10 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void Abort(StreamErrorCode errorCode)
+        internal void Abort(RpcStreamError errorCode)
         {
             // Abort writes unless the abort is triggered by the generated code not expecting stream data.
-            if (errorCode != StreamErrorCode.UnexpectedStreamData)
+            if (errorCode != RpcStreamError.UnexpectedStreamData)
             {
                 AbortWrite(errorCode);
             }
@@ -684,7 +684,7 @@ namespace IceRpc.Transports
                 set => throw new NotImplementedException();
             }
 
-            private readonly Stream _stream;
+            private readonly RpcStream _stream;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -716,11 +716,11 @@ namespace IceRpc.Transports
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.AbortRead(StreamErrorCode.StreamingError);
+                    _stream.AbortRead(RpcStreamError.StreamingError);
                 }
             }
 
-            internal IOStream(Stream stream) => _stream = stream;
+            internal IOStream(RpcStream stream) => _stream = stream;
         }
 
         private enum State : int

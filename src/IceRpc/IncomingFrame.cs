@@ -47,7 +47,7 @@ namespace IceRpc
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        internal Stream Stream
+        internal RpcStream Stream
         {
             get => _stream ?? throw new InvalidOperationException("stream not set");
             set => _stream = value;
@@ -57,7 +57,7 @@ namespace IceRpc
 
         private Connection? _connection;
         private ReadOnlyMemory<byte>? _payload;
-        private Stream? _stream;
+        private RpcStream? _stream;
 
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>

@@ -16,21 +16,21 @@ namespace IceRpc.Transports.Internal
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private readonly Ice1Connection _connection;
 
-        protected override void AbortRead(StreamErrorCode errorCode)
+        protected override void AbortRead(RpcStreamError errorCode)
         {
             if (TrySetReadCompleted())
             {
                 // Abort the receive call waiting on WaitAsync().
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
             }
         }
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamError errorCode)
         {
             if (TrySetWriteCompleted())
             {
                 // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
             }
         }
 

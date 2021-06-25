@@ -41,7 +41,7 @@ namespace IceRpc.Transports.Internal
         private int _unidirectionalStreamCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
 
-        public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
+        public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
             // Eventually wait for the stream data receive to complete if stream data is being received.
             await WaitForReceivedStreamDataCompletionAsync(cancel).ConfigureAwait(false);
@@ -188,7 +188,7 @@ namespace IceRpc.Transports.Internal
 
                         var istr = new InputStream(data, SlicDefinitions.Encoding);
                         var streamReset = new StreamResetBody(istr);
-                        var errorCode = (StreamErrorCode)streamReset.ApplicationProtocolErrorCode;
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedReset(errorCode);
@@ -266,7 +266,7 @@ namespace IceRpc.Transports.Internal
             await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
         }
 
-        public override Stream CreateStream(bool bidirectional) =>
+        public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new SlicStream(
                 this,

@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogReceivingSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            StreamErrorCode errorCode);
+            RpcStreamError errorCode);
 
         [LoggerMessage(
             EventId = (int)SlicEvent.ReceivingUnsupportedInitializeFrame,
@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Internal
         internal static partial void LogSendingSlicResetFrame(
             this ILogger logger,
             int frameSize,
-            StreamErrorCode errorCode);
+            RpcStreamError errorCode);
 
         internal static void LogSendingSlicVersionFrame(
             this ILogger logger,

@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Internal
             // Stream is aborted
             ex = Assert.ThrowsAsync<StreamAbortedException>(
                 async () => await clientStream.ReceiveResponseFrameAsync(default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(StreamErrorCode.ConnectionAborted));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(RpcStreamError.ConnectionAborted));
 
             // Can't create new stream
             clientStream = OutgoingConnection.CreateStream(true);
@@ -92,7 +92,7 @@ namespace IceRpc.Tests.Internal
 
             await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
 
-            OutgoingConnection.AbortOutgoingStreams(StreamErrorCode.ConnectionShutdown, (clientStream.Id, 0));
+            OutgoingConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown, (clientStream.Id, 0));
 
             // Stream is not aborted
             _ = OutgoingConnection.AcceptStreamAsync(default).AsTask();

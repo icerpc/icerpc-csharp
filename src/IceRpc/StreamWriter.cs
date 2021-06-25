@@ -8,9 +8,9 @@ namespace IceRpc
     /// <summary>A stream writer to write a stream param.</summary>
     public sealed class StreamWriter
     {
-        private readonly Action<Stream> _writer;
+        private readonly Action<RpcStream> _writer;
 
-        internal void Send(Stream stream) => _writer(stream);
+        internal void Send(RpcStream stream) => _writer(stream);
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
         /// request stream.</summary>
@@ -20,6 +20,6 @@ namespace IceRpc
         {
         }
 
-        private StreamWriter(Action<Stream> writer) => _writer = writer;
+        private StreamWriter(Action<RpcStream> writer) => _writer = writer;
     }
 }

@@ -44,12 +44,12 @@ namespace IceRpc.Transports.Internal
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
 
-        protected override void AbortRead(StreamErrorCode errorCode)
+        protected override void AbortRead(RpcStreamError errorCode)
         {
             if (TrySetReadCompleted(shutdown: false))
             {
                 // Abort the receive call waiting on WaitAsync().
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
 
                 // Send stop sending frame before shutting down.
                 // TODO
@@ -59,10 +59,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void AbortWrite(StreamErrorCode errorCode)
+        protected override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != StreamErrorCode.ConnectionAborted)
+            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
                 _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamReset,
@@ -80,7 +80,7 @@ namespace IceRpc.Transports.Internal
             if (TrySetWriteCompleted(shutdown: false))
             {
                 // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new StreamAbortedException(errorCode));
+                SetException(new RpcStreamAbortedException(errorCode));
 
                 // Shutdown the stream if not already done.
                 TryShutdown();
@@ -490,7 +490,7 @@ namespace IceRpc.Transports.Internal
                 catch
                 {
                     // Socket failure, just set the exception on the stream.
-                    AbortRead(StreamErrorCode.StreamingError);
+                    AbortRead(RpcStreamError.StreamingError);
                 }
 
                 // Queue the frame before notifying the connection we're done with the receive. It's important
@@ -511,7 +511,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedReset(StreamErrorCode errorCode)
+        internal void ReceivedReset(RpcStreamError errorCode)
         {
             AbortRead(errorCode);
             CancelDispatchSource?.Cancel();
