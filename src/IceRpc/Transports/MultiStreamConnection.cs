@@ -157,9 +157,7 @@ namespace IceRpc.Transports
         public abstract Task PingAsync(CancellationToken cancel);
 
         /// <inheritdoc/>
-        public override string ToString() =>
-            @$"{GetType().Name} IsServer={IsServer}, IsSecure={IsSecure}, LocalEndpoint={_localEndpoint
-            }, RemoteEndpoint={_remoteEndpoint}";
+        public override string ToString() => @$"{GetType().Name} IsServer={IsServer}, IsSecure={IsSecure}";
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>

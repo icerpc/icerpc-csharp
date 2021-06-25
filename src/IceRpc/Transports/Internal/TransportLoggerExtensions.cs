@@ -254,9 +254,8 @@ namespace IceRpc.Transports.Internal
                             connection.LocalEndpoint.ToString());
                     }
                 }
-                // TODO: update
-                /*
-                else if (connection.ConnectionInformation is TcpConnectionInformation tcpConnection)
+                else if (connection is NetworkSocketConnection networkSocketConnection &&
+                    networkSocketConnection.NetworkSocket.Socket is System.Net.Sockets.Socket socket)
                 {
                     if (connection.IsDatagram && server != null)
                     {
@@ -267,7 +266,7 @@ namespace IceRpc.Transports.Internal
                                 connection.TransportName,
                                 connection.Protocol,
                                 server.ToString(),
-                                tcpConnection.LocalEndPoint?.ToString() ?? "undefined");
+                                socket.LocalEndPoint?.ToString() ?? "undefined");
                         }
                         catch (System.Net.Sockets.SocketException)
                         {
@@ -287,7 +286,7 @@ namespace IceRpc.Transports.Internal
                             {
                                 return _overConnectionServerConnectionScope(
                                     logger,
-                                    tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
+                                    socket.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                             else
                             {
@@ -295,8 +294,8 @@ namespace IceRpc.Transports.Internal
                                     logger,
                                     connection.TransportName,
                                     connection.Protocol,
-                                    tcpConnection.LocalEndPoint?.ToString() ?? "undefined",
-                                    tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
+                                    socket.LocalEndPoint?.ToString() ?? "undefined",
+                                    socket.RemoteEndPoint?.ToString() ?? "undefined");
                             }
                         }
                         catch (System.Net.Sockets.SocketException)
@@ -316,17 +315,16 @@ namespace IceRpc.Transports.Internal
                         }
                     }
                 }
-                */
                 else
                 {
                     if (connection.IsDatagram && server != null)
                     {
                         return _datagramServerConnectionScope(
-                            logger,
-                            connection.TransportName,
-                            connection.Protocol,
-                            server.ToString(),
-                            connection.ToString()!);
+                        logger,
+                        connection.TransportName,
+                        connection.Protocol,
+                        server.ToString(),
+                        connection.ToString()!);
                     }
                     else if (connection.IsServer)
                     {

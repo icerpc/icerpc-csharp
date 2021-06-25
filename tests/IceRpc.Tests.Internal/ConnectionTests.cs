@@ -332,9 +332,8 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
 
-    // TODO: fix
-    //      Assert.That($"{factory.Client}", Does.StartWith(clientSocket.GetType().FullName));
-    //      Assert.That($"{factory.Server}", Does.StartWith(serverSocket.GetType().FullName));
+            Assert.That($"{factory.Client}", Does.StartWith(factory.Client.UnderlyingConnection!.GetType().Name));
+            Assert.That($"{factory.Server}", Does.StartWith(factory.Server.UnderlyingConnection!.GetType().Name));
 
             if (transport == "udp")
             {

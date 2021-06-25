@@ -27,8 +27,6 @@ namespace IceRpc.Transports
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 
-        /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({NetworkSocket})";
 
         /// <inheritdoc/>
         public override async ValueTask AcceptAsync(
@@ -54,6 +52,10 @@ namespace IceRpc.Transports
                 RemoteEndpoint!,
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
+
+
+        /// <inheritdoc/>
+        public override string ToString() => $"{base.ToString()} ({NetworkSocket})";
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)

@@ -13,16 +13,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The base class for connection information.</summary>
-    public abstract class ConnectionInformation
-    {
-        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        public abstract bool IsSecure { get; }
-
-        /// <inheritdoc/>
-        public override string ToString() => $"IsSecure={IsSecure}";
-    }
-
     /// <summary>The state of an IceRpc connection.</summary>
     public enum ConnectionState : byte
     {

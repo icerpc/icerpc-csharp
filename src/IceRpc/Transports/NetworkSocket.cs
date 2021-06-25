@@ -15,7 +15,7 @@ namespace IceRpc.Transports
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
-        /// <summary>The underlying socket, if the implementation uses a Socket abd chooses to expose it.</summary>
+        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it.</summary>
         public virtual System.Net.Sockets.Socket? Socket => null;
 
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
@@ -24,18 +24,8 @@ namespace IceRpc.Transports
 
         internal ILogger Logger { get; }
 
-        /// <summary>Releases the resources used by the socket.</summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <inheritdoc/>
-        public override string ToString() => "x"; // TODO
-
-        /// <summary>Accepts a new connection. This is called after the listener accepted a new connection
-        /// to perform socket level initialization (TLS handshake, etc).</summary>
+        /// <summary>Accepts a new connection. This is called after the listener accepted a new connection to perform
+        /// socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -56,6 +46,13 @@ namespace IceRpc.Transports
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
+        /// <summary>Releases the resources used by the socket.</summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -73,6 +70,10 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A value task that completes once the buffers are sent.</returns>
         public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
+
+        /// <inheritdoc/>
+        public override string ToString() =>
+            $"LocalEndPoint={Socket?.LocalEndPoint}, RemoteEndPoint={Socket?.RemoteEndPoint}";
 
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
