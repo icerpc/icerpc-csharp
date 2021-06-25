@@ -248,10 +248,10 @@ namespace IceRpc.Tests.Internal
             endpoint ??= ClientEndpoint;
 
             return (((IClientConnectionFactory)endpoint).CreateClientConnection(options, Logger) as
-                NetworkSocketConnection)!.Underlying;
+                NetworkSocketConnection)!.NetworkSocket;
         }
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
-            ((await listener.AcceptAsync()) as NetworkSocketConnection)!.Underlying;
+            ((await listener.AcceptAsync()) as NetworkSocketConnection)!.NetworkSocket;
     }
 }

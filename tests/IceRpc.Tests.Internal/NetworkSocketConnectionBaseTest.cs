@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.IsDatagram)
             {
-                _serverConnection = ((NetworkSocketConnection)CreateServerConnection()).Underlying;
+                _serverConnection = ((NetworkSocketConnection)CreateServerConnection()).NetworkSocket;
                 ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
                 _clientConnection = await connectTask;
             }

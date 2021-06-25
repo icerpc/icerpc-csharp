@@ -280,7 +280,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             // Create a buffered receive single stream on top of the underlying connection.
-            _bufferedConnection = new BufferedReceiveOverNetworkSocket(Underlying);
+            _bufferedConnection = new BufferedReceiveOverNetworkSocket(NetworkSocket);
 
             if (IsServer)
             {
@@ -404,8 +404,8 @@ namespace IceRpc.Transports.Internal
             // the pong from is received? which timeout to use for expecting the pong frame?
             PrepareAndSendFrameAsync(SlicDefinitions.FrameType.Ping, cancel: cancel);
 
-        internal SlicConnection(Endpoint endpoint, NetworkSocket networkSocket, ConnectionOptions options)
-            : base(endpoint, networkSocket, options)
+        internal SlicConnection(NetworkSocket networkSocket, Endpoint endpoint, ConnectionOptions options)
+            : base(networkSocket, endpoint, options)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.RunContinuationAsynchronously = true;

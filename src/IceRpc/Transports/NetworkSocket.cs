@@ -81,22 +81,4 @@ namespace IceRpc.Transports
 
         internal NetworkSocket(ILogger logger) => Logger = logger;
     }
-
-    /// <summary>Extension methods for <see cref="NetworkSocket"/></summary>
-    public static class NetworkSocketExtensions
-    {
-        /// <summary>Creates a <see cref="MultiStreamConnection"/> from this network socket.</summary>
-        /// <param name="networkSocket">This network socket.</param>
-        /// <param name="endpoint">For a server connection (and network socket), the endpoint of the listener. For
-        /// a client connection (and network socket), the endpoint of the server.</param>
-        /// <param name="options">The connection options.</param>
-        /// <returns>A new multi-stream connection.</returns>
-        public static MultiStreamConnection CreateConnection(
-            this NetworkSocket networkSocket,
-            Endpoint endpoint,
-            ConnectionOptions options) =>
-            endpoint.Protocol == Protocol.Ice1 ?
-                new Ice1Connection(endpoint, networkSocket, options) :
-                new SlicConnection(endpoint, networkSocket, options);
-    }
 }

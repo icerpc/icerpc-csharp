@@ -120,7 +120,7 @@ namespace IceRpc.Tests.Internal
         public void Shutdown() => _listener?.Dispose();
 
         static protected async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
-            Task<MultiStreamConnection> connection) => (await connection as NetworkSocketConnection)!.Underlying;
+            Task<MultiStreamConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
 
         protected async Task<MultiStreamConnection> AcceptAsync()
         {
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.Internal
                     if (multiStreamConnection is NetworkSocketConnection connection)
                     {
                         Memory<byte> buffer = new byte[1];
-                        await connection.Underlying.ReceiveAsync(buffer, default);
+                        await connection.NetworkSocket.ReceiveAsync(buffer, default);
                     }
                 }
                 return multiStreamConnection;
@@ -181,7 +181,7 @@ namespace IceRpc.Tests.Internal
                 // indefinitely.
                 if (multiStreamConnection is NetworkSocketConnection connection)
                 {
-                    await connection.Underlying.SendAsync(new byte[1] { 0 }, default);
+                    await connection.NetworkSocket.SendAsync(new byte[1] { 0 }, default);
                 }
             }
 

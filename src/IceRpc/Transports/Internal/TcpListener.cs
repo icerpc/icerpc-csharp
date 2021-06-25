@@ -29,7 +29,7 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
-            return tcpSocket.CreateConnection(Endpoint, _options);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, Endpoint, _options);
         }
 
         public void Dispose() => _socket.Dispose();

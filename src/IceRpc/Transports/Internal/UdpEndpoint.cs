@@ -105,7 +105,7 @@ namespace IceRpc.Transports.Internal
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: true, multicastAddress);
-            return udpSocket.CreateConnection(Clone(port), options);
+            return NetworkSocketConnection.FromNetworkSocket(udpSocket, endpoint: Clone(port), options);
         }
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
@@ -171,7 +171,7 @@ namespace IceRpc.Transports.Internal
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: false, endpoint);
-            return udpSocket.CreateConnection(this, options);
+            return NetworkSocketConnection.FromNetworkSocket(udpSocket, this, options);
         }
 
         public override bool Equals(Endpoint? other)

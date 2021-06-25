@@ -63,7 +63,7 @@ namespace IceRpc.Transports.Internal
             }
 
             var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
-            return tcpSocket.CreateConnection(this, options);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, this, options);
         }
 
         public IListener CreateListener(ServerConnectionOptions options, ILogger logger)

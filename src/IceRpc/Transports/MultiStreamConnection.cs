@@ -34,7 +34,7 @@ namespace IceRpc.Transports
         public Endpoint LocalEndpoint
         {
             get => _localEndpoint ?? throw new InvalidOperationException("the connection is not connected");
-            set => _localEndpoint = value;
+            protected set => _localEndpoint = value;
         }
 
         /// <summary>The Ice protocol used by this connection.</summary>
@@ -45,7 +45,7 @@ namespace IceRpc.Transports
         public Endpoint RemoteEndpoint
         {
             get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
-            set => _remoteEndpoint = value;
+            protected set => _remoteEndpoint = value;
         }
 
         /// <summary>Returns information about this connection.</summary>

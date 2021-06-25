@@ -76,6 +76,6 @@ namespace IceRpc.Tests.Internal
         private NetworkSocket CreateClientConnection() =>
             (((IClientConnectionFactory)ClientEndpoint).CreateClientConnection(
                 ClientConnectionOptions,
-                Logger) as NetworkSocketConnection)!.Underlying;
+                Logger) as NetworkSocketConnection)!.NetworkSocket;
     }
 }
