@@ -254,6 +254,8 @@ namespace IceRpc.Transports.Internal
                             connection.LocalEndpoint.ToString());
                     }
                 }
+                // TODO: update
+                /*
                 else if (connection.ConnectionInformation is TcpConnectionInformation tcpConnection)
                 {
                     if (connection.IsDatagram && server != null)
@@ -314,6 +316,7 @@ namespace IceRpc.Transports.Internal
                         }
                     }
                 }
+                */
                 else
                 {
                     if (connection.IsDatagram && server != null)

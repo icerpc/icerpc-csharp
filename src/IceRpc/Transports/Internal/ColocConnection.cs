@@ -13,24 +13,17 @@ namespace IceRpc.Transports.Internal
     /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
     internal class ColocConnection : MultiStreamConnection
     {
-        /// <inheritdoc/>
         public override TimeSpan IdleTimeout
         {
             get => Timeout.InfiniteTimeSpan;
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
-        /// <inheritdoc/>
         public long Id { get; }
-
-        /// <inheritdoc/>
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new ColocConnectionInformation { Id = Id };
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private ColocConnectionInformation? _connectionInformation;
         private readonly object _mutex = new();
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;

@@ -11,9 +11,6 @@ namespace IceRpc.Transports
     /// <summary>Represents a socket or socket-like object that can send and receive bytes.</summary>
     public abstract class NetworkSocket : IDisposable
     {
-        /// <summary>Returns information about the connection.</summary>
-        public abstract ConnectionInformation ConnectionInformation { get; }
-
         /// <summary>When this socket is a datagram socket, the maximum size of a datagram received by this socket.
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
@@ -35,7 +32,7 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({ConnectionInformation})";
+        public override string ToString() => "x"; // TODO
 
         /// <summary>Accepts a new connection. This is called after the listener accepted a new connection
         /// to perform socket level initialization (TLS handshake, etc).</summary>

@@ -24,9 +24,6 @@ namespace IceRpc.Transports
                 new Ice1Connection(networkSocket, endpoint, options) :
                 new SlicConnection(networkSocket, endpoint, options);
 
-        /// <inheritdoc/>
-        public override ConnectionInformation ConnectionInformation => NetworkSocket.ConnectionInformation;
-
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 

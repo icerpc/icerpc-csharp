@@ -53,9 +53,6 @@ namespace IceRpc.Transports
             protected set => _remoteEndpoint = value;
         }
 
-        /// <summary>Returns information about this connection.</summary>
-        public abstract ConnectionInformation ConnectionInformation { get; }
-
         /// <summary>The transport of this connection.</summary>
         public Transport Transport => _endpoint.Transport;
 
@@ -158,6 +155,11 @@ namespace IceRpc.Transports
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract Task PingAsync(CancellationToken cancel);
+
+        /// <inheritdoc/>
+        public override string ToString() =>
+            @$"{GetType().Name} IsServer={IsServer}, IsSecure={IsSecure}, LocalEndpoint={_localEndpoint
+            }, RemoteEndpoint={_remoteEndpoint}";
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>

@@ -17,9 +17,6 @@ namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new TcpConnectionInformation(_socket, SslStream);
-
         public override Socket? Socket => _socket;
 
         public override SslStream? SslStream => _sslStream;
@@ -31,7 +28,6 @@ namespace IceRpc.Transports.Internal
         private const byte TlsHandshakeRecord = 0x16;
 
         private readonly EndPoint? _addr;
-        private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
         private SslStream? _sslStream;
 

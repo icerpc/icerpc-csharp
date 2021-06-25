@@ -15,14 +15,7 @@ namespace IceRpc.Transports.Internal
 {
     internal sealed class UdpSocket : NetworkSocket
     {
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new UdpConnectionInformation(_socket)
-            {
-                MulticastEndpoint = _multicastEndpoint
-            };
-
         public override int DatagramMaxReceiveSize { get; }
-
         public override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
@@ -31,7 +24,6 @@ namespace IceRpc.Transports.Internal
         private const int UdpOverhead = 20 + 8;
 
         private readonly EndPoint? _addr;
-        private UdpConnectionInformation? _connectionInformation;
         private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly Socket _socket;

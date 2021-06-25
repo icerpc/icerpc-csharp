@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -359,10 +360,13 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.That(prx.Connection!.ConnectionInformation, Is.AssignableTo<Transports.TcpConnectionInformation>());
-            var connectionInformation = (Transports.TcpConnectionInformation)prx.Connection.ConnectionInformation;
-            Assert.IsTrue(connectionInformation.IsSecure);
-            Assert.AreEqual(SslProtocols.Tls12, connectionInformation.SslProtocol);
+
+            SslStream? sslStream =
+                (prx.Connection!.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+
+            Assert.IsTrue(prx.Connection.IsSecure);
+            Assert.That(sslStream, Is.Not.Null);
+            Assert.AreEqual(SslProtocols.Tls12, sslStream.SslProtocol);
         }
 
         [Test]
