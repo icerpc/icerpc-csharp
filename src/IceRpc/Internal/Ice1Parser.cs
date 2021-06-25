@@ -65,10 +65,10 @@ namespace IceRpc.Internal
                 }
             }
 
-            if (TransportRegistry.TryGetValue(transportName, out ITransportDescriptor? descriptor) &&
-                descriptor is IIce1TransportDescriptor ice1TransportDescriptor)
+            if (TransportRegistry.TryGetValue(transportName, out IEndpointFactory? factory) &&
+                factory is IIce1EndpointFactory ice1EndpointFactory)
             {
-                Endpoint endpoint = ice1TransportDescriptor.CreateEndpoint(options, endpointString);
+                Endpoint endpoint = ice1EndpointFactory.CreateIce1Endpoint(options, endpointString);
                 if (options.Count > 0)
                 {
                     throw new FormatException(
@@ -89,8 +89,8 @@ namespace IceRpc.Internal
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    TransportRegistry.TryGetValue(opaqueEndpoint.Transport, out descriptor) &&
-                    descriptor is IIce1TransportDescriptor)
+                    TransportRegistry.TryGetValue(opaqueEndpoint.Transport, out factory) &&
+                    factory is IIce1EndpointFactory)
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
                     // unmarshal it from this buffer.

@@ -11,46 +11,46 @@ namespace IceRpc.Transports
     /// <summary>Registry for all transports known to this process.</summary>
     public static class TransportRegistry
     {
-        private static readonly IDictionary<string, ITransportDescriptor> _transportNameRegistry =
-            new ConcurrentDictionary<string, ITransportDescriptor>();
+        private static readonly IDictionary<string, IEndpointFactory> _transportNameRegistry =
+            new ConcurrentDictionary<string, IEndpointFactory>();
 
-        private static readonly IDictionary<Transport, ITransportDescriptor> _transportRegistry =
-            new ConcurrentDictionary<Transport, ITransportDescriptor>();
+        private static readonly IDictionary<Transport, IEndpointFactory> _transportRegistry =
+            new ConcurrentDictionary<Transport, IEndpointFactory>();
 
         /// <summary>Registers a new transport.</summary>
-        /// <param name="descriptor">The transport descriptor.</param>
-        public static void Add(ITransportDescriptor descriptor)
+        /// <param name="factory">The endpoint factory.</param>
+        public static void Add(IEndpointFactory factory)
         {
-            if (descriptor.Name.Length == 0)
+            if (factory.Name.Length == 0)
             {
-                throw new ArgumentException($"{nameof(descriptor.Name)} cannot be empty", nameof(descriptor));
+                throw new ArgumentException($"{nameof(factory.Name)} cannot be empty", nameof(factory));
             }
 
-            _transportRegistry.Add(descriptor.Transport, descriptor);
-            _transportNameRegistry.Add(descriptor.Name, descriptor);
+            _transportRegistry.Add(factory.Transport, factory);
+            _transportNameRegistry.Add(factory.Name, factory);
 
-            if (descriptor is IIce2TransportDescriptor ice2Descriptor)
+            if (factory is IIce2EndpointFactory ice2Descriptor)
             {
-                IceRpc.Internal.UriParser.RegisterTransport(descriptor.Name, ice2Descriptor.DefaultUriPort);
+                IceRpc.Internal.UriParser.RegisterTransport(factory.Name, ice2Descriptor.DefaultUriPort);
             }
         }
 
         internal static bool TryGetValue(
             Transport transport,
-            [NotNullWhen(true)] out ITransportDescriptor? descriptor) =>
-            _transportRegistry.TryGetValue(transport, out descriptor);
+            [NotNullWhen(true)] out IEndpointFactory? factory) =>
+            _transportRegistry.TryGetValue(transport, out factory);
 
         internal static bool TryGetValue(
             string name,
-            [NotNullWhen(true)] out ITransportDescriptor? descriptor) =>
-            _transportNameRegistry.TryGetValue(name, out descriptor);
+            [NotNullWhen(true)] out IEndpointFactory? factory) =>
+            _transportNameRegistry.TryGetValue(name, out factory);
 
         static TransportRegistry()
         {
-            Add(ColocEndpoint.TransportDescriptor);
-            Add(TcpEndpoint.GetTransportDescriptor(Transport.TCP));
-            Add(TcpEndpoint.GetTransportDescriptor(Transport.SSL));
-            Add(UdpEndpoint.TransportDescriptor);
+            Add(ColocEndpoint.EndpointFactory);
+            Add(TcpEndpoint.GetEndpointFactory(Transport.TCP));
+            Add(TcpEndpoint.GetEndpointFactory(Transport.SSL));
+            Add(UdpEndpoint.EndpointFactory);
         }
 
         // See Runtime.UriInitialize

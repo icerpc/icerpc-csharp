@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
 
         public override bool? IsSecure => true;
 
-        internal static ITransportDescriptor TransportDescriptor { get; } = new ColocTransportDescriptor();
+        internal static IEndpointFactory EndpointFactory { get; } = new ColocEndpointFactory();
 
         private const ushort DefaultUriPort = 4062;
 
@@ -48,7 +48,7 @@ namespace IceRpc.Transports.Internal
         {
         }
 
-        private class ColocTransportDescriptor : IIce1TransportDescriptor, IIce2TransportDescriptor
+        private class ColocEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
         {
             public ushort DefaultUriPort => ColocEndpoint.DefaultUriPort;
 
@@ -59,16 +59,16 @@ namespace IceRpc.Transports.Internal
             public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
                 throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
 
-            public Endpoint CreateEndpoint(InputStream _) =>
+            public Endpoint CreateIce1Endpoint(InputStream _) =>
                 throw new InvalidDataException($"received ice1 endpoint for coloc transport");
 
-            public Endpoint CreateEndpoint(Dictionary<string, string?> options, string endpointString)
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
             {
                 (string host, ushort port) = ParseHostAndPort(options, endpointString);
                 return new ColocEndpoint(host, port, Protocol.Ice1);
             }
 
-            public Endpoint CreateEndpoint(string host, ushort port, Dictionary<string, string> _) =>
+            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> _) =>
                 new ColocEndpoint(host, port, Protocol.Ice2);
         }
     }
