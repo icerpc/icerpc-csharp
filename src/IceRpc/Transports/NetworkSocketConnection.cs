@@ -11,11 +11,11 @@ namespace IceRpc.Transports
     public abstract class NetworkSocketConnection : MultiStreamConnection
     {
         /// <summary>Creates a network socket connection from a network socket.</summary>
-        /// <param name="networkSocket">This network socket.</param>
+        /// <param name="networkSocket">The network socket.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
         /// <param name="options">The connection options.</param>
-        /// <returns>A new network soccket connection.</returns>
+        /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
             Endpoint endpoint,
