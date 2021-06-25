@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
 
         public override int DatagramMaxReceiveSize { get; }
 
-        internal override Socket? Socket => _socket;
+        public override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.

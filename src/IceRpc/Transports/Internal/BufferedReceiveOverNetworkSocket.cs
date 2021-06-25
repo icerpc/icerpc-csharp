@@ -15,9 +15,8 @@ namespace IceRpc.Transports.Internal
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
         public override ConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
-
-        /// <inheritdoc/>
-        internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
+        public override System.Net.Sockets.Socket? Socket => Underlying.Socket;
+        public override SslStream? SslStream => Underlying.SslStream;
 
         internal NetworkSocket Underlying { get; }
 
