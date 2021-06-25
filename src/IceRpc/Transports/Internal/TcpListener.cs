@@ -8,30 +8,39 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
-    internal sealed class TcpListener : NetworkListener
+    /// <summary>The listener implementation for the TCP transport.</summary>
+    internal sealed class TcpListener : IListener
     {
-        private ILogger _logger;
-        private Socket _socket;
+        public Endpoint Endpoint { get; }
 
-        public override async ValueTask<NetworkSocket> AcceptSocketAsync()
+        private readonly ILogger _logger;
+        private readonly ServerConnectionOptions _options;
+        private readonly Socket _socket;
+
+        public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
+            TcpSocket tcpSocket;
             try
             {
-                Socket fd = await _socket.AcceptAsync().ConfigureAwait(false);
-                return new TcpSocket(fd, _logger);
+                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger);
             }
             catch (Exception ex)
             {
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
+
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, Endpoint, _options);
         }
 
-        protected override void Dispose(bool disposing) => _socket.Dispose();
+        public void Dispose() => _socket.Dispose();
+
+        public override string ToString() => Endpoint.ToString();
 
         internal TcpListener(Socket socket, Endpoint endpoint, ILogger logger, ServerConnectionOptions options)
-            : base(endpoint, options)
         {
+            Endpoint = endpoint;
             _logger = logger;
+            _options = options;
             _socket = socket;
         }
     }

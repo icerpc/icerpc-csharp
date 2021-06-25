@@ -12,9 +12,9 @@ namespace IceRpc.Transports.Internal
     /// <summary>The base class for IP-based endpoints: TcpEndpoint, UdpEndpoint.</summary>
     internal abstract class IPEndpoint : Endpoint
     {
-        protected internal override bool HasDnsHost => Address == IPAddress.None;
+        public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
-        internal const ushort DefaultIPPort = 4062;
+        protected internal override bool HasDnsHost => Address == IPAddress.None;
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
         /// returns IPAddress.None.</summary>
@@ -32,6 +32,8 @@ namespace IceRpc.Transports.Internal
                 return _address;
             }
         }
+
+        private protected const ushort DefaultUriPort = 4062;
 
         private IPAddress? _address;
 

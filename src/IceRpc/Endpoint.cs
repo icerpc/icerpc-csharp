@@ -38,6 +38,9 @@ namespace IceRpc
         /// Do not update the contents of this list.</remarks>
         public EndpointData Data { get; }
 
+        /// <summary>The default port for the endpoint's transport.</summary>
+        public virtual ushort DefaultPort => 0;
+
         /// <summary>The host name or address.</summary>
         public string Host => Data.Host;
 
@@ -90,11 +93,8 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.Transport"></see> of this endpoint.</summary>
         public Transport Transport => Data.Transport;
 
-        /// <summary>The descriptor for this endpoint's transport.</summary>
-        public abstract TransportDescriptor? TransportDescriptor { get; }
-
         /// <summary>The name of the endpoint's transport in lowercase.</summary>
-        public string TransportName => TransportDescriptor?.Name ?? Transport.ToString().ToLowerInvariant();
+        public virtual string TransportName => Transport.ToString().ToLowerInvariant();
 
         /// <summary>Returns true when Host is a DNS name.</summary>
         protected internal virtual bool HasDnsHost => false;
@@ -274,9 +274,9 @@ namespace IceRpc
         /// ice1.</remarks>
         public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
         {
-            if (TransportRegistry.TryGetValue(data.Transport, out TransportDescriptor? descriptor))
+            if (TransportRegistry.TryGetValue(data.Transport, out IEndpointFactory? factory))
             {
-                return descriptor.EndpointFactory(data, protocol);
+                return factory.CreateEndpoint(data, protocol);
             }
 
             return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
@@ -319,7 +319,7 @@ namespace IceRpc
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != (endpoint.TransportDescriptor?.DefaultUriPort ?? 0))
+            if (endpoint.Port != endpoint.DefaultPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
