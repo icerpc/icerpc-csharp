@@ -6,6 +6,7 @@ using System;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
+    [Timeout(5000)]
     public class EndpointTests
     {
         [TestCase("ice+tcp://host:10000")]

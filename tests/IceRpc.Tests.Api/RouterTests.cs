@@ -10,6 +10,7 @@ namespace IceRpc.Tests.Api
     // Each test case gets a fresh communicator, server and router.
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
+    [Timeout(5000)]
     public class RouterTests
     {
         private static IDispatcher _failDispatcher = new InlineDispatcher(

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
+    [Timeout(5000)]
     public class MiddlewareTests
     {
         /// <summary>Check that throwing an exception from a middleware aborts the dispatch.</summary>

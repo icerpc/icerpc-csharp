@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
+    [Timeout(5000)]
     public class InvocationTimeoutTests
     {
         private readonly Server _server;

@@ -5,6 +5,7 @@ using System;
 
 namespace IceRpc.Tests.Api
 {
+    [Timeout(5000)]
     public class ConnectionTests
     {
         [Test]

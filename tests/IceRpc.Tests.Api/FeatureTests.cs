@@ -9,6 +9,7 @@ using Multiplier = System.Int32;
 
 namespace IceRpc.Tests.Api
 {
+    [Timeout(5000)]
     public class FeatureTests
     {
         [Test]
