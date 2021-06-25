@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
-        public long Id { get; }
+        internal long Id { get; }
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
@@ -147,6 +147,9 @@ namespace IceRpc.Transports.Internal
                 throw new TransportException(exception);
             }
         }
+
+        public override string ToString() =>
+            $"{base.ToString()}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}";
 
         protected override void Dispose(bool disposing)
         {
