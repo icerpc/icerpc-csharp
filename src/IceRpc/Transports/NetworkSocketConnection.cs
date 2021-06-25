@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Base class for multi-stream connection implementations for <see cref="NetworkSocket"/>.</summary>
+    /// <summary>Base class for multi-stream connection implementations that use <see cref="NetworkSocket"/>.</summary>
     public abstract class NetworkSocketConnection : MultiStreamConnection
     {
         /// <summary>Creates a network socket connection from a network socket.</summary>

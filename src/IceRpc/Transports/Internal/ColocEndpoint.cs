@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Endpoint class for the colocated transport.</summary>
     internal class ColocEndpoint : Endpoint, IClientConnectionFactory, IListenerFactory
     {
-        public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)Port : DefaultUriPort;
+        public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
         public override bool? IsSecure => true;
 

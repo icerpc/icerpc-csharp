@@ -13,9 +13,9 @@ namespace IceRpc.Transports.Internal
     {
         public Endpoint Endpoint { get; }
 
-        private ILogger _logger;
+        private readonly ILogger _logger;
         private readonly ServerConnectionOptions _options;
-        private Socket _socket;
+        private readonly Socket _socket;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
