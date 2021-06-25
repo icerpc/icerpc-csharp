@@ -31,18 +31,18 @@ namespace IceRpc.Tests.Api
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(10000, 1000)]
-        public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int delay, int timeout)
+        [TestCase(1000)]
+        public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int timeout)
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-
+            var dispatchSemaphore = new SemaphoreSlim(0);
             var router = new Router();
             router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
                         dispatchDeadline = current.Deadline;
-                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
+                        await dispatchSemaphore.WaitAsync(CancellationToken.None);
                         return await next.DispatchAsync(current, cancel);
                     }));
 
@@ -65,6 +65,7 @@ namespace IceRpc.Tests.Api
 
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
+            dispatchSemaphore.Release();
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
             Assert.AreEqual(dispatchDeadline, invocationDeadline);
