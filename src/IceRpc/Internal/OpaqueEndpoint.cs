@@ -29,9 +29,6 @@ namespace IceRpc.Internal
 
         public override string Scheme => "opaque";
 
-        /// <inherit-doc/>
-        public override TransportDescriptor? TransportDescriptor => null;
-
         protected internal override bool HasOptions => true;
 
         internal ReadOnlyMemory<byte> Value { get; }

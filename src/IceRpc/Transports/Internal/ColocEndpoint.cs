@@ -11,24 +11,31 @@ using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamI
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the colocated transport.</summary>
-    internal class ColocEndpoint : Endpoint
+    internal class ColocEndpoint : Endpoint, IClientConnectionFactory, IListenerFactory
     {
-        /// <inherit-doc/>
+        public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
+
         public override bool? IsSecure => true;
 
-        /// <inherit-doc/>
-        public override TransportDescriptor TransportDescriptor => ColocTransportDescriptor;
+        internal static IEndpointFactory EndpointFactory { get; } = new ColocEndpointFactory();
 
-        internal static TransportDescriptor ColocTransportDescriptor { get; } =
-            new(Transport.Coloc, "coloc", CreateEndpoint)
+        private const ushort DefaultUriPort = 4062;
+
+        public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
+        {
+            if (ColocListener.TryGetValue(this, out ColocListener? listener))
             {
-                Connector = CreateClientConnection,
-                DefaultUriPort = 4062,
-                Ice1EndpointParser = ParseIce1Endpoint,
-                Ice2EndpointParser = (host, port, _) => new ColocEndpoint(host, port, Protocol.Ice2),
-                ListenerFactory = (endpoint, options, logger) =>
-                    new ColocListener((ColocEndpoint)endpoint, options, logger),
-            };
+                (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
+                return new ColocConnection(this, id, writer, reader, options, logger);
+            }
+            else
+            {
+                throw new ConnectionRefusedException();
+            }
+        }
+
+        public IListener CreateListener(ServerConnectionOptions options, ILogger logger) =>
+            new ColocListener(this, options, logger);
 
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
@@ -41,36 +48,28 @@ namespace IceRpc.Transports.Internal
         {
         }
 
-        private static ColocEndpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
-            throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
-
-        private static MultiStreamConnection CreateClientConnection(
-            Endpoint endpoint,
-            ClientConnectionOptions options,
-            ILogger logger)
+        private class ColocEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
         {
-            if (endpoint is ColocEndpoint colocEndpoint)
-            {
-                if (ColocListener.TryGetValue(colocEndpoint, out ColocListener? listener))
-                {
-                    (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                    return new ColocConnection(colocEndpoint, id, writer, reader, options, logger);
-                }
-                else
-                {
-                    throw new ConnectionRefusedException();
-                }
-            }
-            else
-            {
-                throw new ArgumentException("endpoint is not a ColocEndpoint", nameof(endpoint));
-            }
-        }
+            public ushort DefaultUriPort => ColocEndpoint.DefaultUriPort;
 
-        private static ColocEndpoint ParseIce1Endpoint(Dictionary<string, string?> options, string endpointString)
-        {
-            (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new(host, port, Protocol.Ice1);
+            public string Name => "coloc";
+
+            public Transport Transport => Transport.Coloc;
+
+            public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
+                throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
+
+            public Endpoint CreateIce1Endpoint(InputStream _) =>
+                throw new InvalidDataException($"received ice1 endpoint for coloc transport");
+
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+            {
+                (string host, ushort port) = ParseHostAndPort(options, endpointString);
+                return new ColocEndpoint(host, port, Protocol.Ice1);
+            }
+
+            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> _) =>
+                new ColocEndpoint(host, port, Protocol.Ice2);
         }
     }
 }

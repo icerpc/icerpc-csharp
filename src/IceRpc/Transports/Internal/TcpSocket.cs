@@ -78,9 +78,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        // We can't shutdown the socket write side because it might block.
-        public override ValueTask CloseAsync(long errorCode, CancellationToken cancel) => default;
-
         public override async ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,

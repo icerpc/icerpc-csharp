@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -24,13 +25,11 @@ namespace IceRpc
                     if (request.Connection == null)
                     {
                         // Filter out endpoint we cannot connect to.
-                        if (request.Endpoint != null &&
-                            request.Endpoint.TransportDescriptor?.Connector == null)
+                        if (request.Endpoint != null && request.Endpoint is not IClientConnectionFactory)
                         {
                             request.Endpoint = null;
                         }
-                        request.AltEndpoints =
-                            request.AltEndpoints.Where(e => e.TransportDescriptor?.Connector != null);
+                        request.AltEndpoints = request.AltEndpoints.Where(e => e is IClientConnectionFactory);
 
                         if (!request.IsOneway)
                         {

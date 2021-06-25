@@ -22,21 +22,6 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public async Task NetworkSocketConnection_CloseAsync_ExceptionAsync()
-        {
-            using var canceled = new CancellationTokenSource();
-            canceled.Cancel();
-            try
-            {
-                // This will either complete successfully or with an OperationCanceledException
-                await ClientConnection.CloseAsync(0, canceled.Token);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        [Test]
         public void NetworkSocketConnection_Dispose()
         {
             ClientConnection.Dispose();
@@ -51,10 +36,10 @@ namespace IceRpc.Tests.Internal
             Test(ClientConnection);
             Test(ServerConnection);
 
-            static void Test(NetworkSocket connection)
+            static void Test(NetworkSocket networkSocket)
             {
-                Assert.NotNull(connection.ConnectionInformation);
-                Assert.IsNotEmpty(connection.ToString());
+                Assert.NotNull(networkSocket.ConnectionInformation);
+                Assert.IsNotEmpty(networkSocket.ToString());
             }
         }
     }
