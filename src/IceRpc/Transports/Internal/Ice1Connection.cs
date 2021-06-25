@@ -25,11 +25,14 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
+        private readonly ManualResetValueTaskCompletionSource<bool> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
         public override async ValueTask<Stream> AcceptStreamAsync(CancellationToken cancel)
         {
+            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+
             while (true)
             {
                 // Receive the Ice1 frame header.
@@ -139,6 +142,9 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
+
+                            // Wait for the stream to process the frame before continuing receiving additional data.
+                            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
                         }
                         catch
                         {
@@ -212,6 +218,8 @@ namespace IceRpc.Transports.Internal
         {
             IdleTimeout = options.IdleTimeout;
 
+            _receiveStreamCompletionTaskSource.SetResult(true);
+
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
             _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
             _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
@@ -229,6 +237,12 @@ namespace IceRpc.Transports.Internal
                 _nextUnidirectionalId = 2;
                 _nextPeerUnidirectionalId = 3;
             }
+        }
+
+        internal void FinishedReceivedFrame()
+        {
+            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
+            _receiveStreamCompletionTaskSource.SetResult(true);
         }
 
         internal override ValueTask<Stream> ReceiveInitializeFrameAsync(CancellationToken cancel)

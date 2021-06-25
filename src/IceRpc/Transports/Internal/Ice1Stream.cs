@@ -85,6 +85,7 @@ namespace IceRpc.Transports.Internal
         {
             // Wait to be signaled for the reception of a new frame for this stream
             (Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
+            _connection.FinishedReceivedFrame();
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)

@@ -373,8 +373,7 @@ namespace IceRpc.Transports
 
             byte frameType = IsIce1 ? (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
 
-            ReadOnlyMemory<byte> data =
-                await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
+            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
 
             if (IsIce1)
             {
