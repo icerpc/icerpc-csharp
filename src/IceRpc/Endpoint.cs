@@ -96,9 +96,6 @@ namespace IceRpc
         /// <summary>The name of the endpoint's transport in lowercase.</summary>
         public virtual string TransportName => Transport.ToString().ToLowerInvariant();
 
-        /// <summary>Returns true when Host is a DNS name.</summary>
-        protected internal virtual bool HasDnsHost => false;
-
         /// <summary>Indicates whether or not this endpoint has options with non default values that ToString prints.
         /// Always true for ice1 endpoints.</summary>
         protected internal virtual bool HasOptions => Protocol == Protocol.Ice1;

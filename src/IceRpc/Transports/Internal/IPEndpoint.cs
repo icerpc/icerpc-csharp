@@ -12,8 +12,6 @@ namespace IceRpc.Transports.Internal
     {
         public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
-        protected internal override bool HasDnsHost => Address == IPAddress.None;
-
         internal const ushort DefaultUriPort = 4062;
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
@@ -32,6 +30,9 @@ namespace IceRpc.Transports.Internal
                 return _address;
             }
         }
+
+        /// <summary>Returns true when Host is a DNS name.</summary>
+        private protected bool HasDnsHost => Address == IPAddress.None;
 
         private IPAddress? _address;
 
