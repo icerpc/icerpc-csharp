@@ -36,13 +36,41 @@ namespace IceRpc.Transports.Internal
 
         private IPAddress? _address;
 
-        public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
-
         protected internal override void WriteOptions11(OutputStream ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             ostr.WriteString(Host);
             ostr.WriteInt(Port);
+        }
+
+        private protected static void SetBufferSize(
+            Socket socket,
+            int? receiveSize,
+            int? sendSize,
+            Transport transport,
+            ILogger logger)
+        {
+            if (receiveSize != null)
+            {
+                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                // read the size back to get the size that was actually set.
+                socket.ReceiveBufferSize = receiveSize.Value;
+                if (socket.ReceiveBufferSize != receiveSize)
+                {
+                    logger.LogReceiveBufferSizeAdjusted(transport, receiveSize.Value, socket.ReceiveBufferSize);
+                }
+            }
+
+            if (sendSize != null)
+            {
+                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                // read the size back to get the size that was actually set.
+                socket.SendBufferSize = sendSize.Value;
+                if (socket.SendBufferSize != sendSize)
+                {
+                    logger.LogSendBufferSizeAdjusted(transport, sendSize.Value, socket.SendBufferSize);
+                }
+            }
         }
 
         // Main constructor
@@ -57,42 +85,8 @@ namespace IceRpc.Transports.Internal
 
         // Constructor for Clone
         private protected IPEndpoint(Endpoint endpoint, string host, ushort port)
-            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
-                   endpoint.Protocol)
+            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
         {
-        }
-
-        private protected void SetBufferSize(Socket socket, int? receiveSize, int? sendSize, ILogger logger)
-        {
-            try
-            {
-                if (receiveSize != null)
-                {
-                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                    // read the size back to get the size that was actually set.
-                    socket.ReceiveBufferSize = receiveSize.Value;
-                    if (socket.ReceiveBufferSize != receiveSize)
-                    {
-                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, socket.ReceiveBufferSize);
-                    }
-                }
-
-                if (sendSize != null)
-                {
-                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                    // read the size back to get the size that was actually set.
-                    socket.SendBufferSize = sendSize.Value;
-                    if (socket.SendBufferSize != sendSize)
-                    {
-                        logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, socket.SendBufferSize);
-                    }
-                }
-            }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
         }
     }
 }

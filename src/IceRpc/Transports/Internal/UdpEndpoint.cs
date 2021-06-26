@@ -40,7 +40,7 @@ namespace IceRpc.Transports.Internal
 
         public MultiStreamConnection Accept(ServerConnectionOptions options, ILogger logger)
         {
-            if (Address == IPAddress.None)
+            if (HasDnsHost)
             {
                 throw new NotSupportedException($"endpoint '{this}' cannot accept datagrams because it has a DNS name");
             }
@@ -61,7 +61,7 @@ namespace IceRpc.Transports.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, Transport, logger);
 
                 var addr = new IPEndPoint(Address, Port);
                 if (IsMulticast(Address))
@@ -161,7 +161,7 @@ namespace IceRpc.Transports.Internal
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, Transport, logger);
             }
             catch (SocketException ex)
             {
@@ -220,7 +220,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string host) => Clone(host);
+        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
 
         protected internal override void WriteOptions11(OutputStream ostr)
         {

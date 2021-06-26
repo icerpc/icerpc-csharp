@@ -64,7 +64,7 @@ namespace IceRpc.Transports.Internal
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
                 socket.NoDelay = true;
             }
             catch (SocketException ex)
@@ -79,7 +79,7 @@ namespace IceRpc.Transports.Internal
 
         public IListener CreateListener(ServerConnectionOptions options, ILogger logger)
         {
-            if (Address == IPAddress.None)
+            if (HasDnsHost)
             {
                 throw new NotSupportedException(
                     $"endpoint '{this}' cannot accept connections because it has a DNS name");
@@ -97,7 +97,7 @@ namespace IceRpc.Transports.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
