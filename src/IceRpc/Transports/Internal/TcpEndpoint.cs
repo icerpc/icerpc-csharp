@@ -16,29 +16,29 @@ namespace IceRpc.Transports.Internal
     internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
     {
         public override bool IsDatagram => false;
-        public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.SSL : _tls;
+        public override bool? IsSecure => _tls;
 
         public override string? this[string option] =>
             option switch
             {
-                "compress" => HasCompressionFlag ? "true" : null,
-                "timeout" => Timeout != DefaultTimeout ?
-                             Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
-                "tls" => _tls?.ToString().ToLowerInvariant(),
+                "compress" => _hasCompressionFlag ? "true" : null,
+                "timeout" => _timeout != _defaultTimeout ?
+                             _timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
+                "tls" => Protocol == Protocol.Ice1 ? null : _tls?.ToString().ToLowerInvariant(),
                 _ => base[option],
             };
 
-        /// <summary>The default timeout for ice1 endpoints.</summary>
-        protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
-
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
-        private protected bool HasCompressionFlag { get; }
-        private protected TimeSpan Timeout { get; } = DefaultTimeout;
+        /// <summary>The default timeout for ice1 endpoints.</summary>
+        private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(60);
 
-        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
-        /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
-        /// </value>
+        private readonly bool _hasCompressionFlag;
+        private readonly TimeSpan _timeout = _defaultTimeout;
+
+        /// <summary>The TLS option of this endpoint.</summary>
+        /// <value><c>true</c> means use TLS, <c>false</c> means do no use TLS, and <c>null</c> means the TLS usage is
+        /// to be determined. With ice1, the value is never null.</value>
         private readonly bool? _tls;
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
@@ -122,8 +122,8 @@ namespace IceRpc.Transports.Internal
             if (Protocol == Protocol.Ice1)
             {
                 return other is TcpEndpoint tcpEndpoint &&
-                    HasCompressionFlag == tcpEndpoint.HasCompressionFlag &&
-                    Timeout == tcpEndpoint.Timeout &&
+                    _hasCompressionFlag == tcpEndpoint._hasCompressionFlag &&
+                    _timeout == tcpEndpoint._timeout &&
                     base.Equals(tcpEndpoint);
             }
             else
@@ -140,9 +140,9 @@ namespace IceRpc.Transports.Internal
             {
                 // InfiniteTimeSpan yields -1 and we use -1 instead of "infinite" for compatibility with Ice 3.5.
                 sb.Append(" -t ");
-                sb.Append(Timeout.TotalMilliseconds);
+                sb.Append(_timeout.TotalMilliseconds);
 
-                if (HasCompressionFlag)
+                if (_hasCompressionFlag)
                 {
                     sb.Append(" -z");
                 }
@@ -165,8 +165,8 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             base.WriteOptions11(ostr);
-            ostr.WriteInt((int)Timeout.TotalMilliseconds);
-            ostr.WriteBool(HasCompressionFlag);
+            ostr.WriteInt((int)_timeout.TotalMilliseconds);
+            ostr.WriteBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests
@@ -195,7 +195,7 @@ namespace IceRpc.Transports.Internal
                 string host = ipAddress.Address.ToString();
                 ushort port = (ushort)ipAddress.Port;
 
-                return (Host == host && Port == port && (Protocol == Protocol.Ice1 || _tls == tls)) ?
+                return (Host == host && Port == port && _tls == tls) ?
                     this : new TcpEndpoint(this, host, port, tls);
             }
             else
@@ -224,6 +224,7 @@ namespace IceRpc.Transports.Internal
             string endpointString)
         {
             Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
+
             (string host, ushort port) = ParseHostAndPort(options, endpointString);
             return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
                                    ParseTimeout(options, endpointString),
@@ -232,7 +233,7 @@ namespace IceRpc.Transports.Internal
 
         private static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
         {
-            TimeSpan timeout = DefaultTimeout;
+            TimeSpan timeout = _defaultTimeout;
 
             if (options.TryGetValue("-t", out string? argument))
             {
@@ -270,14 +271,19 @@ namespace IceRpc.Transports.Internal
         private TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
             : base(data, Protocol.Ice1)
         {
-            Timeout = timeout;
-            HasCompressionFlag = compress;
+            _timeout = timeout;
+            _hasCompressionFlag = compress;
+            _tls = data.Transport == Transport.SSL;
         }
 
         // Constructor for unmarshaling with the 2.0 encoding.
         private TcpEndpoint(EndpointData data, Protocol protocol)
             : base(data, protocol)
         {
+            if (Protocol == Protocol.Ice1)
+            {
+                _tls = data.Transport == Transport.SSL;
+            }
         }
 
         // Constructor for ice2 parsing.
@@ -289,8 +295,8 @@ namespace IceRpc.Transports.Internal
         private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port, bool? tls = null)
             : base(endpoint, host, port)
         {
-            HasCompressionFlag = endpoint.HasCompressionFlag;
-            Timeout = endpoint.Timeout;
+            _hasCompressionFlag = endpoint._hasCompressionFlag;
+            _timeout = endpoint._timeout;
             _tls = tls ?? endpoint._tls;
         }
 
