@@ -30,8 +30,6 @@ namespace IceRpc.Transports.Internal
                 _ => base[option],
             };
 
-        internal static IEndpointFactory EndpointFactory { get; } = new UdpEndpointFactory();
-
         /// <summary>The local network interface used to send multicast datagrams.</summary>
         internal string? MulticastInterface { get; }
 
@@ -230,6 +228,25 @@ namespace IceRpc.Transports.Internal
             base.WriteOptions11(ostr);
             ostr.WriteBool(_hasCompressionFlag);
         }
+
+        internal static bool IsMulticast(IPAddress addr) =>
+            addr.AddressFamily == AddressFamily.InterNetwork ?
+                (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
+
+        // Constructor for unmarshaling
+        internal UdpEndpoint(EndpointData data, bool compress = false)
+            : base(data, Protocol.Ice1) =>
+            _hasCompressionFlag = compress;
+
+        // Constructor for ice1 parsing
+        internal UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface)
+            : base(data, Protocol.Ice1)
+        {
+            _hasCompressionFlag = compress;
+            MulticastTtl = ttl;
+            MulticastInterface = multicastInterface;
+        }
+
         internal UdpEndpoint Clone(EndPoint address)
         {
             if (address is IPEndPoint ipAddress)
@@ -304,24 +321,6 @@ namespace IceRpc.Transports.Internal
             throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
         }
 
-        private static bool IsMulticast(IPAddress addr) =>
-            addr.AddressFamily == AddressFamily.InterNetwork ?
-                (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
-
-        // Constructor for unmarshaling
-        private UdpEndpoint(EndpointData data, bool compress = false)
-            : base(data, Protocol.Ice1) =>
-            _hasCompressionFlag = compress;
-
-        // Constructor for ice1 parsing
-        private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface)
-            : base(data, Protocol.Ice1)
-        {
-            _hasCompressionFlag = compress;
-            MulticastTtl = ttl;
-            MulticastInterface = multicastInterface;
-        }
-
         // Clone constructor
         private UdpEndpoint(UdpEndpoint endpoint, string host, ushort port)
             : base(endpoint, host, port)
@@ -393,105 +392,105 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
+    }
 
-        private class UdpEndpointFactory : IIce1EndpointFactory
+    internal class UdpEndpointFactory : IIce1EndpointFactory
+    {
+        public string Name => "udp";
+
+        public Transport Transport => Transport.UDP;
+
+        public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
-            public string Name => "udp";
-
-            public Transport Transport => Transport.UDP;
-
-            public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
+            if (protocol != Protocol.Ice1)
             {
-                if (protocol != Protocol.Ice1)
-                {
-                    throw new ArgumentException($"cannot create UDP endpoint for protocol {protocol.GetName()}",
-                                                nameof(protocol));
-                }
-
-                if (data.Options.Count > 0)
-                {
-                    // Drop all options since we don't understand any.
-                    data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
-                }
-                return new UdpEndpoint(data);
+                throw new ArgumentException($"cannot create UDP endpoint for protocol {protocol.GetName()}",
+                                            nameof(protocol));
             }
 
-            public Endpoint CreateIce1Endpoint(InputStream istr) =>
-                // This is correct in C# since arguments are evaluated left-to-right.
-                new UdpEndpoint(new EndpointData(Transport,
-                                                 host: istr.ReadString(),
-                                                 port: ReadPort(istr),
-                                                 ImmutableList<string>.Empty),
-                                compress: istr.ReadBool());
-
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+            if (data.Options.Count > 0)
             {
-                (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
-
-                int ttl = -1;
-
-                if (options.TryGetValue("--ttl", out string? argument))
-                {
-                    if (argument == null)
-                    {
-                        throw new FormatException(
-                            $"no argument provided for --ttl option in endpoint '{endpointString}'");
-                    }
-                    try
-                    {
-                        ttl = int.Parse(argument, CultureInfo.InvariantCulture);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException($"invalid TTL value '{argument}' in endpoint '{endpointString}'", ex);
-                    }
-
-                    if (ttl < 0)
-                    {
-                        throw new FormatException(
-                            $"TTL value '{argument}' out of range in endpoint '{endpointString}'");
-                    }
-                    options.Remove("--ttl");
-                }
-
-                string? multicastInterface = null;
-
-                if (options.TryGetValue("--interface", out argument))
-                {
-                    multicastInterface = argument ?? throw new FormatException(
-                        $"no argument provided for --interface option in endpoint '{endpointString}'");
-
-                    if (!IPAddress.TryParse(host, out IPAddress? address) || !IsMulticast(address))
-                    {
-                        throw new FormatException(@$"--interface option in endpoint '{endpointString
-                            }' must be for a host with a multicast address");
-                    }
-
-                    if (multicastInterface != "*" &&
-                        IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
-                    {
-                        if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
-                        {
-                            throw new FormatException(
-                                $@"the address family of the interface in '{endpointString
-                                }' is not the multicast address family");
-                        }
-
-                        if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
-                        {
-                            multicastInterface = "*";
-                        }
-                    }
-                    // else keep argument such as eth0
-
-                    options.Remove("--interface");
-                }
-
-                return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
-                                       Ice1Parser.ParseCompress(options, endpointString),
-                                       ttl,
-                                       multicastInterface);
+                // Drop all options since we don't understand any.
+                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
             }
+            return new UdpEndpoint(data);
+        }
+
+        public Endpoint CreateIce1Endpoint(InputStream istr) =>
+            // This is correct in C# since arguments are evaluated left-to-right.
+            new UdpEndpoint(new EndpointData(Transport,
+                                             host: istr.ReadString(),
+                                             port: checked((ushort)istr.ReadInt()),
+                                             ImmutableList<string>.Empty),
+                            compress: istr.ReadBool());
+
+        public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+        {
+            (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
+
+            int ttl = -1;
+
+            if (options.TryGetValue("--ttl", out string? argument))
+            {
+                if (argument == null)
+                {
+                    throw new FormatException(
+                        $"no argument provided for --ttl option in endpoint '{endpointString}'");
+                }
+                try
+                {
+                    ttl = int.Parse(argument, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException ex)
+                {
+                    throw new FormatException($"invalid TTL value '{argument}' in endpoint '{endpointString}'", ex);
+                }
+
+                if (ttl < 0)
+                {
+                    throw new FormatException(
+                        $"TTL value '{argument}' out of range in endpoint '{endpointString}'");
+                }
+                options.Remove("--ttl");
+            }
+
+            string? multicastInterface = null;
+
+            if (options.TryGetValue("--interface", out argument))
+            {
+                multicastInterface = argument ?? throw new FormatException(
+                    $"no argument provided for --interface option in endpoint '{endpointString}'");
+
+                if (!IPAddress.TryParse(host, out IPAddress? address) || !UdpEndpoint.IsMulticast(address))
+                {
+                    throw new FormatException(@$"--interface option in endpoint '{endpointString
+                        }' must be for a host with a multicast address");
+                }
+
+                if (multicastInterface != "*" &&
+                    IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
+                {
+                    if (address?.AddressFamily != multicastInterfaceAddr.AddressFamily)
+                    {
+                        throw new FormatException(
+                            $@"the address family of the interface in '{endpointString
+                            }' is not the multicast address family");
+                    }
+
+                    if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
+                    {
+                        multicastInterface = "*";
+                    }
+                }
+                // else keep argument such as eth0
+
+                options.Remove("--interface");
+            }
+
+            return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
+                                   Ice1Parser.ParseCompress(options, endpointString),
+                                   ttl,
+                                   multicastInterface);
         }
     }
 }

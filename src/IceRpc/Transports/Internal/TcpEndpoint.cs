@@ -22,7 +22,7 @@ namespace IceRpc.Transports.Internal
             option switch
             {
                 "compress" => _hasCompressionFlag ? "true" : null,
-                "timeout" => _timeout != _defaultTimeout ?
+                "timeout" => _timeout != DefaultTimeout ?
                              _timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
                 "tls" => Protocol == Protocol.Ice1 ? null : _tls?.ToString().ToLowerInvariant(),
                 _ => base[option],
@@ -31,10 +31,10 @@ namespace IceRpc.Transports.Internal
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
 
         /// <summary>The default timeout for ice1 endpoints.</summary>
-        private static readonly TimeSpan _defaultTimeout = TimeSpan.FromSeconds(60);
+        internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
 
         private readonly bool _hasCompressionFlag;
-        private readonly TimeSpan _timeout = _defaultTimeout;
+        private readonly TimeSpan _timeout = DefaultTimeout;
 
         /// <summary>The TLS option of this endpoint.</summary>
         /// <value><c>true</c> means use TLS, <c>false</c> means do no use TLS, and <c>null</c> means the TLS usage is
@@ -180,13 +180,29 @@ namespace IceRpc.Transports.Internal
             return new TcpEndpoint(data, protocol);
         }
 
-        internal static IEndpointFactory GetEndpointFactory(Transport transport) =>
-            transport switch
+        // Constructor for ice1 unmarshaling and parsing
+        internal TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
+            : base(data, Protocol.Ice1)
+        {
+            _timeout = timeout;
+            _hasCompressionFlag = compress;
+            _tls = data.Transport == Transport.SSL;
+        }
+
+        // Constructor for unmarshaling with the 2.0 encoding.
+        internal TcpEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
+        {
+            if (Protocol == Protocol.Ice1)
             {
-                Transport.TCP => new TcpEndpointFactory(),
-                Transport.SSL => new SslEndpointFactory(),
-                _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
-            };
+                _tls = data.Transport == Transport.SSL;
+            }
+        }
+
+        // Constructor for ice2 parsing.
+        internal TcpEndpoint(EndpointData data, bool? tls)
+            : base(data, Protocol.Ice2) =>
+            _tls = tls;
 
         internal TcpEndpoint Clone(EndPoint address, bool tls)
         {
@@ -203,30 +219,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        // Constructor for ice1 unmarshaling and parsing
-        private TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
-            : base(data, Protocol.Ice1)
-        {
-            _timeout = timeout;
-            _hasCompressionFlag = compress;
-            _tls = data.Transport == Transport.SSL;
-        }
-
-        // Constructor for unmarshaling with the 2.0 encoding.
-        private TcpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol)
-        {
-            if (Protocol == Protocol.Ice1)
-            {
-                _tls = data.Transport == Transport.SSL;
-            }
-        }
-
-        // Constructor for ice2 parsing.
-        private TcpEndpoint(EndpointData data, bool? tls)
-            : base(data, Protocol.Ice2) =>
-            _tls = tls;
-
         // Clone constructor
         private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port, bool? tls = null)
             : base(endpoint, host, port)
@@ -238,65 +230,65 @@ namespace IceRpc.Transports.Internal
 
         private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
         private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
+    }
 
-        private abstract class Ice1EndpointFactory : IIce1EndpointFactory
+    internal abstract class TcpBaseEndpointFactory : IIce1EndpointFactory
+    {
+        public abstract string Name { get; }
+        public abstract Transport Transport { get; }
+
+        public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
+            TcpEndpoint.CreateEndpoint(endpointData, protocol);
+
+        public Endpoint CreateIce1Endpoint(InputStream istr)
         {
-            public abstract string Name { get; }
-            public abstract Transport Transport { get; }
+            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
-            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
-                TcpEndpoint.CreateEndpoint(endpointData, protocol);
-
-            public Endpoint CreateIce1Endpoint(InputStream istr)
-            {
-                Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
-
-                // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
-                // where the order of evaluation of function arguments is undefined.
-                return new TcpEndpoint(new EndpointData(Transport,
-                                                        host: istr.ReadString(),
-                                                        port: ReadPort(istr),
-                                                        ImmutableList<string>.Empty),
-                                       timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                       compress: istr.ReadBool());
-            }
-
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
-            {
-                Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
-
-                (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
-                return new TcpEndpoint(new EndpointData(Transport, host, port, ImmutableList<string>.Empty),
-                                       Ice1Parser.ParseTimeout(options, _defaultTimeout, endpointString),
-                                       Ice1Parser.ParseCompress(options, endpointString));
-            }
+            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
+            // where the order of evaluation of function arguments is undefined.
+            return new TcpEndpoint(new EndpointData(Transport,
+                                                    host: istr.ReadString(),
+                                                    port: checked((ushort)istr.ReadInt()),
+                                                    ImmutableList<string>.Empty),
+                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
+                                   compress: istr.ReadBool());
         }
 
-        private class TcpEndpointFactory : Ice1EndpointFactory, IIce2EndpointFactory
+        public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
+            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
-            public override string Name => "tcp";
+            (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
+            return new TcpEndpoint(new EndpointData(Transport, host, port, ImmutableList<string>.Empty),
+                                   Ice1Parser.ParseTimeout(options, TcpEndpoint.DefaultTimeout, endpointString),
+                                   Ice1Parser.ParseCompress(options, endpointString));
+        }
+    }
 
-            public override Transport Transport => Transport.TCP;
+    internal class TcpEndpointFactory : TcpBaseEndpointFactory, IIce2EndpointFactory
+    {
+        public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
 
-            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
+        public override string Name => "tcp";
+
+        public override Transport Transport => Transport.TCP;
+
+        public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
+        {
+            bool? tls = null;
+            if (options.TryGetValue("tls", out string? value))
             {
-                bool? tls = null;
-                if (options.TryGetValue("tls", out string? value))
-                {
-                    tls = bool.Parse(value);
-                    options.Remove("tls");
-                }
-                return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
+                tls = bool.Parse(value);
+                options.Remove("tls");
             }
+            return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
         }
+    }
 
-        private class SslEndpointFactory : Ice1EndpointFactory
-        {
-            public override string Name => "ssl";
+    internal class SslEndpointFactory : TcpBaseEndpointFactory
+    {
+        public override string Name => "ssl";
 
-            public override Transport Transport => Transport.SSL;
-        }
+        public override Transport Transport => Transport.SSL;
     }
 }

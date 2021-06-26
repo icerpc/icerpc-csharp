@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -15,6 +13,8 @@ namespace IceRpc.Transports.Internal
         public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
         protected internal override bool HasDnsHost => Address == IPAddress.None;
+
+        internal const ushort DefaultUriPort = 4062;
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
         /// returns IPAddress.None.</summary>
@@ -33,8 +33,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private protected const ushort DefaultUriPort = 4062;
-
         private IPAddress? _address;
 
         public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
@@ -44,17 +42,6 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             ostr.WriteString(Host);
             ostr.WriteInt(Port);
-        }
-
-        // Read port for an ice1 endpoint.
-        private protected static ushort ReadPort(InputStream istr)
-        {
-            ushort port;
-            checked
-            {
-                port = (ushort)istr.ReadInt();
-            }
-            return port;
         }
 
         // Main constructor
