@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,6 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Endpoint class for the TCP transport.</summary>
     internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
     {
-        public override bool IsDatagram => false;
         public override bool? IsSecure => _tls;
 
         public override string? this[string option] =>
@@ -195,76 +195,12 @@ namespace IceRpc.Transports.Internal
                 string host = ipAddress.Address.ToString();
                 ushort port = (ushort)ipAddress.Port;
 
-                return (Host == host && Port == port && _tls == tls) ?
-                    this : new TcpEndpoint(this, host, port, tls);
+                return (Host == host && Port == port && _tls == tls) ? this : new TcpEndpoint(this, host, port, tls);
             }
             else
             {
                 throw new InvalidOperationException("unsupported address");
             }
-        }
-
-        private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
-        {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-
-            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++ where
-            // the order of evaluation of function arguments is undefined.
-            return new TcpEndpoint(new EndpointData(transport,
-                                                    host: istr.ReadString(),
-                                                    port: ReadPort(istr),
-                                                    ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                   compress: istr.ReadBool());
-        }
-
-        private static TcpEndpoint CreateIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
-        {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-
-            (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
-                                   ParseTimeout(options, endpointString),
-                                   ParseCompress(options, endpointString));
-        }
-
-        private static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
-        {
-            TimeSpan timeout = _defaultTimeout;
-
-            if (options.TryGetValue("-t", out string? argument))
-            {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
-                }
-                if (argument == "infinite")
-                {
-                    timeout = System.Threading.Timeout.InfiniteTimeSpan;
-                }
-                else
-                {
-                    try
-                    {
-                        timeout = TimeSpan.FromMilliseconds(int.Parse(argument, CultureInfo.InvariantCulture));
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException(
-                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'",
-                            ex);
-                    }
-                    if (timeout <= TimeSpan.Zero)
-                    {
-                        throw new FormatException($"invalid timeout value '{argument}' in endpoint '{endpointString}'");
-                    }
-                }
-                options.Remove("-t");
-            }
-            return timeout;
         }
 
         // Constructor for ice1 unmarshaling and parsing
@@ -303,21 +239,46 @@ namespace IceRpc.Transports.Internal
         private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
         private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
 
-        private class TcpEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
+        private abstract class Ice1EndpointFactory : IIce1EndpointFactory
         {
-            public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
-
-            public string Name => "tcp";
-
-            public Transport Transport => Transport.TCP;
+            public abstract string Name { get; }
+            public abstract Transport Transport { get; }
 
             public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
                 TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
+            public Endpoint CreateIce1Endpoint(InputStream istr)
+            {
+                Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
-                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
+                // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
+                // where the order of evaluation of function arguments is undefined.
+                return new TcpEndpoint(new EndpointData(Transport,
+                                                        host: istr.ReadString(),
+                                                        port: ReadPort(istr),
+                                                        ImmutableList<string>.Empty),
+                                       timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
+                                       compress: istr.ReadBool());
+            }
+
+            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
+            {
+                Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
+
+                (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
+                return new TcpEndpoint(new EndpointData(Transport, host, port, ImmutableList<string>.Empty),
+                                       Ice1Parser.ParseTimeout(options, _defaultTimeout, endpointString),
+                                       Ice1Parser.ParseCompress(options, endpointString));
+            }
+        }
+
+        private class TcpEndpointFactory : Ice1EndpointFactory, IIce2EndpointFactory
+        {
+            public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
+
+            public override string Name => "tcp";
+
+            public override Transport Transport => Transport.TCP;
 
             public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
             {
@@ -331,19 +292,11 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private class SslEndpointFactory : IIce1EndpointFactory
+        private class SslEndpointFactory : Ice1EndpointFactory
         {
-            public string Name => "ssl";
+            public override string Name => "ssl";
 
-            public Transport Transport => Transport.SSL;
-
-            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
-                TcpEndpoint.CreateEndpoint(endpointData, protocol);
-
-            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
-
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
-                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
+            public override Transport Transport => Transport.SSL;
         }
     }
 }

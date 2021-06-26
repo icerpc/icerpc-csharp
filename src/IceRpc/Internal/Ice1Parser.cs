@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace IceRpc.Internal
@@ -13,6 +14,25 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
+
+        /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>
+        internal static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
+        {
+            bool compress = false;
+
+            if (options.TryGetValue("-z", out string? argument))
+            {
+                if (argument != null)
+                {
+                    throw new FormatException(
+                        $"unexpected argument '{argument}' provided for -z option in '{endpointString}'");
+                }
+                compress = true;
+                options.Remove("-z");
+            }
+            return compress;
+        }
+
         /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
         /// <param name="endpointString">The string parsed by this method.</param>
         /// <returns>The new endpoint.</returns>
@@ -110,6 +130,57 @@ namespace IceRpc.Internal
             }
 
             throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");
+        }
+
+        /// <summary>Parses host (-h) and port (-p) from an ice1 options dictionary.</summary>
+        /// <param name="options">The options parsed from the endpoint string.</param>
+        /// <param name="endpointString">The source endpoint string.</param>
+        /// <returns>The host and port extracted from <paramref name="options"/>.</returns>
+        internal static (string Host, ushort Port) ParseHostAndPort(
+            Dictionary<string, string?> options,
+            string endpointString)
+        {
+            string host;
+            ushort port = 0;
+
+            if (options.TryGetValue("-h", out string? argument))
+            {
+                host = argument ??
+                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
+
+                if (host == "*")
+                {
+                    // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
+                    // ::0 just bind to the IPv4 addresses in this case?
+                    host = "::0";
+                }
+                options.Remove("-h");
+            }
+            else
+            {
+                throw new FormatException($"no -h option in endpoint '{endpointString}'");
+            }
+
+            if (options.TryGetValue("-p", out argument))
+            {
+                if (argument == null)
+                {
+                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
+                }
+
+                try
+                {
+                    port = ushort.Parse(argument, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException ex)
+                {
+                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
+                }
+                options.Remove("-p");
+            }
+            // else port remains 0
+
+            return (host, port);
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
@@ -439,6 +510,47 @@ namespace IceRpc.Internal
             }
 
             throw new FormatException($"malformed proxy '{s}'");
+        }
+
+        /// <summary>Parses a timeout from an options dictionary.</summary>
+        internal static TimeSpan ParseTimeout(
+            Dictionary<string, string?> options,
+            TimeSpan defaultTimeout,
+            string endpointString)
+        {
+            TimeSpan timeout = defaultTimeout;
+
+            if (options.TryGetValue("-t", out string? argument))
+            {
+                if (argument == null)
+                {
+                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
+                }
+                if (argument == "infinite")
+                {
+                    timeout = System.Threading.Timeout.InfiniteTimeSpan;
+                }
+                else
+                {
+                    try
+                    {
+                        timeout = TimeSpan.FromMilliseconds(int.Parse(argument, CultureInfo.InvariantCulture));
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new FormatException(
+                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'",
+                            ex);
+                    }
+                    if (timeout <= TimeSpan.Zero)
+                    {
+                        throw new FormatException(
+                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'");
+                    }
+                }
+                options.Remove("-t");
+            }
+            return timeout;
         }
 
         // Stringify the options of an endpoint

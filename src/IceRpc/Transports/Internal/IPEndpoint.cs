@@ -46,23 +46,6 @@ namespace IceRpc.Transports.Internal
             ostr.WriteInt(Port);
         }
 
-        private protected static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
-        {
-            bool compress = false;
-
-            if (options.TryGetValue("-z", out string? argument))
-            {
-                if (argument != null)
-                {
-                    throw new FormatException(
-                        $"unexpected argument '{argument}' provided for -z option in '{endpointString}'");
-                }
-                compress = true;
-                options.Remove("-z");
-            }
-            return compress;
-        }
-
         // Read port for an ice1 endpoint.
         private protected static ushort ReadPort(InputStream istr)
         {

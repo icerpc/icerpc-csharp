@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -64,7 +65,7 @@ namespace IceRpc.Transports.Internal
 
             public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
             {
-                (string host, ushort port) = ParseHostAndPort(options, endpointString);
+                (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
                 return new ColocEndpoint(host, port, Protocol.Ice1);
             }
 

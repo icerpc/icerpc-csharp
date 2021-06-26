@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -307,16 +308,10 @@ namespace IceRpc.Transports.Internal
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
 
-        // Constructor for ice1 unmarshaling
-        private UdpEndpoint(EndpointData data, bool compress)
+        // Constructor for unmarshaling
+        private UdpEndpoint(EndpointData data, bool compress = false)
             : base(data, Protocol.Ice1) =>
             _hasCompressionFlag = compress;
-
-        // Constructor for unmarshaling with the 2.0 encoding.
-        private UdpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol)
-        {
-        }
 
         // Constructor for ice1 parsing
         private UdpEndpoint(EndpointData data, bool compress, int ttl, string? multicastInterface)
@@ -407,12 +402,18 @@ namespace IceRpc.Transports.Internal
 
             public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
             {
+                if (protocol != Protocol.Ice1)
+                {
+                    throw new ArgumentException($"cannot create UDP endpoint for protocol {protocol.GetName()}",
+                                                nameof(protocol));
+                }
+
                 if (data.Options.Count > 0)
                 {
                     // Drop all options since we don't understand any.
                     data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
                 }
-                return new UdpEndpoint(data, protocol);
+                return new UdpEndpoint(data);
             }
 
             public Endpoint CreateIce1Endpoint(InputStream istr) =>
@@ -425,7 +426,7 @@ namespace IceRpc.Transports.Internal
 
             public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
             {
-                (string host, ushort port) = ParseHostAndPort(options, endpointString);
+                (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
 
                 int ttl = -1;
 
@@ -487,7 +488,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
-                                       ParseCompress(options, endpointString),
+                                       Ice1Parser.ParseCompress(options, endpointString),
                                        ttl,
                                        multicastInterface);
             }
