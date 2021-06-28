@@ -54,7 +54,7 @@ namespace IceRpc
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties., which include properties of both the request and response</param>
+        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload and optional stream writer.</returns>
         public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
