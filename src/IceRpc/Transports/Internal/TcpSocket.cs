@@ -12,6 +12,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -249,6 +250,17 @@ namespace IceRpc.Transports.Internal
         {
             _socket.Dispose();
             _sslStream?.Dispose();
+        }
+
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            if (base.PrintMembers(builder))
+            {
+                builder.Append(", ");
+            }
+            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
+            return true;
         }
 
         internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)

@@ -10,6 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -157,7 +158,18 @@ namespace IceRpc.Transports
         public abstract Task PingAsync(CancellationToken cancel);
 
         /// <inheritdoc/>
-        public override string ToString() => @$"{GetType().Name} IsServer={IsServer}, IsSecure={IsSecure}";
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
+        }
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>
@@ -211,6 +223,16 @@ namespace IceRpc.Transports
                     return streamId > _lastIncomingUnidirectionalStreamId;
                 }
             }
+        }
+
+        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
+        /// <param name="builder">The string builder.</param>
+        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
+        protected virtual bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("IsSecure = ").Append(IsSecure).Append(", ");
+            builder.Append("IsServer = ").Append(IsServer);
+            return true;
         }
 
         /// <summary>Traces the given received amount of data. Transport implementations should call this method

@@ -5,6 +5,7 @@ using System;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -19,8 +20,8 @@ namespace IceRpc.Transports
         /// expose it.</summary>
         public virtual SslStream? SslStream => null;
 
-        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it to the
-        /// test suite.</summary>
+        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it to the test
+        /// suite.</summary>
         protected internal virtual System.Net.Sockets.Socket? Socket => null;
 
         internal ILogger Logger { get; }
@@ -73,13 +74,28 @@ namespace IceRpc.Transports
         public abstract ValueTask SendAsync(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers, CancellationToken cancel);
 
         /// <inheritdoc/>
-        public override string ToString() =>
-            $"LocalEndPoint={Socket?.LocalEndPoint}, RemoteEndPoint={Socket?.RemoteEndPoint}";
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
+        }
 
         /// <summary>Releases the resources used by the socket.</summary>
         /// <param name="disposing">True to release both managed and unmanaged resources; false to release only
         /// unmanaged resources.</param>
         protected abstract void Dispose(bool disposing);
+
+        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
+        /// <param name="builder">The string builder.</param>
+        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
+        protected virtual bool PrintMembers(StringBuilder builder) => false;
 
         internal NetworkSocket(ILogger logger) => Logger = logger;
     }

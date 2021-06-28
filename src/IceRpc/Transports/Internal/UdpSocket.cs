@@ -10,6 +10,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -117,6 +118,17 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
+
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            if (base.PrintMembers(builder))
+            {
+                builder.Append(", ");
+            }
+            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
+            return true;
+        }
 
         // Only for use by UdpEndpoint.
         internal UdpSocket(Socket socket, ILogger logger, bool isServer, EndPoint? addr)

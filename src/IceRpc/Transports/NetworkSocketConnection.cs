@@ -4,6 +4,7 @@ using IceRpc.Transports.Internal;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -53,22 +54,6 @@ namespace IceRpc.Transports
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
 
-
-        /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({NetworkSocket})";
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
-            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
-            if (disposing)
-            {
-                NetworkSocket.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
         /// <summary>Constructs a connection.</summary>
         /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and the
         /// resulting connection will be likewise a client or server connection.</param>
@@ -80,5 +65,29 @@ namespace IceRpc.Transports
             Endpoint endpoint,
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
+
+
+         /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
+            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
+            if (disposing)
+            {
+                NetworkSocket.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        /// <inheritdoc/>
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            if (base.PrintMembers(builder))
+            {
+                builder.Append(", ");
+            }
+            builder.Append("NetworkSocket = ").Append(NetworkSocket);
+            return true;
+        }
     }
 }
