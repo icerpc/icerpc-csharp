@@ -2476,7 +2476,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << "IceByteStreamResponse, ";
+        _out << "(payload, streamReader, payloadEncoding, connection, invoker) => streamReader!.ToByteStream(), ";
     }
 
     _out << invocation << ", ";
@@ -2938,7 +2938,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (!streamParam)
     {
-        _out << nl << "IceNoStreamData(dispatch);";
+        _out << nl << "IceStreamReadingComplete(dispatch);";
     }
     if (!isIdempotent(operation))
     {

@@ -118,11 +118,11 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
+            RpcStreamWriter? streamWriter,
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
-            bool oneway = false,
-            RpcStreamWriter? streamWriter = null)
+            bool oneway = false)
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,

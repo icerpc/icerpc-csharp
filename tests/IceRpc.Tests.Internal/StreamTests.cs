@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
                 new byte[size],
                 (OutputStream ostr, ReadOnlyMemory<byte> value) => ostr.WriteSequence(value.Span));
 
-            var request = new OutgoingRequest(Proxy, "op", requestPayload, DateTime.MaxValue);
+            var request = new OutgoingRequest(Proxy, "op", requestPayload, null, DateTime.MaxValue);
             ValueTask receiveTask = PerformReceiveAsync();
 
             RpcStream stream = ClientConnection.CreateStream(false);

@@ -222,11 +222,11 @@ namespace IceRpc
                 var request = new OutgoingRequest(proxy,
                                                   operation,
                                                   requestPayload,
+                                                  streamWriter,
                                                   deadline,
                                                   invocation,
                                                   idempotent,
-                                                  oneway,
-                                                  streamWriter);
+                                                  oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);

@@ -54,7 +54,7 @@ namespace IceRpc
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response</param>
+        /// <param name="dispatch">The dispatch properties., which include properties of both the request and response</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload and optional stream writer.</returns>
         public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
@@ -63,14 +63,14 @@ namespace IceRpc
             CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
         /// </param>
         /// <returns>The Slice type ID of the most-derived interface.</returns>
         public ValueTask<string> IceIdAsync(Dispatch dispatch, CancellationToken cancel) => new("::Ice::Object");
 
         /// <summary>Returns the Slice type IDs of the interfaces supported by this object.</summary>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The Slice type IDs of the interfaces supported by this object, in alphabetical order.</returns>
@@ -79,7 +79,7 @@ namespace IceRpc
 
         /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>True if this object implements the interface specified by typeId.</returns>
@@ -90,7 +90,7 @@ namespace IceRpc
         }
 
         /// <summary>Tests whether this object can be reached.</summary>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
@@ -111,8 +111,8 @@ namespace IceRpc
 
         /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
         /// doesn't specify a stream parameter.</summary>
-        /// <param name="dispatch">The <see cref="Dispatch"/> object for the dispatch.</param>
-        protected static void IceNoStreamData(Dispatch dispatch) =>
+        /// <param name="dispatch">The dispatch properties.</param>
+        protected static void IceStreamReadingComplete(Dispatch dispatch) =>
             dispatch.IncomingRequest.Stream.Abort(Transports.RpcStreamError.UnexpectedStreamData);
 
         /// <summary>Dispatches an ice_id request.</summary>
@@ -126,7 +126,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceNoStreamData(dispatch);
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceId(dispatch, returnValue), null);
@@ -143,7 +143,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceNoStreamData(dispatch);
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIds(dispatch, returnValue), null);
@@ -160,7 +160,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceNoStreamData(dispatch);
+            IceStreamReadingComplete(dispatch);
             string id = Request.IceIsA(payload, dispatch);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIsA(dispatch, returnValue), null);
@@ -177,7 +177,7 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            IceNoStreamData(dispatch);
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return (Payload.FromVoidReturnValue(dispatch), null);

@@ -25,7 +25,7 @@ namespace IceRpc.Transports.Internal
 
         protected override void AbortRead(RpcStreamError errorCode)
         {
-            if(TrySetReadCompleted(shutdown: false))
+            if (TrySetReadCompleted(shutdown: false))
             {
                 // Abort the receive call waiting on WaitAsync().
                 SetException(new RpcStreamAbortedException(errorCode));

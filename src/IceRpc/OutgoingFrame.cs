@@ -70,8 +70,8 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream writer if the request or response has an outgoing stream param. The writer is
-        /// called after the request or response frame is sent over the stream.</summary>
+        /// <summary>The stream writer if the request or response has a stream param. The writer is called
+        /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
         private Dictionary<int, Action<OutputStream>>? _fields;

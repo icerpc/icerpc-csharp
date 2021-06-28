@@ -137,14 +137,6 @@ namespace IceRpc
         public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
 
-        /// <summary>A response delegate for invocations that returns only a System.IO.Stream value.</summary>
-        protected static System.IO.Stream IceByteStreamResponse(
-            ReadOnlyMemory<byte> payload,
-            RpcStreamReader? streamReader,
-            Encoding payloadEncoding,
-            Connection connection,
-            IInvoker? invoker) => streamReader!.ToByteStream();
-
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
         public ImmutableList<Endpoint> AltEndpoints { get; set; }

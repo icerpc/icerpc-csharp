@@ -584,8 +584,8 @@ namespace IceRpc
             {
                 using IDisposable? connectionScope = StartScope();
 
-                // Create the outgoing stream. The caller (the proxy InvokeAsync implementation) is responsible
-                // release the stream.
+                // Create the stream. The caller (the proxy InvokeAsync implementation) is responsible for releasing
+                // the stream.
                 request.Stream = _connection!.CreateStream(!request.IsOneway);
 
                 // Send the request and wait for the sending to complete.
