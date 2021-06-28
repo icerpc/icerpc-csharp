@@ -14,7 +14,6 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
-
         /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>
         internal static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
         {

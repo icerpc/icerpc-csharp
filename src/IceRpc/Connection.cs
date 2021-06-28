@@ -257,8 +257,6 @@ namespace IceRpc
             throw new InvalidOperationException(
                 $"{nameof(TransportName)} is not available because there's no endpoint set");
 
-
-
         /// <summary>The underlying multi-stream connection.</summary>
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
@@ -694,7 +692,8 @@ namespace IceRpc
                 Debug.Assert(UnderlyingConnection != null);
 
                 TimeSpan idleTime = Time.Elapsed - UnderlyingConnection!.LastActivity;
-                if (idleTime > UnderlyingConnection.IdleTimeout / 4 && (_options!.KeepAlive || UnderlyingConnection.IncomingStreamCount > 0))
+                if (idleTime > UnderlyingConnection.IdleTimeout / 4 &&
+                    (_options!.KeepAlive || UnderlyingConnection.IncomingStreamCount > 0))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
                     // sooner than really needed is safer to ensure that the receiver will receive the ping in
@@ -877,18 +876,18 @@ namespace IceRpc
                     {
                         // We log the exception as the UnhandledException may not include all details.
                         UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                 request.Path,
-                                                                 request.Operation,
-                                                                 exception);
+                                                                          request.Path,
+                                                                          request.Operation,
+                                                                          exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else if (!stream.IsBidirectional)
                     {
                         // We log this exception, otherwise it would be lost since we don't send a response.
                         UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                 request.Path,
-                                                                 request.Operation,
-                                                                 exception);
+                                                                          request.Path,
+                                                                          request.Operation,
+                                                                          exception);
                     }
                     else
                     {
@@ -1139,7 +1138,8 @@ namespace IceRpc
 
                 // Abort non-processed outgoing streams before closing the connection to ensure the invocation
                 // will fail with a retryable exception.
-                UnderlyingConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer, lastOutgoingStreamIds);
+                UnderlyingConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer,
+                                                          lastOutgoingStreamIds);
 
                 try
                 {
