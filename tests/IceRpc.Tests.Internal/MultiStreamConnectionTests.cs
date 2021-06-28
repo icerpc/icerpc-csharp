@@ -480,6 +480,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Order(1)]
+        [Test]
         public async Task MultiStreamConnection_StreamCountAsync()
         {
             Assert.AreEqual(0, ClientConnection.IncomingStreamCount);
@@ -487,32 +488,40 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual(0, ServerConnection.IncomingStreamCount);
             Assert.AreEqual(0, ServerConnection.OutgoingStreamCount);
 
-            var release1 = await TestAsync(ClientConnection, ServerConnection, 1);
-            var release2 = await TestAsync(ServerConnection, ClientConnection, 1);
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
 
-            var release3 = await TestAsync(ClientConnection, ServerConnection, 2);
-            var release4 = await TestAsync(ServerConnection, ClientConnection, 2);
+            var acceptStreamTask  = ServerConnection.AcceptStreamAsync(default).AsTask();
+            var release1 = await TestAsync(ClientConnection, ServerConnection, acceptStreamTask, 1);
+            acceptStreamTask = ServerConnection.AcceptStreamAsync(default).AsTask();
+            var release2 = await TestAsync(ClientConnection, ServerConnection, acceptStreamTask, 2);
 
-            release4();
-            release3();
+            await release2();
+            await release1();
 
-            release2();
-            release1();
-
-            async Task<Action> TestAsync(MultiStreamConnection connection, MultiStreamConnection peerConnection, int expectedCount)
+            async Task<Func<ValueTask>> TestAsync(
+                MultiStreamConnection connection,
+                MultiStreamConnection peerConnection,
+                Task<RpcStream> acceptStreamTask,
+                int expectedCount)
             {
                 var clientStream = connection.CreateStream(true);
                 Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
-                ValueTask task = clientStream.SendRequestFrameAsync(DummyRequest);
+                await clientStream.SendRequestFrameAsync(DummyRequest);
                 Assert.AreEqual(expectedCount, connection.OutgoingStreamCount);
 
                 Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
-                var serverStream = await peerConnection.AcceptStreamAsync(default);
+                var serverStream = await acceptStreamTask;
                 Assert.AreEqual(expectedCount, peerConnection.IncomingStreamCount);
 
-                await task;
-                return () =>
+                var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
+
+                return async () =>
                 {
+                    // Releases the stream by sending response.
+                    await serverStream.SendResponseFrameAsync(
+                        new OutgoingResponse(incomingRequest, new UnhandledException()));
+                    _ = await clientStream.ReceiveResponseFrameAsync(default);
+
                     Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
                     Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
                 };
