@@ -490,10 +490,8 @@ namespace IceRpc.Tests.Internal
 
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
 
-            var acceptStreamTask  = ServerConnection.AcceptStreamAsync(default).AsTask();
-            var release1 = await TestAsync(ClientConnection, ServerConnection, acceptStreamTask, 1);
-            acceptStreamTask = ServerConnection.AcceptStreamAsync(default).AsTask();
-            var release2 = await TestAsync(ClientConnection, ServerConnection, acceptStreamTask, 2);
+            var release1 = await TestAsync(ClientConnection, ServerConnection, 1);
+            var release2 = await TestAsync(ClientConnection, ServerConnection, 2);
 
             await release2();
             await release1();
@@ -501,7 +499,6 @@ namespace IceRpc.Tests.Internal
             async Task<Func<ValueTask>> TestAsync(
                 MultiStreamConnection connection,
                 MultiStreamConnection peerConnection,
-                Task<RpcStream> acceptStreamTask,
                 int expectedCount)
             {
                 var clientStream = connection.CreateStream(true);
@@ -510,7 +507,7 @@ namespace IceRpc.Tests.Internal
                 Assert.AreEqual(expectedCount, connection.OutgoingStreamCount);
 
                 Assert.AreEqual(expectedCount - 1, peerConnection.IncomingStreamCount);
-                var serverStream = await acceptStreamTask;
+                var serverStream = await ServerConnection.AcceptStreamAsync(default);
                 Assert.AreEqual(expectedCount, peerConnection.IncomingStreamCount);
 
                 var incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
