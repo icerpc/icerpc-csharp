@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class DispatchEventSourceTests
     {
-        private DispatchEventSource _eventSource;
+        private readonly DispatchEventSource _eventSource;
 
         public DispatchEventSourceTests() =>
             _eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void DispatchEventSource_RequestStart()
         {
-            var expectedEventId = 1;
+            int expectedEventId = 1;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -31,8 +31,8 @@ namespace IceRpc.Tests.Internal
             var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestStart(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestStart", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void DispatchEventSource_RequestStop()
         {
-            var expectedEventId = 2;
+            int expectedEventId = 2;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -57,8 +57,8 @@ namespace IceRpc.Tests.Internal
             var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestStop(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestStop", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void DispatchEventSource_RequestCanceled()
         {
-            var expectedEventId = 3;
+            int expectedEventId = 3;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -83,8 +83,8 @@ namespace IceRpc.Tests.Internal
             var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestCanceled(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestCanceled", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -96,7 +96,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void DispatchEventSource_RequestFailed()
         {
-            var expectedEventId = 4;
+            int expectedEventId = 4;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -109,8 +109,8 @@ namespace IceRpc.Tests.Internal
             var request = new IncomingRequest(outgoingRequest);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestFailed", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);

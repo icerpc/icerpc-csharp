@@ -27,19 +27,15 @@ namespace IceRpc.Tests.Api
 
         /// <summary>Identity.FromPath for an invalid path throws ArgumentException.</summary>
         [TestCase("foo/bar/abc")] // does not start with a slash
-        public void Identity_FromPath_ArgumentException(string path)
-        {
+        public void Identity_FromPath_ArgumentException(string path) =>
             Assert.Throws<ArgumentException>(() => Identity.FromPath(path));
-        }
 
         /// <summary>Identity.FromPath for a valid path that can't be converted to an identity throws FormatException.
         /// </summary>
         [TestCase("/foo/bar/abc")] // too many slashes
         [TestCase("///")] // too many slashes
-        public void Identity_FromPath_FormatException(string path)
-        {
+        public void Identity_FromPath_FormatException(string path) =>
             Assert.Throws<FormatException>(() => Identity.FromPath(path));
-        }
 
         /// <summary>Verifies that simple stringified identities result in the same identity with Parse and FromPath
         /// when the leading / is removed for Parse.</summary>
@@ -64,15 +60,13 @@ namespace IceRpc.Tests.Api
         public void Identity_Parse_InvalidInput(string str)
         {
             Assert.Throws<FormatException>(() => Identity.Parse(str));
-            Assert.False(Identity.TryParse(str, out _));
+            Assert.That(Identity.TryParse(str, out _), Is.False);
         }
 
         /// <summary>Verifies Identity.Parse succeeds and constructs the expected identity.</summary>
         [TestCase("\\342\\x82\\254\\60\\x9\\60\\", "€0\t0\\", "")]
-        public void Identity_Parse_ValidInput(string str, string name, string category)
-        {
+        public void Identity_Parse_ValidInput(string str, string name, string category) =>
             Assert.AreEqual(new Identity(name, category), Identity.Parse(str));
-        }
 
         /// <summary>Verifies that any arbitrary Identity can represented by a URI path (i.e. produced from FromPath)
         /// and that ToPath then returns the same path.</summary>
@@ -128,7 +122,7 @@ namespace IceRpc.Tests.Api
             {
                 Assert.AreEqual(identity, Identity.Parse(identity.ToString(mode)));
 
-                Assert.IsTrue(Identity.TryParse(identity.ToString(mode), out Identity newIdentity));
+                Assert.That(Identity.TryParse(identity.ToString(mode), out Identity newIdentity), Is.True);
                 Assert.AreEqual(identity, newIdentity);
             }
 

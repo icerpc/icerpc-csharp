@@ -43,7 +43,7 @@ namespace IceRpc.Tests.ClientServer
                         compressedRequestSize = request.PayloadSize;
                         compressedRequest =
                             (await request.GetPayloadAsync(cancel)).Span[0] == (byte)CompressionFormat.Deflate;
-                        var response = await next.DispatchAsync(request, cancel);
+                        OutgoingResponse response = await next.DispatchAsync(request, cancel);
                         compressedResponse = response.Payload.Span[0].Span[0] == (byte)CompressionFormat.Deflate;
                         compressedResponseSize = response.PayloadSize;
                         return response;
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.ClientServer
 
             router.Map<ICompressTest>(new CompressTest());
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            ICompressTestPrx prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
+            var prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
@@ -84,47 +84,47 @@ namespace IceRpc.Tests.ClientServer
             // The request is compressed and the response is not compressed
             if (compressedRequest)
             {
-                Assert.GreaterOrEqual(size, compressionMinSize);
-                Assert.Greater(size, compressedRequestSize);
+                Assert.That(size, Is.GreaterThanOrEqualTo(compressionMinSize));
+                Assert.That(size, Is.GreaterThan(compressedRequestSize));
             }
             else
             {
-                Assert.IsTrue(size < compressionMinSize);
+                Assert.That(size, Is.LessThan(compressionMinSize));
             }
-            Assert.IsFalse(compressedResponse);
+            Assert.That(compressedResponse, Is.False);
 
             // Both request and response payload should be compressed
             _ = await prx.OpCompressArgsAndReturnAsync(data);
             if (compressedRequest)
             {
-                Assert.IsTrue(compressedResponse);
-                Assert.GreaterOrEqual(size, compressionMinSize);
-                Assert.Greater(size, compressedRequestSize);
-                Assert.Greater(size, compressedResponseSize);
+                Assert.That(compressedResponse, Is.True);
+                Assert.That(size, Is.GreaterThanOrEqualTo(compressionMinSize));
+                Assert.That(size, Is.GreaterThan(compressedRequestSize));
+                Assert.That(size, Is.GreaterThan(compressedResponseSize));
             }
             else
             {
-                Assert.IsTrue(size < compressionMinSize);
+                Assert.That(size, Is.LessThan(compressionMinSize));
             }
 
             // The request is not compressed and the response is compressed
             _ = await prx.OpCompressReturnAsync(size);
 
-            Assert.IsFalse(compressedRequest);
+            Assert.That(compressedRequest, Is.False);
             if (compressedResponse)
             {
-                Assert.GreaterOrEqual(size, compressionMinSize);
-                Assert.Greater(size, compressedResponseSize);
+                Assert.That(size, Is.GreaterThanOrEqualTo(compressionMinSize));
+                Assert.That(size, Is.GreaterThan(compressedResponseSize));
             }
             else
             {
-                Assert.IsTrue(size < compressionMinSize);
+                Assert.That(size, Is.LessThan(compressionMinSize));
             }
 
             // The exceptions are never compressed
             Assert.ThrowsAsync<CompressMyException>(async () => await prx.OpWithUserExceptionAsync(size));
-            Assert.IsFalse(compressedRequest);
-            Assert.IsFalse(compressedResponse);
+            Assert.That(compressedRequest, Is.False);
+            Assert.That(compressedResponse, Is.False);
         }
 
         internal class CompressTest : ICompressTest
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.ClientServer
                 byte[] p1,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new ValueTask<ReadOnlyMemory<byte>>(p1);
+                new(p1);
 
             public ValueTask OpCompressArgsAsync(
                 int size,
