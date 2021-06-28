@@ -15,12 +15,13 @@ namespace IceRpc.Transports
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
-        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it.</summary>
-        public virtual System.Net.Sockets.Socket? Socket => null;
-
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
         /// expose it.</summary>
         public virtual SslStream? SslStream => null;
+
+        /// <summary>The underlying socket, if the implementation uses a Socket and chooses to expose it to the
+        /// test suite.</summary>
+        protected internal virtual System.Net.Sockets.Socket? Socket => null;
 
         internal ILogger Logger { get; }
 

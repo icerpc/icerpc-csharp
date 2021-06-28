@@ -17,9 +17,9 @@ namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
-        public override Socket? Socket => _socket;
-
         public override SslStream? SslStream => _sslStream;
+
+        protected internal override Socket? Socket => _socket;
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
