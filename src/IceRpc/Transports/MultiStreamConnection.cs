@@ -59,6 +59,7 @@ namespace IceRpc.Transports
         public string TransportName => _endpoint.TransportName;
 
         internal int IncomingFrameMaxSize { get; }
+
         internal int IncomingStreamCount
         {
             get
@@ -178,6 +179,9 @@ namespace IceRpc.Transports
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
+            // Shutdown the connection to ensure stream creation fails after the connection is disposed.
+            _ = Shutdown();
+
             foreach (RpcStream stream in _streams.Values)
             {
                 try

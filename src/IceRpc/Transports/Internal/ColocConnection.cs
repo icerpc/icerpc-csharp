@@ -121,19 +121,27 @@ namespace IceRpc.Transports.Internal
 
         public async override ValueTask InitializeAsync(CancellationToken cancel)
         {
-            // Send our unidirectional semaphore to the peer. The peer will decrease the semaphore when the stream is
-            // disposed.
             try
             {
-                await _writer.WriteAsync((-1, this, false), cancel).ConfigureAwait(false);
-                (_, object? peer, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                var initializeFrame = new InitializeFrame()
+                {
+                    BidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount),
+                    UnidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount)
+                };
 
-                var peerSocket = (ColocConnection)peer!;
+                // We keep track of the peer's unidirectional stream semaphore. This side of the colocated connection
+                // releases the peer's unidirectional stream semaphore when an incoming unidirectional stream is
+                // released.
+                _peerUnidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore;
 
-                // We're responsible for creating the peer's semaphores with our configured stream max count.
-                peerSocket._bidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount);
-                peerSocket._unidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount);
-                _peerUnidirectionalStreamSemaphore = peerSocket._unidirectionalStreamSemaphore;
+                await _writer.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
+                (_, object? frame, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                initializeFrame = (InitializeFrame)frame!;
+
+                // Get the semphores from the initialize frame.
+                _bidirectionalStreamSemaphore = initializeFrame.BidirectionalStreamSemaphore!;
+                _unidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore!;
             }
             catch (Exception exception)
             {
@@ -157,13 +165,14 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
             if (disposing)
             {
                 _writer.TryComplete();
 
                 var exception = new ConnectionClosedException();
-                _bidirectionalStreamSemaphore!.Complete(exception);
-                _unidirectionalStreamSemaphore!.Complete(exception);
+                _bidirectionalStreamSemaphore?.Complete(exception);
+                _unidirectionalStreamSemaphore?.Complete(exception);
             }
         }
 
@@ -286,6 +295,12 @@ namespace IceRpc.Transports.Internal
                 }
                 throw;
             }
+        }
+
+        private sealed class InitializeFrame
+        {
+            internal AsyncSemaphore? BidirectionalStreamSemaphore { get; set; }
+            internal AsyncSemaphore? UnidirectionalStreamSemaphore { get; set; }
         }
     }
 }
