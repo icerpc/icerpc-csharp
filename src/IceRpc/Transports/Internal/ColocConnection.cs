@@ -148,9 +148,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override string ToString() =>
-            $"{base.ToString()}, LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}";
-
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);

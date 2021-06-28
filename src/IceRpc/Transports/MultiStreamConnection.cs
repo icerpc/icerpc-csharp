@@ -232,6 +232,14 @@ namespace IceRpc.Transports
         {
             builder.Append("IsSecure = ").Append(IsSecure).Append(", ");
             builder.Append("IsServer = ").Append(IsServer);
+            if (_localEndpoint != null)
+            {
+                builder.Append(", LocalEndpoint = ").Append(_localEndpoint);
+            }
+            if (_remoteEndpoint != null)
+            {
+                builder.Append(", RemoteEndpoint = ").Append(_remoteEndpoint);
+            }
             return true;
         }
 

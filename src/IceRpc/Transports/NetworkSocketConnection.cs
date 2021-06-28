@@ -78,16 +78,5 @@ namespace IceRpc.Transports
             }
             base.Dispose(disposing);
         }
-
-        /// <inheritdoc/>
-        protected override bool PrintMembers(StringBuilder builder)
-        {
-            if (base.PrintMembers(builder))
-            {
-                builder.Append(", ");
-            }
-            builder.Append("NetworkSocket = ").Append(NetworkSocket);
-            return true;
-        }
     }
 }
