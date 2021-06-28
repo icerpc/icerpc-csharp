@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -68,7 +69,7 @@ namespace IceRpc
 
         private readonly object _mutex = new();
 
-        private readonly Dictionary<Endpoint, LinkedList<Connection>> _clientConnections =
+        private readonly Dictionary<Endpoint, List<Connection>> _clientConnections =
            new(EndpointComparer.Equivalent);
         private readonly Dictionary<Endpoint, Task<Connection>> _pendingClientConnections =
             new(EndpointComparer.Equivalent);
@@ -76,7 +77,9 @@ namespace IceRpc
         // used to influence the selection of endpoints when creating new connections. Endpoints with recent failures
         // are tried last.
         // TODO consider including endpoints with transport failures during invocation?
-        private readonly ConcurrentDictionary<Endpoint, DateTime> _transportFailures = new();
+        private readonly ConcurrentDictionary<Endpoint, TimeSpan> _transportFailures = new();
+        private TimeSpan _transportFailuresLastPurge = Time.Elapsed;
+        private readonly TimeSpan _transportFailuresExpirationTime = TimeSpan.FromSeconds(5);
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
         /// </summary>
@@ -122,45 +125,29 @@ namespace IceRpc
             async ValueTask<Connection> CreateConnectionAsync()
             {
                 ClientConnectionOptions connectionOptions = ConnectionOptions ?? ClientConnectionOptions.Default;
-                Connection? connection = null;
 
-                // TODO: add back OrderEndpointsByTransportFailures?
                 // Do we actually want to return Connected connections here or just created is better?
-
-                try
+                IEnumerable<Endpoint> endpoints = ImmutableArray.Create(endpoint).Concat(altEndpoints);
+                List<Exception>? exceptionList = null;
+                foreach (Endpoint endpoint in OrderEndpointsByTransportFailures(endpoints))
                 {
-                    connection = await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    List<Exception>? exceptionList = null;
-
-                    foreach (Endpoint altEndpoint in altEndpoints)
+                    try
                     {
-                        try
-                        {
-                            connection =
-                                await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
-                            break;
-                        }
-                        catch (Exception altEx)
-                        {
-                            exceptionList ??= new List<Exception> { ex };
-                            exceptionList.Add(altEx);
-                            // and keep trying
-                        }
+                        return await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
                     }
-
-                    if (connection == null)
+                    catch (Exception ex)
                     {
-                        throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+                        exceptionList ??= new List<Exception>();
+                        exceptionList.Add(ex);
                     }
                 }
-                return connection;
+                Debug.Assert(exceptionList != null);
+                throw exceptionList.Count == 1 ?
+                    ExceptionUtil.Throw(exceptionList[0]) : new AggregateException(exceptionList);
             }
 
             Connection? GetCachedConnection(Endpoint endpoint) =>
-                _clientConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections) &&
+                _clientConnections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(connection => connection.IsActive) is Connection connection ?
                     connection : null;
         }
@@ -225,7 +212,7 @@ namespace IceRpc
                     }
 
                     // Check if there is an active connection that we can use according to the endpoint settings.
-                    if (_clientConnections.TryGetValue(endpoint, out LinkedList<Connection>? connections))
+                    if (_clientConnections.TryGetValue(endpoint, out List<Connection>? connections))
                     {
                         connection = connections.FirstOrDefault(connection => connection.IsActive);
 
@@ -286,42 +273,12 @@ namespace IceRpc
                             return connection;
                         }
 
-                        if (!_clientConnections.TryGetValue(endpoint, out LinkedList<Connection>? list))
+                        if (!_clientConnections.TryGetValue(endpoint, out List<Connection>? list))
                         {
-                            list = new LinkedList<Connection>();
+                            list = new List<Connection>();
                             _clientConnections[endpoint] = list;
                         }
-
-                        // Keep the list of connections sorted with non-secure connections first so that when we check
-                        // for non-secure connections they are tried first.
-
-                        // TODO: this IsSecure sorting is now meaningless and should be removed.
-
-                        if (list.Count == 0 || connection.IsSecure)
-                        {
-                            list.AddLast(connection);
-                        }
-                        else
-                        {
-                            LinkedListNode<Connection>? next = list.First;
-                            while (next != null)
-                            {
-                                if (next.Value.IsSecure)
-                                {
-                                    break;
-                                }
-                                next = next.Next;
-                            }
-
-                            if (next == null)
-                            {
-                                list.AddLast(connection);
-                            }
-                            else
-                            {
-                                list.AddBefore(next, connection);
-                            }
-                        }
+                        list.Add(connection);
                     }
                     // Set the callback used to remove the connection from the factory.
                     connection.Remove = connection => Remove(connection);
@@ -331,7 +288,7 @@ namespace IceRpc
                 {
                     if (source.IsCancellationRequested)
                     {
-                        _transportFailures[endpoint] = DateTime.Now;
+                        _transportFailures[endpoint] = Time.Elapsed;
                         throw new ConnectTimeoutException();
                     }
                     else
@@ -341,7 +298,7 @@ namespace IceRpc
                 }
                 catch (TransportException)
                 {
-                    _transportFailures[endpoint] = DateTime.Now;
+                    _transportFailures[endpoint] = Time.Elapsed;
                     throw;
                 }
                 finally
@@ -358,8 +315,7 @@ namespace IceRpc
             }
         }
 
-        /*
-        private List<Endpoint> OrderEndpointsByTransportFailures(List<Endpoint> endpoints)
+        private IEnumerable<Endpoint> OrderEndpointsByTransportFailures(IEnumerable<Endpoint> endpoints)
         {
             if (_transportFailures.IsEmpty)
             {
@@ -368,29 +324,29 @@ namespace IceRpc
             else
             {
                 // Purge expired transport failures
-
-                // TODO avoid purge failures with each call
-                DateTime expirationDate = DateTime.Now - TimeSpan.FromSeconds(5);
-                foreach ((Endpoint endpoint, DateTime date) in _transportFailures)
+                if (_transportFailuresLastPurge > Time.Elapsed - _transportFailuresExpirationTime)
                 {
-                    if (date <= expirationDate)
+                    TimeSpan expirationTimeSpan = Time.Elapsed - _transportFailuresExpirationTime;
+                    foreach ((Endpoint endpoint, TimeSpan timeSpan) in _transportFailures)
                     {
-                        _ = ((ICollection<KeyValuePair<Endpoint, DateTime>>)_transportFailures).Remove(
-                            new KeyValuePair<Endpoint, DateTime>(endpoint, date));
+                        if (timeSpan <= expirationTimeSpan)
+                        {
+                            _ = ((ICollection<KeyValuePair<Endpoint, TimeSpan>>)_transportFailures).Remove(
+                                new KeyValuePair<Endpoint, TimeSpan>(endpoint, timeSpan));
+                        }
                     }
+                    _transportFailuresLastPurge = Time.Elapsed;
                 }
-
                 return endpoints.OrderBy(
-                    endpoint => _transportFailures.TryGetValue(endpoint, out DateTime value) ? value : default).ToList();
+                    endpoint => _transportFailures.TryGetValue(endpoint, out TimeSpan value) ? value : default);
             }
         }
-        */
 
         private void Remove(Connection connection)
         {
             lock (_mutex)
             {
-                LinkedList<Connection> list = _clientConnections[connection.RemoteEndpoint!];
+                List<Connection> list = _clientConnections[connection.RemoteEndpoint!];
                 list.Remove(connection);
                 if (list.Count == 0)
                 {
