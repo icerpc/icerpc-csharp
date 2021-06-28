@@ -74,18 +74,15 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        Endpoint.TransportDescriptor!.Acceptor!(Endpoint,
-                                                                                _server.ConnectionOptions,
-                                                                                _server.Logger),
+                        ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, _server.Logger),
                         _server);
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
-                    using IListener listener = Endpoint.TransportDescriptor!.ListenerFactory!(Endpoint,
-                                                                                             _server.ConnectionOptions,
-                                                                                             _server.Logger);
+                    using IListener listener = ((IListenerFactory)Endpoint).CreateListener(_server.ConnectionOptions,
+                                                                                           _server.Logger);
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
@@ -270,8 +267,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IListener listener = factory.Endpoint.TransportDescriptor!.ListenerFactory!(
-                factory.Endpoint,
+            using IListener listener = ((IListenerFactory)factory.Endpoint).CreateListener(
                 new ServerConnectionOptions
                 {
                     TransportOptions = new TcpOptions()

@@ -162,20 +162,19 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint.TransportDescriptor?.ListenerFactory is
-                    Func<Endpoint, ServerConnectionOptions, ILogger, IListener> listenerFactory)
+                if (_endpoint is IListenerFactory listenerFactory)
                 {
-                    _listener = listenerFactory(_endpoint, ConnectionOptions, Logger);
+                    _listener = listenerFactory.CreateListener(ConnectionOptions, Logger);
                     _endpoint = _listener.Endpoint;
                     UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
                 }
-                else if (_endpoint.TransportDescriptor?.Acceptor is
-                    Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> acceptor)
+                else if (_endpoint is IServerConnectionFactory serverConnectionFactory)
                 {
-                    MultiStreamConnection multiStreamConnection = acceptor(_endpoint, ConnectionOptions, Logger);
+                    MultiStreamConnection multiStreamConnection =
+                        serverConnectionFactory.Accept(ConnectionOptions, Logger);
                     var serverConnection = new Connection(multiStreamConnection, this);
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -198,8 +197,7 @@ namespace IceRpc
                                                           port: _endpoint.Port,
                                                           protocol: _endpoint.Protocol);
 
-                    _colocListener =
-                        colocEndpoint.TransportDescriptor!.ListenerFactory!(colocEndpoint, ConnectionOptions, Logger);
+                    _colocListener = colocEndpoint.CreateListener(ConnectionOptions, Logger);
                     Task.Run(() => AcceptAsync(_colocListener));
 
                     _colocRegistry.Add(_endpoint, colocEndpoint);

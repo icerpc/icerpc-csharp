@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Internal
             _serverConnections.Clear();
             for (int i = 0; i < _serverConnectionCount; ++i)
             {
-                _serverConnections.Add(((NetworkSocketConnection)CreateServerConnection()).Underlying);
+                _serverConnections.Add(((NetworkSocketConnection)CreateServerConnection()).NetworkSocket);
             }
 
             ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());

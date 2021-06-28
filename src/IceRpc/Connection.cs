@@ -302,7 +302,9 @@ namespace IceRpc
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
+#pragma warning disable CA2213 // _connection is disposable but not disposed (it's disposed by AbortAsync)
         private MultiStreamConnection? _connection;
+#pragma warning restore CA2213 // _connection is disposable but not disposed (it's disposed by AbortAsync)
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.
@@ -385,10 +387,9 @@ namespace IceRpc
                             throw new InvalidOperationException("client connection has local endpoint set");
                         }
 
-                        if (_remoteEndpoint.TransportDescriptor?.Connector is
-                            Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> connector)
+                        if (_remoteEndpoint is IClientConnectionFactory clientConnectionFactory)
                         {
-                            _connection = connector(_remoteEndpoint, clientOptions, Logger);
+                            _connection = clientConnectionFactory.CreateClientConnection(clientOptions, Logger);
                         }
                         else
                         {

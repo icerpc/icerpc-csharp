@@ -48,7 +48,10 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEvent.ConnectionClosed),
             Level = LogLevel.Debug,
             Message = "closed connection (Reason={Reason})")]
-        internal static partial void LogConnectionClosed(this ILogger logger, string reason, Exception? exception = null);
+        internal static partial void LogConnectionClosed(
+            this ILogger logger,
+            string reason,
+            Exception? exception = null);
 
         [LoggerMessage(
             EventId = (int)TransportEvent.ConnectionConnectFailed,

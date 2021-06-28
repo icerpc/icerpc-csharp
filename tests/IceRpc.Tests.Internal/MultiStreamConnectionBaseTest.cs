@@ -17,7 +17,8 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
+        protected OutgoingRequest DummyRequest =>
+            new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), null, DateTime.MaxValue);
 
         protected MultiStreamConnection ClientConnection => _clientConnection!;
 

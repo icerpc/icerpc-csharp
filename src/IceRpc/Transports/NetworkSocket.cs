@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Security;
@@ -23,40 +22,6 @@ namespace IceRpc.Transports
 
         /// <summary>This property should be used for testing purpose only.</summary>
         internal abstract System.Net.Sockets.Socket? Socket { get; }
-
-        /// <summary>Creates an acceptor from a network socket acceptor.</summary>
-        /// <param name="networkSocketAcceptor">An acceptor for network sockets.</param>
-        /// <returns>An acceptor suitable for <see cref="TransportDescriptor.Acceptor"/>.</returns>
-        public static Func<Endpoint, ServerConnectionOptions, ILogger, MultiStreamConnection> CreateAcceptor(
-            Func<Endpoint, ITransportOptions?, ILogger, (NetworkSocket, Endpoint)> networkSocketAcceptor) =>
-            (endpoint, options, logger) =>
-            {
-                (NetworkSocket serverSocket, Endpoint serverEndpoint) =
-                    networkSocketAcceptor(endpoint, options.TransportOptions, logger);
-
-                return endpoint.Protocol == Protocol.Ice1 ?
-                    new Ice1Connection(serverEndpoint, serverSocket, options) :
-                    new SlicConnection(serverEndpoint, serverSocket, options);
-            };
-
-        /// <summary>Creates a connector from a network socket connection.</summary>
-        /// <param name="networkSocketConnector">A connector for network sockets.</param>
-        /// <returns>A connector suitable for <see cref="TransportDescriptor.Connector"/>.</returns>
-        public static Func<Endpoint, ClientConnectionOptions, ILogger, MultiStreamConnection> CreateConnector(
-            Func<Endpoint, ITransportOptions?, ILogger, NetworkSocket> networkSocketConnector) =>
-            (endpoint, options, logger) =>
-            {
-                NetworkSocket clientSocket = networkSocketConnector(endpoint, options.TransportOptions, logger);
-                return endpoint.Protocol == Protocol.Ice1 ?
-                    new Ice1Connection(endpoint, clientSocket, options) :
-                    new SlicConnection(endpoint, clientSocket, options);
-            };
-
-        /// <summary>Closes the socket. The socket might use this method to send a notification to the peer
-        /// of the connection closure.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the socket closure.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(long errorCode, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()

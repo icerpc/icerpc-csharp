@@ -39,8 +39,8 @@ namespace IceRpc.Transports.Internal
                 Memory<byte> buffer;
                 if (IsDatagram)
                 {
-                    buffer = new byte[Underlying.DatagramMaxReceiveSize];
-                    int received = await Underlying.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    buffer = new byte[NetworkSocket.DatagramMaxReceiveSize];
+                    int received = await NetworkSocket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                     if (received < Ice1Definitions.HeaderSize)
                     {
                         Logger.LogReceivedInvalidDatagram(received);
@@ -189,8 +189,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
+        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) => default;
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -211,10 +210,10 @@ namespace IceRpc.Transports.Internal
         }
 
         internal Ice1Connection(
-            Endpoint endpoint,
             NetworkSocket networkSocket,
+            Endpoint endpoint,
             ConnectionOptions options)
-            : base(endpoint, networkSocket, options)
+            : base(networkSocket, endpoint, options)
         {
             IdleTimeout = options.IdleTimeout;
 
@@ -311,7 +310,9 @@ namespace IceRpc.Transports.Internal
                 // When an an Ice1 frame is sent over a connection (such as a TCP connection), we need to send the
                 // entire frame even when cancel gets canceled since the recipient cannot read a partial frame and then
                 // keep going.
-                await Underlying.SendAsync(buffers, IsDatagram ? cancel : CancellationToken.None).ConfigureAwait(false);
+                await NetworkSocket.SendAsync(
+                    buffers,
+                    IsDatagram ? cancel : CancellationToken.None).ConfigureAwait(false);
 
                 Sent(buffers);
             }
@@ -427,7 +428,7 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                offset += await Underlying.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
+                offset += await NetworkSocket.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
             Received(buffer);
         }

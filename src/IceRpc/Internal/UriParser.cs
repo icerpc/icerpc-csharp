@@ -199,7 +199,7 @@ namespace IceRpc.Internal
                 port = (ushort)uri.Port;
             }
 
-            Func<string, ushort, Dictionary<string, string>, Endpoint>? parser = null;
+            IIce2EndpointFactory? ice2EndpointFactory = null;
             Transport transport = default;
             Endpoint? endpoint = null;
 
@@ -209,30 +209,30 @@ namespace IceRpc.Internal
 
                 if (endpoint.Protocol == Protocol.Ice2)
                 {
-                    // It's possible we have a factory for this transport, and we check it only when the protocol is
-                    // ice2 (otherwise, we return this UniversalEndpoint).
+                    // It's possible we have an ice2 endpoint factory for this transport, and we check it only when
+                    // the protocol is ice2 (otherwise, we return this UniversalEndpoint).
                     // Since all options have been consumed by Parse above, this works only for endpoints with no
                     // options.
-                    if (TransportRegistry.TryGetValue(endpoint.Transport, out TransportDescriptor? descriptor))
+                    if (TransportRegistry.TryGetValue(endpoint.Transport, out IEndpointFactory? factory))
                     {
-                        parser = descriptor.Ice2EndpointParser;
+                        ice2EndpointFactory = factory as IIce2EndpointFactory;
                     }
                     transport = endpoint.Transport;
                 }
             }
-            else if (TransportRegistry.TryGetValue(transportName, out TransportDescriptor? descriptor))
+            else if (TransportRegistry.TryGetValue(transportName, out IEndpointFactory? factory))
             {
-                parser = descriptor.Ice2EndpointParser;
-                transport = descriptor.Transport;
+                ice2EndpointFactory = factory as IIce2EndpointFactory;
+                transport = factory.Transport;
             }
             else
             {
                 throw new FormatException($"unknown transport '{transportName}'");
             }
 
-            if (parser != null)
+            if (ice2EndpointFactory != null)
             {
-                endpoint = parser(uri.DnsSafeHost, port, options);
+                endpoint = ice2EndpointFactory.CreateIce2Endpoint(uri.DnsSafeHost, port, options);
             }
             else
             {

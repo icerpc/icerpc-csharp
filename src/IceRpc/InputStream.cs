@@ -1025,16 +1025,16 @@ namespace IceRpc
 
             var encoding = new Encoding(this);
 
-            InputStreamReader<Endpoint>? ice1Factory = null;
+            IIce1EndpointFactory? ice1EndpointFactory = null;
             if (protocol == Protocol.Ice1 &&
                 encoding.IsSupported &&
-                TransportRegistry.TryGetValue(transport, out TransportDescriptor? descriptor))
+                TransportRegistry.TryGetValue(transport, out IEndpointFactory? factory))
             {
-                ice1Factory = descriptor.Ice1EndpointFactory;
+                ice1EndpointFactory = factory as IIce1EndpointFactory;
             }
 
             // We need to read the encapsulation except for ice1 + null factory.
-            if (protocol == Protocol.Ice1 && ice1Factory == null)
+            if (protocol == Protocol.Ice1 && ice1EndpointFactory == null)
             {
                 endpoint = OpaqueEndpoint.Create(transport,
                                                  encoding,
@@ -1046,8 +1046,8 @@ namespace IceRpc
                 int oldPos = Pos;
                 if (protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(ice1Factory != null); // see if block above with OpaqueEndpoint creation
-                    endpoint = ice1Factory(this);
+                    Debug.Assert(ice1EndpointFactory != null); // see if block above with OpaqueEndpoint creation
+                    endpoint = ice1EndpointFactory.CreateIce1Endpoint(this);
                 }
                 else
                 {

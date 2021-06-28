@@ -28,9 +28,6 @@ namespace IceRpc.Internal
 
         public override string Scheme => "ice+universal";
 
-        /// <inherit-doc/>
-        public override TransportDescriptor? TransportDescriptor => null;
-
         protected internal override bool HasOptions => true;
 
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)

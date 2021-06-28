@@ -249,9 +249,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel)
-        {
-            await PrepareAndSendFrameAsync(
+        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
+            new(PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.Close,
                 ostr =>
                 {
@@ -261,10 +260,7 @@ namespace IceRpc.Transports.Internal
                     }
                 },
                 frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
-                cancel: cancel).ConfigureAwait(false);
-
-            await Underlying.CloseAsync((long)errorCode, cancel).ConfigureAwait(false);
-        }
+                cancel: cancel));
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -276,7 +272,7 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             // Create a buffered receive single stream on top of the underlying connection.
-            _bufferedConnection = new BufferedReceiveOverNetworkSocket(Underlying);
+            _bufferedConnection = new BufferedReceiveOverNetworkSocket(NetworkSocket);
 
             if (IsServer)
             {
@@ -415,11 +411,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicConnection(
-            Endpoint endpoint,
-            NetworkSocket singleStreamConnection,
-            ConnectionOptions options)
-            : base(endpoint, singleStreamConnection, options)
+        internal SlicConnection(NetworkSocket networkSocket, Endpoint endpoint, ConnectionOptions options)
+            : base(networkSocket, endpoint, options)
         {
             _idleTimeout = options.IdleTimeout;
             _receiveStreamCompletionTaskSource.SetResult(0);
