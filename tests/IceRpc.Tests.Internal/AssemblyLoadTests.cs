@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Internal
             {
                 Assembly assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(
                     Path.Combine(Directory.GetCurrentDirectory(), name));
-                Assert.IsNotNull(assembly);
+                Assert.That(assembly, Is.Not.Null);
                 Runtime.RegisterClassFactoriesFromAssembly(assembly);
             }
         }
