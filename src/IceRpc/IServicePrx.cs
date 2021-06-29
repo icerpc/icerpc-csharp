@@ -36,7 +36,7 @@ namespace IceRpc
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
-                Payload.FromSingleArg(proxy, arg, BufferWriter.StringEncoder);
+                Payload.FromSingleArg(proxy, arg, BasicEncoders.StringEncoder);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the

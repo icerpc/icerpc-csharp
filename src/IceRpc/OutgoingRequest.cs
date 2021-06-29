@@ -164,8 +164,8 @@ namespace IceRpc
                     // Writes or overrides context
                     Fields[(int)Ice2FieldKey.Context] =
                         writer => writer.WriteDictionary(context,
-                                                     BufferWriter.StringEncoder,
-                                                     BufferWriter.StringEncoder);
+                                                     BasicEncoders.StringEncoder,
+                                                     BasicEncoders.StringEncoder);
                 }
                 // else context remains empty (not set)
 

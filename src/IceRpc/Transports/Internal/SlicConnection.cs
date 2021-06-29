@@ -657,7 +657,7 @@ namespace IceRpc.Transports.Internal
             writer.WriteSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                writer.WriteField((int)key, value, BufferWriter.VarULongEncoder);
+                writer.WriteField((int)key, value, BasicEncoders.VarULongEncoder);
             }
         }
 

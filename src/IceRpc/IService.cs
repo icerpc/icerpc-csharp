@@ -32,7 +32,7 @@ namespace IceRpc
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceId(Dispatch dispatch, string returnValue) =>
-                Payload.FromSingleReturnValue(dispatch, returnValue, BufferWriter.StringEncoder);
+                Payload.FromSingleReturnValue(dispatch, returnValue, BasicEncoders.StringEncoder);
 
             /// <summary>Creates a response payload for operation ice_ids.</summary>
             /// <param name="dispatch">The dispatch properties.</param>
@@ -42,14 +42,14 @@ namespace IceRpc
                 Payload.FromSingleReturnValue(
                     dispatch,
                     returnValue,
-                    (writer, returnValue) => writer.WriteSequence(returnValue, BufferWriter.StringEncoder));
+                    (writer, returnValue) => writer.WriteSequence(returnValue, BasicEncoders.StringEncoder));
 
             /// <summary>Creates a response payload for operation ice_isA.</summary>
             /// <param name="dispatch">The dispatch properties.</param>
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
-                Payload.FromSingleReturnValue(dispatch, returnValue, BufferWriter.BoolEncoder);
+                Payload.FromSingleReturnValue(dispatch, returnValue, BasicEncoders.BoolEncoder);
         }
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>

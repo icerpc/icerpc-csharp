@@ -429,7 +429,7 @@ namespace IceRpc.Transports
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 writer.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
-                                BufferWriter.VarULongEncoder);
+                                BasicEncoders.VarULongEncoder);
 
                 writer.EndFixedLengthSize(sizePos);
 

@@ -683,7 +683,7 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.BufferWriter." << builtinSuffixTable[builtin->kind()] << "Encoder";
+        out << "IceRpc.BasicEncoders." << builtinSuffixTable[builtin->kind()] << "Encoder";
     }
     else if (EnumPtr::dynamicCast(type))
     {
