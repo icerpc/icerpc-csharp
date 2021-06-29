@@ -88,10 +88,8 @@ namespace IceRpc
         public static readonly ProxyFactory<IServicePrx> Factory =
             new((path, protocol) => new ServicePrx(path, protocol));
 
-        /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<IServicePrx> Decoder =
-            reader => Proxy.Read(Factory, reader);
+        /// <summary>A <see cref="Decoder{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
+        public static readonly Decoder<IServicePrx> Decoder = reader => Proxy.Read(Factory, reader);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
@@ -122,18 +120,13 @@ namespace IceRpc
         public static IServicePrx FromServer(Server server, string? path = null) =>
             Factory.Create(server, path);
 
-        /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<IServicePrx?> NullableDecoder =
-            reader => Proxy.ReadNullable(Factory, reader);
+        /// <summary>A <see cref="Decoder{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
+        public static readonly Decoder<IServicePrx?> NullableDecoder = reader => Proxy.ReadNullable(Factory, reader);
 
-        /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
+        /// <summary>An encoder for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly Encoder<IServicePrx> Encoder = (writer, value) => writer.WriteProxy(value);
 
-        /// <summary>An encoder used to encode <see cref="IServicePrx"/> nullable proxies.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
+        /// <summary>An encoder for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly Encoder<IServicePrx?> NullableEncoder =
             (writer, value) => writer.WriteNullableProxy(value);
 

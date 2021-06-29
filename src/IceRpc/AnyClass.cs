@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.ComponentModel;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -9,21 +8,17 @@ namespace IceRpc
     public abstract class AnyClass
     {
         /// <summary>A decoder for non-nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass> Decoder =
             reader => reader.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>A decoder for nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass?> NullableDecoder =
             reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An encoder used to encode non-nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
+        /// <summary>An encoder for non-nullable class instances.</summary>
         public static readonly Encoder<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
 
-        /// <summary>An encoder used to encode nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
+        /// <summary>An encoder for nullable class instances.</summary>
         public static readonly Encoder<AnyClass?> NullableEncoder =
             (writer, value) => writer.WriteNullableClass(value, null);
 
