@@ -21,16 +21,16 @@ namespace IceRpc
         public void IceWrite(BufferWriter ostr);
     }
 
-    /// <summary>A delegate that writes a value to an output stream.</summary>
+    /// <summary>A delegate that writes a value to a buffer writer.</summary>
     /// <typeparam name="T">The type of the value to write.</typeparam>
-    /// <param name="ostr">The output stream to write to.</param>
+    /// <param name="ostr">The buffer writer to write to.</param>
     /// <param name="value">The value to write to the stream.</param>
     public delegate void OutputStreamWriter<in T>(BufferWriter ostr, T value);
 
-    /// <summary>A delegate that writes a value passed as in-reference to an output stream. This value typically
+    /// <summary>A delegate that writes a value passed as in-reference to a buffer writer. This value typically
     /// corresponds to the argument tuple or return value tuple of an operation.</summary>
     /// <typeparam name="T">The type of the value to write (a struct).</typeparam>
-    /// <param name="ostr">The output stream to write to.</param>
+    /// <param name="ostr">The buffer writer to write to.</param>
     /// <param name="value">The value to write to the stream.</param>
     public delegate void OutputStreamValueWriter<T>(BufferWriter ostr, in T value) where T : struct;
 
@@ -1061,7 +1061,7 @@ namespace IceRpc
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this output stream after calling Finish, however rewriting previous data (with for example
+        /// this buffer writer after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()

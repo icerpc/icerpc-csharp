@@ -10,7 +10,7 @@ namespace IceRpc
     public static class Fields
     {
         /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
-        /// <param name="istr">The input stream.</param>
+        /// <param name="istr">The buffer reader.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
         public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader istr)

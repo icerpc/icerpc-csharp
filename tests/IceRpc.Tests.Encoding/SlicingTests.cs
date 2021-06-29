@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r.M3);
 
             // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshal
-            // as 'MyDerivedClass' which is the base type and still know by input stream.
+            // as 'MyDerivedClass' which is the base type and still know by buffer reader.
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             classFactories.Remove(MyMostDerivedClass.IceTypeId);
             istr = new BufferReader(data, encoding, typeIdClassFactories: classFactories);
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r.M3);
 
             // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshal
-            // as 'MyCompactDerivedClass' which is the base type and still know by input stream.
+            // as 'MyCompactDerivedClass' which is the base type and still know by buffer reader.
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(
                 Runtime.CompactTypeIdClassFactoryDictionary);
             classFactories.Remove(3);
@@ -140,7 +140,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r1.M3);
 
             // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshal
-            // as 'MyDerivedException' which is the base type and still know by input stream.
+            // as 'MyDerivedException' which is the base type and still know by buffer reader.
             var exceptionFactories = new Dictionary<string, Lazy<RemoteExceptionFactory>>(
                 Runtime.TypeIdRemoteExceptionFactoryDictionary);
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");

@@ -13,9 +13,9 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc
 {
-    /// <summary>A delegate that reads a value from an input stream.</summary>
+    /// <summary>A delegate that reads a value from a buffer reader.</summary>
     /// <typeparam name="T">The type of the value to read.</typeparam>
-    /// <param name="istr">The input stream to read from.</param>
+    /// <param name="istr">The buffer reader to read from.</param>
     public delegate T InputStreamReader<T>(BufferReader istr);
 
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
@@ -360,7 +360,7 @@ namespace IceRpc
 
         /// <summary>Reads a sequence from the stream and returns an array.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="reader">The input stream reader used to read each element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each element of the sequence.</param>
         /// <returns>The sequence read from the stream, as an array.</returns>
         public T[] ReadArray<T>(int minElementSize, InputStreamReader<T> reader) =>
             ReadSequence(minElementSize, reader).ToArray();
@@ -368,21 +368,21 @@ namespace IceRpc
         /// <summary>Reads a sequence of nullable elements from the stream and returns an array.</summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="reader">The input stream reader used to read each non-null element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null element of the sequence.</param>
         /// <returns>The sequence read from the stream, as an array.</returns>
         public T?[] ReadArray<T>(bool withBitSequence, InputStreamReader<T> reader) where T : class =>
             ReadSequence(withBitSequence, reader).ToArray();
 
         /// <summary>Reads a sequence of nullable values from the stream and returns an array.</summary>
-        /// <param name="reader">The input stream reader used to read each non-null element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null element of the sequence.</param>
         /// <returns>The sequence read from the stream, as an array.</returns>
         public T?[] ReadArray<T>(InputStreamReader<T> reader) where T : struct => ReadSequence(reader).ToArray();
 
         /// <summary>Reads a dictionary from the stream.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each value of the dictionary.</param>
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each value of the dictionary.</param>
         /// <returns>The dictionary read from the stream.</returns>
         public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue>(
             int minKeySize,
@@ -405,8 +405,8 @@ namespace IceRpc
         /// <summary>Reads a dictionary from the stream.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream.</returns>
         public Dictionary<TKey, TValue?> ReadDictionary<TKey, TValue>(
@@ -423,8 +423,8 @@ namespace IceRpc
 
         /// <summary>Reads a dictionary from the stream.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream.</returns>
         public Dictionary<TKey, TValue?> ReadDictionary<TKey, TValue>(
@@ -440,7 +440,7 @@ namespace IceRpc
 
         /// <summary>Reads a sequence from the stream.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="reader">The input stream reader used to read each element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the stream. The return value does not fully implement ICollection{T}, in particular you can only call
         /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
@@ -452,7 +452,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="reader">The input stream reader used to read each non-null element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the stream. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
@@ -461,7 +461,7 @@ namespace IceRpc
             withBitSequence ? new NullableCollection<T>(this, reader) : (ICollection<T?>)ReadSequence(1, reader);
 
         /// <summary>Reads a sequence of nullable values from the stream.</summary>
-        /// <param name="reader">The input stream reader used to read each non-null element (value) of the sequence.
+        /// <param name="reader">The buffer reader reader used to read each non-null element (value) of the sequence.
         /// </param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the stream. The returned collection does not fully implement ICollection{T?}, in particular you can only
@@ -473,8 +473,8 @@ namespace IceRpc
         /// <summary>Reads a sorted dictionary from the stream.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each value of the dictionary.</param>
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each value of the dictionary.</param>
         /// <returns>The sorted dictionary read from the stream.</returns>
         public SortedDictionary<TKey, TValue> ReadSortedDictionary<TKey, TValue>(
             int minKeySize,
@@ -497,8 +497,8 @@ namespace IceRpc
         /// <summary>Reads a sorted dictionary from the stream.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The sorted dictionary read from the stream.</returns>
         public SortedDictionary<TKey, TValue?> ReadSortedDictionary<TKey, TValue>(
@@ -518,8 +518,8 @@ namespace IceRpc
         /// <summary>Reads a sorted dictionary from the stream. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The sorted dictionary read from the stream.</returns>
         public SortedDictionary<TKey, TValue?> ReadSortedDictionary<TKey, TValue>(
@@ -684,7 +684,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="reader">The input stream reader used to read each element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each element of the sequence.</param>
         /// <returns>The sequence read from the stream as an array, or null.</returns>
         public T[]? ReadTaggedArray<T>(int tag, int minElementSize, bool fixedSize, InputStreamReader<T> reader) =>
             ReadTaggedSequence(tag, minElementSize, fixedSize, reader)?.ToArray();
@@ -693,14 +693,14 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="reader">The input stream reader used to read each non-null element of the array.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null element of the array.</param>
         /// <returns>The array read from the stream, or null.</returns>
         public T?[]? ReadTaggedArray<T>(int tag, bool withBitSequence, InputStreamReader<T> reader) where T : class =>
             ReadTaggedSequence(tag, withBitSequence, reader)?.ToArray();
 
         /// <summary>Reads a tagged array of nullable values from the stream.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="reader">The input stream reader used to read each non-null value of the array.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null value of the array.</param>
         /// <returns>The array read from the stream, or null.</returns>
         public T?[]? ReadTaggedArray<T>(int tag, InputStreamReader<T> reader) where T : struct =>
             ReadTaggedSequence(tag, reader)?.ToArray();
@@ -710,8 +710,8 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
         /// <param name="fixedSize">When true, the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each value of the dictionary.</param>
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each value of the dictionary.</param>
         /// <returns>The dictionary read from the stream, or null.</returns>
         public Dictionary<TKey, TValue>? ReadTaggedDictionary<TKey, TValue>(
             int tag,
@@ -735,8 +735,8 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
         public Dictionary<TKey, TValue?>? ReadTaggedDictionary<TKey, TValue>(
@@ -760,8 +760,8 @@ namespace IceRpc
         /// </summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
         public Dictionary<TKey, TValue?>? ReadTaggedDictionary<TKey, TValue>(
@@ -785,7 +785,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="reader">The input stream reader used to read each element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each element of the sequence.</param>
         /// <returns>The sequence read from the stream as an ICollection{T}, or null.</returns>
         public ICollection<T>? ReadTaggedSequence<T>(
             int tag,
@@ -809,7 +809,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="reader">The input stream reader used to read each non-null element of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null element of the sequence.</param>
         /// <returns>The sequence read from the stream as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? ReadTaggedSequence<T>(int tag, bool withBitSequence, InputStreamReader<T> reader)
             where T : class
@@ -827,7 +827,7 @@ namespace IceRpc
 
         /// <summary>Reads a tagged sequence of nullable values from the stream.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="reader">The input stream reader used to read each non-null value of the sequence.</param>
+        /// <param name="reader">The buffer reader reader used to read each non-null value of the sequence.</param>
         /// <returns>The sequence read from the stream as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? ReadTaggedSequence<T>(int tag, InputStreamReader<T> reader)
             where T : struct
@@ -848,8 +848,8 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
         /// <param name="fixedSize">True when the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each value of the dictionary.</param>
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each value of the dictionary.</param>
         /// <returns>The sorted dictionary read from the stream, or null.</returns>
         public SortedDictionary<TKey, TValue>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
@@ -872,8 +872,8 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
         public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
@@ -897,8 +897,8 @@ namespace IceRpc
         /// type.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyReader">The input stream reader used to read each key of the dictionary.</param>
-        /// <param name="valueReader">The input stream reader used to read each non-null value of the dictionary.
+        /// <param name="keyReader">The buffer reader reader used to read each key of the dictionary.</param>
+        /// <param name="valueReader">The buffer reader reader used to read each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the stream, or null.</returns>
         public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
@@ -920,7 +920,7 @@ namespace IceRpc
         /// <summary>Reads a tagged struct from the stream.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="fixedSize">True when the struct has a fixed size on the wire; otherwise, false.</param>
-        /// <param name="reader">The input stream reader used to create and read the struct.</param>
+        /// <param name="reader">The buffer reader reader used to create and read the struct.</param>
         /// <returns>The struct T read from the stream, or null.</returns>
         public T? ReadTaggedStruct<T>(int tag, bool fixedSize, InputStreamReader<T> reader) where T : struct
         {
@@ -981,7 +981,7 @@ namespace IceRpc
             _compactTypeIdClassFactories = compactTypeIdClassFactories;
         }
 
-        /// <summary>Verifies the input stream has reached the end of its underlying buffer.</summary>
+        /// <summary>Verifies the buffer reader has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)

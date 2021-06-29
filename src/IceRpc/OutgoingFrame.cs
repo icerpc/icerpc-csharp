@@ -101,7 +101,7 @@ namespace IceRpc
         }
 
         /// <summary>Writes the header of a frame. This header does not include the frame's prologue.</summary>
-        /// <param name="ostr">The output stream.</param>
+        /// <param name="ostr">The buffer writer.</param>
         internal abstract void WriteHeader(BufferWriter ostr);
 
         private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)

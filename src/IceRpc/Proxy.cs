@@ -327,10 +327,10 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Reads a proxy from the input stream.</summary>
+        /// <summary>Reads a proxy from the buffer reader.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
+        /// <param name="istr">The buffer reader to read from.</param>
         /// <returns>The non-null proxy read from the stream.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
@@ -338,10 +338,10 @@ namespace IceRpc
             ReadNullable(proxyFactory, istr) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
-        /// <summary>Reads a nullable proxy from the input stream.</summary>
+        /// <summary>Reads a nullable proxy from the buffer reader.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
+        /// <param name="istr">The buffer reader to read from.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
@@ -544,10 +544,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a tagged proxy from the input stream.</summary>
+        /// <summary>Reads a tagged proxy from the buffer reader.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
+        /// <param name="istr">The buffer reader to read from.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(

@@ -172,7 +172,7 @@ namespace IceRpc
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">An input stream reader used to read the arguments from the payload.</param>
+        /// <param name="reader">An buffer reader reader used to read the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
@@ -203,7 +203,7 @@ namespace IceRpc
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="reader">An input stream reader used to read the return value.</param>
+        /// <param name="reader">An buffer reader reader used to read the return value.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
