@@ -166,9 +166,9 @@ namespace IceRpc
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="returnStreamReader">When true, a stream reader will be returned.</param>
+        /// <param name="returnStreamReader">When true, a stream decoder will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
+        /// <returns>The response payload, the optional stream decoder, its encoding and the connection that received
         /// the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
@@ -327,10 +327,10 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Reads a proxy from the buffer reader.</summary>
+        /// <summary>Reads a proxy from the buffer decoder.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="istr">The buffer reader to read from.</param>
+        /// <param name="istr">The buffer decoder to read from.</param>
         /// <returns>The non-null proxy read from the stream.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
@@ -338,10 +338,10 @@ namespace IceRpc
             ReadNullable(proxyFactory, istr) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
-        /// <summary>Reads a nullable proxy from the buffer reader.</summary>
+        /// <summary>Reads a nullable proxy from the buffer decoder.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The buffer reader to read from.</param>
+        /// <param name="istr">The buffer decoder to read from.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
@@ -544,10 +544,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a tagged proxy from the buffer reader.</summary>
+        /// <summary>Reads a tagged proxy from the buffer decoder.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The buffer reader to read from.</param>
+        /// <param name="istr">The buffer decoder to read from.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(

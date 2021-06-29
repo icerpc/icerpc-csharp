@@ -172,12 +172,12 @@ namespace IceRpc
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">An decoder used to decode the arguments from the payload.</param>
+        /// <param name="decoder">An decoder used to decode the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
-            Decoder<T> reader)
+            Decoder<T> decoder)
         {
             if (payload.Length == 0)
             {
@@ -194,7 +194,7 @@ namespace IceRpc
             }
 
             var istr = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = reader(istr);
+            T result = decoder(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
@@ -203,14 +203,14 @@ namespace IceRpc
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="reader">An decoder used to decode the return value.</param>
+        /// <param name="decoder">An decoder used to decode the return value.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            Decoder<T> reader,
+            Decoder<T> decoder,
             Connection connection,
             IInvoker? invoker)
         {
@@ -228,7 +228,7 @@ namespace IceRpc
             }
 
             var istr = new BufferReader(payload, payloadEncoding, connection, invoker);
-            T result = reader(istr);
+            T result = decoder(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }

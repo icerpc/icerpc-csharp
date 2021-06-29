@@ -11,7 +11,7 @@ namespace IceRpc
     /// <summary>A delegate that reads the return value from a response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="payload">The response payload.</param>
-    /// <param name="streamReader">The stream reader from the response.</param>
+    /// <param name="streamReader">The stream decoder from the response.</param>
     /// <param name="payloadEncoding">The encoding of the response payload.</param>
     /// <param name="connection">The connection that received this response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
@@ -43,7 +43,7 @@ namespace IceRpc
         /// pseudo-interface Service.</summary>
         public static class Response
         {
-            /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_id.
+            /// <summary>The <see cref="ResponseReader{T}"/> decoder for the return type of operation ice_id.
             /// </summary>
             public static string IceId(
                 ReadOnlyMemory<byte> payload,
@@ -53,7 +53,7 @@ namespace IceRpc
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding, BufferReader.IceReaderIntoString, connection, invoker);
 
-            /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
+            /// <summary>The <see cref="ResponseReader{T}"/> decoder for the return type of operation ice_ids.
             /// </summary>
             public static string[] IceIds(
                 ReadOnlyMemory<byte> payload,
@@ -66,7 +66,7 @@ namespace IceRpc
                                       connection,
                                       invoker);
 
-            /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_isA.
+            /// <summary>The <see cref="ResponseReader{T}"/> decoder for the return type of operation ice_isA.
             /// </summary>
             public static bool IceIsA(
                 ReadOnlyMemory<byte> payload,
@@ -277,14 +277,14 @@ namespace IceRpc
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="streamWriter">The stream writer to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
-        /// <param name="responseReader">The reader for the response payload. It reads and throws a
+        /// <param name="responseReader">The decoder for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When <c>true</c>, the request payload should be compressed.</param>
         /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
         /// <param name="responseHasStreamValue"><c>true</c> if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The operation's return value read by response reader.</returns>
+        /// <returns>The operation's return value read by response decoder.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when
         /// invocation is not null.</remarks>

@@ -28,7 +28,7 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
-        private readonly ChannelReader<(long, object, bool)> _reader;
+        private readonly ChannelReader<(long, object, bool)> _decoder;
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ChannelWriter<(long, object, bool)> _writer;
@@ -43,7 +43,7 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    (long streamId, object frame, bool fin) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                    (long streamId, object frame, bool fin) = await _decoder.ReadAsync(cancel).ConfigureAwait(false);
                     if (streamId == -1)
                     {
                         if (frame == _pingFrame)
@@ -128,7 +128,7 @@ namespace IceRpc.Transports.Internal
                 _peerUnidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore;
 
                 await _writer.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
-                (_, object? frame, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                (_, object? frame, _) = await _decoder.ReadAsync(cancel).ConfigureAwait(false);
 
                 initializeFrame = (InitializeFrame)frame!;
 
@@ -173,7 +173,7 @@ namespace IceRpc.Transports.Internal
             ColocEndpoint endpoint,
             long id,
             ChannelWriter<(long, object, bool)> writer,
-            ChannelReader<(long, object, bool)> reader,
+            ChannelReader<(long, object, bool)> decoder,
             ConnectionOptions options,
             ILogger logger)
             : base(endpoint, options, logger)
@@ -183,7 +183,7 @@ namespace IceRpc.Transports.Internal
 
             Id = id;
             _writer = writer;
-            _reader = reader;
+            _decoder = decoder;
 
             _bidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
             _unidirectionalStreamMaxCount = options.UnidirectionalStreamMaxCount;
@@ -263,7 +263,7 @@ namespace IceRpc.Transports.Internal
                     }
 
                     // Write the frame. It's important to allocate the ID and to send the frame within the
-                    // synchronization block to ensure the reader won't receive frames with out-of-order
+                    // synchronization block to ensure the decoder won't receive frames with out-of-order
                     // stream IDs.
                     task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
                 }

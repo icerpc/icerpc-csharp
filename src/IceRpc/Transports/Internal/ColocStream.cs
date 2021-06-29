@@ -72,14 +72,14 @@ namespace IceRpc.Transports.Internal
             var channel = Channel.CreateBounded<byte[]>(channelOptions);
             _streamWriter = channel.Writer;
 
-            // Send the channel reader to the peer. Receiving data will first wait for the channel reader
+            // Send the channel decoder to the peer. Receiving data will first wait for the channel decoder
             // to be transmitted.
             _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
+            // If we didn't get the stream decoder yet, wait for the peer stream to provide it through the
             // socket channel.
             if (_streamReader == null)
             {

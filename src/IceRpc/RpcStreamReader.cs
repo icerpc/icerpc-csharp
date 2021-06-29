@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A stream reader to read a stream param from a <see cref="RpcStream"/>.</summary>
+    /// <summary>A stream decoder to read a stream param from a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamReader
     {
         private readonly RpcStream _stream;

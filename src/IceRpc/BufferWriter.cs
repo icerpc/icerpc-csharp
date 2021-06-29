@@ -860,7 +860,7 @@ namespace IceRpc
                 {
                     int count = value.Count(); // potentially slow Linq Count()
 
-                    // First write the size in bytes, so that the reader can skip it. We optimize-out this byte size
+                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
                     // when elementSize is 1.
                     WriteSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
                 }
@@ -900,7 +900,7 @@ namespace IceRpc
 
                 if (elementSize > 1)
                 {
-                    // First write the size in bytes, so that the reader can skip it. We optimize-out this byte size
+                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
                     // when elementSize is 1.
                     WriteSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
                 }

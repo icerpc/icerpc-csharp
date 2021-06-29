@@ -10,7 +10,7 @@ namespace IceRpc
     public static class Fields
     {
         /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
-        /// <param name="istr">The buffer reader.</param>
+        /// <param name="istr">The buffer decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
         public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader istr)
@@ -37,19 +37,19 @@ namespace IceRpc
         /// <summary>Reads a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The type of the contents.</typeparam>
         /// <param name="value">The field value.</param>
-        /// <param name="reader">The <see cref="Decoder{T}"/> that reads the field value.</param>
+        /// <param name="decoder">The <see cref="Decoder{T}"/> that reads the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the contents.</param>
         /// <returns>The contents of the value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="reader"/> finds invalid data.</exception>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decoder"/> finds invalid data.</exception>
         public static T ReadFieldValue<T>(
             this ReadOnlyMemory<byte> value,
-            Decoder<T> reader,
+            Decoder<T> decoder,
             Connection? connection = null,
             IInvoker? invoker = null)
         {
             var istr = new BufferReader(value, Encoding.V20, connection, invoker);
-            T result = reader(istr);
+            T result = decoder(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }

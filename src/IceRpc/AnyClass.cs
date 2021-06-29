@@ -8,12 +8,12 @@ namespace IceRpc
     /// <summary>The base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
-        /// <summary>An InputStream reader used to read non nullable class instances.</summary>
+        /// <summary>A decoder used to decode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass> IceReader =
             istr => istr.ReadClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An InputStream reader used to read nullable class instances.</summary>
+        /// <summary>A decoder used to decode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass?> IceReaderIntoNullable =
             istr => istr.ReadNullableClass<AnyClass>(formalTypeId: null);
