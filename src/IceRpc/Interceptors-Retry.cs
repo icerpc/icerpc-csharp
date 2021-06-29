@@ -27,7 +27,7 @@ namespace IceRpc
                 }
             }
 
-            /// <summary>A logger factory used to create the IceRpc logger.</summary>
+            /// <summary>A logger factory used to create the retry interceptor logger.</summary>
             public ILoggerFactory? LoggerFactory { get; set; }
 
             /// <summary>The maximum number of attempts for retrying a request. Must be between 1 and 5, the default
