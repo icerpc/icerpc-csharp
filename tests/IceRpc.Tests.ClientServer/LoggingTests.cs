@@ -66,8 +66,7 @@ namespace IceRpc.Tests.ClientServer
                 JsonElement[] scopes = GetScopes(entry);
                 if (GetEventId(entry) == (int)TransportEvent.ConnectionConnectFailed)
                 {
-                    // TODO: review / re-enable (does not fail for all tests!)
-                    // Assert.That(scopes, Is.Not.Empty);
+                    Assert.That(scopes, Is.Not.Empty);
                 }
                 else
                 {
