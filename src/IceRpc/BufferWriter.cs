@@ -44,7 +44,7 @@ namespace IceRpc
         internal int Capacity { get; private set; }
 
         /// <summary>Determines the current size of the stream. This corresponds to the number of bytes already written
-        /// to the stream.</summary>
+        /// to the buffer.</summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
 
@@ -88,11 +88,11 @@ namespace IceRpc
 
         // Write methods for basic types
 
-        /// <summary>Writes a boolean to the stream.</summary>
-        /// <param name="v">The boolean to write to the stream.</param>
+        /// <summary>Writes a boolean to the buffer.</summary>
+        /// <param name="v">The boolean to write to the buffer.</param>
         public void WriteBool(bool v) => WriteByte(v ? (byte)1 : (byte)0);
 
-        /// <summary>Writes a byte to the stream.</summary>
+        /// <summary>Writes a byte to the buffer.</summary>
         /// <param name="v">The byte to write.</param>
         public void WriteByte(byte v)
         {
@@ -102,27 +102,27 @@ namespace IceRpc
             Size++;
         }
 
-        /// <summary>Writes a double to the stream.</summary>
-        /// <param name="v">The double to write to the stream.</param>
+        /// <summary>Writes a double to the buffer.</summary>
+        /// <param name="v">The double to write to the buffer.</param>
         public void WriteDouble(double v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a float to the stream.</summary>
-        /// <param name="v">The float to write to the stream.</param>
+        /// <summary>Writes a float to the buffer.</summary>
+        /// <param name="v">The float to write to the buffer.</param>
         public void WriteFloat(float v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes an int to the stream.</summary>
-        /// <param name="v">The int to write to the stream.</param>
+        /// <summary>Writes an int to the buffer.</summary>
+        /// <param name="v">The int to write to the buffer.</param>
         public void WriteInt(int v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a long to the stream.</summary>
-        /// <param name="v">The long to write to the stream.</param>
+        /// <summary>Writes a long to the buffer.</summary>
+        /// <param name="v">The long to write to the buffer.</param>
         public void WriteLong(long v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a short to the stream.</summary>
-        /// <param name="v">The short to write to the stream.</param>
+        /// <summary>Writes a short to the buffer.</summary>
+        /// <param name="v">The short to write to the buffer.</param>
         public void WriteShort(short v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a size to the stream.</summary>
+        /// <summary>Writes a size to the buffer.</summary>
         /// <param name="v">The size.</param>
         public void WriteSize(int v)
         {
@@ -144,8 +144,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a string to the stream.</summary>
-        /// <param name="v">The string to write to the stream.</param>
+        /// <summary>Writes a string to the buffer.</summary>
+        /// <param name="v">The string to write to the buffer.</param>
         public void WriteString(string v)
         {
             if (v.Length == 0)
@@ -167,25 +167,25 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a uint to the stream.</summary>
-        /// <param name="v">The uint to write to the stream.</param>
+        /// <summary>Writes a uint to the buffer.</summary>
+        /// <param name="v">The uint to write to the buffer.</param>
         public void WriteUInt(uint v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a ulong to the stream.</summary>
-        /// <param name="v">The ulong to write to the stream.</param>
+        /// <summary>Writes a ulong to the buffer.</summary>
+        /// <param name="v">The ulong to write to the buffer.</param>
         public void WriteULong(ulong v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes a ushort to the stream.</summary>
-        /// <param name="v">The ushort to write to the stream.</param>
+        /// <summary>Writes a ushort to the buffer.</summary>
+        /// <param name="v">The ushort to write to the buffer.</param>
         public void WriteUShort(ushort v) => WriteFixedSizeNumeric(v);
 
         /// <summary>Writes an int to stream, using Ice's variable-size integer encoding.</summary>
-        /// <param name="v">The int to write to the stream.</param>
+        /// <param name="v">The int to write to the buffer.</param>
         public void WriteVarInt(int v) => WriteVarLong(v);
 
         /// <summary>Writes a long to stream, using Ice's variable-size integer encoding, with the minimum number of
         /// bytes required by the encoding.</summary>
-        /// <param name="v">The long to write to the stream. It must be in the range [-2^61..2^61 - 1].</param>
+        /// <param name="v">The long to write to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
         public void WriteVarLong(long v)
         {
             int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
@@ -197,12 +197,12 @@ namespace IceRpc
         }
 
         /// <summary>Writes a uint to stream, using Ice's variable-size integer encoding.</summary>
-        /// <param name="v">The uint to write to the stream.</param>
+        /// <param name="v">The uint to write to the buffer.</param>
         public void WriteVarUInt(uint v) => WriteVarULong(v);
 
         /// <summary>Writes a ulong to stream, using Ice's variable-size integer encoding, with the minimum number of
         /// bytes required by the encoding.</summary>
-        /// <param name="v">The ulong to write to the stream. It must be in the range [0..2^62 - 1].</param>
+        /// <param name="v">The ulong to write to the buffer. It must be in the range [0..2^62 - 1].</param>
         public void WriteVarULong(ulong v)
         {
             int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
@@ -215,14 +215,14 @@ namespace IceRpc
 
         // Write methods for constructed types except class and exception
 
-        /// <summary>Writes an array of fixed-size numeric values, such as int and long, to the stream.</summary>
+        /// <summary>Writes an array of fixed-size numeric values, such as int and long, to the buffer.</summary>
         /// <param name="v">The array of numeric values.</param>
         public void WriteArray<T>(T[] v) where T : struct => WriteSequence(new ReadOnlySpan<T>(v));
 
-        /// <summary>Writes a dictionary to the stream.</summary>
+        /// <summary>Writes a dictionary to the buffer.</summary>
         /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each value to the buffer.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue>> v,
             Encoder<TKey> keyWriter,
@@ -237,12 +237,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a dictionary to the stream. The dictionary's value type is reference type.</summary>
+        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is reference type.</summary>
         /// <param name="v">The dictionary to write.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each non-null value to the buffer.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
@@ -277,11 +277,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a dictionary to the stream. The dictionary's value type is a nullable value type.
+        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each non-null value to the buffer.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             Encoder<TKey> keyWriter,
@@ -308,7 +308,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a nullable proxy to the stream.</summary>
+        /// <summary>Writes a nullable proxy to the buffer.</summary>
         /// <param name="v">The proxy to write, or null.</param>
         public void WriteNullableProxy(IServicePrx? v)
         {
@@ -330,11 +330,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a proxy to the stream.</summary>
+        /// <summary>Writes a proxy to the buffer.</summary>
         /// <param name="v">The proxy to write. This proxy cannot be null.</param>
         public void WriteProxy(IServicePrx v) => v.IceWrite(this);
 
-        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the stream.</summary>
+        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
         // This method works because (as long as) there is no padding in the memory representation of the
         // ReadOnlySpan.
@@ -347,7 +347,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the stream.</summary>
+        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
         /// <param name="v">The sequence of numeric values.</param>
         public void WriteSequence<T>(IEnumerable<T> v) where T : struct
         {
@@ -365,9 +365,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a sequence to the stream.</summary>
+        /// <summary>Writes a sequence to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each element to the buffer.</param>
         public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> encoder)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
@@ -377,10 +377,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a sequence to the stream. The elements of the sequence are reference types.</summary>
+        /// <summary>Writes a sequence to the buffer. The elements of the sequence are reference types.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each non-null element to the buffer.</param>
         public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> encoder)
             where T : class
         {
@@ -409,9 +409,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a sequence of nullable values to the stream.</summary>
+        /// <summary>Writes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The delegate that writes each non-null value to the stream.</param>
+        /// <param name="encoder">The delegate that writes each non-null value to the buffer.</param>
         public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> encoder) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
@@ -432,15 +432,15 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a mapped Slice struct to the stream.</summary>
+        /// <summary>Writes a mapped Slice struct to the buffer.</summary>
         /// <param name="v">The struct instance to write.</param>
         public void WriteStruct<T>(T v) where T : struct, IStreamableStruct => v.IceWrite(this);
 
         // Write methods for tagged basic types
 
-        /// <summary>Writes a tagged boolean to the stream.</summary>
+        /// <summary>Writes a tagged boolean to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The boolean to write to the stream.</param>
+        /// <param name="v">The boolean to write to the buffer.</param>
         public void WriteTaggedBool(int tag, bool? v)
         {
             if (v is bool value)
@@ -450,9 +450,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged byte to the stream.</summary>
+        /// <summary>Writes a tagged byte to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The byte to write to the stream.</param>
+        /// <param name="v">The byte to write to the buffer.</param>
         public void WriteTaggedByte(int tag, byte? v)
         {
             if (v is byte value)
@@ -462,9 +462,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged double to the stream.</summary>
+        /// <summary>Writes a tagged double to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The double to write to the stream.</param>
+        /// <param name="v">The double to write to the buffer.</param>
         public void WriteTaggedDouble(int tag, double? v)
         {
             if (v is double value)
@@ -474,9 +474,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged float to the stream.</summary>
+        /// <summary>Writes a tagged float to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The float to write to the stream.</param>
+        /// <param name="v">The float to write to the buffer.</param>
         public void WriteTaggedFloat(int tag, float? v)
         {
             if (v is float value)
@@ -486,9 +486,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged int to the stream.</summary>
+        /// <summary>Writes a tagged int to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the stream.</param>
+        /// <param name="v">The int to write to the buffer.</param>
         public void WriteTaggedInt(int tag, int? v)
         {
             if (v is int value)
@@ -498,9 +498,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged long to the stream.</summary>
+        /// <summary>Writes a tagged long to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the stream.</param>
+        /// <param name="v">The long to write to the buffer.</param>
         public void WriteTaggedLong(int tag, long? v)
         {
             if (v is long value)
@@ -510,7 +510,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged size to the stream.</summary>
+        /// <summary>Writes a tagged size to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The size.</param>
         public void WriteTaggedSize(int tag, int? v)
@@ -522,9 +522,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged short to the stream.</summary>
+        /// <summary>Writes a tagged short to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The short to write to the stream.</param>
+        /// <param name="v">The short to write to the buffer.</param>
         public void WriteTaggedShort(int tag, short? v)
         {
             if (v is short value)
@@ -534,9 +534,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged string to the stream.</summary>
+        /// <summary>Writes a tagged string to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The string to write to the stream.</param>
+        /// <param name="v">The string to write to the buffer.</param>
         public void WriteTaggedString(int tag, string? v)
         {
             if (v is string value)
@@ -546,9 +546,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged uint to the stream.</summary>
+        /// <summary>Writes a tagged uint to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the stream.</param>
+        /// <param name="v">The uint to write to the buffer.</param>
         public void WriteTaggedUInt(int tag, uint? v)
         {
             if (v is uint value)
@@ -558,9 +558,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged ulong to the stream.</summary>
+        /// <summary>Writes a tagged ulong to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the stream.</param>
+        /// <param name="v">The ulong to write to the buffer.</param>
         public void WriteTaggedULong(int tag, ulong? v)
         {
             if (v is ulong value)
@@ -570,9 +570,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged ushort to the stream.</summary>
+        /// <summary>Writes a tagged ushort to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ushort to write to the stream.</param>
+        /// <param name="v">The ushort to write to the buffer.</param>
         public void WriteTaggedUShort(int tag, ushort? v)
         {
             if (v is ushort value)
@@ -584,12 +584,12 @@ namespace IceRpc
 
         /// <summary>Writes a tagged int to stream, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the stream.</param>
+        /// <param name="v">The int to write to the buffer.</param>
         public void WriteTaggedVarInt(int tag, int? v) => WriteTaggedVarLong(tag, v);
 
         /// <summary>Writes a tagged long to stream, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the stream.</param>
+        /// <param name="v">The long to write to the buffer.</param>
         public void WriteTaggedVarLong(int tag, long? v)
         {
             if (v is long value)
@@ -602,12 +602,12 @@ namespace IceRpc
 
         /// <summary>Writes a tagged uint to stream, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the stream.</param>
+        /// <param name="v">The uint to write to the buffer.</param>
         public void WriteTaggedVarUInt(int tag, uint? v) => WriteTaggedVarULong(tag, v);
 
         /// <summary>Writes a tagged ulong to stream, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the stream.</param>
+        /// <param name="v">The ulong to write to the buffer.</param>
         public void WriteTaggedVarULong(int tag, ulong? v)
         {
             if (v is ulong value)
@@ -620,12 +620,12 @@ namespace IceRpc
 
         // Write methods for tagged constructed types except class
 
-        /// <summary>Writes a tagged dictionary with fixed-size entries to the stream.</summary>
+        /// <summary>Writes a tagged dictionary with fixed-size entries to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to write.</param>
         /// <param name="entrySize">The size of each entry (key + value), in bytes.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each value to the buffer.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
@@ -644,11 +644,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged dictionary with variable-size elements to the stream.</summary>
+        /// <summary>Writes a tagged dictionary with variable-size elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each value to the buffer.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
@@ -665,13 +665,13 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged dictionary to the stream.</summary>
+        /// <summary>Writes a tagged dictionary to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to write.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each value to the buffer.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
@@ -690,12 +690,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged dictionary to the stream. The dictionary's value type is a nullable value type.
+        /// <summary>Writes a tagged dictionary to the buffer. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyWriter">The delegate that writes each key to the stream.</param>
-        /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
+        /// <param name="keyWriter">The delegate that writes each key to the buffer.</param>
+        /// <param name="valueWriter">The delegate that writes each non-null value to the buffer.</param>
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
@@ -713,7 +713,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged proxy to the stream.</summary>
+        /// <summary>Writes a tagged proxy to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The proxy to write.</param>
         public void WriteTaggedProxy(int tag, IServicePrx? v)
@@ -727,7 +727,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size numeric values to the stream.</summary>
+        /// <summary>Writes a tagged sequence of fixed-size numeric values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         public void WriteTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
@@ -748,7 +748,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size numeric values to the stream.</summary>
+        /// <summary>Writes a tagged sequence of fixed-size numeric values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
@@ -770,10 +770,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of variable-size elements to the stream.</summary>
+        /// <summary>Writes a tagged sequence of variable-size elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each element to the buffer.</param>
         public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> encoder)
         {
             if (v is IEnumerable<T> value)
@@ -785,11 +785,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size values to the stream.</summary>
+        /// <summary>Writes a tagged sequence of fixed-size values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each element to the buffer.</param>
         public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> encoder)
             where T : struct
         {
@@ -814,11 +814,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of nullable elements to the stream.</summary>
+        /// <summary>Writes a tagged sequence of nullable elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each non-null element to the buffer.</param>
         public void WriteTaggedSequence<T>(
             int tag,
             IEnumerable<T?>? v,
@@ -835,10 +835,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged sequence of nullable values to the stream.</summary>
+        /// <summary>Writes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each non-null element to the buffer.</param>
         public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> encoder)
             where T : struct
         {
@@ -851,7 +851,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged fixed-size struct to the stream.</summary>
+        /// <summary>Writes a tagged fixed-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
@@ -865,7 +865,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged variable-size struct to the stream.</summary>
+        /// <summary>Writes a tagged variable-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
         public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IStreamableStruct
@@ -881,7 +881,7 @@ namespace IceRpc
 
         // Other methods
 
-        /// <summary>Writes a sequence of bits to the stream, and returns this sequence backed by the stream's buffer.
+        /// <summary>Writes a sequence of bits to the buffer, and returns this sequence backed by the stream's buffer.
         /// </summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
@@ -1263,8 +1263,8 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a fixed-size numeric value to the stream.</summary>
-        /// <param name="v">The numeric value to write to the stream.</param>
+        /// <summary>Writes a fixed-size numeric value to the buffer.</summary>
+        /// <param name="v">The numeric value to write to the buffer.</param>
         private void WriteFixedSizeNumeric<T>(T v) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
