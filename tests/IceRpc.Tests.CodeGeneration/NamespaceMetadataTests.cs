@@ -22,7 +22,6 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new NamespaceMDOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
-
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };

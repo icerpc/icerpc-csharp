@@ -25,11 +25,14 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
+        private readonly ManualResetValueTaskCompletionSource<bool> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
+            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+
             while (true)
             {
                 // Receive the Ice1 frame header.
@@ -43,8 +46,9 @@ namespace IceRpc.Transports.Internal
                         Logger.LogReceivedInvalidDatagram(received);
                         continue; // while
                     }
+
                     buffer = buffer[0..received];
-                    Received(received);
+                    Received(buffer);
                 }
                 else
                 {
@@ -138,6 +142,9 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
+
+                            // Wait for the stream to process the frame before continuing receiving additional data.
+                            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
                         }
                         catch
                         {
@@ -163,7 +170,6 @@ namespace IceRpc.Transports.Internal
                         catch
                         {
                             // Ignore, if the stream has been aborted or the connection is being shutdown.
-                            stream?.Release();
                         }
                     }
                     else if (frameType == Ice1FrameType.ValidateConnection)
@@ -211,6 +217,8 @@ namespace IceRpc.Transports.Internal
         {
             IdleTimeout = options.IdleTimeout;
 
+            _receiveStreamCompletionTaskSource.SetResult(true);
+
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
             _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
             _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
@@ -228,6 +236,12 @@ namespace IceRpc.Transports.Internal
                 _nextUnidirectionalId = 2;
                 _nextPeerUnidirectionalId = 3;
             }
+        }
+
+        internal void FinishedReceivedFrame()
+        {
+            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
+            _receiveStreamCompletionTaskSource.SetResult(true);
         }
 
         internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
@@ -296,8 +310,11 @@ namespace IceRpc.Transports.Internal
                 // When an an Ice1 frame is sent over a connection (such as a TCP connection), we need to send the
                 // entire frame even when cancel gets canceled since the recipient cannot read a partial frame and then
                 // keep going.
-                await NetworkSocket.SendAsync(buffers, IsDatagram ? cancel : CancellationToken.None).ConfigureAwait(false);
-                Sent(buffers.GetByteCount());
+                await NetworkSocket.SendAsync(
+                    buffers,
+                    IsDatagram ? cancel : CancellationToken.None).ConfigureAwait(false);
+
+                Sent(buffers);
             }
             finally
             {
@@ -411,10 +428,9 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
             while (offset != buffer.Length)
             {
-                int received = await NetworkSocket.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
-                offset += received;
-                Received(received);
+                offset += await NetworkSocket.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
             }
+            Received(buffer);
         }
     }
 }

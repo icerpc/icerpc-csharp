@@ -25,6 +25,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
+                                              null,
                                               DateTime.MaxValue);
             _eventSource.RequestStart(request);
 
@@ -49,6 +50,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
+                                              null,
                                               DateTime.MaxValue);
             _eventSource.RequestStop(request);
 
@@ -73,6 +75,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
+                                              null,
                                               DateTime.MaxValue);
             _eventSource.RequestCanceled(request);
 
@@ -97,6 +100,7 @@ namespace IceRpc.Tests.Internal
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
+                                              null,
                                               DateTime.MaxValue);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 

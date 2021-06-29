@@ -68,7 +68,7 @@ namespace IceRpc
         /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
-        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the 
+        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
         /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
         /// <param name="path">The path of the proxy. If null, the path is set to
         /// <see cref="ProxyFactory{T}.DefaultPath"/>.</param>
@@ -159,27 +159,30 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// </param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
+        /// <param name="returnStreamReader">When true, a stream reader will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, its encoding and the connection that received the response.</returns>
+        /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
+        /// the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            RpcStreamWriter? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<RpcStream>? streamDataWriter = null,
+            bool returnStreamReader = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -219,15 +222,15 @@ namespace IceRpc
                 var request = new OutgoingRequest(proxy,
                                                   operation,
                                                   requestPayload,
+                                                  streamWriter,
                                                   deadline,
                                                   invocation,
                                                   idempotent,
-                                                  oneway,
-                                                  streamDataWriter);
+                                                  oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
-                return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
+                return ConvertResponseAsync(request, responseTask, timeoutSource, combinedSource);
             }
             catch
             {
@@ -241,7 +244,8 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, RpcStream)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, RpcStreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+                OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
@@ -249,6 +253,7 @@ namespace IceRpc
                 try
                 {
                     IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
@@ -265,7 +270,13 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    return (responsePayload, response.PayloadEncoding, response.Connection, response.Stream);
+                    RpcStreamReader? streamReader = null;
+                    if (returnStreamReader)
+                    {
+                        streamReader = new RpcStreamReader(request.Stream);
+                    }
+
+                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {

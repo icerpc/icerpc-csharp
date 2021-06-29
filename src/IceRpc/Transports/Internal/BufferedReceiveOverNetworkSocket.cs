@@ -14,10 +14,9 @@ namespace IceRpc.Transports.Internal
     /// similar to the C# System.IO.BufferedStream class. It's used by <see cref="SlicConnection"/>.</summary>
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
-        public override ConnectionInformation ConnectionInformation => Underlying.ConnectionInformation;
+        public override SslStream? SslStream => Underlying.SslStream;
 
-        /// <inheritdoc/>
-        internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
+        protected internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
 
         internal NetworkSocket Underlying { get; }
 

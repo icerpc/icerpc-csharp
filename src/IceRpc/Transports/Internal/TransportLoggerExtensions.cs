@@ -9,46 +9,15 @@ namespace IceRpc.Transports.Internal
     /// <summary>This class contains ILogger extensions methods for logging transport messages.</summary>
     internal static partial class TransportLoggerExtensions
     {
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _listenerScope =
-            LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, Description={Description})");
-
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _clientConnectionScope =
-            LoggerMessage.DefineScope<string, Protocol, string>(
-                "connection(Transport={Transport}, Protocol={Protocol}, Description={Description})");
-
-        private static readonly Func<ILogger, string, Protocol, string, IDisposable> _colocListenerScope =
-            LoggerMessage.DefineScope<string, Protocol, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, Server={Server})");
-
-        private static readonly Func<ILogger, long, IDisposable> _colocServerConnectionScope =
-            LoggerMessage.DefineScope<long>("connection(ID={ID})");
-
-        private static readonly Func<ILogger, string, Protocol, long, string, IDisposable> _colocClientConnectionScope =
-            LoggerMessage.DefineScope<string, Protocol, long, string>(
-                "connection(Transport={Transport}, Protocol={Protocol}, ID={ID}, Server={Server})");
-
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramOverConnectionServerConnectionScope =
-            LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
-                "LocalEndPoint={LocalEndPoint})");
-
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _datagramServerConnectionScope =
-            LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "server(Transport={Transport}, Protocol={Protocol}, Server={Server}, " +
-                "Description={Description})");
-
-        private static readonly Func<ILogger, string, IDisposable> _overConnectionServerConnectionScope =
-            LoggerMessage.DefineScope<string>(
-                "connection(RemoteEndPoint={RemoteEndpoint})");
-
-        private static readonly Func<ILogger, string, Protocol, string, string, IDisposable> _overConnectionClientConnectionScope =
-            LoggerMessage.DefineScope<string, Protocol, string, string>(
-                "connection(Transport={Transport}, Protocol={Protocol}, LocalEndPoint={LocalEndpoint}, " +
-                "RemoteEndPoint={RemoteEndpoint})");
+        private static readonly Func<ILogger, string, IDisposable> _listenerScope =
+            LoggerMessage.DefineScope<string>("server(Endpoint={Server})");
 
         private static readonly Func<ILogger, string, IDisposable> _serverConnectionScope =
-            LoggerMessage.DefineScope<string>("connection(Description={Description})");
+            LoggerMessage.DefineScope<string>("connection(RemoteEndpoint={RemoteEndpoint})");
+
+        private static readonly Func<ILogger, string, string, IDisposable> _clientConnectionScope =
+            LoggerMessage.DefineScope<string, string>(
+                "connection(LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint})");
 
         private static readonly Func<ILogger, long, string, string, IDisposable> _streamScope =
             LoggerMessage.DefineScope<long, string, string>("stream(ID={ID}, InitiatedBy={InitiatedBy}, Kind={Kind})");
@@ -120,8 +89,8 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.ReceivedData,
             EventName = nameof(TransportEvent.ReceivedData),
             Level = LogLevel.Trace,
-            Message = "received {Size} bytes")]
-        internal static partial void LogReceivedData(this ILogger logger, int size);
+            Message = "received {Size} bytes ({Data})")]
+        internal static partial void LogReceivedData(this ILogger logger, int size, string data);
 
         [LoggerMessage(
             EventId = (int)TransportEvent.ReceivedInvalidDatagram,
@@ -144,9 +113,9 @@ namespace IceRpc.Transports.Internal
         [LoggerMessage(
             EventId = (int)TransportEvent.SentData,
             EventName = nameof(TransportEvent.SentData),
-            Level = LogLevel.Debug,
-            Message = "sent {Size} bytes")]
-        internal static partial void LogSentData(this ILogger logger, int size);
+            Level = LogLevel.Trace,
+            Message = "sent {Size} bytes ({Data})")]
+        internal static partial void LogSentData(this ILogger logger, int size, string data);
 
         [LoggerMessage(
            EventId = (int)TransportEvent.StartAcceptingConnections,
@@ -197,150 +166,68 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartListenerScope(this ILogger logger, Server server, IListener listener)
+        internal static IDisposable? StartServerScope(this ILogger logger, IListener listener)
         {
             if (!logger.IsEnabled(LogLevel.Error))
             {
                 return null;
             }
 
-            string transportName = listener.Endpoint.Transport.ToString().ToLowerInvariant();
+            return _listenerScope(logger, listener.Endpoint.ToString());
+        }
 
-            if (listener is ColocListener)
+        internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
+        {
+            if (!logger.IsEnabled(LogLevel.Error))
             {
-                return _colocListenerScope(
-                    logger,
-                    transportName,
-                    listener.Endpoint.Protocol,
-                    server.ToString());
+                return null;
+            }
+
+            if (connection.IsServer)
+            {
+                string? remoteEndpoint = null;
+                if (connection.State > ConnectionState.NotConnected)
+                {
+                    try
+                    {
+                        remoteEndpoint = connection.RemoteEndpoint?.ToString() ?? "undefined";
+                    }
+                    catch
+                    {
+                    }
+                }
+                return _serverConnectionScope(logger, remoteEndpoint ?? "not connected");
             }
             else
             {
-                return _listenerScope(
+                string? localEndpoint = null;
+                if (connection.State > ConnectionState.NotConnected)
+                {
+                    try
+                    {
+                        localEndpoint = connection.LocalEndpoint?.ToString() ?? "undefined";
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                string? remoteEndpoint = null;
+                if (connection.State > ConnectionState.NotConnected)
+                {
+                    try
+                    {
+                        remoteEndpoint = connection.RemoteEndpoint?.ToString() ?? "undefined";
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                return _clientConnectionScope(
                     logger,
-                    transportName,
-                    listener.Endpoint.Protocol,
-                    server.ToString(),
-                    listener.ToString()!);
-            }
-        }
-
-        internal static IDisposable? StartConnectionScope(
-            this ILogger logger,
-            MultiStreamConnection connection,
-            Server? server)
-        {
-            if (!logger.IsEnabled(LogLevel.Error))
-            {
-                return null;
-            }
-
-            try
-            {
-                if (connection is ColocConnection colocatedConnection)
-                {
-                    if (connection.IsServer)
-                    {
-                        return _colocServerConnectionScope(logger, colocatedConnection.Id);
-                    }
-                    else
-                    {
-                        // TODO: revisit
-                        return _colocClientConnectionScope(
-                            logger,
-                            connection.TransportName,
-                            connection.Protocol,
-                            colocatedConnection.Id,
-                            connection.LocalEndpoint.ToString());
-                    }
-                }
-                else if (connection.ConnectionInformation is TcpConnectionInformation tcpConnection)
-                {
-                    if (connection.IsDatagram && server != null)
-                    {
-                        try
-                        {
-                            return _datagramOverConnectionServerConnectionScope(
-                                logger,
-                                connection.TransportName,
-                                connection.Protocol,
-                                server.ToString(),
-                                tcpConnection.LocalEndPoint?.ToString() ?? "undefined");
-                        }
-                        catch (System.Net.Sockets.SocketException)
-                        {
-                            return _datagramServerConnectionScope(
-                                logger,
-                                connection.TransportName,
-                                connection.Protocol,
-                                server.ToString(),
-                                "not connected");
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            if (connection.IsServer)
-                            {
-                                return _overConnectionServerConnectionScope(
-                                    logger,
-                                    tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
-                            }
-                            else
-                            {
-                                return _overConnectionClientConnectionScope(
-                                    logger,
-                                    connection.TransportName,
-                                    connection.Protocol,
-                                    tcpConnection.LocalEndPoint?.ToString() ?? "undefined",
-                                    tcpConnection.RemoteEndPoint?.ToString() ?? "undefined");
-                            }
-                        }
-                        catch (System.Net.Sockets.SocketException)
-                        {
-                            if (connection.IsServer)
-                            {
-                                return _serverConnectionScope(logger, "not connected");
-                            }
-                            else
-                            {
-                                return _clientConnectionScope(
-                                    logger,
-                                    connection.TransportName,
-                                    connection.Protocol,
-                                    "not connected");
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (connection.IsDatagram && server != null)
-                    {
-                        return _datagramServerConnectionScope(
-                            logger,
-                            connection.TransportName,
-                            connection.Protocol,
-                            server.ToString(),
-                            connection.ToString()!);
-                    }
-                    else if (connection.IsServer)
-                    {
-                        return _serverConnectionScope(logger, connection.ToString()!);
-                    }
-                    else
-                    {
-                        return _clientConnectionScope(logger,
-                                                      connection.TransportName,
-                                                      connection.Protocol,
-                                                      connection.ToString()!);
-                    }
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-                return null;
+                    localEndpoint ?? "not connected",
+                    remoteEndpoint ?? "not connected");
             }
         }
 

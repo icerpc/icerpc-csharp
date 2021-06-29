@@ -28,12 +28,13 @@ namespace IceRpc
         /// encoding of <paramref name="request"/> and corresponds to a successful completion.</summary>
         /// <param name="request">The request for which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response encoded using request.PayloadEncoding.</param>
-        /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// </param>
         public OutgoingResponse(
             IncomingRequest request,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Action<RpcStream>? streamDataWriter = null)
-            : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamDataWriter)
+            RpcStreamWriter? streamWriter = null)
+            : this(request.Protocol, payload, request.PayloadEncoding, FeatureCollection.Empty, streamWriter)
         {
             ResultType = ResultType.Success;
             ReplyStatus = ReplyStatus.OK;
@@ -43,12 +44,13 @@ namespace IceRpc
         /// of the <paramref name="dispatch"/> and corresponds to a successful completion.</summary>
         /// <param name="dispatch">The dispatch for which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response encoded using dispatch.Encoding.</param>
-        /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// </param>
         public OutgoingResponse(
             Dispatch dispatch,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            Action<RpcStream>? streamDataWriter = null)
-            : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamDataWriter)
+            RpcStreamWriter? streamWriter = null)
+            : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamWriter)
         {
             ResultType = ResultType.Success;
             ReplyStatus = ReplyStatus.OK;
@@ -187,8 +189,8 @@ namespace IceRpc
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             Encoding payloadEncoding,
             FeatureCollection features,
-            Action<RpcStream>? streamDataWriter)
-            : base(protocol, features, streamDataWriter)
+            RpcStreamWriter? streamWriter)
+            : base(protocol, features, streamWriter)
         {
             PayloadEncoding = payloadEncoding;
             Payload = payload;
