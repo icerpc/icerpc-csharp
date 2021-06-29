@@ -51,7 +51,7 @@ namespace IceRpc
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
-                payload.ToReturnValue(payloadEncoding, BufferReader.IceReaderIntoString, connection, invoker);
+                payload.ToReturnValue(payloadEncoding, BufferReader.StringDecoder, connection, invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> decoder for the return type of operation ice_ids.
             /// </summary>
@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      reader => reader.ReadArray(minElementSize: 1, BufferReader.IceReaderIntoString),
+                                      reader => reader.ReadArray(minElementSize: 1, BufferReader.StringDecoder),
                                       connection,
                                       invoker);
 
@@ -75,7 +75,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      BufferReader.IceReaderIntoBool,
+                                      BufferReader.BoolDecoder,
                                       connection,
                                       invoker);
         }
@@ -90,7 +90,7 @@ namespace IceRpc
 
         /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<IServicePrx> IceReader =
+        public static readonly Decoder<IServicePrx> Decoder =
             reader => Proxy.Read(Factory, reader);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
@@ -125,7 +125,7 @@ namespace IceRpc
         /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<IServicePrx?> IceReaderIntoNullable =
+        public static readonly Decoder<IServicePrx?> NullableDecoder =
             reader => Proxy.ReadNullable(Factory, reader);
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>

@@ -972,7 +972,7 @@ namespace IceRpc
                     var data = new EndpointData(transport,
                                                 host: ReadString(),
                                                 port: ReadUShort(),
-                                                options: ReadArray(1, IceReaderIntoString));
+                                                options: ReadArray(1, StringDecoder));
 
                     endpoint = data.ToEndpoint(protocol);
                 }

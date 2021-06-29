@@ -1,15 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using IceRpc.Transports;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace IceRpc
 {
@@ -20,77 +11,77 @@ namespace IceRpc
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>bool</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<bool> IceReaderIntoBool =
+        public static readonly Decoder<bool> BoolDecoder =
             reader => reader.ReadBool();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>byte</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<byte> IceReaderIntoByte =
+        public static readonly Decoder<byte> ByteDecoder =
             reader => reader.ReadByte();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>double</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<double> IceReaderIntoDouble =
+        public static readonly Decoder<double> DoubleDecoder =
             reader => reader.ReadDouble();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>float</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<float> IceReaderIntoFloat =
+        public static readonly Decoder<float> FloatDecoder =
             reader => reader.ReadFloat();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>int</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<int> IceReaderIntoInt =
+        public static readonly Decoder<int> IntDecoder =
             reader => reader.ReadInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>long</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<long> IceReaderIntoLong =
+        public static readonly Decoder<long> LongDecoder =
             reader => reader.ReadLong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>short</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<short> IceReaderIntoShort =
+        public static readonly Decoder<short> ShortDecoder =
             reader => reader.ReadShort();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>string</c> instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<string> IceReaderIntoString =
+        public static readonly Decoder<string> StringDecoder =
             reader => reader.ReadString();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>uint</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<uint> IceReaderIntoUInt =
+        public static readonly Decoder<uint> UIntDecoder =
             reader => reader.ReadUInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>ulong</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<ulong> IceReaderIntoULong =
+        public static readonly Decoder<ulong> ULongDecoder =
             reader => reader.ReadULong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>ushort</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<ushort> IceReaderIntoUShort =
+        public static readonly Decoder<ushort> UShortDecoder =
             reader => reader.ReadUShort();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var int values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<int> IceReaderIntoVarInt =
+        public static readonly Decoder<int> VarIntDecoder =
             reader => reader.ReadVarInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var long values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<long> IceReaderIntoVarLong =
+        public static readonly Decoder<long> VarLongDecoder =
             reader => reader.ReadVarLong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var uint values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<uint> IceReaderIntoVarUInt =
+        public static readonly Decoder<uint> VarUIntDecoder =
             reader => reader.ReadVarUInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var ulong values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<ulong> IceReaderIntoVarULong =
+        public static readonly Decoder<ulong> VarULongDecoder =
             reader => reader.ReadVarULong();
     }
 }

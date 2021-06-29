@@ -1202,14 +1202,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> IceReader =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => reader.ReadClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> IceReaderIntoNullable =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
     _out.inc();
     _out << nl << "reader => reader.ReadNullableClass<" << name << ">(IceTypeId);";
     _out.dec();
@@ -1730,7 +1730,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     _out << sp;
     _out << nl << "/// <summary>A <see cref=\"IceRpc.Decoder{T}\"/> used to read <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> IceReader =";
+    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => new " << name << "(reader);";
     _out.dec();
@@ -2009,7 +2009,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> IceReader = Read" << p->name()
+    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder = Read" << p->name()
         << ";";
 
     _out << sp;
@@ -2293,7 +2293,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> IceReader =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => IceRpc.Proxy.Read(Factory, reader);";
     _out.dec();
@@ -2350,7 +2350,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// <summary>An <see cref=\"Decoder{T}\"/> used to read <see cref=\"" << name
          << "\"/> nullable proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> IceReaderIntoNullable =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
     _out.inc();
     _out << nl << "reader => IceRpc.Proxy.ReadNullable(Factory, reader);";
     _out.dec();

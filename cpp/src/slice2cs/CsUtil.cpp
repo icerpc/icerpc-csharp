@@ -821,12 +821,12 @@ Slice::CsGenerator::inputStreamReader(const TypePtr& type, const string& scope)
         TypePtr underlying = optional->underlying();
         // Expected for classes and proxies
         assert(underlying->isClassType() || underlying->isInterfaceType());
-        out << typeToString(underlying, scope) << ".IceReaderIntoNullable";
+        out << typeToString(underlying, scope) << ".NullableDecoder";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.BufferReader.IceReaderInto" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.BufferReader." << builtinSuffixTable[builtin->kind()] << "Decoder";
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {
@@ -838,11 +838,11 @@ Slice::CsGenerator::inputStreamReader(const TypePtr& type, const string& scope)
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".IceReader";
+        out << helperName(type, scope) << ".Decoder";
     }
     else
     {
-        out << typeToString(type, scope) << ".IceReader";
+        out << typeToString(type, scope) << ".Decoder";
     }
     return out.str();
 }

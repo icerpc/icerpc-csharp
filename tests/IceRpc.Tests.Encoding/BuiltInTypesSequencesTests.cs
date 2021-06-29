@@ -116,7 +116,7 @@ namespace IceRpc.Tests.Encoding
         {
             IEnumerable<string> p1 = Enumerable.Range(0, size).Select(i => $"string-{i}");
             _writer.WriteSequence(p1, BufferWriter.IceWriterFromString);
-            IEnumerable<string> r1 = _istr.ReadSequence(1, BufferReader.IceReaderIntoString);
+            IEnumerable<string> r1 = _istr.ReadSequence(1, BufferReader.StringDecoder);
 
             CollectionAssert.AreEqual(p1, r1);
             Assert.AreEqual(_istr.Pos, _writer.Tail.Offset);

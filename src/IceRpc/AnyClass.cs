@@ -10,12 +10,12 @@ namespace IceRpc
     {
         /// <summary>A decoder used to decode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<AnyClass> IceReader =
+        public static readonly Decoder<AnyClass> Decoder =
             reader => reader.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>A decoder used to decode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Decoder<AnyClass?> IceReaderIntoNullable =
+        public static readonly Decoder<AnyClass?> NullableDecoder =
             reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encoder used to encode non nullable class instances.</summary>

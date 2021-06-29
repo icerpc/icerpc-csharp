@@ -21,7 +21,7 @@ namespace IceRpc
             /// <param name="dispatch">The dispatch properties.</param>
             /// <returns>The argument carried by the payload.</returns>
             public static string IceIsA(ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
-                payload.ToArgs(dispatch, BufferReader.IceReaderIntoString);
+                payload.ToArgs(dispatch, BufferReader.StringDecoder);
         }
 
         /// <summary>Provides static methods that create response payloads.</summary>
