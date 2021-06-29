@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    [Timeout(5000)]
+    [Timeout(30000)]
     public class InterceptorTests
     {
         private readonly Connection _connection;

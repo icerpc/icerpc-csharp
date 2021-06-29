@@ -7,7 +7,7 @@ using System;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    [Timeout(5000)]
+    [Timeout(30000)]
     public class IdentityTests
     {
         /// <summary>Verifies that a URI path can be converted to an identity.</summary>
