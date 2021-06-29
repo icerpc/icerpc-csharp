@@ -31,7 +31,14 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            if (_receiveStreamCompletionTaskSource.ValueTask.IsCompleted)
+            {
+                await _receiveStreamCompletionTaskSource.ValueTask.ConfigureAwait(false);
+            }
+            else
+            {
+                await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
 
             while (true)
             {
@@ -142,10 +149,16 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
-
                             // Wait for the stream to process the frame before continuing receiving additional data.
-                            await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(
-                                cancel).ConfigureAwait(false);
+                            if (_receiveStreamCompletionTaskSource.IsCompleted)
+                            {
+                                await _receiveStreamCompletionTaskSource.ValueTask.ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(
+                                    cancel).ConfigureAwait(false);
+                            }
                         }
                         catch
                         {
