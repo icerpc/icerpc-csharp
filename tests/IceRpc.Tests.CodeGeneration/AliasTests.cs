@@ -43,8 +43,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             static void DeclarationsAreEquals(MethodInfo? m1, MethodInfo? m2)
             {
-                Assert.IsNotNull(m1);
-                Assert.IsNotNull(m2);
+                Assert.That(m1, Is.Not.Null);
+                Assert.That(m2, Is.Not.Null);
 
                 ParameterInfo[] m1Params = m1.GetParameters();
                 ParameterInfo[] m2Params = m1.GetParameters();

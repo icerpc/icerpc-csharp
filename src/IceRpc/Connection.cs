@@ -302,9 +302,11 @@ namespace IceRpc
         private volatile Task _acceptStreamTask = Task.CompletedTask;
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
-#pragma warning disable CA2213 // _connection is disposable but not disposed (it's disposed by AbortAsync)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Usage",
+            "CA2213:Disposable fields should be disposed",
+            Justification = "Disposed by AbortAsync")]
         private MultiStreamConnection? _connection;
-#pragma warning restore CA2213 // _connection is disposable but not disposed (it's disposed by AbortAsync)
         private Task? _connectTask;
         // The control stream is assigned on the connection initialization and is immutable once the connection
         // reaches the Active state.

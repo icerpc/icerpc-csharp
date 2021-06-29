@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Header_RequestResponseAsync(string endpoint)
         {
             // This large value should be large enough to create multiple buffer for the request and responses headers.
-            string largeValue = new string('C', 4000);
+            string largeValue = new('C', 4000);
 
             var router = new Router();
             router.Map<IGreeter>(new Greeter(largeValue));
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
                     return response;
                 }));
 
-            IGreeterPrx greeter = IGreeterPrx.FromServer(server);
+            var greeter = IGreeterPrx.FromServer(server);
             await using var connection = new Connection { RemoteEndpoint = greeter.Endpoint };
             greeter.Connection = connection;
             greeter.Invoker = pipeline;
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.ClientServer
 
         internal class Greeter : IGreeter
         {
-            private string _expectedValue;
+            private readonly string _expectedValue;
 
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {

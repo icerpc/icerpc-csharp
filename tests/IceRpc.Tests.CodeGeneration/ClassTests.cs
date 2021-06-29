@@ -71,49 +71,49 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task Class_OperationsAsync()
         {
             MyClassB? b1 = await _prx.GetB1Async();
-            Assert.IsNotNull(b1);
+            Assert.That(b1, Is.Not.Null);
 
             MyClassB? b2 = await _prx.GetB2Async();
-            Assert.IsNotNull(b2);
+            Assert.That(b2, Is.Not.Null);
 
             MyClassC? c = await _prx.GetCAsync();
-            Assert.IsNotNull(c != null);
+            Assert.That(c, Is.Not.Null);
 
             MyClassD? d = await _prx.GetDAsync();
-            Assert.IsNotNull(d);
+            Assert.That(d, Is.Not.Null);
 
             Assert.AreNotEqual(b1, b2);
             Assert.AreEqual(b1.TheB, b1);
-            Assert.IsNull(b1.TheC);
-            Assert.IsInstanceOf<MyClassB>(b1.TheA);
+            Assert.That(b1.TheC, Is.Null);
+            Assert.That(b1.TheA, Is.InstanceOf<MyClassB>());
             Assert.AreEqual(((MyClassB)b1.TheA!).TheA, b1.TheA);
             Assert.AreEqual(((MyClassB)b1.TheA!).TheB, b1);
             Assert.AreEqual(((MyClassB)b1.TheA).TheC!.TheB, b1.TheA);
 
             Assert.AreEqual(b2.TheA, b2);
-            Assert.IsNull(d.TheC);
+            Assert.That(d.TheC, Is.Null);
 
             (MyClassB? r1, MyClassB? r2, MyClassC? r3, MyClassD? r4) = await _prx.GetAllAsync();
-            Assert.IsNotNull(r1);
-            Assert.IsNotNull(r2);
-            Assert.IsNotNull(r3);
-            Assert.IsNotNull(r4);
+            Assert.That(r1, Is.Not.Null);
+            Assert.That(r2, Is.Not.Null);
+            Assert.That(r3, Is.Not.Null);
+            Assert.That(r4, Is.Not.Null);
 
             Assert.AreNotEqual(r1, r2);
             Assert.AreEqual(r1.TheA, r2);
             Assert.AreEqual(r1.TheB, r1);
-            Assert.IsNull(r1.TheC);
+            Assert.That(r1.TheC, Is.Null);
             Assert.AreEqual(r2.TheA, r2);
             Assert.AreEqual(r2.TheB, r1);
             Assert.AreEqual(r2.TheC, r3);
             Assert.AreEqual(r3.TheB, r2);
             Assert.AreEqual(r4.TheA, r1);
             Assert.AreEqual(r4.TheB, r2);
-            Assert.IsNull(r4.TheC);
+            Assert.That(r4.TheC, Is.Null);
 
             MyClassK? k = await _prx.GetKAsync();
             var l = k!.Value as MyClassL;
-            Assert.IsNotNull(l);
+            Assert.That(l, Is.Not.Null);
             Assert.AreEqual("l", l.Data);
 
             MyClassD1? d1 = await _prx.GetD1Async(
@@ -135,13 +135,13 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual("a4", ex!.A4!.Name);
 
             (MyClassE e1, MyClassE e2) = await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()));
-            Assert.IsNotNull(e1);
-            Assert.IsInstanceOf<MyClassB>(e1.TheB);
-            Assert.IsInstanceOf<MyClassC>(e1.TheC);
+            Assert.That(e1, Is.Not.Null);
+            Assert.That(e1.TheB, Is.InstanceOf<MyClassB>());
+            Assert.That(e1.TheC, Is.InstanceOf<MyClassC>());
 
-            Assert.IsNotNull(e2);
-            Assert.IsInstanceOf<MyClassB>(e2.TheB);
-            Assert.IsInstanceOf<MyClassC>(e2.TheC);
+            Assert.That(e2, Is.Not.Null);
+            Assert.That(e2.TheB, Is.InstanceOf<MyClassB>());
+            Assert.That(e2.TheC, Is.InstanceOf<MyClassC>());
         }
 
         [Test]
@@ -157,12 +157,12 @@ namespace IceRpc.Tests.CodeGeneration
 
             (MyClassM m2, MyClassM m1) = await _prx.OpMAsync(new MyClassM(d));
 
-            Assert.IsNotNull(m1);
+            Assert.That(m1, Is.Not.Null);
             Assert.AreEqual(2, m1.V.Count);
             Assert.AreEqual("one", m1.V[k1].Data);
             Assert.AreEqual("two", m1.V[k2].Data);
 
-            Assert.IsNotNull(m2);
+            Assert.That(m2, Is.Not.Null);
             Assert.AreEqual(2, m2.V.Count);
             Assert.AreEqual("one", m2.V[k1].Data);
             Assert.AreEqual("two", m2.V[k2].Data);
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             Assert.AreEqual("My id", new MyDerivedClass2("").Id);
 
-            Assert.IsTrue(new MyClass2().Called);
+            Assert.That(new MyClass2().Called, Is.True);
 
             // Ensure the partial Initialize method called when unmarshaling a class
             derived1 = await _prx.GetMyDerivedClass1Async();
@@ -190,7 +190,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual("My id", derived2.Id);
 
             MyClass2 class2 = await _prx.GetMyClass2Async();
-            Assert.IsTrue(class2.Called);
+            Assert.That(class2.Called, Is.True);
         }
 
         [Test]
@@ -223,7 +223,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         [Test]
         public async Task Class_CompactIdAsync() =>
-            Assert.IsNotNull(await _prx.GetCompactAsync());
+            Assert.That(await _prx.GetCompactAsync(), Is.Not.Null);
 
         [Test]
         public async Task Class_RecursiveTypeAsync()

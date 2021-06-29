@@ -4,24 +4,6 @@ using System;
 
 namespace IceRpc
 {
-    /// <summary>This exception reports an attempt to use a destroyed <see cref="ConnectionPool"/>.</summary>
-    public class ConnectionPoolDisposedException : ObjectDisposedException
-    {
-        /// <summary>Constructs a new instance of the <see cref="ConnectionPoolDisposedException"/> class.</summary>
-        public ConnectionPoolDisposedException()
-            : base(objectName: null, message: "communicator shutdown")
-        {
-        }
-
-        /// <summary>Constructs a new instance of the <see cref="ConnectionPoolDisposedException"/> class with a
-        /// reference to the inner exception that is the cause of this exception.</summary>
-        /// <param name="innerException">The exception that is the cause of the current exception.</param>
-        public ConnectionPoolDisposedException(Exception innerException)
-            : base($"{typeof(ConnectionPool).FullName}", innerException)
-        {
-        }
-    }
-
     /// <summary>This exception reports that a proxy has no endpoint or no usable endpoint.</summary>
     public class NoEndpointException : Exception
     {

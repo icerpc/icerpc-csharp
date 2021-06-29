@@ -39,7 +39,7 @@ namespace IceRpc.Tests.CodeGeneration
         public void Tagged_DataMembers()
         {
             var oneTagged = new OneTagged();
-            Assert.IsFalse(oneTagged.A.HasValue);
+            Assert.That(oneTagged.A.HasValue, Is.False);
 
             oneTagged = new OneTagged(16);
             Assert.AreEqual(16, oneTagged.A);
@@ -51,7 +51,7 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task Tagged_Parameters()
         {
             var oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged());
-            Assert.IsFalse(oneTagged.A.HasValue);
+            Assert.That(oneTagged.A.HasValue, Is.False);
 
             oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged(16));
             Assert.AreEqual(16, oneTagged.A);
@@ -110,21 +110,21 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(multiTagged.MMyStruct, multiTagged1.MMyStruct);
             Assert.AreEqual(multiTagged.MAnotherStruct, multiTagged1.MAnotherStruct);
 
-            Assert.IsNull(multiTagged1.MByteSeq);
+            Assert.That(multiTagged1.MByteSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MStringSeq, multiTagged1.MStringSeq);
-            Assert.IsNull(multiTagged1.MShortSeq);
+            Assert.That(multiTagged1.MShortSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MMyEnumSeq, multiTagged1.MMyEnumSeq);
-            Assert.IsNull(multiTagged1.MMyStructSeq);
+            Assert.That(multiTagged1.MMyStructSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MAnotherStructSeq, multiTagged1.MAnotherStructSeq);
 
-            Assert.IsNull(multiTagged1.MIntDict);
+            Assert.That(multiTagged1.MIntDict, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MStringDict, multiTagged1.MStringDict);
-            Assert.IsNull(multiTagged1.MUShortSeq);
-            Assert.IsNull(multiTagged1.MVarULongSeq);
+            Assert.That(multiTagged1.MUShortSeq, Is.Null);
+            Assert.That(multiTagged1.MVarULongSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MVarIntSeq, multiTagged1.MVarIntSeq);
 
             CollectionAssert.AreEqual(multiTagged.MByteDict, multiTagged1.MByteDict);
-            Assert.IsNull(multiTagged1.MMyStructDict);
+            Assert.That(multiTagged1.MMyStructDict, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MAnotherStructDict, multiTagged1.MAnotherStructDict);
 
             multiTagged = new MultiTagged();
@@ -171,21 +171,21 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(multiTagged.MAnotherStruct, multiTagged1.MAnotherStruct);
 
             CollectionAssert.AreEqual(multiTagged.MByteSeq, multiTagged1.MByteSeq);
-            Assert.IsNull(multiTagged1.MStringSeq);
+            Assert.That(multiTagged1.MStringSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MShortSeq, multiTagged1.MShortSeq);
-            Assert.IsNull(multiTagged1.MMyEnumSeq);
+            Assert.That(multiTagged1.MMyEnumSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MMyStructSeq, multiTagged1.MMyStructSeq);
-            Assert.IsNull(multiTagged1.MAnotherStructSeq);
+            Assert.That(multiTagged1.MAnotherStructSeq, Is.Null);
 
             CollectionAssert.AreEqual(multiTagged.MIntDict, multiTagged1.MIntDict);
-            Assert.IsNull(multiTagged1.MStringDict);
+            Assert.That(multiTagged1.MStringDict, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MUShortSeq, multiTagged1.MUShortSeq);
-            Assert.IsNull(multiTagged1.MVarULongSeq);
+            Assert.That(multiTagged1.MVarULongSeq, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MVarIntSeq, multiTagged1.MVarIntSeq);
 
-            Assert.IsNull(multiTagged1.MByteDict);
+            Assert.That(multiTagged1.MByteDict, Is.Null);
             CollectionAssert.AreEqual(multiTagged.MMyStructDict, multiTagged1.MMyStructDict);
-            Assert.IsNull(multiTagged1.MAnotherStructDict);
+            Assert.That(multiTagged1.MAnotherStructDict, Is.Null);
 
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
@@ -203,10 +203,10 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
 
             var b = (B)await _prx.PingPongAsync(new B());
-            Assert.IsFalse(b.MInt2.HasValue);
-            Assert.IsFalse(b.MInt3.HasValue);
-            Assert.IsFalse(b.MInt4.HasValue);
-            Assert.IsFalse(b.MInt6.HasValue);
+            Assert.That(b.MInt2.HasValue, Is.False);
+            Assert.That(b.MInt3.HasValue, Is.False);
+            Assert.That(b.MInt4.HasValue, Is.False);
+            Assert.That(b.MInt6.HasValue, Is.False);
 
             b = (B)await _prx.PingPongAsync(new B(10, 11, 12, 13, 0, null));
             Assert.AreEqual(10, b.MInt1);
@@ -214,12 +214,12 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(12, b.MInt3);
             Assert.AreEqual(13, b.MInt4);
             Assert.AreEqual(0, b.MInt5);
-            Assert.IsFalse(b.MInt6.HasValue);
+            Assert.That(b.MInt6.HasValue, Is.False);
 
             {
                 (byte? r1, byte? r2) = await _prx.OpByteAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpByteAsync(42);
                 Assert.AreEqual(42, r1);
@@ -228,18 +228,18 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (bool? r1, bool? r2) = await _prx.OpBoolAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpBoolAsync(true);
-                Assert.IsTrue(r1);
-                Assert.IsTrue(r2);
+                Assert.That(r1, Is.True);
+                Assert.That(r2, Is.True);
             }
 
             {
                 (short? r1, short? r2) = await _prx.OpShortAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpShortAsync(42);
                 Assert.AreEqual(42, r1);
@@ -248,8 +248,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (int? r1, int? r2) = await _prx.OpIntAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpIntAsync(42);
                 Assert.AreEqual(42, r1);
@@ -258,8 +258,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (long? r1, long? r2) = await _prx.OpLongAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpLongAsync(42);
                 Assert.AreEqual(42, r1);
@@ -268,8 +268,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (float? r1, float? r2) = await _prx.OpFloatAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpFloatAsync(42);
                 Assert.AreEqual(42, r1);
@@ -278,8 +278,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (double? r1, double? r2) = await _prx.OpDoubleAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpDoubleAsync(42);
                 Assert.AreEqual(42, r1);
@@ -288,8 +288,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (string? r1, string? r2) = await _prx.OpStringAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpStringAsync("hello");
                 Assert.AreEqual("hello", r1);
@@ -298,8 +298,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (MyEnum? r1, MyEnum? r2) = await _prx.OpMyEnumAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 (r1, r2) = await _prx.OpMyEnumAsync(MyEnum.enum1);
                 Assert.AreEqual(MyEnum.enum1, r1);
@@ -308,8 +308,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (MyStruct? r1, MyStruct? r2) = await _prx.OpMyStructAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new MyStruct(1, 1);
                 (r1, r2) = await _prx.OpMyStructAsync(p1);
@@ -319,7 +319,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 MyStruct? r1 = await _prx.OpMyStructMarshaledResultAsync(null);
-                Assert.IsNull(r1);
+                Assert.That(r1, Is.Null);
 
                 var p1 = new MyStruct(1, 1);
                 r1 = await _prx.OpMyStructMarshaledResultAsync(p1);
@@ -328,8 +328,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (AnotherStruct? r1, AnotherStruct? r2) = await _prx.OpAnotherStructAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new AnotherStruct(
                     "hello",
@@ -343,10 +343,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (byte[]? r1, byte[]? r2) = await _prx.OpByteSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new byte[] { 42 };
+                byte[] p1 = new byte[] { 42 };
                 (r1, r2) = await _prx.OpByteSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -354,8 +354,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<byte>? r1, List<byte>? r2) = await _prx.OpByteListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<byte> { 42 };
                 (r1, r2) = await _prx.OpByteListAsync(p1);
@@ -365,10 +365,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (bool[]? r1, bool[]? r2) = await _prx.OpBoolSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new bool[] { true };
+                bool[] p1 = new bool[] { true };
                 (r1, r2) = await _prx.OpBoolSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -376,8 +376,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<bool>? r1, List<bool>? r2) = await _prx.OpBoolListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<bool> { true };
                 (r1, r2) = await _prx.OpBoolListAsync(p1);
@@ -387,10 +387,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (short[]? r1, short[]? r2) = await _prx.OpShortSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new short[] { 42 };
+                short[] p1 = new short[] { 42 };
                 (r1, r2) = await _prx.OpShortSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -398,8 +398,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<short>? r1, List<short>? r2) = await _prx.OpShortListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<short> { 42 };
                 (r1, r2) = await _prx.OpShortListAsync(p1);
@@ -409,10 +409,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (int[]? r1, int[]? r2) = await _prx.OpIntSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new int[] { 42 };
+                int[] p1 = new int[] { 42 };
                 (r1, r2) = await _prx.OpIntSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -420,8 +420,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<int>? r1, List<int>? r2) = await _prx.OpIntListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<int> { 42 };
                 (r1, r2) = await _prx.OpIntListAsync(p1);
@@ -431,10 +431,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (long[]? r1, long[]? r2) = await _prx.OpLongSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new long[] { 42 };
+                long[] p1 = new long[] { 42 };
                 (r1, r2) = await _prx.OpLongSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -442,8 +442,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<long>? r1, List<long>? r2) = await _prx.OpLongListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<long> { 42 };
                 (r1, r2) = await _prx.OpLongListAsync(p1);
@@ -453,10 +453,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (float[]? r1, float[]? r2) = await _prx.OpFloatSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new float[] { 42 };
+                float[] p1 = new float[] { 42 };
                 (r1, r2) = await _prx.OpFloatSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -464,8 +464,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<float>? r1, List<float>? r2) = await _prx.OpFloatListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<float> { 42 };
                 (r1, r2) = await _prx.OpFloatListAsync(p1);
@@ -475,10 +475,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (double[]? r1, double[]? r2) = await _prx.OpDoubleSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new double[] { 42 };
+                double[] p1 = new double[] { 42 };
                 (r1, r2) = await _prx.OpDoubleSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -486,8 +486,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<double>? r1, List<double>? r2) = await _prx.OpDoubleListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<double> { 42 };
                 (r1, r2) = await _prx.OpDoubleListAsync(p1);
@@ -497,10 +497,10 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (string[]? r1, string[]? r2) = await _prx.OpStringSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
-                var p1 = new string[] { "hello" };
+                string[] p1 = new string[] { "hello" };
                 (r1, r2) = await _prx.OpStringSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
@@ -508,8 +508,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<string>? r1, List<string>? r2) = await _prx.OpStringListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<string> { "hello" };
                 (r1, r2) = await _prx.OpStringListAsync(p1);
@@ -519,17 +519,17 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 string[]? r1 = await _prx.OpStringSeqMarshaledResultAsync(null);
-                Assert.IsNull(r1);
+                Assert.That(r1, Is.Null);
 
-                var p1 = new string[] { "hello" };
+                string[] p1 = new string[] { "hello" };
                 r1 = await _prx.OpStringSeqMarshaledResultAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
             }
 
             {
                 (MyStruct[]? r1, MyStruct[]? r2) = await _prx.OpMyStructSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new MyStruct[] { new MyStruct(1, 1) };
                 (r1, r2) = await _prx.OpMyStructSeqAsync(p1);
@@ -539,8 +539,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<MyStruct>? r1, List<MyStruct>? r2) = await _prx.OpMyStructListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<MyStruct> { new MyStruct(1, 1) };
                 (r1, r2) = await _prx.OpMyStructListAsync(p1);
@@ -550,8 +550,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (AnotherStruct[]? r1, AnotherStruct[]? r2) = await _prx.OpAnotherStructSeqAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new AnotherStruct[]
                 {
@@ -568,8 +568,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (List<AnotherStruct>? r1, List<AnotherStruct>? r2) = await _prx.OpAnotherStructListAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new List<AnotherStruct>
                 {
@@ -586,8 +586,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 (Dictionary<int, int>? r1, Dictionary<int, int>? r2) = await _prx.OpIntDictAsync(null);
-                Assert.IsNull(r1);
-                Assert.IsNull(r2);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 (r1, r2) = await _prx.OpIntDictAsync(p1);
@@ -597,7 +597,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             {
                 Dictionary<int, int>? r1 = await _prx.OpIntDictMarshaledResultAsync(null);
-                Assert.IsNull(r1);
+                Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 r1 = await _prx.OpIntDictMarshaledResultAsync(p1);
@@ -607,41 +607,41 @@ namespace IceRpc.Tests.CodeGeneration
 
         private static void CheckMultiTaggedHasNoValue(MultiTagged multiTagged)
         {
-            Assert.IsFalse(multiTagged.MByte.HasValue);
-            Assert.IsFalse(multiTagged.MBool.HasValue);
-            Assert.IsFalse(multiTagged.MShort.HasValue);
-            Assert.IsFalse(multiTagged.MInt.HasValue);
-            Assert.IsFalse(multiTagged.MLong.HasValue);
-            Assert.IsFalse(multiTagged.MFloat.HasValue);
-            Assert.IsFalse(multiTagged.MDouble.HasValue);
-            Assert.IsFalse(multiTagged.MUShort.HasValue);
-            Assert.IsFalse(multiTagged.MUInt.HasValue);
-            Assert.IsFalse(multiTagged.MULong.HasValue);
-            Assert.IsFalse(multiTagged.MVarInt.HasValue);
-            Assert.IsFalse(multiTagged.MVarLong.HasValue);
-            Assert.IsFalse(multiTagged.MVarUInt.HasValue);
-            Assert.IsFalse(multiTagged.MVarULong.HasValue);
-            Assert.IsNull(multiTagged.MString);
-            Assert.IsFalse(multiTagged.MMyEnum.HasValue);
-            Assert.IsFalse(multiTagged.MMyStruct.HasValue);
-            Assert.IsFalse(multiTagged.MAnotherStruct.HasValue);
+            Assert.That(multiTagged.MByte.HasValue, Is.False);
+            Assert.That(multiTagged.MBool.HasValue, Is.False);
+            Assert.That(multiTagged.MShort.HasValue, Is.False);
+            Assert.That(multiTagged.MInt.HasValue, Is.False);
+            Assert.That(multiTagged.MLong.HasValue, Is.False);
+            Assert.That(multiTagged.MFloat.HasValue, Is.False);
+            Assert.That(multiTagged.MDouble.HasValue, Is.False);
+            Assert.That(multiTagged.MUShort.HasValue, Is.False);
+            Assert.That(multiTagged.MUInt.HasValue, Is.False);
+            Assert.That(multiTagged.MULong.HasValue, Is.False);
+            Assert.That(multiTagged.MVarInt.HasValue, Is.False);
+            Assert.That(multiTagged.MVarLong.HasValue, Is.False);
+            Assert.That(multiTagged.MVarUInt.HasValue, Is.False);
+            Assert.That(multiTagged.MVarULong.HasValue, Is.False);
+            Assert.That(multiTagged.MString, Is.Null);
+            Assert.That(multiTagged.MMyEnum.HasValue, Is.False);
+            Assert.That(multiTagged.MMyStruct.HasValue, Is.False);
+            Assert.That(multiTagged.MAnotherStruct.HasValue, Is.False);
 
-            Assert.IsNull(multiTagged.MByteSeq);
-            Assert.IsNull(multiTagged.MStringSeq);
-            Assert.IsNull(multiTagged.MShortSeq);
-            Assert.IsNull(multiTagged.MMyEnumSeq);
-            Assert.IsNull(multiTagged.MMyStructSeq);
-            Assert.IsNull(multiTagged.MAnotherStructSeq);
+            Assert.That(multiTagged.MByteSeq, Is.Null);
+            Assert.That(multiTagged.MStringSeq, Is.Null);
+            Assert.That(multiTagged.MShortSeq, Is.Null);
+            Assert.That(multiTagged.MMyEnumSeq, Is.Null);
+            Assert.That(multiTagged.MMyStructSeq, Is.Null);
+            Assert.That(multiTagged.MAnotherStructSeq, Is.Null);
 
-            Assert.IsNull(multiTagged.MIntDict);
-            Assert.IsNull(multiTagged.MStringDict);
-            Assert.IsNull(multiTagged.MUShortSeq);
-            Assert.IsNull(multiTagged.MVarULongSeq);
-            Assert.IsNull(multiTagged.MVarIntSeq);
+            Assert.That(multiTagged.MIntDict, Is.Null);
+            Assert.That(multiTagged.MStringDict, Is.Null);
+            Assert.That(multiTagged.MUShortSeq, Is.Null);
+            Assert.That(multiTagged.MVarULongSeq, Is.Null);
+            Assert.That(multiTagged.MVarIntSeq, Is.Null);
 
-            Assert.IsNull(multiTagged.MByteDict);
-            Assert.IsNull(multiTagged.MMyStructDict);
-            Assert.IsNull(multiTagged.MAnotherStructDict);
+            Assert.That(multiTagged.MByteDict, Is.Null);
+            Assert.That(multiTagged.MMyStructDict, Is.Null);
+            Assert.That(multiTagged.MAnotherStructDict, Is.Null);
         }
     }
 

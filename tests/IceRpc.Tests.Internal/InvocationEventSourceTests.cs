@@ -17,7 +17,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void InvocationEventSource_RequestStart()
         {
-            var expectedEventId = 1;
+            int expectedEventId = 1;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -29,8 +29,8 @@ namespace IceRpc.Tests.Internal
                                               DateTime.MaxValue);
             _eventSource.RequestStart(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestStart", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -42,7 +42,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void InvocationEventSource_RequestStop()
         {
-            var expectedEventId = 2;
+            int expectedEventId = 2;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -54,8 +54,8 @@ namespace IceRpc.Tests.Internal
                                               DateTime.MaxValue);
             _eventSource.RequestStop(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestStop", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void InvocationEventSource_RequestCanceled()
         {
-            var expectedEventId = 3;
+            int expectedEventId = 3;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -79,8 +79,8 @@ namespace IceRpc.Tests.Internal
                                               DateTime.MaxValue);
             _eventSource.RequestCanceled(request);
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestCanceled", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);
@@ -92,7 +92,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void InvocationEventSource_RequestFailed()
         {
-            var expectedEventId = 4;
+            int expectedEventId = 4;
             var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
@@ -104,8 +104,8 @@ namespace IceRpc.Tests.Internal
                                               DateTime.MaxValue);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
 
-            var eventData = eventListener.EventData;
-            Assert.NotNull(eventData);
+            EventWrittenEventArgs? eventData = eventListener.EventData;
+            Assert.That(eventData, Is.Not.Null);
             Assert.AreEqual(expectedEventId, eventData!.EventId);
             Assert.AreEqual("RequestFailed", eventData.EventName);
             Assert.AreEqual(EventLevel.Informational, eventData.Level);

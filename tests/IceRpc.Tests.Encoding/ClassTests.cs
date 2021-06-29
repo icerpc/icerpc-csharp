@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using NUnit.Framework;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,12 +51,12 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public async Task Class_FormatMetadata()
         {
-            var prx1 = _sliced.Clone();
+            ISlicedFormatOperationsPrx prx1 = _sliced.Clone();
             var pipeline1 = new Pipeline();
             prx1.Invoker = pipeline1;
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.ToSingleBuffer();
+                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var istr = new InputStream(data, prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -66,9 +67,9 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 var sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice includes a size for the sliced format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
 
-                var response = await next.InvokeAsync(request, cancel);
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
                 istr = new InputStream(await response.GetPayloadAsync(cancel), prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -79,17 +80,17 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice includes a size for the sliced format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
                 return response;
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx2 = _compact.Clone();
+            ICompactFormatOperationsPrx prx2 = _compact.Clone();
             var pipeline2 = new Pipeline();
             prx2.Invoker = pipeline2;
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.ToSingleBuffer();
+                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var istr = new InputStream(data, prx2.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -100,8 +101,8 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 var sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
-                var response = await next.InvokeAsync(request, cancel);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
                 istr = new InputStream(await response.GetPayloadAsync(cancel), prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -112,17 +113,17 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 return response;
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            var prx3 = _classformat.Clone();
+            IClassFormatOperationsPrx prx3 = _classformat.Clone();
             var pipeline3 = new Pipeline();
             prx3.Invoker = pipeline3;
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.ToSingleBuffer();
+                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var istr = new InputStream(data, prx3.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -133,8 +134,8 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 var sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
-                var response = await next.InvokeAsync(request, cancel);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
                 istr = new InputStream(await response.GetPayloadAsync(cancel), prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -145,7 +146,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0, Is.True);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 return response;
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -154,7 +155,7 @@ namespace IceRpc.Tests.Encoding
             prx3.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                var data = request.Payload.ToSingleBuffer();
+                ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var istr = new InputStream(data, prx3.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -165,8 +166,8 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 var sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice includes a size for the sliced format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
-                var response = await next.InvokeAsync(request, cancel);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
+                IncomingResponse response = await next.InvokeAsync(request, cancel);
                 istr = new InputStream(await response.GetPayloadAsync(cancel), prx1.Encoding);
                 if (prx1.Encoding == IceRpc.Encoding.V20)
                 {
@@ -177,7 +178,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.AreEqual(1, istr.ReadSize());
                 sliceFlags = (EncodingDefinitions.SliceFlags)istr.ReadByte();
                 // The Slice includes a size for the sliced format
-                Assert.That((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0, Is.True);
+                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
                 return response;
             }));
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));
