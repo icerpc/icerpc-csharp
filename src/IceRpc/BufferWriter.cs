@@ -13,7 +13,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc
 {
-    /// <summary>Writes data into a byte buffer using the Ice encoding.</summary>
+    /// <summary>Writes data into one or more byte buffers using the Ice encoding.</summary>
     public sealed partial class BufferWriter
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
@@ -21,7 +21,7 @@ namespace IceRpc
         internal struct Position
         {
             /// <summary>Creates a new position from the buffer and offset values.</summary>
-            /// <param name="buffer">The zero based index of the buffer.</param>
+            /// <param name="buffer">The zero based index of the buffer in the buffer vector.</param>
             /// <param name="offset">The offset into the buffer.</param>
             internal Position(int buffer, int offset)
             {
@@ -40,11 +40,12 @@ namespace IceRpc
         /// <value>The encoding.</value>
         public Encoding Encoding { get; private set; }
 
-        /// <summary>The number of bytes that the underlying buffer can hold without further allocation.</summary>
+        /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
+        /// </summary>
         internal int Capacity { get; private set; }
 
         /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written
-        /// to the buffer.</summary>
+        /// using this writer.</summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
 
@@ -434,7 +435,7 @@ namespace IceRpc
 
         /// <summary>Writes a mapped Slice struct to the buffer.</summary>
         /// <param name="v">The struct instance to write.</param>
-        public void WriteStruct<T>(T v) where T : struct, IStreamableStruct => v.IceWrite(this);
+        public void WriteStruct<T>(T v) where T : struct, IEncodableStruct => v.IceWrite(this);
 
         // Write methods for tagged basic types
 
@@ -855,7 +856,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IStreamableStruct
+        public void WriteTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodableStruct
         {
             if (v is T value)
             {
@@ -868,7 +869,7 @@ namespace IceRpc
         /// <summary>Writes a tagged variable-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IStreamableStruct
+        public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IEncodableStruct
         {
             if (v is T value)
             {

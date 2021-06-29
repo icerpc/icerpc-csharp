@@ -278,7 +278,7 @@ namespace IceRpc
 
         /// <summary>Reads a sequence from the buffer and returns an array.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="decoder">The decoder used to decode each element of the sequence.</param>
+        /// <param name="decoder">The decoder for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
         public T[] ReadArray<T>(int minElementSize, Decoder<T> decoder) =>
             ReadSequence(minElementSize, decoder).ToArray();
@@ -286,35 +286,35 @@ namespace IceRpc
         /// <summary>Reads a sequence of nullable elements from the buffer and returns an array.</summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="decoder">The decoder used to decode each non-null element of the sequence.</param>
+        /// <param name="decoder">The decoder for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
         public T?[] ReadArray<T>(bool withBitSequence, Decoder<T> decoder) where T : class =>
             ReadSequence(withBitSequence, decoder).ToArray();
 
         /// <summary>Reads a sequence of nullable values from the buffer and returns an array.</summary>
-        /// <param name="decoder">The decoder used to decode each non-null element of the sequence.</param>
+        /// <param name="decoder">The decoder for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
         public T?[] ReadArray<T>(Decoder<T> decoder) where T : struct => ReadSequence(decoder).ToArray();
 
         /// <summary>Reads a dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each value of the dictionary.</param>
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each value of the dictionary.</param>
         /// <returns>The dictionary read from the buffer.</returns>
         public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
         {
             int sz = ReadAndCheckSeqSize(minKeySize + minValueSize);
             var dict = new Dictionary<TKey, TValue>(sz);
             for (int i = 0; i < sz; ++i)
             {
-                TKey key = keyReader(this);
-                TValue value = valueReader(this);
+                TKey key = keyDecoder(this);
+                TValue value = valueDecoder(this);
                 dict.Add(key, value);
             }
             return dict;
@@ -323,42 +323,42 @@ namespace IceRpc
         /// <summary>Reads a dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer.</returns>
         public Dictionary<TKey, TValue?> ReadDictionary<TKey, TValue>(
             int minKeySize,
             bool withBitSequence,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : class
         {
             int sz = ReadAndCheckSeqSize(minKeySize);
-            return ReadDictionary(new Dictionary<TKey, TValue?>(sz), sz, withBitSequence, keyReader, valueReader);
+            return ReadDictionary(new Dictionary<TKey, TValue?>(sz), sz, withBitSequence, keyDecoder, valueDecoder);
         }
 
         /// <summary>Reads a dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer.</returns>
         public Dictionary<TKey, TValue?> ReadDictionary<TKey, TValue>(
             int minKeySize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : struct
         {
             int sz = ReadAndCheckSeqSize(minKeySize);
-            return ReadDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyReader, valueReader);
+            return ReadDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyDecoder, valueDecoder);
         }
 
         /// <summary>Reads a sequence from the buffer.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="decoder">The decoder used to decode each element of the sequence.</param>
+        /// <param name="decoder">The decoder for each element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The return value does not fully implement ICollection{T}, in particular you can only call
         /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
@@ -370,7 +370,7 @@ namespace IceRpc
         /// </summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="decoder">The decoder used to decode each non-null element of the sequence.</param>
+        /// <param name="decoder">The decoder for each non-null element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
@@ -379,7 +379,7 @@ namespace IceRpc
             withBitSequence ? new NullableCollection<T>(this, decoder) : (ICollection<T?>)ReadSequence(1, decoder);
 
         /// <summary>Reads a sequence of nullable values from the buffer.</summary>
-        /// <param name="decoder">The decoder used to decode each non-null element (value) of the sequence.
+        /// <param name="decoder">The decoder for each non-null element (value) of the sequence.
         /// </param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
@@ -391,22 +391,22 @@ namespace IceRpc
         /// <summary>Reads a sorted dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each value of the dictionary.</param>
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each value of the dictionary.</param>
         /// <returns>The sorted dictionary read from the buffer.</returns>
         public SortedDictionary<TKey, TValue> ReadSortedDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
         {
             int sz = ReadAndCheckSeqSize(minKeySize + minValueSize);
             var dict = new SortedDictionary<TKey, TValue>();
             for (int i = 0; i < sz; ++i)
             {
-                TKey key = keyReader(this);
-                TValue value = valueReader(this);
+                TKey key = keyDecoder(this);
+                TValue value = valueDecoder(this);
                 dict.Add(key, value);
             }
             return dict;
@@ -415,42 +415,42 @@ namespace IceRpc
         /// <summary>Reads a sorted dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The sorted dictionary read from the buffer.</returns>
         public SortedDictionary<TKey, TValue?> ReadSortedDictionary<TKey, TValue>(
             int minKeySize,
             bool withBitSequence,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : class =>
             ReadDictionary(
                 new SortedDictionary<TKey, TValue?>(),
                 ReadAndCheckSeqSize(minKeySize),
                 withBitSequence,
-                keyReader,
-                valueReader);
+                keyDecoder,
+                valueDecoder);
 
         /// <summary>Reads a sorted dictionary from the buffer. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The sorted dictionary read from the buffer.</returns>
         public SortedDictionary<TKey, TValue?> ReadSortedDictionary<TKey, TValue>(
             int minKeySize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : struct =>
             ReadDictionary(
                 new SortedDictionary<TKey, TValue?>(),
                 ReadAndCheckSeqSize(minKeySize),
-                keyReader,
-                valueReader);
+                keyDecoder,
+                valueDecoder);
 
         // Read methods for tagged basic types
 
@@ -602,7 +602,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="decoder">The decoder used to decode each element of the sequence.</param>
+        /// <param name="decoder">The decoder for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an array, or null.</returns>
         public T[]? ReadTaggedArray<T>(int tag, int minElementSize, bool fixedSize, Decoder<T> decoder) =>
             ReadTaggedSequence(tag, minElementSize, fixedSize, decoder)?.ToArray();
@@ -611,14 +611,14 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="decoder">The decoder used to decode each non-null element of the array.</param>
+        /// <param name="decoder">The decoder for each non-null element of the array.</param>
         /// <returns>The array read from the buffer, or null.</returns>
         public T?[]? ReadTaggedArray<T>(int tag, bool withBitSequence, Decoder<T> decoder) where T : class =>
             ReadTaggedSequence(tag, withBitSequence, decoder)?.ToArray();
 
         /// <summary>Reads a tagged array of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="decoder">The decoder used to decode each non-null value of the array.</param>
+        /// <param name="decoder">The decoder for each non-null value of the array.</param>
         /// <returns>The array read from the buffer, or null.</returns>
         public T?[]? ReadTaggedArray<T>(int tag, Decoder<T> decoder) where T : struct =>
             ReadTaggedSequence(tag, decoder)?.ToArray();
@@ -628,23 +628,23 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
         /// <param name="fixedSize">When true, the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each value of the dictionary.</param>
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each value of the dictionary.</param>
         /// <returns>The dictionary read from the buffer, or null.</returns>
         public Dictionary<TKey, TValue>? ReadTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             int minValueSize,
             bool fixedSize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
         {
             if (ReadTaggedParamHeader(tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: !fixedSize);
-                return ReadDictionary(minKeySize, minValueSize, keyReader, valueReader);
+                return ReadDictionary(minKeySize, minValueSize, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -653,23 +653,23 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer, or null.</returns>
         public Dictionary<TKey, TValue?>? ReadTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             bool withBitSequence,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : class
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadDictionary(minKeySize, withBitSequence, keyReader, valueReader);
+                return ReadDictionary(minKeySize, withBitSequence, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -678,22 +678,22 @@ namespace IceRpc
         /// </summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer, or null.</returns>
         public Dictionary<TKey, TValue?>? ReadTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : struct
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadDictionary(minKeySize, keyReader, valueReader);
+                return ReadDictionary(minKeySize, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -703,7 +703,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="decoder">The decoder used to decode each element of the sequence.</param>
+        /// <param name="decoder">The decoder for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T}, or null.</returns>
         public ICollection<T>? ReadTaggedSequence<T>(
             int tag,
@@ -727,7 +727,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="decoder">The decoder used to decode each non-null element of the sequence.</param>
+        /// <param name="decoder">The decoder for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? ReadTaggedSequence<T>(int tag, bool withBitSequence, Decoder<T> decoder)
             where T : class
@@ -745,7 +745,7 @@ namespace IceRpc
 
         /// <summary>Reads a tagged sequence of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="decoder">The decoder used to decode each non-null value of the sequence.</param>
+        /// <param name="decoder">The decoder for each non-null value of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? ReadTaggedSequence<T>(int tag, Decoder<T> decoder)
             where T : struct
@@ -766,22 +766,22 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
         /// <param name="fixedSize">True when the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each value of the dictionary.</param>
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each value of the dictionary.</param>
         /// <returns>The sorted dictionary read from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             int minValueSize,
             bool fixedSize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader) where TKey : notnull
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder) where TKey : notnull
         {
             if (ReadTaggedParamHeader(tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: !fixedSize);
-                return ReadSortedDictionary(minKeySize, minValueSize, keyReader, valueReader);
+                return ReadSortedDictionary(minKeySize, minValueSize, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -790,23 +790,23 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
             bool withBitSequence,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : class
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadSortedDictionary(minKeySize, withBitSequence, keyReader, valueReader);
+                return ReadSortedDictionary(minKeySize, withBitSequence, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -815,22 +815,22 @@ namespace IceRpc
         /// type.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyReader">The decoder used to decode each key of the dictionary.</param>
-        /// <param name="valueReader">The decoder used to decode each non-null value of the dictionary.
+        /// <param name="keyDecoder">The decoder for each key of the dictionary.</param>
+        /// <param name="valueDecoder">The decoder for each non-null value of the dictionary.
         /// </param>
         /// <returns>The dictionary read from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue?>? ReadTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TKey : notnull
             where TValue : struct
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadSortedDictionary(minKeySize, keyReader, valueReader);
+                return ReadSortedDictionary(minKeySize, keyDecoder, valueDecoder);
             }
             return null;
         }
@@ -1074,8 +1074,8 @@ namespace IceRpc
             TDict dict,
             int size,
             bool withBitSequence,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
             where TValue : class
@@ -1085,8 +1085,8 @@ namespace IceRpc
                 ReadOnlyBitSequence bitSequence = ReadBitSequence(size);
                 for (int i = 0; i < size; ++i)
                 {
-                    TKey key = keyReader(this);
-                    TValue? value = bitSequence[i] ? valueReader(this) : (TValue?)null;
+                    TKey key = keyDecoder(this);
+                    TValue? value = bitSequence[i] ? valueDecoder(this) : (TValue?)null;
                     dict.Add(key, value);
                 }
             }
@@ -1094,8 +1094,8 @@ namespace IceRpc
             {
                 for (int i = 0; i < size; ++i)
                 {
-                    TKey key = keyReader(this);
-                    TValue value = valueReader(this);
+                    TKey key = keyDecoder(this);
+                    TValue value = valueDecoder(this);
                     dict.Add(key, value);
                 }
             }
@@ -1105,8 +1105,8 @@ namespace IceRpc
         private TDict ReadDictionary<TDict, TKey, TValue>(
             TDict dict,
             int size,
-            Decoder<TKey> keyReader,
-            Decoder<TValue> valueReader)
+            Decoder<TKey> keyDecoder,
+            Decoder<TValue> valueDecoder)
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
             where TValue : struct
@@ -1114,8 +1114,8 @@ namespace IceRpc
             ReadOnlyBitSequence bitSequence = ReadBitSequence(size);
             for (int i = 0; i < size; ++i)
             {
-                TKey key = keyReader(this);
-                TValue? value = bitSequence[i] ? valueReader(this) : (TValue?)null;
+                TKey key = keyDecoder(this);
+                TValue? value = bitSequence[i] ? valueDecoder(this) : (TValue?)null;
                 dict.Add(key, value);
             }
             return dict;
