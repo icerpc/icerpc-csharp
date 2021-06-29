@@ -444,7 +444,7 @@ namespace IceRpc.Transports
             // Send the request frame.
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
-            // If there's a stream writer, we can start sending the data.
+            // If there's a stream encoder, we can start sending the data.
             request.StreamWriter?.Send(this);
         }
 
@@ -453,7 +453,7 @@ namespace IceRpc.Transports
             // Send the response frame.
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
-            // If there's a stream writer, we can start sending the data.
+            // If there's a stream encoder, we can start sending the data.
             response.StreamWriter?.Send(this);
         }
 

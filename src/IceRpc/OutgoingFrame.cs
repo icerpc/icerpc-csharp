@@ -70,7 +70,7 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream writer if the request or response has a stream param. The writer is called
+        /// <summary>The stream encoder if the request or response has a stream param. The encoder is called
         /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
@@ -101,7 +101,7 @@ namespace IceRpc
         }
 
         /// <summary>Writes the header of a frame. This header does not include the frame's prologue.</summary>
-        /// <param name="ostr">The buffer writer.</param>
+        /// <param name="ostr">The buffer encoder.</param>
         internal abstract void WriteHeader(BufferWriter ostr);
 
         private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)

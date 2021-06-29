@@ -24,8 +24,8 @@ namespace IceRpc.Transports.Internal
         {
             if (ColocListener.TryGetValue(this, out ColocListener? listener))
             {
-                (ColocChannelReader decoder, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(this, id, writer, decoder, options, logger);
+                (ColocChannelReader decoder, ColocChannelWriter encoder, long id) = listener.NewClientConnection();
+                return new ColocConnection(this, id, encoder, decoder, options, logger);
             }
             else
             {

@@ -128,11 +128,11 @@ namespace IceRpc
         public static readonly Decoder<IServicePrx?> IceReaderIntoNullable =
             istr => Proxy.ReadNullable(Factory, istr);
 
-        /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
+        /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<IServicePrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
 
-        /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> nullable proxies.</summary>
+        /// <summary>An encoder used to encode <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
@@ -275,7 +275,7 @@ namespace IceRpc
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the
+        /// <param name="streamWriter">The stream encoder to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
         /// <param name="responseReader">The decoder for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
@@ -325,7 +325,7 @@ namespace IceRpc
         /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the
+        /// <param name="streamWriter">The stream encoder to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>

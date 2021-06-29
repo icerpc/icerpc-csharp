@@ -451,7 +451,7 @@ namespace IceRpc.Transports.Internal
 
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
-            Action<BufferWriter>? writer = null,
+            Action<BufferWriter>? encoder = null,
             Action<int>? logAction = null,
             SlicStream? stream = null,
             CancellationToken cancel = default)
@@ -467,7 +467,7 @@ namespace IceRpc.Transports.Internal
             {
                 ostr.WriteVarULong((ulong)stream.Id);
             }
-            writer?.Invoke(ostr);
+            encoder?.Invoke(ostr);
             int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
             ostr.EndFixedLengthSize(sizePos, 4);
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish();

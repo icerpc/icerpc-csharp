@@ -21,16 +21,16 @@ namespace IceRpc
         public void IceWrite(BufferWriter ostr);
     }
 
-    /// <summary>A delegate that writes a value to a buffer writer.</summary>
+    /// <summary>A delegate that writes a value to a buffer encoder.</summary>
     /// <typeparam name="T">The type of the value to write.</typeparam>
-    /// <param name="ostr">The buffer writer to write to.</param>
+    /// <param name="ostr">The buffer encoder to write to.</param>
     /// <param name="value">The value to write to the stream.</param>
     public delegate void Encoder<in T>(BufferWriter ostr, T value);
 
-    /// <summary>A delegate that writes a value passed as in-reference to a buffer writer. This value typically
+    /// <summary>A delegate that writes a value passed as in-reference to a buffer encoder. This value typically
     /// corresponds to the argument tuple or return value tuple of an operation.</summary>
     /// <typeparam name="T">The type of the value to write (a struct).</typeparam>
-    /// <param name="ostr">The buffer writer to write to.</param>
+    /// <param name="ostr">The buffer encoder to write to.</param>
     /// <param name="value">The value to write to the stream.</param>
     public delegate void OutputStreamValueWriter<T>(BufferWriter ostr, in T value) where T : struct;
 
@@ -465,21 +465,21 @@ namespace IceRpc
 
         /// <summary>Writes a sequence to the stream.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> writer)
+        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> encoder)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
             {
-                writer(this, item);
+                encoder(this, item);
             }
         }
 
         /// <summary>Writes a sequence to the stream. The elements of the sequence are reference types.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="writer">The delegate that writes each non-null element to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> writer)
+        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
+        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> encoder)
             where T : class
         {
             if (withBitSequence)
@@ -492,7 +492,7 @@ namespace IceRpc
                 {
                     if (item is T value)
                     {
-                        writer(this, value);
+                        encoder(this, value);
                     }
                     else
                     {
@@ -503,14 +503,14 @@ namespace IceRpc
             }
             else
             {
-                WriteSequence((IEnumerable<T>)v, writer);
+                WriteSequence((IEnumerable<T>)v, encoder);
             }
         }
 
         /// <summary>Writes a sequence of nullable values to the stream.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="writer">The delegate that writes each non-null value to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> writer) where T : struct
+        /// <param name="encoder">The delegate that writes each non-null value to the stream.</param>
+        public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> encoder) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
             WriteSize(count);
@@ -520,7 +520,7 @@ namespace IceRpc
             {
                 if (item is T value)
                 {
-                    writer(this, value);
+                    encoder(this, value);
                 }
                 else
                 {
@@ -871,14 +871,14 @@ namespace IceRpc
         /// <summary>Writes a tagged sequence of variable-size elements to the stream.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> writer)
+        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> encoder)
         {
             if (v is IEnumerable<T> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, writer);
+                WriteSequence(value, encoder);
                 EndFixedLengthSize(pos);
             }
         }
@@ -887,8 +887,8 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> writer)
+        /// <param name="encoder">The delegate that writes each element to the stream.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> encoder)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -907,7 +907,7 @@ namespace IceRpc
                 WriteSize(count);
                 foreach (T item in value)
                 {
-                    writer(this, item);
+                    encoder(this, item);
                 }
             }
         }
@@ -916,19 +916,19 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="writer">The delegate that writes each non-null element to the stream.</param>
+        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
         public void WriteTaggedSequence<T>(
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            Encoder<T> writer)
+            Encoder<T> encoder)
             where T : class
         {
             if (v is IEnumerable<T?> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, withBitSequence, writer);
+                WriteSequence(value, withBitSequence, encoder);
                 EndFixedLengthSize(pos);
             }
         }
@@ -936,15 +936,15 @@ namespace IceRpc
         /// <summary>Writes a tagged sequence of nullable values to the stream.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="writer">The delegate that writes each non-null element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> writer)
+        /// <param name="encoder">The delegate that writes each non-null element to the stream.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> encoder)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, writer);
+                WriteSequence(value, encoder);
                 EndFixedLengthSize(pos);
             }
         }
@@ -1061,7 +1061,7 @@ namespace IceRpc
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer writer after calling Finish, however rewriting previous data (with for example
+        /// this buffer encoder after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
@@ -1173,11 +1173,11 @@ namespace IceRpc
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, Encoder<T> writer)
+        internal void WriteField<T>(int key, T value, Encoder<T> encoder)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            writer(this, value);
+            encoder(this, value);
             EndFixedLengthSize(pos, 2);
         }
 

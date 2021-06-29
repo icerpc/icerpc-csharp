@@ -159,7 +159,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// <param name="streamWriter">The stream encoder to write the stream parameter on the <see cref="RpcStream"/>.
         /// </param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>

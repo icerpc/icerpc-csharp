@@ -28,7 +28,7 @@ namespace IceRpc
         /// encoding of <paramref name="request"/> and corresponds to a successful completion.</summary>
         /// <param name="request">The request for which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response encoded using request.PayloadEncoding.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// <param name="streamWriter">The stream encoder to write the stream parameter on the <see cref="RpcStream"/>.
         /// </param>
         public OutgoingResponse(
             IncomingRequest request,
@@ -44,7 +44,7 @@ namespace IceRpc
         /// of the <paramref name="dispatch"/> and corresponds to a successful completion.</summary>
         /// <param name="dispatch">The dispatch for which this constructor creates a response.</param>
         /// <param name="payload">The payload of this response encoded using dispatch.Encoding.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// <param name="streamWriter">The stream encoder to write the stream parameter on the <see cref="RpcStream"/>.
         /// </param>
         public OutgoingResponse(
             Dispatch dispatch,

@@ -18,11 +18,11 @@ namespace IceRpc
         public static readonly Decoder<AnyClass?> IceReaderIntoNullable =
             istr => istr.ReadNullableClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An OutputStream writer used to write non nullable class instances.</summary>
+        /// <summary>An encoder used to encode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<AnyClass> IceWriter = (ostr, value) => ostr.WriteClass(value, null);
 
-        /// <summary>An OutputStream writer used to write nullable class instances.</summary>
+        /// <summary>An encoder used to encode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<AnyClass?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableClass(value, null);

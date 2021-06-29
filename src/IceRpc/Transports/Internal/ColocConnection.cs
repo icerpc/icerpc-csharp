@@ -31,7 +31,7 @@ namespace IceRpc.Transports.Internal
         private readonly ChannelReader<(long, object, bool)> _decoder;
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
-        private readonly ChannelWriter<(long, object, bool)> _writer;
+        private readonly ChannelWriter<(long, object, bool)> _encoder;
 
         public override ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
@@ -103,7 +103,7 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) => default;
 
         public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            _writer.WriteAsync((-1, errorCode, true), cancel);
+            _encoder.WriteAsync((-1, errorCode, true), cancel);
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
                 // released.
                 _peerUnidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore;
 
-                await _writer.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
+                await _encoder.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
                 (_, object? frame, _) = await _decoder.ReadAsync(cancel).ConfigureAwait(false);
 
                 initializeFrame = (InitializeFrame)frame!;
@@ -147,7 +147,7 @@ namespace IceRpc.Transports.Internal
             cancel.ThrowIfCancellationRequested();
             try
             {
-                await _writer.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
+                await _encoder.WriteAsync((-1, _pingFrame, false), cancel).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -161,7 +161,7 @@ namespace IceRpc.Transports.Internal
 
             if (disposing)
             {
-                _writer.TryComplete();
+                _encoder.TryComplete();
 
                 var exception = new ConnectionClosedException();
                 _bidirectionalStreamSemaphore?.Complete(exception);
@@ -172,7 +172,7 @@ namespace IceRpc.Transports.Internal
         internal ColocConnection(
             ColocEndpoint endpoint,
             long id,
-            ChannelWriter<(long, object, bool)> writer,
+            ChannelWriter<(long, object, bool)> encoder,
             ChannelReader<(long, object, bool)> decoder,
             ConnectionOptions options,
             ILogger logger)
@@ -182,7 +182,7 @@ namespace IceRpc.Transports.Internal
             RemoteEndpoint = endpoint;
 
             Id = id;
-            _writer = writer;
+            _encoder = encoder;
             _decoder = decoder;
 
             _bidirectionalStreamMaxCount = options.BidirectionalStreamMaxCount;
@@ -265,7 +265,7 @@ namespace IceRpc.Transports.Internal
                     // Write the frame. It's important to allocate the ID and to send the frame within the
                     // synchronization block to ensure the decoder won't receive frames with out-of-order
                     // stream IDs.
-                    task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
+                    task = _encoder.WriteAsync((stream.Id, frame, fin), cancel);
                 }
 
                 await task.ConfigureAwait(false);

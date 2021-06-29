@@ -55,14 +55,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamValueWriter{T}"/> that writes the arguments into the
+        /// <param name="encoder">The <see cref="OutputStreamValueWriter{T}"/> that writes the arguments into the
         /// payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
-            OutputStreamValueWriter<T> writer,
+            OutputStreamValueWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
             var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
@@ -71,7 +71,7 @@ namespace IceRpc
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, in args);
+            encoder(ostr, in args);
             return ostr.Finish();
         }
 
@@ -86,14 +86,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="writer">The <see cref="Encoder{T}"/> that writes the arguments into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that writes the arguments into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
-            OutputStreamValueWriter<T> writer,
+            OutputStreamValueWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
             var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
@@ -102,7 +102,7 @@ namespace IceRpc
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, in returnValueTuple);
+            encoder(ostr, in returnValueTuple);
             return ostr.Finish();
         }
 
@@ -111,14 +111,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="writer">The <see cref="Encoder{T}"/> that writes the argument into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
             IServicePrx proxy,
             T arg,
-            Encoder<T> writer,
+            Encoder<T> encoder,
             FormatType classFormat = default)
         {
             var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
@@ -127,7 +127,7 @@ namespace IceRpc
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, arg);
+            encoder(ostr, arg);
             return ostr.Finish();
         }
 
@@ -136,14 +136,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="writer">The <see cref="Encoder{T}"/> that writes the argument into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
-            Encoder<T> writer,
+            Encoder<T> encoder,
             FormatType classFormat = default)
         {
             var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
@@ -152,7 +152,7 @@ namespace IceRpc
                 ostr.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, returnValue);
+            encoder(ostr, returnValue);
             return ostr.Finish();
         }
 
