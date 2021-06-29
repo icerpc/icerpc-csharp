@@ -1220,14 +1220,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "> IceWriter =";
+    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "> Encoder =";
     _out.inc();
     _out << nl << "(writer, value) => writer.WriteClass(value, IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "?> IceWriterFromNullable =";
+    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "?> NullableEncoder =";
     _out.inc();
     _out << nl << "(writer, value) => writer.WriteNullableClass(value, IceTypeId);";
     _out.dec();
@@ -1738,7 +1738,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     _out << sp;
     _out << nl << "/// <summary>A <see cref=\"IceRpc.Encoder{T}\"/> used to write <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> IceWriter =";
+    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder =";
     _out.inc();
     _out << nl << "(writer, value) => value.IceWrite(writer);";
     _out.dec();
@@ -2013,7 +2013,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
         << ";";
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> IceWriter = Write;";
+    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder = Write;";
 
     _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";

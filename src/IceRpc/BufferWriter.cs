@@ -1062,7 +1062,7 @@ namespace IceRpc
                 {
                     WriteString(endpoint.Data.Host);
                     WriteUShort(endpoint.Data.Port);
-                    WriteSequence(endpoint.Data.Options, IceWriterFromString);
+                    WriteSequence(endpoint.Data.Options, StringEncoder);
                 }
             }
             RewriteFixedLengthSize11(Distance(startPos), startPos);

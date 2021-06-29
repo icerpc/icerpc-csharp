@@ -665,29 +665,29 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
         TypePtr underlying = optional->underlying();
         if (underlying->isInterfaceType())
         {
-            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceWriterFromNullable";
+            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".NullableEncoder";
         }
         else
         {
             assert(underlying->isClassType());
-            out << typeToString(underlying, scope, readOnly, param) << ".IceWriterFromNullable";
+            out << typeToString(underlying, scope, readOnly, param) << ".NullableEncoder";
         }
     }
     else if (type->isInterfaceType())
     {
-        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".Encoder";
     }
     else if (type->isClassType())
     {
-        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".Encoder";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.BufferWriter.IceWriterFrom" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.BufferWriter." << builtinSuffixTable[builtin->kind()] << "Encoder";
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".IceWriter";
+        out << helperName(type, scope) << ".Encoder";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(type))
     {
@@ -701,7 +701,7 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     }
     else
     {
-        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".Encoder";
     }
     return out.str();
 }
@@ -826,7 +826,7 @@ Slice::CsGenerator::inputStreamReader(const TypePtr& type, const string& scope)
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.BufferReader." << builtinSuffixTable[builtin->kind()] << "Decoder";
+        out << "IceRpc.BasicDecoders." << builtinSuffixTable[builtin->kind()] << "Decoder";
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {

@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace IceRpc
 {
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
-    public sealed partial class BufferReader
+    public static class BasicDecoders
     {
         // Cached Decoder static objects used by the generated code
 

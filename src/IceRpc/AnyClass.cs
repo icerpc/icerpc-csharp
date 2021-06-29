@@ -20,11 +20,11 @@ namespace IceRpc
 
         /// <summary>An encoder used to encode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<AnyClass> IceWriter = (writer, value) => writer.WriteClass(value, null);
+        public static readonly Encoder<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
 
         /// <summary>An encoder used to encode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<AnyClass?> IceWriterFromNullable =
+        public static readonly Encoder<AnyClass?> NullableEncoder =
             (writer, value) => writer.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during

@@ -36,7 +36,7 @@ namespace IceRpc
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
-                Payload.FromSingleArg(proxy, arg, BufferWriter.IceWriterFromString);
+                Payload.FromSingleArg(proxy, arg, BufferWriter.StringEncoder);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
@@ -51,7 +51,7 @@ namespace IceRpc
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
-                payload.ToReturnValue(payloadEncoding, BufferReader.StringDecoder, connection, invoker);
+                payload.ToReturnValue(payloadEncoding, BasicDecoders.StringDecoder, connection, invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> decoder for the return type of operation ice_ids.
             /// </summary>
@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      reader => reader.ReadArray(minElementSize: 1, BufferReader.StringDecoder),
+                                      reader => reader.ReadArray(minElementSize: 1, BasicDecoders.StringDecoder),
                                       connection,
                                       invoker);
 
@@ -75,7 +75,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      BufferReader.BoolDecoder,
+                                      BasicDecoders.BoolDecoder,
                                       connection,
                                       invoker);
         }
@@ -130,11 +130,11 @@ namespace IceRpc
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<IServicePrx> IceWriter = (writer, value) => writer.WriteProxy(value);
+        public static readonly Encoder<IServicePrx> Encoder = (writer, value) => writer.WriteProxy(value);
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<IServicePrx?> IceWriterFromNullable =
+        public static readonly Encoder<IServicePrx?> NullableEncoder =
             (writer, value) => writer.WriteNullableProxy(value);
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
