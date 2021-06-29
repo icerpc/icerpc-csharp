@@ -963,7 +963,7 @@ namespace IceRpc
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer encoder after calling Finish, however rewriting previous data (with for example
+        /// this buffer writer after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()

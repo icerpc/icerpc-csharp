@@ -106,10 +106,10 @@ namespace IceRpc.Internal
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
-        /// <summary>Reads an ice1 system exception encoded based on the provided reply status.</summary>
+        /// <summary>Reads an ice1 system exception.</summary>
         /// <param name="reader">The buffer reader.</param>
         /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception read from the stream.</returns>
+        /// <returns>The exception read from the buffer.</returns>
         internal static RemoteException ReadIce1SystemException(this BufferReader reader, ReplyStatus replyStatus)
         {
             Debug.Assert(reader.Encoding == Encoding.V11);
@@ -158,7 +158,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Writes an ice1 system exception.</summary>
-        /// <param name="writer">The stream to write to.</param>
+        /// <param name="writer">This buffer writer.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <param name="request">The request for which we write the exception.</param>
         /// <param name="message">The message carried by the exception.</param>

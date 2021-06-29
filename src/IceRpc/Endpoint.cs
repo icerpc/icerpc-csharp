@@ -193,9 +193,9 @@ namespace IceRpc
         /// identical except for their ice1 HashCompressedFlag property are equivalent but are not equal.</summary>
         protected internal virtual bool IsEquivalent(Endpoint other) => Equals(other);
 
-        /// <summary>Writes the options of this endpoint to the buffer encoder. Used only when marshaling ice1 proxies
-        /// with the 1.1 encoding.</summary>
-        /// <param name="writer">The buffer encoder.</param>
+        /// <summary>Writes the options of this endpoint to the buffer. Used only when marshaling ice1 proxies with the
+        /// 1.1 encoding.</summary>
+        /// <param name="writer">The buffer writer.</param>
         protected internal abstract void WriteOptions11(BufferWriter writer);
 
         /// <summary>Constructs a new endpoint</summary>

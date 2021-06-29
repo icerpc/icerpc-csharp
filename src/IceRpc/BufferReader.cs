@@ -899,7 +899,7 @@ namespace IceRpc
             _compactTypeIdClassFactories = compactTypeIdClassFactories;
         }
 
-        /// <summary>Verifies the buffer decoder has reached the end of its underlying buffer.</summary>
+        /// <summary>Verifies the buffer reader has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)

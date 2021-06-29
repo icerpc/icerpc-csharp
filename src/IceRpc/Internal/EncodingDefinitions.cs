@@ -39,8 +39,8 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Each tagged parameter has a specific tag format. This tag format describes how the data is encoded
-        /// and how it can be skipped by the unmarshaling code if the tagged parameter is present in the buffer decoder
-        /// but is not known to the receiver.</summary>
+        /// and how it can be skipped by the unmarshaling code if the tagged parameter is present in the buffer but is
+        /// not known to the receiver.</summary>
         internal enum TagFormat
         {
             F1 = 0,

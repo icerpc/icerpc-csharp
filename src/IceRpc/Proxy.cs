@@ -327,22 +327,22 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Reads a proxy from the buffer decoder.</summary>
+        /// <summary>Reads a proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="reader">The buffer decoder to read from.</param>
-        /// <returns>The non-null proxy read from the stream.</returns>
+        /// <param name="reader">The buffer reader.</param>
+        /// <returns>The non-null proxy read from the buffer.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
             BufferReader reader) where T : class, IServicePrx =>
             ReadNullable(proxyFactory, reader) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
-        /// <summary>Reads a nullable proxy from the buffer decoder.</summary>
+        /// <summary>Reads a nullable proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="reader">The buffer decoder to read from.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
+        /// <param name="reader">The buffer reader.</param>
+        /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
             BufferReader reader) where T : class, IServicePrx
@@ -544,12 +544,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a tagged proxy from the buffer decoder.</summary>
+        /// <summary>Reads a tagged proxy from a buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="reader">The buffer decoder to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="tag">The tag.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
+        /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadTagged<T>(
             this ProxyFactory<T> proxyFactory,
             BufferReader reader,
