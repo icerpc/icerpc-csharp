@@ -2526,7 +2526,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
     bool defaultWriter = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
     if (defaultWriter)
     {
-        _out << outputStreamWriter(params.front()->type(), ns, true, true);
+        _out << encoder(params.front()->type(), ns, true, true);
     }
     else
     {
@@ -2553,7 +2553,7 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
 
     if (defaultReader)
     {
-        _out << inputStreamReader(returnType.front()->type(), ns);
+        _out << decoder(returnType.front()->type(), ns);
     }
     else if (returnType.size() > 0)
     {
@@ -3055,7 +3055,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
 
     if (defaultReader)
     {
-        _out << inputStreamReader(params.front()->type(), ns);
+        _out << decoder(params.front()->type(), ns);
     }
     else if (params.size() > 0)
     {
@@ -3083,7 +3083,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
     bool defaultWriter = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
     if (defaultWriter)
     {
-        _out << outputStreamWriter(returns.front()->type(), ns, true, true);
+        _out << encoder(returns.front()->type(), ns, true, true);
     }
     else
     {
