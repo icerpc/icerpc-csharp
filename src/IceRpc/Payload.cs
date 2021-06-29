@@ -55,14 +55,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encoder">The <see cref="OutputStreamValueWriter{T}"/> that writes the arguments into the
+        /// <param name="encoder">The <see cref="TupleEncoder{T}"/> that writes the arguments into the
         /// payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
-            OutputStreamValueWriter<T> encoder,
+            TupleEncoder<T> encoder,
             FormatType classFormat = default) where T : struct
         {
             var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
@@ -93,7 +93,7 @@ namespace IceRpc
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
-            OutputStreamValueWriter<T> encoder,
+            TupleEncoder<T> encoder,
             FormatType classFormat = default) where T : struct
         {
             var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
