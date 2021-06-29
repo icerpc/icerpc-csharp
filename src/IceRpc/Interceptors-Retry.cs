@@ -47,7 +47,7 @@ namespace IceRpc
             }
 
             /// <summary>The maximum payload size in bytes for a request to be retryable, requests with a bigger payload
-            /// size are release after sent and cannot be retried. The default is 1 Mb.</summary>
+            /// size are released after sent and cannot be retried. The default is 1 MB.</summary>
             public int RequestMaxSize
             {
                 get => _requestMaxSize;
