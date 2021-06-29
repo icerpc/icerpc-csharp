@@ -234,7 +234,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = istr.ReadBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = reader.ReadBitSequence(" << bitSequenceSize << ");";
     }
 
     bool read11ReturnLast = returnType && operation->hasReturnAndOut() && requiredMembers.size() > 1 &&
@@ -242,7 +242,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
     if (read11ReturnLast)
     {
-        _out << nl << "if (istr.Encoding != IceRpc.Encoding.V11)";
+        _out << nl << "if (reader.Encoding != IceRpc.Encoding.V11)";
         _out << sb;
     }
 
@@ -382,7 +382,7 @@ Slice::CsVisitor::writeUnmarshalDataMembers(const MemberList& p, const string& n
     size_t bitSequenceSize = getBitSequenceSize(requiredMembers);
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = istr.ReadBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = reader.ReadBitSequence(" << bitSequenceSize << ");";
         bitSequenceIndex = 0;
     }
 
@@ -1204,14 +1204,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     emitEditorBrowsableNeverAttribute();
     _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => istr.ReadClass<" << name << ">(IceTypeId);";
+    _out << nl << "reader => reader.ReadClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
     _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> IceReaderIntoNullable =";
     _out.inc();
-    _out << nl << "istr => istr.ReadNullableClass<" << name << ">(IceTypeId);";
+    _out << nl << "reader => reader.ReadNullableClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
@@ -1380,12 +1380,12 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     }
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceRpc.BufferReader? istr)";
+    _out << nl << "public " << name << "(IceRpc.BufferReader? reader)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
         _out.inc();
-        _out << nl << ": base(istr)";
+        _out << nl << ": base(reader)";
         _out.dec();
     }
     _out << sb;
@@ -1458,7 +1458,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceRead(IceRpc.BufferReader istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1470,19 +1470,19 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     {
         _out << nl << "_ = ";
     }
-    _out << "istr.IceStartFirstSlice();";
+    _out << "reader.IceStartFirstSlice();";
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "istr.IceStartNextSlice();";
+    _out << nl << "reader.IceStartNextSlice();";
     _out << eb;
 
     writeUnmarshalDataMembers(members, ns, 0);
 
-    _out << nl << "istr.IceEndSlice();";
+    _out << nl << "reader.IceEndSlice();";
     if (base)
     {
-        _out << nl << "base.IceRead(istr, false);";
+        _out << nl << "base.IceRead(reader, false);";
     }
     // This slice and its base slices (if any) are now fully initialized.
     if (!hasDataMemberWithName(p->allDataMembers(), "Initialize"))
@@ -1659,23 +1659,23 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceRead(IceRpc.BufferReader istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "IceSlicedData = istr.IceStartFirstSlice();";
+    _out << nl << "IceSlicedData = reader.IceStartFirstSlice();";
     _out << nl << "ConvertToUnhandled = true;";
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "istr.IceStartNextSlice();";
+    _out << nl << "reader.IceStartNextSlice();";
     _out << eb;
     writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-    _out << nl << "istr.IceEndSlice();";
+    _out << nl << "reader.IceEndSlice();";
 
     if (base)
     {
-        _out << nl << "base.IceRead(istr, false);";
+        _out << nl << "base.IceRead(reader, false);";
     }
     _out << eb;
 
@@ -1732,7 +1732,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
          << name << "\"/> instances.</summary>";
     _out << nl << "public static readonly IceRpc.Decoder<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => new " << name << "(istr);";
+    _out << nl << "reader => new " << name << "(reader);";
     _out.dec();
 
     _out << sp;
@@ -1788,9 +1788,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
-    _out << nl << "/// <param name=\"istr\">The <see cref=\"IceRpc.BufferReader\"/> being used to unmarshal the "
+    _out << nl << "/// <param name=\"reader\">The <see cref=\"IceRpc.BufferReader\"/> being used to unmarshal the "
          << "instance.</param>";
-    _out << nl << "public " << name << "(IceRpc.BufferReader istr)";
+    _out << nl << "public " << name << "(IceRpc.BufferReader reader)";
     _out << sb;
 
     writeUnmarshalDataMembers(dataMembers, ns, 0);
@@ -2039,9 +2039,9 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.BufferReader istr) =>";
+    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.BufferReader reader) =>";
     _out.inc();
-    _out << nl << "As" << p->name() << "(istr.";
+    _out << nl << "As" << p->name() << "(reader.";
     if (p->underlying())
     {
         _out << "Read" << builtinSuffix(p->underlying()) << "()";
@@ -2295,7 +2295,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> IceReader =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.Read(Factory, istr);";
+    _out << nl << "reader => IceRpc.Proxy.Read(Factory, reader);";
     _out.dec();
 
     _out << sp;
@@ -2352,7 +2352,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"/> nullable proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> IceReaderIntoNullable =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.ReadNullable(Factory, istr);";
+    _out << nl << "reader => IceRpc.Proxy.ReadNullable(Factory, reader);";
     _out.dec();
 
     _out << sp;
@@ -2557,7 +2557,7 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     }
     else if (returnType.size() > 0)
     {
-        _out << "istr =>";
+        _out << "reader =>";
         _out << sb;
         writeUnmarshal(operation, true);
         _out << eb;
@@ -2968,7 +2968,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
              << " = Request." << fixId(opName) << "(payload, dispatch);";
     }
 
-    // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
+    // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, reader etc.)
     if (operation->hasMarshaledResult())
     {
         // TODO: support for stream param with marshaled result?
@@ -3059,7 +3059,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
     }
     else if (params.size() > 0)
     {
-        _out << "istr =>";
+        _out << "reader =>";
         _out << sb;
         writeUnmarshal(operation, false);
         _out << eb;
