@@ -17,7 +17,8 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected OutgoingRequest DummyRequest => new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), DateTime.MaxValue);
+        protected OutgoingRequest DummyRequest =>
+            new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), null, DateTime.MaxValue);
 
         protected MultiStreamConnection ClientConnection => _clientConnection!;
 
@@ -25,10 +26,6 @@ namespace IceRpc.Tests.Internal
         protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _clientConnection;
-        private RpcStream? _controlStreamForClient;
-        private RpcStream? _controlStreamForServer;
-        private RpcStream? _peerControlStreamForClient;
-        private RpcStream? _peerControlStreamForServer;
         private MultiStreamConnection? _serverConnection;
 
         public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)
@@ -47,20 +44,15 @@ namespace IceRpc.Tests.Internal
             await _clientConnection.InitializeAsync(default);
             await initializeTask;
 
-            _controlStreamForClient = await ClientConnection.SendInitializeFrameAsync(default);
-            _controlStreamForServer = await ServerConnection.SendInitializeFrameAsync(default);
+            _ = await ClientConnection.SendInitializeFrameAsync(default);
+            _ = await ServerConnection.SendInitializeFrameAsync(default);
 
-            _peerControlStreamForClient = await ClientConnection.ReceiveInitializeFrameAsync(default);
-            _peerControlStreamForServer = await ServerConnection.ReceiveInitializeFrameAsync(default);
+            _ = await ClientConnection.ReceiveInitializeFrameAsync(default);
+            _ = await ServerConnection.ReceiveInitializeFrameAsync(default);
         }
 
         public void TearDownConnections()
         {
-            _controlStreamForClient?.Release();
-            _peerControlStreamForClient?.Release();
-            _controlStreamForServer?.Release();
-            _peerControlStreamForServer?.Release();
-
             _clientConnection?.Dispose();
             _serverConnection?.Dispose();
         }

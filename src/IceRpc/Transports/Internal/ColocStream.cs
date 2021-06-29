@@ -12,34 +12,51 @@ namespace IceRpc.Transports.Internal
     /// <summary>The RpcStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
-        protected internal override bool ReceivedEndOfStream => _receivedEndOfStream;
-        private bool _receivedEndOfStream;
         private Memory<byte> _receiveBuffer;
         private readonly ColocConnection _connection;
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
-        public override string ToString()
+        public override void AbortRead(RpcStreamError errorCode)
         {
-            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
-            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
-        }
-
-        protected override void AbortWrite(RpcStreamError errorCode)
-        {
-            // If the stream is aborted, either because it was reset by the peer or because the connection was
-            // aborted, there's no need to send a reset frame.
-            if (!IsAborted)
+            if (TrySetReadCompleted(shutdown: false))
             {
-                // Send reset frame
-                _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+                // Abort the receive call waiting on WaitAsync().
+                SetException(new RpcStreamAbortedException(errorCode));
+
+                // Send stop sending frame before shutting down.
+                // TODO
+
+                // Shutdown the stream if not already done.
+                TryShutdown();
             }
         }
 
-        protected override void EnableSendFlowControl()
+        public override void AbortWrite(RpcStreamError errorCode)
         {
-            base.EnableSendFlowControl();
+            // Notify the peer of the abort if the stream or connection is not aborted already.
+            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            {
+                _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+            }
 
+            if (TrySetWriteCompleted(shutdown: false))
+            {
+                // Ensure further SendAsync calls raise StreamAbortException
+                SetException(new RpcStreamAbortedException(errorCode));
+
+                // Shutdown the stream if not already done.
+                TryShutdown();
+            }
+        }
+
+        public override void EnableReceiveFlowControl()
+        {
+            // Nothing to do.
+        }
+
+        public override void EnableSendFlowControl()
+        {
             // Create a channel to send the data directly to the peer's stream. It's a bounded channel
             // of one element which requires the sender to wait if the channel is full. This ensures
             // that the sender doesn't send the data faster than the receiver can process. Using channels
@@ -60,7 +77,7 @@ namespace IceRpc.Transports.Internal
             _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
         }
 
-        protected override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
             // socket channel.
@@ -93,7 +110,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    if (_receivedEndOfStream)
+                    if (ReadCompleted)
                     {
                         return 0;
                     }
@@ -104,18 +121,23 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (ChannelClosedException)
                     {
-                        _receivedEndOfStream = true;
+                        TrySetReadCompleted();
                     }
                 }
             }
             return received;
         }
 
-        protected override async ValueTask SendAsync(
+        public override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {
+            if (WriteCompleted)
+            {
+                throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+            }
+
             if (_streamWriter == null)
             {
                 await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
@@ -138,6 +160,17 @@ namespace IceRpc.Transports.Internal
                     _streamWriter.Complete();
                 }
             }
+
+            if (endStream)
+            {
+                TrySetWriteCompleted();
+            }
+        }
+
+        public override string ToString()
+        {
+            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
+            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
         protected override void Shutdown()
@@ -170,35 +203,24 @@ namespace IceRpc.Transports.Internal
         internal override async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
             (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+            if (ReadCompleted || (fin && !TrySetReadCompleted()))
+            {
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+            }
+
             Debug.Assert(frameObject is IncomingRequest);
             var frame = (IncomingRequest)frameObject;
-
-            if (fin)
-            {
-                _receivedEndOfStream = true;
-            }
-            else
-            {
-                frame.Stream = this;
-                Interlocked.Increment(ref _useCount);
-            }
             return frame;
         }
 
         internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
             (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            var frame = (IncomingResponse)frameObject;
-            if (fin)
+            if (ReadCompleted || (fin && !TrySetReadCompleted()))
             {
-                _receivedEndOfStream = true;
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
             }
-            else
-            {
-                frame.Stream = this;
-                Interlocked.Increment(ref _useCount);
-            }
-            return frame;
+            return (IncomingResponse)frameObject;
         }
 
         private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
@@ -206,9 +228,9 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel)
         {
             (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (fin)
+            if (ReadCompleted || (fin && !TrySetReadCompleted()))
             {
-                _receivedEndOfStream = true;
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
             }
 
             if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
@@ -239,7 +261,7 @@ namespace IceRpc.Transports.Internal
             await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
-                fin: frame.StreamDataWriter == null,
+                fin: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
     }
 }
