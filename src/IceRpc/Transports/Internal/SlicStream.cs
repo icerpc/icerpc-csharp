@@ -23,7 +23,7 @@ namespace IceRpc.Transports.Internal
     /// etc) are necessary to receive a simple response/request frame.</summary>
     internal class SlicStream : SignaledStream<(int, bool)>
     {
-        protected override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
+        public override ReadOnlyMemory<byte> TransportHeader => SlicDefinitions.FrameHeader;
 
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
@@ -44,7 +44,7 @@ namespace IceRpc.Transports.Internal
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
 
-        protected override void AbortRead(RpcStreamError errorCode)
+        public override void AbortRead(RpcStreamError errorCode)
         {
             if (TrySetReadCompleted(shutdown: false))
             {
@@ -59,7 +59,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void AbortWrite(RpcStreamError errorCode)
+        public override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
             if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void EnableReceiveFlowControl()
+        public override void EnableReceiveFlowControl()
         {
             bool signaled;
             bool lockTaken = false;
@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void EnableSendFlowControl()
+        public override void EnableSendFlowControl()
         {
             // Assign the initial send credit based on the peer's stream buffer max size.
             _sendCredit = _connection.PeerStreamBufferMaxSize;
@@ -131,7 +131,7 @@ namespace IceRpc.Transports.Internal
             _sendSemaphore = new AsyncSemaphore(1);
         }
 
-        protected override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (_receivedSize == _receivedOffset)
             {
@@ -217,7 +217,7 @@ namespace IceRpc.Transports.Internal
             return size;
         }
 
-        protected override async ValueTask SendAsync(
+        public override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
@@ -246,6 +246,11 @@ namespace IceRpc.Transports.Internal
 
             while (offset < size)
             {
+                if (WriteCompleted)
+                {
+                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+                }
+
                 if (_sendSemaphore != null)
                 {
                     // Acquire the semaphore to ensure flow control allows sending additional data. It's important
@@ -490,7 +495,7 @@ namespace IceRpc.Transports.Internal
                 catch
                 {
                     // Socket failure, just set the exception on the stream.
-                    AbortRead(RpcStreamError.StreamingError);
+                    AbortRead(RpcStreamError.ConnectionAborted);
                 }
 
                 // Queue the frame before notifying the connection we're done with the receive. It's important

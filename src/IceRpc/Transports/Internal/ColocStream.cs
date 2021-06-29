@@ -17,13 +17,7 @@ namespace IceRpc.Transports.Internal
         private ChannelWriter<byte[]>? _streamWriter;
         private ChannelReader<byte[]>? _streamReader;
 
-        public override string ToString()
-        {
-            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
-            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
-        }
-
-        protected override void AbortRead(RpcStreamError errorCode)
+        public override void AbortRead(RpcStreamError errorCode)
         {
             if (TrySetReadCompleted(shutdown: false))
             {
@@ -38,7 +32,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void AbortWrite(RpcStreamError errorCode)
+        public override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
             if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
@@ -56,12 +50,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void EnableReceiveFlowControl()
+        public override void EnableReceiveFlowControl()
         {
             // Nothing to do.
         }
 
-        protected override void EnableSendFlowControl()
+        public override void EnableSendFlowControl()
         {
             // Create a channel to send the data directly to the peer's stream. It's a bounded channel
             // of one element which requires the sender to wait if the channel is full. This ensures
@@ -83,7 +77,7 @@ namespace IceRpc.Transports.Internal
             _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
         }
 
-        protected override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
+        public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
             // socket channel.
@@ -134,14 +128,14 @@ namespace IceRpc.Transports.Internal
             return received;
         }
 
-        protected override async ValueTask SendAsync(
+        public override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
         {
             if (WriteCompleted)
             {
-                throw new InvalidOperationException("the stream write-side is completed");
+                throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
             }
 
             if (_streamWriter == null)
@@ -171,6 +165,12 @@ namespace IceRpc.Transports.Internal
             {
                 TrySetWriteCompleted();
             }
+        }
+
+        public override string ToString()
+        {
+            int requestID = Id % 4 < 2 ? (int)(Id >> 2) + 1 : 0;
+            return $"ID = {requestID} {(requestID == 0 ? "oneway" : "twoway")}";
         }
 
         protected override void Shutdown()

@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private readonly Ice1Connection _connection;
 
-        protected override void AbortRead(RpcStreamError errorCode)
+        public override void AbortRead(RpcStreamError errorCode)
         {
             if (TrySetReadCompleted())
             {
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void AbortWrite(RpcStreamError errorCode)
+        public override void AbortWrite(RpcStreamError errorCode)
         {
             if (TrySetWriteCompleted())
             {
@@ -33,19 +33,19 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected override void EnableReceiveFlowControl() =>
+        public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
             throw new NotImplementedException();
 
-        protected override void EnableSendFlowControl() =>
+        public override void EnableSendFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
             throw new NotImplementedException();
 
-        protected override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
+        public override ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
             // This is never called because we override the default ReceiveFrameAsync implementation.
             throw new NotImplementedException();
 
-        protected async override ValueTask SendAsync(
+        public async override ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)

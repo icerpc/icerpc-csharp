@@ -27,8 +27,8 @@ namespace IceRpc.Transports
         /// <summary>The stream was aborted because the dispatch was canceled.</summary>
         DispatchCanceled,
 
-        /// <summary>An error was encountered while streaming data.</summary>
-        StreamingError,
+        /// <summary>Streaming was canceled.</summary>
+        StreamingCanceled,
 
         /// <summary>The stream was aborted because the connection was shutdown.</summary>
         ConnectionShutdown,
@@ -41,6 +41,9 @@ namespace IceRpc.Transports
 
         /// <summary>Stream data is not expected.</summary>
         UnexpectedStreamData,
+
+        /// <summary>The stream was aborted.</summary>
+        StreamAborted
     }
 
     /// <summary>The RpcStream abstract base class to be overridden by multi-stream transport implementations.
@@ -79,6 +82,13 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
         public bool IsControl { get; }
 
+        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
+        /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
+        /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
+        /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
+        /// this header to be set at the start of the first buffer.</summary>
+        public virtual ReadOnlyMemory<byte> TransportHeader => default;
+
         /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
         protected bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
 
@@ -89,13 +99,6 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
         /// </summary>
         protected bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
-
-        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
-        /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
-        /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
-        /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
-        /// this header to be set at the start of the first buffer.</summary>
-        protected virtual ReadOnlyMemory<byte> TransportHeader => default;
 
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; }
@@ -114,68 +117,41 @@ namespace IceRpc.Transports
 
         private int _state;
 
-        /// <summary>Receives data from the stream into the returned IO stream.</summary>
-        /// <return>The IO stream which can be used to read the data received from the stream.</return>
-        public System.IO.Stream ReceiveData()
-        {
-            EnableReceiveFlowControl();
-            return new IOStream(this);
-        }
+        /// <summary>Abort the stream read side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
+        public abstract void AbortRead(RpcStreamError errorCode);
 
-        /// <summary>Send data from the given IO stream to the stream.</summary>
-        /// <param name="ioStream">The IO stream to read the data to send over the stream.</param>
+        /// <summary>Abort the stream write side.</summary>
+        /// <param name="errorCode">The reason of the abort.</param>
+        public abstract void AbortWrite(RpcStreamError errorCode);
+
+        /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
+        /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
+        /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
+        /// The stream relies on the underlying transport flow control instead (TCP, Quic, ...). For stream
+        /// parameters, whose size is not limited, it's important that the transport doesn't send an unlimited
+        /// amount of data if the receiver doesn't process it. For TCP based transports, this would cause the
+        /// send buffer to fill up and this would prevent other streams to be processed.</summary>
+        public abstract void EnableReceiveFlowControl();
+
+        /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
+        /// sending a request or response frame to send data from a stream parameter.</summary>
+        public abstract void EnableSendFlowControl();
+
+        /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
+        /// <param name="buffer">The buffer to store the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public void SendData(System.IO.Stream ioStream, CancellationToken cancel = default)
-        {
-            EnableSendFlowControl();
-            Task.Run(async () =>
-                {
-                    // We use the same default buffer size as System.IO.Stream.CopyToAsync()
-                    // TODO: Should this depend on the transport packet size? (Slic default packet size is 32KB for
-                    // example).
-                    int bufferSize = 81920;
-                    if (ioStream.CanSeek)
-                    {
-                        long remaining = ioStream.Length - ioStream.Position;
-                        if (remaining > 0)
-                        {
-                            // Make sure there's enough space for the transport header
-                            remaining += TransportHeader.Length;
+        /// <return>The number of bytes received.</return>
+        public abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
 
-                            // In the case of a positive overflow, stick to the default size
-                            bufferSize = (int)Math.Min(bufferSize, remaining);
-                        }
-                    }
-
-                    using IMemoryOwner<byte> receiveBufferOwner = MemoryPool<byte>.Shared.Rent(bufferSize);
-                    Memory<byte> receiveBuffer = receiveBufferOwner.Memory[0..bufferSize];
-                    var sendBuffers = new ReadOnlyMemory<byte>[1];
-                    int received;
-                    do
-                    {
-                        try
-                        {
-                            TransportHeader.CopyTo(receiveBuffer);
-                            received = await ioStream.ReadAsync(receiveBuffer[TransportHeader.Length..],
-                                                                cancel).ConfigureAwait(false);
-
-                            sendBuffers[0] = receiveBuffer.Slice(0, TransportHeader.Length + received);
-                            await SendAsync(sendBuffers,
-                                            received == 0,
-                                            cancel).ConfigureAwait(false);
-                        }
-                        catch
-                        {
-                            AbortWrite(RpcStreamError.StreamingError);
-                            break;
-                        }
-                    }
-                    while (received > 0);
-
-                    ioStream.Dispose();
-                },
-                cancel);
-        }
+        /// <summary>Sends data from the given buffers and returns once the buffers are sent.</summary>
+        /// <param name="buffers">The buffers with the data to send.</param>
+        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
+        public abstract ValueTask SendAsync(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
+            CancellationToken cancel);
 
         /// <inheritdoc/>
         public override string ToString() => $"{base.ToString()} (ID={Id})";
@@ -208,8 +184,8 @@ namespace IceRpc.Transports
         }
 
         /// <summary>Constructs an outgoing stream.</summary>
-        /// <param name="bidirectional">True to create a bidirectional stream, False otherwise.</param>
-        /// <param name="control">True to create a control stream, False otherwise.</param>
+        /// <param name="bidirectional"><c>true</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
+        /// <param name="control"><c>true</c> to create a control stream, <c>false</c> otherwise.</param>
         /// <param name="connection">The parent connection.</param>
         protected RpcStream(MultiStreamConnection connection, bool bidirectional, bool control)
         {
@@ -223,42 +199,6 @@ namespace IceRpc.Transports
                 TrySetReadCompleted();
             }
         }
-
-        /// <summary>Abort the stream read side.</summary>
-        /// <param name="errorCode">The reason of the abort.</param>
-        protected abstract void AbortRead(RpcStreamError errorCode);
-
-        /// <summary>Abort the stream write side.</summary>
-        /// <param name="errorCode">The reason of the abort.</param>
-        protected abstract void AbortWrite(RpcStreamError errorCode);
-
-        /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
-        /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
-        /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
-        /// The stream relies on the underlying transport flow control instead (TCP, Quic, ...). For stream
-        /// parameters, whose size is not limited, it's important that the transport doesn't send an unlimited
-        /// amount of data if the receiver doesn't process it. For TCP based transports, this would cause the
-        /// send buffer to fill up and this would prevent other streams to be processed.</summary>
-        protected abstract void EnableReceiveFlowControl();
-
-        /// <summary>Enable flow control for sending data to the peer over the stream. This is called after
-        /// sending a request or response frame to send data from a stream parameter.</summary>
-        protected abstract void EnableSendFlowControl();
-
-        /// <summary>Receives data in the given buffer and return the number of received bytes.</summary>
-        /// <param name="buffer">The buffer to store the received data.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <return>The number of bytes received.</return>
-        protected abstract ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel);
-
-        /// <summary>Sends data from the given buffers and returns once the buffers are sent.</summary>
-        /// <param name="buffers">The buffers with the data to send.</param>
-        /// <param name="endStream">True if no more data will be sent over this stream, False otherwise.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        protected abstract ValueTask SendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
-            CancellationToken cancel);
 
         /// <summary>Shutdown the stream. This is called when the stream read and write sides are completed.</summary>
         protected virtual void Shutdown()
@@ -297,30 +237,11 @@ namespace IceRpc.Transports
 
         internal void Abort(RpcStreamError errorCode)
         {
-            // Abort writes unless the abort is triggered by the generated code not expecting stream data.
-            if (errorCode != RpcStreamError.UnexpectedStreamData)
-            {
-                AbortWrite(errorCode);
-            }
+            // Abort writes.
+            AbortWrite(errorCode);
 
             // Abort reads.
             AbortRead(errorCode);
-        }
-
-        // Internal method which should only be used by tests.
-        internal ValueTask<int> InternalReceiveAsync(Memory<byte> buffer, CancellationToken cancel) =>
-            ReceiveAsync(buffer, cancel);
-
-        // Internal method which should only be used by tests.
-        internal ValueTask InternalSendAsync(
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
-            bool endStream,
-            CancellationToken cancel)
-        {
-            var array = new ReadOnlyMemory<byte>[buffers.Length + 1];
-            array[0] = TransportHeader.ToArray();
-            buffers.CopyTo(array.AsMemory()[1..]);
-            return SendAsync(array, endStream, cancel);
         }
 
         internal async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
@@ -669,58 +590,6 @@ namespace IceRpc.Transports
                 }
                 return true;
             }
-        }
-
-        private class IOStream : System.IO.Stream
-        {
-            public override bool CanRead => true;
-            public override bool CanSeek => false;
-            public override bool CanWrite => false;
-            public override long Length => throw new NotImplementedException();
-
-            public override long Position
-            {
-                get => throw new NotImplementedException();
-                set => throw new NotImplementedException();
-            }
-
-            private readonly RpcStream _stream;
-
-            public override void Flush() => throw new NotImplementedException();
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                try
-                {
-                    return ReadAsync(buffer, offset, count, CancellationToken.None).Result;
-                }
-                catch (AggregateException ex)
-                {
-                    Debug.Assert(ex.InnerException != null);
-                    throw ExceptionUtil.Throw(ex.InnerException);
-                }
-            }
-
-            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
-                ReadAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
-
-            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel) =>
-                _stream.ReceiveAsync(buffer, cancel);
-
-            public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotImplementedException();
-            public override void SetLength(long value) => throw new NotImplementedException();
-            public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
-
-            protected override void Dispose(bool disposing)
-            {
-                base.Dispose(disposing);
-                if (disposing)
-                {
-                    _stream.AbortRead(RpcStreamError.StreamingError);
-                }
-            }
-
-            internal IOStream(RpcStream stream) => _stream = stream;
         }
 
         private enum State : int

@@ -114,7 +114,7 @@ namespace IceRpc
         /// doesn't specify a stream parameter.</summary>
         /// <param name="dispatch">The dispatch properties.</param>
         protected static void IceStreamReadingComplete(Dispatch dispatch) =>
-            dispatch.IncomingRequest.Stream.Abort(Transports.RpcStreamError.UnexpectedStreamData);
+            dispatch.IncomingRequest.Stream.AbortRead(Transports.RpcStreamError.UnexpectedStreamData);
 
         /// <summary>Dispatches an ice_id request.</summary>
         /// <param name="payload">The request payload.</param>
