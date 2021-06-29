@@ -371,11 +371,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await WithRetryServiceAsync(
                 (pipeline, pool) => pipeline.Use(
-                    Interceptors.CustomRetry(new Interceptors.RetryOptions()
-                        {
-                            MaxAttempts = 5,
-                            BufferMaxSize = 2048
-                        }),
+                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { BufferMaxSize = 2048 }),
                     Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
@@ -415,11 +411,7 @@ namespace IceRpc.Tests.ClientServer
             await WithRetryServiceAsync(
                 (pipeline, pool) => pipeline.Use(
                     Interceptors.CustomRetry(
-                        new Interceptors.RetryOptions()
-                        {
-                            MaxAttempts = 5,
-                            RequestMaxSize = maxSize
-                        }),
+                        new Interceptors.RetryOptions() { RequestMaxSize = maxSize }),
                         Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {

@@ -40,11 +40,7 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             pipeline.Use(
-                Interceptors.CustomRetry(new Interceptors.RetryOptions()
-                {
-                    MaxAttempts = 5,
-                    LoggerFactory = loggerFactory
-                }),
+                Interceptors.CustomRetry(new Interceptors.RetryOptions() { LoggerFactory = loggerFactory }),
                 Interceptors.Binder(pool),
                 Interceptors.Logger(loggerFactory));
 
@@ -101,9 +97,10 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.CustomRetry(new Interceptors.RetryOptions { LoggerFactory = loggerFactory}),
-                         Interceptors.Binder(pool),
-                         Interceptors.Logger(loggerFactory));
+            pipeline.Use(
+                Interceptors.CustomRetry(new Interceptors.RetryOptions { LoggerFactory = loggerFactory }),
+                    Interceptors.Binder(pool),
+                    Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
