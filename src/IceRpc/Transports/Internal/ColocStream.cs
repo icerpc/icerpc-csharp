@@ -79,7 +79,7 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            // If we didn't get the stream decoder yet, wait for the peer stream to provide it through the
+            // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
             // socket channel.
             if (_streamReader == null)
             {

@@ -12,7 +12,7 @@ namespace IceRpc
         /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
         /// <param name="reader">The buffer decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
-        /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
+        /// <remarks>The values of the dictionary reference memory in the reader's underlying buffer.</remarks>
         public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader reader)
         {
             Debug.Assert(reader.Encoding == Encoding.V20);

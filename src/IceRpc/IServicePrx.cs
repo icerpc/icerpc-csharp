@@ -11,7 +11,7 @@ namespace IceRpc
     /// <summary>A delegate that reads the return value from a response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="payload">The response payload.</param>
-    /// <param name="streamReader">The stream decoder from the response.</param>
+    /// <param name="streamReader">The stream reader from the response.</param>
     /// <param name="payloadEncoding">The encoding of the response payload.</param>
     /// <param name="connection">The connection that received this response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
@@ -267,15 +267,15 @@ namespace IceRpc
                            idempotent: true,
                            cancel: cancel);
 
-        /// <summary>Marshals the proxy into an OutputStream.</summary>
-        /// <param name="writer">The OutputStream used to marshal the proxy.</param>
+        /// <summary>Marshals the proxy into a buffer.</summary>
+        /// <param name="writer">The buffer writer.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(BufferWriter writer);
 
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream encoder to write the stream parameter on the
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
         /// <param name="responseReader">The decoder for the response payload. It reads and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
@@ -325,7 +325,7 @@ namespace IceRpc
         /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream encoder to write the stream parameter on the
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>

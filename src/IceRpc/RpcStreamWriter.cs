@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A stream encoder to write a stream param to a <see cref="RpcStream"/>.</summary>
+    /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamWriter
     {
         private readonly Action<RpcStream> _encoder;
@@ -19,7 +19,7 @@ namespace IceRpc
             _encoder(stream);
         }
 
-        /// <summary>Creates a stream encoder that writes the data from the given <see cref="System.IO.Stream"/> to the
+        /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
         /// request <see cref="RpcStream"/>.</summary>
         /// <param name="byteStream">The stream to read data from.</param>
         public RpcStreamWriter(System.IO.Stream byteStream)

@@ -70,7 +70,7 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream encoder if the request or response has a stream param. The encoder is called
+        /// <summary>The stream writer if the request or response has a stream param. The encoder is called
         /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
