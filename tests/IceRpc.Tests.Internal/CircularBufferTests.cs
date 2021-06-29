@@ -17,10 +17,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(0)]
         [TestCase(-1)]
         [TestCase(int.MinValue)]
-        public void CircularBuffer_Constructor_Exception(int capacity)
-        {
+        public void CircularBuffer_Constructor_Exception(int capacity) =>
             Assert.Throws<ArgumentOutOfRangeException>(() => _ = new CircularBuffer(capacity));
-        }
 
         [TestCase(1, 1)]
         [TestCase(1, 10)]

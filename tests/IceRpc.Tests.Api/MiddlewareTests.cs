@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Api
             var prx = IGreeterPrx.FromConnection(connection);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
-            Assert.IsFalse(service.Called);
+            Assert.That(service.Called, Is.False);
         }
 
         /// <summary>Ensure that middleware are called in the expected order.</summary>
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Api
                 async (request, cancel) =>
                 {
                     middlewareCalls.Add("Middlewares -> 0");
-                    var result = await next.DispatchAsync(request, cancel);
+                    OutgoingResponse result = await next.DispatchAsync(request, cancel);
                     middlewareCalls.Add("Middlewares <- 0");
                     return result;
                 }));
@@ -64,7 +64,7 @@ namespace IceRpc.Tests.Api
                 async (request, cancel) =>
                 {
                     middlewareCalls.Add("Middlewares -> 1");
-                    var result = await next.DispatchAsync(request, cancel);
+                    OutgoingResponse result = await next.DispatchAsync(request, cancel);
                     middlewareCalls.Add("Middlewares <- 1");
                     return result;
                 }));

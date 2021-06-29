@@ -20,13 +20,12 @@ namespace IceRpc.Tests.ClientServer
     {
         /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
         /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
-        // and a last entry for the request exception.
-        /// </summary>
+        // and a last entry for the request exception.</summary>
         [Test]
         public async Task Logging_ConnectionRetries()
         {
             using var writer = new StringWriter();
-            using var loggerFactory = CreateLoggerFactory(
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
 
@@ -50,7 +49,7 @@ namespace IceRpc.Tests.ClientServer
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
-            var eventIds = new int[] {
+            int[] eventIds = new int[] {
                 (int)TransportEvent.ConnectionConnectFailed,
                 (int)ProtocolEvent.RetryRequestConnectionException,
                 (int)ProtocolEvent.RequestException
@@ -83,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Logging_Disabled_ConnectionRetries()
         {
             using var writer = new StringWriter();
-            using var loggerFactory = CreateLoggerFactory(
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
 
@@ -107,7 +106,7 @@ namespace IceRpc.Tests.ClientServer
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);
-            var entry = logEntries[0];
+            JsonDocument entry = logEntries[0];
             Assert.AreEqual("Information", GetLogLevel(entry));
             Assert.AreEqual("IceRpc", GetCategory(entry));
             JsonElement[] scopes = GetScopes(entry);
@@ -122,7 +121,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Logging_Disabled_Request(bool colocated)
         {
             using var writer = new StringWriter();
-            using var loggerFactory = CreateLoggerFactory(
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
             var pipeline = new Pipeline();
@@ -131,7 +130,7 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             router.Use(Middleware.Logger(loggerFactory));
             router.Map<IGreeter>(new Greeter());
-            await using var server = CreateServer(colocated, portNumber: 1, router);
+            await using Server server = CreateServer(colocated, portNumber: 1, router);
             server.Listen();
 
             await using var connection = new Connection
@@ -140,7 +139,7 @@ namespace IceRpc.Tests.ClientServer
                 RemoteEndpoint = server.ProxyEndpoint,
             };
 
-            IGreeterPrx service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -154,7 +153,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Logging_Request(bool colocated)
         {
             using var writer = new StringWriter();
-            using var loggerFactory = CreateLoggerFactory(
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             var pipeline = new Pipeline();
@@ -171,7 +170,7 @@ namespace IceRpc.Tests.ClientServer
                 LoggerFactory = loggerFactory,
                 RemoteEndpoint = server.ProxyEndpoint,
             };
-            IGreeterPrx service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();
@@ -244,51 +243,7 @@ namespace IceRpc.Tests.ClientServer
                                                                writer: TextWriter.Synchronized(writer)));
                 });
 
-        private static void CheckClientConnectionScope(JsonElement scope, bool colocated)
-        {
-            if (colocated)
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("connection(Transport=coloc", StringComparison.Ordinal));
-            }
-            else
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("connection(Transport=tcp", StringComparison.Ordinal));
-            }
-        }
-
-        private static void CheckServerScope(JsonElement scope, bool colocated)
-        {
-            if (colocated)
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=coloc", StringComparison.Ordinal));
-            }
-            else
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("server(Transport=tcp", StringComparison.Ordinal));
-            }
-        }
-
-        private static void CheckServerConnectionScope(JsonElement scope, bool colocated)
-        {
-            if (colocated)
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("connection(", StringComparison.Ordinal));
-            }
-            else
-            {
-                Assert.IsTrue(GetMessage(scope).StartsWith("connection(", StringComparison.Ordinal));
-            }
-        }
-
-        private static void CheckStreamScope(JsonElement scope)
-        {
-            Assert.AreEqual(0, scope.GetProperty("ID").GetInt64());
-            Assert.AreEqual("Client", scope.GetProperty("InitiatedBy").GetString());
-            Assert.AreEqual("Bidirectional", scope.GetProperty("Kind").GetString());
-        }
-        private Server CreateServer(bool colocated, int portNumber, IDispatcher dispatcher) =>
-
-            new Server
+        private Server CreateServer(bool colocated, int portNumber, IDispatcher dispatcher) => new()
             {
                 HasColocEndpoint = false,
                 Dispatcher = dispatcher,

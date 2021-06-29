@@ -14,18 +14,13 @@ namespace IceRpc.Tests.Internal
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(int.MaxValue)]
-        public void AsyncSemaphore_Constructor(int maxCount)
-        {
-            _ = new AsyncSemaphore(maxCount);
-        }
+        public void AsyncSemaphore_Constructor(int maxCount) => _ = new AsyncSemaphore(maxCount);
 
         [TestCase(0)]
         [TestCase(-1)]
         [TestCase(int.MinValue)]
-        public void AsyncSemaphore_Constructor_Exception(int maxCount)
-        {
+        public void AsyncSemaphore_Constructor_Exception(int maxCount) =>
             Assert.Throws<ArgumentOutOfRangeException>(() => _ = new AsyncSemaphore(maxCount));
-        }
 
         [TestCase(1, 1)]
         [TestCase(10, 1)]

@@ -91,7 +91,6 @@ namespace IceRpc.Transports.Internal
                         catch
                         {
                             // Ignore, the stream got aborted or the socket is being shutdown.
-                            stream?.Release();
                         }
                     }
                     else
@@ -122,19 +121,27 @@ namespace IceRpc.Transports.Internal
 
         public async override ValueTask InitializeAsync(CancellationToken cancel)
         {
-            // Send our unidirectional semaphore to the peer. The peer will decrease the semaphore when the stream is
-            // disposed.
             try
             {
-                await _writer.WriteAsync((-1, this, false), cancel).ConfigureAwait(false);
-                (_, object? peer, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                var initializeFrame = new InitializeFrame()
+                {
+                    BidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount),
+                    UnidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount)
+                };
 
-                var peerSocket = (ColocConnection)peer!;
+                // We keep track of the peer's unidirectional stream semaphore. This side of the colocated connection
+                // releases the peer's unidirectional stream semaphore when an incoming unidirectional stream is
+                // released.
+                _peerUnidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore;
 
-                // We're responsible for creating the peer's semaphores with our configured stream max count.
-                peerSocket._bidirectionalStreamSemaphore = new AsyncSemaphore(_bidirectionalStreamMaxCount);
-                peerSocket._unidirectionalStreamSemaphore = new AsyncSemaphore(_unidirectionalStreamMaxCount);
-                _peerUnidirectionalStreamSemaphore = peerSocket._unidirectionalStreamSemaphore;
+                await _writer.WriteAsync((-1, initializeFrame, false), cancel).ConfigureAwait(false);
+                (_, object? frame, _) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                initializeFrame = (InitializeFrame)frame!;
+
+                // Get the semphores from the initialize frame.
+                _bidirectionalStreamSemaphore = initializeFrame.BidirectionalStreamSemaphore!;
+                _unidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore!;
             }
             catch (Exception exception)
             {
@@ -158,9 +165,14 @@ namespace IceRpc.Transports.Internal
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+
             if (disposing)
             {
                 _writer.TryComplete();
+
+                var exception = new ConnectionClosedException();
+                _bidirectionalStreamSemaphore?.Complete(exception);
+                _unidirectionalStreamSemaphore?.Complete(exception);
             }
         }
 
@@ -196,15 +208,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override void AbortStreams(RpcStreamError errorCode)
-        {
-            base.AbortStreams(errorCode);
-
-            var exception = new ConnectionClosedException();
-            _bidirectionalStreamSemaphore!.Complete(exception);
-            _unidirectionalStreamSemaphore!.Complete(exception);
-        }
-
         internal void ReleaseStream(ColocStream stream)
         {
             if (stream.IsIncoming && !stream.IsBidirectional && !stream.IsControl)
@@ -227,7 +230,19 @@ namespace IceRpc.Transports.Internal
             bool fin,
             CancellationToken cancel)
         {
-            if (stream.IsStarted)
+            AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
+                _bidirectionalStreamSemaphore! :
+                _unidirectionalStreamSemaphore!;
+
+            if (!stream.IsStarted && !stream.IsControl)
+            {
+                // Wait on the stream semaphore to ensure that we don't open more streams than the peer
+                // allows. The wait is done on the client side to ensure the sent callback for the request
+                // isn't called until the server is ready to dispatch a new request.
+                await streamSemaphore.EnterAsync(cancel).ConfigureAwait(false);
+            }
+
+            try
             {
                 // If the stream is aborted, stop sending stream frames.
                 if (stream.AbortException is Exception exception)
@@ -235,46 +250,11 @@ namespace IceRpc.Transports.Internal
                     throw exception;
                 }
 
-                try
+                ValueTask task;
+                lock (_mutex)
                 {
-                    await _writer.WriteAsync((stream.Id, frame, fin), cancel).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    throw new TransportException(ex);
-                }
-            }
-            else
-            {
-                Debug.Assert(!stream.IsIncoming);
-
-                if (!stream.IsControl)
-                {
-                    // Wait on the stream semaphore to ensure that we don't open more streams than the peer
-                    // allows. The wait is done on the client side to ensure the sent callback for the request
-                    // isn't called until the server is ready to dispatch a new request.
-                    AsyncSemaphore semaphore = stream.IsBidirectional ?
-                        _bidirectionalStreamSemaphore! : _unidirectionalStreamSemaphore!;
-                    await semaphore.EnterAsync(cancel).ConfigureAwait(false);
-
-                    // If the stream is aborted, stop sending stream frames.
-                    if (stream.AbortException is Exception exception)
-                    {
-                        semaphore.Release();
-                        throw exception;
-                    }
-                }
-
-                // Ensure we allocate and queue the first stream frame atomically to ensure the receiver won't
-                // receive stream frames with out-of-order stream IDs.
-                try
-                {
-                    ValueTask task;
-                    lock (_mutex)
+                    // Allocate stream ID if the stream isn't started.
+                    if (!stream.IsStarted)
                     {
                         // Allocate a new ID according to the Quic numbering scheme.
                         if (stream.IsBidirectional)
@@ -287,19 +267,40 @@ namespace IceRpc.Transports.Internal
                             stream.Id = _nextUnidirectionalId;
                             _nextUnidirectionalId += 4;
                         }
-
-                        // The write is not cancelable here, we want to make sure that at this point the peer
-                        // receives the frame in order for the serialization semaphore to be released (otherwise,
-                        // the peer would receive a reset for a stream for which it never received a frame).
-                        task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
                     }
-                    await task.ConfigureAwait(false);
+
+                    // Write the frame. It's important to allocate the ID and to send the frame within the
+                    // synchronization block to ensure the reader won't receive frames with out-of-order
+                    // stream IDs.
+                    task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
                 }
-                catch (Exception ex)
+
+                await task.ConfigureAwait(false);
+
+                if (fin)
                 {
-                    throw new TransportException(ex);
+                    stream.TrySetWriteCompleted();
                 }
             }
+            catch (ChannelClosedException ex)
+            {
+                Debug.Assert(stream.IsStarted);
+                throw new TransportException(ex);
+            }
+            catch
+            {
+                if (!stream.IsStarted && !stream.IsControl)
+                {
+                    streamSemaphore.Release();
+                }
+                throw;
+            }
+        }
+
+        private sealed class InitializeFrame
+        {
+            internal AsyncSemaphore? BidirectionalStreamSemaphore { get; set; }
+            internal AsyncSemaphore? UnidirectionalStreamSemaphore { get; set; }
         }
     }
 }

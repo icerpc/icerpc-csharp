@@ -151,7 +151,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            Assert.IsNotNull(server.Endpoint);
+            Assert.That(server.Endpoint, Is.Not.Null);
             Assert.AreEqual(Transport.TCP, server.Endpoint.Transport);
             Assert.AreEqual("127.0.0.1", server.Endpoint.Host);
             Assert.That(server.Endpoint.Port, Is.GreaterThan(0));
@@ -161,7 +161,7 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("15000", server.Endpoint["timeout"]);
             }
 
-            Assert.IsNotNull(server.ProxyEndpoint);
+            Assert.That(server.ProxyEndpoint, Is.Not.Null);
             Assert.AreEqual(Transport.TCP, server.ProxyEndpoint!.Transport);
             Assert.AreEqual("localhost", server.ProxyEndpoint.Host);
             Assert.AreEqual(server.Endpoint.Port, server.ProxyEndpoint.Port);
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server();
 
-            Assert.IsNull(server.ProxyEndpoint);
+            Assert.That(server.ProxyEndpoint, Is.Null);
             server.Endpoint = "ice+tcp://127.0.0.1";
             Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.HostName),
                             server.ProxyEndpoint!.ToString());
@@ -198,10 +198,8 @@ namespace IceRpc.Tests.Api
         [TestCase(" :")]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
-        public void Server_InvalidEndpoints(string endpoint)
-        {
+        public void Server_InvalidEndpoints(string endpoint) =>
             Assert.Throws<FormatException>(() => new Server { Endpoint = endpoint });
-        }
 
         [Test]
         // When a client cancels a request, the dispatch is canceled.

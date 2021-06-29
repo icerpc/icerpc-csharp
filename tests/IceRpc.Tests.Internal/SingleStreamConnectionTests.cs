@@ -38,8 +38,8 @@ namespace IceRpc.Tests.Internal
 
             static void Test(NetworkSocket networkSocket)
             {
-                Assert.NotNull(networkSocket.ConnectionInformation);
-                Assert.IsNotEmpty(networkSocket.ToString());
+                Assert.That(networkSocket.ConnectionInformation, Is.Not.Null);
+                Assert.That(networkSocket.ToString(), Is.Not.Empty);
             }
         }
     }

@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
         private readonly IGreeterPrx _greeter;
 
         private readonly Pipeline _pipeline = new();
-        private Server _server;
+        private readonly Server _server;
 
         public LocatorTests()
         {
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.AreEqual(Transport.Loc, indirectGreeter.Endpoint!.Transport);
 
             IServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
-            Assert.IsNotNull(found);
+            Assert.That(found, Is.Not.Null);
             Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
 
             Assert.That(_called, Is.False);
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(_called, Is.True);
             _called = false;
 
-            Assert.IsTrue(await locator.UnregisterAdapterAsync("adapt"));
+            Assert.That(await locator.UnregisterAdapterAsync("adapt"), Is.True);
 
             // We still find it in the cache and can still call it
             Assert.DoesNotThrowAsync(async () => await indirectGreeter.SayHelloAsync());
@@ -157,7 +157,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync());
             Assert.That(_called, Is.True);
 
-            Assert.IsTrue(await locator.UnregisterWellKnownProxyAsync(_greeter.GetIdentity()));
+            Assert.That(await locator.UnregisterWellKnownProxyAsync(_greeter.GetIdentity()), Is.True);
 
             if (cacheMaxSize > 1)
             {
@@ -208,7 +208,7 @@ namespace IceRpc.Tests.ClientServer
             // Test with direct endpoints
             await locator.RegisterWellKnownProxyAsync(identity, greeter);
             IServicePrx? found = await locator.FindObjectByIdAsync(identity);
-            Assert.IsNotNull(found);
+            Assert.That(found, Is.Not.Null);
             Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
 
             Assert.That(_called, Is.False);
@@ -230,11 +230,11 @@ namespace IceRpc.Tests.ClientServer
 
             await locator.RegisterAdapterAsync(adapter, greeter);
 
-            Assert.IsTrue(await locator.UnregisterWellKnownProxyAsync(identity));
+            Assert.That(await locator.UnregisterWellKnownProxyAsync(identity), Is.True);
             await locator.RegisterWellKnownProxyAsync(identity, indirectGreeter);
 
             found = await locator.FindObjectByIdAsync(identity);
-            Assert.IsNotNull(found);
+            Assert.That(found, Is.Not.Null);
             Assert.AreEqual(indirectGreeter.Endpoint, found!.Endpoint); // partial resolution
 
             Assert.That(_called, Is.False);

@@ -51,7 +51,7 @@ namespace IceRpc
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    throw new ConnectionPoolDisposedException(ex);
+                    throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}", ex);
                 }
             }
         }
@@ -221,7 +221,7 @@ namespace IceRpc
                 {
                     if (_shutdownTask != null)
                     {
-                        throw new ConnectionPoolDisposedException();
+                        throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}");
                     }
 
                     // Check if there is an active connection that we can use according to the endpoint settings.

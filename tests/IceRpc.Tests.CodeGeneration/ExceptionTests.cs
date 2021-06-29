@@ -58,7 +58,7 @@ namespace IceRpc.Tests.CodeGeneration
             a = new MyExceptionA("my exception A", 10, b, RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)));
             Assert.AreEqual("my exception A", a.Message);
             Assert.AreEqual(10, a.M1);
-            Assert.IsNotNull(a.InnerException);
+            Assert.That(a, Is.Not.Null);
             Assert.AreEqual(b, a.InnerException);
             Assert.AreEqual(RetryPolicy.AfterDelay(TimeSpan.FromSeconds(1)), a.RetryPolicy);
         }
@@ -67,15 +67,15 @@ namespace IceRpc.Tests.CodeGeneration
         public void Exception_Operations()
         {
             MyExceptionA? a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAAsync(10));
-            Assert.IsNotNull(a);
+            Assert.That(a, Is.Not.Null);
             Assert.AreEqual(10, a.M1);
 
             a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAorBAsync(10));
-            Assert.IsNotNull(a);
+            Assert.That(a, Is.Not.Null);
             Assert.AreEqual(10, a.M1);
 
             MyExceptionB? b = Assert.ThrowsAsync<MyExceptionB>(async () => await _prx.ThrowAorBAsync(0));
-            Assert.IsNotNull(b);
+            Assert.That(b, Is.Not.Null);
             Assert.AreEqual(0, b.M1);
         }
 

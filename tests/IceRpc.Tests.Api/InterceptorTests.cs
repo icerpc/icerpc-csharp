@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Throws_ArgumentException()
         {
-            var prx = _prx.Clone();
+            IInterceptorTestPrx prx = _prx.Clone();
             var pipeline = new Pipeline();
             prx.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Timeout_OperationCanceledException()
         {
-            var prx = _prx.Clone();
+            IInterceptorTestPrx prx = _prx.Clone();
             var pipeline = new Pipeline();
             prx.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
@@ -64,21 +64,21 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
-            var prx = _prx.Clone();
+            IInterceptorTestPrx prx = _prx.Clone();
             var pipeline = new Pipeline();
             prx.Invoker = pipeline;
             pipeline.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
                     interceptorCalls.Add("ProxyInterceptors -> 0");
-                    var result = await next.InvokeAsync(request, cancel);
+                    IncomingResponse result = await next.InvokeAsync(request, cancel);
                     interceptorCalls.Add("ProxyInterceptors <- 0");
                     return result;
                 }),
                 next => new InlineInvoker(async (request, cancel) =>
                 {
                     interceptorCalls.Add("ProxyInterceptors -> 1");
-                    var result = await next.InvokeAsync(request, cancel);
+                    IncomingResponse result = await next.InvokeAsync(request, cancel);
                     interceptorCalls.Add("ProxyInterceptors <- 1");
                     return result;
                 }));
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponse? response = null;
-            var prx = _prx.Clone();
+            IInterceptorTestPrx prx = _prx.Clone();
             var pipeline = new Pipeline();
             prx.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
@@ -115,13 +115,13 @@ namespace IceRpc.Tests.Api
 
             Assert.AreEqual(r1, p1);
             Assert.AreEqual(r2, p1);
-            Assert.IsNotNull(response);
+            Assert.That(response, Is.Not.Null);
         }
 
         [Test]
         public async Task Interceptor_Overwrite_RequestContext()
         {
-            var prx = _prx.Clone();
+            IInterceptorTestPrx? prx = _prx.Clone();
             var pipeline = new Pipeline();
             prx.Invoker = pipeline;
 
@@ -131,7 +131,7 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            var ctx = await prx.OpContextAsync(
+            SortedDictionary<string, string> ctx = await prx.OpContextAsync(
                 new Invocation
                 {
                     Context = new Dictionary<string, string> { ["foo"] = "baz" }

@@ -13,19 +13,19 @@ namespace IceRpc.Tests.Api
     [Timeout(5000)]
     public class RouterTests
     {
-        private static IDispatcher _failDispatcher = new InlineDispatcher(
+        private static readonly IDispatcher _failDispatcher = new InlineDispatcher(
                 async (current, cancel) =>
                 {
                     Assert.Fail();
                     return await _service!.DispatchAsync(current, cancel);
                 });
 
-        private static IDispatcher _service = new Greeter();
+        private static readonly IDispatcher _service = new Greeter();
 
-        private Connection _connection;
+        private readonly Connection _connection;
 
-        private Router _router = new Router();
-        private Server _server;
+        private readonly Router _router = new();
+        private readonly Server _server;
 
         public RouterTests()
         {
@@ -71,12 +71,12 @@ namespace IceRpc.Tests.Api
 
             _router.Mount(path, _failDispatcher);
 
-            IGreeterPrx greeter = IGreeterPrx.FromConnection(_connection, path);
+            var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.AreEqual(1, value);
 
             // Without exact match from Map, we hit the mounted route:
-            Assert.IsTrue(_router.Unmap(path));
+            Assert.That(_router.Unmap(path), Is.True);
 
             _router.Mount(path, new InlineDispatcher(
                 async (current, cancel) =>
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Api
 
             var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.IsTrue(called);
+            Assert.That(called, Is.True);
         }
 
         [TestCase("/foo", "/foobar")]
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo///bar/a", "/foo///bar/a/b/c/d", "/b/c/d")]
         public async Task Router_RouteAsync(string prefix, string path, string subpath)
         {
-            Assert.IsEmpty(_router.AbsolutePrefix);
+            Assert.That(_router.AbsolutePrefix, Is.Empty);
             bool mainRouterMiddlewareCalled = false;
             bool subRouterMiddlewareCalled = false;
 
@@ -171,8 +171,8 @@ namespace IceRpc.Tests.Api
 
             var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.IsTrue(mainRouterMiddlewareCalled);
-            Assert.IsTrue(subRouterMiddlewareCalled);
+            Assert.That(mainRouterMiddlewareCalled, Is.True);
+            Assert.That(subRouterMiddlewareCalled, Is.True);
         }
 
         // Same test as above with one more level of nesting
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.Api
         [TestCase("/foo/", "/bar/", "/foo/bar/abc", "/abc")]
         public async Task Router_RouteNestedAsync(string prefix, string subprefix, string path, string subpath)
         {
-            Assert.IsEmpty(_router.AbsolutePrefix);
+            Assert.That(_router.AbsolutePrefix, Is.Empty);
 
             bool mainRouterMiddlewareCalled = false;
             bool nestedRouterMiddlewareCalled = false;
@@ -211,14 +211,14 @@ namespace IceRpc.Tests.Api
 
             var greeter = IGreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
-            Assert.IsTrue(mainRouterMiddlewareCalled);
-            Assert.IsTrue(nestedRouterMiddlewareCalled);
+            Assert.That(mainRouterMiddlewareCalled, Is.True);
+            Assert.That(nestedRouterMiddlewareCalled, Is.True);
         }
 
         [Test]
         public async Task Router_RouteDefaultPathAsync()
         {
-            Assert.IsEmpty(_router.AbsolutePrefix);
+            Assert.That(_router.AbsolutePrefix, Is.Empty);
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await IGreeterPrx.FromConnection(_connection).IcePingAsync());

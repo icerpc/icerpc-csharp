@@ -925,7 +925,7 @@ namespace IceRpc.Tests.CodeGeneration
                 CancellationToken cancel) => new((p1, p2));
         }
 
-        internal static async Task TestSeqAsync<T>(
+        private static async Task TestSeqAsync<T>(
                 Func<ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
                 T[] p1,
                 T[] p2)
@@ -935,7 +935,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestEnumerableSeqAsync<T>(
+        private static async Task TestEnumerableSeqAsync<T>(
             Func<IEnumerable<T>, IEnumerable<T>, Task<(T[], T[])>> invoker,
             T[] p1,
             T[] p2)
@@ -945,7 +945,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestReadOnlyMemorySeqAsync<T>(
+        private static async Task TestReadOnlyMemorySeqAsync<T>(
             Func<ReadOnlyMemory<T>, ReadOnlyMemory<T>, Task<(T[], T[])>> invoker,
             T[] p1,
             T[] p2)
@@ -955,7 +955,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(p2, r2);
         }
 
-        internal static async Task TestListAsync<T>(
+        private static async Task TestListAsync<T>(
                 Func<List<T>, List<T>, Task<(List<T>, List<T>)>> invoker,
                 List<T> p1,
                 List<T> p2)
@@ -965,7 +965,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestLinkedListAsync<T>(
+        private static async Task TestLinkedListAsync<T>(
             Func<LinkedList<T>, LinkedList<T>, Task<(LinkedList<T>, LinkedList<T>)>> invoker,
             LinkedList<T> p1,
             LinkedList<T> p2)
@@ -975,7 +975,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestQueueAsync<T>(
+        private static async Task TestQueueAsync<T>(
             Func<Queue<T>, Queue<T>, Task<(Queue<T>, Queue<T>)>> invoker,
             Queue<T> p1,
             Queue<T> p2)
@@ -985,7 +985,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestStackAsync<T>(
+        private static async Task TestStackAsync<T>(
             Func<Stack<T>, Stack<T>, Task<(Stack<T>, Stack<T>)>> invoker,
             Stack<T> p1,
             Stack<T> p2)
@@ -995,7 +995,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(r2, p2);
         }
 
-        internal static async Task TestCustomSeqAsync<T>(
+        private static async Task TestCustomSeqAsync<T>(
             Func<Custom<T>, Custom<T>, Task<(Custom<T>, Custom<T>)>> invoker,
             Custom<T> p1,
             Custom<T> p2)
