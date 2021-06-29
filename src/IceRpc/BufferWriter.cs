@@ -16,8 +16,8 @@ namespace IceRpc
     /// <summary>Writes data into a byte buffer using the Ice encoding.</summary>
     public sealed partial class BufferWriter
     {
-        /// <summary>Represents a position in the OutputStream's buffer. This position consists of the index of the
-        /// buffer in the vector and the offset into the buffer.</summary>
+        /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
+        /// buffer in the vector and the offset into that buffer.</summary>
         internal struct Position
         {
             /// <summary>Creates a new position from the buffer and offset values.</summary>
@@ -36,14 +36,14 @@ namespace IceRpc
             internal int Offset;
         }
 
-        /// <summary>The encoding used when writing to this stream.</summary>
+        /// <summary>The encoding used when writing to this buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; private set; }
 
         /// <summary>The number of bytes that the underlying buffer can hold without further allocation.</summary>
         internal int Capacity { get; private set; }
 
-        /// <summary>Determines the current size of the stream. This corresponds to the number of bytes already written
+        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written
         /// to the buffer.</summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
@@ -179,11 +179,11 @@ namespace IceRpc
         /// <param name="v">The ushort to write to the buffer.</param>
         public void WriteUShort(ushort v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes an int to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes an int to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="v">The int to write to the buffer.</param>
         public void WriteVarInt(int v) => WriteVarLong(v);
 
-        /// <summary>Writes a long to stream, using Ice's variable-size integer encoding, with the minimum number of
+        /// <summary>Writes a long to the buffer, using Ice's variable-size integer encoding, with the minimum number of
         /// bytes required by the encoding.</summary>
         /// <param name="v">The long to write to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
         public void WriteVarLong(long v)
@@ -196,11 +196,11 @@ namespace IceRpc
             WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        /// <summary>Writes a uint to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a uint to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="v">The uint to write to the buffer.</param>
         public void WriteVarUInt(uint v) => WriteVarULong(v);
 
-        /// <summary>Writes a ulong to stream, using Ice's variable-size integer encoding, with the minimum number of
+        /// <summary>Writes a ulong to the buffer, using Ice's variable-size integer encoding, with the minimum number of
         /// bytes required by the encoding.</summary>
         /// <param name="v">The ulong to write to the buffer. It must be in the range [0..2^62 - 1].</param>
         public void WriteVarULong(ulong v)
@@ -582,12 +582,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged int to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged int to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The int to write to the buffer.</param>
         public void WriteTaggedVarInt(int tag, int? v) => WriteTaggedVarLong(tag, v);
 
-        /// <summary>Writes a tagged long to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged long to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The long to write to the buffer.</param>
         public void WriteTaggedVarLong(int tag, long? v)
@@ -600,12 +600,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged uint to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged uint to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The uint to write to the buffer.</param>
         public void WriteTaggedVarUInt(int tag, uint? v) => WriteTaggedVarULong(tag, v);
 
-        /// <summary>Writes a tagged ulong to stream, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged ulong to the buffer, using Ice's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The ulong to write to the buffer.</param>
         public void WriteTaggedVarULong(int tag, ulong? v)
@@ -881,8 +881,7 @@ namespace IceRpc
 
         // Other methods
 
-        /// <summary>Writes a sequence of bits to the buffer, and returns this sequence backed by the stream's buffer.
-        /// </summary>
+        /// <summary>Writes a sequence of bits to the buffer, and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
         /// </returns>
@@ -927,7 +926,7 @@ namespace IceRpc
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
-        // Constructs an OutputStream
+        // Constructs a buffer writer
         internal BufferWriter(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             Encoding = encoding;
@@ -972,7 +971,7 @@ namespace IceRpc
             return _bufferVector;
         }
 
-        /// <summary>Writes a size on a fixed number of bytes at the given position of the stream.</summary>
+        /// <summary>Writes a size on a fixed number of bytes at the given position.</summary>
         /// <param name="size">The size to write.</param>
         /// <param name="pos">The position to write to.</param>
         /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
@@ -997,7 +996,7 @@ namespace IceRpc
             return pos;
         }
 
-        /// <summary>Writes a span of bytes. The stream capacity is expanded if required, the size and tail position are
+        /// <summary>Writes a span of bytes. The writer capacity is expanded if required, the size and tail position are
         /// increased according to the span length.</summary>
         /// <param name="span">The data to write as a span of bytes.</param>
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
@@ -1161,10 +1160,10 @@ namespace IceRpc
             return Distance(_bufferVector, start, _tail);
         }
 
-        /// <summary>Expands the stream to make room for more data. If the bytes remaining in the stream are not enough
-        /// to hold the given number of bytes, allocates a new byte array. The caller should then consume the new bytes
-        /// immediately; calling Expand repeatedly is not supported.</summary>
-        /// <param name="n">The number of bytes to accommodate in the stream.</param>
+        /// <summary>Expands the writer's buffer to make room for more data. If the bytes remaining in the buffer are
+        /// not enough to hold the given number of bytes, allocates a new byte array. The caller should then consume the
+        /// new bytes immediately; calling Expand repeatedly is not supported.</summary>
+        /// <param name="n">The number of bytes to accommodate in the buffer.</param>
         private void Expand(int n)
         {
             Debug.Assert(n > 0);
@@ -1177,7 +1176,7 @@ namespace IceRpc
 
                 if (_bufferVector.Length == 0)
                 {
-                    // First Expand for a new OutputStream constructed with no buffer.
+                    // First Expand for a new buffer writer constructed with no buffer.
                     Debug.Assert(_currentBuffer.Length == 0);
                     _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
                     _currentBuffer = buffer;
@@ -1214,7 +1213,7 @@ namespace IceRpc
         /// <returns>The minimum number of bytes.</returns>
         private int GetSizeLength(int size) => OldEncoding ? (size < 255 ? 1 : 5) : GetSizeLength20(size);
 
-        /// <summary>Writes a byte at a given position of the stream.</summary>
+        /// <summary>Writes a byte at a given position.</summary>
         /// <param name="v">The byte value to write.</param>
         /// <param name="pos">The position to write to.</param>
         private void RewriteByte(byte v, Position pos)
@@ -1234,7 +1233,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a size on 4 bytes at the given position of the stream.</summary>
+        /// <summary>Writes a size on 4 bytes at the given position.</summary>
         /// <param name="size">The size to write.</param>
         /// <param name="pos">The position to write to.</param>
         internal void RewriteFixedLengthSize11(int size, Position pos)
