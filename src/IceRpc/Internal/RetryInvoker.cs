@@ -170,18 +170,13 @@ namespace IceRpc.Internal
             }
         }
 
-        internal RetryInvoker(
-            int maxAttempts,
-            int bufferMaxSize,
-            int requestMaxSize,
-            ILoggerFactory? loggerFactory,
-            IInvoker next)
+        internal RetryInvoker(Interceptors.RetryOptions retryOptions, IInvoker next)
         {
-            _bufferMaxSize = bufferMaxSize;
-            _maxAttempts = maxAttempts;
-            _logger = (loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
+            _bufferMaxSize = retryOptions.BufferMaxSize;
+            _maxAttempts = retryOptions.MaxAttempts;
+            _logger = (retryOptions.LoggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
             _next = next;
-            _requestMaxSize = requestMaxSize;
+            _requestMaxSize = retryOptions.RequestMaxSize;
         }
 
         private void DecBufferSize(int size)

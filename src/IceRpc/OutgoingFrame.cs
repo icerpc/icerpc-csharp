@@ -12,7 +12,7 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of 
+        /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of
         /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
         public Dictionary<int, Action<OutputStream>> Fields
@@ -84,7 +84,7 @@ namespace IceRpc
         /// calls.</summary>
         internal abstract IncomingFrame ToIncoming();
 
-        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and 
+        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
         internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
         {

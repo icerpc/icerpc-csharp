@@ -68,7 +68,7 @@ namespace IceRpc
         /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
         /// methods.</summary>
         /// <param name="factory">The proxy factory.</param>
-        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the 
+        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
         /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
         /// <param name="path">The path of the proxy. If null, the path is set to
         /// <see cref="ProxyFactory{T}.DefaultPath"/>.</param>

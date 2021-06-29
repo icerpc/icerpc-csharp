@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A factory for the endpoints of a specific transport. This is a main entry point for a transport 
+    /// <summary>A factory for the endpoints of a specific transport. This is a main entry point for a transport
     /// registered with the IceRPC runtime.</summary>
     /// <seealso cref="TransportRegistry"/>
     public interface IEndpointFactory

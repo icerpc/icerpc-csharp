@@ -15,7 +15,6 @@ namespace IceRpc.Transports.Internal
                 new EventId((int)TlsEvent.TlsAuthenticationSucceeded, nameof(TlsEvent.TlsAuthenticationSucceeded)),
                 "Tls authentication succeeded ({TlsConnectionInfo})");
 
-
         // TODO: log SslStream properties
         [LoggerMessage(
             EventId = (int)TlsEvent.TlsAuthenticationFailed,

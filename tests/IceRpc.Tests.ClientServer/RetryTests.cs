@@ -150,7 +150,9 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
                 protocol,
-                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts), Interceptors.Binder(pool)),
+                (pipeline, pool) => pipeline.Use(
+                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
+                    Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     // Idempotent operations can always be retried, the operation must succeed if the failed attempts
@@ -221,7 +223,9 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
                 protocol,
-                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts), Interceptors.Binder(pool)),
+                (pipeline, pool) => pipeline.Use(
+                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
+                    Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     if (failedAttempts > 0 && killConnection)
@@ -366,8 +370,13 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
-                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts: 5, bufferMaxSize: 2048),
-                                                 Interceptors.Binder(pool)),
+                (pipeline, pool) => pipeline.Use(
+                    Interceptors.CustomRetry(new Interceptors.RetryOptions()
+                        {
+                            MaxAttempts = 5,
+                            BufferMaxSize = 2048
+                        }),
+                    Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
@@ -404,8 +413,14 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
         {
             await WithRetryServiceAsync(
-                (pipeline, pool) => pipeline.Use(Interceptors.Retry(5, requestMaxSize: maxSize),
-                                                 Interceptors.Binder(pool)),
+                (pipeline, pool) => pipeline.Use(
+                    Interceptors.CustomRetry(
+                        new Interceptors.RetryOptions()
+                        {
+                            MaxAttempts = 5,
+                            RequestMaxSize = maxSize
+                        }),
+                        Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
                     // Check that only requests with size smaller than RetryRequestMaxSize are retried.
@@ -427,7 +442,7 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.Use(
                 Interceptors.Logger(Runtime.DefaultLoggerFactory),
-                Interceptors.Retry(5, loggerFactory: Runtime.DefaultLoggerFactory),
+                Interceptors.Retry,
                 Interceptors.Binder(pool));
             return pipeline;
         }

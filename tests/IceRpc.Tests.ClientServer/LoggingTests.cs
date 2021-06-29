@@ -19,8 +19,7 @@ namespace IceRpc.Tests.ClientServer
     public class LoggingTests : ClientServerBaseTest
     {
         /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
-        /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
-        // and a last entry for the request exception.</summary>
+        /// lower or equal to Debug, there should be 5 log entries one for each attempt.</summary>
         [Test]
         public async Task Logging_ConnectionRetries()
         {
@@ -40,9 +39,14 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
-                         Interceptors.Binder(pool),
-                         Interceptors.Logger(loggerFactory));
+            pipeline.Use(
+                Interceptors.CustomRetry(new Interceptors.RetryOptions()
+                {
+                    MaxAttempts = 5,
+                    LoggerFactory = loggerFactory
+                }),
+                Interceptors.Binder(pool),
+                Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
@@ -97,7 +101,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
+            pipeline.Use(Interceptors.CustomRetry(new Interceptors.RetryOptions { LoggerFactory = loggerFactory}),
                          Interceptors.Binder(pool),
                          Interceptors.Logger(loggerFactory));
 
