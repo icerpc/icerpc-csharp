@@ -2214,7 +2214,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "proxy,";
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
                 _out << nl;
-                writeOutgoingRequestWriter(operation);
+                writeOutgoingRequestEncoder(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2253,7 +2253,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "payloadEncoding, ";
                 _out << nl;
-                writeIncomingResponseReader(operation);
+                writeIncomingResponseDecoder(operation);
                 _out << ",";
                 _out << nl << "connection,";
                 _out << nl << "invoker);";
@@ -2510,7 +2510,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 }
 
 void
-Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeOutgoingRequestEncoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -2521,10 +2521,10 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
         params.pop_back();
     }
 
-    // When the operation's parameter is a T? where T is an interface or a class, there is a built-in writer, so
-    // defaultWriter is true.
-    bool defaultWriter = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
-    if (defaultWriter)
+    // When the operation's parameter is a T? where T is an interface or a class, there is a built-in encoder, so
+    // defaultEncoder is true.
+    bool defaultEncoder = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    if (defaultEncoder)
     {
         _out << encoder(params.front()->type(), ns, true, true);
     }
@@ -2540,7 +2540,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
 }
 
 void
-Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeIncomingResponseDecoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -2548,10 +2548,10 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     auto returnType = operation->returnType();
     assert(!returnType.empty() && (returnType.size() > 1 || !returnType.back()->stream()));
 
-    bool defaultReader = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
+    bool defaultDecoder = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
         !returnType.front()->tagged();
 
-    if (defaultReader)
+    if (defaultDecoder)
     {
         _out << decoder(returnType.front()->type(), ns);
     }
@@ -2654,7 +2654,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "dispatch,";
                 _out << nl;
-                writeIncomingRequestReader(operation);
+                writeIncomingRequestDecoder(operation);
                 _out << ");";
                 _out.dec();
                 _out.dec();
@@ -2721,7 +2721,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "dispatch,";
                 _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValueTuple,");
                 _out << nl;
-                writeOutgoingResponseWriter(operation);
+                writeOutgoingResponseEncoder(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2850,7 +2850,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
         _out << nl << toTuple(returnType) << ",";
         _out << nl;
-        writeOutgoingResponseWriter(operation);
+        writeOutgoingResponseEncoder(operation);
         string classFormat = opFormatTypeToString(operation);
         if (classFormat != "default")
         {
@@ -3043,7 +3043,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeIncomingRequestDecoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -3051,9 +3051,9 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
     auto params = operation->params();
     assert(!params.empty() && (params.size() > 1 || !params.back()->stream()));
 
-    bool defaultReader = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    bool defaultDecoder = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
 
-    if (defaultReader)
+    if (defaultDecoder)
     {
         _out << decoder(params.front()->type(), ns);
     }
@@ -3067,7 +3067,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -3078,10 +3078,10 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
         returns.pop_back();
     }
 
-    // When the operation returns a T? where T is an interface or a class, there is a built-in writer, so defaultWriter
-    // is true.
-    bool defaultWriter = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
-    if (defaultWriter)
+    // When the operation returns a T? where T is an interface or a class, there is a built-in encoder, so
+    // defaultEncoder is true.
+    bool defaultEncoder = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
+    if (defaultEncoder)
     {
         _out << encoder(returns.front()->type(), ns, true, true);
     }
