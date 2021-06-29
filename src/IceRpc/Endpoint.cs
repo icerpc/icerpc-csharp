@@ -96,9 +96,6 @@ namespace IceRpc
         /// <summary>The name of the endpoint's transport in lowercase.</summary>
         public virtual string TransportName => Transport.ToString().ToLowerInvariant();
 
-        /// <summary>Returns true when Host is a DNS name.</summary>
-        protected internal virtual bool HasDnsHost => false;
-
         /// <summary>Indicates whether or not this endpoint has options with non default values that ToString prints.
         /// Always true for ice1 endpoints.</summary>
         protected internal virtual bool HasOptions => Protocol == Protocol.Ice1;
@@ -132,9 +129,7 @@ namespace IceRpc
 
         /// <inheritdoc/>
         public virtual bool Equals(Endpoint? other) =>
-            other is Endpoint endpoint &&
-                Protocol == endpoint.Protocol &&
-                Data == endpoint.Data;
+            other is Endpoint endpoint && Protocol == endpoint.Protocol && Data == endpoint.Data;
 
         /// <inheritdoc/>
         public override int GetHashCode() => HashCode.Combine(Protocol, Data);
@@ -210,55 +205,6 @@ namespace IceRpc
         {
             Data = data;
             Protocol = protocol;
-        }
-
-        /// <summary>Parses host and port from an ice1 endpoint string.</summary>
-        private protected static (string Host, ushort Port) ParseHostAndPort(
-            Dictionary<string, string?> options,
-            string endpointString)
-        {
-            string host;
-            ushort port = 0;
-
-            if (options.TryGetValue("-h", out string? argument))
-            {
-                host = argument ??
-                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
-
-                if (host == "*")
-                {
-                    // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
-                    // ::0 just bind to the IPv4 addresses in this case?
-                    host = "::0";
-                }
-
-                options.Remove("-h");
-            }
-            else
-            {
-                throw new FormatException($"no -h option in endpoint '{endpointString}'");
-            }
-
-            if (options.TryGetValue("-p", out argument))
-            {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
-                }
-
-                try
-                {
-                    port = ushort.Parse(argument, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException ex)
-                {
-                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
-                }
-                options.Remove("-p");
-            }
-            // else port remains 0
-
-            return (host, port);
         }
     }
 

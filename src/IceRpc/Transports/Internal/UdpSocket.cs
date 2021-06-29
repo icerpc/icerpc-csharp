@@ -10,20 +10,14 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
     internal sealed class UdpSocket : NetworkSocket
     {
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new UdpConnectionInformation(_socket)
-            {
-                MulticastEndpoint = _multicastEndpoint
-            };
-
         public override int DatagramMaxReceiveSize { get; }
-
-        internal override Socket? Socket => _socket;
+        protected internal override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
         // to get the maximum payload.
@@ -31,7 +25,6 @@ namespace IceRpc.Transports.Internal
         private const int UdpOverhead = 20 + 8;
 
         private readonly EndPoint? _addr;
-        private UdpConnectionInformation? _connectionInformation;
         private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly Socket _socket;
@@ -125,6 +118,17 @@ namespace IceRpc.Transports.Internal
         }
 
         protected override void Dispose(bool disposing) => _socket.Dispose();
+
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            if (base.PrintMembers(builder))
+            {
+                builder.Append(", ");
+            }
+            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
+            return true;
+        }
 
         // Only for use by UdpEndpoint.
         internal UdpSocket(Socket socket, ILogger logger, bool isServer, EndPoint? addr)

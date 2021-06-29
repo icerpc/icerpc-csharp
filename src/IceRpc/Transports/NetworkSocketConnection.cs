@@ -4,6 +4,7 @@ using IceRpc.Transports.Internal;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -24,14 +25,9 @@ namespace IceRpc.Transports
                 new Ice1Connection(networkSocket, endpoint, options) :
                 new SlicConnection(networkSocket, endpoint, options);
 
-        /// <inheritdoc/>
-        public override ConnectionInformation ConnectionInformation => NetworkSocket.ConnectionInformation;
-
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 
-        /// <inheritdoc/>
-        public override string ToString() => $"{base.ToString()} ({NetworkSocket})";
 
         /// <inheritdoc/>
         public override async ValueTask AcceptAsync(
@@ -58,18 +54,6 @@ namespace IceRpc.Transports
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
 
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
-        {
-            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
-            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
-            if (disposing)
-            {
-                NetworkSocket.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
         /// <summary>Constructs a connection.</summary>
         /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and the
         /// resulting connection will be likewise a client or server connection.</param>
@@ -81,5 +65,18 @@ namespace IceRpc.Transports
             Endpoint endpoint,
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
+
+
+         /// <inheritdoc/>
+        protected override void Dispose(bool disposing)
+        {
+            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
+            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
+            if (disposing)
+            {
+                NetworkSocket.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }
