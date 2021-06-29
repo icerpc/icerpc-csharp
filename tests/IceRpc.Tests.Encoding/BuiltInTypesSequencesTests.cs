@@ -15,15 +15,15 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly IceRpc.Encoding _encoding;
         private readonly byte[] _buffer;
-        private readonly OutputStream _ostr;
-        private readonly InputStream _istr;
+        private readonly BufferWriter _ostr;
+        private readonly BufferReader _istr;
 
         public BuiltInTypesSequencesTests(byte encodingMajor, byte encodingMinor)
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[1024 * 1024];
-            _ostr = new OutputStream(_encoding, _buffer);
-            _istr = new InputStream(_buffer, _encoding);
+            _ostr = new BufferWriter(_encoding, _buffer);
+            _istr = new BufferReader(_buffer, _encoding);
         }
 
         [TestCase(0)]
@@ -115,8 +115,8 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_String(int size)
         {
             IEnumerable<string> p1 = Enumerable.Range(0, size).Select(i => $"string-{i}");
-            _ostr.WriteSequence(p1, OutputStream.IceWriterFromString);
-            IEnumerable<string> r1 = _istr.ReadSequence(1, InputStream.IceReaderIntoString);
+            _ostr.WriteSequence(p1, BufferWriter.IceWriterFromString);
+            IEnumerable<string> r1 = _istr.ReadSequence(1, BufferReader.IceReaderIntoString);
 
             CollectionAssert.AreEqual(p1, r1);
             Assert.AreEqual(_istr.Pos, _ostr.Tail.Offset);

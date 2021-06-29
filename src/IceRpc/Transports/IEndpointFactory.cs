@@ -27,7 +27,7 @@ namespace IceRpc.Transports
         /// <summary>Reads an endpoint from the input stream.</summary>
         /// <param name="istr">The input stream.</param>
         /// <returns>The new endpoint.</returns>
-        Endpoint CreateIce1Endpoint(InputStream istr);
+        Endpoint CreateIce1Endpoint(BufferReader istr);
 
         /// <summary>Creates an endpoint from a pre-parsed endpoint string.</summary>
         /// <param name="options">The options parsed from the endpoint string.</param>

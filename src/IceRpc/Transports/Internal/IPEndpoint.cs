@@ -36,7 +36,7 @@ namespace IceRpc.Transports.Internal
 
         private IPAddress? _address;
 
-        protected internal override void WriteOptions11(OutputStream ostr)
+        protected internal override void WriteOptions11(BufferWriter ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             ostr.WriteString(Host);

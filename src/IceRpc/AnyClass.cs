@@ -41,18 +41,18 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Unmarshals the current object by reading its data members from the <see cref="InputStream"/>.
+        /// <summary>Unmarshals the current object by reading its data members from the <see cref="BufferReader"/>.
         /// </summary>
         /// <param name="istr">The stream to read from.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(InputStream istr, bool firstSlice);
-        internal void Read(InputStream istr) => IceRead(istr, true);
+        protected abstract void IceRead(BufferReader istr, bool firstSlice);
+        internal void Read(BufferReader istr) => IceRead(istr, true);
 
-        /// <summary>Marshals the current object by writing its data to from the <see cref="OutputStream"/>.</summary>
+        /// <summary>Marshals the current object by writing its data to from the <see cref="BufferWriter"/>.</summary>
         /// <param name="ostr">The stream to write to.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceWrite(OutputStream ostr, bool firstSlice);
-        internal void Write(OutputStream ostr) => IceWrite(ostr, true);
+        protected abstract void IceWrite(BufferWriter ostr, bool firstSlice);
+        internal void Write(BufferWriter ostr) => IceWrite(ostr, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>

@@ -108,11 +108,11 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var ostr = new OutputStream(Encoding.V11);
+            var ostr = new BufferWriter(Encoding.V11);
             ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
             ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             ostr.WriteByte(0); // compression status
-            OutputStream.Position start = ostr.StartFixedLengthSize();
+            BufferWriter.Position start = ostr.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.

@@ -9,11 +9,11 @@ namespace IceRpc
     /// <summary>Extension class to read fields.</summary>
     public static class Fields
     {
-        /// <summary>Reads fields from an <see cref="InputStream"/>.</summary>
+        /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
         /// <param name="istr">The input stream.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this InputStream istr)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader istr)
         {
             Debug.Assert(istr.Encoding == Encoding.V20);
 
@@ -48,7 +48,7 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var istr = new InputStream(value, Encoding.V20, connection, invoker);
+            var istr = new BufferReader(value, Encoding.V20, connection, invoker);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: false);
             return result;

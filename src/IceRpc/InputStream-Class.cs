@@ -17,7 +17,7 @@ namespace IceRpc
     internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
 
     // This partial class provides the class/exception unmarshaling logic.
-    public sealed partial class InputStream
+    public sealed partial class BufferReader
     {
         /// <summary>Tells the InputStream the end of a class or exception slice was reached. This is an Ice-internal
         /// method marked public because it's called by the generated code.</summary>

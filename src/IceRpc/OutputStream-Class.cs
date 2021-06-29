@@ -10,7 +10,7 @@ namespace IceRpc
 {
     // This partial class provides the class/exception marshaling logic.
 
-    public sealed partial class OutputStream
+    public sealed partial class BufferWriter
     {
         /// <summary>Marks the end of a slice for a class instance or user exception. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>

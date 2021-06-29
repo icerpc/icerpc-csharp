@@ -26,7 +26,7 @@ namespace IceRpc
                 }
                 payload = payload[1..];
             }
-            new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new BufferReader(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
@@ -47,7 +47,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new BufferReader(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -65,7 +65,7 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
+            var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -96,7 +96,7 @@ namespace IceRpc
             OutputStreamValueWriter<T> writer,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
+            var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -121,7 +121,7 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
+            var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -146,7 +146,7 @@ namespace IceRpc
             OutputStreamWriter<T> writer,
             FormatType classFormat = default)
         {
-            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
+            var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 ostr.Write(CompressionFormat.NotCompressed);
@@ -193,7 +193,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            var istr = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -227,7 +227,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            var istr = new BufferReader(payload, payloadEncoding, connection, invoker);
             T result = reader(istr);
             istr.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -255,10 +255,10 @@ namespace IceRpc
                 };
             }
 
-            OutputStream ostr;
+            BufferWriter ostr;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                ostr = new OutputStream(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                ostr = new BufferWriter(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
@@ -282,7 +282,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding);
+                ostr = new BufferWriter(Ice1Definitions.Encoding);
                 ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
@@ -309,7 +309,7 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            var istr = new BufferReader(payload, payloadEncoding, connection, invoker);
 
             if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
             {

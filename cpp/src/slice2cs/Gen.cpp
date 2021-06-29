@@ -1380,7 +1380,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     }
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceRpc.InputStream? istr)";
+    _out << nl << "public " << name << "(IceRpc.BufferReader? istr)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
@@ -1418,7 +1418,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.OutputStream ostr, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter ostr, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1458,7 +1458,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceRead(IceRpc.InputStream istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader istr, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1659,7 +1659,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceRead(IceRpc.InputStream istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader istr, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1680,7 +1680,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << eb;
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.OutputStream ostr, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter ostr, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1788,9 +1788,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
-    _out << nl << "/// <param name=\"istr\">The <see cref=\"IceRpc.InputStream\"/> being used to unmarshal the "
+    _out << nl << "/// <param name=\"istr\">The <see cref=\"IceRpc.BufferReader\"/> being used to unmarshal the "
          << "instance.</param>";
-    _out << nl << "public " << name << "(IceRpc.InputStream istr)";
+    _out << nl << "public " << name << "(IceRpc.BufferReader istr)";
     _out << sb;
 
     writeUnmarshalDataMembers(dataMembers, ns, 0);
@@ -1916,9 +1916,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Marshals the struct by writing its fields to the "
-        << "<see cref=\"IceRpc.OutputStream\"/>.</summary>";
+        << "<see cref=\"IceRpc.BufferWriter\"/>.</summary>";
     _out << nl << "/// <param name=\"ostr\">The stream to write to.</param>";
-    _out << nl << "public readonly void IceWrite(IceRpc.OutputStream ostr)";
+    _out << nl << "public readonly void IceWrite(IceRpc.BufferWriter ostr)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
@@ -2039,7 +2039,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.InputStream istr) =>";
+    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.BufferReader istr) =>";
     _out.inc();
     _out << nl << "As" << p->name() << "(istr.";
     if (p->underlying())
@@ -2054,7 +2054,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "public static void Write(this IceRpc.OutputStream ostr, " << name << " value) =>";
+    _out << nl << "public static void Write(this IceRpc.BufferWriter ostr, " << name << " value) =>";
     _out.inc();
     if (p->underlying())
     {
@@ -2530,7 +2530,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
     }
     else
     {
-        _out << "(IceRpc.OutputStream ostr, ";
+        _out << "(IceRpc.BufferWriter ostr, ";
         string inValue = params.size() > 1 ? "in " : "";
         _out << inValue << toTupleType(params, true) << " value) =>";
         _out << sb;
@@ -3087,7 +3087,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
     }
     else
     {
-        _out << "(IceRpc.OutputStream ostr, ";
+        _out << "(IceRpc.BufferWriter ostr, ";
         _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, true) << " value";
         _out << ") =>";
         _out << sb;

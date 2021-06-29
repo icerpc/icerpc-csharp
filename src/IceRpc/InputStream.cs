@@ -16,10 +16,10 @@ namespace IceRpc
     /// <summary>A delegate that reads a value from an input stream.</summary>
     /// <typeparam name="T">The type of the value to read.</typeparam>
     /// <param name="istr">The input stream to read from.</param>
-    public delegate T InputStreamReader<T>(InputStream istr);
+    public delegate T InputStreamReader<T>(BufferReader istr);
 
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
-    public sealed partial class InputStream
+    public sealed partial class BufferReader
     {
         // Cached InputStreamReader static objects used by the generated code
 
@@ -957,7 +957,7 @@ namespace IceRpc
         /// null <see cref="Runtime.TypeIdRemoteExceptionFactoryDictionary"/> will be used.</param>
         /// <param name="compactTypeIdClassFactories">Optional dictionary used to map Slice compact type Ids to
         /// classes, if null <see cref="Runtime.CompactTypeIdClassFactoryDictionary"/> will be used.</param>
-        internal InputStream(
+        internal BufferReader(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             Connection? connection = null,
@@ -1409,7 +1409,7 @@ namespace IceRpc
 
             object? IEnumerator.Current => Current;
             public bool IsReadOnly => true;
-            protected readonly InputStream InputStream;
+            protected readonly BufferReader InputStream;
             protected int Pos;
             private T _current;
             private bool _enumeratorRetrieved;
@@ -1450,7 +1450,7 @@ namespace IceRpc
             // Disable this warning as the _current field is never read before it is initialized in MoveNext. Declaring
             // this field as nullable is not an option for a generic T that can be used with reference and value types.
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-            protected CollectionBase(InputStream istr, int minElementSize)
+            protected CollectionBase(BufferReader istr, int minElementSize)
 #pragma warning restore CS8618
             {
                 Count = istr.ReadAndCheckSeqSize(minElementSize);
@@ -1466,7 +1466,7 @@ namespace IceRpc
         {
             private readonly InputStreamReader<T> _reader;
 
-            internal Collection(InputStream istr, int minElementSize, InputStreamReader<T> reader)
+            internal Collection(BufferReader istr, int minElementSize, InputStreamReader<T> reader)
                 : base(istr, minElementSize) => _reader = reader;
 
             public override bool MoveNext()
@@ -1491,7 +1491,7 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly InputStreamReader<T> _reader;
 
-            internal NullableCollection(InputStream istr, InputStreamReader<T> reader)
+            internal NullableCollection(BufferReader istr, InputStreamReader<T> reader)
                 : base(istr, 0)
             {
                 _bitSequenceMemory = istr.ReadBitSequenceMemory(Count);
@@ -1519,7 +1519,7 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly InputStreamReader<T> _reader;
 
-            internal NullableValueCollection(InputStream istr, InputStreamReader<T> reader)
+            internal NullableValueCollection(BufferReader istr, InputStreamReader<T> reader)
                 : base(istr, 0)
             {
                 _bitSequenceMemory = istr.ReadBitSequenceMemory(Count);

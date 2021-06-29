@@ -683,7 +683,7 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.OutputStream.IceWriterFrom" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.BufferWriter.IceWriterFrom" << builtinSuffixTable[builtin->kind()];
     }
     else if (EnumPtr::dynamicCast(type))
     {
@@ -826,7 +826,7 @@ Slice::CsGenerator::inputStreamReader(const TypePtr& type, const string& scope)
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.InputStream.IceReaderInto" << builtinSuffixTable[builtin->kind()];
+        out << "IceRpc.BufferReader.IceReaderInto" << builtinSuffixTable[builtin->kind()];
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {

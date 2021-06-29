@@ -191,7 +191,7 @@ namespace IceRpc.Tests.CodeGeneration
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
                 _prx,
                 (15, "test"),
-                (OutputStream ostr, in (int n, string s) value) =>
+                (BufferWriter ostr, in (int n, string s) value) =>
                 {
                     ostr.WriteTaggedInt(1, value.n);
                     ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server

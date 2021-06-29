@@ -334,7 +334,7 @@ namespace IceRpc
         /// <returns>The non-null proxy read from the stream.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
-            InputStream istr) where T : class, IServicePrx =>
+            BufferReader istr) where T : class, IServicePrx =>
             ReadNullable(proxyFactory, istr) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
@@ -345,7 +345,7 @@ namespace IceRpc
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
-            InputStream istr) where T : class, IServicePrx
+            BufferReader istr) where T : class, IServicePrx
         {
             if (istr.Encoding == Encoding.V11)
             {
@@ -552,7 +552,7 @@ namespace IceRpc
         /// <returns>The proxy read from the stream, or null.</returns>
         public static T? ReadTagged<T>(
             this ProxyFactory<T> proxyFactory,
-            InputStream istr,
+            BufferReader istr,
             int tag)
             where T : class, IServicePrx =>
             istr.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, istr) : null;

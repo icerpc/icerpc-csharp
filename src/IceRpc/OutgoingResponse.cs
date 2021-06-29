@@ -158,13 +158,13 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(OutputStream ostr)
+        internal override void WriteHeader(BufferWriter ostr)
         {
             Debug.Assert(ostr.Encoding == Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice2)
             {
-                OutputStream.Position startPos = ostr.StartFixedLengthSize(2);
+                BufferWriter.Position startPos = ostr.StartFixedLengthSize(2);
                 WriteFields(ostr);
                 ostr.Write(ResultType);
                 PayloadEncoding.IceWrite(ostr);

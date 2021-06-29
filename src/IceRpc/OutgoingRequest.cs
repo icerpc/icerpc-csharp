@@ -138,7 +138,7 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(OutputStream ostr)
+        internal override void WriteHeader(BufferWriter ostr)
         {
             Debug.Assert(ostr.Encoding == Protocol.GetEncoding());
 
@@ -146,7 +146,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice2)
             {
-                OutputStream.Position start = ostr.StartFixedLengthSize(2);
+                BufferWriter.Position start = ostr.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(
@@ -164,8 +164,8 @@ namespace IceRpc
                     // Writes or overrides context
                     Fields[(int)Ice2FieldKey.Context] =
                         ostr => ostr.WriteDictionary(context,
-                                                     OutputStream.IceWriterFromString,
-                                                     OutputStream.IceWriterFromString);
+                                                     BufferWriter.IceWriterFromString,
+                                                     BufferWriter.IceWriterFromString);
                 }
                 // else context remains empty (not set)
 

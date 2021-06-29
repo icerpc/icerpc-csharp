@@ -268,7 +268,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new InputStream(data, Ice2Definitions.Encoding));
+                var goAwayFrame = new Ice2GoAwayBody(new BufferReader(data, Ice2Definitions.Encoding));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -307,7 +307,7 @@ namespace IceRpc.Transports
             else
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var istr = new InputStream(data, Ice2Definitions.Encoding);
+                var istr = new BufferReader(data, Ice2Definitions.Encoding);
                 int dictionarySize = istr.ReadSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
@@ -369,13 +369,13 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
+                var ostr = new BufferWriter(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     ostr.WriteByteSpan(TransportHeader.Span);
                 }
                 ostr.WriteByte((byte)Ice2FrameType.GoAway);
-                OutputStream.Position sizePos = ostr.StartFixedLengthSize();
+                BufferWriter.Position sizePos = ostr.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
                 goAwayFrameBody.IceWrite(ostr);
@@ -392,7 +392,7 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
 
             byte[] buffer = new byte[1024];
-            var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
+            var ostr = new BufferWriter(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
                 ostr.WriteByteSpan(TransportHeader.Span);
@@ -413,14 +413,14 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var ostr = new OutputStream(Ice2Definitions.Encoding, buffer);
+                var ostr = new BufferWriter(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     ostr.WriteByteSpan(TransportHeader.Span);
                 }
                 ostr.WriteByte((byte)Ice2FrameType.Initialize);
-                OutputStream.Position sizePos = ostr.StartFixedLengthSize();
-                OutputStream.Position pos = ostr.Tail;
+                BufferWriter.Position sizePos = ostr.StartFixedLengthSize();
+                BufferWriter.Position pos = ostr.Tail;
 
                 // Encode the transport parameters as Fields
                 ostr.WriteSize(1);
@@ -429,7 +429,7 @@ namespace IceRpc.Transports
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 ostr.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
-                                OutputStream.IceWriterFromVarULong);
+                                BufferWriter.IceWriterFromVarULong);
 
                 ostr.EndFixedLengthSize(sizePos);
 
@@ -505,11 +505,11 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var ostr = new OutputStream(Encoding.V20);
+            var ostr = new BufferWriter(Encoding.V20);
             ostr.WriteByteSpan(TransportHeader.Span);
 
             ostr.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            OutputStream.Position start = ostr.StartFixedLengthSize(4);
+            BufferWriter.Position start = ostr.StartFixedLengthSize(4);
             frame.WriteHeader(ostr);
 
             int frameSize = ostr.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;

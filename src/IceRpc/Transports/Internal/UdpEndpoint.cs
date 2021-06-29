@@ -222,7 +222,7 @@ namespace IceRpc.Transports.Internal
 
         protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
 
-        protected internal override void WriteOptions11(OutputStream ostr)
+        protected internal override void WriteOptions11(BufferWriter ostr)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             base.WriteOptions11(ostr);
@@ -416,7 +416,7 @@ namespace IceRpc.Transports.Internal
             return new UdpEndpoint(data);
         }
 
-        public Endpoint CreateIce1Endpoint(InputStream istr) =>
+        public Endpoint CreateIce1Endpoint(BufferReader istr) =>
             // This is correct in C# since arguments are evaluated left-to-right.
             new UdpEndpoint(new EndpointData(Transport,
                                              host: istr.ReadString(),

@@ -36,7 +36,7 @@ namespace IceRpc
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
-                Payload.FromSingleArg(proxy, arg, OutputStream.IceWriterFromString);
+                Payload.FromSingleArg(proxy, arg, BufferWriter.IceWriterFromString);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
@@ -51,7 +51,7 @@ namespace IceRpc
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
-                payload.ToReturnValue(payloadEncoding, InputStream.IceReaderIntoString, connection, invoker);
+                payload.ToReturnValue(payloadEncoding, BufferReader.IceReaderIntoString, connection, invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> reader for the return type of operation ice_ids.
             /// </summary>
@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      istr => istr.ReadArray(minElementSize: 1, InputStream.IceReaderIntoString),
+                                      istr => istr.ReadArray(minElementSize: 1, BufferReader.IceReaderIntoString),
                                       connection,
                                       invoker);
 
@@ -75,7 +75,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      InputStream.IceReaderIntoBool,
+                                      BufferReader.IceReaderIntoBool,
                                       connection,
                                       invoker);
         }
@@ -270,7 +270,7 @@ namespace IceRpc
         /// <summary>Marshals the proxy into an OutputStream.</summary>
         /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceWrite(OutputStream ostr);
+        public void IceWrite(BufferWriter ostr);
 
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>

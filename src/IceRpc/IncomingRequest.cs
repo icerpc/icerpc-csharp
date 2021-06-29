@@ -71,7 +71,7 @@ namespace IceRpc
         internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
-            var istr = new InputStream(data, Protocol.GetEncoding());
+            var istr = new BufferReader(data, Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice1)
             {
@@ -139,8 +139,8 @@ namespace IceRpc
                         Value = value.ReadFieldValue(istr => istr.ReadDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
-                            keyReader: InputStream.IceReaderIntoString,
-                            valueReader: InputStream.IceReaderIntoString))
+                            keyReader: BufferReader.IceReaderIntoString,
+                            valueReader: BufferReader.IceReaderIntoString))
                     });
                 }
             }
