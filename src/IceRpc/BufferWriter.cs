@@ -25,7 +25,7 @@ namespace IceRpc
     /// <typeparam name="T">The type of the value to write.</typeparam>
     /// <param name="ostr">The buffer writer to write to.</param>
     /// <param name="value">The value to write to the stream.</param>
-    public delegate void OutputStreamWriter<in T>(BufferWriter ostr, T value);
+    public delegate void Encoder<in T>(BufferWriter ostr, T value);
 
     /// <summary>A delegate that writes a value passed as in-reference to a buffer writer. This value typically
     /// corresponds to the argument tuple or return value tuple of an operation.</summary>
@@ -57,81 +57,81 @@ namespace IceRpc
             internal int Offset;
         }
 
-        // Cached OutputStreamWriter static objects used by the generated code
+        // Cached Encoder static objects used by the generated code
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>bool</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>bool</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<bool> IceWriterFromBool =
+        public static readonly Encoder<bool> IceWriterFromBool =
             (ostr, value) => ostr.WriteBool(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>byte</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>byte</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<byte> IceWriterFromByte =
+        public static readonly Encoder<byte> IceWriterFromByte =
             (ostr, value) => ostr.WriteByte(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>double</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>double</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<double> IceWriterFromDouble =
+        public static readonly Encoder<double> IceWriterFromDouble =
             (ostr, value) => ostr.WriteDouble(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>float</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>float</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<float> IceWriterFromFloat =
+        public static readonly Encoder<float> IceWriterFromFloat =
             (ostr, value) => ostr.WriteFloat(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>int</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>int</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<int> IceWriterFromInt =
+        public static readonly Encoder<int> IceWriterFromInt =
             (ostr, value) => ostr.WriteInt(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>long</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>long</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<long> IceWriterFromLong =
+        public static readonly Encoder<long> IceWriterFromLong =
             (ostr, value) => ostr.WriteLong(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>short</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>short</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<short> IceWriterFromShort =
+        public static readonly Encoder<short> IceWriterFromShort =
             (ostr, value) => ostr.WriteShort(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>string</c> instances.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>string</c> instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<string> IceWriterFromString =
+        public static readonly Encoder<string> IceWriterFromString =
             (ostr, value) => ostr.WriteString(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>uint</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>uint</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<uint> IceWriterFromUInt =
+        public static readonly Encoder<uint> IceWriterFromUInt =
             (ostr, value) => ostr.WriteUInt(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>ulong</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>ulong</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<ulong> IceWriterFromULong =
+        public static readonly Encoder<ulong> IceWriterFromULong =
             (ostr, value) => ostr.WriteULong(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write <c>ushort</c> values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write <c>ushort</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<ushort> IceWriterFromUShort =
+        public static readonly Encoder<ushort> IceWriterFromUShort =
             (ostr, value) => ostr.WriteUShort(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write var int values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write var int values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<int> IceWriterFromVarInt =
+        public static readonly Encoder<int> IceWriterFromVarInt =
             (ostr, value) => ostr.WriteVarInt(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write var long values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write var long values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<long> IceWriterFromVarLong =
+        public static readonly Encoder<long> IceWriterFromVarLong =
             (ostr, value) => ostr.WriteVarLong(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write var uint values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write var uint values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<uint> IceWriterFromVarUInt =
+        public static readonly Encoder<uint> IceWriterFromVarUInt =
             (ostr, value) => ostr.WriteVarUInt(value);
 
-        /// <summary>A <see cref="OutputStreamWriter{T}"/> used to write var ulong values.</summary>
+        /// <summary>A <see cref="Encoder{T}"/> used to write var ulong values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<ulong> IceWriterFromVarULong =
+        public static readonly Encoder<ulong> IceWriterFromVarULong =
             (ostr, value) => ostr.WriteVarULong(value);
 
         /// <summary>The encoding used when writing to this stream.</summary>
@@ -323,8 +323,8 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each value to the stream.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
         {
             WriteSize(v.Count());
@@ -344,8 +344,8 @@ namespace IceRpc
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
             where TValue : class
         {
@@ -382,8 +382,8 @@ namespace IceRpc
         /// <param name="valueWriter">The delegate that writes each non-null value to the stream.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
             where TValue : struct
         {
@@ -466,7 +466,7 @@ namespace IceRpc
         /// <summary>Writes a sequence to the stream.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, OutputStreamWriter<T> writer)
+        public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> writer)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
@@ -479,7 +479,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="writer">The delegate that writes each non-null element to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, OutputStreamWriter<T> writer)
+        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> writer)
             where T : class
         {
             if (withBitSequence)
@@ -510,7 +510,7 @@ namespace IceRpc
         /// <summary>Writes a sequence of nullable values to the stream.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="writer">The delegate that writes each non-null value to the stream.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, OutputStreamWriter<T> writer) where T : struct
+        public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> writer) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
             WriteSize(count);
@@ -728,8 +728,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
@@ -750,8 +750,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
@@ -774,8 +774,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             bool withBitSequence,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
             where TValue : class
         {
@@ -797,8 +797,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            OutputStreamWriter<TKey> keyWriter,
-            OutputStreamWriter<TValue> valueWriter)
+            Encoder<TKey> keyWriter,
+            Encoder<TValue> valueWriter)
             where TKey : notnull
             where TValue : struct
         {
@@ -872,7 +872,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, OutputStreamWriter<T> writer)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> writer)
         {
             if (v is IEnumerable<T> value)
             {
@@ -888,7 +888,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
         /// <param name="writer">The delegate that writes each element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, OutputStreamWriter<T> writer)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> writer)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -921,7 +921,7 @@ namespace IceRpc
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            OutputStreamWriter<T> writer)
+            Encoder<T> writer)
             where T : class
         {
             if (v is IEnumerable<T?> value)
@@ -937,7 +937,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="writer">The delegate that writes each non-null element to the stream.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, OutputStreamWriter<T> writer)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> writer)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
@@ -1173,7 +1173,7 @@ namespace IceRpc
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, OutputStreamWriter<T> writer)
+        internal void WriteField<T>(int key, T value, Encoder<T> writer)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

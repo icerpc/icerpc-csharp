@@ -10,21 +10,21 @@ namespace IceRpc
     {
         /// <summary>An InputStream reader used to read non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<AnyClass> IceReader =
+        public static readonly Decoder<AnyClass> IceReader =
             istr => istr.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An InputStream reader used to read nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<AnyClass?> IceReaderIntoNullable =
+        public static readonly Decoder<AnyClass?> IceReaderIntoNullable =
             istr => istr.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An OutputStream writer used to write non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<AnyClass> IceWriter = (ostr, value) => ostr.WriteClass(value, null);
+        public static readonly Encoder<AnyClass> IceWriter = (ostr, value) => ostr.WriteClass(value, null);
 
         /// <summary>An OutputStream writer used to write nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<AnyClass?> IceWriterFromNullable =
+        public static readonly Encoder<AnyClass?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during

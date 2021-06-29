@@ -88,9 +88,9 @@ namespace IceRpc
         public static readonly ProxyFactory<IServicePrx> Factory =
             new((path, protocol) => new ServicePrx(path, protocol));
 
-        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
+        /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IServicePrx> IceReader =
+        public static readonly Decoder<IServicePrx> IceReader =
             istr => Proxy.Read(Factory, istr);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
@@ -122,19 +122,19 @@ namespace IceRpc
         public static IServicePrx FromServer(Server server, string? path = null) =>
             Factory.Create(server, path);
 
-        /// <summary>An <see cref="InputStreamReader{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.
+        /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> nullable proxies.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<IServicePrx?> IceReaderIntoNullable =
+        public static readonly Decoder<IServicePrx?> IceReaderIntoNullable =
             istr => Proxy.ReadNullable(Factory, istr);
 
         /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<IServicePrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
+        public static readonly Encoder<IServicePrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
 
         /// <summary>An OutputStream writer used to write <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<IServicePrx?> IceWriterFromNullable =
+        public static readonly Encoder<IServicePrx?> IceWriterFromNullable =
             (ostr, value) => ostr.WriteNullableProxy(value);
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
