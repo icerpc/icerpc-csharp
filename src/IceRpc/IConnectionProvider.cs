@@ -10,7 +10,7 @@ namespace IceRpc
     /// <summary>Provides connections to the <see cref="Interceptors.Binder"/> interceptor.</summary>
     public interface IConnectionProvider
     {
-        /// <summary>Retrieves or creates connection.</summary>
+        /// <summary>Retrieves or creates a connection.</summary>
         /// <param name="endpoint">The main endpoint.</param>
         /// <param name="altEndpoints">A list of zero or more alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
