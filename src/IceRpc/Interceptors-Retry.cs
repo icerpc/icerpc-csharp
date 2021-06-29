@@ -11,8 +11,8 @@ namespace IceRpc
         /// <summary>An options class for configuring a <see cref="CustomRetry"/> interceptor.</summary>
         public sealed class RetryOptions
         {
-            /// <summary>The maximum amount of memory in bytes that can be hold by all retryable requests, once this
-            /// limit is reached new requests are not retriable and are released after sent. The default is 100 Mb.</summary>
+            /// <summary>The maximum amount of memory in bytes used to hold all retryable requests. Once this
+            /// limit is reached new requests are not retried and their memory is released after being sent. The default is 100 MB.</summary>
             public int BufferMaxSize
             {
                 get => _bufferMaxSize;
