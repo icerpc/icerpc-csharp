@@ -21,7 +21,7 @@ namespace IceRpc
                     if (value < 1)
                     {
                         throw new ArgumentOutOfRangeException(
-                            $"Invalid value '{value}' for '{nameof(BufferMaxSize)}' it must be greater than 0.");
+                            $"invalid value '{value}' for '{nameof(BufferMaxSize)}', it must be greater than 0.");
                     }
                     _bufferMaxSize = value;
                 }
