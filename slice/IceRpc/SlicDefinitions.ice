@@ -57,12 +57,12 @@ module IceRpc::Slic
         varulong size;
     }
 
-    /// The body of the Stream consumed frame. This frame is sent to notify the peer that the receiver
-    /// consumed some data from the stream.
+    /// The body of the Stream stop sending frame. This frame is sent to notify the peer that the receiver
+    /// is no longer interested in receiving data.
     [cs:readonly]
     struct StreamStopSendingBody
     {
-        /// The application protocol error code indicating the reason why the peer stopped sending.
+        /// The application protocol error code indicating the reason why the peer no longer needs to receive data.
         varulong applicationProtocolErrorCode;
     }
 
