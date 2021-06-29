@@ -18,9 +18,9 @@ namespace IceRpc
         /// <exception cref="NoEndpointException">Thrown when none of the endpoint is usable.</exception>
         /// <exception cref="ConnectFailedException">Thrown when there is a single usable endpoint and this method
         /// failed to establish a connection to it.</exception>
-        /// <exception cref="AggregateException">Throw when there are multiple endpoints, and this method failed
-        /// to establish a connection to any of them. The <see cref="AggregateException"/> wraps the
-        /// <see cref="ConnectFailedException"/> thrown when attempting to connect each of the usable endpoints.
+        /// <exception cref="AggregateException">Thrown when there are multiple usable endpoints, and this method
+        /// failed to establish a connection to any of them. The <see cref="AggregateException"/> wraps the
+        /// <see cref="ConnectFailedException"/> thrown by attempting to connect each of the usable endpoints.
         /// </exception>
         ValueTask<Connection> GetConnectionAsync(
             Endpoint endpoint,
