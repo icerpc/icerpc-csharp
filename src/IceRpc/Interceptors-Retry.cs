@@ -12,7 +12,7 @@ namespace IceRpc
         public sealed class RetryOptions
         {
             /// <summary>The maximum amount of memory in bytes that can be hold by all retryable requests, once this
-            /// limit is reached new requests are not retriable and are released after sent.</summary>
+            /// limit is reached new requests are not retriable and are released after sent. The default is 100 Mb.</summary>
             public int BufferMaxSize
             {
                 get => _bufferMaxSize;
@@ -30,7 +30,8 @@ namespace IceRpc
             /// <summary>A logger factory used to create the IceRpc logger.</summary>
             public ILoggerFactory? LoggerFactory { get; set; }
 
-            /// <summary>The maximum number of attempts for retrying a request. Must be between 1 and 5.</summary>
+            /// <summary>The maximum number of attempts for retrying a request. Must be between 1 and 5, the default
+            /// is 5 attempts.</summary>
             public int MaxAttempts
             {
                 get => _maxAttempts;
@@ -46,7 +47,7 @@ namespace IceRpc
             }
 
             /// <summary>The maximum payload size in bytes for a request to be retryable, requests with a bigger payload
-            /// size are release after sent and cannot be retried.</summary>
+            /// size are release after sent and cannot be retried. The default is 1 Mb.</summary>
             public int RequestMaxSize
             {
                 get => _requestMaxSize;
