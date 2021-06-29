@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using NUnit.Framework;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -77,11 +78,8 @@ namespace IceRpc.Tests.Internal
             }
 
             RpcStream clientStream = ClientConnection.CreateStream(true);
-
             // Send one byte.
-            byte[] sendBuffer = new byte[clientStream.TransportHeader.Length + 1];
-            clientStream.TransportHeader.CopyTo(sendBuffer);
-            await clientStream.SendAsync(new ReadOnlyMemory<byte>[] { sendBuffer }, false, default);
+            await clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default);
 
             // Accept the new stream on the server connection
             RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
@@ -102,8 +100,7 @@ namespace IceRpc.Tests.Internal
 
             // Ensure we can still send a request after the cancellation
             RpcStream clientStream2 = ClientConnection.CreateStream(true);
-            clientStream2.TransportHeader.CopyTo(sendBuffer);
-            await clientStream2.SendAsync(new ReadOnlyMemory<byte>[] { sendBuffer }, true, default);
+            await clientStream2.SendAsync(CreateSendBuffer(clientStream2, 1), true, default);
         }
 
         [Test]
@@ -165,6 +162,99 @@ namespace IceRpc.Tests.Internal
                 // Ensure the stream cancel dispatch source is canceled
                 Assert.CatchAsync<OperationCanceledException>(async () =>
                     await Task.Delay(-1, serverStream.CancelDispatchSource!.Token));
+            }
+        }
+
+        [Test]
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Stream_SendDataAsync(bool cancelClientSide)
+        {
+            if (ConnectionType != MultiStreamConnectionType.Slic)
+            {
+                // TODO: add support for coloc once coloc streaming is simplified
+                return;
+            }
+
+            RpcStream stream = ClientConnection.CreateStream(true);
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
+            _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
+
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+            await serverStream.ReceiveAsync(new byte[1], default);
+
+            var sendStream = new TestMemoryStream(new byte[100]);
+            new RpcStreamWriter(sendStream).Send(stream);
+
+            byte[] readBuffer = new byte[100];
+            Stream receiveStream = new RpcStreamReader(serverStream).ToByteStream();
+
+            ValueTask<int> readTask = receiveStream.ReadAsync(readBuffer);
+            await Task.Delay(100);
+            Assert.That(readTask.IsCompleted, Is.False);
+            sendStream.Semaphore.Release();
+            Assert.That(await readTask, Is.EqualTo(100));
+
+            ValueTask<int> readTask2 = receiveStream.ReadAsync(readBuffer);
+            await Task.Delay(100);
+            Assert.That(readTask2.IsCompleted, Is.False);
+
+            if (cancelClientSide)
+            {
+                sendStream.Exception = new ArgumentException();
+                sendStream.Semaphore.Release();
+            }
+            else
+            {
+                receiveStream.Dispose();
+            }
+
+            // Make sure that the read fails with an IOException, the send stream should be disposed as well.
+            IOException? ex = Assert.ThrowsAsync<IOException>(async () => await readTask2);
+            Assert.That(ex!.Message, Is.EqualTo("streaming canceled"));
+            if (!cancelClientSide)
+            {
+                // Release the semaphore, the stream should be disposed soon once the stop sending frame is received.
+                sendStream.Semaphore.Release(10000);
+            }
+            await sendStream.Completed.Task;
+        }
+
+        private static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendBuffer(RpcStream stream, int length)
+        {
+            byte[] buffer = new byte[stream.TransportHeader.Length + length];
+            stream.TransportHeader.CopyTo(buffer);
+            return new ReadOnlyMemory<byte>[] { buffer };
+        }
+
+        private class TestMemoryStream : MemoryStream
+        {
+            public Exception? Exception { get; set; }
+            public TaskCompletionSource Completed = new();
+            public SemaphoreSlim Semaphore { get; } = new SemaphoreSlim(0);
+
+            public TestMemoryStream(byte[] buffer)
+                : base(buffer)
+            {
+            }
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+            {
+                await Semaphore.WaitAsync(cancel);
+                if (Exception != null)
+                {
+                    throw Exception;
+                }
+                Seek(0, SeekOrigin.Begin);
+                return await base.ReadAsync(buffer, cancel);
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+                Semaphore.Dispose();
+                Completed.SetResult();
             }
         }
     }

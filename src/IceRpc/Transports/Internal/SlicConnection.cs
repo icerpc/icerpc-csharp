@@ -171,48 +171,6 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
                     }
-                    case SlicDefinitions.FrameType.StreamReset:
-                    {
-                        (long streamId, int dataSize) =
-                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("can't reset control streams");
-                        }
-
-                        using IDisposable? scope = Logger.StartStreamScope(streamId);
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-
-                        Memory<byte> data = new byte[dataSize];
-                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
-
-                        var istr = new InputStream(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(istr);
-                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
-                        if (TryGetStream(streamId, out SlicStream? stream))
-                        {
-                            stream.ReceivedReset(errorCode);
-                        }
-                        else
-                        {
-                            bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
-                            bool isBidirectional = streamId % 4 < 2;
-                            // Release the stream count for the destroyed stream if it's an outgoing stream. For
-                            // incoming streams, the stream count is released on shutdown of the stream.
-                            if (!isIncoming)
-                            {
-                                if (isBidirectional)
-                                {
-                                    _bidirectionalStreamSemaphore!.Release();
-                                }
-                                else
-                                {
-                                    _unidirectionalStreamSemaphore!.Release();
-                                }
-                            }
-                        }
-                        break;
-                    }
                     case SlicDefinitions.FrameType.StreamConsumed:
                     {
                         (long streamId, int dataSize) =
@@ -238,6 +196,61 @@ namespace IceRpc.Transports.Internal
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
+                        }
+                        break;
+                    }
+                    case SlicDefinitions.FrameType.StreamReset:
+                    {
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
+                        if (streamId == 2 || streamId == 3)
+                        {
+                            throw new InvalidDataException("can't reset control streams");
+                        }
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+
+                        Memory<byte> data = new byte[dataSize];
+                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
+
+                        var istr = new InputStream(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(istr);
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+
+                        Logger.LogReceivedSlicResetFrame(frameSize, errorCode);
+
+                        bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
+                        bool isBidirectional = streamId % 4 < 2;
+
+                        if (TryGetStream(streamId, out SlicStream? stream))
+                        {
+                            stream.ReceivedReset(errorCode);
+                        }
+                        break;
+                    }
+                    case SlicDefinitions.FrameType.StreamStopSending:
+                    {
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
+                        if (streamId == 2 || streamId == 3)
+                        {
+                            throw new InvalidDataException("control streams can't stop sending");
+                        }
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+
+                        Memory<byte> data = new byte[dataSize];
+                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
+
+                        var istr = new InputStream(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(istr);
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+
+                        Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
+
+                        if (TryGetStream(streamId, out SlicStream? stream))
+                        {
+                            stream.TrySetWriteCompleted();
                         }
                         break;
                     }

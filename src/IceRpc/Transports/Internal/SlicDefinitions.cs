@@ -17,7 +17,8 @@ namespace IceRpc.Transports.Internal
             StreamLast = 7,
             StreamReset = 8,
             StreamConsumed = 9,
-            Close = 10
+            StreamStopSending = 10,
+            Close = 11
         }
 
         // The header below is a sentinel header used to reserve space in the protocol frame to avoid

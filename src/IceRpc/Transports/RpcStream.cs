@@ -225,7 +225,6 @@ namespace IceRpc.Transports
             TrySetState(State.WriteCompleted, shutdown);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
-        /// <returns><c>true</c> if the stream was shutdown, <c>false</c> if the stream was already shutdown.</returns>
         protected void TryShutdown()
         {
             // If both reads and writes are completed, the stream is started and not already shutdown, call shutdown.

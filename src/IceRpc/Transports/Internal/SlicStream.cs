@@ -52,7 +52,17 @@ namespace IceRpc.Transports.Internal
                 SetException(new RpcStreamAbortedException(errorCode));
 
                 // Send stop sending frame before shutting down.
-                // TODO
+                _ = _connection.PrepareAndSendFrameAsync(
+                    SlicDefinitions.FrameType.StreamReset,
+                    ostr =>
+                    {
+                        checked
+                        {
+                            new StreamStopSendingBody((ulong)errorCode).IceWrite(ostr);
+                        }
+                    },
+                    frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                    this);
 
                 // Shutdown the stream if not already done.
                 TryShutdown();

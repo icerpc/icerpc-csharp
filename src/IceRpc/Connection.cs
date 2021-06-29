@@ -617,7 +617,6 @@ namespace IceRpc
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
             {
                 // Invocations are canceled immediately when Shutdown is called on the connection.
-                Debug.Assert(Protocol == Protocol.Ice1);
                 throw new OperationCanceledException("connection shutdown");
             }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdownByPeer)
@@ -627,15 +626,19 @@ namespace IceRpc
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer");
             }
-            catch (RpcStreamAbortedException ex)
+            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionAborted)
             {
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
-                Debug.Assert(ex.ErrorCode == RpcStreamError.ConnectionAborted);
                 throw new ConnectionLostException();
+            }
+            catch (RpcStreamAbortedException ex)
+            {
+                // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
+                throw new  OperationCanceledException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})");
             }
             catch (TransportException ex)
             {
