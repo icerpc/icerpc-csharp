@@ -115,10 +115,10 @@ namespace IceRpc.Internal
                     // unmarshal it from this buffer.
                     // 8 = size of short + size of 1.1 encapsulation header
                     var buffer = new byte[8 + opaqueEndpoint.Value.Length];
-                    var ostr = new BufferWriter(Ice1Definitions.Encoding, buffer);
-                    ostr.WriteEndpoint11(opaqueEndpoint);
-                    ReadOnlyMemory<byte> readBuffer = ostr.Finish().ToSingleBuffer();
-                    Debug.Assert(ostr.Tail.Buffer == 0 && ostr.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
+                    var writer = new BufferWriter(Ice1Definitions.Encoding, buffer);
+                    writer.WriteEndpoint11(opaqueEndpoint);
+                    ReadOnlyMemory<byte> readBuffer = writer.Finish().ToSingleBuffer();
+                    Debug.Assert(writer.Tail.Buffer == 0 && writer.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
                     return new BufferReader(readBuffer, Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
                 }

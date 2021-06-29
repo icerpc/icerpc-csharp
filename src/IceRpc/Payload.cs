@@ -65,14 +65,14 @@ namespace IceRpc
             OutputStreamValueWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            encoder(ostr, in args);
-            return ostr.Finish();
+            encoder(writer, in args);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
@@ -96,14 +96,14 @@ namespace IceRpc
             OutputStreamValueWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            encoder(ostr, in returnValueTuple);
-            return ostr.Finish();
+            encoder(writer, in returnValueTuple);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -121,14 +121,14 @@ namespace IceRpc
             Encoder<T> encoder,
             FormatType classFormat = default)
         {
-            var ostr = new BufferWriter(proxy.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            encoder(ostr, arg);
-            return ostr.Finish();
+            encoder(writer, arg);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -146,14 +146,14 @@ namespace IceRpc
             Encoder<T> encoder,
             FormatType classFormat = default)
         {
-            var ostr = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            encoder(ostr, returnValue);
-            return ostr.Finish();
+            encoder(writer, returnValue);
+            return writer.Finish();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -255,38 +255,38 @@ namespace IceRpc
                 };
             }
 
-            BufferWriter ostr;
+            BufferWriter writer;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                ostr = new BufferWriter(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                writer = new BufferWriter(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
-                    ostr.Write(replyStatus);
+                    writer.Write(replyStatus);
 
                     if (replyStatus == ReplyStatus.UserException)
                     {
-                        ostr.WriteException(exception);
+                        writer.WriteException(exception);
                     }
                     else
                     {
-                        ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
+                        writer.WriteIce1SystemException(replyStatus, request, exception.Message);
                     }
                 }
                 else
                 {
-                    ostr.WriteException(exception);
+                    writer.WriteException(exception);
                 }
             }
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                ostr = new BufferWriter(Ice1Definitions.Encoding);
-                ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
+                writer = new BufferWriter(Ice1Definitions.Encoding);
+                writer.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
-            return (ostr.Finish(), replyStatus);
+            return (writer.Finish(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>

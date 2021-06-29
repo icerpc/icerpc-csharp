@@ -691,13 +691,13 @@ Slice::CsGenerator::outputStreamWriter(const TypePtr& type, const string& scope,
     }
     else if (auto dict = DictionaryPtr::dynamicCast(type))
     {
-        out << "(ostr, dictionary) => " << dictionaryMarshalCode(dict, scope, "dictionary");
+        out << "(writer, dictionary) => " << dictionaryMarshalCode(dict, scope, "dictionary");
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {
         // We generate the sequence writer inline, so this function must not be called when the top-level object is
         // not cached.
-        out << "(ostr, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, param);
+        out << "(writer, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, param);
     }
     else
     {
@@ -722,12 +722,12 @@ Slice::CsGenerator::writeMarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << nl << "ostr.WriteNullableProxy(" << param << ");";
+            out << nl << "writer.WriteNullableProxy(" << param << ");";
         }
         else if (underlying->isClassType())
         {
             // does not use bit sequence
-            out << nl << "ostr.WriteNullableClass(" << param;
+            out << nl << "writer.WriteNullableClass(" << param;
             if (BuiltinPtr::dynamicCast(underlying))
             {
                 out << ", null);"; // no formal type optimization
@@ -775,11 +775,11 @@ Slice::CsGenerator::writeMarshalCode(
     {
         if (type->isInterfaceType())
         {
-            out << nl << "ostr.WriteProxy(" << param << ");";
+            out << nl << "writer.WriteProxy(" << param << ");";
         }
         else if (type->isClassType())
         {
-            out << nl << "ostr.WriteClass(" << param;
+            out << nl << "writer.WriteClass(" << param;
             if (BuiltinPtr::dynamicCast(type))
             {
                 out << ", null);"; // no formal type optimization
@@ -791,11 +791,11 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else if (auto builtin = BuiltinPtr::dynamicCast(type))
         {
-            out << nl << "ostr.Write" << builtinSuffixTable[builtin->kind()] << "(" << param << ");";
+            out << nl << "writer.Write" << builtinSuffixTable[builtin->kind()] << "(" << param << ");";
         }
         else if (StructPtr::dynamicCast(type))
         {
-            out << nl << param << ".IceWrite(ostr);";
+            out << nl << param << ".IceWrite(writer);";
         }
         else if (auto seq = SequencePtr::dynamicCast(type))
         {
@@ -807,7 +807,7 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else
         {
-            out << nl << helperName(type, scope) << ".Write(ostr, " << param << ");";
+            out << nl << helperName(type, scope) << ".Write(writer, " << param << ");";
         }
     }
 }
@@ -1001,11 +1001,11 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     if (builtin || type->isInterfaceType() || type->isClassType())
     {
         auto kind = builtin ? builtin->kind() : type->isInterfaceType() ? Builtin::KindObject : Builtin::KindAnyClass;
-        out << nl << "ostr.WriteTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
+        out << nl << "writer.WriteTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
     }
     else if(st)
     {
-        out << nl << "ostr.WriteTaggedStruct(" << tag << ", " << param;
+        out << nl << "writer.WriteTaggedStruct(" << tag << ", " << param;
         if(!st->isVariableLength())
         {
             out << ", fixedSize: " << st->minWireSize();
@@ -1016,7 +1016,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     {
         string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
         string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
-        out << nl << "ostr.WriteTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
+        out << nl << "writer.WriteTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
             << param << ");";
     }
     else if(seq)
@@ -1031,18 +1031,18 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             if (readOnly && !hasCustomType)
             {
-                out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param << ".Span" << ");";
+                out << nl << "writer.WriteTaggedSequence(" << tag << ", " << param << ".Span" << ");";
             }
             else
             {
                 // param is an IEnumerable<T>
-                out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param << ");";
+                out << nl << "writer.WriteTaggedSequence(" << tag << ", " << param << ");";
             }
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
         {
             TypePtr underlying = optional->underlying();
-            out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param;
+            out << nl << "writer.WriteTaggedSequence(" << tag << ", " << param;
             if (isReferenceType(underlying))
             {
                 out << ", withBitSequence: true";
@@ -1051,13 +1051,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (elementType->isVariableLength())
         {
-            out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param
+            out << nl << "writer.WriteTaggedSequence(" << tag << ", " << param
                 << ", " << outputStreamWriter(elementType, scope, !isDataMember) << ");";
         }
         else
         {
             // Fixed size = min-size
-            out << nl << "ostr.WriteTaggedSequence(" << tag << ", " << param << ", "
+            out << nl << "writer.WriteTaggedSequence(" << tag << ", " << param << ", "
                 << "elementSize: " << elementType->minWireSize()
                 << ", " << outputStreamWriter(elementType, scope, !isDataMember) << ");";
         }
@@ -1077,7 +1077,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             valueType = optional->underlying();
         }
 
-        out << nl << "ostr.WriteTaggedDictionary(" << tag << ", " << param;
+        out << nl << "writer.WriteTaggedDictionary(" << tag << ", " << param;
 
         if (!withBitSequence && !keyType->isVariableLength() && !valueType->isVariableLength())
         {
@@ -1251,18 +1251,18 @@ Slice::CsGenerator::sequenceMarshalCode(
     {
         if (isParam && readOnly && !hasCustomType)
         {
-            out << "ostr.WriteSequence(" << value << ".Span)";
+            out << "writer.WriteSequence(" << value << ".Span)";
         }
         else
         {
             // value is an IEnumerable<T>
-            out << "ostr.WriteSequence(" << value << ")";
+            out << "writer.WriteSequence(" << value << ")";
         }
     }
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
     {
         TypePtr underlying = optional->underlying();
-        out << "ostr.WriteSequence(" << value;
+        out << "writer.WriteSequence(" << value;
         if (isReferenceType(underlying))
         {
             out << ", withBitSequence: true";
@@ -1271,7 +1271,7 @@ Slice::CsGenerator::sequenceMarshalCode(
     }
     else
     {
-        out << "ostr.WriteSequence(" << value << ", " << outputStreamWriter(type, scope, readOnly) << ")";
+        out << "writer.WriteSequence(" << value << ", " << outputStreamWriter(type, scope, readOnly) << ")";
     }
     return out.str();
 }
@@ -1367,7 +1367,7 @@ Slice::CsGenerator::dictionaryMarshalCode(const DictionaryPtr& dict, const strin
 
     ostringstream out;
 
-    out << "ostr.WriteDictionary(" << param;
+    out << "writer.WriteDictionary(" << param;
     if (withBitSequence && isReferenceType(value))
     {
         out << ", withBitSequence: true";

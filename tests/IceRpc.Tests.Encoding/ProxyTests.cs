@@ -45,11 +45,11 @@ namespace IceRpc.Tests.Encoding
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var ostr = new BufferWriter(encoding, _buffer);
+            var writer = new BufferWriter(encoding, _buffer);
 
             var prx = IServicePrx.Parse(str);
-            ostr.WriteProxy(prx);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteProxy(prx);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             var istr = new BufferReader(data, encoding, connection: null, prx.Invoker);
             var prx2 = IServicePrx.IceReader(istr);
@@ -69,9 +69,9 @@ namespace IceRpc.Tests.Encoding
             var regular = IServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var ostr = new BufferWriter(encoding, _buffer);
-            ostr.WriteProxy(endpointLess);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            var writer = new BufferWriter(encoding, _buffer);
+            writer.WriteProxy(endpointLess);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             var istr = new BufferReader(data, encoding, _connection);

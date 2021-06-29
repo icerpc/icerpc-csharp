@@ -66,11 +66,11 @@ namespace IceRpc.Transports.Internal
             {
                 _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamReset,
-                    ostr =>
+                    writer =>
                     {
                         checked
                         {
-                            new StreamResetBody((ulong)errorCode).IceWrite(ostr);
+                            new StreamResetBody((ulong)errorCode).IceWrite(writer);
                         }
                     },
                     frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
@@ -193,11 +193,11 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        ostr =>
+                        writer =>
                         {
                             checked
                             {
-                                new StreamConsumedBody((ulong)consumed).IceWrite(ostr);
+                                new StreamConsumedBody((ulong)consumed).IceWrite(writer);
                             }
                         },
                         frameSize => _connection.Logger.LogSendingSlicFrame(

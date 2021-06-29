@@ -130,12 +130,12 @@ namespace IceRpc
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<IServicePrx> IceWriter = (ostr, value) => ostr.WriteProxy(value);
+        public static readonly Encoder<IServicePrx> IceWriter = (writer, value) => writer.WriteProxy(value);
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> nullable proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<IServicePrx?> IceWriterFromNullable =
-            (ostr, value) => ostr.WriteNullableProxy(value);
+            (writer, value) => writer.WriteNullableProxy(value);
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
@@ -268,9 +268,9 @@ namespace IceRpc
                            cancel: cancel);
 
         /// <summary>Marshals the proxy into an OutputStream.</summary>
-        /// <param name="ostr">The OutputStream used to marshal the proxy.</param>
+        /// <param name="writer">The OutputStream used to marshal the proxy.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceWrite(BufferWriter ostr);
+        public void IceWrite(BufferWriter writer);
 
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>

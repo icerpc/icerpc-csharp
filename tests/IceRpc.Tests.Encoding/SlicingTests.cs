@@ -15,11 +15,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            var writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
-            ostr.WriteClass(p1, null);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteClass(p1, null);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var istr = new BufferReader(data, encoding);
@@ -62,11 +62,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            var writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
-            ostr.WriteClass(p1, null);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteClass(p1, null);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
             var istr = new BufferReader(data, encoding);
@@ -123,11 +123,11 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            var writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
-            ostr.WriteException(p1);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteException(p1);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
             var istr = new BufferReader(data, encoding);
@@ -178,9 +178,9 @@ namespace IceRpc.Tests.Encoding
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
 
             // Marshal the exception again to ensure all Slices are correctly preserved
-            ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
-            ostr.WriteException(r);
-            data = ostr.Finish().Span[0];
+            writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            writer.WriteException(r);
+            data = writer.Finish().Span[0];
 
             istr = new BufferReader(data, encoding);
             r = istr.ReadException();
@@ -198,12 +198,12 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            var writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
-            ostr.WriteClass(p1, null);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteClass(p1, null);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // Unmarshal the 'MyPreservedDerivedClass1' class without its factory ensure the class is Sliced
             // and the Slices are preserved.
@@ -220,9 +220,9 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
-            ostr.WriteClass(r1, null);
-            data = ostr.Finish().Span[0];
+            writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            writer.WriteClass(r1, null);
+            data = writer.Finish().Span[0];
 
             // now add back the factory and read a unmarshal again, the unmarshaled class should contain the preserved
             // Slices.
@@ -245,12 +245,12 @@ namespace IceRpc.Tests.Encoding
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
-            var ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            var writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
-            ostr.WriteClass(p1, null);
-            ReadOnlyMemory<byte> data = ostr.Finish().Span[0];
+            writer.WriteClass(p1, null);
+            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // Unmarshal the 'MyPreservedDerivedClass2' class without its factory to ensure that the class is Sliced
             // and the Slices are preserved.
@@ -267,9 +267,9 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            ostr = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
-            ostr.WriteClass(r1, null);
-            data = ostr.Finish().Span[0];
+            writer = new BufferWriter(encoding, buffer, classFormat: FormatType.Sliced);
+            writer.WriteClass(r1, null);
+            data = writer.Finish().Span[0];
 
             // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved
             // Slices.

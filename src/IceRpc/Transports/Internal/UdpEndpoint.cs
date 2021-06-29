@@ -222,11 +222,11 @@ namespace IceRpc.Transports.Internal
 
         protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
 
-        protected internal override void WriteOptions11(BufferWriter ostr)
+        protected internal override void WriteOptions11(BufferWriter writer)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
-            base.WriteOptions11(ostr);
-            ostr.WriteBool(_hasCompressionFlag);
+            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
+            base.WriteOptions11(writer);
+            writer.WriteBool(_hasCompressionFlag);
         }
 
         internal static bool IsMulticast(IPAddress addr) =>

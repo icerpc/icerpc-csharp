@@ -94,15 +94,15 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var ostr = new BufferWriter(Encoding.V20);
-                WriteFields(ostr);
-                return ostr.Finish().ToSingleBuffer().ReadFieldValue(istr => istr.ReadFieldDictionary());
+                var writer = new BufferWriter(Encoding.V20);
+                WriteFields(writer);
+                return writer.Finish().ToSingleBuffer().ReadFieldValue(istr => istr.ReadFieldDictionary());
             }
         }
 
         /// <summary>Writes the header of a frame. This header does not include the frame's prologue.</summary>
-        /// <param name="ostr">The buffer encoder.</param>
-        internal abstract void WriteHeader(BufferWriter ostr);
+        /// <param name="writer">The buffer encoder.</param>
+        internal abstract void WriteHeader(BufferWriter writer);
 
         private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)
         {
@@ -112,10 +112,10 @@ namespace IceRpc
             StreamWriter = streamWriter;
         }
 
-        private protected void WriteFields(BufferWriter ostr)
+        private protected void WriteFields(BufferWriter writer)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
-            Debug.Assert(ostr.Encoding == Encoding.V20);
+            Debug.Assert(writer.Encoding == Encoding.V20);
 
             // can be larger than necessary, which is fine
             int sizeLength =
@@ -123,7 +123,7 @@ namespace IceRpc
 
             int size = 0;
 
-            BufferWriter.Position start = ostr.StartFixedLengthSize(sizeLength);
+            BufferWriter.Position start = writer.StartFixedLengthSize(sizeLength);
 
             // First write the fields then the remaining FieldsDefaults.
 
@@ -131,10 +131,10 @@ namespace IceRpc
             {
                 foreach ((int key, Action<BufferWriter> action) in fields)
                 {
-                    ostr.WriteVarInt(key);
-                    BufferWriter.Position startValue = ostr.StartFixedLengthSize(2);
-                    action(ostr);
-                    ostr.EndFixedLengthSize(startValue, 2);
+                    writer.WriteVarInt(key);
+                    BufferWriter.Position startValue = writer.StartFixedLengthSize(2);
+                    action(writer);
+                    writer.EndFixedLengthSize(startValue, 2);
                     size++;
                 }
             }
@@ -142,13 +142,13 @@ namespace IceRpc
             {
                 if (_fields == null || !_fields.ContainsKey(key))
                 {
-                    ostr.WriteVarInt(key);
-                    ostr.WriteSize(value.Length);
-                    ostr.WriteByteSpan(value.Span);
+                    writer.WriteVarInt(key);
+                    writer.WriteSize(value.Length);
+                    writer.WriteByteSpan(value.Span);
                     size++;
                 }
             }
-            ostr.RewriteFixedLengthSize20(size, start, sizeLength);
+            writer.RewriteFixedLengthSize20(size, start, sizeLength);
         }
     }
 }

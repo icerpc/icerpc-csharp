@@ -364,7 +364,7 @@ namespace IceRpc.Tests.CodeGeneration
                 CancellationToken cancel) =>
                 new((IceRpc.Payload.FromSingleReturnValue(dispatch,
                                                           new MyClassAlsoEmpty(),
-                                                          (ostr, ae) => ostr.WriteClass(ae, null)), null));
+                                                          (writer, ae) => writer.WriteClass(ae, null)), null));
         }
     }
 }

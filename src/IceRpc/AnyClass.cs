@@ -20,12 +20,12 @@ namespace IceRpc
 
         /// <summary>An encoder used to encode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly Encoder<AnyClass> IceWriter = (ostr, value) => ostr.WriteClass(value, null);
+        public static readonly Encoder<AnyClass> IceWriter = (writer, value) => writer.WriteClass(value, null);
 
         /// <summary>An encoder used to encode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Encoder<AnyClass?> IceWriterFromNullable =
-            (ostr, value) => ostr.WriteNullableClass(value, null);
+            (writer, value) => writer.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>
@@ -49,10 +49,10 @@ namespace IceRpc
         internal void Read(BufferReader istr) => IceRead(istr, true);
 
         /// <summary>Marshals the current object by writing its data to from the <see cref="BufferWriter"/>.</summary>
-        /// <param name="ostr">The stream to write to.</param>
+        /// <param name="writer">The stream to write to.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceWrite(BufferWriter ostr, bool firstSlice);
-        internal void Write(BufferWriter ostr) => IceWrite(ostr, true);
+        protected abstract void IceWrite(BufferWriter writer, bool firstSlice);
+        internal void Write(BufferWriter writer) => IceWrite(writer, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>

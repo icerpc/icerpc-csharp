@@ -191,10 +191,10 @@ namespace IceRpc.Tests.CodeGeneration
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
                 _prx,
                 (15, "test"),
-                (BufferWriter ostr, in (int n, string s) value) =>
+                (BufferWriter writer, in (int n, string s) value) =>
                 {
-                    ostr.WriteTaggedInt(1, value.n);
-                    ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
+                    writer.WriteTaggedInt(1, value.n);
+                    writer.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
             (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, Connection connection) =

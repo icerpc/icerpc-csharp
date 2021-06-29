@@ -108,28 +108,28 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var ostr = new BufferWriter(Encoding.V11);
-            ostr.WriteByteSpan(Ice1Definitions.FramePrologue);
-            ostr.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            ostr.WriteByte(0); // compression status
-            BufferWriter.Position start = ostr.StartFixedLengthSize();
+            var writer = new BufferWriter(Encoding.V11);
+            writer.WriteByteSpan(Ice1Definitions.FramePrologue);
+            writer.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            writer.WriteByte(0); // compression status
+            BufferWriter.Position start = writer.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
-            ostr.WriteInt(IsStarted ? RequestId : 0);
-            frame.WriteHeader(ostr);
+            writer.WriteInt(IsStarted ? RequestId : 0);
+            frame.WriteHeader(writer);
 
-            ostr.RewriteFixedLengthSize11(ostr.Size + frame.PayloadSize, start); // frame size
+            writer.RewriteFixedLengthSize11(writer.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= ostr.Capacity - ostr.Size)
+                   frame.Payload.Span[payloadIndex].Length <= writer.Capacity - writer.Size)
             {
-                ostr.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                writer.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {

@@ -252,11 +252,11 @@ namespace IceRpc.Transports.Internal
         public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
             new(PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.Close,
-                ostr =>
+                writer =>
                 {
                     checked
                     {
-                        new CloseBody((ulong)errorCode).IceWrite(ostr);
+                        new CloseBody((ulong)errorCode).IceWrite(writer);
                     }
                 },
                 frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
@@ -296,7 +296,7 @@ namespace IceRpc.Transports.Internal
                     var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        ostr => versionBody.IceWrite(ostr),
+                        writer => versionBody.IceWrite(writer),
                         frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
@@ -339,7 +339,7 @@ namespace IceRpc.Transports.Internal
                 parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.InitializeAck,
-                    ostr => WriteParameters(ostr, parameters),
+                    writer => WriteParameters(writer, parameters),
                     frameSize => Logger.LogSendingSlicInitializeAckFrame(frameSize, parameters),
                     cancel: cancel).ConfigureAwait(false);
             }
@@ -351,11 +351,11 @@ namespace IceRpc.Transports.Internal
                 Dictionary<ParameterKey, ulong> parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.Initialize,
-                    ostr =>
+                    writer =>
                     {
-                        ostr.WriteVarUInt(version);
-                        initializeBody.IceWrite(ostr);
-                        WriteParameters(ostr, parameters);
+                        writer.WriteVarUInt(version);
+                        initializeBody.IceWrite(writer);
+                        WriteParameters(writer, parameters);
                     },
                     frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),
                     cancel: cancel).ConfigureAwait(false);
@@ -460,17 +460,17 @@ namespace IceRpc.Transports.Internal
                 type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
-            var ostr = new BufferWriter(SlicDefinitions.Encoding);
-            ostr.WriteByte((byte)type);
-            BufferWriter.Position sizePos = ostr.StartFixedLengthSize(4);
+            var writer = new BufferWriter(SlicDefinitions.Encoding);
+            writer.WriteByte((byte)type);
+            BufferWriter.Position sizePos = writer.StartFixedLengthSize(4);
             if (stream != null)
             {
-                ostr.WriteVarULong((ulong)stream.Id);
+                writer.WriteVarULong((ulong)stream.Id);
             }
-            encoder?.Invoke(ostr);
-            int frameSize = ostr.Tail.Offset - sizePos.Offset - 4;
-            ostr.EndFixedLengthSize(sizePos, 4);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = ostr.Finish();
+            encoder?.Invoke(writer);
+            int frameSize = writer.Tail.Offset - sizePos.Offset - 4;
+            writer.EndFixedLengthSize(sizePos, 4);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -652,12 +652,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static void WriteParameters(BufferWriter ostr, Dictionary<ParameterKey, ulong> parameters)
+        private static void WriteParameters(BufferWriter writer, Dictionary<ParameterKey, ulong> parameters)
         {
-            ostr.WriteSize(parameters.Count);
+            writer.WriteSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                ostr.WriteField((int)key, value, BufferWriter.IceWriterFromVarULong);
+                writer.WriteField((int)key, value, BufferWriter.IceWriterFromVarULong);
             }
         }
 

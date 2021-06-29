@@ -153,13 +153,13 @@ namespace IceRpc
 
         /// <summary>Marshal a remote exception to the <see cref="BufferWriter"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
-        /// <param name="ostr">The <see cref="BufferWriter"/> to marshal the exception.</param>
+        /// <param name="writer">The <see cref="BufferWriter"/> to marshal the exception.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceWrite(BufferWriter ostr, bool firstSlice) =>
-            ostr.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+        protected virtual void IceWrite(BufferWriter writer, bool firstSlice) =>
+            writer.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
 
-        internal void Write(BufferWriter ostr) => IceWrite(ostr, true);
+        internal void Write(BufferWriter writer) => IceWrite(writer, true);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>
