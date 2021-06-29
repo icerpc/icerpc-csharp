@@ -180,12 +180,12 @@ namespace IceRpc
         /// <param name="v">The ushort to write to the buffer.</param>
         public void WriteUShort(ushort v) => WriteFixedSizeNumeric(v);
 
-        /// <summary>Writes an int to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes an int to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The int to write to the buffer.</param>
         public void WriteVarInt(int v) => WriteVarLong(v);
 
-        /// <summary>Writes a long to the buffer, using Ice's variable-size integer encoding, with the minimum number of
-        /// bytes required by the encoding.</summary>
+        /// <summary>Writes a long to the buffer, using IceRPC's variable-size integer encoding, with the minimum number
+        /// of bytes required by the encoding.</summary>
         /// <param name="v">The long to write to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
         public void WriteVarLong(long v)
         {
@@ -197,12 +197,12 @@ namespace IceRpc
             WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        /// <summary>Writes a uint to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="v">The uint to write to the buffer.</param>
         public void WriteVarUInt(uint v) => WriteVarULong(v);
 
-        /// <summary>Writes a ulong to the buffer, using Ice's variable-size integer encoding, with the minimum number of
-        /// bytes required by the encoding.</summary>
+        /// <summary>Writes a ulong to the buffer, using IceRPC's variable-size integer encoding, with the minimum
+        /// number of bytes required by the encoding.</summary>
         /// <param name="v">The ulong to write to the buffer. It must be in the range [0..2^62 - 1].</param>
         public void WriteVarULong(ulong v)
         {
@@ -278,8 +278,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is a nullable value type.
-        /// </summary>
+        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is a nullable value type.</summary>
         /// <param name="v">The dictionary to write.</param>
         /// <param name="keyEncoder">The encoder for the keys.</param>
         /// <param name="valueEncoder">The encoder for the non-null values.</param>
@@ -583,12 +582,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged int to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged int to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The int to write to the buffer.</param>
         public void WriteTaggedVarInt(int tag, int? v) => WriteTaggedVarLong(tag, v);
 
-        /// <summary>Writes a tagged long to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged long to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The long to write to the buffer.</param>
         public void WriteTaggedVarLong(int tag, long? v)
@@ -601,12 +600,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a tagged uint to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The uint to write to the buffer.</param>
         public void WriteTaggedVarUInt(int tag, uint? v) => WriteTaggedVarULong(tag, v);
 
-        /// <summary>Writes a tagged ulong to the buffer, using Ice's variable-size integer encoding.</summary>
+        /// <summary>Writes a tagged ulong to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The ulong to write to the buffer.</param>
         public void WriteTaggedVarULong(int tag, ulong? v)
@@ -1113,7 +1112,7 @@ namespace IceRpc
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with Ice's varlong encoding.</returns>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varlong encoding.</returns>
         private static int GetVarLongEncodedSizeExponent(long value)
         {
             if (value < EncodingDefinitions.VarLongMinValue || value > EncodingDefinitions.VarLongMaxValue)

@@ -1787,9 +1787,8 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << eb;
 
     _out << sp;
-    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
-    _out << nl << "/// <param name=\"reader\">The <see cref=\"IceRpc.BufferReader\"/> being used to unmarshal the "
-         << "instance.</param>";
+    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a buffer.</summary>";
+    _out << nl << "/// <param name=\"reader\">The buffer reader.</param>";
     _out << nl << "public " << name << "(IceRpc.BufferReader reader)";
     _out << sb;
 
@@ -1915,9 +1914,8 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     }
 
     _out << sp;
-    _out << nl << "/// <summary>Marshals the struct by writing its fields to the "
-        << "<see cref=\"IceRpc.BufferWriter\"/>.</summary>";
-    _out << nl << "/// <param name=\"writer\">The stream to write to.</param>";
+    _out << nl << "/// <summary>Writes the fields of this struct into a buffer.</summary>";
+    _out << nl << "/// <param name=\"writer\">The buffer writer.</param>";
     _out << nl << "public readonly void IceWrite(IceRpc.BufferWriter writer)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
