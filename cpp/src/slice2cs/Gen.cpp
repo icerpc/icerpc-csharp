@@ -281,11 +281,11 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
             if (returnType)
             {
-                _out << " = stream.ReceiveData();";
+                _out << " = streamReader!.ToByteStream();";
             }
             else
             {
-                _out << " = dispatch.Stream.ReceiveData();";
+                _out << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
             }
         }
 
@@ -435,7 +435,7 @@ getInvocationParams(const OperationPtr& op, const string& ns, bool defaultValues
     string invocation = prefix.empty() ? getEscapedParamName(op, "invocation") : "invocation";
     string cancel = prefix.empty() ? getEscapedParamName(op, "cancel") : "cancel";
 
-    if(defaultValues)
+    if (defaultValues)
     {
         params.push_back("IceRpc.Invocation? " + invocation + " = null");
         params.push_back("global::System.Threading.CancellationToken " + cancel + " = default");
@@ -2245,8 +2245,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
                         << "of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Encoding payloadEncoding, ";
-                _out << "IceRpc.Connection connection, IceRpc.Transports.RpcStream stream, IceRpc.IInvoker? invoker) =>";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
+                _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
                 _out.inc();
@@ -2462,13 +2462,21 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         // can't use 'in' for tuple as it's an expression
         _out << "Request." << name << "(this, " << toTuple(params) << "), ";
     }
+    if (streamParam)
+    {
+        _out << "new IceRpc.RpcStreamWriter(" << paramName(streamParam) << "), ";
+    }
+    else
+    {
+        _out << "streamWriter: null, ";
+    }
     if (!voidOp)
     {
         _out << "Response." << name << ", ";
     }
     else if (streamReturnParam)
     {
-        _out << "(payload, payloadEncoding, connection, stream, invoker) => stream.ReceiveData(), ";
+        _out << "(payload, streamReader, payloadEncoding, connection, invoker) => streamReader!.ToByteStream(), ";
     }
 
     _out << invocation << ", ";
@@ -2484,9 +2492,9 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     {
         _out << "oneway: true, ";
     }
-    if (streamParam)
+    if (streamReturnParam)
     {
-        _out << "streamDataWriter: stream => stream.SendData(" << paramName(streamParam) << "), ";
+        _out << "responseHasStreamValue: true, ";
     }
     _out << "cancel: " << cancel << ");";
     _out.dec();
@@ -2752,7 +2760,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
 
     _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, global::System.Action<IceRpc.Transports.RpcStream>?)> IceRpc.IService"
+    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)> IceRpc.IService"
          << ".DispatchAsync(";
     _out.inc();
      _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2764,10 +2772,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
     _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, global::System.Action<IceRpc.Transports.RpcStream>?)> "
+    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)> "
          << "DispatchAsync(";
     _out.inc();
-    _out << nl <<  fixId(name) << " servant,"
+    _out << nl << fixId(name) << " servant,"
          << nl << "global::System.ReadOnlyMemory<byte> payload,"
          << nl << "IceRpc.Dispatch dispatch,"
          << nl << "global::System.Threading.CancellationToken cancel) =>";
@@ -2919,7 +2927,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     _out << nl << "protected ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, global::System.Action<IceRpc.Transports.RpcStream>?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
@@ -2928,6 +2936,10 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out.dec();
     _out << sb;
 
+    if (!streamParam)
+    {
+        _out << nl << "IceStreamReadingComplete(dispatch);";
+    }
     if (!isIdempotent(operation))
     {
          _out << nl << "IceCheckNonIdempotent(dispatch);";
@@ -2940,19 +2952,20 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params
     // that we skip).
-    if (params.empty() || (params.size() == 1 && streamParam))
+    if (params.empty())
     {
         _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch);";
-        if (streamParam)
-        {
-            _out << nl << "var " << paramName(streamParam, "iceP_");
-            _out << " = dispatch.Stream.ReceiveData();";
-        }
     }
-    else
+
+    if (params.size() == 1 && streamParam)
+    {
+        _out << nl << "var " << paramName(params.front(), "iceP_")
+             << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
+    }
+    else if (params.size() >= 1)
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-            << " = Request." << fixId(opName) << "(payload, dispatch);";
+             << " = Request." << fixId(opName) << "(payload, dispatch);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
@@ -2998,7 +3011,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             if (streamReturnParam)
             {
                 _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
-                _out << "stream => stream.SendData(returnValue)";
+                _out << "new IceRpc.RpcStreamWriter(returnValue)";
                 _out << ");";
             }
             else
@@ -3011,8 +3024,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             auto names = getNames(returnType, [](const MemberPtr &param) { return "returnValue." + fieldName(param); });
             auto streamName = names.back();
             names.pop_back();
-            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
-            _out << "stream => stream.SendData(" << streamName << ")";
+            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "), ";
+            _out << "new IceRpc.RpcStreamWriter(" << streamName << ")";
             _out << ");";
         }
         else

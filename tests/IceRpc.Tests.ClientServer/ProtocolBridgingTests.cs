@@ -44,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
             IProtocolBridgingTestPrx forwarderService =
                 SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
 
-            var newPrx = await TestProxyAsync(forwarderService, direct: false);
+            IProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderService, direct: false);
 
             if (colocated)
             {
@@ -98,7 +98,6 @@ namespace IceRpc.Tests.ClientServer
             IInvoker invoker)
         {
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
-
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
@@ -113,8 +112,7 @@ namespace IceRpc.Tests.ClientServer
             forwardService.Invoker = invoker;
             return forwardService;
 
-            Server CreateServer(Protocol protocol, int port, bool colocated) =>
-                new Server
+            Server CreateServer(Protocol protocol, int port, bool colocated) => new()
                 {
                     Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :

@@ -38,22 +38,22 @@ namespace IceRpc.Tests.Internal
             });
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(clientConnection.Socket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(clientConnection.Socket!.ReceiveBufferSize, size);
+            Assert.That(clientConnection.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(clientConnection.Socket!.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size.
-                Assert.LessOrEqual(clientConnection.Socket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(clientConnection.Socket!.ReceiveBufferSize, 2.5 * size);
+                Assert.That(clientConnection.Socket!.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(clientConnection.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
             }
             else
             {
                 // Windows typically allocates the requested size and macOS allocates a little more than the
                 // requested size.
-                Assert.LessOrEqual(clientConnection.Socket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(clientConnection.Socket!.ReceiveBufferSize, 1.5 * size);
+                Assert.That(clientConnection.Socket!.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(clientConnection.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
         }
 
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Internal
             {
                 IsIPv6Only = true
             });
-            Assert.IsFalse(clientConnection.Socket!.DualMode);
+            Assert.That(clientConnection.Socket!.DualMode, Is.False);
         }
 
         [Test]
@@ -112,27 +112,29 @@ namespace IceRpc.Tests.Internal
             using NetworkSocket serverConnection = await acceptTask;
 
             // The OS might allocate more space than the requested size.
-            Assert.GreaterOrEqual(serverConnection.Socket!.SendBufferSize, size);
-            Assert.GreaterOrEqual(serverConnection.Socket!.ReceiveBufferSize, size);
+            Assert.That(serverConnection.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
+            Assert.That(serverConnection.Socket!.ReceiveBufferSize, Is.GreaterThanOrEqualTo(size));
 
             // But ensure it doesn't allocate too much as well
             if (OperatingSystem.IsMacOS())
             {
                 // macOS Big Sur appears to have a low limit of a little more than 256KB for the receive buffer and
                 // 64KB for the send buffer.
-                Assert.LessOrEqual(serverConnection.Socket!.SendBufferSize, 1.5 * Math.Max(size, 64 * 1024));
-                Assert.LessOrEqual(serverConnection.Socket!.ReceiveBufferSize, 1.5 * Math.Max(size, 256 * 1024));
+                Assert.That(serverConnection.Socket!.SendBufferSize,
+                            Is.LessThanOrEqualTo(1.5 * Math.Max(size, 64 * 1024)));
+                Assert.That(serverConnection.Socket!.ReceiveBufferSize,
+                            Is.LessThanOrEqualTo(1.5 * Math.Max(size, 256 * 1024)));
             }
             else if (OperatingSystem.IsLinux())
             {
                 // Linux allocates twice the size
-                Assert.LessOrEqual(serverConnection.Socket!.SendBufferSize, 2.5 * size);
-                Assert.LessOrEqual(serverConnection.Socket!.ReceiveBufferSize, 2.5 * size);
+                Assert.That(serverConnection.Socket!.SendBufferSize, Is.LessThanOrEqualTo(2.5 * size));
+                Assert.That(serverConnection.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(2.5 * size));
             }
             else
             {
-                Assert.LessOrEqual(serverConnection.Socket!.SendBufferSize, 1.5 * size);
-                Assert.LessOrEqual(serverConnection.Socket!.ReceiveBufferSize, 1.5 * size);
+                Assert.That(serverConnection.Socket!.SendBufferSize, Is.LessThanOrEqualTo(1.5 * size));
+                Assert.That(serverConnection.Socket!.ReceiveBufferSize, Is.LessThanOrEqualTo(1.5 * size));
             }
             listener.Dispose();
         }
@@ -226,8 +228,8 @@ namespace IceRpc.Tests.Internal
 
                 // Tolerate a little more connections than the exact expected count (on Linux, it appears to accept one
                 // more connection for instance).
-                Assert.GreaterOrEqual(connections.Count, 19);
-                Assert.LessOrEqual(connections.Count, 25);
+                Assert.That(connections.Count, Is.GreaterThanOrEqualTo(19));
+                Assert.That(connections.Count, Is.LessThanOrEqualTo(25));
 
                 connections.ForEach(connection => connection.Dispose());
                 listener.Dispose();

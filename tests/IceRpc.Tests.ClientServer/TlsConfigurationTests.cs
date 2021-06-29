@@ -61,7 +61,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(connection.IsSecure);
+            Assert.That(connection.IsSecure, Is.True);
         }
 
         [TestCase("c_rsa_ca1.p12", "s_rsa_ca1.p12")]
@@ -107,9 +107,9 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(connection.IsSecure);
-            Assert.IsTrue(clientValidationCallbackCalled);
-            Assert.IsTrue(serverValidationCallbackCalled);
+            Assert.That(connection.IsSecure, Is.True);
+            Assert.That(clientValidationCallbackCalled, Is.True);
+            Assert.That(serverValidationCallbackCalled, Is.True);
         }
 
         [Test]
@@ -162,7 +162,7 @@ namespace IceRpc.Tests.ClientServer
             var prx = IServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
-            Assert.IsTrue(connection.IsSecure);
+            Assert.That(connection.IsSecure, Is.True);
         }
 
         // The client doesn't have a CA certificate to verify the server
@@ -364,7 +364,7 @@ namespace IceRpc.Tests.ClientServer
             SslStream? sslStream =
                 (prx.Connection!.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
 
-            Assert.IsTrue(prx.Connection.IsSecure);
+            Assert.That(prx.Connection.IsSecure, Is.True);
             Assert.That(sslStream, Is.Not.Null);
             Assert.AreEqual(SslProtocols.Tls12, sslStream.SslProtocol);
         }
@@ -461,7 +461,7 @@ namespace IceRpc.Tests.ClientServer
             All = Linux | Windows | MacOS | Other
         }
 
-        static internal OperatingSystem GetOperatingSystem()
+        /*static internal OperatingSystem GetOperatingSystem()
         {
             if (System.OperatingSystem.IsMacOS())
             {
@@ -479,6 +479,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 return OperatingSystem.Other;
             }
-        }
+        }*/
     }
 }

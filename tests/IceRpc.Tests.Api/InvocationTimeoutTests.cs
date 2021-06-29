@@ -21,10 +21,7 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync()
-        {
-            await _server.DisposeAsync();
-        }
+        public async Task ShutdownAsync() => await _server.DisposeAsync();
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>

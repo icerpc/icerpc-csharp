@@ -38,16 +38,16 @@ namespace IceRpc.Tests.ClientServer
                 }));
                 prx.Invoker = pipeline;
                 await prx.IcePingAsync();
-                Assert.IsTrue(called);
-                Assert.IsNull(invocationActivity);
+                Assert.That(called, Is.True);
+                Assert.That(invocationActivity, Is.Null);
             }
 
             {
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
-                Activity testActivity = new Activity("TestActivity");
+                var testActivity = new Activity("TestActivity");
                 testActivity.Start();
-                Assert.IsNotNull(Activity.Current);
+                Assert.That(Activity.Current, Is.Not.Null);
 
                 Activity? invocationActivity = null;
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.ClientServer
                     return next.InvokeAsync(request, cancel);
                 }));
                 await prx.IcePingAsync();
-                Assert.IsNotNull(invocationActivity);
+                Assert.That(invocationActivity, Is.Not.Null);
                 Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping", invocationActivity.DisplayName);
                 Assert.AreEqual(testActivity, invocationActivity.Parent);
                 Assert.AreEqual(testActivity, Activity.Current);
@@ -98,8 +98,8 @@ namespace IceRpc.Tests.ClientServer
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
                 var prx = IGreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
-                Assert.IsTrue(called);
-                Assert.IsNull(dispatchActivity);
+                Assert.That(called, Is.True);
+                Assert.That(dispatchActivity, Is.Null);
                 await server.ShutdownAsync();
             }
 
@@ -150,7 +150,7 @@ namespace IceRpc.Tests.ClientServer
                 await prx.IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
                 await server.ShutdownAsync();
-                Assert.IsNotNull(dispatchActivity);
+                Assert.That(dispatchActivity, Is.Not.Null);
                 Assert.AreEqual("/IceRpc.Tests.ClientServer.Greeter/ice_ping",
                                 dispatchActivity.DisplayName);
                 // Wait to receive the dispatch activity stop event
@@ -217,7 +217,7 @@ namespace IceRpc.Tests.ClientServer
             // trigger the creation of the Invocation activity.
             var testActivity = new Activity("TestActivity");
             testActivity.Start();
-            Assert.IsNotNull(Activity.Current);
+            Assert.That(Activity.Current, Is.Not.Null);
 
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Telemetry);
@@ -235,9 +235,9 @@ namespace IceRpc.Tests.ClientServer
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();
-            Assert.IsNotNull(invocationActivity);
+            Assert.That(invocationActivity, Is.Not.Null);
             Assert.AreEqual(testActivity, invocationActivity.Parent);
-            Assert.IsNotNull(dispatchActivity);
+            Assert.That(dispatchActivity, Is.Not.Null);
             Assert.AreEqual(invocationActivity.Id, dispatchActivity.ParentId);
 
             CollectionAssert.AreEqual(

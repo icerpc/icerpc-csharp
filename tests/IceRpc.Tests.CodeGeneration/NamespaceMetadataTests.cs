@@ -22,7 +22,6 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new NamespaceMDOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
-
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
@@ -33,8 +32,8 @@ namespace IceRpc.Tests.CodeGeneration
         public async Task NamespaceMetadata_Definitions()
         {
             C1 c1 = await _prx.GetWithNamespaceC2AsC1Async();
-            Assert.IsNotNull(c1);
-            Assert.IsInstanceOf<C2>(c1);
+            Assert.That(c1, Is.Not.Null);
+            Assert.That(c1, Is.InstanceOf<C2>());
             Assert.DoesNotThrowAsync(async () => await _prx.GetWithNamespaceC2AsC2Async());
             Assert.DoesNotThrowAsync(async () => await _prx.GetWithNamespaceN1N2S1Async());
             Assert.DoesNotThrowAsync(async () => await _prx.GetNestedM0M2M3S2Async());

@@ -70,7 +70,7 @@ namespace IceRpc
         internal static IDispatcher NullDispatcher { get; } =
             new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
 
-        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For incoming
+        /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For server
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For client connections, set can be called during configuration.</summary>
         /// <value>The dispatcher that dispatches requests received by this connection, or null if no dispatcher is
@@ -258,6 +258,10 @@ namespace IceRpc
                 $"{nameof(TransportName)} is not available because there's no endpoint set");
 
         /// <summary>The underlying multi-stream connection.</summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Usage",
+            "CA2213:Disposable fields should be disposed",
+            Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
         internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
@@ -325,7 +329,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = UnderlyingConnection?.StartScope(Server);
+            using IDisposable? scope = StartScope();
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
         }
 
@@ -444,7 +448,7 @@ namespace IceRpc
 
                     // Start the scope only once the connection is connected/accepted to ensure that the .NET connection
                     // endpoints are available.
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
@@ -460,10 +464,10 @@ namespace IceRpc
 
                         Action logSuccess = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => UnderlyingConnection.Logger.LogConnectionEstablished,
-                            (false, true) => UnderlyingConnection.Logger.LogStartSendingDatagrams,
-                            (true, false) => UnderlyingConnection.Logger.LogConnectionAccepted,
-                            (true, true) => UnderlyingConnection.Logger.LogStartReceivingDatagrams
+                            (false, false) => Logger.LogConnectionEstablished,
+                            (false, true) => Logger.LogStartSendingDatagrams,
+                            (true, false) => Logger.LogConnectionAccepted,
+                            (true, true) => Logger.LogStartReceivingDatagrams
                         };
                         logSuccess();
                     }
@@ -482,7 +486,7 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
                     await AbortAsync(exception).ConfigureAwait(false);
                     throw;
                 }
@@ -522,7 +526,7 @@ namespace IceRpc
                         _timer = new Timer(value => Monitor(), null, period, period);
                     }
 
-                    using IDisposable? scope = connection.StartScope(Server);
+                    using IDisposable? scope = StartScope();
 
                     // Start a task to wait for the GoAway frame on the peer's control stream.
                     if (!IsDatagram)
@@ -569,33 +573,31 @@ namespace IceRpc
                 throw;
             }
 
-            RpcStream? stream = null;
             try
             {
                 using IDisposable? connectionScope = StartScope();
 
-                // Create the outgoing stream.
-                stream = UnderlyingConnection!.CreateStream(!request.IsOneway);
+                // Create the stream. The caller (the proxy InvokeAsync implementation) is responsible for releasing
+                // the stream.
+                request.Stream = UnderlyingConnection!.CreateStream(!request.IsOneway);
 
                 // Send the request and wait for the sending to complete.
-                await stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
+                await request.Stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
                 // Mark the request as sent.
                 request.IsSent = true;
 
-                using IDisposable? streamScope = stream.StartScope();
-
                 // Wait for the reception of the response.
                 IncomingResponse response = request.IsOneway ?
                     new IncomingResponse(this, request.PayloadEncoding) :
-                    await stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
                 response.Connection = this;
-                response.Stream = stream;
+
                 return response;
             }
             catch (OperationCanceledException) when (cancel.IsCancellationRequested)
             {
-                stream!.Reset(RpcStreamError.InvocationCanceled);
+                request.Stream.Abort(RpcStreamError.InvocationCanceled);
                 throw;
             }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)
@@ -640,11 +642,6 @@ namespace IceRpc
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
                 throw;
-            }
-            finally
-            {
-                // Release one ref-count
-                stream?.Release();
             }
         }
 
@@ -722,7 +719,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => UnderlyingConnection?.StartScope();
+        internal IDisposable? StartScope() => Logger.StartConnectionScope(this);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -749,9 +746,6 @@ namespace IceRpc
 
                 if (UnderlyingConnection != null)
                 {
-                    // Abort the streams.
-                    UnderlyingConnection.AbortStreams(RpcStreamError.ConnectionAborted);
-
                     UnderlyingConnection.Dispose();
 
                     // Log the connection closure
@@ -762,10 +756,10 @@ namespace IceRpc
                         // trace.
                         Action<Exception> logFailure = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => UnderlyingConnection.Logger.LogConnectionConnectFailed,
-                            (false, true) => UnderlyingConnection.Logger.LogStartSendingDatagramsFailed,
-                            (true, false) => UnderlyingConnection.Logger.LogConnectionAcceptFailed,
-                            (true, true) => UnderlyingConnection.Logger.LogStartReceivingDatagramsFailed
+                            (false, false) => Logger.LogConnectionConnectFailed,
+                            (false, true) => Logger.LogStartSendingDatagramsFailed,
+                            (true, false) => Logger.LogConnectionAcceptFailed,
+                            (true, true) => Logger.LogStartReceivingDatagramsFailed
                         };
                         logFailure(exception);
                     }
@@ -773,23 +767,23 @@ namespace IceRpc
                     {
                         if (IsDatagram && IsServer)
                         {
-                            UnderlyingConnection.Logger.LogStopReceivingDatagrams();
+                            Logger.LogStopReceivingDatagrams();
                         }
                         else if (exception is ConnectionClosedException closedException)
                         {
-                            UnderlyingConnection.Logger.LogConnectionClosed(exception.Message);
+                            Logger.LogConnectionClosed(exception.Message);
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            UnderlyingConnection.Logger.LogConnectionClosed(exception.Message);
+                            Logger.LogConnectionClosed(exception.Message);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            UnderlyingConnection.Logger.LogConnectionClosed("connection lost");
+                            Logger.LogConnectionClosed("connection lost");
                         }
                         else
                         {
-                            UnderlyingConnection.Logger.LogConnectionClosed(exception.Message, exception);
+                            Logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
                 }
@@ -836,8 +830,6 @@ namespace IceRpc
             // Start a new accept stream task to accept another stream.
             _acceptStreamTask = Task.Run(() => AcceptStreamAsync());
 
-            using IDisposable? streamScope = stream.StartScope();
-
             Debug.Assert(stream != null);
             try
             {
@@ -845,13 +837,12 @@ namespace IceRpc
                 // peer or when the stream is aborted because the connection shutdown is canceled or failed.
                 CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
-                // Receives the request frame from the stream
+                // Receives the request frame from the stream.
                 IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
                 request.Connection = this;
                 request.Stream = stream;
 
                 OutgoingResponse? response = null;
-
                 try
                 {
                     response =
@@ -866,7 +857,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        stream.Reset(RpcStreamError.DispatchCanceled);
+                        stream.Abort(RpcStreamError.DispatchCanceled);
                     }
                 }
                 catch (Exception exception)
@@ -896,7 +887,7 @@ namespace IceRpc
                 }
 
                 // Send the response if the stream is bidirectional.
-                if (response != null)
+                if (response != null && !request.IsOneway)
                 {
                     try
                     {
@@ -910,17 +901,13 @@ namespace IceRpc
                     }
                 }
             }
-            catch (RpcStreamAbortedException)
+            catch (RpcStreamAbortedException ex)
             {
-                // Ignore
+                stream.Abort(ex.ErrorCode);
             }
             catch (Exception ex)
             {
                 _ = AbortAsync(ex);
-            }
-            finally
-            {
-                stream?.Release();
             }
         }
 
@@ -972,7 +959,7 @@ namespace IceRpc
             {
                 Debug.Assert(UnderlyingConnection != null);
 
-                using IDisposable? scope = UnderlyingConnection.StartScope(Server);
+                using IDisposable? scope = StartScope();
                 TimeSpan now = Time.Elapsed;
                 try
                 {
@@ -1136,7 +1123,7 @@ namespace IceRpc
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked.
                 await Task.Yield();
 
-                // Abort non-processed outgoing streams before closing the connection to ensure the invocation
+                // Abort non-processed outgoing streams before closing the connection to ensure the invocations
                 // will fail with a retryable exception.
                 UnderlyingConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer,
                                                           lastOutgoingStreamIds);

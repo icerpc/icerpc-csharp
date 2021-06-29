@@ -50,6 +50,7 @@ namespace IceRpc
             set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
                 throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
         }
+
         private TimeSpan? _timeout;
     }
 }

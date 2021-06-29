@@ -79,6 +79,8 @@ namespace IceRpc.Tests.CodeGeneration
 
             // This is invoked as a oneway thanks to the metadata
             await _prx.OpOnewayMetadataAsync();
+
+            await _prx.IcePingAsync();
         }
 
         public class Operations : IOperations

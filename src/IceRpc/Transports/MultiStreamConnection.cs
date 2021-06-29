@@ -8,9 +8,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -61,6 +61,7 @@ namespace IceRpc.Transports
         public string TransportName => _endpoint.TransportName;
 
         internal int IncomingFrameMaxSize { get; }
+
         internal int IncomingStreamCount
         {
             get
@@ -93,8 +94,8 @@ namespace IceRpc.Transports
         internal ILogger Logger { get; }
         internal Action? PingReceived;
 
-        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or the remote
-        // endpoint otherwise.
+        // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
+        // the remote endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
         private TaskCompletionSource? _incomingStreamsEmptySource;
@@ -194,16 +195,18 @@ namespace IceRpc.Transports
         /// unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            // Release the remaining streams.
+            // Shutdown the connection to ensure stream creation fails after the connection is disposed.
+            _ = Shutdown();
+
             foreach (RpcStream stream in _streams.Values)
             {
                 try
                 {
-                    stream.Release();
+                    stream.Abort(RpcStreamError.ConnectionAborted);
                 }
                 catch (Exception ex)
                 {
-                    Debug.Assert(false, $"unexpected exception on Stream.TryRelease: {ex}");
+                    Debug.Assert(false, $"unexpected exception on Stream.Abort: {ex}");
                 }
             }
         }
@@ -245,32 +248,60 @@ namespace IceRpc.Transports
 
         /// <summary>Traces the given received amount of data. Transport implementations should call this method
         /// to trace the received data.</summary>
-        /// <param name="size">The size in bytes of the received data.</param>
-        protected void Received(int size)
+        /// <param name="buffer">The received data.</param>
+        protected void Received(ReadOnlyMemory<byte> buffer)
         {
             lock (_mutex)
             {
-                Debug.Assert(size > 0);
                 LastActivity = Time.Elapsed;
             }
 
-            Logger.LogReceivedData(size);
+            if (Logger.IsEnabled(LogLevel.Trace))
+            {
+                var sb = new StringBuilder();
+                for (int i = 0; i < Math.Min(buffer.Length, 32); ++i)
+                {
+                    sb.Append($"0x{buffer.Span[i]:X2} ");
+                }
+                if (buffer.Length > 32)
+                {
+                    sb.Append("...");
+                }
+                Logger.LogReceivedData(buffer.Length, sb.ToString().Trim());
+            }
         }
 
         /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
         /// trace the data sent.</summary>
-        /// <param name="size">The size in bytes of the data sent.</param>
-        protected void Sent(int size)
+        /// <param name="buffers">The buffers sent.</param>
+        protected void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             lock (_mutex)
             {
-                Debug.Assert(size > 0);
                 LastActivity = Time.Elapsed;
             }
 
-            if (size > 0)
+            if (Logger.IsEnabled(LogLevel.Trace))
             {
-                Logger.LogSentData(size);
+                var sb = new StringBuilder();
+                int size = 0;
+                for (int i = 0; i < buffers.Length; ++i)
+                {
+                    ReadOnlyMemory<byte> buffer = buffers.Span[i];
+                    if (size < 32)
+                    {
+                        for (int j = 0; j < Math.Min(buffer.Length, 32 - size); ++j)
+                        {
+                            sb.Append($"0x{buffer.Span[j]:X2} ");
+                        }
+                    }
+                    size += buffer.Length;
+                    if (size == 32 && i != buffers.Length)
+                    {
+                        sb.Append("...");
+                    }
+                }
+                Logger.LogSentData(size, sb.ToString().Trim());
             }
         }
 
@@ -295,9 +326,7 @@ namespace IceRpc.Transports
             RpcStreamError errorCode,
             (long Bidirectional, long Unidirectional)? ids = null)
         {
-            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer
-            // so we mark the stream as retryable. This is used by the connection to figure out whether or not the
-            // request can safely be retried.
+            // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer.
             foreach (RpcStream stream in _streams.Values)
             {
                 if (!stream.IsIncoming &&
@@ -306,26 +335,6 @@ namespace IceRpc.Transports
                      stream.Id > (stream.IsBidirectional ? ids.Value.Bidirectional : ids.Value.Unidirectional)))
                 {
                     stream.Abort(errorCode);
-                }
-            }
-        }
-
-        internal virtual void AbortStreams(RpcStreamError errorCode)
-        {
-            foreach (RpcStream stream in _streams.Values)
-            {
-                // Control streams are never aborted.
-                if (!stream.IsControl)
-                {
-                    try
-                    {
-                        stream.Abort(errorCode);
-                        stream.CancelDispatchSource?.Cancel();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // Ignore
-                    }
                 }
             }
         }
@@ -397,7 +406,7 @@ namespace IceRpc.Transports
             return stream;
         }
 
-        internal bool RemoveStream(long id)
+        internal void RemoveStream(long id)
         {
             lock (_mutex)
             {
@@ -420,11 +429,10 @@ namespace IceRpc.Transports
                             }
                         }
                     }
-                    return true;
                 }
                 else
                 {
-                    return false;
+                    Debug.Assert(false);
                 }
             }
         }
@@ -447,8 +455,6 @@ namespace IceRpc.Transports
                 return (_lastIncomingBidirectionalStreamId, _lastIncomingUnidirectionalStreamId);
             }
         }
-
-        internal IDisposable? StartScope(Server? server = null) => Logger.StartConnectionScope(this, server);
 
         internal async ValueTask WaitForEmptyIncomingStreamsAsync(CancellationToken cancel)
         {
@@ -477,8 +483,7 @@ namespace IceRpc.Transports
                 }
                 // Run the continuations asynchronously to ensure continuations are not ran from
                 // the code that aborts the last stream.
-                _outgoingStreamsEmptySource ??=
-                    new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
             await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
         }
