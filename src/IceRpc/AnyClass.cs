@@ -11,12 +11,12 @@ namespace IceRpc
         /// <summary>A decoder used to decode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass> IceReader =
-            istr => istr.ReadClass<AnyClass>(formalTypeId: null);
+            reader => reader.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>A decoder used to decode nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<AnyClass?> IceReaderIntoNullable =
-            istr => istr.ReadNullableClass<AnyClass>(formalTypeId: null);
+            reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encoder used to encode non nullable class instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -43,10 +43,10 @@ namespace IceRpc
 
         /// <summary>Unmarshals the current object by reading its data members from the <see cref="BufferReader"/>.
         /// </summary>
-        /// <param name="istr">The stream to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(BufferReader istr, bool firstSlice);
-        internal void Read(BufferReader istr) => IceRead(istr, true);
+        protected abstract void IceRead(BufferReader reader, bool firstSlice);
+        internal void Read(BufferReader reader) => IceRead(reader, true);
 
         /// <summary>Marshals the current object by writing its data to from the <see cref="BufferWriter"/>.</summary>
         /// <param name="writer">The stream to write to.</param>

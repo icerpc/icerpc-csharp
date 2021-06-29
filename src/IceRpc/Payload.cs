@@ -193,9 +193,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = decoder(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            var reader = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = decoder(reader);
+            reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -227,9 +227,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new BufferReader(payload, payloadEncoding, connection, invoker);
-            T result = decoder(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
+            T result = decoder(reader);
+            reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -309,24 +309,24 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var istr = new BufferReader(payload, payloadEncoding, connection, invoker);
+            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
 
-            if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && reader.Encoding == Encoding.V11)
             {
                 // Skip reply status byte
-                istr.Skip(1);
+                reader.Skip(1);
             }
 
             RemoteException exception;
-            if (istr.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (reader.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
             {
-                exception = istr.ReadIce1SystemException(replyStatus);
-                istr.CheckEndOfBuffer(skipTaggedParams: false);
+                exception = reader.ReadIce1SystemException(replyStatus);
+                reader.CheckEndOfBuffer(skipTaggedParams: false);
             }
             else
             {
-                exception = istr.ReadException();
-                istr.CheckEndOfBuffer(skipTaggedParams: true);
+                exception = reader.ReadException();
+                reader.CheckEndOfBuffer(skipTaggedParams: true);
             }
             return exception;
         }

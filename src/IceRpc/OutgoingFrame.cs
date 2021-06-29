@@ -96,7 +96,7 @@ namespace IceRpc
                 // Need to marshal/unmarshal these fields
                 var writer = new BufferWriter(Encoding.V20);
                 WriteFields(writer);
-                return writer.Finish().ToSingleBuffer().ReadFieldValue(istr => istr.ReadFieldDictionary());
+                return writer.Finish().ToSingleBuffer().ReadFieldValue(reader => reader.ReadFieldDictionary());
             }
         }
 

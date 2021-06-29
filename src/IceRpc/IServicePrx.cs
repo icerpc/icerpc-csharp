@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      istr => istr.ReadArray(minElementSize: 1, BufferReader.IceReaderIntoString),
+                                      reader => reader.ReadArray(minElementSize: 1, BufferReader.IceReaderIntoString),
                                       connection,
                                       invoker);
 
@@ -91,7 +91,7 @@ namespace IceRpc
         /// <summary>An <see cref="Decoder{T}"/> used to read <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<IServicePrx> IceReader =
-            istr => Proxy.Read(Factory, istr);
+            reader => Proxy.Read(Factory, reader);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
@@ -126,7 +126,7 @@ namespace IceRpc
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<IServicePrx?> IceReaderIntoNullable =
-            istr => Proxy.ReadNullable(Factory, istr);
+            reader => Proxy.ReadNullable(Factory, reader);
 
         /// <summary>An encoder used to encode <see cref="IServicePrx"/> proxies.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

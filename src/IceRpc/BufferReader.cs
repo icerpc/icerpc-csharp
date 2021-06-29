@@ -15,8 +15,8 @@ namespace IceRpc
 {
     /// <summary>A delegate that reads a value from a buffer decoder.</summary>
     /// <typeparam name="T">The type of the value to read.</typeparam>
-    /// <param name="istr">The buffer decoder to read from.</param>
-    public delegate T Decoder<T>(BufferReader istr);
+    /// <param name="reader">The buffer decoder to read from.</param>
+    public delegate T Decoder<T>(BufferReader reader);
 
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
     public sealed partial class BufferReader
@@ -26,77 +26,77 @@ namespace IceRpc
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>bool</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<bool> IceReaderIntoBool =
-            istr => istr.ReadBool();
+            reader => reader.ReadBool();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>byte</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<byte> IceReaderIntoByte =
-            istr => istr.ReadByte();
+            reader => reader.ReadByte();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>double</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<double> IceReaderIntoDouble =
-            istr => istr.ReadDouble();
+            reader => reader.ReadDouble();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>float</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<float> IceReaderIntoFloat =
-            istr => istr.ReadFloat();
+            reader => reader.ReadFloat();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>int</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<int> IceReaderIntoInt =
-            istr => istr.ReadInt();
+            reader => reader.ReadInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>long</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<long> IceReaderIntoLong =
-            istr => istr.ReadLong();
+            reader => reader.ReadLong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>short</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<short> IceReaderIntoShort =
-            istr => istr.ReadShort();
+            reader => reader.ReadShort();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>string</c> instances.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<string> IceReaderIntoString =
-            istr => istr.ReadString();
+            reader => reader.ReadString();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>uint</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<uint> IceReaderIntoUInt =
-            istr => istr.ReadUInt();
+            reader => reader.ReadUInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>ulong</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<ulong> IceReaderIntoULong =
-            istr => istr.ReadULong();
+            reader => reader.ReadULong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read <c>ushort</c> values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<ushort> IceReaderIntoUShort =
-            istr => istr.ReadUShort();
+            reader => reader.ReadUShort();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var int values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<int> IceReaderIntoVarInt =
-            istr => istr.ReadVarInt();
+            reader => reader.ReadVarInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var long values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<long> IceReaderIntoVarLong =
-            istr => istr.ReadVarLong();
+            reader => reader.ReadVarLong();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var uint values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<uint> IceReaderIntoVarUInt =
-            istr => istr.ReadVarUInt();
+            reader => reader.ReadVarUInt();
 
         /// <summary>A <see cref="Decoder{T}"/> used to read var ulong values.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public static readonly Decoder<ulong> IceReaderIntoVarULong =
-            istr => istr.ReadVarULong();
+            reader => reader.ReadVarULong();
 
         /// <summary>The Ice encoding used by this stream when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
@@ -1450,11 +1450,11 @@ namespace IceRpc
             // Disable this warning as the _current field is never read before it is initialized in MoveNext. Declaring
             // this field as nullable is not an option for a generic T that can be used with reference and value types.
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
-            protected CollectionBase(BufferReader istr, int minElementSize)
+            protected CollectionBase(BufferReader reader, int minElementSize)
 #pragma warning restore CS8618
             {
-                Count = istr.ReadAndCheckSeqSize(minElementSize);
-                InputStream = istr;
+                Count = reader.ReadAndCheckSeqSize(minElementSize);
+                InputStream = reader;
             }
         }
 
@@ -1466,8 +1466,8 @@ namespace IceRpc
         {
             private readonly Decoder<T> _decoder;
 
-            internal Collection(BufferReader istr, int minElementSize, Decoder<T> decoder)
-                : base(istr, minElementSize) => _decoder = decoder;
+            internal Collection(BufferReader reader, int minElementSize, Decoder<T> decoder)
+                : base(reader, minElementSize) => _decoder = decoder;
 
             public override bool MoveNext()
             {
@@ -1491,10 +1491,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly Decoder<T> _decoder;
 
-            internal NullableCollection(BufferReader istr, Decoder<T> decoder)
-                : base(istr, 0)
+            internal NullableCollection(BufferReader reader, Decoder<T> decoder)
+                : base(reader, 0)
             {
-                _bitSequenceMemory = istr.ReadBitSequenceMemory(Count);
+                _bitSequenceMemory = reader.ReadBitSequenceMemory(Count);
                 _decoder = decoder;
             }
 
@@ -1519,10 +1519,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly Decoder<T> _decoder;
 
-            internal NullableValueCollection(BufferReader istr, Decoder<T> decoder)
-                : base(istr, 0)
+            internal NullableValueCollection(BufferReader reader, Decoder<T> decoder)
+                : base(reader, 0)
             {
-                _bitSequenceMemory = istr.ReadBitSequenceMemory(Count);
+                _bitSequenceMemory = reader.ReadBitSequenceMemory(Count);
                 _decoder = decoder;
             }
 

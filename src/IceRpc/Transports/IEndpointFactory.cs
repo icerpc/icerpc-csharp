@@ -25,9 +25,9 @@ namespace IceRpc.Transports
     public interface IIce1EndpointFactory : IEndpointFactory
     {
         /// <summary>Reads an endpoint from the buffer decoder.</summary>
-        /// <param name="istr">The buffer decoder.</param>
+        /// <param name="reader">The buffer decoder.</param>
         /// <returns>The new endpoint.</returns>
-        Endpoint CreateIce1Endpoint(BufferReader istr);
+        Endpoint CreateIce1Endpoint(BufferReader reader);
 
         /// <summary>Creates an endpoint from a pre-parsed endpoint string.</summary>
         /// <param name="options">The options parsed from the endpoint string.</param>

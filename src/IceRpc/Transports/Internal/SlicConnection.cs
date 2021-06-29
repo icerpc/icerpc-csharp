@@ -186,8 +186,8 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var istr = new BufferReader(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(istr);
+                        var reader = new BufferReader(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(reader);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
@@ -233,8 +233,8 @@ namespace IceRpc.Transports.Internal
 
                         await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
-                        var istr = new BufferReader(_streamConsumedBuffer.Value[0..dataSize], SlicDefinitions.Encoding);
-                        var streamConsumed = new StreamConsumedBody(istr);
+                        var reader = new BufferReader(_streamConsumedBuffer.Value[0..dataSize], SlicDefinitions.Encoding);
+                        var streamConsumed = new StreamConsumedBody(reader);
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
@@ -285,8 +285,8 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Check that the Slic version is supported (we only support version 1 for now)
-                var istr = new BufferReader(data, SlicDefinitions.Encoding);
-                uint version = istr.ReadVarUInt();
+                var reader = new BufferReader(data, SlicDefinitions.Encoding);
+                uint version = reader.ReadVarUInt();
                 if (version != 1)
                 {
                     Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
@@ -306,8 +306,8 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                     }
 
-                    istr = new BufferReader(data, SlicDefinitions.Encoding);
-                    version = istr.ReadVarUInt();
+                    reader = new BufferReader(data, SlicDefinitions.Encoding);
+                    version = reader.ReadVarUInt();
                     if (version != 1)
                     {
                         throw new InvalidDataException($"unsupported Slic version '{version}'");
@@ -315,8 +315,8 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Read initialize frame
-                var initializeBody = new InitializeHeaderBody(istr);
-                Dictionary<ParameterKey, ulong> parameters = ReadParameters(istr);
+                var initializeBody = new InitializeHeaderBody(reader);
+                Dictionary<ParameterKey, ulong> parameters = ReadParameters(reader);
                 Logger.LogReceivingSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
@@ -364,14 +364,14 @@ namespace IceRpc.Transports.Internal
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
-                var istr = new BufferReader(data, SlicDefinitions.Encoding);
+                var reader = new BufferReader(data, SlicDefinitions.Encoding);
 
                 // If we receive a Version frame, there isn't much we can do as we only support V1 so we throw
                 // with an appropriate message to abort the connection.
                 if (type == SlicDefinitions.FrameType.Version)
                 {
                     // Read the version sequence provided by the server.
-                    var versionBody = new VersionBody(istr);
+                    var versionBody = new VersionBody(reader);
                     Logger.LogReceivingSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(
@@ -384,7 +384,7 @@ namespace IceRpc.Transports.Internal
                 else
                 {
                     // Read and set parameters.
-                    parameters = ReadParameters(istr);
+                    parameters = ReadParameters(reader);
                     Logger.LogReceivingSlicInitializeAckFrame(data.Length, parameters);
                     SetParameters(parameters);
                 }
@@ -661,13 +661,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static Dictionary<ParameterKey, ulong> ReadParameters(BufferReader istr)
+        private static Dictionary<ParameterKey, ulong> ReadParameters(BufferReader reader)
         {
-            int dictionarySize = istr.ReadSize();
+            int dictionarySize = reader.ReadSize();
             var parameters = new Dictionary<ParameterKey, ulong>();
             for (int i = 0; i < dictionarySize; ++i)
             {
-                (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
+                (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
                 parameters.Add((ParameterKey)key, value.Span.ReadVarULong().Value);
             }
             return parameters;

@@ -107,12 +107,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Reads an ice1 system exception encoded based on the provided reply status.</summary>
-        /// <param name="istr">The stream to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <returns>The exception read from the stream.</returns>
-        internal static RemoteException ReadIce1SystemException(this BufferReader istr, ReplyStatus replyStatus)
+        internal static RemoteException ReadIce1SystemException(this BufferReader reader, ReplyStatus replyStatus)
         {
-            Debug.Assert(istr.Encoding == Encoding.V11);
+            Debug.Assert(reader.Encoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -123,7 +123,7 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    var requestFailed = new Ice1RequestFailedExceptionData(istr);
+                    var requestFailed = new Ice1RequestFailedExceptionData(reader);
 
                     IList<string> facetPath = requestFailed.FacetPath;
                     if (facetPath.Count > 1)
@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                     break;
 
                 default:
-                    systemException = new UnhandledException(istr.ReadString());
+                    systemException = new UnhandledException(reader.ReadString());
                     break;
             }
 

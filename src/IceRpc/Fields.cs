@@ -10,14 +10,14 @@ namespace IceRpc
     public static class Fields
     {
         /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
-        /// <param name="istr">The buffer decoder.</param>
+        /// <param name="reader">The buffer decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the stream's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader istr)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader reader)
         {
-            Debug.Assert(istr.Encoding == Encoding.V20);
+            Debug.Assert(reader.Encoding == Encoding.V20);
 
-            int size = istr.ReadSize();
+            int size = reader.ReadSize();
             if (size == 0)
             {
                 return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = istr.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();
@@ -48,9 +48,9 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var istr = new BufferReader(value, Encoding.V20, connection, invoker);
-            T result = decoder(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: false);
+            var reader = new BufferReader(value, Encoding.V20, connection, invoker);
+            T result = decoder(reader);
+            reader.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
     }

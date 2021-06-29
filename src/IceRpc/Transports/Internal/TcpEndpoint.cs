@@ -240,18 +240,18 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
             TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-        public Endpoint CreateIce1Endpoint(BufferReader istr)
+        public Endpoint CreateIce1Endpoint(BufferReader reader)
         {
             Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
             return new TcpEndpoint(new EndpointData(Transport,
-                                                    host: istr.ReadString(),
-                                                    port: checked((ushort)istr.ReadInt()),
+                                                    host: reader.ReadString(),
+                                                    port: checked((ushort)reader.ReadInt()),
                                                     ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                   compress: istr.ReadBool());
+                                   timeout: TimeSpan.FromMilliseconds(reader.ReadInt()),
+                                   compress: reader.ReadBool());
         }
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
