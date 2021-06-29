@@ -9,7 +9,7 @@ namespace IceRpc
     /// <summary>Extension class to read fields.</summary>
     public static class Fields
     {
-        /// <summary>Reads fields from an <see cref="BufferReader"/>.</summary>
+        /// <summary>Reads fields from a <see cref="BufferReader"/>.</summary>
         /// <param name="reader">The buffer reader.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the reader's underlying buffer.</remarks>
@@ -34,14 +34,15 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
-        /// <typeparam name="T">The type of the contents.</typeparam>
-        /// <param name="value">The field value.</param>
-        /// <param name="decoder">The <see cref="Decoder{T}"/> that reads the field value.</param>
+        /// <summary>Decodes a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
+        /// <typeparam name="T">The decoded type.</typeparam>
+        /// <param name="value">The field value as a byte buffer.</param>
+        /// <param name="decoder">The <see cref="Decoder{T}"/> for the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
-        /// <param name="invoker">The invoker of proxies in the contents.</param>
-        /// <returns>The contents of the value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="decoder"/> finds invalid data.</exception>
+        /// <param name="invoker">The invoker of proxies in the decoded type.</param>
+        /// <returns>The decoded value.</returns>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decoder"/> finds invalid data.
+        /// </exception>
         public static T ReadFieldValue<T>(
             this ReadOnlyMemory<byte> value,
             Decoder<T> decoder,
