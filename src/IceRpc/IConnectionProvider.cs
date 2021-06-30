@@ -20,7 +20,7 @@ namespace IceRpc
         /// failed to establish a connection to it.</exception>
         /// <exception cref="AggregateException">Thrown when there are multiple usable endpoints and this method
         /// failed to establish a connection to any of them. The <see cref="AggregateException"/> wraps the
-        /// <see cref="ConnectFailedException"/> thrown by attempting to connect each of the usable endpoints.
+        /// <see cref="ConnectFailedException"/> thrown by the attempts to connect to each of the usable endpoints.
         /// </exception>
         ValueTask<Connection> GetConnectionAsync(
             Endpoint endpoint,
