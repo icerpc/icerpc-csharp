@@ -81,12 +81,12 @@ namespace IceRpc.Tests.Encoding
                 Runtime.CompactTypeIdClassFactoryDictionary);
             classFactories.Remove(3);
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactMostDerivedClass>(null));
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             MyCompactDerivedClass r1 = reader.ReadClass<MyCompactDerivedClass>(null);
             Assert.That(r1.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r1.M1);
@@ -95,12 +95,12 @@ namespace IceRpc.Tests.Encoding
             // Repeat removing the factory for 'MyCompactDerivedClass'
             classFactories.Remove(2);
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactDerivedClass>(null));
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             MyCompactBaseClass r2 = reader.ReadClass<MyCompactBaseClass>(null);
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r2.M1);
@@ -108,12 +108,12 @@ namespace IceRpc.Tests.Encoding
             // Repeat removing the factory for 'MyCompactBaseClass'
             classFactories.Remove(1);
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactBaseClass>(null));
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             Assert.DoesNotThrow(() => reader.ReadClass<AnyClass>(null));
         }
 
@@ -145,8 +145,8 @@ namespace IceRpc.Tests.Encoding
                 Runtime.TypeIdRemoteExceptionFactoryDictionary);
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");
             reader = new BufferReader(data,
-                                   encoding,
-                                   typeIdExceptionFactories: exceptionFactories);
+                                      encoding,
+                                      typeIdExceptionFactories: exceptionFactories);
 
             r = reader.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
@@ -159,8 +159,8 @@ namespace IceRpc.Tests.Encoding
             // Repeat removing the factory for 'MyDerivedException'
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyDerivedException");
             reader = new BufferReader(data,
-                                   encoding,
-                                   typeIdExceptionFactories: exceptionFactories);
+                                      encoding,
+                                      typeIdExceptionFactories: exceptionFactories);
             r = reader.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
@@ -171,8 +171,8 @@ namespace IceRpc.Tests.Encoding
             // Repeat removing the factory for 'MyBaseException'
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyBaseException");
             reader = new BufferReader(data,
-                                   encoding,
-                                   typeIdExceptionFactories: exceptionFactories);
+                                      encoding,
+                                      typeIdExceptionFactories: exceptionFactories);
             r = reader.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
@@ -210,8 +210,8 @@ namespace IceRpc.Tests.Encoding
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             bool factory = classFactories.Remove(MyPreservedDerivedClass1.IceTypeId);
             var reader = new BufferReader(data,
-                                       encoding,
-                                       typeIdClassFactories: classFactories);
+                                          encoding,
+                                          typeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyPreservedDerivedClass1>(null));
 
             reader = new BufferReader(data, encoding, typeIdClassFactories: classFactories);
@@ -257,12 +257,12 @@ namespace IceRpc.Tests.Encoding
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             bool factory = classFactories.Remove(56);
             var reader = new BufferReader(data,
-                                       encoding,
-                                       compactTypeIdClassFactories: classFactories);
+                                          encoding,
+                                          compactTypeIdClassFactories: classFactories);
             Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyPreservedDerivedClass2>(null));
             reader = new BufferReader(data,
-                                       encoding,
-                                       compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             MyBaseClass r1 = reader.ReadClass<MyBaseClass>(null);
 
             // Marshal the sliced class
@@ -275,8 +275,8 @@ namespace IceRpc.Tests.Encoding
             // Slices.
             classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             reader = new BufferReader(data,
-                                   encoding,
-                                   compactTypeIdClassFactories: classFactories);
+                                      encoding,
+                                      compactTypeIdClassFactories: classFactories);
             MyPreservedDerivedClass2 r2 = reader.ReadClass<MyPreservedDerivedClass2>(null);
             Assert.AreEqual("p1-m1", r2.M1);
             Assert.AreEqual("p1-m2", r2.M2);
