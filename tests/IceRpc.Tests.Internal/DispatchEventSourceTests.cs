@@ -26,6 +26,7 @@ namespace IceRpc.Tests.Internal
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
+                                                      null,
                                                       DateTime.MaxValue);
 
             var request = new IncomingRequest(outgoingRequest);
@@ -52,6 +53,7 @@ namespace IceRpc.Tests.Internal
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
+                                                      null,
                                                       DateTime.MaxValue);
 
             var request = new IncomingRequest(outgoingRequest);
@@ -78,6 +80,7 @@ namespace IceRpc.Tests.Internal
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
+                                                      null,
                                                       DateTime.MaxValue);
 
             var request = new IncomingRequest(outgoingRequest);
@@ -104,6 +107,7 @@ namespace IceRpc.Tests.Internal
             var outgoingRequest = new OutgoingRequest(prx,
                                                       "ice_id",
                                                       Payload.FromEmptyArgs(prx),
+                                                      null,
                                                       DateTime.MaxValue);
 
             var request = new IncomingRequest(outgoingRequest);

@@ -67,7 +67,6 @@ namespace IceRpc.Tests.ClientServer
                 if (GetEventId(entry) == (int)TransportEvent.ConnectionConnectFailed)
                 {
                     Assert.That(scopes, Is.Not.Empty);
-
                 }
                 else
                 {

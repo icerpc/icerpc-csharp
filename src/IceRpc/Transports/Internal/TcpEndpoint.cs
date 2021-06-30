@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -15,20 +16,30 @@ namespace IceRpc.Transports.Internal
     /// <summary>The Endpoint class for the TCP transport.</summary>
     internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
     {
-        public override bool IsDatagram => false;
-        public override bool? IsSecure => Protocol == Protocol.Ice1 ? Transport == Transport.SSL : _tls;
+        public override bool? IsSecure => _tls;
 
         public override string? this[string option] =>
             option switch
             {
-                "compress" => HasCompressionFlag ? "true" : null,
-                "timeout" => Timeout != DefaultTimeout ?
-                             Timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
-                "tls" => _tls?.ToString().ToLowerInvariant(),
+                "compress" => _hasCompressionFlag ? "true" : null,
+                "timeout" => _timeout != DefaultTimeout ?
+                             _timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
+                "tls" => Protocol == Protocol.Ice1 ? null : _tls?.ToString().ToLowerInvariant(),
                 _ => base[option],
             };
 
         protected internal override bool HasOptions => Protocol == Protocol.Ice1 || _tls != null;
+
+        /// <summary>The default timeout for ice1 endpoints.</summary>
+        internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
+
+        private readonly bool _hasCompressionFlag;
+        private readonly TimeSpan _timeout = DefaultTimeout;
+
+        /// <summary>The TLS option of this endpoint.</summary>
+        /// <value><c>true</c> means use TLS, <c>false</c> means do no use TLS, and <c>null</c> means the TLS usage is
+        /// to be determined. With ice1, the value is never null.</value>
+        private readonly bool? _tls;
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
         {
@@ -53,7 +64,7 @@ namespace IceRpc.Transports.Internal
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
                 socket.NoDelay = true;
             }
             catch (SocketException ex)
@@ -68,7 +79,7 @@ namespace IceRpc.Transports.Internal
 
         public IListener CreateListener(ServerConnectionOptions options, ILogger logger)
         {
-            if (Address == IPAddress.None)
+            if (HasDnsHost)
             {
                 throw new NotSupportedException(
                     $"endpoint '{this}' cannot accept connections because it has a DNS name");
@@ -86,7 +97,7 @@ namespace IceRpc.Transports.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -101,17 +112,6 @@ namespace IceRpc.Transports.Internal
             return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
         }
 
-        private protected bool HasCompressionFlag { get; }
-        private protected TimeSpan Timeout { get; } = DefaultTimeout;
-
-        /// <summary>The default timeout for ice1 endpoints.</summary>
-        protected static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(60);
-
-        /// <summary>The TLS option of this endpoint. Applies only to endpoints with the ice2 protocol.</summary>
-        /// <value>True means use TLS, false means do no use TLS, and null means the TLS usage is to be determined.
-        /// </value>
-        private readonly bool? _tls;
-
         public override bool Equals(Endpoint? other)
         {
             if (ReferenceEquals(this, other))
@@ -122,8 +122,8 @@ namespace IceRpc.Transports.Internal
             if (Protocol == Protocol.Ice1)
             {
                 return other is TcpEndpoint tcpEndpoint &&
-                    HasCompressionFlag == tcpEndpoint.HasCompressionFlag &&
-                    Timeout == tcpEndpoint.Timeout &&
+                    _hasCompressionFlag == tcpEndpoint._hasCompressionFlag &&
+                    _timeout == tcpEndpoint._timeout &&
                     base.Equals(tcpEndpoint);
             }
             else
@@ -140,9 +140,9 @@ namespace IceRpc.Transports.Internal
             {
                 // InfiniteTimeSpan yields -1 and we use -1 instead of "infinite" for compatibility with Ice 3.5.
                 sb.Append(" -t ");
-                sb.Append(Timeout.TotalMilliseconds);
+                sb.Append(_timeout.TotalMilliseconds);
 
-                if (HasCompressionFlag)
+                if (_hasCompressionFlag)
                 {
                     sb.Append(" -z");
                 }
@@ -152,6 +152,8 @@ namespace IceRpc.Transports.Internal
                 sb.Append($"tls={tls.ToString().ToLowerInvariant()}");
             }
         }
+
+        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
 
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
         protected internal override bool IsEquivalent(Endpoint? other) =>
@@ -163,8 +165,8 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
             base.WriteOptions11(ostr);
-            ostr.WriteInt((int)Timeout.TotalMilliseconds);
-            ostr.WriteBool(HasCompressionFlag);
+            ostr.WriteInt((int)_timeout.TotalMilliseconds);
+            ostr.WriteBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests
@@ -178,148 +180,115 @@ namespace IceRpc.Transports.Internal
             return new TcpEndpoint(data, protocol);
         }
 
-        internal static IEndpointFactory GetEndpointFactory(Transport transport) =>
-            transport switch
-            {
-                Transport.TCP => new TcpEndpointFactory(),
-                Transport.SSL => new SslEndpointFactory(),
-                _ => throw new ArgumentException("transport must be either tcp or ssl", nameof(transport))
-            };
-
-        private protected override IPEndpoint Clone(string host, ushort port) =>
-            new TcpEndpoint(this, host, port);
-
-        private static TcpEndpoint CreateIce1Endpoint(Transport transport, InputStream istr)
+        // Constructor for ice1 unmarshaling and parsing
+        internal TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
+            : base(data, Protocol.Ice1)
         {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
+            _timeout = timeout;
+            _hasCompressionFlag = compress;
+            _tls = data.Transport == Transport.SSL;
+        }
 
-            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++ where
-            // the order of evaluation of function arguments is undefined.
-            return new TcpEndpoint(new EndpointData(transport,
+        // Constructor for unmarshaling with the 2.0 encoding.
+        internal TcpEndpoint(EndpointData data, Protocol protocol)
+            : base(data, protocol)
+        {
+            if (Protocol == Protocol.Ice1)
+            {
+                _tls = data.Transport == Transport.SSL;
+            }
+        }
+
+        // Constructor for ice2 parsing.
+        internal TcpEndpoint(EndpointData data, bool? tls)
+            : base(data, Protocol.Ice2) =>
+            _tls = tls;
+
+        internal TcpEndpoint Clone(EndPoint address, bool tls)
+        {
+            if (address is IPEndPoint ipAddress)
+            {
+                string host = ipAddress.Address.ToString();
+                ushort port = (ushort)ipAddress.Port;
+
+                return (Host == host && Port == port && _tls == tls) ? this : new TcpEndpoint(this, host, port, tls);
+            }
+            else
+            {
+                throw new InvalidOperationException("unsupported address");
+            }
+        }
+
+        // Clone constructor
+        private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port, bool? tls = null)
+            : base(endpoint, host, port)
+        {
+            _hasCompressionFlag = endpoint._hasCompressionFlag;
+            _timeout = endpoint._timeout;
+            _tls = tls ?? endpoint._tls;
+        }
+
+        private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
+        private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
+    }
+
+    internal abstract class TcpBaseEndpointFactory : IIce1EndpointFactory
+    {
+        public abstract string Name { get; }
+        public abstract Transport Transport { get; }
+
+        public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
+            TcpEndpoint.CreateEndpoint(endpointData, protocol);
+
+        public Endpoint CreateIce1Endpoint(InputStream istr)
+        {
+            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
+
+            // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
+            // where the order of evaluation of function arguments is undefined.
+            return new TcpEndpoint(new EndpointData(Transport,
                                                     host: istr.ReadString(),
-                                                    port: ReadPort(istr),
+                                                    port: checked((ushort)istr.ReadInt()),
                                                     ImmutableList<string>.Empty),
                                    timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
                                    compress: istr.ReadBool());
         }
 
-        private static TcpEndpoint CreateIce1Endpoint(
-            Transport transport,
-            Dictionary<string, string?> options,
-            string endpointString)
+        public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            Debug.Assert(transport == Transport.TCP || transport == Transport.SSL);
-            (string host, ushort port) = ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(transport, host, port, ImmutableList<string>.Empty),
-                                   ParseTimeout(options, endpointString),
-                                   ParseCompress(options, endpointString));
+            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
+
+            (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
+            return new TcpEndpoint(new EndpointData(Transport, host, port, ImmutableList<string>.Empty),
+                                   Ice1Parser.ParseTimeout(options, TcpEndpoint.DefaultTimeout, endpointString),
+                                   Ice1Parser.ParseCompress(options, endpointString));
         }
+    }
 
-        private static TimeSpan ParseTimeout(Dictionary<string, string?> options, string endpointString)
+    internal class TcpEndpointFactory : TcpBaseEndpointFactory, IIce2EndpointFactory
+    {
+        public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
+
+        public override string Name => "tcp";
+
+        public override Transport Transport => Transport.TCP;
+
+        public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
         {
-            TimeSpan timeout = DefaultTimeout;
-
-            if (options.TryGetValue("-t", out string? argument))
+            bool? tls = null;
+            if (options.TryGetValue("tls", out string? value))
             {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
-                }
-                if (argument == "infinite")
-                {
-                    timeout = System.Threading.Timeout.InfiniteTimeSpan;
-                }
-                else
-                {
-                    try
-                    {
-                        timeout = TimeSpan.FromMilliseconds(int.Parse(argument, CultureInfo.InvariantCulture));
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException(
-                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'",
-                            ex);
-                    }
-                    if (timeout <= TimeSpan.Zero)
-                    {
-                        throw new FormatException($"invalid timeout value '{argument}' in endpoint '{endpointString}'");
-                    }
-                }
-                options.Remove("-t");
+                tls = bool.Parse(value);
+                options.Remove("tls");
             }
-            return timeout;
+            return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
         }
+    }
 
-        // Constructor for ice1 unmarshaling and parsing
-        private TcpEndpoint(EndpointData data, TimeSpan timeout, bool compress)
-            : base(data, Protocol.Ice1)
-        {
-            Timeout = timeout;
-            HasCompressionFlag = compress;
-        }
+    internal class SslEndpointFactory : TcpBaseEndpointFactory
+    {
+        public override string Name => "ssl";
 
-        // Constructor for unmarshaling with the 2.0 encoding.
-        private TcpEndpoint(EndpointData data, Protocol protocol)
-            : base(data, protocol)
-        {
-        }
-
-        // Constructor for ice2 parsing.
-        private TcpEndpoint(EndpointData data, bool? tls)
-            : base(data, Protocol.Ice2) =>
-            _tls = tls;
-
-        // Clone constructor
-        private TcpEndpoint(TcpEndpoint endpoint, string host, ushort port)
-            : base(endpoint, host, port)
-        {
-            HasCompressionFlag = endpoint.HasCompressionFlag;
-            Timeout = endpoint.Timeout;
-            _tls = endpoint._tls;
-        }
-
-        private class TcpEndpointFactory : IIce1EndpointFactory, IIce2EndpointFactory
-        {
-            public ushort DefaultUriPort => IPEndpoint.DefaultUriPort;
-
-            public string Name => "tcp";
-
-            public Transport Transport => Transport.TCP;
-
-            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
-                TcpEndpoint.CreateEndpoint(endpointData, protocol);
-
-            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
-
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
-                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
-
-            public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
-            {
-                bool? tls = null;
-                if (options.TryGetValue("tls", out string? value))
-                {
-                    tls = bool.Parse(value);
-                    options.Remove("tls");
-                }
-                return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
-            }
-        }
-
-        private class SslEndpointFactory : IIce1EndpointFactory
-        {
-            public string Name => "ssl";
-
-            public Transport Transport => Transport.SSL;
-
-            public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
-                TcpEndpoint.CreateEndpoint(endpointData, protocol);
-
-            public Endpoint CreateIce1Endpoint(InputStream istr) => TcpEndpoint.CreateIce1Endpoint(Transport, istr);
-
-            public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString) =>
-                TcpEndpoint.CreateIce1Endpoint(Transport, options, endpointString);
-        }
+        public override Transport Transport => Transport.SSL;
     }
 }

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,7 +11,7 @@ namespace IceRpc
     /// <summary>Base class for outgoing frames.</summary>
     public abstract class OutgoingFrame
     {
-        /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of 
+        /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of
         /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
         public Dictionary<int, Action<OutputStream>> Fields
@@ -71,9 +70,9 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream data writer if the request or response has an outgoing stream param. The writer is
-        /// called after the request or response frame is sent over a stream.</summary>
-        internal Action<RpcStream>? StreamDataWriter { get; set; }
+        /// <summary>The stream writer if the request or response has a stream param. The writer is called
+        /// after the request or response frame is sent over the stream.</summary>
+        internal RpcStreamWriter? StreamWriter { get; set; }
 
         private Dictionary<int, Action<OutputStream>>? _fields;
 
@@ -84,7 +83,7 @@ namespace IceRpc
         /// calls.</summary>
         internal abstract IncomingFrame ToIncoming();
 
-        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and 
+        /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
         internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
         {
@@ -105,12 +104,12 @@ namespace IceRpc
         /// <param name="ostr">The output stream.</param>
         internal abstract void WriteHeader(OutputStream ostr);
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, Action<RpcStream>? streamDataWriter)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
             Features = features;
-            StreamDataWriter = streamDataWriter;
+            StreamWriter = streamWriter;
         }
 
         private protected void WriteFields(OutputStream ostr)

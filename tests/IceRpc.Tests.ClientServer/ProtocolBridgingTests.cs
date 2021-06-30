@@ -98,7 +98,6 @@ namespace IceRpc.Tests.ClientServer
             IInvoker invoker)
         {
             _targetServer = CreateServer(targetProtocol, port: 0, colocated);
-
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
