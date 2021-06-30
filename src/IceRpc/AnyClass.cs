@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.ComponentModel;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -8,24 +7,20 @@ namespace IceRpc
     /// <summary>The base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
-        /// <summary>An InputStream reader used to read non nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<AnyClass> IceReader =
-            istr => istr.ReadClass<AnyClass>(formalTypeId: null);
+        /// <summary>A decoder for non-nullable class instances.</summary>
+        public static readonly Decoder<AnyClass> Decoder =
+            reader => reader.ReadClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An InputStream reader used to read nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly InputStreamReader<AnyClass?> IceReaderIntoNullable =
-            istr => istr.ReadNullableClass<AnyClass>(formalTypeId: null);
+        /// <summary>A decoder for nullable class instances.</summary>
+        public static readonly Decoder<AnyClass?> NullableDecoder =
+            reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An OutputStream writer used to write non nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<AnyClass> IceWriter = (ostr, value) => ostr.WriteClass(value, null);
+        /// <summary>An encoder for non-nullable class instances.</summary>
+        public static readonly Encoder<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
 
-        /// <summary>An OutputStream writer used to write nullable class instances.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public static readonly OutputStreamWriter<AnyClass?> IceWriterFromNullable =
-            (ostr, value) => ostr.WriteNullableClass(value, null);
+        /// <summary>An encoder for nullable class instances.</summary>
+        public static readonly Encoder<AnyClass?> NullableEncoder =
+            (writer, value) => writer.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>
@@ -41,18 +36,18 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Unmarshals the current object by reading its data members from the <see cref="InputStream"/>.
+        /// <summary>Reads this instance by reading its data members from the <see cref="BufferReader"/>.
         /// </summary>
-        /// <param name="istr">The stream to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(InputStream istr, bool firstSlice);
-        internal void Read(InputStream istr) => IceRead(istr, true);
+        protected abstract void IceRead(BufferReader reader, bool firstSlice);
+        internal void Read(BufferReader reader) => IceRead(reader, true);
 
-        /// <summary>Marshals the current object by writing its data to from the <see cref="OutputStream"/>.</summary>
-        /// <param name="ostr">The stream to write to.</param>
+        /// <summary>Writes this instance by writing its data to the <see cref="BufferWriter"/>.</summary>
+        /// <param name="writer">The buffer writter.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceWrite(OutputStream ostr, bool firstSlice);
-        internal void Write(OutputStream ostr) => IceWrite(ostr, true);
+        protected abstract void IceWrite(BufferWriter writer, bool firstSlice);
+        internal void Write(BufferWriter writer) => IceWrite(writer, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>

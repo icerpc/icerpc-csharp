@@ -13,14 +13,14 @@ namespace IceRpc
         public string TypeId => IceSlicedData!.Value.Slices[0].TypeId;
 
         /// <inheritdoc/>
-        protected override void IceRead(InputStream istr, bool firstSlice) => IceSlicedData = istr.SlicedData;
+        protected override void IceRead(BufferReader reader, bool firstSlice) => IceSlicedData = reader.SlicedData;
 
         /// <inheritdoc/>
         protected override SlicedData? IceSlicedData { get; set; }
 
         /// <inheritdoc/>
-        protected override void IceWrite(OutputStream ostr, bool firstSlice) =>
-            ostr.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>());
+        protected override void IceWrite(BufferWriter writer, bool firstSlice) =>
+            writer.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>());
 
         internal UnknownSlicedClass()
         {

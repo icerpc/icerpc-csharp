@@ -161,12 +161,12 @@ namespace IceRpc.Transports.Internal
             (other is TcpEndpoint otherTcpEndpoint &&
                 (_tls == otherTcpEndpoint._tls || _tls == null || otherTcpEndpoint._tls == null) && base.Equals(other));
 
-        protected internal override void WriteOptions11(OutputStream ostr)
+        protected internal override void WriteOptions11(BufferWriter writer)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
-            base.WriteOptions11(ostr);
-            ostr.WriteInt((int)_timeout.TotalMilliseconds);
-            ostr.WriteBool(_hasCompressionFlag);
+            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
+            base.WriteOptions11(writer);
+            writer.WriteInt((int)_timeout.TotalMilliseconds);
+            writer.WriteBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests
@@ -240,18 +240,18 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
             TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-        public Endpoint CreateIce1Endpoint(InputStream istr)
+        public Endpoint CreateIce1Endpoint(BufferReader reader)
         {
             Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
             return new TcpEndpoint(new EndpointData(Transport,
-                                                    host: istr.ReadString(),
-                                                    port: checked((ushort)istr.ReadInt()),
+                                                    host: reader.ReadString(),
+                                                    port: checked((ushort)reader.ReadInt()),
                                                     ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(istr.ReadInt()),
-                                   compress: istr.ReadBool());
+                                   timeout: TimeSpan.FromMilliseconds(reader.ReadInt()),
+                                   compress: reader.ReadBool());
         }
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

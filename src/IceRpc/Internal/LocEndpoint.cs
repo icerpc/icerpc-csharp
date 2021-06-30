@@ -15,7 +15,7 @@ namespace IceRpc.Internal
     {
         // There is no Equals as it's identical to the base.
 
-        protected internal override void WriteOptions11(OutputStream ostr) =>
+        protected internal override void WriteOptions11(BufferWriter writer) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
         internal static LocEndpoint Create(string location, Protocol protocol) =>
@@ -41,7 +41,7 @@ namespace IceRpc.Internal
             new LocEndpoint(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty),
                             protocol);
 
-        public Endpoint CreateIce1Endpoint(InputStream istr) =>
+        public Endpoint CreateIce1Endpoint(BufferReader reader) =>
             throw new InvalidOperationException("an ice1 loc endpoint cannot be read like a regular endpoint");
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

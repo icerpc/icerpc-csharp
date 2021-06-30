@@ -61,7 +61,7 @@ namespace IceRpc.Tests.Api
                 {
                     if (request.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
-                        Multiplier multiplier = value.ReadFieldValue(istr => InputStream.IceReaderIntoInt(istr));
+                        Multiplier multiplier = value.ReadFieldValue(reader => BasicDecoders.IntDecoder(reader));
                         if (request.Features.IsReadOnly)
                         {
                             request.Features = new FeatureCollection(request.Features);
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.Api
             // This interceptor stores the multiplier into a header field (key = 1) to be read by the middleware.
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.Fields.Add(1, ostr => ostr.WriteInt(multiplier));
+                request.Fields.Add(1, writer => writer.WriteInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
 

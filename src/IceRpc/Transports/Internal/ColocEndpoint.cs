@@ -24,8 +24,8 @@ namespace IceRpc.Transports.Internal
         {
             if (ColocListener.TryGetValue(this, out ColocListener? listener))
             {
-                (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(this, id, writer, reader, options, logger);
+                (ColocChannelReader decoder, ColocChannelWriter encoder, long id) = listener.NewClientConnection();
+                return new ColocConnection(this, id, encoder, decoder, options, logger);
             }
             else
             {
@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
 
-        protected internal override void WriteOptions11(OutputStream ostr) =>
+        protected internal override void WriteOptions11(BufferWriter writer) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)
@@ -59,7 +59,7 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
             throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
 
-        public Endpoint CreateIce1Endpoint(InputStream _) =>
+        public Endpoint CreateIce1Endpoint(BufferReader _) =>
             throw new InvalidDataException($"received ice1 endpoint for coloc transport");
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

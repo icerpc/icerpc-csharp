@@ -143,12 +143,12 @@ namespace IceRpc
 
                 Fields.Add(
                     (int)Ice2FieldKey.RetryPolicy,
-                    ostr =>
+                    writer =>
                     {
-                        ostr.Write(retryPolicy.Retryable);
+                        writer.Write(retryPolicy.Retryable);
                         if (retryPolicy.Retryable == Retryable.AfterDelay)
                         {
-                            ostr.WriteVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
+                            writer.WriteVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
                         }
                     });
             }
@@ -158,28 +158,28 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(OutputStream ostr)
+        internal override void WriteHeader(BufferWriter writer)
         {
-            Debug.Assert(ostr.Encoding == Protocol.GetEncoding());
+            Debug.Assert(writer.Encoding == Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice2)
             {
-                OutputStream.Position startPos = ostr.StartFixedLengthSize(2);
-                WriteFields(ostr);
-                ostr.Write(ResultType);
-                PayloadEncoding.IceWrite(ostr);
-                ostr.WriteSize(PayloadSize);
-                ostr.EndFixedLengthSize(startPos, 2);
+                BufferWriter.Position startPos = writer.StartFixedLengthSize(2);
+                WriteFields(writer);
+                writer.Write(ResultType);
+                PayloadEncoding.IceWrite(writer);
+                writer.WriteSize(PayloadSize);
+                writer.EndFixedLengthSize(startPos, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
 
-                ostr.Write(ReplyStatus);
+                writer.Write(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
-                    responseHeader.IceWrite(ostr);
+                    responseHeader.IceWrite(writer);
                 }
             }
         }

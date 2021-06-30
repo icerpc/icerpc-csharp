@@ -11,12 +11,12 @@ namespace IceRpc
     /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamWriter
     {
-        private readonly Action<RpcStream> _writer;
+        private readonly Action<RpcStream> _encoder;
 
         internal void Send(RpcStream stream)
         {
             stream.EnableSendFlowControl();
-            _writer(stream);
+            _encoder(stream);
         }
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
@@ -27,7 +27,7 @@ namespace IceRpc
         {
         }
 
-        private RpcStreamWriter(Action<RpcStream> writer) => _writer = writer;
+        private RpcStreamWriter(Action<RpcStream> encoder) => _encoder = encoder;
 
         static private async Task SendData(RpcStream stream, System.IO.Stream ioStream)
         {
