@@ -38,7 +38,7 @@ namespace IceRpc
 
         /// <summary>The encoding used when writing to this buffer.</summary>
         /// <value>The encoding.</value>
-        public Encoding Encoding { get; private set; }
+        public Encoding Encoding { get; }
 
         /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
         /// </summary>
