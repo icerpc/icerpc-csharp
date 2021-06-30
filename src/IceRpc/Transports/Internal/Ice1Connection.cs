@@ -153,7 +153,7 @@ namespace IceRpc.Transports.Internal
                     }
                     else if (frameType == Ice1FrameType.Request)
                     {
-                        // Create a new input stream for the request. If serialization is enabled, ensure we acquire
+                        // Create a new stream for the request. If serialization is enabled, ensure we acquire
                         // the semaphore first to serialize the dispatching.
                         try
                         {

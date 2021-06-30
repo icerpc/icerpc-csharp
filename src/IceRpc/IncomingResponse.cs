@@ -34,17 +34,17 @@ namespace IceRpc
         internal IncomingResponse(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
-            var istr = new InputStream(data, Protocol.GetEncoding());
+            var reader = new BufferReader(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {
-                ReplyStatus = istr.ReadReplyStatus();
+                ReplyStatus = reader.ReadReplyStatus();
                 ResultType = ReplyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(istr);
+                    var responseHeader = new Ice1ResponseHeader(reader);
                     PayloadEncoding = responseHeader.PayloadEncoding;
-                    Payload = data[istr.Pos..];
+                    Payload = data[reader.Pos..];
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
                     if (payloadSize != Payload.Length)
@@ -58,26 +58,26 @@ namespace IceRpc
                 {
                     // "special" exception
                     PayloadEncoding = Encoding.V11;
-                    Payload = data[istr.Pos..];
+                    Payload = data[reader.Pos..];
                 }
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice2);
-                int headerSize = istr.ReadSize();
-                int startPos = istr.Pos;
-                Fields = istr.ReadFieldDictionary();
-                ResultType = istr.ReadResultType();
-                PayloadEncoding = new Encoding(istr);
+                int headerSize = reader.ReadSize();
+                int startPos = reader.Pos;
+                Fields = reader.ReadFieldDictionary();
+                ResultType = reader.ReadResultType();
+                PayloadEncoding = new Encoding(reader);
 
-                int payloadSize = istr.ReadSize();
-                if (istr.Pos - startPos != headerSize)
+                int payloadSize = reader.ReadSize();
+                if (reader.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(
-                        @$"received invalid response header: expected {headerSize} bytes but read {istr.Pos - startPos
+                        @$"received invalid response header: expected {headerSize} bytes but read {reader.Pos - startPos
                         } bytes");
                 }
-                Payload = data[istr.Pos..];
+                Payload = data[reader.Pos..];
                 if (payloadSize != Payload.Length)
                 {
                     throw new InvalidDataException(
@@ -86,7 +86,7 @@ namespace IceRpc
 
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
-                    ReplyStatus = istr.ReadReplyStatus(); // first byte of the payload
+                    ReplyStatus = reader.ReadReplyStatus(); // first byte of the payload
                 }
                 else
                 {
@@ -139,7 +139,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.ReadFieldValue(istr => new RetryPolicy(istr));
+                retryPolicy = value.ReadFieldValue(reader => new RetryPolicy(reader));
             }
             return retryPolicy;
         }

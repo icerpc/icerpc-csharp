@@ -26,7 +26,7 @@ namespace IceRpc
                 }
                 payload = payload[1..];
             }
-            new InputStream(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new BufferReader(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
@@ -47,7 +47,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            new InputStream(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new BufferReader(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -55,24 +55,23 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamValueWriter{T}"/> that writes the arguments into the
-        /// payload.</param>
+        /// <param name="encoder">The <see cref="TupleEncoder{T}"/> that encodes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
-            OutputStreamValueWriter<T> writer,
+            TupleEncoder<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, in args);
-            return ostr.Finish();
+            encoder(writer, in args);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
@@ -86,24 +85,24 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the arguments into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the arguments into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
-            OutputStreamValueWriter<T> writer,
+            TupleEncoder<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, in returnValueTuple);
-            return ostr.Finish();
+            encoder(writer, in returnValueTuple);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -111,24 +110,24 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
             IServicePrx proxy,
             T arg,
-            OutputStreamWriter<T> writer,
+            Encoder<T> encoder,
             FormatType classFormat = default)
         {
-            var ostr = new OutputStream(proxy.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, arg);
-            return ostr.Finish();
+            encoder(writer, arg);
+            return writer.Finish();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -136,24 +135,24 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="writer">The <see cref="OutputStreamWriter{T}"/> that writes the argument into the payload.
+        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
-            OutputStreamWriter<T> writer,
+            Encoder<T> encoder,
             FormatType classFormat = default)
         {
-            var ostr = new OutputStream(dispatch.Encoding, classFormat: classFormat);
+            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                ostr.Write(CompressionFormat.NotCompressed);
+                writer.Write(CompressionFormat.NotCompressed);
             }
 
-            writer(ostr, returnValue);
-            return ostr.Finish();
+            encoder(writer, returnValue);
+            return writer.Finish();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -168,16 +167,16 @@ namespace IceRpc
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(IncomingRequest request) =>
             new ReadOnlyMemory<byte>[] { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
 
-        /// <summary>Reads a request payload and converts it into a list of arguments.</summary>
+        /// <summary>Reads a request payload and decodes this payload into a list of arguments.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">An input stream reader used to read the arguments from the payload.</param>
+        /// <param name="decoder">The decoder for the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
-            InputStreamReader<T> reader)
+            Decoder<T> decoder)
         {
             if (payload.Length == 0)
             {
@@ -193,24 +192,24 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new InputStream(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = reader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            var reader = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = decoder(reader);
+            reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
-        /// <summary>Reads a response payload and converts it into a return value.</summary>
+        /// <summary>Reads a response payload and decodes this payload into a return value.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="reader">An input stream reader used to read the return value.</param>
+        /// <param name="decoder">The decoder for the return value.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            InputStreamReader<T> reader,
+            Decoder<T> decoder,
             Connection connection,
             IInvoker? invoker)
         {
@@ -227,9 +226,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
-            T result = reader(istr);
-            istr.CheckEndOfBuffer(skipTaggedParams: true);
+            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
+            T result = decoder(reader);
+            reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -255,38 +254,38 @@ namespace IceRpc
                 };
             }
 
-            OutputStream ostr;
+            BufferWriter writer;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                ostr = new OutputStream(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                writer = new BufferWriter(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
-                    ostr.Write(replyStatus);
+                    writer.Write(replyStatus);
 
                     if (replyStatus == ReplyStatus.UserException)
                     {
-                        ostr.WriteException(exception);
+                        writer.WriteException(exception);
                     }
                     else
                     {
-                        ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
+                        writer.WriteIce1SystemException(replyStatus, request, exception.Message);
                     }
                 }
                 else
                 {
-                    ostr.WriteException(exception);
+                    writer.WriteException(exception);
                 }
             }
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                ostr = new OutputStream(Ice1Definitions.Encoding);
-                ostr.WriteIce1SystemException(replyStatus, request, exception.Message);
+                writer = new BufferWriter(Ice1Definitions.Encoding);
+                writer.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
-            return (ostr.Finish(), replyStatus);
+            return (writer.Finish(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>
@@ -309,24 +308,24 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var istr = new InputStream(payload, payloadEncoding, connection, invoker);
+            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
 
-            if (protocol == Protocol.Ice2 && istr.Encoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && reader.Encoding == Encoding.V11)
             {
                 // Skip reply status byte
-                istr.Skip(1);
+                reader.Skip(1);
             }
 
             RemoteException exception;
-            if (istr.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (reader.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
             {
-                exception = istr.ReadIce1SystemException(replyStatus);
-                istr.CheckEndOfBuffer(skipTaggedParams: false);
+                exception = reader.ReadIce1SystemException(replyStatus);
+                reader.CheckEndOfBuffer(skipTaggedParams: false);
             }
             else
             {
-                exception = istr.ReadException();
-                istr.CheckEndOfBuffer(skipTaggedParams: true);
+                exception = reader.ReadException();
+                reader.CheckEndOfBuffer(skipTaggedParams: true);
             }
             return exception;
         }

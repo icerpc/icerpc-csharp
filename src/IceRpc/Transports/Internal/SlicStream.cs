@@ -75,7 +75,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamReset,
-                        ostr => new StreamResetBody((ulong)errorCode).IceWrite(ostr),
+                        writer => new StreamResetBody((ulong)errorCode).IceWrite(writer),
                         frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                         this);
                 }
@@ -133,7 +133,7 @@ namespace IceRpc.Transports.Internal
         {
             if (ReadCompleted)
             {
-                throw AbortException;
+                throw AbortException!;
             }
 
             if (_receivedSize == _receivedOffset)
@@ -197,13 +197,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        ostr =>
-                        {
-                            checked
-                            {
-                                new StreamConsumedBody((ulong)consumed).IceWrite(ostr);
-                            }
-                        },
+                        writer => new StreamConsumedBody((ulong)consumed).IceWrite(writer),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
@@ -246,7 +240,7 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
 
             // The position of the data to send next.
-            var start = new OutputStream.Position();
+            var start = new BufferWriter.Position();
 
             while (offset < size)
             {
@@ -304,7 +298,7 @@ namespace IceRpc.Transports.Internal
                         if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
                         {
                             sendBuffer.Add(buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)]);
-                            start = new OutputStream.Position(i, bufferOffset + sendBuffer[^1].Length);
+                            start = new BufferWriter.Position(i, bufferOffset + sendBuffer[^1].Length);
                             Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;

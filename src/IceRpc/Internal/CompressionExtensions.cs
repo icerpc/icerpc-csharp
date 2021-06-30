@@ -52,7 +52,7 @@ namespace IceRpc.Internal
             // Set the compression status byte to Deflate compressed
             compressedData[offset++] = (byte)CompressionFormat.Deflate;
             // Write the size of the uncompressed data
-            int sizeLength = OutputStream.GetSizeLength20(payloadSize);
+            int sizeLength = BufferWriter.GetSizeLength20(payloadSize);
             compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(payloadSize);
             offset += sizeLength;
 

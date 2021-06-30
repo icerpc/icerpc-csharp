@@ -61,7 +61,7 @@ namespace IceRpc.Internal
                 base.Equals(other);
         }
 
-        protected internal override void WriteOptions11(OutputStream ostr)
+        protected internal override void WriteOptions11(BufferWriter writer)
         {
             Debug.Assert(false);
             throw new NotImplementedException("cannot write the options of an opaque endpoint");

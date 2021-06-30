@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
                     OutgoingResponse response = await next.DispatchAsync(request, cancel);
                     if (response.Protocol == Protocol.Ice2 && response.Features.Get<string>() is string value)
                     {
-                        response.Fields[1] = ostr => ostr.WriteString(value);
+                        response.Fields[1] = writer => writer.WriteString(value);
                     }
                     return response;
                 }));
@@ -53,7 +53,7 @@ namespace IceRpc.Tests.ClientServer
                     if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> buffer))
                     {
                         response.Features = new FeatureCollection();
-                        response.Features.Set<string>(buffer.ReadFieldValue(istr => istr.ReadString()));
+                        response.Features.Set<string>(buffer.ReadFieldValue(reader => reader.ReadString()));
                     }
                     return response;
                 }));

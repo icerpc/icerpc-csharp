@@ -135,7 +135,7 @@ namespace IceRpc.Tests.Internal
                 MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
                 Debug.Assert(multiStreamConnection.TransportName == TransportName);
                 await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.ConnectionInformation.IsSecure)
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.

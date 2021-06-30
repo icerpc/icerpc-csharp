@@ -17,9 +17,9 @@ namespace IceRpc
     internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
 
     // This partial class provides the class/exception unmarshaling logic.
-    public sealed partial class InputStream
+    public sealed partial class BufferReader
     {
-        /// <summary>Tells the InputStream the end of a class or exception slice was reached. This is an Ice-internal
+        /// <summary>Tells the reader the end of a class or exception slice was reached. This is an IceRPC-internal
         /// method marked public because it's called by the generated code.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
@@ -54,16 +54,16 @@ namespace IceRpc
             ReadIndirectionTableIntoCurrent();
         }
 
-        /// <summary>Reads a class instance from the stream.</summary>
+        /// <summary>Reads a class instance from the buffer.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
         /// It's T.IceTypeId for generated classes. Use null when the type of the parameter/data member is AnyClass.
         /// </param>
-        /// <returns>The class instance read from the stream.</returns>
+        /// <returns>The class instance read from the buffer.</returns>
         public T ReadClass<T>(string? formalTypeId) where T : AnyClass =>
             ReadNullableClass<T>(formalTypeId) ??
                 throw new InvalidDataException("read a null class instance, but expected a non-null instance");
 
-        /// <summary>Reads a remote exception from the stream.</summary>
+        /// <summary>Reads a remote exception from the buffer.</summary>
         /// <returns>The remote exception.</returns>
         public RemoteException ReadException()
         {
@@ -145,10 +145,10 @@ namespace IceRpc
             return remoteEx;
         }
 
-        /// <summary>Reads a nullable class instance from the stream.</summary>
+        /// <summary>Reads a nullable class instance from the buffer.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
-        /// <returns>The class instance read from the stream, or null.</returns>
+        /// <returns>The class instance read from the buffer, or null.</returns>
         public T? ReadNullableClass<T>(string? formalTypeId) where T : AnyClass
         {
             AnyClass? obj = ReadAnyClass(formalTypeId);
@@ -209,10 +209,10 @@ namespace IceRpc
             return null;
         }
 
-        /// <summary>Reads a class instance from the stream.</summary>
+        /// <summary>Reads a class instance from the buffer.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
         /// </param>
-        /// <returns>The class instance read from the stream. Can be null.</returns>
+        /// <returns>The class instance read from the buffer. Can be null.</returns>
         private AnyClass? ReadAnyClass(string? formalTypeId)
         {
             int index = ReadSize();
@@ -285,7 +285,7 @@ namespace IceRpc
                         break;
 
                     case EncodingDefinitions.TypeIdKind.Sequence20:
-                        typeIds = ReadArray(1, IceReaderIntoString);
+                        typeIds = ReadArray(1, BasicDecoders.StringDecoder);
                         if (typeIds.Length == 0)
                         {
                             throw new InvalidDataException("received empty type ID sequence");
@@ -305,7 +305,7 @@ namespace IceRpc
                 // Exception
                 if (typeIdKind == EncodingDefinitions.TypeIdKind.Sequence20)
                 {
-                    typeIds = ReadArray(1, IceReaderIntoString);
+                    typeIds = ReadArray(1, BasicDecoders.StringDecoder);
                     if (typeIds.Length == 0)
                     {
                         throw new InvalidDataException("received empty type ID sequence");
@@ -332,7 +332,7 @@ namespace IceRpc
             return (typeIds, errorMessage, origin);
         }
 
-        /// <summary>Reads an indirection table from the stream, without updating _current.</summary>
+        /// <summary>Reads an indirection table from the buffer, without updating _current.</summary>
         /// <returns>The indirection table.</returns>
         private AnyClass[] ReadIndirectionTable()
         {
@@ -375,9 +375,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a class instance from the stream.</summary>
+        /// <summary>Reads a class instance from the buffer.</summary>
         /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
-        /// seen class; if 1, the class's bytes are next on the stream. Cannot be 0 or less.</param>
+        /// seen class; if 1, the class's bytes are next in the buffer. Cannot be 0 or less.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
         /// </param>
         private AnyClass ReadInstance(int index, string? formalTypeId)
@@ -679,7 +679,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Skips the indirection table. The caller must save the current stream position before calling
+        /// <summary>Skips the indirection table. The caller must save the current buffer position before calling
         /// SkipIndirectionTable11 (to read the indirection table at a later point) except when the caller is
         /// SkipIndirectionTable11 itself.</summary>
         private void SkipIndirectionTable11()

@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -14,7 +12,7 @@ namespace IceRpc.Transports.Internal
     {
         public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
-        protected internal override bool HasDnsHost => Address == IPAddress.None;
+        internal const ushort DefaultUriPort = 4062;
 
         /// <summary>When Host is an IP address, returns the parsed IP address. Otherwise, when Host is a DNS name,
         /// returns IPAddress.None.</summary>
@@ -33,73 +31,46 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private protected const ushort DefaultUriPort = 4062;
+        /// <summary>Returns true when Host is a DNS name.</summary>
+        private protected bool HasDnsHost => Address == IPAddress.None;
 
         private IPAddress? _address;
 
-        public override bool Equals(Endpoint? other) => other is IPEndpoint && base.Equals(other);
-
-        protected internal override void WriteOptions11(OutputStream ostr)
+        protected internal override void WriteOptions11(BufferWriter writer)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && ostr.Encoding == Encoding.V11);
-            ostr.WriteString(Host);
-            ostr.WriteInt(Port);
+            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
+            writer.WriteString(Host);
+            writer.WriteInt(Port);
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string hostName) =>
-            hostName == Host ? this : Clone(hostName, Port);
-
-        internal IPEndpoint Clone(EndPoint address)
+        private protected static void SetBufferSize(
+            Socket socket,
+            int? receiveSize,
+            int? sendSize,
+            Transport transport,
+            ILogger logger)
         {
-            if (address is IPEndPoint ipAddress)
+            if (receiveSize != null)
             {
-                return Clone(ipAddress.Address.ToString(), (ushort)ipAddress.Port);
-            }
-            else
-            {
-                throw new InvalidOperationException("unsupported address");
-            }
-        }
-
-        internal IPEndpoint Clone(ushort port)
-        {
-            if (port == Port)
-            {
-                return this;
-            }
-            else
-            {
-                IPEndpoint clone = Clone(Host, port);
-                return clone;
-            }
-        }
-
-        private protected static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
-        {
-            bool compress = false;
-
-            if (options.TryGetValue("-z", out string? argument))
-            {
-                if (argument != null)
+                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                // read the size back to get the size that was actually set.
+                socket.ReceiveBufferSize = receiveSize.Value;
+                if (socket.ReceiveBufferSize != receiveSize)
                 {
-                    throw new FormatException(
-                        $"unexpected argument '{argument}' provided for -z option in '{endpointString}'");
+                    logger.LogReceiveBufferSizeAdjusted(transport, receiveSize.Value, socket.ReceiveBufferSize);
                 }
-                compress = true;
-                options.Remove("-z");
             }
-            return compress;
-        }
 
-        // Read port for an ice1 endpoint.
-        private protected static ushort ReadPort(InputStream istr)
-        {
-            ushort port;
-            checked
+            if (sendSize != null)
             {
-                port = (ushort)istr.ReadInt();
+                // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
+                // read the size back to get the size that was actually set.
+                socket.SendBufferSize = sendSize.Value;
+                if (socket.SendBufferSize != sendSize)
+                {
+                    logger.LogSendBufferSizeAdjusted(transport, sendSize.Value, socket.SendBufferSize);
+                }
             }
-            return port;
         }
 
         // Main constructor
@@ -113,46 +84,9 @@ namespace IceRpc.Transports.Internal
         }
 
         // Constructor for Clone
-        private protected IPEndpoint(IPEndpoint endpoint, string host, ushort port)
-            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options),
-                   endpoint.Protocol)
+        private protected IPEndpoint(Endpoint endpoint, string host, ushort port)
+            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
         {
-        }
-
-        /// <summary>Creates a clone with the specified host and port.</summary>
-        private protected abstract IPEndpoint Clone(string host, ushort port);
-
-        private protected void SetBufferSize(Socket socket, int? receiveSize, int? sendSize, ILogger logger)
-        {
-            try
-            {
-                if (receiveSize != null)
-                {
-                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                    // read the size back to get the size that was actually set.
-                    socket.ReceiveBufferSize = receiveSize.Value;
-                    if (socket.ReceiveBufferSize != receiveSize)
-                    {
-                        logger.LogReceiveBufferSizeAdjusted(Transport, receiveSize.Value, socket.ReceiveBufferSize);
-                    }
-                }
-
-                if (sendSize != null)
-                {
-                    // Try to set the buffer size. The kernel will silently adjust the size to an acceptable value. Then
-                    // read the size back to get the size that was actually set.
-                    socket.SendBufferSize = sendSize.Value;
-                    if (socket.SendBufferSize != sendSize)
-                    {
-                        logger.LogSendBufferSizeAdjusted(Transport, sendSize.Value, socket.SendBufferSize);
-                    }
-                }
-            }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
         }
     }
 }
