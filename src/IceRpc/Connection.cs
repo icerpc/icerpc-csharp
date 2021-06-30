@@ -638,7 +638,7 @@ namespace IceRpc
             catch (RpcStreamAbortedException ex)
             {
                 // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
-                throw new  OperationCanceledException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})");
+                throw new InvalidDataException($"unexpected stream abort (ErrorCode = {ex.ErrorCode})");
             }
             catch (TransportException ex)
             {

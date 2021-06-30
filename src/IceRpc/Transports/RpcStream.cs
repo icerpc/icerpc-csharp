@@ -27,8 +27,11 @@ namespace IceRpc.Transports
         /// <summary>The stream was aborted because the dispatch was canceled.</summary>
         DispatchCanceled,
 
-        /// <summary>Streaming was canceled.</summary>
-        StreamingCanceled,
+        /// <summary>Streaming was canceled by the reader.</summary>
+        StreamingCanceledByReader,
+
+        /// <summary>Streaming was canceled by the writer.</summary>
+        StreamingCanceledByWriter,
 
         /// <summary>The stream was aborted because the connection was shutdown.</summary>
         ConnectionShutdown,
@@ -82,23 +85,23 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
         public bool IsControl { get; }
 
+        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
+        public bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
+
+        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        public bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
+
+        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
+
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
         /// this header to be set at the start of the first buffer.</summary>
         public virtual ReadOnlyMemory<byte> TransportHeader => default;
-
-        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
-        protected bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
-
-        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
-        protected bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
-
-        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
-        protected bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; }

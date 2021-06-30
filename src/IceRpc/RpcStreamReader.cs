@@ -16,25 +16,25 @@ namespace IceRpc
         private readonly RpcStream _stream;
 
         /// <summary>Reads the stream data from the given dispatch's <see cref="RpcStream"/> with a
-        /// <see cref="System.IO.Stream"/>.</summary>
-        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        /// <see cref="Stream"/>.</summary>
+        /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
         public static Stream ToByteStream(Dispatch dispatch)
         {
             dispatch.IncomingRequest.Stream.EnableReceiveFlowControl();
-            return new RpcIOStream(dispatch.IncomingRequest.Stream);
+            return new ByteStream(dispatch.IncomingRequest.Stream);
         }
 
-        /// <summary>Reads the stream data with a <see cref="System.IO.Stream"/>.</summary>
-        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        /// <summary>Reads the stream data with a <see cref="Stream"/>.</summary>
+        /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
         public Stream ToByteStream()
         {
             _stream.EnableReceiveFlowControl();
-            return new RpcIOStream(_stream);
+            return new ByteStream(_stream);
         }
 
         internal RpcStreamReader(RpcStream stream) => _stream = stream;
 
-        private class RpcIOStream : Stream
+        private class ByteStream : Stream
         {
             public override bool CanRead => true;
             public override bool CanSeek => false;
@@ -73,13 +73,17 @@ namespace IceRpc
                 {
                     return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
                 }
-                catch(RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceled)
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
                 {
-                    throw new IOException("streaming canceled");
+                    throw new IOException("streaming canceled by the writer", ex);
                 }
-                catch(RpcStreamAbortedException ex)
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
                 {
-                    throw new IOException($"unexpected streaming error {ex.ErrorCode}");
+                    throw new IOException("streaming canceled by the reader", ex);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    throw new IOException($"unexpected streaming error {ex.ErrorCode}", ex);
                 }
                 catch (Exception ex)
                 {
@@ -96,11 +100,11 @@ namespace IceRpc
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.AbortRead(RpcStreamError.StreamingCanceled);
+                    _stream.AbortRead(RpcStreamError.StreamingCanceledByReader);
                 }
             }
 
-            internal RpcIOStream(RpcStream stream) => _stream = stream;
+            internal ByteStream(RpcStream stream) => _stream = stream;
         }
     }
 }
