@@ -260,7 +260,7 @@ namespace IceRpc
                            idempotent: true,
                            cancel: cancel);
 
-        /// <summary>Marshals the proxy into a buffer.</summary>
+        /// <summary>Writes the proxy into a buffer.</summary>
         /// <param name="writer">The buffer writer.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(BufferWriter writer);

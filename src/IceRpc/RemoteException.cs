@@ -137,9 +137,9 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Unmarshals a remote exception from the <see cref="BufferReader"/>. This base implementation is only
+        /// <summary>Reads a remote exception from the <see cref="BufferReader"/>. This base implementation is only
         /// called on a plain RemoteException.</summary>
-        /// <param name="reader">The <see cref="BufferReader"/> to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
         protected virtual void IceRead(BufferReader reader, bool firstSlice)
@@ -151,9 +151,9 @@ namespace IceRpc
 
         internal void Read(BufferReader reader) => IceRead(reader, true);
 
-        /// <summary>Marshal a remote exception to the <see cref="BufferWriter"/>. This implementation can only be
+        /// <summary>Writes a remote exception to the <see cref="BufferWriter"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
-        /// <param name="writer">The <see cref="BufferWriter"/> to marshal the exception.</param>
+        /// <param name="writer">The buffer writer.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
         protected virtual void IceWrite(BufferWriter writer, bool firstSlice) =>

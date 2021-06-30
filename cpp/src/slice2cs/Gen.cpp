@@ -1728,7 +1728,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     _out << sb;
 
     _out << sp;
-    _out << nl << "/// <summary>A <see cref=\"IceRpc.Decoder{T}\"/> for <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
     _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();

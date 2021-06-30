@@ -36,14 +36,14 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Unmarshals the current object by reading its data members from the <see cref="BufferReader"/>.
+        /// <summary>Reads this instance by reading its data members from the <see cref="BufferReader"/>.
         /// </summary>
         /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
         protected abstract void IceRead(BufferReader reader, bool firstSlice);
         internal void Read(BufferReader reader) => IceRead(reader, true);
 
-        /// <summary>Marshals the current object by writing its data to the <see cref="BufferWriter"/>.</summary>
+        /// <summary>Writes this instance by writing its data to the <see cref="BufferWriter"/>.</summary>
         /// <param name="writer">The buffer writter.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
         protected abstract void IceWrite(BufferWriter writer, bool firstSlice);
