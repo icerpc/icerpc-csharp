@@ -24,9 +24,9 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Logging_ConnectionRetries()
         {
-            using var encoder = new StringWriter();
+            using var writer = new StringWriter();
             using ILoggerFactory loggerFactory = CreateLoggerFactory(
-                encoder,
+                writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Debug));
 
             await using var pool = new ConnectionPool
@@ -47,7 +47,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
-            List<JsonDocument> logEntries = ParseLogEntries(encoder.ToString());
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
             int[] eventIds = new int[] {
                 (int)TransportEvent.ConnectionConnectFailed,
@@ -80,9 +80,9 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Logging_Disabled_ConnectionRetries()
         {
-            using var encoder = new StringWriter();
+            using var writer = new StringWriter();
             using ILoggerFactory loggerFactory = CreateLoggerFactory(
-                encoder,
+                writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
 
             await using var pool = new ConnectionPool
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
-            List<JsonDocument> logEntries = ParseLogEntries(encoder.ToString());
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);
             JsonDocument entry = logEntries[0];
             Assert.AreEqual("Information", GetLogLevel(entry));
@@ -119,9 +119,9 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(false)]
         public async Task Logging_Disabled_Request(bool colocated)
         {
-            using var encoder = new StringWriter();
+            using var writer = new StringWriter();
             using ILoggerFactory loggerFactory = CreateLoggerFactory(
-                encoder,
+                writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Logger(loggerFactory));
@@ -142,7 +142,7 @@ namespace IceRpc.Tests.ClientServer
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
-            Assert.AreEqual("", encoder.ToString());
+            Assert.AreEqual("", writer.ToString());
         }
 
         /// <summary>Check that the protocol and transport logging contains the expected output for colocated, and non
@@ -151,9 +151,9 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(false)]
         public async Task Logging_Request(bool colocated)
         {
-            using var encoder = new StringWriter();
+            using var writer = new StringWriter();
             using ILoggerFactory loggerFactory = CreateLoggerFactory(
-                encoder,
+                writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             var pipeline = new Pipeline();
             pipeline.Use(Interceptors.Logger(loggerFactory));
@@ -172,9 +172,9 @@ namespace IceRpc.Tests.ClientServer
             var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
-            encoder.Flush();
+            writer.Flush();
 
-            List<JsonDocument> logEntries = ParseLogEntries(encoder.ToString());
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
 
             var events = new List<int>();
             // The order of sending/received requests and response logs is not deterministic.
@@ -233,13 +233,13 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private static ILoggerFactory CreateLoggerFactory(TextWriter encoder, Action<ILoggingBuilder> loggerBuilder) =>
+        private static ILoggerFactory CreateLoggerFactory(TextWriter writer, Action<ILoggingBuilder> loggerBuilder) =>
             LoggerFactory.Create(builder =>
                 {
                     builder.ClearProviders();
                     loggerBuilder(builder);
                     builder.AddProvider(new TestLoggerProvider(indented: false,
-                                                               encoder: TextWriter.Synchronized(encoder)));
+                                                               writer: TextWriter.Synchronized(writer)));
                 });
 
         private Server CreateServer(bool colocated, int portNumber, IDispatcher dispatcher) => new()

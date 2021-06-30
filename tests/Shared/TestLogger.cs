@@ -18,7 +18,7 @@ namespace IceRpc.Tests
         public JsonFormatter Formatter { get; set; }
         public TextWriter Output { get; set; }
 
-        public TestLoggerProvider(bool indented, TextWriter? encoder)
+        public TestLoggerProvider(bool indented, TextWriter? writer)
         {
             Formatter = new JsonFormatter()
             {
@@ -30,7 +30,7 @@ namespace IceRpc.Tests
                     }
                 }
             };
-            Output = encoder ?? Console.Out;
+            Output = writer ?? Console.Out;
         }
 
         public ILogger CreateLogger(string categoryName) =>
@@ -85,10 +85,10 @@ namespace IceRpc.Tests
                 return;
             }
 
-            var encoder = new StringWriter();
+            var writer = new StringWriter();
             var logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
-            _formatter.Write(in logEntry, ScopeProvider, encoder);
-            _output.Write(encoder.ToString());
+            _formatter.Write(in logEntry, ScopeProvider, writer);
+            _output.Write(writer.ToString());
             _output.Flush();
         }
 
@@ -131,12 +131,12 @@ namespace IceRpc.Tests
             Exception? exception = logEntry.Exception;
 
             using var output = new MemoryStream();
-            using var encoder = new Utf8JsonWriter(output, Options.JsonWriterOptions);
-            encoder.WriteStartObject();
-            encoder.WriteNumber(nameof(logEntry.EventId), eventId);
-            encoder.WriteString(nameof(logEntry.LogLevel), GetLogLevelString(logLevel));
-            encoder.WriteString(nameof(logEntry.Category), category);
-            encoder.WriteString("Message", message);
+            using var writer = new Utf8JsonWriter(output, Options.JsonWriterOptions);
+            writer.WriteStartObject();
+            writer.WriteNumber(nameof(logEntry.EventId), eventId);
+            writer.WriteString(nameof(logEntry.LogLevel), GetLogLevelString(logLevel));
+            writer.WriteString(nameof(logEntry.Category), category);
+            writer.WriteString("Message", message);
 
             if (exception != null)
             {
@@ -145,28 +145,28 @@ namespace IceRpc.Tests
                 {
                     exceptionMessage = exceptionMessage.Replace(Environment.NewLine, " ");
                 }
-                encoder.WriteString(nameof(Exception), exceptionMessage);
+                writer.WriteString(nameof(Exception), exceptionMessage);
             }
 
             if (logEntry.State != null)
             {
-                encoder.WriteStartObject(nameof(logEntry.State));
-                encoder.WriteString("Message", logEntry.State.ToString());
+                writer.WriteStartObject(nameof(logEntry.State));
+                writer.WriteString("Message", logEntry.State.ToString());
                 if (logEntry.State is IReadOnlyCollection<KeyValuePair<string, object>> stateProperties)
                 {
                     foreach (KeyValuePair<string, object> item in stateProperties)
                     {
-                        WriteItem(encoder, item);
+                        WriteItem(writer, item);
                     }
                 }
-                encoder.WriteEndObject();
+                writer.WriteEndObject();
             }
             if (scopeProvider != null)
             {
-                WriteScopeInformation(encoder, scopeProvider);
+                WriteScopeInformation(writer, scopeProvider);
             }
-            encoder.WriteEndObject();
-            encoder.Flush();
+            writer.WriteEndObject();
+            writer.Flush();
             textWriter.Write(System.Text.Encoding.UTF8.GetString(output.ToArray()));
 
             textWriter.Write(Environment.NewLine);
@@ -184,9 +184,9 @@ namespace IceRpc.Tests
                 _ => throw new ArgumentOutOfRangeException(nameof(logLevel))
             };
 
-        private static void WriteScopeInformation(Utf8JsonWriter encoder, IExternalScopeProvider scopeProvider)
+        private static void WriteScopeInformation(Utf8JsonWriter writer, IExternalScopeProvider scopeProvider)
         {
-            encoder.WriteStartArray("Scopes");
+            writer.WriteStartArray("Scopes");
             scopeProvider.ForEachScope((scope, state) =>
             {
                 if (scope is IEnumerable<KeyValuePair<string, object>> scopes)
@@ -203,58 +203,58 @@ namespace IceRpc.Tests
                 {
                     state.WriteStringValue(value);
                 }
-            }, encoder);
-            encoder.WriteEndArray();
+            }, writer);
+            writer.WriteEndArray();
         }
 
-        private static void WriteItem(Utf8JsonWriter encoder, KeyValuePair<string, object> item)
+        private static void WriteItem(Utf8JsonWriter writer, KeyValuePair<string, object> item)
         {
             switch (item.Value)
             {
                 case bool boolValue:
-                    encoder.WriteBoolean(item.Key, boolValue);
+                    writer.WriteBoolean(item.Key, boolValue);
                     break;
                 case byte byteValue:
-                    encoder.WriteNumber(item.Key, byteValue);
+                    writer.WriteNumber(item.Key, byteValue);
                     break;
                 case sbyte sbyteValue:
-                    encoder.WriteNumber(item.Key, sbyteValue);
+                    writer.WriteNumber(item.Key, sbyteValue);
                     break;
                 case char charValue:
-                    encoder.WriteString(item.Key, MemoryMarshal.CreateSpan(ref charValue, 1));
+                    writer.WriteString(item.Key, MemoryMarshal.CreateSpan(ref charValue, 1));
                     break;
                 case decimal decimalValue:
-                    encoder.WriteNumber(item.Key, decimalValue);
+                    writer.WriteNumber(item.Key, decimalValue);
                     break;
                 case double doubleValue:
-                    encoder.WriteNumber(item.Key, doubleValue);
+                    writer.WriteNumber(item.Key, doubleValue);
                     break;
                 case float floatValue:
-                    encoder.WriteNumber(item.Key, floatValue);
+                    writer.WriteNumber(item.Key, floatValue);
                     break;
                 case int intValue:
-                    encoder.WriteNumber(item.Key, intValue);
+                    writer.WriteNumber(item.Key, intValue);
                     break;
                 case uint uintValue:
-                    encoder.WriteNumber(item.Key, uintValue);
+                    writer.WriteNumber(item.Key, uintValue);
                     break;
                 case long longValue:
-                    encoder.WriteNumber(item.Key, longValue);
+                    writer.WriteNumber(item.Key, longValue);
                     break;
                 case ulong ulongValue:
-                    encoder.WriteNumber(item.Key, ulongValue);
+                    writer.WriteNumber(item.Key, ulongValue);
                     break;
                 case short shortValue:
-                    encoder.WriteNumber(item.Key, shortValue);
+                    writer.WriteNumber(item.Key, shortValue);
                     break;
                 case ushort ushortValue:
-                    encoder.WriteNumber(item.Key, ushortValue);
+                    writer.WriteNumber(item.Key, ushortValue);
                     break;
                 case null:
-                    encoder.WriteNull(item.Key);
+                    writer.WriteNull(item.Key);
                     break;
                 default:
-                    encoder.WriteString(item.Key, item.Value.ToString());
+                    writer.WriteString(item.Key, item.Value.ToString());
                     break;
             }
         }
