@@ -434,7 +434,7 @@ namespace IceRpc
 
         /// <summary>Writes a mapped Slice struct to the buffer.</summary>
         /// <param name="v">The struct instance to write.</param>
-        public void WriteStruct<T>(T v) where T : struct, IEncodableStruct => v.IceWrite(this);
+        public void WriteStruct<T>(T v) where T : struct, IEncodable => v.IceWrite(this);
 
         // Write methods for tagged basic types
 
@@ -855,7 +855,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodableStruct
+        public void WriteTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodable
         {
             if (v is T value)
             {
@@ -868,7 +868,7 @@ namespace IceRpc
         /// <summary>Writes a tagged variable-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to write.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IEncodableStruct
+        public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IEncodable
         {
             if (v is T value)
             {

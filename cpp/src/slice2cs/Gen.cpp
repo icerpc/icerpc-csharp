@@ -1723,7 +1723,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">, IceRpc.IEncodableStruct";
+    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">, IceRpc.IEncodable";
 
     _out << sb;
 
