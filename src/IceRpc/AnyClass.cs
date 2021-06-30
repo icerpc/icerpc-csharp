@@ -44,7 +44,7 @@ namespace IceRpc
         internal void Read(BufferReader reader) => IceRead(reader, true);
 
         /// <summary>Marshals the current object by writing its data to the <see cref="BufferWriter"/>.</summary>
-        /// <param name="writer">The stream to write to.</param>
+        /// <param name="writer">The buffer writter.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
         protected abstract void IceWrite(BufferWriter writer, bool firstSlice);
         internal void Write(BufferWriter writer) => IceWrite(writer, true);
