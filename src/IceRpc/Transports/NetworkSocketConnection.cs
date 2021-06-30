@@ -28,7 +28,6 @@ namespace IceRpc.Transports
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 
-
         /// <inheritdoc/>
         public override async ValueTask AcceptAsync(
             SslServerAuthenticationOptions? authenticationOptions,
@@ -65,7 +64,6 @@ namespace IceRpc.Transports
             Endpoint endpoint,
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
-
 
          /// <inheritdoc/>
         protected override void Dispose(bool disposing)
