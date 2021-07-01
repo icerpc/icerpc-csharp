@@ -12,12 +12,13 @@ namespace IceRpc
         /// is a retryable failure, it is typically configured before the
         /// <see cref="Binder(IConnectionProvider, bool)"/>.</summary>
         /// <param name="maxAttempts">The maximum number of attempts for retrying a request.</param>
-        /// <param name="requestMaxSize">The maximum payload size in bytes for a request to be retryable, requests with
-        /// a bigger payload size are release after sent and cannot be retried. The default value is 1 Mb.</param>
-        /// <param name="bufferMaxSize">The maximum amount of memory in bytes that can be hold by all retryable
-        /// requests, once this limit is reached new requests are not retriable and are released after sent. The
-        /// default value is 100 Mb.</param>
-        /// <param name="loggerFactory">A logger factory used to create the IceRpc logger.</param>
+        /// <param name="requestMaxSize">The maximum payload size in bytes for a request to be retryable, requests
+        /// with a bigger payload size are released after sent and cannot be retried. The default value is 1 MB.
+        /// </param>
+        /// <param name="bufferMaxSize">The maximum amount of memory in bytes used to hold all retryable requests. Once
+        /// this limit is reached new requests are not retried and their memory is released after being sent. The
+        /// default value is 100 MB.</param>
+        /// <param name="loggerFactory">AA logger factory used to create the retry interceptor logger.</param>
         /// <returns>A new retry interceptor.</returns>
         /// <see cref="RetryPolicy"/>
         public static Func<IInvoker, IInvoker> Retry(
