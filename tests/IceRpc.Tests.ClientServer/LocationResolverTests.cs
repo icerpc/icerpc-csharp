@@ -11,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class LocationResolverTests
+    public sealed class LocationResolverTests : IAsyncDisposable
     {
         private ConnectionPool? _pool;
         private Server? _server;
@@ -51,15 +51,21 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async Task TearDownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
             if (_server != null)
             {
-                await _server.ShutdownAsync();
+                await _server.DisposeAsync();
             }
             if (_pool != null)
             {
-                await _pool.ShutdownAsync();
+                await _pool.DisposeAsync();
             }
         }
 

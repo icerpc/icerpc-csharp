@@ -119,7 +119,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    return "/" + typeId[2..].Replace("::", ".");
+                    return "/" + typeId[2..].Replace("::", ".", StringComparison.InvariantCulture);
                 }
             }
             else

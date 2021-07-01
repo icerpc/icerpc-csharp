@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    public class InvocationTimeoutTests
+    public sealed class InvocationTimeoutTests : IAsyncDisposable
     {
         private readonly Server _server;
 
@@ -21,7 +21,13 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync() => await _server.DisposeAsync();
+        public async Task ShutdownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync() => await _server.DisposeAsync();
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>

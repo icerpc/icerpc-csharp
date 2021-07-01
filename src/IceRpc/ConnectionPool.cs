@@ -247,12 +247,16 @@ namespace IceRpc
 
                 try
                 {
+                    // Dispose objects before losing scope, the connection is disposed from ShutdownAsync
+                    // if it has not been disposed earlier.
+#pragma warning disable CA2000
                     var connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
                         Logger = Logger,
                         Options = options
                     };
+#pragma warning restore CA2000
 
                     // Connect the connection (handshake, protocol initialization, ...)
                     await connection.ConnectAsync(cancel).ConfigureAwait(false);

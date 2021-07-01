@@ -26,7 +26,7 @@ namespace IceRpc
         /// <returns>A new encoding.</returns>
         public static Encoding Parse(string str)
         {
-            int pos = str.IndexOf('.');
+            int pos = str.IndexOf('.', StringComparison.InvariantCulture);
             if (pos == -1)
             {
                 throw new FormatException($"malformed encoding string '{str}'");

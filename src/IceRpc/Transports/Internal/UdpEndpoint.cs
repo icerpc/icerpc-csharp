@@ -46,7 +46,7 @@ namespace IceRpc.Transports.Internal
             }
 
             IPEndPoint? multicastAddress = null;
-            ushort port = 0;
+            ushort port;
             var socket = new Socket(Address.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
@@ -195,7 +195,7 @@ namespace IceRpc.Transports.Internal
             if (MulticastInterface != null)
             {
                 Debug.Assert(MulticastInterface.Length > 0);
-                bool addQuote = MulticastInterface.IndexOf(':') != -1;
+                bool addQuote = MulticastInterface.IndexOf(':', StringComparison.InvariantCulture) != -1;
                 sb.Append(" --interface ");
                 if (addQuote)
                 {

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    public class InterceptorTests
+    public sealed class InterceptorTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly IInterceptorTestPrx _prx;
@@ -139,10 +139,16 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync()
+        public async Task ShutdownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         internal class InterceptorTest : IInterceptorTest

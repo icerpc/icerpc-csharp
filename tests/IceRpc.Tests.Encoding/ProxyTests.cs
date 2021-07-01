@@ -2,14 +2,13 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Encoding
 {
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class ProxyTests
+    public sealed class ProxyTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -32,10 +31,16 @@ namespace IceRpc.Tests.Encoding
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async Task TearDownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
-            await _server.ShutdownAsync();
-            await _connection.ShutdownAsync();
+            await _server.DisposeAsync();
+            await _connection.DisposeAsync();
         }
 
         [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]

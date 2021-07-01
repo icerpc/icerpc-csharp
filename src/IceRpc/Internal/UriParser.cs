@@ -25,7 +25,7 @@ namespace IceRpc.Internal
         /// <param name="s">The string to check.</param>
         /// <returns>True when the string is most likely an ice+transport URI; otherwise, false.</returns>
         internal static bool IsEndpointUri(string s) =>
-            s.StartsWith("ice+", StringComparison.Ordinal) && s.Contains("://");
+            s.StartsWith("ice+", StringComparison.Ordinal) && s.Contains("://", StringComparison.InvariantCulture);
 
         /// <summary>Checks if a string is an ice or ice+transport URI, and not a proxy string using the ice1 string
         /// format.</summary>
@@ -49,7 +49,9 @@ namespace IceRpc.Internal
 
             foreach (char c in path)
             {
-                if (c.CompareTo('\x20') <= 0 || c.CompareTo('\x7F') >= 0 || invalidChars.Contains(c))
+                if (c.CompareTo('\x20') <= 0 ||
+                    c.CompareTo('\x7F') >= 0 ||
+                    invalidChars.Contains(c, StringComparison.InvariantCulture))
                 {
                     return false;
                 }
@@ -122,7 +124,7 @@ namespace IceRpc.Internal
             ParsedOptions parsedOptions = ParseQuery(uri.Query, parseProxy: true, uriString);
 
             Endpoint? endpoint = null;
-            var altEndpoints = ImmutableList<Endpoint>.Empty;
+            ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
                 parsedOptions.EndpointOptions ??= new Dictionary<string, string>();
@@ -256,7 +258,7 @@ namespace IceRpc.Internal
 
             foreach (string p in nvPairs)
             {
-                int equalPos = p.IndexOf('=');
+                int equalPos = p.IndexOf('=', StringComparison.InvariantCulture);
                 if (equalPos <= 0 || equalPos == p.Length - 1)
                 {
                     throw new FormatException($"invalid option '{p}'");

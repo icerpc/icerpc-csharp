@@ -4,13 +4,14 @@ using IceRpc.Tests.CodeGeneration.NamespaceMD.M1.M2.M3;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace.N1.N2;
 using NUnit.Framework;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
     [Timeout(10000)]
-    public class NamespaceMetadataTests
+    public sealed class NamespaceMetadataTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -42,10 +43,16 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async Task TearDownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure", 
+            "NUnit1028:The non-test method is public", 
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
     }
 

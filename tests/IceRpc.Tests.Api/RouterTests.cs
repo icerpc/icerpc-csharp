@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Api
     // Each test case gets a fresh communicator, server and router.
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class RouterTests
+    public sealed class RouterTests : IAsyncDisposable
     {
         private static readonly IDispatcher _failDispatcher = new InlineDispatcher(
                 async (current, cancel) =>
@@ -270,12 +270,18 @@ namespace IceRpc.Tests.Api
             await IMostDerivedCPrx.FromConnection(_connection).IcePingAsync();
         }
 
-        [TearDown]
-        public async Task TearDownAsync()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
-            await _server.ShutdownAsync();
-            await _connection.ShutdownAsync();
+            await _server.DisposeAsync();
+            await _connection.DisposeAsync();
         }
+
+        [TearDown]
+        public async Task TearDownAsync() => await DisposeAsync();
 
         public class Greeter : IGreeter
         {

@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class ProtocolBridgingTests : ClientServerBaseTest
+    public sealed class ProtocolBridgingTests : ClientServerBaseTest, IAsyncDisposable
     {
         private readonly ConnectionPool _pool;
         private Server _forwarderServer = null!;
@@ -19,12 +20,20 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests() => _pool = new ConnectionPool();
 
-        [TearDown]
-        public async Task TearDownAsync()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
-            await Task.WhenAll(_forwarderServer.ShutdownAsync(), _targetServer.ShutdownAsync());
+            await Task.WhenAll(_forwarderServer.DisposeAsync().AsTask(),
+                               _targetServer.DisposeAsync().AsTask());
             await _pool.DisposeAsync();
+
         }
+
+        [TearDown]
+        public async Task TearDownAsync() => await DisposeAsync();
 
         [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
         [TestCase(Protocol.Ice1, Protocol.Ice1, true)]

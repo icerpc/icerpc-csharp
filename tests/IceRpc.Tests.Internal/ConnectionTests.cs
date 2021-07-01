@@ -257,7 +257,7 @@ namespace IceRpc.Tests.Internal
                     IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
                 });
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             factory.Client.Closed += (sender, args) => semaphore.Release();
             factory.Server.Closed += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
@@ -451,7 +451,7 @@ namespace IceRpc.Tests.Internal
                     KeepAlive = !heartbeatOnClient
                 });
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             EventHandler handler = (sender, args) =>
             {
                 Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.Server : factory.Client));
@@ -491,7 +491,7 @@ namespace IceRpc.Tests.Internal
             Task pingTask = factory.Proxy.IcePingAsync();
 
             // Make sure we receive few pings while the invocation is pending.
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             factory.Client.PingReceived += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();

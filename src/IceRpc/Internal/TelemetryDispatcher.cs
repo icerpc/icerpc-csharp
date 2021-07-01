@@ -49,6 +49,7 @@ namespace IceRpc.Internal
                 finally
                 {
                     activity?.Stop();
+                    activity?.Dispose();
                 }
             }
             else
@@ -86,6 +87,8 @@ namespace IceRpc.Internal
                 activity.TraceStateString = reader.ReadString();
 
                 // The min element size is 2 bytes for a struct with two empty strings.
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                // TODO fix see https://github.com/zeroc-ice/icerpc-csharp/issues/410
                 IEnumerable<(string key, string value)> baggage = reader.ReadSequence(
                     minElementSize: 2,
                     reader =>
@@ -94,6 +97,7 @@ namespace IceRpc.Internal
                         string value = reader.ReadString();
                         return (key, value);
                     });
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
                 // Restore in reverse order to keep the order in witch the peer add baggage entries,
                 // this is important when there are duplicate keys.

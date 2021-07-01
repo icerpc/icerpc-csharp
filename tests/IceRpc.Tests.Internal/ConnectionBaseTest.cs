@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
@@ -50,7 +51,8 @@ namespace IceRpc.Tests.Internal
             int port = 11000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.Internal.BasePort"))
             {
-                port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!);
+                port = int.Parse(TestContext.Parameters["IceRpc.Tests.Internal.BasePort"]!,
+                                 CultureInfo.InvariantCulture.NumberFormat);
             }
             port += Interlocked.Add(ref _nextBasePort, 1);
 

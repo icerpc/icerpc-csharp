@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ namespace IceRpc.Tests.CodeGeneration
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public class ScopeTests
+    public sealed class ScopeTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -39,10 +40,16 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async Task TearDownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

@@ -11,7 +11,7 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class Exception
+    public sealed class Exception : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -31,10 +31,16 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async Task TearDownAsync() => await DisposeAsync();
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Structure",
+            "NUnit1028:The non-test method is public",
+            Justification = "IAsyncDispoable implementation")]
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

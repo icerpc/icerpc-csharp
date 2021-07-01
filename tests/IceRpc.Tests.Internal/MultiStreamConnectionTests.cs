@@ -387,7 +387,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_PingAsync()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             ServerConnection.PingReceived = () => semaphore.Release();
             using var source = new CancellationTokenSource();
 
