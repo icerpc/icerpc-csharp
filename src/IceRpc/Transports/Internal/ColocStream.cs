@@ -14,8 +14,8 @@ namespace IceRpc.Transports.Internal
     {
         private Memory<byte> _receiveBuffer;
         private readonly ColocConnection _connection;
-        private ChannelWriter<byte[]>? _streamWriter;
-        private ChannelReader<byte[]>? _streamReader;
+        private ColocStreamWriter? _streamWriter;
+        private ColocStreamReader? _streamReader;
 
         public override void AbortRead(RpcStreamError errorCode)
         {
@@ -70,11 +70,11 @@ namespace IceRpc.Transports.Internal
                 AllowSynchronousContinuations = false
             };
             var channel = Channel.CreateBounded<byte[]>(channelOptions);
-            _streamWriter = channel.Writer;
+            _streamWriter = new ColocStreamWriter();
 
             // Send the channel decoder to the peer. Receiving data will first wait for the channel decoder
             // to be transmitted.
-            _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
+            _connection.SendFrameAsync(this, frame: _streamWriter.Reader, fin: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal
             if (_streamReader == null)
             {
                 (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-                _streamReader = frame as ChannelReader<byte[]>;
+                _streamReader = frame as ColocStreamReader;
                 Debug.Assert(_streamReader != null);
             }
 
@@ -177,6 +177,7 @@ namespace IceRpc.Transports.Internal
         {
             base.Shutdown();
             _connection.ReleaseStream(this);
+            _streamWriter?.Dispose();
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
@@ -263,5 +264,43 @@ namespace IceRpc.Transports.Internal
                 frame.ToIncoming(),
                 fin: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
+
+        private sealed class ColocStreamReader
+        {
+            private readonly ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> _source;
+            private readonly SemaphoreSlim _semaphore;
+
+            public ReadOnlyMemory<byte> ReadAsync(CancellationToken cancel)
+            {
+                ReadOnlyMemory<byte> result = _source.WaitAsync(cancel);
+                _receiveSemaphore.Release();
+            }
+
+            ColocStreamReader(
+                ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> source,
+                SemaphoreSlim semaphore)
+            {
+                _source = source;
+                _semaphore = semaphore;
+            }
+        }
+
+        private sealed class ColocStreamWriter : IDisposable
+        {
+            public ColocStreamReader Reader => new ColocStreamReader(_source, _semaphore);
+
+            private readonly ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> _source = new();
+            private readonly SemaphoreSlim _semaphore = new();
+
+            public void Complete() => _source.SetException(new ConnectionLostException());
+
+            public void Dispose() => _semaphore.Dispose();
+
+            public async Memory<byte> WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+            {
+                _source.SetResult(buffer);
+                await _receiveSemaphore.WaitAsync(cancel).ConfigureAwait(false);
+            }
+        }
     }
 }
