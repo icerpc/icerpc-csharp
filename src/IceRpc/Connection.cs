@@ -293,7 +293,6 @@ namespace IceRpc
             }
         }
 
-        // The accept stream task is assigned each time a new accept stream async operation is started.
         private Task _acceptStreamTask = Task.CompletedTask;
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
@@ -534,11 +533,11 @@ namespace IceRpc
                         _ = Task.Run(async () => await WaitForShutdownAsync().ConfigureAwait(false), default);
                     }
 
-                    // Start the accept stream task. The task accept new incoming streams and process them. It only
-                    // completes when once the connection is closed.
+                    // Start the accept stream task. The task accepts new incoming streams and processes them. It only
+                    // completes once the connection is closed.
                     _acceptStreamTask = Task.Run(async () =>
                     {
-                        // Start a accepting a new stream.
+                        // Start accepting a new stream.
                         var acceptStreamTask = Task.Run(() => AcceptStreamAsync());
 
                         while (true)
@@ -561,7 +560,7 @@ namespace IceRpc
                             }
                             catch (Exception ex)
                             {
-                                // Unexpected exception abort the connection.
+                                // Unexpected exception, abort the connection.
                                 _ = AbortAsync(ex);
                             }
                         }
