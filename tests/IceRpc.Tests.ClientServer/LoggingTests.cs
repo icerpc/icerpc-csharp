@@ -40,7 +40,7 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             pipeline.Use(
-                Interceptors.Retry(new Interceptors.RetryOptions() { LoggerFactory = loggerFactory }),
+                Interceptors.Retry(5, loggerFactory: loggerFactory),
                 Interceptors.Binder(pool),
                 Interceptors.Logger(loggerFactory));
 
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             pipeline.Use(
-                Interceptors.Retry(new Interceptors.RetryOptions { LoggerFactory = loggerFactory }),
+                Interceptors.Retry(5, loggerFactory: loggerFactory),
                     Interceptors.Binder(pool),
                     Interceptors.Logger(loggerFactory));
 
