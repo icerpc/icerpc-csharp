@@ -151,7 +151,7 @@ namespace IceRpc.Tests.ClientServer
             await WithRetryServiceAsync(
                 protocol,
                 (pipeline, pool) => pipeline.Use(
-                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
+                    Interceptors.Retry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
                     Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.ClientServer
             await WithRetryServiceAsync(
                 protocol,
                 (pipeline, pool) => pipeline.Use(
-                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
+                    Interceptors.Retry(new Interceptors.RetryOptions() { MaxAttempts = maxAttempts }),
                     Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
@@ -371,7 +371,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await WithRetryServiceAsync(
                 (pipeline, pool) => pipeline.Use(
-                    Interceptors.CustomRetry(new Interceptors.RetryOptions() { BufferMaxSize = 2048 }),
+                    Interceptors.Retry(new Interceptors.RetryOptions() { BufferMaxSize = 2048 }),
                     Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
@@ -410,7 +410,7 @@ namespace IceRpc.Tests.ClientServer
         {
             await WithRetryServiceAsync(
                 (pipeline, pool) => pipeline.Use(
-                    Interceptors.CustomRetry(
+                    Interceptors.Retry(
                         new Interceptors.RetryOptions() { RequestMaxSize = maxSize }),
                         Interceptors.Binder(pool)),
                 async (service, retry) =>
@@ -434,7 +434,7 @@ namespace IceRpc.Tests.ClientServer
             var pipeline = new Pipeline();
             pipeline.Use(
                 Interceptors.Logger(Runtime.DefaultLoggerFactory),
-                Interceptors.Retry,
+                Interceptors.Retry(new Interceptors.RetryOptions() { MaxAttempts = 5 }),
                 Interceptors.Binder(pool));
             return pipeline;
         }

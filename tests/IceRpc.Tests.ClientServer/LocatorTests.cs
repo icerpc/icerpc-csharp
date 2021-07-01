@@ -98,7 +98,7 @@ namespace IceRpc.Tests.ClientServer
             var wellKnownGreeter = IGreeterPrx.Parse(_greeter.GetIdentity().ToString(), _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptors.CustomRetry(new Interceptors.RetryOptions() { MaxAttempts = 2}));
+            _pipeline.Use(Interceptors.Retry(new Interceptors.RetryOptions() { MaxAttempts = 2}));
             _pipeline.Use(Interceptors.Locator(locator,
                                               new Interceptors.LocatorOptions
                                               {
