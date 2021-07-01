@@ -535,36 +535,38 @@ namespace IceRpc
 
                     // Start the accept stream task. The task accepts new incoming streams and processes them. It only
                     // completes once the connection is closed.
-                    _acceptStreamTask = Task.Run(async () =>
-                    {
-                        // Start accepting a new stream.
-                        var acceptStreamTask = Task.Run(() => AcceptStreamAsync());
-
-                        while (true)
+                    _acceptStreamTask = Task.Run(
+                        async () =>
                         {
-                            // Accept new stream.
-                            RpcStream stream = await acceptStreamTask.ConfigureAwait(false);
+                            // Start accepting a new stream.
+                            var acceptStreamTask = Task.Run(() => AcceptStreamAsync());
 
-                            // Continue accepting new streams.
-                            acceptStreamTask = Task.Run(() => AcceptStreamAsync());
+                            while (true)
+                            {
+                                // Accept a new stream. This will raise and cause the loop to end when the underlying
+                                // connection is closed.
+                                RpcStream stream = await acceptStreamTask.ConfigureAwait(false);
 
-                            // Process the stream from the accept stream task continuation to avoid a
-                            // thread-context switch.
-                            try
-                            {
-                                await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
+                                // Continue accepting new streams.
+                                acceptStreamTask = Task.Run(() => AcceptStreamAsync());
+
+                                // Process the stream from the accept stream task continuation to avoid a
+                                // thread-context switch.
+                                try
+                                {
+                                    await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
+                                }
+                                catch (RpcStreamAbortedException ex)
+                                {
+                                    stream.Abort(ex.ErrorCode);
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Unexpected exception, abort the connection.
+                                    _ = AbortAsync(ex);
+                                }
                             }
-                            catch (RpcStreamAbortedException ex)
-                            {
-                                stream.Abort(ex.ErrorCode);
-                            }
-                            catch (Exception ex)
-                            {
-                                // Unexpected exception, abort the connection.
-                                _ = AbortAsync(ex);
-                            }
-                        }
-                    }, CancellationToken.None);
+                        }, CancellationToken.None);
                 }
             }
         }
@@ -918,7 +920,7 @@ namespace IceRpc
                 {
                     await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                 }
-                catch (RemoteException ex)
+                catch (DispatchException ex)
                 {
                     // Send the exception as the response instead of sending the response from the dispatch
                     // This can occur if the response exceeds the peer's incoming frame max size.
