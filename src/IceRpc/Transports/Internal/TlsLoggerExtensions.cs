@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
                 new EventId((int)TlsEvent.TlsAuthenticationSucceeded, nameof(TlsEvent.TlsAuthenticationSucceeded)),
-                "Tls authentication succeeded ({TlsConnectionInfo})");
+                "Tls authentication succeeded ({TlsInfo})");
 
         // TODO: log SslStream properties
         [LoggerMessage(
@@ -29,7 +29,9 @@ namespace IceRpc.Transports.Internal
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _tlsAuthenticationSucceeded(logger, new Dictionary<string, string>()
+                _tlsAuthenticationSucceeded(
+                    logger,
+                    new Dictionary<string, string>()
                     {
                         { "authenticated", $"{sslStream.IsAuthenticated}" },
                         { "encrypted", $"{sslStream.IsEncrypted}" },
@@ -37,7 +39,8 @@ namespace IceRpc.Transports.Internal
                         { "mutually authenticated", $"{sslStream.IsMutuallyAuthenticated}" },
                         { "cipher", $"{sslStream.NegotiatedCipherSuite}" },
                         { "protocol", $"{sslStream.SslProtocol}" }
-                    }, null!);
+                    },
+                    null!);
             }
         }
     }

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -22,7 +21,7 @@ namespace IceRpc
             /// <param name="dispatch">The dispatch properties.</param>
             /// <returns>The argument carried by the payload.</returns>
             public static string IceIsA(ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
-                payload.ToArgs(dispatch, InputStream.IceReaderIntoString);
+                payload.ToArgs(dispatch, BasicDecoders.StringDecoder);
         }
 
         /// <summary>Provides static methods that create response payloads.</summary>
@@ -33,7 +32,7 @@ namespace IceRpc
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceId(Dispatch dispatch, string returnValue) =>
-                Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromString);
+                Payload.FromSingleReturnValue(dispatch, returnValue, BasicEncoders.StringEncoder);
 
             /// <summary>Creates a response payload for operation ice_ids.</summary>
             /// <param name="dispatch">The dispatch properties.</param>
@@ -43,36 +42,36 @@ namespace IceRpc
                 Payload.FromSingleReturnValue(
                     dispatch,
                     returnValue,
-                    (ostr, returnValue) => ostr.WriteSequence(returnValue, OutputStream.IceWriterFromString));
+                    (writer, returnValue) => writer.WriteSequence(returnValue, BasicEncoders.StringEncoder));
 
             /// <summary>Creates a response payload for operation ice_isA.</summary>
             /// <param name="dispatch">The dispatch properties.</param>
             /// <param name="returnValue">The return value to write into the payload.</param>
             /// <returns>A new response payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(Dispatch dispatch, bool returnValue) =>
-                Payload.FromSingleReturnValue(dispatch, returnValue, OutputStream.IceWriterFromBool);
+                Payload.FromSingleReturnValue(dispatch, returnValue, BasicEncoders.BoolEncoder);
         }
 
         /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
         /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response</param>
+        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response.
+        /// </param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload.</returns>
-        // TODO: the stream data writer shouldn't depend on the Stream transport API.
-        public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<RpcStream>?)> DispatchAsync(
+        /// <returns>The response payload and optional stream writer.</returns>
+        public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel);
 
         /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
         /// </param>
         /// <returns>The Slice type ID of the most-derived interface.</returns>
         public ValueTask<string> IceIdAsync(Dispatch dispatch, CancellationToken cancel) => new("::Ice::Object");
 
         /// <summary>Returns the Slice type IDs of the interfaces supported by this object.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The Slice type IDs of the interfaces supported by this object, in alphabetical order.</returns>
@@ -81,7 +80,7 @@ namespace IceRpc
 
         /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>True if this object implements the interface specified by typeId.</returns>
@@ -92,7 +91,7 @@ namespace IceRpc
         }
 
         /// <summary>Tests whether this object can be reached.</summary>
-        /// <param name="dispatch">The Current object for the dispatch.</param>
+        /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
@@ -111,18 +110,24 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
+        /// doesn't specify a stream parameter.</summary>
+        /// <param name="dispatch">The dispatch properties.</param>
+        protected static void IceStreamReadingComplete(Dispatch dispatch) =>
+            dispatch.IncomingRequest.Stream.AbortRead(Transports.RpcStreamError.UnexpectedStreamData);
+
         /// <summary>Dispatches an ice_id request.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<RpcStream>?)> IceDIceIdAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
-
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceId(dispatch, returnValue), null);
@@ -134,11 +139,12 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<RpcStream>?)> IceDIceIdsAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdsAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIds(dispatch, returnValue), null);
@@ -150,11 +156,12 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<RpcStream>?)> IceDIceIsAAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIsAAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
+            IceStreamReadingComplete(dispatch);
             string id = Request.IceIsA(payload, dispatch);
             bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIsA(dispatch, returnValue), null);
@@ -166,11 +173,12 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, Action<RpcStream>?)> IceDIcePingAsync(
+        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIcePingAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
+            IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
             await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return (Payload.FromVoidReturnValue(dispatch), null);
@@ -182,13 +190,10 @@ namespace IceRpc
             try
             {
                 ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
-
-                // TODO: should the streamDataWriter just be System.Action since the stream can be captured with
-                // dispatch.Stream by the generated code?
-                (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, Action<RpcStream>? streamDataWriter) =
+                (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, RpcStreamWriter? streamWriter) =
                     await DispatchAsync(requestPayload, dispatch, cancel).ConfigureAwait(false);
 
-                return new OutgoingResponse(dispatch, responsePayload, streamDataWriter);
+                return new OutgoingResponse(dispatch, responsePayload, streamWriter);
             }
             catch (RemoteException exception)
             {

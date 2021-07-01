@@ -54,10 +54,6 @@ namespace IceRpc
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;
 
-        /// <summary>The <see cref="Stream"/> that received the request.</summary>
-        // TODO: This shouldn't depend on the stream transport API.
-        public IceRpc.Transports.RpcStream Stream => IncomingRequest.Stream;
-
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
 

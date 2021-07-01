@@ -50,8 +50,9 @@ namespace IceRpc
             {
                 if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) > 0)
                 {
-                    // For a client connection the peer must always provide a certificate, for an incoming
-                    // connection the certificate is only required if the RequireClientCertificate option was set.
+                    // For a client connection the peer must always provide a certificate, for a server
+                    // connection the certificate is only required if the RequireClientCertificate option was
+                    // set.
                     if (peerCertificateRequired)
                     {
                         return false;

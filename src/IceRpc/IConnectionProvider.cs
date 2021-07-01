@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +16,11 @@ namespace IceRpc
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The connection.</returns>
         /// <exception cref="NoEndpointException">Thrown when none of the endpoint is usable.</exception>
-        /// <exception cref="ConnectFailedException">Thrown when there is a failed attempt to create a connection.
+        /// <exception cref="ConnectFailedException">Thrown when there is a single usable endpoint and this method
+        /// failed to establish a connection to it.</exception>
+        /// <exception cref="AggregateException">Thrown when there are multiple usable endpoints and this method
+        /// failed to establish a connection to any of them. The <see cref="AggregateException"/> wraps the
+        /// <see cref="ConnectFailedException"/> thrown by the attempts to connect to each of the usable endpoints.
         /// </exception>
         ValueTask<Connection> GetConnectionAsync(
             Endpoint endpoint,

@@ -10,7 +10,7 @@ namespace IceRpc
 {
     // This partial class provides the class/exception marshaling logic.
 
-    public sealed partial class OutputStream
+    public sealed partial class BufferWriter
     {
         /// <summary>Marks the end of a slice for a class instance or user exception. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
@@ -163,7 +163,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a class instance to the stream.</summary>
+        /// <summary>Writes a class instance to the buffer.</summary>
         /// <param name="v">The class instance to write. This instance cannot be null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
@@ -194,7 +194,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a remote exception to the stream.</summary>
+        /// <summary>Writes a remote exception to the buffer.</summary>
         /// <param name="v">The remote exception to write.</param>
         public void WriteException(RemoteException v)
         {
@@ -205,7 +205,7 @@ namespace IceRpc
             _current = default;
         }
 
-        /// <summary>Writes a class instance to the stream, or null.</summary>
+        /// <summary>Writes a class instance to the buffer, or null.</summary>
         /// <param name="v">The class instance to write, or null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
@@ -221,7 +221,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes sliced-off slices to the stream.</summary>
+        /// <summary>Writes sliced-off slices to the buffer.</summary>
         /// <param name="slicedData">The sliced-off slices to write.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
         /// <param name="errorMessage">For exceptions, the exception's error message.</param>
@@ -414,7 +414,7 @@ namespace IceRpc
                         if (_classFormat == FormatType.Sliced)
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                            WriteSequence(allTypeIds, IceWriterFromString);
+                            WriteSequence(allTypeIds, BasicEncoders.StringEncoder);
                         }
                         else
                         {
@@ -433,7 +433,7 @@ namespace IceRpc
             else
             {
                 typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                WriteSequence(allTypeIds, IceWriterFromString);
+                WriteSequence(allTypeIds, BasicEncoders.StringEncoder);
 
                 Debug.Assert(errorMessage != null);
                 WriteString(errorMessage);

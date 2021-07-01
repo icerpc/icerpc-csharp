@@ -159,27 +159,30 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
+        /// </param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="streamDataWriter">The writer to encode the stream parameter.</param>
+        /// <param name="returnStreamReader">When true, a stream reader will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, its encoding and the connection that received the response.</returns>
+        /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
+        /// the response.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, Encoding, Connection, RpcStream)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> InvokeAsync(
             this IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            RpcStreamWriter? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            // TODO: the stream data writer shouldn't depend on the Stream transport API.
-            Action<RpcStream>? streamDataWriter = null,
+            bool returnStreamReader = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -219,15 +222,15 @@ namespace IceRpc
                 var request = new OutgoingRequest(proxy,
                                                   operation,
                                                   requestPayload,
+                                                  streamWriter,
                                                   deadline,
                                                   invocation,
                                                   idempotent,
-                                                  oneway,
-                                                  streamDataWriter);
+                                                  oneway);
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);
-                return ConvertResponseAsync(responseTask, timeoutSource, combinedSource);
+                return ConvertResponseAsync(request, responseTask, timeoutSource, combinedSource);
             }
             catch
             {
@@ -241,7 +244,8 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, Encoding PayloadEncoding, Connection Connection, RpcStream)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, RpcStreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+                OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
                 CancellationTokenSource? combinedSource)
@@ -249,6 +253,7 @@ namespace IceRpc
                 try
                 {
                     IncomingResponse response = await responseTask.ConfigureAwait(false);
+
                     ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
                     if (invocation != null)
@@ -265,7 +270,13 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    return (responsePayload, response.PayloadEncoding, response.Connection, response.Stream);
+                    RpcStreamReader? streamReader = null;
+                    if (returnStreamReader)
+                    {
+                        streamReader = new RpcStreamReader(request.Stream);
+                    }
+
+                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {
@@ -316,35 +327,35 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Reads a proxy from the input stream.</summary>
+        /// <summary>Reads a proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
-        /// <returns>The non-null proxy read from the stream.</returns>
+        /// <param name="reader">The buffer reader.</param>
+        /// <returns>The non-null proxy read from the buffer.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
-            InputStream istr) where T : class, IServicePrx =>
-            ReadNullable(proxyFactory, istr) ??
+            BufferReader reader) where T : class, IServicePrx =>
+            ReadNullable(proxyFactory, reader) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
-        /// <summary>Reads a nullable proxy from the input stream.</summary>
+        /// <summary>Reads a nullable proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
+        /// <param name="reader">The buffer reader.</param>
+        /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
-            InputStream istr) where T : class, IServicePrx
+            BufferReader reader) where T : class, IServicePrx
         {
-            if (istr.Encoding == Encoding.V11)
+            if (reader.Encoding == Encoding.V11)
             {
-                var identity = new Identity(istr);
+                var identity = new Identity(reader);
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
                 {
                     return null;
                 }
 
-                var proxyData = new ProxyData11(istr);
+                var proxyData = new ProxyData11(reader);
 
                 if ((byte)proxyData.Protocol == 0)
                 {
@@ -359,14 +370,14 @@ namespace IceRpc
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
                 Endpoint[] endpointArray =
-                    istr.ReadArray(minElementSize: 8, istr => istr.ReadEndpoint11(proxyData.Protocol));
+                    reader.ReadArray(minElementSize: 8, reader => reader.ReadEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
-                    string adapterId = istr.ReadString();
+                    string adapterId = reader.ReadString();
                     if (adapterId.Length > 0)
                     {
                         endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
@@ -395,7 +406,7 @@ namespace IceRpc
                         proxy.Encoding = proxyData.Encoding;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Invoker = istr.Invoker;
+                        proxy.Invoker = reader.Invoker;
                         return proxy;
                     }
                     catch (InvalidDataException)
@@ -424,16 +435,16 @@ namespace IceRpc
                     {
                         T proxy;
 
-                        if (endpoint == null && istr.Connection is Connection connection)
+                        if (endpoint == null && reader.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, identity.ToPath(), istr.Invoker);
+                            proxy = proxyFactory.Create(connection, identity.ToPath(), reader.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(identity.ToPath(), proxyData.Protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                            proxy.Invoker = istr.Invoker;
+                            proxy.Invoker = reader.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding;
@@ -447,9 +458,9 @@ namespace IceRpc
             }
             else
             {
-                Debug.Assert(istr.Encoding == Encoding.V20);
+                Debug.Assert(reader.Encoding == Encoding.V20);
 
-                var proxyData = new ProxyData20(istr);
+                var proxyData = new ProxyData20(reader);
 
                 if (proxyData.Path == null)
                 {
@@ -491,7 +502,7 @@ namespace IceRpc
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
-                        proxy.Invoker = istr.Invoker;
+                        proxy.Invoker = reader.Invoker;
                         return proxy;
                     }
                     catch (InvalidDataException)
@@ -509,16 +520,16 @@ namespace IceRpc
                     {
                         T proxy;
 
-                        if (endpoint == null && istr.Connection is Connection connection)
+                        if (endpoint == null && reader.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, proxyData.Path, istr.Invoker);
+                            proxy = proxyFactory.Create(connection, proxyData.Path, reader.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(proxyData.Path, protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints;
-                            proxy.Invoker = istr.Invoker;
+                            proxy.Invoker = reader.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
@@ -533,18 +544,18 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a tagged proxy from the input stream.</summary>
+        /// <summary>Reads a tagged proxy from a buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="istr">The input stream to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="tag">The tag.</param>
-        /// <returns>The proxy read from the stream, or null.</returns>
+        /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadTagged<T>(
             this ProxyFactory<T> proxyFactory,
-            InputStream istr,
+            BufferReader reader,
             int tag)
             where T : class, IServicePrx =>
-            istr.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, istr) : null;
+            reader.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, reader) : null;
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>

@@ -61,10 +61,10 @@ namespace IceRpc
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
         public static bool operator !=(RetryPolicy lhs, RetryPolicy rhs) => !(lhs == rhs);
 
-        internal RetryPolicy(InputStream istr)
+        internal RetryPolicy(BufferReader reader)
         {
-            Retryable = istr.ReadRetryable();
-            Delay = Retryable == Retryable.AfterDelay ? TimeSpan.FromMilliseconds(istr.ReadVarULong()) : TimeSpan.Zero;
+            Retryable = reader.ReadRetryable();
+            Delay = Retryable == Retryable.AfterDelay ? TimeSpan.FromMilliseconds(reader.ReadVarULong()) : TimeSpan.Zero;
         }
 
         private RetryPolicy(Retryable retryable, TimeSpan delay = default)
@@ -137,29 +137,29 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Unmarshals a remote exception from the <see cref="InputStream"/>. This base implementation is only
+        /// <summary>Reads a remote exception from the <see cref="BufferReader"/>. This base implementation is only
         /// called on a plain RemoteException.</summary>
-        /// <param name="istr">The <see cref="InputStream"/> to read from.</param>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceRead(InputStream istr, bool firstSlice)
+        protected virtual void IceRead(BufferReader reader, bool firstSlice)
         {
             Debug.Assert(firstSlice);
-            IceSlicedData = istr.SlicedData;
+            IceSlicedData = reader.SlicedData;
             ConvertToUnhandled = true;
         }
 
-        internal void Read(InputStream istr) => IceRead(istr, true);
+        internal void Read(BufferReader reader) => IceRead(reader, true);
 
-        /// <summary>Marshal a remote exception to the <see cref="OutputStream"/>. This implementation can only be
+        /// <summary>Writes a remote exception to the <see cref="BufferWriter"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
-        /// <param name="ostr">The <see cref="OutputStream"/> to marshal the exception.</param>
+        /// <param name="writer">The buffer writer.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceWrite(OutputStream ostr, bool firstSlice) =>
-            ostr.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+        protected virtual void IceWrite(BufferWriter writer, bool firstSlice) =>
+            writer.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
 
-        internal void Write(OutputStream ostr) => IceWrite(ostr, true);
+        internal void Write(BufferWriter writer) => IceWrite(writer, true);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>

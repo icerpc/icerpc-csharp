@@ -77,7 +77,15 @@ namespace IceRpc
         /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
         internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
 
+        /// <summary>The stream used to send the request.</summary>
+        internal RpcStream Stream
+        {
+            get => _stream ?? throw new InvalidOperationException("stream not set");
+            set => _stream = value;
+        }
+
         private string _path = "";
+        private RpcStream? _stream;
 
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
         /// <param name="proxy">The proxy sending the outgoing request.</param>
@@ -110,15 +118,15 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
+            RpcStreamWriter? streamWriter,
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
-            bool oneway = false,
-            Action<RpcStream>? streamDataWriter = null)
+            bool oneway = false)
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                   streamDataWriter)
+                   streamWriter)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -130,15 +138,15 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(OutputStream ostr)
+        internal override void WriteHeader(BufferWriter writer)
         {
-            Debug.Assert(ostr.Encoding == Protocol.GetEncoding());
+            Debug.Assert(writer.Encoding == Protocol.GetEncoding());
 
             IDictionary<string, string> context = Features.GetContext();
 
             if (Protocol == Protocol.Ice2)
             {
-                OutputStream.Position start = ostr.StartFixedLengthSize(2);
+                BufferWriter.Position start = writer.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(
@@ -149,22 +157,22 @@ namespace IceRpc
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-                requestHeaderBody.IceWrite(ostr);
+                requestHeaderBody.IceWrite(writer);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
                     // Writes or overrides context
                     Fields[(int)Ice2FieldKey.Context] =
-                        ostr => ostr.WriteDictionary(context,
-                                                     OutputStream.IceWriterFromString,
-                                                     OutputStream.IceWriterFromString);
+                        writer => writer.WriteDictionary(context,
+                                                         BasicEncoders.StringEncoder,
+                                                         BasicEncoders.StringEncoder);
                 }
                 // else context remains empty (not set)
 
-                WriteFields(ostr);
-                PayloadEncoding.IceWrite(ostr);
-                ostr.WriteSize(PayloadSize);
-                ostr.EndFixedLengthSize(start, 2);
+                WriteFields(writer);
+                PayloadEncoding.IceWrite(writer);
+                writer.WriteSize(PayloadSize);
+                writer.EndFixedLengthSize(start, 2);
             }
             else
             {
@@ -177,7 +185,7 @@ namespace IceRpc
                     context,
                     encapsulationSize: PayloadSize + 6,
                     PayloadEncoding);
-                requestHeader.IceWrite(ostr);
+                requestHeader.IceWrite(writer);
             }
         }
 
@@ -185,8 +193,8 @@ namespace IceRpc
             IServicePrx proxy,
             string operation,
             FeatureCollection features,
-            Action<RpcStream>? streamDataWriter)
-            : base(proxy.Protocol, features, streamDataWriter)
+            RpcStreamWriter? streamWriter)
+            : base(proxy.Protocol, features, streamWriter)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;
