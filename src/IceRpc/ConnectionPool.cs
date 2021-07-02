@@ -57,18 +57,13 @@ namespace IceRpc
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private readonly CancellationTokenSource _cancellationTokenSource = new();
-
+        private readonly Dictionary<Endpoint, List<Connection>> _clientConnections = new(EndpointComparer.Equivalent);
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
-
-        private Task? _shutdownTask;
-
         private readonly object _mutex = new();
-
-        private readonly Dictionary<Endpoint, List<Connection>> _clientConnections =
-           new(EndpointComparer.Equivalent);
         private readonly Dictionary<Endpoint, Task<Connection>> _pendingClientConnections =
             new(EndpointComparer.Equivalent);
+        private Task? _shutdownTask;
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
         /// </summary>
@@ -147,9 +142,9 @@ namespace IceRpc
 
         /// <summary>Releases all resources used by this connection pool. This method can be called multiple times.
         /// </summary>
+        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that completes when the destruction is complete.</returns>
-        // TODO: add cancellation token, use Yield
-        public Task ShutdownAsync()
+        public Task ShutdownAsync(CancellationToken cancel = default)
         {
             lock (_mutex)
             {
@@ -166,7 +161,10 @@ namespace IceRpc
                 // to be finished.
                 IEnumerable<Task> closeTasks =
                     _clientConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.ShutdownAsync("connection pool shutdown"));
+                        connection => connection.ShutdownAsync("connection pool shutdown", cancel));
+
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked.
+                await Task.Yield();
 
                 await Task.WhenAll(closeTasks).ConfigureAwait(false);
 
@@ -175,7 +173,7 @@ namespace IceRpc
                     try
                     {
                         Connection connection = await connect.ConfigureAwait(false);
-                        await connection.ShutdownAsync("connection pool shutdown").ConfigureAwait(false);
+                        await connection.ShutdownAsync("connection pool shutdown", cancel).ConfigureAwait(false);
                     }
                     catch
                     {
@@ -194,45 +192,36 @@ namespace IceRpc
             CancellationToken cancel)
         {
             Task<Connection>? connectTask;
-            Connection? connection;
-            do
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (_shutdownTask != null)
                 {
-                    if (_shutdownTask != null)
-                    {
-                        throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}");
-                    }
+                    throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}");
+                }
 
-                    // Check if there is an active connection that we can use according to the endpoint settings.
-                    if (_clientConnections.TryGetValue(endpoint, out List<Connection>? connections))
+                // Check if there is an active connection that we can use according to the endpoint settings.
+                if (_clientConnections.TryGetValue(endpoint, out List<Connection>? connections))
+                {
+                    if (connections.FirstOrDefault(connection => connection.IsActive) is Connection connection)
                     {
-                        connection = connections.FirstOrDefault(connection => connection.IsActive);
-
-                        if (connection != null)
-                        {
-                            return connection;
-                        }
-                    }
-
-                    // If we didn't find an active connection check if there is a pending connect task for the same
-                    // endpoint.
-                    if (!_pendingClientConnections.TryGetValue(endpoint, out connectTask))
-                    {
-                        connectTask = PerformConnectAsync(endpoint, options);
-                        if (!connectTask.IsCompleted)
-                        {
-                            // If the task didn't complete synchronously we add it to the pending map
-                            // and it will be removed once PerformConnectAsync completes.
-                            _pendingClientConnections[endpoint] = connectTask;
-                        }
+                        return connection;
                     }
                 }
 
-                connection = await connectTask.WaitAsync(cancel).ConfigureAwait(false);
+                // If we didn't find an active connection check if there is a pending connect task for the same endpoint
+                if (!_pendingClientConnections.TryGetValue(endpoint, out connectTask))
+                {
+                    connectTask = PerformConnectAsync(endpoint, options);
+                    if (!connectTask.IsCompleted)
+                    {
+                        // If the task didn't complete synchronously we add it to the pending map
+                        // and it will be removed once PerformConnectAsync completes.
+                        _pendingClientConnections[endpoint] = connectTask;
+                    }
+                }
             }
-            while (connection == null);
-            return connection;
+
+            return await connectTask.WaitAsync(cancel).ConfigureAwait(false);
 
             async Task<Connection> PerformConnectAsync(Endpoint endpoint, ClientConnectionOptions options)
             {
