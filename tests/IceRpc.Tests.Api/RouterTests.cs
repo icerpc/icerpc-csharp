@@ -270,18 +270,12 @@ namespace IceRpc.Tests.Api
             await IMostDerivedCPrx.FromConnection(_connection).IcePingAsync();
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Structure",
-            "NUnit1028:The non-test method is public",
-            Justification = "IAsyncDispoable implementation")]
+        [TearDown]
         public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
             await _connection.DisposeAsync();
         }
-
-        [TearDown]
-        public async Task TearDownAsync() => await DisposeAsync();
 
         public class Greeter : IGreeter
         {

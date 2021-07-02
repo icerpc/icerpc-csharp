@@ -289,7 +289,7 @@ namespace IceRpc.Tests.Internal
                     Interlocked.Increment(ref streamCount);
                 }
 
-                Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
+                Assert.That(Thread.VolatileRead(ref streamCount), Is.LessThanOrEqualTo(maxCount));
 
                 if (bidirectional)
                 {

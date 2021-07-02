@@ -20,20 +20,13 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests() => _pool = new ConnectionPool();
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Structure",
-            "NUnit1028:The non-test method is public",
-            Justification = "IAsyncDispoable implementation")]
+        [TearDown]
         public async ValueTask DisposeAsync()
         {
             await Task.WhenAll(_forwarderServer.DisposeAsync().AsTask(),
                                _targetServer.DisposeAsync().AsTask());
             await _pool.DisposeAsync();
-
         }
-
-        [TearDown]
-        public async Task TearDownAsync() => await DisposeAsync();
 
         [TestCase(Protocol.Ice2, Protocol.Ice2, true)]
         [TestCase(Protocol.Ice1, Protocol.Ice1, true)]

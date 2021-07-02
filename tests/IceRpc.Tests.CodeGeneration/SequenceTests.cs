@@ -34,12 +34,6 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [TearDown]
-        public async Task TearDownAsync() => await DisposeAsync();
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Structure",
-            "NUnit1028:The non-test method is public",
-            Justification = "IAsyncDispoable implementation")]
         public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();

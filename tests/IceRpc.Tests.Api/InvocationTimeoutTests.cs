@@ -21,12 +21,6 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync() => await DisposeAsync();
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Structure",
-            "NUnit1028:The non-test method is public",
-            Justification = "IAsyncDispoable implementation")]
         public async ValueTask DisposeAsync() => await _server.DisposeAsync();
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.

@@ -6,6 +6,8 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable CA2000 // TODO Dispose MemoryStream used for Stream params
+
 namespace IceRpc.Tests.CodeGeneration.Stream
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
@@ -48,18 +50,12 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             _prx = IStreamsPrx.FromConnection(_connection);
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Structure",
-            "NUnit1028:The non-test method is public",
-            Justification = "IAsyncDispoable implementation")]
+        [TearDown]
         public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
             await _connection.DisposeAsync();
         }
-
-        [TearDown]
-        public async Task TearDownAsync() => await DisposeAsync();
 
         [Test]
         public async Task Streams_Byte()
