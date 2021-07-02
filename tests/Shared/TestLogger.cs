@@ -85,7 +85,7 @@ namespace IceRpc.Tests
                 return;
             }
 
-            var writer = new StringWriter();
+            using var writer = new StringWriter();
             var logEntry = new LogEntry<TState>(logLevel, _name, eventId, state, exception, formatter);
             _formatter.Write(in logEntry, ScopeProvider, writer);
             _output.Write(writer.ToString());
@@ -143,7 +143,10 @@ namespace IceRpc.Tests
                 string exceptionMessage = exception.ToString();
                 if (!Options.JsonWriterOptions.Indented)
                 {
-                    exceptionMessage = exceptionMessage.Replace(Environment.NewLine, " ");
+                    exceptionMessage = exceptionMessage.Replace(
+                        Environment.NewLine,
+                        " ",
+                        StringComparison.InvariantCulture);
                 }
                 writer.WriteString(nameof(Exception), exceptionMessage);
             }

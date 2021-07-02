@@ -14,7 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class LocatorTests
+    public sealed class LocatorTests : IAsyncDisposable
     {
         private bool _called;
         private readonly ConnectionPool _pool = new();
@@ -250,10 +250,10 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
-            await _server.ShutdownAsync();
-            await _pool.ShutdownAsync();
+            await _server.DisposeAsync();
+            await _pool.DisposeAsync();
         }
 
         private ISimpleLocatorTestPrx CreateLocator()

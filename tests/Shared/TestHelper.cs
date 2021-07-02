@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System;
 using System.Threading;
 
 namespace IceRpc.Tests
@@ -11,8 +12,8 @@ namespace IceRpc.Tests
         public static string EscapeIPv6Address(string address, Protocol protocol) =>
             protocol switch
             {
-                Protocol.Ice1 => address.Contains(":") ? $"\"{address}\"" : address,
-                _ => address.Contains(":") ? $"[{address}]" : address
+                Protocol.Ice1 => address.Contains(":", StringComparison.InvariantCulture) ? $"\"{address}\"" : address,
+                _ => address.Contains(":", StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
         public static string GetTestEndpoint(

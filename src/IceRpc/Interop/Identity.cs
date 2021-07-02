@@ -20,7 +20,7 @@ namespace IceRpc.Interop
             IceRpc.Internal.UriParser.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
 
-            int firstSlash = workingPath.IndexOf('/');
+            int firstSlash = workingPath.IndexOf('/', StringComparison.InvariantCulture);
             if (firstSlash != workingPath.LastIndexOf('/'))
             {
                 throw new FormatException($"too many slashes in path '{path}'");

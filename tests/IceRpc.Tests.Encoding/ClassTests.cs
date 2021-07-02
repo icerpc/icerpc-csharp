@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Encoding
     [Timeout(30000)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class ClassTests
+    public sealed class ClassTests : IAsyncDisposable
     {
         private readonly Server _server;
         private readonly ISlicedFormatOperationsPrx _sliced;
@@ -42,10 +42,10 @@ namespace IceRpc.Tests.Encoding
         }
 
         [OneTimeTearDown]
-        public async Task TearDown()
+        public async ValueTask DisposeAsync()
         {
-            await _server.ShutdownAsync();
-            await _connection.ShutdownAsync();
+            await _server.DisposeAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

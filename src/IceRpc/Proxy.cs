@@ -483,7 +483,7 @@ namespace IceRpc
                     ImmutableList<string> facetPath;
                     string path;
 
-                    int hashIndex = proxyData.Path.IndexOf('#');
+                    int hashIndex = proxyData.Path.IndexOf('#', StringComparison.InvariantCulture);
                     if (hashIndex == -1)
                     {
                         path = proxyData.Path;

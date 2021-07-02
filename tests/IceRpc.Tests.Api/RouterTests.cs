@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Api
     // Each test case gets a fresh communicator, server and router.
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class RouterTests
+    public sealed class RouterTests : IAsyncDisposable
     {
         private static readonly IDispatcher _failDispatcher = new InlineDispatcher(
                 async (current, cancel) =>
@@ -271,10 +271,10 @@ namespace IceRpc.Tests.Api
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
-            await _server.ShutdownAsync();
-            await _connection.ShutdownAsync();
+            await _server.DisposeAsync();
+            await _connection.DisposeAsync();
         }
 
         public class Greeter : IGreeter

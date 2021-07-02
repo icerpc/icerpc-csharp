@@ -1,13 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
     [Timeout(30000)]
-    public class InterfaceInheritanceTests
+    public sealed class InterfaceInheritanceTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -37,7 +38,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
             await _connection.DisposeAsync();
