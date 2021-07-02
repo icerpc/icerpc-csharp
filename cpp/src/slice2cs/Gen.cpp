@@ -152,14 +152,14 @@ Slice::CsVisitor::writeMarshal(const OperationPtr& operation, bool returnType)
 
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = ostr.WriteBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = writer.WriteBitSequence(" << bitSequenceSize << ");";
     }
 
     bool write11ReturnLast = returnType && operation->hasReturnAndOut() && !members.front()->tagged() &&
         requiredMembers.size() > 1;
     if (write11ReturnLast)
     {
-        _out << nl << "if (ostr.Encoding != IceRpc.Encoding.V11)";
+        _out << nl << "if (writer.Encoding != IceRpc.Encoding.V11)";
         _out << sb;
     }
 
@@ -234,7 +234,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = istr.ReadBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = reader.ReadBitSequence(" << bitSequenceSize << ");";
     }
 
     bool read11ReturnLast = returnType && operation->hasReturnAndOut() && requiredMembers.size() > 1 &&
@@ -242,7 +242,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
     if (read11ReturnLast)
     {
-        _out << nl << "if (istr.Encoding != IceRpc.Encoding.V11)";
+        _out << nl << "if (reader.Encoding != IceRpc.Encoding.V11)";
         _out << sb;
     }
 
@@ -345,7 +345,7 @@ Slice::CsVisitor::writeMarshalDataMembers(const MemberList& p, const string& ns,
     size_t bitSequenceSize = getBitSequenceSize(requiredMembers);
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = ostr.WriteBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = writer.WriteBitSequence(" << bitSequenceSize << ");";
         bitSequenceIndex = 0;
     }
 
@@ -382,7 +382,7 @@ Slice::CsVisitor::writeUnmarshalDataMembers(const MemberList& p, const string& n
     size_t bitSequenceSize = getBitSequenceSize(requiredMembers);
     if (bitSequenceSize > 0)
     {
-        _out << nl << "var bitSequence = istr.ReadBitSequence(" << bitSequenceSize << ");";
+        _out << nl << "var bitSequence = reader.ReadBitSequence(" << bitSequenceSize << ");";
         bitSequenceIndex = 0;
     }
 
@@ -1202,16 +1202,16 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "> IceReader =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
-    _out << nl << "istr => istr.ReadClass<" << name << ">(IceTypeId);";
+    _out << nl << "reader => reader.ReadClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "?> IceReaderIntoNullable =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
     _out.inc();
-    _out << nl << "istr => istr.ReadNullableClass<" << name << ">(IceTypeId);";
+    _out << nl << "reader => reader.ReadNullableClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
@@ -1220,16 +1220,16 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.OutputStreamWriter<" << name << "> IceWriter =";
+    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "> Encoder =";
     _out.inc();
-    _out << nl << "(ostr, value) => ostr.WriteClass(value, IceTypeId);";
+    _out << nl << "(writer, value) => writer.WriteClass(value, IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.OutputStreamWriter<" << name << "?> IceWriterFromNullable =";
+    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "?> NullableEncoder =";
     _out.inc();
-    _out << nl << "(ostr, value) => ostr.WriteNullableClass(value, IceTypeId);";
+    _out << nl << "(writer, value) => writer.WriteNullableClass(value, IceTypeId);";
     _out.dec();
 
     if (p->compactId() >= 0)
@@ -1380,12 +1380,12 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     }
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceRpc.InputStream? istr)";
+    _out << nl << "public " << name << "(IceRpc.BufferReader? reader)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
         _out.inc();
-        _out << nl << ": base(istr)";
+        _out << nl << ": base(reader)";
         _out.dec();
     }
     _out << sb;
@@ -1418,11 +1418,11 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.OutputStream ostr, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter writer, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "ostr.IceStartFirstSlice(_iceAllTypeIds";
+    _out << nl << "writer.IceStartFirstSlice(_iceAllTypeIds";
     if (preserved || basePreserved)
     {
         _out << ", IceSlicedData";
@@ -1435,7 +1435,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "ostr.IceStartNextSlice(IceTypeId";
+    _out << nl << "writer.IceStartNextSlice(IceTypeId";
     if (p->compactId() >= 0)
     {
         _out << ", _compactTypeId";
@@ -1447,18 +1447,18 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     if(base)
     {
-        _out << nl << "ostr.IceEndSlice(false);";
-        _out << nl << "base.IceWrite(ostr, false);";
+        _out << nl << "writer.IceEndSlice(false);";
+        _out << nl << "base.IceWrite(writer, false);";
     }
     else
     {
-         _out << nl << "ostr.IceEndSlice(true);"; // last slice
+         _out << nl << "writer.IceEndSlice(true);"; // last slice
     }
     _out << eb;
 
     _out << sp;
 
-    _out << nl << "protected override void IceRead(IceRpc.InputStream istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1470,19 +1470,19 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     {
         _out << nl << "_ = ";
     }
-    _out << "istr.IceStartFirstSlice();";
+    _out << "reader.IceStartFirstSlice();";
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "istr.IceStartNextSlice();";
+    _out << nl << "reader.IceStartNextSlice();";
     _out << eb;
 
     writeUnmarshalDataMembers(members, ns, 0);
 
-    _out << nl << "istr.IceEndSlice();";
+    _out << nl << "reader.IceEndSlice();";
     if (base)
     {
-        _out << nl << "base.IceRead(istr, false);";
+        _out << nl << "base.IceRead(reader, false);";
     }
     // This slice and its base slices (if any) are now fully initialized.
     if (!hasDataMemberWithName(p->allDataMembers(), "Initialize"))
@@ -1659,47 +1659,47 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceRead(IceRpc.InputStream istr, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "IceSlicedData = istr.IceStartFirstSlice();";
+    _out << nl << "IceSlicedData = reader.IceStartFirstSlice();";
     _out << nl << "ConvertToUnhandled = true;";
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "istr.IceStartNextSlice();";
+    _out << nl << "reader.IceStartNextSlice();";
     _out << eb;
     writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-    _out << nl << "istr.IceEndSlice();";
+    _out << nl << "reader.IceEndSlice();";
 
     if (base)
     {
-        _out << nl << "base.IceRead(istr, false);";
+        _out << nl << "base.IceRead(reader, false);";
     }
     _out << eb;
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.OutputStream ostr, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter writer, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "ostr.IceStartFirstSlice(_iceAllTypeIds, IceSlicedData, errorMessage: Message, origin: Origin);";
+    _out << nl << "writer.IceStartFirstSlice(_iceAllTypeIds, IceSlicedData, errorMessage: Message, origin: Origin);";
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "ostr.IceStartNextSlice(_iceAllTypeIds[0]);";
+    _out << nl << "writer.IceStartNextSlice(_iceAllTypeIds[0]);";
     _out << eb;
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
 
     if(base)
     {
-        _out << nl << "ostr.IceEndSlice(false);"; // the current slice is not last slice
-        _out << nl << "base.IceWrite(ostr, false);"; // the next one is not the first slice
+        _out << nl << "writer.IceEndSlice(false);"; // the current slice is not last slice
+        _out << nl << "base.IceWrite(writer, false);"; // the next one is not the first slice
     }
     else
     {
-        _out << nl << "ostr.IceEndSlice(true);"; // this is the last slice.
+        _out << nl << "writer.IceEndSlice(true);"; // this is the last slice.
     }
     _out << eb;
 
@@ -1723,24 +1723,24 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">, IceRpc.IStreamableStruct";
+    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">, IceRpc.IEncodable";
 
     _out << sb;
 
     _out << sp;
-    _out << nl << "/// <summary>A <see cref=\"IceRpc.InputStreamReader{T}\"/> used to read <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.InputStreamReader<" << name << "> IceReader =";
+    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
-    _out << nl << "istr => new " << name << "(istr);";
+    _out << nl << "reader => new " << name << "(reader);";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>A <see cref=\"IceRpc.OutputStreamWriter{T}\"/> used to write <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.Encoder{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.OutputStreamWriter<" << name << "> IceWriter =";
+    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder =";
     _out.inc();
-    _out << nl << "(ostr, value) => value.IceWrite(ostr);";
+    _out << nl << "(writer, value) => value.IceWrite(writer);";
     _out.dec();
     return true;
 }
@@ -1787,10 +1787,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << eb;
 
     _out << sp;
-    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
-    _out << nl << "/// <param name=\"istr\">The <see cref=\"IceRpc.InputStream\"/> being used to unmarshal the "
-         << "instance.</param>";
-    _out << nl << "public " << name << "(IceRpc.InputStream istr)";
+    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a buffer.</summary>";
+    _out << nl << "/// <param name=\"reader\">The buffer reader.</param>";
+    _out << nl << "public " << name << "(IceRpc.BufferReader reader)";
     _out << sb;
 
     writeUnmarshalDataMembers(dataMembers, ns, 0);
@@ -1915,10 +1914,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     }
 
     _out << sp;
-    _out << nl << "/// <summary>Marshals the struct by writing its fields to the "
-        << "<see cref=\"IceRpc.OutputStream\"/>.</summary>";
-    _out << nl << "/// <param name=\"ostr\">The stream to write to.</param>";
-    _out << nl << "public readonly void IceWrite(IceRpc.OutputStream ostr)";
+    _out << nl << "/// <summary>Writes the fields of this struct into a buffer.</summary>";
+    _out << nl << "/// <param name=\"writer\">The buffer writer.</param>";
+    _out << nl << "public readonly void IceWrite(IceRpc.BufferWriter writer)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
@@ -2009,11 +2007,11 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.InputStreamReader<" << name << "> IceReader = Read" << p->name()
+    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder = Read" << p->name()
         << ";";
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.OutputStreamWriter<" << name << "> IceWriter = Write;";
+    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder = Write;";
 
     _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";
@@ -2039,9 +2037,9 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.InputStream istr) =>";
+    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.BufferReader reader) =>";
     _out.inc();
-    _out << nl << "As" << p->name() << "(istr.";
+    _out << nl << "As" << p->name() << "(reader.";
     if (p->underlying())
     {
         _out << "Read" << builtinSuffix(p->underlying()) << "()";
@@ -2054,15 +2052,15 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "public static void Write(this IceRpc.OutputStream ostr, " << name << " value) =>";
+    _out << nl << "public static void Write(this IceRpc.BufferWriter writer, " << name << " value) =>";
     _out.inc();
     if (p->underlying())
     {
-        _out << nl << "ostr.Write" << builtinSuffix(p->underlying()) << "((" << underlying << ")value);";
+        _out << nl << "writer.Write" << builtinSuffix(p->underlying()) << "((" << underlying << ")value);";
     }
     else
     {
-        _out << nl << "ostr.WriteSize((int)value);";
+        _out << nl << "writer.WriteSize((int)value);";
     }
     _out.dec();
     _out << eb;
@@ -2214,7 +2212,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "proxy,";
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
                 _out << nl;
-                writeOutgoingRequestWriter(operation);
+                writeOutgoingRequestEncoder(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2253,7 +2251,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "payloadEncoding, ";
                 _out << nl;
-                writeIncomingResponseReader(operation);
+                writeIncomingResponseDecoder(operation);
                 _out << ",";
                 _out << nl << "connection,";
                 _out << nl << "invoker);";
@@ -2291,11 +2289,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.InputStreamReader{T}\"/> used to read "
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "> IceReader =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.Read(Factory, istr);";
+    _out << nl << "reader => IceRpc.Proxy.Read(Factory, reader);";
     _out.dec();
 
     _out << sp;
@@ -2348,11 +2346,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"InputStreamReader{T}\"/> used to read <see cref=\"" << name
+    _out << nl << "// <summary>An <see cref=\"Decoder{T}\"/> used to read <see cref=\"" << name
          << "\"/> nullable proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.InputStreamReader<" << name << "?> IceReaderIntoNullable =";
+    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
     _out.inc();
-    _out << nl << "istr => IceRpc.Proxy.ReadNullable(Factory, istr);";
+    _out << nl << "reader => IceRpc.Proxy.ReadNullable(Factory, reader);";
     _out.dec();
 
     _out << sp;
@@ -2510,7 +2508,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 }
 
 void
-Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeOutgoingRequestEncoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -2521,16 +2519,16 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
         params.pop_back();
     }
 
-    // When the operation's parameter is a T? where T is an interface or a class, there is a built-in writer, so
-    // defaultWriter is true.
-    bool defaultWriter = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
-    if (defaultWriter)
+    // When the operation's parameter is a T? where T is an interface or a class, there is a built-in encoder, so
+    // defaultEncoder is true.
+    bool defaultEncoder = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    if (defaultEncoder)
     {
-        _out << outputStreamWriter(params.front()->type(), ns, true, true);
+        _out << encoder(params.front()->type(), ns, true, true);
     }
     else
     {
-        _out << "(IceRpc.OutputStream ostr, ";
+        _out << "(IceRpc.BufferWriter writer, ";
         string inValue = params.size() > 1 ? "in " : "";
         _out << inValue << toTupleType(params, true) << " value) =>";
         _out << sb;
@@ -2540,7 +2538,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestWriter(const OperationPtr& operati
 }
 
 void
-Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeIncomingResponseDecoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -2548,16 +2546,16 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseReader(const OperationPtr& operat
     auto returnType = operation->returnType();
     assert(!returnType.empty() && (returnType.size() > 1 || !returnType.back()->stream()));
 
-    bool defaultReader = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
+    bool defaultDecoder = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
         !returnType.front()->tagged();
 
-    if (defaultReader)
+    if (defaultDecoder)
     {
-        _out << inputStreamReader(returnType.front()->type(), ns);
+        _out << decoder(returnType.front()->type(), ns);
     }
     else if (returnType.size() > 0)
     {
-        _out << "istr =>";
+        _out << "reader =>";
         _out << sb;
         writeUnmarshal(operation, true);
         _out << eb;
@@ -2654,7 +2652,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "dispatch,";
                 _out << nl;
-                writeIncomingRequestReader(operation);
+                writeIncomingRequestDecoder(operation);
                 _out << ");";
                 _out.dec();
                 _out.dec();
@@ -2721,7 +2719,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "dispatch,";
                 _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValueTuple,");
                 _out << nl;
-                writeOutgoingResponseWriter(operation);
+                writeOutgoingResponseEncoder(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2850,7 +2848,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
         _out << nl << toTuple(returnType) << ",";
         _out << nl;
-        writeOutgoingResponseWriter(operation);
+        writeOutgoingResponseEncoder(operation);
         string classFormat = opFormatTypeToString(operation);
         if (classFormat != "default")
         {
@@ -2968,7 +2966,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
              << " = Request." << fixId(opName) << "(payload, dispatch);";
     }
 
-    // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, istr etc.)
+    // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, reader etc.)
     if (operation->hasMarshaledResult())
     {
         // TODO: support for stream param with marshaled result?
@@ -3043,7 +3041,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeIncomingRequestDecoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -3051,15 +3049,15 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
     auto params = operation->params();
     assert(!params.empty() && (params.size() > 1 || !params.back()->stream()));
 
-    bool defaultReader = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    bool defaultDecoder = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
 
-    if (defaultReader)
+    if (defaultDecoder)
     {
-        _out << inputStreamReader(params.front()->type(), ns);
+        _out << decoder(params.front()->type(), ns);
     }
     else if (params.size() > 0)
     {
-        _out << "istr =>";
+        _out << "reader =>";
         _out << sb;
         writeUnmarshal(operation, false);
         _out << eb;
@@ -3067,7 +3065,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestReader(const OperationPtr& op
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncoder(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -3078,16 +3076,16 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseWriter(const OperationPtr& o
         returns.pop_back();
     }
 
-    // When the operation returns a T? where T is an interface or a class, there is a built-in writer, so defaultWriter
-    // is true.
-    bool defaultWriter = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
-    if (defaultWriter)
+    // When the operation returns a T? where T is an interface or a class, there is a built-in encoder, so
+    // defaultEncoder is true.
+    bool defaultEncoder = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
+    if (defaultEncoder)
     {
-        _out << outputStreamWriter(returns.front()->type(), ns, true, true);
+        _out << encoder(returns.front()->type(), ns, true, true);
     }
     else
     {
-        _out << "(IceRpc.OutputStream ostr, ";
+        _out << "(IceRpc.BufferWriter writer, ";
         _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, true) << " value";
         _out << ") =>";
         _out << sb;

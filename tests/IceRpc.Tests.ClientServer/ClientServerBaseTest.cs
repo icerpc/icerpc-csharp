@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System.Globalization;
 using System.Threading;
 
 namespace IceRpc.Tests.ClientServer
@@ -16,7 +17,8 @@ namespace IceRpc.Tests.ClientServer
             int basePort = 12000;
             if (TestContext.Parameters.Names.Contains("IceRpc.Tests.ClientServer.BasePort"))
             {
-                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.ClientServer.BasePort"]!);
+                basePort = int.Parse(TestContext.Parameters["IceRpc.Tests.ClientServer.BasePort"]!,
+                                     CultureInfo.InvariantCulture.NumberFormat);
             }
             _basePort = Interlocked.Add(ref _nextBasePort, 15) + basePort;
         }

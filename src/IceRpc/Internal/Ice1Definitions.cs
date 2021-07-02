@@ -106,13 +106,13 @@ namespace IceRpc.Internal
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
-        /// <summary>Reads an ice1 system exception encoded based on the provided reply status.</summary>
-        /// <param name="istr">The stream to read from.</param>
+        /// <summary>Reads an ice1 system exception.</summary>
+        /// <param name="reader">The buffer reader.</param>
         /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception read from the stream.</returns>
-        internal static RemoteException ReadIce1SystemException(this InputStream istr, ReplyStatus replyStatus)
+        /// <returns>The exception read from the buffer.</returns>
+        internal static RemoteException ReadIce1SystemException(this BufferReader reader, ReplyStatus replyStatus)
         {
-            Debug.Assert(istr.Encoding == Encoding.V11);
+            Debug.Assert(reader.Encoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -123,7 +123,7 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    var requestFailed = new Ice1RequestFailedExceptionData(istr);
+                    var requestFailed = new Ice1RequestFailedExceptionData(reader);
 
                     IList<string> facetPath = requestFailed.FacetPath;
                     if (facetPath.Count > 1)
@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                     break;
 
                 default:
-                    systemException = new UnhandledException(istr.ReadString());
+                    systemException = new UnhandledException(reader.ReadString());
                     break;
             }
 
@@ -158,18 +158,18 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Writes an ice1 system exception.</summary>
-        /// <param name="ostr">The stream to write to.</param>
+        /// <param name="writer">This buffer writer.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <param name="request">The request for which we write the exception.</param>
         /// <param name="message">The message carried by the exception.</param>
         /// <remarks>The reply status itself is part of the response header and is not written by this method.</remarks>
         internal static void WriteIce1SystemException(
-            this OutputStream ostr,
+            this BufferWriter writer,
             ReplyStatus replyStatus,
             IncomingRequest request,
             string message)
         {
-            Debug.Assert(ostr.Encoding == Encoding.V11);
+            Debug.Assert(writer.Encoding == Encoding.V11);
 
             switch (replyStatus)
             {
@@ -191,11 +191,11 @@ namespace IceRpc.Internal
                     var requestFailed =
                         new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
 
-                    requestFailed.IceWrite(ostr);
+                    requestFailed.IceWrite(writer);
                     break;
 
                 case ReplyStatus.UnknownLocalException:
-                    ostr.WriteString(message);
+                    writer.WriteString(message);
                     break;
 
                 default:

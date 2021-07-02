@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
             router.Use(Middleware.CustomMetrics(dispatchEventSource));
             int dispatchRequests = 0;
             var mutex = new object();
-            var dispatchSemaphore = new SemaphoreSlim(0);
+            using var dispatchSemaphore = new SemaphoreSlim(0);
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {

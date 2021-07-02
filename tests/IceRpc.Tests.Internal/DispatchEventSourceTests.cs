@@ -7,18 +7,23 @@ using System.Diagnostics.Tracing;
 namespace IceRpc.Tests.Internal
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class DispatchEventSourceTests
+    public sealed class DispatchEventSourceTests : IDisposable
     {
         private readonly DispatchEventSource _eventSource;
 
         public DispatchEventSourceTests() =>
             _eventSource = new DispatchEventSource(Guid.NewGuid().ToString());
 
+        [TearDown]
+        public void TearDown() => Dispose();
+
+        public void Dispose() => _eventSource.Dispose();
+
         [Test]
         public void DispatchEventSource_RequestStart()
         {
             int expectedEventId = 1;
-            var eventListener = new TestEventListener(expectedEventId);
+            using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var prx = IServicePrx.Parse("ice+tcp://localhost/service");
@@ -46,7 +51,7 @@ namespace IceRpc.Tests.Internal
         public void DispatchEventSource_RequestStop()
         {
             int expectedEventId = 2;
-            var eventListener = new TestEventListener(expectedEventId);
+            using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var prx = IServicePrx.Parse("ice+tcp://localhost/service");
@@ -73,7 +78,7 @@ namespace IceRpc.Tests.Internal
         public void DispatchEventSource_RequestCanceled()
         {
             int expectedEventId = 3;
-            var eventListener = new TestEventListener(expectedEventId);
+            using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var prx = IServicePrx.Parse("ice+tcp://localhost/service");
@@ -100,7 +105,7 @@ namespace IceRpc.Tests.Internal
         public void DispatchEventSource_RequestFailed()
         {
             int expectedEventId = 4;
-            var eventListener = new TestEventListener(expectedEventId);
+            using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var prx = IServicePrx.Parse("ice+tcp://localhost/service");

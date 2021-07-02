@@ -25,6 +25,11 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
+        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
+        /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
+        /// during connection establishment.</remarks>
+        public bool IsSecure => _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? _endpoint.IsSecure ?? false;
+
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
         /// </summary>
@@ -48,9 +53,6 @@ namespace IceRpc.Transports
             get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             protected set => _remoteEndpoint = value;
         }
-
-        /// <summary>Returns information about this connection.</summary>
-        public abstract ConnectionInformation ConnectionInformation { get; }
 
         /// <summary>The transport of this connection.</summary>
         public Transport Transport => _endpoint.Transport;
@@ -156,6 +158,20 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract Task PingAsync(CancellationToken cancel);
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            builder.Append(GetType().Name);
+            builder.Append(" { ");
+            if (PrintMembers(builder))
+            {
+                builder.Append(' ');
+            }
+            builder.Append('}');
+            return builder.ToString();
+        }
+
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>
         /// <param name="options">The connection options.</param>
@@ -210,6 +226,24 @@ namespace IceRpc.Transports
                     return streamId > _lastIncomingUnidirectionalStreamId;
                 }
             }
+        }
+
+        /// <summary>Prints the fields/properties of this class using the Records format.</summary>
+        /// <param name="builder">The string builder.</param>
+        /// <returns><c>true</c>when members are appended to the builder; otherwise, <c>false</c>.</returns>
+        protected virtual bool PrintMembers(StringBuilder builder)
+        {
+            builder.Append("IsSecure = ").Append(IsSecure).Append(", ");
+            builder.Append("IsServer = ").Append(IsServer);
+            if (_localEndpoint != null)
+            {
+                builder.Append(", LocalEndpoint = ").Append(_localEndpoint);
+            }
+            if (_remoteEndpoint != null)
+            {
+                builder.Append(", RemoteEndpoint = ").Append(_remoteEndpoint);
+            }
+            return true;
         }
 
         /// <summary>Traces the given received amount of data. Transport implementations should call this method

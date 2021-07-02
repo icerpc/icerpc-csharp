@@ -47,10 +47,10 @@ namespace IceRpc.Transports
 
         static TransportRegistry()
         {
-            Add(ColocEndpoint.EndpointFactory);
-            Add(TcpEndpoint.GetEndpointFactory(Transport.TCP));
-            Add(TcpEndpoint.GetEndpointFactory(Transport.SSL));
-            Add(UdpEndpoint.EndpointFactory);
+            Add(new ColocEndpointFactory());
+            Add(new TcpEndpointFactory());
+            Add(new SslEndpointFactory());
+            Add(new UdpEndpointFactory());
         }
 
         // See Runtime.UriInitialize

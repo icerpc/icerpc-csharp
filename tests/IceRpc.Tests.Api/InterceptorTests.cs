@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
-    [Timeout(30000)]
-    public class InterceptorTests
+    public sealed class InterceptorTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly IInterceptorTestPrx _prx;
@@ -140,10 +139,10 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         internal class InterceptorTest : IInterceptorTest

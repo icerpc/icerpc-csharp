@@ -48,6 +48,7 @@ namespace IceRpc.Internal
                 finally
                 {
                     activity?.Stop();
+                    activity?.Dispose();
                 }
             }
             else
@@ -105,26 +106,26 @@ namespace IceRpc.Internal
 
                 request.Fields.Add(
                     (int)Ice2FieldKey.TraceContext,
-                    ostr =>
+                    writer =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                        ostr.WriteByte(0);
+                        writer.WriteByte(0);
                         Span<byte> buffer = stackalloc byte[16];
                         activity.TraceId.CopyTo(buffer);
-                        ostr.WriteByteSpan(buffer);
+                        writer.WriteByteSpan(buffer);
                         activity.SpanId.CopyTo(buffer[0..8]);
-                        ostr.WriteByteSpan(buffer[0..8]);
-                        ostr.WriteByte((byte)activity.ActivityTraceFlags);
+                        writer.WriteByteSpan(buffer[0..8]);
+                        writer.WriteByte((byte)activity.ActivityTraceFlags);
 
                         // Tracestate encoded as an string
-                        ostr.WriteString(activity.TraceStateString ?? "");
+                        writer.WriteString(activity.TraceStateString ?? "");
 
                         // Baggage encoded as a sequence<BaggageEntry>
-                        ostr.WriteSequence(activity.Baggage, (ostr, entry) =>
+                        writer.WriteSequence(activity.Baggage, (writer, entry) =>
                         {
-                            ostr.WriteString(entry.Key);
-                            ostr.WriteString(entry.Value ?? "");
+                            writer.WriteString(entry.Key);
+                            writer.WriteString(entry.Value ?? "");
                         });
                     });
             }

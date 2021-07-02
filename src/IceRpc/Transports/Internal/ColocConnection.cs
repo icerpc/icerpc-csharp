@@ -13,28 +13,22 @@ namespace IceRpc.Transports.Internal
     /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
     internal class ColocConnection : MultiStreamConnection
     {
-        /// <inheritdoc/>
         public override TimeSpan IdleTimeout
         {
             get => Timeout.InfiniteTimeSpan;
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
-        /// <inheritdoc/>
-        public long Id { get; }
-
-        /// <inheritdoc/>
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new ColocConnectionInformation { Id = Id };
+        internal long Id { get; }
 
         static private readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private ColocConnectionInformation? _connectionInformation;
         private readonly object _mutex = new();
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
+        private readonly ManualResetValueTaskCompletionSource<bool> _receiveStreamCompletionTaskSource = new();
         private readonly ChannelReader<(long, object, bool)> _reader;
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -46,6 +40,8 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
+            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+
             while (true)
             {
                 try
@@ -71,6 +67,9 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frame, fin);
+
+                            // Wait for the stream to process the frame before continuing receiving additional data.
+                            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
                         }
                         catch
                         {
@@ -188,6 +187,8 @@ namespace IceRpc.Transports.Internal
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;
 
+            _receiveStreamCompletionTaskSource.SetResult(true);
+
             Id = id;
             _writer = writer;
             _reader = reader;
@@ -206,6 +207,12 @@ namespace IceRpc.Transports.Internal
                 _nextBidirectionalId = 0;
                 _nextUnidirectionalId = 2;
             }
+        }
+
+        internal void FinishedReceivedFrame()
+        {
+            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
+            _receiveStreamCompletionTaskSource.SetResult(true);
         }
 
         internal void ReleaseStream(ColocStream stream)
@@ -270,7 +277,7 @@ namespace IceRpc.Transports.Internal
                     }
 
                     // Write the frame. It's important to allocate the ID and to send the frame within the
-                    // synchronization block to ensure the reader won't receive frames with out-of-order
+                    // synchronization block to ensure the decoder won't receive frames with out-of-order
                     // stream IDs.
                     task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
                 }

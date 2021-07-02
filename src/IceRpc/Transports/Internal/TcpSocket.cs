@@ -12,17 +12,15 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
-        /// <inheritdoc/>
-        public override ConnectionInformation ConnectionInformation =>
-            _connectionInformation ??= new TcpConnectionInformation(_socket, _sslStream);
+        public override SslStream? SslStream => _sslStream;
 
-        /// <inheritdoc/>
-        internal override Socket? Socket => _socket;
+        protected internal override Socket? Socket => _socket;
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
@@ -31,7 +29,6 @@ namespace IceRpc.Transports.Internal
         private const byte TlsHandshakeRecord = 0x16;
 
         private readonly EndPoint? _addr;
-        private TcpConnectionInformation? _connectionInformation;
         private readonly Socket _socket;
         private SslStream? _sslStream;
 
@@ -70,7 +67,7 @@ namespace IceRpc.Transports.Internal
                     await AuthenticateAsync(sslStream =>
                         sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
-                return ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!);
+                return ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!, tls: SslStream != null);
             }
             catch (Exception ex)
             {
@@ -95,7 +92,7 @@ namespace IceRpc.Transports.Internal
                     await AuthenticateAsync(sslStream =>
                         sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
-                return ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!);
+                return ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!, tls: SslStream != null);
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
@@ -125,7 +122,7 @@ namespace IceRpc.Transports.Internal
             int received;
             try
             {
-                if (_sslStream is SslStream sslStream)
+                if (SslStream is SslStream sslStream)
                 {
                     received = await sslStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
                 }
@@ -156,7 +153,7 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                if (_sslStream is SslStream sslStream)
+                if (SslStream is SslStream sslStream)
                 {
                     await sslStream.WriteAsync(buffer, cancel).ConfigureAwait(false);
                 }
@@ -189,7 +186,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                if (_sslStream == null)
+                if (SslStream == null)
                 {
                     try
                     {
@@ -253,6 +250,17 @@ namespace IceRpc.Transports.Internal
         {
             _socket.Dispose();
             _sslStream?.Dispose();
+        }
+
+        protected override bool PrintMembers(StringBuilder builder)
+        {
+            if (base.PrintMembers(builder))
+            {
+                builder.Append(", ");
+            }
+            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
+            return true;
         }
 
         internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)

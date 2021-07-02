@@ -34,7 +34,7 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class ClassTests
+    public sealed class ClassTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -61,10 +61,10 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]
@@ -364,7 +364,7 @@ namespace IceRpc.Tests.CodeGeneration
                 CancellationToken cancel) =>
                 new((IceRpc.Payload.FromSingleReturnValue(dispatch,
                                                           new MyClassAlsoEmpty(),
-                                                          (ostr, ae) => ostr.WriteClass(ae, null)), null));
+                                                          (writer, ae) => writer.WriteClass(ae, null)), null));
         }
     }
 }

@@ -10,7 +10,7 @@ namespace IceRpc.Tests.CodeGeneration
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public class TaggedTests
+    public sealed class TaggedTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -29,10 +29,10 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]
@@ -191,10 +191,10 @@ namespace IceRpc.Tests.CodeGeneration
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
                 _prx,
                 (15, "test"),
-                (OutputStream ostr, in (int n, string s) value) =>
+                (BufferWriter writer, in (int n, string s) value) =>
                 {
-                    ostr.WriteTaggedInt(1, value.n);
-                    ostr.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
+                    writer.WriteTaggedInt(1, value.n);
+                    writer.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
             (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, Connection connection) =

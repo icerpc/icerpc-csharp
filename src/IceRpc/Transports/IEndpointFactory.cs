@@ -24,10 +24,10 @@ namespace IceRpc.Transports
     /// <summary>An endpoint factory for a transport that supports the ice1 protocol.</summary>
     public interface IIce1EndpointFactory : IEndpointFactory
     {
-        /// <summary>Reads an endpoint from the input stream.</summary>
-        /// <param name="istr">The input stream.</param>
+        /// <summary>Reads an endpoint from a buffer.</summary>
+        /// <param name="reader">The buffer reader.</param>
         /// <returns>The new endpoint.</returns>
-        Endpoint CreateIce1Endpoint(InputStream istr);
+        Endpoint CreateIce1Endpoint(BufferReader reader);
 
         /// <summary>Creates an endpoint from a pre-parsed endpoint string.</summary>
         /// <param name="options">The options parsed from the endpoint string.</param>

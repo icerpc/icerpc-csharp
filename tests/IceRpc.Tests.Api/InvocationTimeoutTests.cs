@@ -8,8 +8,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable]
-    [Timeout(30000)]
-    public class InvocationTimeoutTests
+    public sealed class InvocationTimeoutTests : IAsyncDisposable
     {
         private readonly Server _server;
 
@@ -22,24 +21,24 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync() => await _server.DisposeAsync();
+        public async ValueTask DisposeAsync() => await _server.DisposeAsync();
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>
         /// <param name="delay">The time in milliseconds to hold the dispatch to simulate an slow server.</param>
         /// <param name="timeout">The time in milliseconds used as the invocation timeout.</param>
-        [TestCase(1000)]
-        public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int timeout)
+        [TestCase(10000, 1000)]
+        public async Task InvocationTimeout_Throws_OperationCanceledExceptionAsync(int delay, int timeout)
         {
             DateTime? dispatchDeadline = null;
             DateTime? invocationDeadline = null;
-            var dispatchSemaphore = new SemaphoreSlim(0);
+
             var router = new Router();
             router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
                         dispatchDeadline = current.Deadline;
-                        await dispatchSemaphore.WaitAsync(CancellationToken.None);
+                        await Task.Delay(TimeSpan.FromMilliseconds(delay), cancel);
                         return await next.DispatchAsync(current, cancel);
                     }));
 
@@ -62,7 +61,6 @@ namespace IceRpc.Tests.Api
 
             DateTime expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));
-            dispatchSemaphore.Release();
             Assert.That(dispatchDeadline, Is.Not.Null);
             Assert.That(invocationDeadline, Is.Not.Null);
             Assert.AreEqual(dispatchDeadline, invocationDeadline);

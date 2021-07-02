@@ -19,8 +19,7 @@ namespace IceRpc.Tests.ClientServer
     public class LoggingTests : ClientServerBaseTest
     {
         /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
-        /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
-        // and a last entry for the request exception.</summary>
+        /// lower or equal to Debug, there should be 5 log entries one for each attempt.</summary>
         [Test]
         public async Task Logging_ConnectionRetries()
         {
@@ -67,7 +66,6 @@ namespace IceRpc.Tests.ClientServer
                 if (GetEventId(entry) == (int)TransportEvent.ConnectionConnectFailed)
                 {
                     Assert.That(scopes, Is.Not.Empty);
-
                 }
                 else
                 {
