@@ -24,14 +24,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            if (TrySetWriteCompleted())
-            {
-                // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
-        }
+        public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
 
         public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.

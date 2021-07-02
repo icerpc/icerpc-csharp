@@ -507,8 +507,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
-        [Repeat(10)]
         public async Task Connection_ShutdownAsync(Protocol protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
@@ -552,7 +550,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(true, Protocol.Ice1)]
         [TestCase(false, Protocol.Ice2)]
         [TestCase(true, Protocol.Ice2)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
@@ -636,7 +633,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
             Protocol protocol,
             string transport,

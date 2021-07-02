@@ -293,8 +293,7 @@ namespace IceRpc
             }
         }
 
-        // The accept stream task is assigned each time a new accept stream async operation is started.
-        private volatile Task _acceptStreamTask = Task.CompletedTask;
+        private readonly TaskCompletionSource _acceptStreamCompletion = new();
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
@@ -534,9 +533,9 @@ namespace IceRpc
                         _ = Task.Run(async () => await WaitForShutdownAsync().ConfigureAwait(false), default);
                     }
 
-                    // Start the asynchronous AcceptStream operation from the thread pool to prevent reading
-                    // synchronously new frames from this thread.
-                    _acceptStreamTask = Task.Run(() => AcceptStreamAsync(), default);
+                    // Start the accept stream task. The task accepts new incoming streams and processes them. It only
+                    // completes once the connection is closed.
+                    _ = Task.Run(() => AcceptStreamAsync(), CancellationToken.None);
                 }
             }
         }
@@ -811,106 +810,123 @@ namespace IceRpc
             }
         }
 
-        private async Task AcceptStreamAsync()
+        private async ValueTask AcceptStreamAsync()
         {
+            // Accept a new stream.
             RpcStream? stream = null;
             try
             {
-                // Accept a new stream.
                 stream = await UnderlyingConnection!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception ex) when (State == ConnectionState.Closing || ex is ConnectionClosedException)
+            catch (ConnectionClosedException) when (State == ConnectionState.Closing)
             {
-                // The connection is being closed gracefully, let the exception go through.
-                throw;
+                // The connection is being closed gracefully and the peer closed the connection.
+                _acceptStreamCompletion.SetResult();
+            }
+            catch (ConnectionLostException) when (State == ConnectionState.Closing && Protocol == Protocol.Ice1)
+            {
+                // The connection is being closed gracefully and the peer closed the connection after receiving
+                // the Ice1 connection close message.
+                _acceptStreamCompletion.SetResult();
             }
             catch (Exception ex)
             {
+                _acceptStreamCompletion.SetException(ex);
                 _ = AbortAsync(ex);
-                throw;
             }
 
-            // Start a new accept stream task to accept another stream.
-            _acceptStreamTask = Task.Run(() => AcceptStreamAsync());
+            // Start a new accept stream task.
+            _ = Task.Run(() => AcceptStreamAsync(), CancellationToken.None);
 
-            Debug.Assert(stream != null);
-            try
+            // Process the stream from the continuation to avoid a thread-context switch.
+            if (stream != null)
             {
-                // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the
-                // peer or when the stream is aborted because the connection shutdown is canceled or failed.
-                CancellationToken cancel = stream.CancelDispatchSource!.Token;
-
-                // Receives the request frame from the stream.
-                IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
-                request.Connection = this;
-                request.Stream = stream;
-
-                OutgoingResponse? response = null;
                 try
                 {
-                    response =
-                        await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
+                    await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException)
+                catch (RpcStreamAbortedException ex)
                 {
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        // With Ice1, stream reset is not supported so we raise a DispatchException instead.
-                        response = new OutgoingResponse(request, new DispatchException("dispatch canceled by peer"));
-                    }
-                    else
-                    {
-                        stream.Abort(RpcStreamError.DispatchCanceled);
-                    }
+                    stream.Abort(ex.ErrorCode);
                 }
-                catch (Exception exception)
+                catch (Exception ex)
+                {
+                    // Unexpected exception, abort the connection.
+                    _ = AbortAsync(ex);
+                }
+            }
+        }
+
+        private async Task ProcessIncomingStreamAsync(RpcStream stream)
+        {
+            // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the
+            // peer or when the stream is aborted because the connection shutdown is canceled or failed.
+            CancellationToken cancel = stream.CancelDispatchSource!.Token;
+
+            // Receives the request frame from the stream.
+            IncomingRequest request = await stream.ReceiveRequestFrameAsync(cancel).ConfigureAwait(false);
+            request.Connection = this;
+            request.Stream = stream;
+
+            OutgoingResponse? response = null;
+            try
+            {
+                response = await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                if (Protocol == Protocol.Ice1)
+                {
+                    // With Ice1, stream reset is not supported so we raise a DispatchException instead.
+                    response = new OutgoingResponse(request, new DispatchException("dispatch canceled by peer"));
+                }
+                else
+                {
+                    stream.Abort(RpcStreamError.DispatchCanceled);
+                }
+            }
+            catch (Exception exception)
+            {
+                if (request.IsOneway)
+                {
+                    // We log this exception, otherwise it would be lost since we don't send a response.
+                    UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
+                                                                      request.Path,
+                                                                      request.Operation,
+                                                                      exception);
+                }
+                else
                 {
                     // Convert the exception to an UnhandledException if needed.
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
                         // We log the exception as the UnhandledException may not include all details.
                         UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                          request.Path,
-                                                                          request.Operation,
-                                                                          exception);
+                                                                        request.Path,
+                                                                        request.Operation,
+                                                                        exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
-                    }
-                    else if (!stream.IsBidirectional)
-                    {
-                        // We log this exception, otherwise it would be lost since we don't send a response.
-                        UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                          request.Path,
-                                                                          request.Operation,
-                                                                          exception);
                     }
                     else
                     {
                         response = new OutgoingResponse(request, remoteException);
                     }
                 }
+            }
 
-                // Send the response if the stream is bidirectional.
-                if (response != null && !request.IsOneway)
+            // Send the response if the stream is bidirectional.
+            if (response != null && !request.IsOneway)
+            {
+                try
                 {
-                    try
-                    {
-                        await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
-                    }
-                    catch (RemoteException ex)
-                    {
-                        // Send the exception as the response instead of sending the response from the dispatch
-                        // This can occur if the response exceeds the peer's incoming frame max size.
-                        await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
-                    }
+                    await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                 }
-            }
-            catch (RpcStreamAbortedException ex)
-            {
-                stream.Abort(ex.ErrorCode);
-            }
-            catch (Exception ex)
-            {
-                _ = AbortAsync(ex);
+                catch (DispatchException ex)
+                {
+                    // Send the exception as the response instead of sending the response from the dispatch
+                    // This can occur if the response exceeds the peer's incoming frame max size.
+                    await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
+                }
             }
         }
 
@@ -1014,7 +1030,7 @@ namespace IceRpc
                     // Wait for peer to close the connection.
                     try
                     {
-                        await WaitForCloseAsync(cancel).ConfigureAwait(false);
+                        await _acceptStreamCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
                     }
                     catch (TransportException)
                     {
@@ -1048,35 +1064,23 @@ namespace IceRpc
             }
         }
 
-        private async Task WaitForCloseAsync(CancellationToken cancel)
-        {
-            // Wait for the peer to close the connection and return.
-            while (State != ConnectionState.Closed)
-            {
-                await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
-            }
-            throw new ConnectionClosedException();
-        }
-
         private async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
         {
             // Wait for all the streams to complete or an unexpected connection closure.
             Task waitForEmptyStreams = UnderlyingConnection!.WaitForEmptyStreamsAsync(cancel);
             if (!waitForEmptyStreams.IsCompleted)
             {
-                Task task = await Task.WhenAny(waitForEmptyStreams, WaitForCloseAsync(cancel)).ConfigureAwait(false);
-                if (task != waitForEmptyStreams)
+                Task waitForClose = _acceptStreamCompletion.Task.WaitAsync(cancel);
+                Task task = await Task.WhenAny(waitForEmptyStreams, waitForClose).ConfigureAwait(false);
+                if (task == waitForClose)
                 {
-                    // The peer closed the connection before the streams are completed. If it gracefully closed the
-                    // connection, we continue waiting for the streams to complete.
-                    try
-                    {
-                        await task.ConfigureAwait(false);
-                    }
-                    catch (ConnectionClosedException)
-                    {
-                        await waitForEmptyStreams.ConfigureAwait(false);
-                    }
+                    // Check the result of the connection closure. This will raise if the connection wasn't
+                    // closed gracefully.
+                    await waitForClose.ConfigureAwait(false);
+
+                    // If the peer gracefully closed the connection, we continue waiting for the streams
+                    // to complete.
+                    await waitForEmptyStreams.ConfigureAwait(false);
                 }
             }
         }
@@ -1158,7 +1162,8 @@ namespace IceRpc
                         // Wait for the connection closure.
                         try
                         {
-                            await WaitForCloseAsync(cancel).ConfigureAwait(false);
+                            // Wait for the peer to close the connection and return.
+                            await _acceptStreamCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
                         }
                         catch (TransportException)
                         {

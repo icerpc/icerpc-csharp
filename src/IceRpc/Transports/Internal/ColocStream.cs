@@ -19,11 +19,12 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortRead(RpcStreamError errorCode)
         {
+            // It's important to set the exception before completing the reads because ReceiveAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
             if (TrySetReadCompleted(shutdown: false))
             {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-
                 // Send stop sending frame before shutting down.
                 // TODO
 
@@ -42,9 +43,6 @@ namespace IceRpc.Transports.Internal
 
             if (TrySetWriteCompleted(shutdown: false))
             {
-                // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new RpcStreamAbortedException(errorCode));
-
                 // Shutdown the stream if not already done.
                 TryShutdown();
             }
@@ -81,7 +79,7 @@ namespace IceRpc.Transports.Internal
         {
             if (ReadCompleted)
             {
-                throw AbortException!;
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
             }
 
             // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
@@ -197,10 +195,12 @@ namespace IceRpc.Transports.Internal
         {
             if (frame is RpcStreamError errorCode)
             {
-                if (TrySetReadCompleted())
-                {
-                    SetException(new RpcStreamAbortedException(errorCode));
-                }
+                // It's important to set the exception before completing the reads because ReceiveAsync expects the
+                // exception to be set if reads are completed.
+                SetException(new RpcStreamAbortedException(errorCode));
+
+                TrySetReadCompleted();
+
                 CancelDispatchSource?.Cancel();
                 _connection.FinishedReceivedFrame();
             }

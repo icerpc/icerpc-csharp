@@ -28,7 +28,6 @@
       <Rule Id="SA1013" Action="None" /> <!-- Closing brace should not be preceded by a space -->
       <Rule Id="SA1101" Action="None" /> <!-- Prefix local calls with this -->
       <Rule Id="SA1108" Action="None" /> <!-- Block statements should not contain embedded comments -->
-      <Rule Id="SA1116" Action="None" /> <!-- TODO enable - The parameters should begin on the line after the declaration, whenever the parameter span across multiple lines -->
       <Rule Id="SA1118" Action="None" /> <!-- The parameter spans multiple lines -->
       <Rule Id="SA1122" Action="None" /> <!-- Use string.Empty for empty strings -->
       <Rule Id="SA1127" Action="None" /> <!-- Generic type constraints should be on their own line -->
@@ -36,7 +35,6 @@
       <Rule Id="SA1131" Action="None" /> <!-- Constant values should appear on the right-hand side of comparisons -->
       <Rule Id="SA1200" Action="None" /> <!-- Using directive should appear within a namespace declaration -->
       <Rule Id="SA1201" Action="None" /> <!-- Elements must appear in the correct order -->
-      <Rule Id="SA1202" Action="None" /> <!-- 'internal' members should come before 'private' members -->
       <Rule Id="SA1203" Action="None" /> <!-- Constant fields should appear before non-constant fields  -->
       <Rule Id="SA1204" Action="None" /> <!-- Static members should appear before non-static members -->
       <Rule Id="SA1208" Action="None" /> <!-- System using directives must be placed before other using directives -->
@@ -44,29 +42,15 @@
       <Rule Id="SA1306" Action="None" /> <!-- Field names must begin with lower case letter -->
       <Rule Id="SA1309" Action="None" /> <!-- Field names must not begin with underscore -->
       <Rule Id="SA1310" Action="None" /> <!-- Field should not contain an underscore -->
-      <Rule Id="SA1314" Action="None" /> <!-- TODO enable - Type parameter names should begin with T -->
-      <Rule Id="SA1316" Action="None" /> <!-- TODO enable - Tuple element names should use correct casing -->
       <Rule Id="SA1401" Action="None" /> <!-- Field should be private -->
       <Rule Id="SA1402" Action="None" /> <!-- File may only contain a single type -->
-      <Rule Id="SA1403" Action="None" /> <!-- TODO review enable this? - File may only contain a single namespace -->
       <Rule Id="SA1405" Action="None" /> <!-- Debug.Assert should provide message text -->
       <Rule Id="SA1413" Action="None" /> <!-- Use trailing comma in multi-line initializers -->
-      <Rule Id="SA1414" Action="None" /> <!-- TODO enable - Tuple types in signatures should have element names -->
       <Rule Id="SA1509" Action="None" /> <!-- Opening braces should not be preceded by blank line -->
       <Rule Id="SA1512" Action="None" /> <!-- Single-line comments should not be followed by blank line -->
       <Rule Id="SA1513" Action="None" /> <!-- Closing brace should be followed by blank line -->
       <Rule Id="SA1514" Action="None" /> <!-- Element documentation header should be preceded by blank line -->
       <Rule Id="SA1515" Action="None" /> <!-- Single-line comment should be preceded by blank line -->
-      <Rule Id="SA1516" Action="None" /> <!-- TODO enable - Elements should be separated by blank line -->
-      <Rule Id="SA1600" Action="None" /> <!-- TODO enable - Elements should be documented -->
-      <Rule Id="SA1601" Action="None" /> <!-- TODO enable - Partial elements should be documented -->
-      <Rule Id="SA1602" Action="None" /> <!-- TODO enable Enumeration items should be documented -->
-      <Rule Id="SA1611" Action="None" /> <!-- TODO enable - Element parameters must be documented -->
-      <Rule Id="SA1615" Action="None" /> <!-- TODO enable - Element return value should be documented -->
-      <Rule Id="SA1618" Action="None" /> <!-- TODO enable - The documentation for type parameter 'T' is missing -->
-      <Rule Id="SA1623" Action="None" /> <!-- TODO enable - The property's documentation summary text should begin with: 'Gets' -->
-      <Rule Id="SA1629" Action="None" /> <!-- TODO enable - Documentation text should end with a period -->
-      <Rule Id="SA1642" Action="None" /> <!-- TODO review -  Constructor summary documentation should begin with standard text -->
       <Rule Id="SA1649" Action="None" /> <!-- File name should match first type name -->
   </Rules>
 </RuleSet>

@@ -158,6 +158,10 @@ namespace IceRpc.Transports.Internal
                 _bidirectionalStreamSemaphore = initializeFrame.BidirectionalStreamSemaphore!;
                 _unidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore!;
             }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
+            }
             catch (Exception exception)
             {
                 throw new TransportException(exception);
@@ -268,9 +272,13 @@ namespace IceRpc.Transports.Internal
             try
             {
                 // If the stream is aborted, stop sending stream frames.
-                if (stream.AbortException is Exception exception)
+                if (stream.WriteCompleted && !(frame is RpcStreamError))
                 {
-                    throw exception;
+                    if (!stream.IsStarted && !stream.IsControl)
+                    {
+                        streamSemaphore.Release();
+                    }
+                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
                 }
 
                 ValueTask task;
