@@ -159,9 +159,9 @@ namespace IceRpc
 
                 // Shutdown and destroy all the incoming and outgoing IceRPC connections and wait for the connections
                 // to be finished.
-                IEnumerable<Task> closeTasks =
+                var closeTasks =
                     _clientConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.ShutdownAsync("connection pool shutdown", cancel));
+                        connection => connection.ShutdownAsync("connection pool shutdown", cancel)).ToList();
 
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked.
                 await Task.Yield();
