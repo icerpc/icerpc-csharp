@@ -19,7 +19,6 @@ namespace IceRpc.Tests.Internal
 
         public void Dispose() => _eventSource.Dispose();
 
-
         [Test]
         public void InvocationEventSource_RequestStart()
         {
