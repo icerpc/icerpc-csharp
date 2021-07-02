@@ -162,7 +162,7 @@ namespace IceRpc
             {
                 Debug.Assert(Host.Length > 0);
                 sb.Append(" -h ");
-                bool addQuote = Host.IndexOf(':') != -1;
+                bool addQuote = Host.IndexOf(':', StringComparison.InvariantCulture) != -1;
                 if (addQuote)
                 {
                     sb.Append('"');
@@ -254,7 +254,7 @@ namespace IceRpc
                 sb.Append("://");
             }
 
-            if (endpoint.Host.Contains(':'))
+            if (endpoint.Host.Contains(':', StringComparison.InvariantCulture))
             {
                 sb.Append('[');
                 sb.Append(endpoint.Host);

@@ -2,11 +2,11 @@
 
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
+
+#pragma warning disable CA2000 // TODO Dispose MemoryStream used for Stream params
 
 namespace IceRpc.Tests.CodeGeneration.Stream
 {
@@ -15,7 +15,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     [Parallelizable(ParallelScope.All)]
     [TestFixture("slic")]
     [TestFixture("coloc")]
-    public class StreamTests
+    public sealed class StreamTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -51,10 +51,10 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]
