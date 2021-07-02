@@ -46,11 +46,12 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortRead(RpcStreamError errorCode)
         {
+            // It's important to set the exception before completing the reads because ReceiveAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
             if (TrySetReadCompleted(shutdown: false))
             {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-
                 // Notify the peer of the abort of the read side
                 if (errorCode != RpcStreamError.ConnectionAborted)
                 {
@@ -133,16 +134,11 @@ namespace IceRpc.Transports.Internal
         {
             if (ReadCompleted)
             {
-                throw AbortException!;
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
             }
 
             if (_receivedSize == _receivedOffset)
             {
-                if (ReadCompleted)
-                {
-                    throw AbortException ?? new InvalidOperationException("stream receive is completed");
-                }
-
                 _receivedOffset = 0;
                 _receivedSize = 0;
 
@@ -519,10 +515,12 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(RpcStreamError errorCode)
         {
-            if (TrySetReadCompleted())
-            {
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
+            // It's important to set the exception before completing the reads because ReceiveAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
+            TrySetReadCompleted();
+
             CancelDispatchSource?.Cancel();
         }
     }

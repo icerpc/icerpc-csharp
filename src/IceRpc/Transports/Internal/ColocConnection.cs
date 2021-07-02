@@ -252,9 +252,13 @@ namespace IceRpc.Transports.Internal
             try
             {
                 // If the stream is aborted, stop sending stream frames.
-                if (stream.AbortException is Exception exception)
+                if (stream.WriteCompleted && !(frame is RpcStreamError))
                 {
-                    throw exception;
+                    if (!stream.IsStarted && !stream.IsControl)
+                    {
+                        streamSemaphore.Release();
+                    }
+                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
                 }
 
                 ValueTask task;
