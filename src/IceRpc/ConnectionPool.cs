@@ -187,7 +187,7 @@ namespace IceRpc
                 // If we didn't find an active connection check if there is a pending connect task for the same endpoint
                 if (!_pendingConnections.TryGetValue(endpoint, out connectTask))
                 {
-                    connectTask = PerformConnectAsync(endpoint, options);
+                    connectTask = PerformConnectAsync();
                     if (!connectTask.IsCompleted)
                     {
                         // If the task didn't complete synchronously we add it to the pending map
@@ -199,7 +199,7 @@ namespace IceRpc
 
             return await connectTask.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<Connection> PerformConnectAsync(Endpoint endpoint, ClientConnectionOptions options)
+            async Task<Connection> PerformConnectAsync()
             {
                 Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
                 // Use the connect timeout and the cancellation token for the cancellation.
@@ -222,7 +222,7 @@ namespace IceRpc
 #pragma warning restore CA2000
 
                     // Connect the connection (handshake, protocol initialization, ...)
-                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
+                    await connection.ConnectAsync(linkedSource.Token).ConfigureAwait(false);
 
                     lock (_mutex)
                     {
