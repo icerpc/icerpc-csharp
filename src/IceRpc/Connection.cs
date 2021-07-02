@@ -818,9 +818,15 @@ namespace IceRpc
             {
                 stream = await UnderlyingConnection!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
             }
-            catch (ConnectionClosedException ex) when (State == ConnectionState.Closing)
+            catch (ConnectionClosedException) when (State == ConnectionState.Closing)
             {
-                // The connection is being closed gracefully, we don't abort it to preserve the exception.
+                // The connection is being closed gracefully and the peer closed the connection.
+                _acceptStreamCompletion.SetResult();
+            }
+            catch (ConnectionLostException) when (State == ConnectionState.Closing && Protocol == Protocol.Ice1)
+            {
+                // The connection is being closed gracefully and the peer closed the connection after receiving
+                // the Ice1 connection close message.
                 _acceptStreamCompletion.SetResult();
             }
             catch (Exception ex)
