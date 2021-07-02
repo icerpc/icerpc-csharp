@@ -31,13 +31,14 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            if (_receiveStreamCompletionTaskSource.ValueTask.IsCompleted)
+            ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+            if (receiveStreamCompletionTask.IsCompleted)
             {
-                await _receiveStreamCompletionTaskSource.ValueTask.ConfigureAwait(false);
+                await receiveStreamCompletionTask.ConfigureAwait(false);
             }
             else
             {
-                await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
             }
 
             while (true)
@@ -150,14 +151,14 @@ namespace IceRpc.Transports.Internal
                         {
                             stream.ReceivedFrame(frameType, frame);
                             // Wait for the stream to process the frame before continuing receiving additional data.
-                            if (_receiveStreamCompletionTaskSource.IsCompleted)
+                            receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+                            if (receiveStreamCompletionTask.IsCompleted)
                             {
-                                await _receiveStreamCompletionTaskSource.ValueTask.ConfigureAwait(false);
+                                await receiveStreamCompletionTask.ConfigureAwait(false);
                             }
                             else
                             {
-                                await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(
-                                    cancel).ConfigureAwait(false);
+                                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
                             }
                         }
                         catch

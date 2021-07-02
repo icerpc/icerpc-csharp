@@ -619,7 +619,11 @@ namespace IceRpc.Transports.Internal
             // interrupt a send on the underlying connection and we want to make sure that once a stream is started,
             // the peer will always receive at least one stream frame.
             ValueTask sendPacketTask = PerformSendPacketAsync();
-            if (!sendPacketTask.IsCompletedSuccessfully)
+            if (sendPacketTask.IsCompleted)
+            {
+                await sendPacketTask.ConfigureAwait(false);
+            }
+            else
             {
                 await sendPacketTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
             }
@@ -834,14 +838,14 @@ namespace IceRpc.Transports.Internal
             // If the stream didn't fully read the stream data, finish reading it here before returning. The stream
             // might not have fully received the data if it was aborted or canceled.
             int size;
-            if (_receiveStreamCompletionTaskSource.ValueTask.IsCompletedSuccessfully)
+            ValueTask<int> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+            if (receiveStreamCompletionTask.IsCompletedSuccessfully)
             {
-                size = _receiveStreamCompletionTaskSource.ValueTask.Result;
+                size = receiveStreamCompletionTask.Result;
             }
             else
             {
-                size = await _receiveStreamCompletionTaskSource.ValueTask.AsTask().WaitAsync(
-                    cancel).ConfigureAwait(false);
+                size = await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
             }
 
             if (size > 0)
