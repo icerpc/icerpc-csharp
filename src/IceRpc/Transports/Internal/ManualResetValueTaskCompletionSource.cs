@@ -30,7 +30,7 @@ namespace IceRpc.Transports.Internal
 
         internal void Reset()
         {
-            lock(_mutex)
+            lock (_mutex)
             {
                 _source.Reset();
             }

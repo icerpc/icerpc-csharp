@@ -115,13 +115,13 @@ namespace IceRpc.Tests.ClientServer
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated) => new()
-                {
-                    Endpoint = colocated ?
+            {
+                Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                    HasColocEndpoint = false,
-                    HostName = "127.0.0.1"
-                };
+                HasColocEndpoint = false,
+                HostName = "127.0.0.1"
+            };
         }
 
         internal class ProtocolBridgingTest : IProtocolBridgingTest

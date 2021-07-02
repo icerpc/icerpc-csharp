@@ -64,10 +64,10 @@ namespace IceRpc.Tests.ClientServer
             greeter.Invoker = pipeline;
 
             var invocation = new Invocation
-                             {
-                                Context = new Dictionary<string, string> { ["foo"] = largeValue },
-                                IsOneway = connection.IsDatagram
-                             };
+            {
+                Context = new Dictionary<string, string> { ["foo"] = largeValue },
+                IsOneway = connection.IsDatagram
+            };
 
             await greeter.SayHelloAsync(invocation);
 
