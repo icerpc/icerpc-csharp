@@ -284,10 +284,10 @@ namespace IceRpc.Transports.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             // If the stream is aborted, stop sending stream frames.
-            if (stream?.AbortException is Exception exception)
+            if (stream?.WriteCompleted ?? false)
             {
                 _sendSemaphore.Release();
-                throw exception;
+                throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
             }
 
             try

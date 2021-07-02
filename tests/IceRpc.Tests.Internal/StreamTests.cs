@@ -90,17 +90,17 @@ namespace IceRpc.Tests.Internal
 
             int received = await serverStream.ReceiveAsync(new byte[256], default);
             Assert.That(received, Is.EqualTo(1));
-            bool canceled = false;
-            serverStream.CancelDispatchSource!.Token.Register(() => canceled = true);
+            var dispatchCanceled = new TaskCompletionSource();
+            serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
 
             // Abort the stream
             clientStream.Abort(errorCode);
 
-            // Ensure that receive on the server connection raises OperationCanceledException
+            // Ensure that receive on the server connection raises RpcStreamAbortedException
             RpcStreamAbortedException? ex = Assert.CatchAsync<RpcStreamAbortedException>(
                 async () => await serverStream.ReceiveAsync(new byte[1], default));
             Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
-            Assert.That(canceled, Is.True);
+            await dispatchCanceled.Task;
 
             // Ensure we can still create a new stream after the cancellation
             RpcStream clientStream2 = ClientConnection.CreateStream(true);

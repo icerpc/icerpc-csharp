@@ -99,8 +99,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2)]
         [TestCase(10)]
         [TestCase(20)]
-        [Repeat(50)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_GracefulClose(int maxQueue)
         {
             await WithRetryServiceAsync(async (service, retry) =>
@@ -362,7 +360,6 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
