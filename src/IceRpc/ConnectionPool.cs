@@ -39,30 +39,14 @@ namespace IceRpc
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        internal CancellationToken CancellationToken
-        {
-            get
-            {
-                try
-                {
-                    return _cancellationTokenSource.Token;
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}", ex);
-                }
-            }
-        }
-
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
         private readonly CancellationTokenSource _cancellationTokenSource = new();
-        private readonly Dictionary<Endpoint, List<Connection>> _clientConnections = new(EndpointComparer.Equivalent);
+        private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.Equivalent);
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
         private readonly object _mutex = new();
-        private readonly Dictionary<Endpoint, Task<Connection>> _pendingClientConnections =
-            new(EndpointComparer.Equivalent);
+        private readonly Dictionary<Endpoint, Task<Connection>> _pendingConnections = new(EndpointComparer.Equivalent);
         private Task? _shutdownTask;
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -135,7 +119,7 @@ namespace IceRpc
             }
 
             Connection? GetCachedConnection(Endpoint endpoint) =>
-                _clientConnections.TryGetValue(endpoint, out List<Connection>? connections) &&
+                _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(connection => connection.IsActive) is Connection connection ?
                     connection : null;
         }
@@ -157,31 +141,23 @@ namespace IceRpc
                 // Cancel operations that are waiting and using the connection pool cancellation token
                 _cancellationTokenSource.Cancel();
 
-                // Shutdown and destroy all the incoming and outgoing IceRPC connections and wait for the connections
-                // to be finished.
-                var closeTasks =
-                    _clientConnections.Values.SelectMany(connections => connections).Select(
-                        connection => connection.ShutdownAsync("connection pool shutdown", cancel)).ToList();
+                // Shutdown all connections managed by this pool.
+                var task = Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
+                    connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
 
                 // Yield before continuing to ensure the code below isn't executed with the mutex locked.
                 await Task.Yield();
 
-                await Task.WhenAll(closeTasks).ConfigureAwait(false);
+                await task.ConfigureAwait(false);
 
-                foreach (Task<Connection> connect in _pendingClientConnections.Values)
-                {
-                    try
+                await Task.WhenAll(_pendingConnections.Values.Select(async connect =>
                     {
                         Connection connection = await connect.ConfigureAwait(false);
                         await connection.ShutdownAsync("connection pool shutdown", cancel).ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                    }
-                }
+                    })).ConfigureAwait(false);
 
                 // Ensure all the client connections were removed
-                Debug.Assert(_clientConnections.Count == 0);
+                Debug.Assert(_connections.Count == 0);
                 _cancellationTokenSource.Dispose();
             }
         }
@@ -200,7 +176,7 @@ namespace IceRpc
                 }
 
                 // Check if there is an active connection that we can use according to the endpoint settings.
-                if (_clientConnections.TryGetValue(endpoint, out List<Connection>? connections))
+                if (_connections.TryGetValue(endpoint, out List<Connection>? connections))
                 {
                     if (connections.FirstOrDefault(connection => connection.IsActive) is Connection connection)
                     {
@@ -209,14 +185,14 @@ namespace IceRpc
                 }
 
                 // If we didn't find an active connection check if there is a pending connect task for the same endpoint
-                if (!_pendingClientConnections.TryGetValue(endpoint, out connectTask))
+                if (!_pendingConnections.TryGetValue(endpoint, out connectTask))
                 {
                     connectTask = PerformConnectAsync(endpoint, options);
                     if (!connectTask.IsCompleted)
                     {
                         // If the task didn't complete synchronously we add it to the pending map
                         // and it will be removed once PerformConnectAsync completes.
-                        _pendingClientConnections[endpoint] = connectTask;
+                        _pendingConnections[endpoint] = connectTask;
                     }
                 }
             }
@@ -230,8 +206,8 @@ namespace IceRpc
                 using var source = new CancellationTokenSource(options.ConnectTimeout);
                 using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
                     source.Token,
-                    CancellationToken);
-                CancellationToken cancel = linkedSource.Token;
+                    cancel,
+                    _cancellationTokenSource.Token);
 
                 try
                 {
@@ -258,10 +234,10 @@ namespace IceRpc
                             return connection;
                         }
 
-                        if (!_clientConnections.TryGetValue(endpoint, out List<Connection>? list))
+                        if (!_connections.TryGetValue(endpoint, out List<Connection>? list))
                         {
                             list = new List<Connection>();
-                            _clientConnections[endpoint] = list;
+                            _connections[endpoint] = list;
                         }
                         list.Add(connection);
                     }
@@ -280,7 +256,7 @@ namespace IceRpc
                         // Don't modify the pending connections map after the connection pool has been disposed.
                         if (_shutdownTask == null)
                         {
-                            _pendingClientConnections.Remove(endpoint);
+                            _pendingConnections.Remove(endpoint);
                         }
                     }
                 }
@@ -291,11 +267,11 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                List<Connection> list = _clientConnections[connection.RemoteEndpoint!];
+                List<Connection> list = _connections[connection.RemoteEndpoint!];
                 list.Remove(connection);
                 if (list.Count == 0)
                 {
-                    _clientConnections.Remove(connection.RemoteEndpoint!);
+                    _connections.Remove(connection.RemoteEndpoint!);
                 }
             }
         }
