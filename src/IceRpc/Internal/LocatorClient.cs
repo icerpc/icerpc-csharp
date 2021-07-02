@@ -296,7 +296,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            return await task.IceWaitAsync(cancel).ConfigureAwait(false);
+            return await task.WaitAsync(cancel).ConfigureAwait(false);
 
             async Task<(Endpoint?, ImmutableList<Endpoint>)> PerformResolveWithLocatorAsync()
             {

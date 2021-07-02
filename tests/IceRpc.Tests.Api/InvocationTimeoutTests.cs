@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
+    [Timeout(30000)]
     [Parallelizable]
     public sealed class InvocationTimeoutTests : IAsyncDisposable
     {

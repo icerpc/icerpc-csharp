@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     // Each test case gets a fresh communicator, server and router.
+    [Timeout(30000)]
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public sealed class RouterTests : IAsyncDisposable

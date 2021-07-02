@@ -468,7 +468,7 @@ namespace IceRpc.Transports
                 // the code that aborts the last stream.
                 _incomingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            await _incomingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+            await _incomingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         internal async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
@@ -485,7 +485,7 @@ namespace IceRpc.Transports
                 // the code that aborts the last stream.
                 _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+            await _outgoingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
     }
 }

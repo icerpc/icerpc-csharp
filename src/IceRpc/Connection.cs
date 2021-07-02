@@ -955,7 +955,7 @@ namespace IceRpc
 
             try
             {
-                await shutdownTask.IceWaitAsync(cancel).ConfigureAwait(false);
+                await shutdownTask.WaitAsync(cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

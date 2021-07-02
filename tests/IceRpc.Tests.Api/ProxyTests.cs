@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Tests.Api
 {
     [Parallelizable(scope: ParallelScope.All)]
+    [Timeout(30000)]
     public class ProxyTests
     {
         [TestCase(Protocol.Ice1)]
