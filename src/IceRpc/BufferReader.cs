@@ -1300,42 +1300,70 @@ namespace IceRpc
         }
 
         // Helper base class for the concrete collection implementations.
-        private abstract class CollectionBase<T> : ICollection<T>, IEnumerator<T>
+        private abstract class CollectionBase<T> : ICollection<T>
         {
-            public int Count { get; }
-
-            public T Current
+            public struct Enumerator : IEnumerator<T>
             {
-                get
+                public T Current
                 {
-                    if (Pos == 0 || Pos > Count)
+                    get
                     {
-                        throw new InvalidOperationException();
+                        if (_pos == 0 || _pos > _collection.Count)
+                        {
+                            throw new InvalidOperationException();
+                        }
+                        return _current;
                     }
-                    return _current;
+
+                    private set => _current = value;
                 }
 
-                protected set => _current = value;
-            }
+                object? IEnumerator.Current => Current;
 
-            object? IEnumerator.Current => Current;
-            public bool IsReadOnly => true;
-            protected readonly BufferReader Reader;
-            protected int Pos;
-            private T _current;
-            private bool _enumeratorRetrieved;
+                private readonly CollectionBase<T> _collection;
+                private T _current;
+                private int _pos;
 
-            public IEnumerator<T> GetEnumerator()
-            {
-                if (_enumeratorRetrieved)
+                public void Dispose()
                 {
-                    throw new NotSupportedException("cannot get a second enumerator for this enumerable");
                 }
-                _enumeratorRetrieved = true;
-                return this;
+
+                public bool MoveNext()
+                {
+                    if (_pos < _collection.Count)
+                    {
+                        Current = _collection.Read(_pos);
+                        _pos++;
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                public void Reset() => throw new NotImplementedException();
+
+                // Disable these warnings as the _current field is never read before it is initialized in MoveNext.
+                // Declaring this field as nullable is not an option for a generic T that can be used with reference
+                // and value types.
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
+                internal Enumerator(CollectionBase<T> collection)
+#pragma warning restore CS8618
+                {
+                    _collection = collection;
+#pragma warning disable CS8601 // Possible null reference assignment.
+                    _current = default;
+#pragma warning restore CS8601
+                    _pos = 0;
+                }
             }
 
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public int Count { get; }
+            public bool IsReadOnly => true;
+            protected BufferReader Reader { get; }
+
+            private bool _enumeratorRetrieved;
 
             public void Add(T item) => throw new NotSupportedException();
             public void Clear() => throw new NotSupportedException();
@@ -1348,21 +1376,24 @@ namespace IceRpc
                     array[arrayIndex++] = value;
                 }
             }
-
-            public void Dispose()
+            public IEnumerator<T> GetEnumerator()
             {
+                if (_enumeratorRetrieved)
+                {
+                    throw new NotSupportedException("cannot get a second enumerator for this enumerable");
+                }
+                _enumeratorRetrieved = true;
+                return new Enumerator(this);
             }
 
-            public abstract bool MoveNext();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
             public bool Remove(T item) => throw new NotSupportedException();
             public void Reset() => throw new NotSupportedException();
 
-            // Disable this warning as the _current field is never read before it is initialized in MoveNext. Declaring
-            // this field as nullable is not an option for a generic T that can be used with reference and value types.
-#pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
+            private protected abstract T Read(int pos);
+
             protected CollectionBase(BufferReader reader, int minElementSize)
-#pragma warning restore CS8618
             {
                 Count = reader.ReadAndCheckSeqSize(minElementSize);
                 Reader = reader;
@@ -1376,22 +1407,13 @@ namespace IceRpc
         private sealed class Collection<T> : CollectionBase<T>
         {
             private readonly Decoder<T> _decoder;
-
             internal Collection(BufferReader reader, int minElementSize, Decoder<T> decoder)
                 : base(reader, minElementSize) => _decoder = decoder;
 
-            public override bool MoveNext()
+            private protected override T Read(int pos)
             {
-                if (Pos < Count)
-                {
-                    Current = _decoder(Reader);
-                    Pos++;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                Debug.Assert(pos < Count);
+                return _decoder(Reader);
             }
         }
 
@@ -1400,7 +1422,7 @@ namespace IceRpc
         private sealed class NullableCollection<T> : CollectionBase<T?> where T : class
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            private readonly Decoder<T> _decoder;
+            readonly Decoder<T> _decoder;
 
             internal NullableCollection(BufferReader reader, Decoder<T> decoder)
                 : base(reader, 0)
@@ -1409,18 +1431,11 @@ namespace IceRpc
                 _decoder = decoder;
             }
 
-            public override bool MoveNext()
+            private protected override T? Read(int pos)
             {
-                if (Pos < Count)
-                {
-                    var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                    Current = bitSequence[Pos++] ? _decoder(Reader) : null;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                Debug.Assert(pos < Count);
+                var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
+                return bitSequence[pos] ? _decoder(Reader) : null;
             }
         }
 
@@ -1437,18 +1452,11 @@ namespace IceRpc
                 _decoder = decoder;
             }
 
-            public override bool MoveNext()
+            private protected override T? Read(int pos)
             {
-                if (Pos < Count)
-                {
-                    var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                    Current = bitSequence[Pos++] ? _decoder(Reader) : (T?)null;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                Debug.Assert(pos < Count);
+                var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
+                return bitSequence[pos] ? _decoder(Reader) : null;
             }
         }
     }
