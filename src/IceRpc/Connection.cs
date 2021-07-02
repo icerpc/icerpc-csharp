@@ -859,8 +859,6 @@ namespace IceRpc
 
         private async Task ProcessIncomingStreamAsync(RpcStream stream)
         {
-            Debug.Assert(stream != null);
-
             // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the
             // peer or when the stream is aborted because the connection shutdown is canceled or failed.
             CancellationToken cancel = stream.CancelDispatchSource!.Token;
