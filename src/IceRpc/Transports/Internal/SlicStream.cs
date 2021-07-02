@@ -172,13 +172,6 @@ namespace IceRpc.Transports.Internal
                 // Read and append the received stream frame data into the given buffer.
                 using IDisposable? scope = StartScope();
                 await _connection.ReceiveDataAsync(buffer.Slice(0, size), CancellationToken.None).ConfigureAwait(false);
-
-                // If we've consumed the whole Slic frame, notify the connection that it can start receiving
-                // a new frame.
-                if (_receivedOffset == _receivedSize)
-                {
-                    _connection.FinishedReceivedStreamData(0);
-                }
             }
             else
             {
@@ -210,6 +203,16 @@ namespace IceRpc.Transports.Internal
             if (_receivedOffset == _receivedSize && _receivedEndStream)
             {
                 TrySetReadCompleted();
+            }
+
+            // Notify the connection that the frame has been processed. This must be done after completing reads
+            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
+            // connection before the connection is shutdown if the next frame is a close frame.
+            if (_receiveBuffer == null && _receivedOffset == _receivedSize)
+            {
+                // If we've consumed the whole Slic frame, notify the connection that it can start receiving
+                // a new frame.
+                _connection.FinishedReceivedStreamData(0);
             }
 
             return size;
