@@ -1320,9 +1320,9 @@ namespace IceRpc
 
                 object? IEnumerator.Current => Current;
 
+                private readonly CollectionBase<T> _collection;
                 private T _current;
                 private int _pos;
-                private readonly CollectionBase<T> _collection;
 
                 public void Dispose()
                 {
@@ -1361,8 +1361,10 @@ namespace IceRpc
 
             public int Count { get; }
             public bool IsReadOnly => true;
-            protected BufferReader Reader;
+            protected BufferReader Reader { get; }
+
             private bool _enumeratorRetrieved;
+
             public void Add(T item) => throw new NotSupportedException();
             public void Clear() => throw new NotSupportedException();
             public bool Contains(T item) => throw new NotSupportedException();
@@ -1389,7 +1391,7 @@ namespace IceRpc
             public bool Remove(T item) => throw new NotSupportedException();
             public void Reset() => throw new NotSupportedException();
 
-            internal abstract T Read(int pos);
+            private protected abstract T Read(int pos);
 
             protected CollectionBase(BufferReader reader, int minElementSize)
             {
@@ -1408,7 +1410,7 @@ namespace IceRpc
             internal Collection(BufferReader reader, int minElementSize, Decoder<T> decoder)
                 : base(reader, minElementSize) => _decoder = decoder;
 
-            internal override T Read(int pos)
+            private protected override T Read(int pos)
             {
                 Debug.Assert(pos < Count);
                 return _decoder(Reader);
@@ -1429,7 +1431,7 @@ namespace IceRpc
                 _decoder = decoder;
             }
 
-            internal override T? Read(int pos)
+            private protected override T? Read(int pos)
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
@@ -1450,7 +1452,7 @@ namespace IceRpc
                 _decoder = decoder;
             }
 
-            internal override T? Read(int pos)
+            private protected override T? Read(int pos)
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
