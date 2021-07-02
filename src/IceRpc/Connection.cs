@@ -887,17 +887,7 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
-                // Convert the exception to an UnhandledException if needed.
-                if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
-                {
-                    // We log the exception as the UnhandledException may not include all details.
-                    UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                      request.Path,
-                                                                      request.Operation,
-                                                                      exception);
-                    response = new OutgoingResponse(request, new UnhandledException(exception));
-                }
-                else if (!stream.IsBidirectional)
+                if (request.IsOneway)
                 {
                     // We log this exception, otherwise it would be lost since we don't send a response.
                     UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
@@ -907,7 +897,20 @@ namespace IceRpc
                 }
                 else
                 {
-                    response = new OutgoingResponse(request, remoteException);
+                    // Convert the exception to an UnhandledException if needed.
+                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
+                    {
+                        // We log the exception as the UnhandledException may not include all details.
+                        UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
+                                                                        request.Path,
+                                                                        request.Operation,
+                                                                        exception);
+                        response = new OutgoingResponse(request, new UnhandledException(exception));
+                    }
+                    else
+                    {
+                        response = new OutgoingResponse(request, remoteException);
+                    }
                 }
             }
 
