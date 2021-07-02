@@ -293,7 +293,7 @@ namespace IceRpc
             }
         }
 
-        private Task _acceptStreamTask = Task.CompletedTask;
+        private readonly TaskCompletionSource _acceptStreamCompletion = new();
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
@@ -535,38 +535,7 @@ namespace IceRpc
 
                     // Start the accept stream task. The task accepts new incoming streams and processes them. It only
                     // completes once the connection is closed.
-                    _acceptStreamTask = Task.Run(
-                        async () =>
-                        {
-                            // Start accepting a new stream.
-                            var acceptStreamTask = Task.Run(() => AcceptStreamAsync());
-
-                            while (true)
-                            {
-                                // Accept a new stream. This will raise and cause the loop to end when the underlying
-                                // connection is closed.
-                                RpcStream stream = await acceptStreamTask.ConfigureAwait(false);
-
-                                // Continue accepting new streams.
-                                acceptStreamTask = Task.Run(() => AcceptStreamAsync());
-
-                                // Process the stream from the accept stream task continuation to avoid a
-                                // thread-context switch.
-                                try
-                                {
-                                    await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
-                                }
-                                catch (RpcStreamAbortedException ex)
-                                {
-                                    stream.Abort(ex.ErrorCode);
-                                }
-                                catch (Exception ex)
-                                {
-                                    // Unexpected exception, abort the connection.
-                                    _ = AbortAsync(ex);
-                                }
-                            }
-                        }, CancellationToken.None);
+                    _ = Task.Run(() => AcceptStreamAsync(), CancellationToken.None);
                 }
             }
         }
@@ -841,22 +810,44 @@ namespace IceRpc
             }
         }
 
-        private async Task<RpcStream> AcceptStreamAsync()
+        private async ValueTask AcceptStreamAsync()
         {
+            // Accept a new stream.
+            RpcStream? stream = null;
             try
             {
-                // Accept a new stream.
-                return await UnderlyingConnection!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
+                stream = await UnderlyingConnection!.AcceptStreamAsync(CancellationToken.None).ConfigureAwait(false);
             }
-            catch (Exception ex) when (State == ConnectionState.Closing || ex is ConnectionClosedException)
+            catch (ConnectionClosedException ex) when (State == ConnectionState.Closing)
             {
-                // The connection is being closed gracefully, let the exception go through.
-                throw;
+                // The connection is being closed gracefully, we don't abort it to preserve the exception.
+                _acceptStreamCompletion.SetResult();
             }
             catch (Exception ex)
             {
+                _acceptStreamCompletion.SetException(ex);
                 _ = AbortAsync(ex);
-                throw;
+            }
+
+            // Start a new accept stream task.
+            _ = Task.Run(() => AcceptStreamAsync(), CancellationToken.None);
+
+            // Process the stream from the continuation to avoid a thread-context switch.
+            if (stream != null)
+            {
+                try
+                {
+                    await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    stream.Abort(ex.ErrorCode);
+                }
+                catch (Exception ex)
+                {
+                    // Unexpected exception, abort the connection.
+                    _ = AbortAsync(ex);
+                }
             }
         }
 
@@ -1032,7 +1023,7 @@ namespace IceRpc
                     // Wait for peer to close the connection.
                     try
                     {
-                        await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
+                        await _acceptStreamCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
                     }
                     catch (TransportException)
                     {
@@ -1072,20 +1063,17 @@ namespace IceRpc
             Task waitForEmptyStreams = UnderlyingConnection!.WaitForEmptyStreamsAsync(cancel);
             if (!waitForEmptyStreams.IsCompleted)
             {
-                Task waitForClose = _acceptStreamTask.WaitAsync(cancel);
+                Task waitForClose = _acceptStreamCompletion.Task.WaitAsync(cancel);
                 Task task = await Task.WhenAny(waitForEmptyStreams, waitForClose).ConfigureAwait(false);
                 if (task == waitForClose)
                 {
-                    // The peer closed the connection before the streams are completed. If it gracefully closed the
-                    // connection, we continue waiting for the streams to complete.
-                    try
-                    {
-                        await waitForClose.ConfigureAwait(false);
-                    }
-                    catch (ConnectionClosedException)
-                    {
-                        await waitForEmptyStreams.ConfigureAwait(false);
-                    }
+                    // Check the result of the connection closure. This will raise if the connection wasn't
+                    // closed gracefully.
+                    await waitForClose.ConfigureAwait(false);
+
+                    // If the peer gracefully closed the connection, we continue waiting for the streams
+                    // to complete.
+                    await waitForEmptyStreams.ConfigureAwait(false);
                 }
             }
         }
@@ -1168,7 +1156,7 @@ namespace IceRpc
                         try
                         {
                             // Wait for the peer to close the connection and return.
-                            await _acceptStreamTask.WaitAsync(cancel).ConfigureAwait(false);
+                            await _acceptStreamCompletion.Task.WaitAsync(cancel).ConfigureAwait(false);
                         }
                         catch (TransportException)
                         {
