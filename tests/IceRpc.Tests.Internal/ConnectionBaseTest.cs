@@ -193,12 +193,10 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IListener CreateListener() => ((IListenerFactory)ServerEndpoint).CreateListener(
-            ServerConnectionOptions,
-            Logger);
+        protected IListener CreateListener() =>
+            ((IListenerFactory)ServerEndpoint).CreateListener(ServerConnectionOptions, Logger);
 
         protected MultiStreamConnection CreateServerConnection() =>
-            ((IServerConnectionFactory)ServerEndpoint).Accept(ServerConnectionOptions,
-                                                                        Logger);
+            ((IServerConnectionFactory)ServerEndpoint).Accept(ServerConnectionOptions, Logger);
     }
 }

@@ -67,7 +67,7 @@ namespace IceRpc
                 }
                 catch
                 {
-                    stream.AbortWrite(RpcStreamError.StreamingCanceled);
+                    stream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
                     break;
                 }
             }

@@ -11,11 +11,45 @@ namespace IceRpc.Transports.Internal
     internal static partial class SlicLoggerExtensions
     {
         [LoggerMessage(
+            EventId = (int)SlicEvent.ReceivedResetFrame,
+            EventName = nameof(SlicEvent.ReceivedResetFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+        internal static partial void LogReceivedSlicResetFrame(
+            this ILogger logger,
+            int frameSize,
+            RpcStreamError errorCode);
+
+        [LoggerMessage(
+            EventId = (int)SlicEvent.ReceivedStopSendingFrame,
+            EventName = nameof(SlicEvent.ReceivedStopSendingFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+        internal static partial void LogReceivedSlicStopSendingFrame(
+            this ILogger logger,
+            int frameSize,
+            RpcStreamError errorCode);
+
+        [LoggerMessage(
+            EventId = (int)SlicEvent.ReceivedUnsupportedInitializeFrame,
+            EventName = nameof(SlicEvent.ReceivedUnsupportedInitializeFrame),
+            Level = LogLevel.Debug,
+            Message = "received Slic Initialize frame with unsupported version (FrameSize={FrameSize}, " +
+                      "Version={Version})")]
+        internal static partial void LogSlicReceivedUnsupportedInitializeFrame(
+            this ILogger logger,
+            int frameSize,
+            uint version);
+
+        [LoggerMessage(
             EventId = (int)SlicEvent.ReceivingFrame,
             EventName = nameof(SlicEvent.ReceivingFrame),
             Level = LogLevel.Debug,
             Message = "receiving Slic {FrameType} frame (FrameSize={FrameSize})")]
-        internal static partial void LogReceivingSlicFrame(this ILogger logger, SlicDefinitions.FrameType frameType, int frameSize);
+        internal static partial void LogReceivingSlicFrame(
+            this ILogger logger,
+            SlicDefinitions.FrameType frameType,
+            int frameSize);
 
         internal static void LogReceivingSlicInitializeAckFrame(
             this ILogger logger,
@@ -46,27 +80,6 @@ namespace IceRpc.Transports.Internal
                     string.Join(", ", parameters.Select(pair => $"{pair.Key}={pair.Value}")));
             }
         }
-
-        [LoggerMessage(
-            EventId = (int)SlicEvent.ReceivingResetFrame,
-            EventName = nameof(SlicEvent.ReceivingResetFrame),
-            Level = LogLevel.Debug,
-            Message = "receiving Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
-        internal static partial void LogReceivingSlicResetFrame(
-            this ILogger logger,
-            int frameSize,
-            RpcStreamError errorCode);
-
-        [LoggerMessage(
-            EventId = (int)SlicEvent.ReceivingUnsupportedInitializeFrame,
-            EventName = nameof(SlicEvent.ReceivingUnsupportedInitializeFrame),
-            Level = LogLevel.Debug,
-            Message = "receiving Slic Initialize frame with unsupported version (FrameSize={FrameSize}, " +
-                      "Version={Version})")]
-        internal static partial void LogSlicReceivedUnsupportedInitializeFrame(
-            this ILogger logger,
-            int frameSize,
-            uint version);
 
         internal static void LogReceivingSlicVersionFrame(this ILogger logger, int frameSize, VersionBody body)
         {
@@ -119,6 +132,16 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Debug,
             Message = "sending Slic StreamReset frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
         internal static partial void LogSendingSlicResetFrame(
+            this ILogger logger,
+            int frameSize,
+            RpcStreamError errorCode);
+
+        [LoggerMessage(
+            EventId = (int)SlicEvent.SendingStopSendingFrame,
+            EventName = nameof(SlicEvent.SendingStopSendingFrame),
+            Level = LogLevel.Debug,
+            Message = "sending Slic StreamStopSending frame (FrameSize={FrameSize}, ErrorCode={ErrorCode})")]
+        internal static partial void LogSendingSlicStopSendingFrame(
             this ILogger logger,
             int frameSize,
             RpcStreamError errorCode);

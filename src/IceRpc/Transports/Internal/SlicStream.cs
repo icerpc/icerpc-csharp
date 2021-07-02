@@ -51,8 +51,15 @@ namespace IceRpc.Transports.Internal
                 // Abort the receive call waiting on WaitAsync().
                 SetException(new RpcStreamAbortedException(errorCode));
 
-                // Send stop sending frame before shutting down.
-                // TODO
+                // Notify the peer of the abort of the read side
+                if (errorCode != RpcStreamError.ConnectionAborted)
+                {
+                    _ = _connection.PrepareAndSendFrameAsync(
+                    SlicDefinitions.FrameType.StreamStopSending,
+                    ostr => new StreamStopSendingBody((ulong)errorCode).IceWrite(ostr),
+                    frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                    this);
+                }
 
                 // Shutdown the stream if not already done.
                 TryShutdown();
@@ -61,26 +68,17 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortWrite(RpcStreamError errorCode)
         {
-            // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-            {
-                _ = _connection.PrepareAndSendFrameAsync(
-                    SlicDefinitions.FrameType.StreamReset,
-                    writer =>
-                    {
-                        checked
-                        {
-                            new StreamResetBody((ulong)errorCode).IceWrite(writer);
-                        }
-                    },
-                    frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                    this);
-            }
-
             if (TrySetWriteCompleted(shutdown: false))
             {
-                // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new RpcStreamAbortedException(errorCode));
+                // Notify the peer of the abort if the stream or connection is not aborted already.
+                if (errorCode != RpcStreamError.ConnectionAborted)
+                {
+                    _ = _connection.PrepareAndSendFrameAsync(
+                        SlicDefinitions.FrameType.StreamReset,
+                        writer => new StreamResetBody((ulong)errorCode).IceWrite(writer),
+                        frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
+                        this);
+                }
 
                 // Shutdown the stream if not already done.
                 TryShutdown();
@@ -133,6 +131,11 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
+            if (ReadCompleted)
+            {
+                throw AbortException!;
+            }
+
             if (_receivedSize == _receivedOffset)
             {
                 if (ReadCompleted)
@@ -147,6 +150,7 @@ namespace IceRpc.Transports.Internal
                 // enabled, check for the circular buffer element count instead of the signal result since
                 // multiple Slic frame might have been received and buffered while waiting for the signal.
                 (_receivedSize, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
+
                 if (_receivedSize == 0)
                 {
                     if (!_receivedEndStream)
@@ -193,13 +197,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        writer =>
-                        {
-                            checked
-                            {
-                                new StreamConsumedBody((ulong)consumed).IceWrite(writer);
-                            }
-                        },
+                        writer => new StreamConsumedBody((ulong)consumed).IceWrite(writer),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
@@ -518,7 +516,10 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(RpcStreamError errorCode)
         {
-            AbortRead(errorCode);
+            if (TrySetReadCompleted())
+            {
+                SetException(new RpcStreamAbortedException(errorCode));
+            }
             CancelDispatchSource?.Cancel();
         }
     }
