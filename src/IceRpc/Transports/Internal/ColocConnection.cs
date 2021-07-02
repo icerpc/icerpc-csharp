@@ -142,6 +142,10 @@ namespace IceRpc.Transports.Internal
                 _bidirectionalStreamSemaphore = initializeFrame.BidirectionalStreamSemaphore!;
                 _unidirectionalStreamSemaphore = initializeFrame.UnidirectionalStreamSemaphore!;
             }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
+            }
             catch (Exception exception)
             {
                 throw new TransportException(exception);
