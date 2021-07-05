@@ -189,7 +189,8 @@ namespace IceRpc
 
         /// <summary>Two endpoints are considered equivalent if they are equal or their differences should not trigger
         /// the establishment of separate connections to those endpoints. For example, two tcp endpoints that are
-        /// identical except for their ice1 HashCompressedFlag property are equivalent but are not equal.</summary>
+        /// identical except for their ice1 Timeout and HasCompressionFlag properties are equivalent but are not equal.
+        /// </summary>
         protected internal virtual bool IsEquivalent(Endpoint other) => Equals(other);
 
         /// <summary>Writes the options of this endpoint to the buffer. Used only when marshaling ice1 proxies with the
