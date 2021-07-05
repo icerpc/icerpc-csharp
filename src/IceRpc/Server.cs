@@ -248,6 +248,9 @@ namespace IceRpc
 
             async Task PerformShutdownAsync()
             {
+                // Yield to ensure _mutex is released while we perform the shutdown.
+                await Task.Yield();
+
                 CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
@@ -266,9 +269,6 @@ namespace IceRpc
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
                     _colocListener?.Dispose();
-
-                    // Yield to ensure the mutex is released while we shutdown the connections.
-                    await Task.Yield();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
@@ -305,8 +305,6 @@ namespace IceRpc
         internal static Endpoint? GetColocEndpoint(Endpoint endpoint) =>
             endpoint.Transport == Transport.Coloc ? endpoint :
                 (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
-
-        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
 
         private async Task AcceptAsync(IListener listener)
         {
@@ -387,5 +385,7 @@ namespace IceRpc
                 }
             }
         }
+
+        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
     }
 }
