@@ -138,15 +138,14 @@ namespace IceRpc
 
             async Task PerformShutdownAsync()
             {
+                // Yield to ensure we don't hold the mutex while performing the shutdown.
+                await Task.Yield();
                 // Cancel operations that are waiting and using the connection pool cancellation token
                 _cancellationTokenSource.Cancel();
 
                 // Shutdown all connections managed by this pool.
                 var task = Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
                     connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
-
-                // Yield before continuing to ensure the code below isn't executed with the mutex locked.
-                await Task.Yield();
 
                 await task.ConfigureAwait(false);
 
@@ -157,7 +156,6 @@ namespace IceRpc
                     })).ConfigureAwait(false);
 
                 // Ensure all the client connections were removed
-                Debug.Assert(_connections.Count == 0);
                 _cancellationTokenSource.Dispose();
             }
         }
@@ -267,11 +265,15 @@ namespace IceRpc
         {
             lock (_mutex)
             {
-                List<Connection> list = _connections[connection.RemoteEndpoint!];
-                list.Remove(connection);
-                if (list.Count == 0)
+                // _connections is immutable after shutdown
+                if (_shutdownTask == null)
                 {
-                    _connections.Remove(connection.RemoteEndpoint!);
+                    List<Connection> list = _connections[connection.RemoteEndpoint!];
+                    list.Remove(connection);
+                    if (list.Count == 0)
+                    {
+                        _connections.Remove(connection.RemoteEndpoint!);
+                    }
                 }
             }
         }
