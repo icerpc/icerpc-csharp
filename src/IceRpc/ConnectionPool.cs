@@ -41,12 +41,10 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        private readonly CancellationTokenSource _cancellationTokenSource = new();
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.Equivalent);
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
         private readonly object _mutex = new();
-        private readonly Dictionary<Endpoint, Task<Connection>> _pendingConnections = new(EndpointComparer.Equivalent);
         private Task? _shutdownTask;
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -140,23 +138,10 @@ namespace IceRpc
             {
                 // Yield to ensure we don't hold the mutex while performing the shutdown.
                 await Task.Yield();
-                // Cancel operations that are waiting and using the connection pool cancellation token
-                _cancellationTokenSource.Cancel();
 
                 // Shutdown all connections managed by this pool.
-                var task = Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
-                    connection => connection.ShutdownAsync("connection pool shutdown", cancel)));
-
-                await task.ConfigureAwait(false);
-
-                await Task.WhenAll(_pendingConnections.Values.Select(async connect =>
-                    {
-                        Connection connection = await connect.ConfigureAwait(false);
-                        await connection.ShutdownAsync("connection pool shutdown", cancel).ConfigureAwait(false);
-                    })).ConfigureAwait(false);
-
-                // Ensure all the client connections were removed
-                _cancellationTokenSource.Dispose();
+                await Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
+                    connection => connection.ShutdownAsync("connection pool shutdown", cancel))).ConfigureAwait(false);
             }
         }
 
@@ -165,7 +150,8 @@ namespace IceRpc
             ClientConnectionOptions options,
             CancellationToken cancel)
         {
-            Task<Connection>? connectTask;
+            Task? connectTask;
+            Connection? connection = null;
             lock (_mutex)
             {
                 if (_shutdownTask != null)
@@ -173,90 +159,62 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(ConnectionPool).FullName}");
                 }
 
-                // Check if there is an active connection that we can use according to the endpoint settings.
+                // Check if there is an active or pending connection that we can use according to the endpoint
+                // settings.
                 if (_connections.TryGetValue(endpoint, out List<Connection>? connections))
                 {
-                    if (connections.FirstOrDefault(connection => connection.IsActive) is Connection connection)
+                    connection = connections.FirstOrDefault(connection => connection.State <= ConnectionState.Active);
+                }
+
+                if (connection != null)
+                {
+                    if (connection.IsActive)
                     {
                         return connection;
                     }
+                    connectTask = connection.ConnectAsync(default);
                 }
-
-                // If we didn't find an active connection check if there is a pending connect task for the same endpoint
-                if (!_pendingConnections.TryGetValue(endpoint, out connectTask))
+                else
                 {
-                    connectTask = PerformConnectAsync();
-                    if (!connectTask.IsCompleted)
-                    {
-                        // If the task didn't complete synchronously we add it to the pending map
-                        // and it will be removed once PerformConnectAsync completes.
-                        _pendingConnections[endpoint] = connectTask;
-                    }
-                }
-            }
-
-            return await connectTask.WaitAsync(cancel).ConfigureAwait(false);
-
-            async Task<Connection> PerformConnectAsync()
-            {
-                Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
-                // Use the connect timeout and the cancellation token for the cancellation.
-                using var source = new CancellationTokenSource(options.ConnectTimeout);
-                using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
-                    source.Token,
-                    cancel,
-                    _cancellationTokenSource.Token);
-
-                try
-                {
+                    Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var connection = new Connection
+                    connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
                         Logger = Logger,
                         Options = options
                     };
 #pragma warning restore CA2000
+                    if (!_connections.TryGetValue(endpoint, out connections))
+                    {
+                        connections = new List<Connection>();
+                        _connections[endpoint] = connections;
+                    }
+                    connections.Add(connection);
+                    // Set the callback used to remove the connection from the pool.
+                    connection.Remove = connection => Remove(connection);
+                    connectTask = PerformConnectAsync(connection);
+                }
+            }
+            await connectTask.WaitAsync(cancel).ConfigureAwait(false);
 
+            return connection;
+
+            async Task PerformConnectAsync(Connection connection)
+            {
+                // Use the connect timeout and the cancellation token for the cancellation.
+                using var source = new CancellationTokenSource(options.ConnectTimeout);
+                using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(source.Token, cancel);
+
+                try
+                {
                     // Connect the connection (handshake, protocol initialization, ...)
                     await connection.ConnectAsync(linkedSource.Token).ConfigureAwait(false);
-
-                    lock (_mutex)
-                    {
-                        if (_shutdownTask != null)
-                        {
-                            // If the connection pool has been disposed return the connection here and avoid adding the
-                            // connection to the client connections map, the connection will be disposed from the
-                            // pending connections map.
-                            return connection;
-                        }
-
-                        if (!_connections.TryGetValue(endpoint, out List<Connection>? list))
-                        {
-                            list = new List<Connection>();
-                            _connections[endpoint] = list;
-                        }
-                        list.Add(connection);
-                    }
-                    // Set the callback used to remove the connection from the factory.
-                    connection.Remove = connection => Remove(connection);
-                    return connection;
                 }
                 catch (OperationCanceledException) when (source.IsCancellationRequested)
                 {
                     throw new ConnectTimeoutException();
-                }
-                finally
-                {
-                    lock (_mutex)
-                    {
-                        // Don't modify the pending connections map after the connection pool has been disposed.
-                        if (_shutdownTask == null)
-                        {
-                            _pendingConnections.Remove(endpoint);
-                        }
-                    }
                 }
             }
         }
