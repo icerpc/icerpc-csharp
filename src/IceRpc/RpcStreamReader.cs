@@ -13,26 +13,26 @@ namespace IceRpc
     /// <summary>A stream reader to read a stream param from a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamReader
     {
-        private readonly RpcStream _stream;
+        private readonly OutgoingRequest _request;
 
-        /// <summary>Reads the stream data from the given dispatch's <see cref="RpcStream"/> with a
+        /// <summary>Reads the stream data from the given incoming request's <see cref="RpcStream"/> with a
         /// <see cref="Stream"/>.</summary>
         /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
-        public static Stream ToByteStream(Dispatch dispatch)
+        public static Stream ToByteStream(IncomingRequest request)
         {
-            dispatch.IncomingRequest.Stream.EnableReceiveFlowControl();
-            return new ByteStream(dispatch.IncomingRequest.Stream);
+            request.Stream.EnableReceiveFlowControl();
+            return new ByteStream(request.Stream);
         }
 
         /// <summary>Reads the stream data with a <see cref="Stream"/>.</summary>
         /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
         public Stream ToByteStream()
         {
-            _stream.EnableReceiveFlowControl();
-            return new ByteStream(_stream);
+            _request.Stream.EnableReceiveFlowControl();
+            return new ByteStream(_request.Stream);
         }
 
-        internal RpcStreamReader(RpcStream stream) => _stream = stream;
+        internal RpcStreamReader(OutgoingRequest request) => _request = request;
 
         private class ByteStream : Stream
         {

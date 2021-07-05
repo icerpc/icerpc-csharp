@@ -273,7 +273,7 @@ namespace IceRpc
                     RpcStreamReader? streamReader = null;
                     if (returnStreamReader)
                     {
-                        streamReader = new RpcStreamReader(request.Stream);
+                        streamReader = new RpcStreamReader(request);
                     }
 
                     return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
