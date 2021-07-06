@@ -653,8 +653,8 @@ namespace IceRpc
         /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
         /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
         /// timeout to close the connection. If ShutdownAsync is canceled, dispatch in progress are canceled and a
-        /// GoAwayCanceled frame is sent to the peer to cancel its dispatches as well. Shutdown cancellation can
-        /// lead to a speedier shutdown if dispatches are cancelable.</summary>
+        /// GoAwayCanceled frame is sent to the peer to cancel its dispatch as well. Shutdown cancellation can
+        /// lead to a speedier shutdown if the dispatch can be canceled.</summary>
         /// <param name="message">The message transmitted to the peer with the GoAway frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
@@ -725,8 +725,7 @@ namespace IceRpc
                 {
                     // It's important to set the state before performing the abort. The abort of the stream will
                     // trigger the failure of the associated invocations whose interceptor might access the connection
-                    // state (e.g.: the retry interceptor or the connection pool which calls IsActive on the
-                    // connection).
+                    // state (e.g.: the retry interceptor or the connection pool check the connection state).
                     _state = ConnectionState.Closed;
                     _closeTask = PerformAbortAsync();
                 }
@@ -923,7 +922,7 @@ namespace IceRpc
             }
         }
 
-        private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
+        private async Task ShutdownAsync(Exception exception, CancellationToken cancel)
         {
             Task shutdownTask;
             lock (_mutex)

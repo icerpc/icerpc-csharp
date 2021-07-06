@@ -210,8 +210,12 @@ namespace IceRpc
                             combinedSource = CancellationTokenSource.CreateLinkedTokenSource(
                                 cancel,
                                 timeoutSource.Token);
+                            cancel = combinedSource.Token;
                         }
-                        cancel = combinedSource?.Token ?? timeoutSource.Token;
+                        else
+                        {
+                            cancel = timeoutSource.Token;
+                        }
                     }
                     // else deadline remains MaxValue
                 }
