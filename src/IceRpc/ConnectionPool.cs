@@ -45,6 +45,7 @@ namespace IceRpc
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
         private readonly object _mutex = new();
+        private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
 
         /// <summary>An alias for <see cref="ShutdownAsync"/>, except this method returns a <see cref="ValueTask"/>.
@@ -126,22 +127,46 @@ namespace IceRpc
         /// </summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that completes when the destruction is complete.</returns>
-        public Task ShutdownAsync(CancellationToken cancel = default)
+        public async Task ShutdownAsync(CancellationToken cancel = default)
         {
             lock (_mutex)
             {
+                _shutdownCancelSource ??= new();
                 _shutdownTask ??= PerformShutdownAsync();
-                return _shutdownTask;
             }
+
+            // Cancel shutdown task if this call is canceled.
+            using CancellationTokenRegistration _ = cancel.Register(() =>
+            {
+                try
+                {
+                    _shutdownCancelSource!.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected if server shutdown completed already.
+                }
+            });
+
+            await _shutdownTask.ConfigureAwait(false);
 
             async Task PerformShutdownAsync()
             {
                 // Yield to ensure we don't hold the mutex while performing the shutdown.
                 await Task.Yield();
-
-                // Shutdown all connections managed by this pool.
-                await Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
-                    connection => connection.ShutdownAsync("connection pool shutdown", cancel))).ConfigureAwait(false);
+                try
+                {
+                    CancellationToken cancel = _shutdownCancelSource!.Token;
+                    // Shutdown all connections managed by this pool.
+                    await Task.WhenAll(_connections.Values.SelectMany(connections => connections).Select(
+                        connection => connection.ShutdownAsync(
+                            "connection pool shutdown",
+                            cancel))).ConfigureAwait(false);
+                }
+                finally
+                {
+                    _shutdownCancelSource!.Dispose();
+                }
             }
         }
 
