@@ -429,6 +429,11 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedFrame(int size, bool fin)
         {
+            if (!IsBidirectional && !IsIncoming)
+            {
+                throw new InvalidDataException("received stream frame on outgoing unidirectional stream");
+            }
+
             // Set the result if buffering is not enabled, the data will be consumed when ReceiveAsync is
             // called. If buffering is enabled, we receive the data and queue the result. The lock needs
             // to be held to ensure thread-safety with EnableReceiveFlowControl which sets the receive
@@ -515,13 +520,19 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(RpcStreamError errorCode)
         {
+            if (!IsBidirectional && !IsIncoming)
+            {
+                throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
+            }
+
             // It's important to set the exception before completing the reads because ReceiveAsync expects the
             // exception to be set if reads are completed.
             SetException(new RpcStreamAbortedException(errorCode));
 
-            TrySetReadCompleted();
-
+            // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
             CancelDispatchSource?.Cancel();
+
+            TrySetReadCompleted();
         }
     }
 }

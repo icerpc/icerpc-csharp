@@ -301,10 +301,10 @@ namespace IceRpc.Tests.Internal
                 (factory.Server.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
             Assert.That(serverSocket, Is.Not.Null);
 
-            Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
+            Assert.That(clientSocket!.RemoteEndPoint, Is.Not.Null);
             Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
 
-            Assert.That(serverSocket.LocalEndPoint, Is.Not.Null);
+            Assert.That(serverSocket!.LocalEndPoint, Is.Not.Null);
 
             Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint!.Host);
             Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint!.Host);
@@ -325,8 +325,8 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.Server.IsServer, Is.True);
 
             Assert.AreEqual(null, factory.Client.Server);
-            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint).Port);
-            Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint).Port);
+            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
+            Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
 
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
@@ -356,7 +356,7 @@ namespace IceRpc.Tests.Internal
 
                 Assert.That(serverSslStream, Is.Not.Null);
 
-                Assert.That(clientSslStream.CheckCertRevocationStatus, Is.False);
+                Assert.That(clientSslStream!.CheckCertRevocationStatus, Is.False);
                 Assert.That(clientSslStream.IsEncrypted, Is.True);
                 Assert.That(clientSslStream.IsMutuallyAuthenticated, Is.False);
                 Assert.That(clientSslStream.IsSigned, Is.True);
@@ -366,13 +366,13 @@ namespace IceRpc.Tests.Internal
                 {
                     // APLN doesn't work on macOS (we keep this check to figure out when it will be supported)
                     Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(), Is.Empty);
-                    Assert.That(serverSslStream.NegotiatedApplicationProtocol.ToString(), Is.Empty);
+                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(), Is.Empty);
                 }
                 else
                 {
                     Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
-                    Assert.That(serverSslStream.NegotiatedApplicationProtocol.ToString(),
+                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
                 }
 

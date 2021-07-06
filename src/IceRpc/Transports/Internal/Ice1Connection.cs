@@ -204,8 +204,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) => default;
-
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new Ice1Stream(

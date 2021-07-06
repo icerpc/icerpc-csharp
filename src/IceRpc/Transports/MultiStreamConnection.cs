@@ -131,11 +131,6 @@ namespace IceRpc.Transports
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Closes the connection.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel);
-
         /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
         /// be immediately available after the stream creation. It will be available after the first successful send
         /// call on the stream.</summary>
