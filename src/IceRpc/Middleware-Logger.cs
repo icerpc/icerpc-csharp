@@ -21,7 +21,7 @@ namespace IceRpc
                                               request.Operation,
                                               request.PayloadSize,
                                               request.PayloadEncoding);
-                    var response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                    OutgoingResponse response = await next.DispatchAsync(request, cancel).ConfigureAwait(false);
                     if (!request.IsOneway)
                     {
                         logger.LogSentResponse(response.ResultType, response.PayloadSize, response.PayloadEncoding);

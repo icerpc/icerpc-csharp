@@ -11,8 +11,8 @@ namespace IceRpc
         /// <summary>Options class to configure <see cref="CustomTelemetry"/> interceptor.</summary>
         public class TelemetryOptions
         {
-            /// <summary>If set to a non null object the ActivitySource is used to start the request Activity.
-            /// </summary>
+            /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
+            /// <see cref="Activity"/>.</summary>
             public ActivitySource? ActivitySource { get; set; }
 
             /// <summary>The logger factory used to create the IceRpc logger.</summary>

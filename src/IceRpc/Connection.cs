@@ -23,8 +23,8 @@ namespace IceRpc
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
         /// <summary>The connection is being gracefully shutdown and waits for the peer to close its end of the
-        /// connection before to switch to the <c>Closed</c> state. The peer while close its end of the connection
-        /// only once its dispatch complete.</summary>
+        /// connection before to switch to the <c>Closed</c> state. The peer close its end of the connection only once
+        /// its dispatch complete.</summary>
         Closing,
         /// <summary>The connection is closed.</summary>
         Closed
@@ -37,7 +37,7 @@ namespace IceRpc
         Shutdown,
     }
 
-    /// <summary>The ClosedEventArgument class is provided to closed event handlers.</summary>
+    /// <summary>Event arguments for the <see cref="Connection.Closed"/> event.</summary>
     public sealed class ClosedEventArgs : EventArgs
     {
         /// <summary>The exception responsible for the connection closure.</summary>
@@ -103,14 +103,6 @@ namespace IceRpc
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
         public TimeSpan IdleTimeout => UnderlyingConnection?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
 
-        /// <summary>Returns <c>true</c> if the connection is active. Outgoing streams can be created and incoming
-        /// streams accepted when the connection is active. The connection is no longer considered active as soon
-        /// as <see cref="ShutdownAsync(string?, CancellationToken)"/> is called to initiate a graceful connection
-        /// closure.</summary>
-        /// <return><c>true</c> if the connection is in the <c>ConnectionState.Active</c> state, <c>false</c>
-        /// otherwise.</return>
-        public bool IsActive => State == ConnectionState.Active;
-
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => (_localEndpoint ?? _remoteEndpoint)?.IsDatagram ?? false;
 
@@ -135,7 +127,7 @@ namespace IceRpc
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotConnected</c>.</exception>
+        /// <see cref="ConnectionState.NotConnected"/>.</exception>
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
@@ -152,7 +144,7 @@ namespace IceRpc
 
         /// <summary>The connection options.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotConnected</c>.</exception>
+        /// <see cref="ConnectionState.NotConnected"/>.</exception>
         public ConnectionOptions? Options
         {
             get => _options?.Clone();
@@ -216,7 +208,7 @@ namespace IceRpc
 
         /// <summary>The server that accepted this connection.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <c>ConnectionState.NotConnected</c>.</exception>
+        /// <see cref="ConnectionState.NotConnected"/>.</exception>
         public Server? Server
         {
             get => _server;
@@ -297,8 +289,8 @@ namespace IceRpc
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
-        // The control stream is assigned on the connection initialization and is immutable once the connection
-        // reaches the Active state.
+        // The control stream is assigned on the connection initialization and is immutable once the connection reaches
+        // the Active state.
         private RpcStream? _controlStream;
         private EventHandler<ClosedEventArgs>? _closed;
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
@@ -307,8 +299,7 @@ namespace IceRpc
         private Endpoint? _localEndpoint;
         private ILogger? _logger;
         private ILoggerFactory? _loggerFactory;
-        // The mutex protects mutable non-volatile data members and ensures the logic for some operations is
-        // performed atomically.
+        // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
         private RpcStream? _peerControlStream;
@@ -323,8 +314,9 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Aborts the connection. This methods switches the connection state to <c>ConnectionState.Closed</c>
-        /// If <c>Closed</c> event listeners are registered, it waits for the events to be executed.</summary>
+        /// <summary>Aborts the connection. This methods switches the connection state to 
+        /// <see cref="ConnectionState.Closed"/> If <see cref="Closed"/> event listeners are registered, it waits for
+        /// the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
@@ -337,7 +329,7 @@ namespace IceRpc
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set or if
-        /// <see cref="Options"/> is set to an <see cref="ServerConnectionOptions"/> instance</exception>
+        /// <see cref="Options"/> is set to a <see cref="ServerConnectionOptions"/> instance.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             lock (_mutex)
@@ -638,9 +630,8 @@ namespace IceRpc
                 }
                 if (request.IsIdempotent || !request.IsSent)
                 {
-                    // If the connection is being shutdown, exceptions are expected since the request send
-                    // or response receive can fail. If the request is idempotent or hasn't been sent it's
-                    // safe to retry it.
+                    // If the connection is being shutdown, exceptions are expected since the request send or response
+                    // receive can fail. If the request is idempotent or hasn't been sent it's safe to retry it.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
                 throw;
@@ -648,19 +639,22 @@ namespace IceRpc
         }
 
         /// <summary>Sends an asynchronous ping frame.</summary>
-        /// <param name="progress">Sent progress provider.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public async Task PingAsync(IProgress<bool>? progress = null, CancellationToken cancel = default)
+        public async Task PingAsync(CancellationToken cancel = default)
         {
             if (UnderlyingConnection == null)
             {
                 throw new InvalidOperationException("connection is not established");
             }
             await UnderlyingConnection.PingAsync(cancel).ConfigureAwait(false);
-            progress?.Report(true);
         }
 
-        /// <summary>Shuts down gracefully the connection by sending a GoAway frame to the peer.</summary>
+        /// <summary>Send the GoAway or CloseConnection frame to initiate the shutdown of the connection. Before
+        /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
+        /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
+        /// timeout to close the connection. If ShutdownAsync is canceled, dispatch in progress are canceled and a
+        /// GoAwayCanceled frame is sent to the peer to cancel its dispatches as well. Shutdown cancellation can
+        /// lead to a speedier shutdown if dispatches are cancelable.</summary>
         /// <param name="message">The message transmitted to the peer with the GoAway frame.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public Task ShutdownAsync(string? message = null, CancellationToken cancel = default) =>
@@ -695,21 +689,21 @@ namespace IceRpc
                     (_options!.KeepAlive || UnderlyingConnection.IncomingStreamCount > 0))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a ping
-                    // sooner than really needed is safer to ensure that the receiver will receive the ping in
-                    // time. Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't
-                    // enough since Monitor is called only every (IdleTimeout / 2) period. We also send a ping if
-                    // dispatch are in progress to notify the peer that we're still alive.
+                    // sooner than really needed is safer to ensure that the receiver will receive the ping in time.
+                    // Sending the ping if there was no activity in the last (IdleTimeout / 2) period isn't enough
+                    // since Monitor is called only every (IdleTimeout / 2) period. We also send a ping if dispatch are
+                    // in progress to notify the peer that we're still alive.
                     //
-                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because
-                    // Monitor is still only called every (IdleTimeout / 2) period.
+                    // Note that this doesn't imply that we are sending 4 heartbeats per timeout period because Monitor
+                    // is still only called every (IdleTimeout / 2) period.
                     _ = UnderlyingConnection.PingAsync(CancellationToken.None);
                 }
                 else if (idleTime > UnderlyingConnection.IdleTimeout)
                 {
                     if (UnderlyingConnection.OutgoingStreamCount > 0)
                     {
-                        // Close the connection if we didn't receive a heartbeat and the connection is idle. The
-                        // server is supposed to send heartbeats when dispatch are in progress.
+                        // Close the connection if we didn't receive a heartbeat and the connection is idle. The server
+                        // is supposed to send heartbeats when dispatch are in progress.
                         _ = AbortAsync("connection timed out");
                     }
                     else
@@ -729,10 +723,10 @@ namespace IceRpc
             {
                 if (_state != ConnectionState.Closed)
                 {
-                    // It's important to set the state before performing the abort. The abort of the stream
-                    // will trigger the failure of the associated invocations whose interceptor might access
-                    // the connection state (e.g.: the retry interceptor or the connection pool which calls
-                    // IsActive on the connection).
+                    // It's important to set the state before performing the abort. The abort of the stream will
+                    // trigger the failure of the associated invocations whose interceptor might access the connection
+                    // state (e.g.: the retry interceptor or the connection pool which calls IsActive on the
+                    // connection).
                     _state = ConnectionState.Closed;
                     _closeTask = PerformAbortAsync();
                 }
@@ -742,8 +736,8 @@ namespace IceRpc
 
             async Task PerformAbortAsync()
             {
-                // Yield before continuing to ensure the code below isn't executed with the mutex locked
-                // and that _closeTask is assigned before any synchronous continuations are ran.
+                // Yield before continuing to ensure the code below isn't executed with the mutex locked and that
+                // _closeTask is assigned before any synchronous continuations are ran.
                 await Task.Yield();
 
                 if (UnderlyingConnection != null)
@@ -753,9 +747,8 @@ namespace IceRpc
                     // Log the connection closure
                     if (!_connected)
                     {
-                        // If the connection is connecting but not active yet, we print a trace to show that
-                        // the connection got connected or accepted before printing out the connection closed
-                        // trace.
+                        // If the connection is connecting but not active yet, we print a trace to show that the
+                        // connection got connected or accepted before printing out the connection closed trace.
                         Action<Exception> logFailure = (IsServer, IsDatagram) switch
                         {
                             (false, false) => Logger.LogConnectionConnectFailed,
@@ -859,8 +852,8 @@ namespace IceRpc
 
         private async Task ProcessIncomingStreamAsync(RpcStream stream)
         {
-            // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the
-            // peer or when the stream is aborted because the connection shutdown is canceled or failed.
+            // Get the cancellation token for the dispatch. The token is cancelled when the stream is reset by the peer
+            // or when the stream is aborted because the connection shutdown is canceled or failed.
             CancellationToken cancel = stream.CancelDispatchSource!.Token;
 
             // Receives the request frame from the stream.
@@ -902,9 +895,9 @@ namespace IceRpc
                     {
                         // We log the exception as the UnhandledException may not include all details.
                         UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                        request.Path,
-                                                                        request.Operation,
-                                                                        exception);
+                                                                          request.Path,
+                                                                          request.Operation,
+                                                                          exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else
@@ -930,12 +923,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Send the GoAway or CloseConnection frame to initiate the shutdown of the connection. Before
-        /// sending the frame, ShutdownAsync first ensures that no new streams are accepted. After sending the frame,
-        /// ShutdownAsync waits for the streams to complete, the connection closure from the peer or the close
-        /// timeout to close the connection. If ShutdownAsync is canceled, dispatch in progress are canceled and a
-        /// GoAwayCanceled frame is sent to the peer to cancel its dispatches as well. Shutdown cancellation can
-        /// lead to a speedier shutdown if dispatches are cancelable.</summary>
         private async Task ShutdownAsync(Exception exception, CancellationToken cancel = default)
         {
             Task shutdownTask;

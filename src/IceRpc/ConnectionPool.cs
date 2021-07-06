@@ -141,8 +141,9 @@ namespace IceRpc
 
             Connection? GetCachedConnection(Endpoint endpoint) =>
                 _clientConnections.TryGetValue(endpoint, out List<Connection>? connections) &&
-                connections.FirstOrDefault(connection => connection.IsActive) is Connection connection ?
-                    connection : null;
+                connections.FirstOrDefault(
+                    connection => connection.State == ConnectionState.Active) is Connection connection ?
+                        connection : null;
         }
 
         /// <summary>Releases all resources used by this connection pool. This method can be called multiple times.
@@ -207,7 +208,8 @@ namespace IceRpc
                     // Check if there is an active connection that we can use according to the endpoint settings.
                     if (_clientConnections.TryGetValue(endpoint, out List<Connection>? connections))
                     {
-                        connection = connections.FirstOrDefault(connection => connection.IsActive);
+                        connection = connections.FirstOrDefault(
+                            connection => connection.State == ConnectionState.Active);
 
                         if (connection != null)
                         {

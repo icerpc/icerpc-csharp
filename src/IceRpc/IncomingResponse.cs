@@ -19,10 +19,10 @@ namespace IceRpc
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
-        /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
-        /// <see cref="IceRpc.ResultType.Success"/>; otherwise, if <see cref="PayloadEncoding"/> is 1.1, the value is
+        /// <value><see cref="ReplyStatus.OK"/> when <see cref="ResultType"/> is
+        /// <see cref="ResultType.Success"/>; otherwise, if <see cref="PayloadEncoding"/> is 1.1, the value is
         /// read from the response header or payload. For any other payload encoding, the value is
-        /// <see cref="IceRpc.ReplyStatus.UserException"/>.</value>
+        /// <see cref="ReplyStatus.UserException"/>.</value>
         public ReplyStatus ReplyStatus { get; }
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>

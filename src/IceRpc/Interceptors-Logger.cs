@@ -11,7 +11,7 @@ namespace IceRpc
         /// <summary>An interceptor that logs request and response messages using IceRpc logger.
         /// </summary>
         /// <param name="loggerFactory">A logger factory used to create the IceRpc logger.</param>
-        /// <returns>The Logger interceptor.</returns>
+        /// <returns>The logger interceptor.</returns>
         public static Func<IInvoker, IInvoker> Logger(ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");

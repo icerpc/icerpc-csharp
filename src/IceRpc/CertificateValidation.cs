@@ -50,9 +50,8 @@ namespace IceRpc
             {
                 if ((errors & SslPolicyErrors.RemoteCertificateNotAvailable) > 0)
                 {
-                    // For a client connection the peer must always provide a certificate, for a server
-                    // connection the certificate is only required if the RequireClientCertificate option was
-                    // set.
+                    // For a client connection the peer must always provide a certificate, for a server connection the
+                    // certificate is only required if the RequireClientCertificate option was set.
                     if (peerCertificateRequired)
                     {
                         return false;
@@ -97,8 +96,8 @@ namespace IceRpc
 
                         if (certificateAuthorities != null)
                         {
-                            // Untrusted root is OK when using our custom chain engine if the CA certificate is
-                            // present in the chain policy extra store.
+                            // Untrusted root is OK when using our custom chain engine if the CA certificate is present
+                            // in the chain policy extra store.
                             X509ChainElement root = chain.ChainElements[^1];
                             if (chain.ChainPolicy.ExtraStore.Contains(root.Certificate) &&
                                 chainStatus.Exists(status => status.Status == X509ChainStatusFlags.UntrustedRoot))
