@@ -23,7 +23,7 @@ namespace IceRpc
         /// <summary>The connection is active and can send and receive messages.</summary>
         Active,
         /// <summary>The connection is being gracefully shutdown and waits for the peer to close its end of the
-        /// connection before to switch to the <c>Closed</c> state. The peer close its end of the connection only once
+        /// connection before to switch to the <c>Closed</c> state. The peer closes its end of the connection only once
         /// its dispatch complete.</summary>
         Closing,
         /// <summary>The connection is closed.</summary>
