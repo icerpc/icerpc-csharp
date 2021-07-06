@@ -137,7 +137,7 @@ namespace IceRpc.Internal
 
                         if (request.Connection != null &&
                             !request.Connection.IsServer &&
-                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsActive))
+                            (retryPolicy == RetryPolicy.OtherReplica || request.Connection.State != ConnectionState.Active))
                         {
                             // Retry with a new connection
                             request.Connection = null;

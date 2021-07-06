@@ -79,8 +79,7 @@ namespace IceRpc.Internal
                     throw new ArgumentException("invalid null activity ID", nameof(activity));
                 }
 
-                // For Ice2 the activity context is written to the field value if it has the following Slice
-                // definition
+                // The activity context is written to the field value, as if it has the following Slice definition
                 //
                 // struct BaggageEntry
                 // {

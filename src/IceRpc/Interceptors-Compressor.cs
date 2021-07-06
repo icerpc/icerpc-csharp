@@ -7,7 +7,7 @@ namespace IceRpc
 {
     public static partial class Interceptors
     {
-        /// <summary>Options class to configure CustomCompressor interceptor.</summary>
+        /// <summary>Options class to configure <see cref="CustomCompressor"/> interceptor.</summary>
         public class CompressorOptions
         {
             /// <summary>The compression level for the compress operation.</summary>
