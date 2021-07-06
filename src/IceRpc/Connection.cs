@@ -820,7 +820,7 @@ namespace IceRpc
             }
             catch (ConnectionLostException) when (_controlStream!.WriteCompleted)
             {
-                // The control stream has been closed and the peer closed the connection. This indicated graceful
+                // The control stream has been closed and the peer closed the connection. This indicates graceful
                 // connection closure.
                 _acceptStreamCompletion.SetResult();
             }
