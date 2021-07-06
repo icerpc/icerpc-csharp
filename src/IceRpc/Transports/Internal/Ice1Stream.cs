@@ -46,6 +46,11 @@ namespace IceRpc.Transports.Internal
             // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
             Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
+
+            if (endStream)
+            {
+                TrySetWriteCompleted();
+            }
         }
 
         protected override void Shutdown()

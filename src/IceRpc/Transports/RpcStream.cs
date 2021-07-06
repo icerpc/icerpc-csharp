@@ -279,12 +279,12 @@ namespace IceRpc.Transports
             return ((lastBidirectionalId, lastUnidirectionalId), message);
         }
 
-        internal async ValueTask ReceiveGoAwayCanceledFrameAsync()
+        internal async ValueTask ReceiveGoAwayCanceledFrameAsync(CancellationToken cancel)
         {
             Debug.Assert(IsStarted && !IsIce1);
 
             byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
-            _ = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+            _ = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
 
             _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
@@ -365,7 +365,7 @@ namespace IceRpc.Transports
 
             if (IsIce1)
             {
-                await SendAsync(Ice1Definitions.CloseConnectionFrame, false, cancel).ConfigureAwait(false);
+                await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
             }
             else
             {

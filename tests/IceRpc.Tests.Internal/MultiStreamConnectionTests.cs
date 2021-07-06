@@ -179,22 +179,6 @@ namespace IceRpc.Tests.Internal
             Assert.CatchAsync<TransportException>(async () => await ServerConnection.AcceptStreamAsync(default));
         }
 
-        [Test]
-        public async Task MultiStreamConnection_CloseAsync_CancellationAsync()
-        {
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            try
-            {
-                // This will either complete successfully or with an OperationCanceledException depending on the
-                // implementation (which might be a no-op).
-                await ClientConnection.CloseAsync(0, source.Token);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
         [TestCase(false)]
         [TestCase(true)]
         public async Task MultiStreamConnection_CreateStream(bool bidirectional)
