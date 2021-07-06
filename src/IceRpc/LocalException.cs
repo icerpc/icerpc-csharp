@@ -131,6 +131,15 @@ namespace IceRpc
             : base(message)
         {
         }
+
+        /// <summary>Constructs a new instance of the <see cref="ConnectionClosedException"/> class with a specified
+        /// error message.</summary>
+        /// <param name="message">The message that describes the error.</param>
+        /// <param name="innerException">The exception that is the cause of the current exception.</param>
+        public ConnectionClosedException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
     }
 
     /// <summary>This exception reports that data (bytes) received are not in an expected format.</summary>

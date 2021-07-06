@@ -53,11 +53,6 @@ namespace IceRpc.Transports.Internal
 
                 switch (type)
                 {
-                    case SlicDefinitions.FrameType.Close:
-                    {
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-                        throw new ConnectionClosedException();
-                    }
                     case SlicDefinitions.FrameType.Ping:
                     {
                         Logger.LogReceivingSlicFrame(type, frameSize);
@@ -82,6 +77,7 @@ namespace IceRpc.Transports.Internal
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
                     {
+                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
 
@@ -97,7 +93,6 @@ namespace IceRpc.Transports.Internal
 
                         bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
-                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
@@ -175,10 +170,6 @@ namespace IceRpc.Transports.Internal
                     {
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("control streams don't support flow control");
-                        }
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
@@ -205,10 +196,6 @@ namespace IceRpc.Transports.Internal
                     {
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("can't reset control streams");
-                        }
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream reset frame too large");
@@ -235,10 +222,6 @@ namespace IceRpc.Transports.Internal
                     {
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("control streams can't stop sending");
-                        }
                         if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream reset frame too large");
@@ -268,13 +251,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            new(PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.Close,
-                writer => new CloseBody((ulong)errorCode).IceWrite(writer),
-                frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
-                cancel: cancel));
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
