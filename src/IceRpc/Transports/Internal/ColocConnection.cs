@@ -124,9 +124,6 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => default;
 
-        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            _writer.WriteAsync((-1, errorCode, true), cancel);
-
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
             new ColocStream(
