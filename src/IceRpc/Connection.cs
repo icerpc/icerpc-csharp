@@ -785,7 +785,7 @@ namespace IceRpc
                         }
                         else
                         {
-                            Logger.LogConnectionClosed(exception.ToString(), exception);
+                            Logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
                 }

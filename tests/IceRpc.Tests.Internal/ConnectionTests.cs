@@ -632,7 +632,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
             Protocol protocol,
             string transport,
