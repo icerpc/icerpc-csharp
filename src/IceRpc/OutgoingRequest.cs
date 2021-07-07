@@ -84,6 +84,8 @@ namespace IceRpc
             set => _stream = value;
         }
 
+        internal Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
+
         private string _path = "";
         private RpcStream? _stream;
 

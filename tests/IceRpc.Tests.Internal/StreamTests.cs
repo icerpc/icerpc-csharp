@@ -4,6 +4,7 @@ using IceRpc.Transports;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -191,13 +192,14 @@ namespace IceRpc.Tests.Internal
             await serverStream.ReceiveAsync(new byte[1], default);
 
             var sendStream = new TestMemoryStream(new byte[100]);
-            new RpcStreamWriter(sendStream).Send(stream);
+
+            new RpcStreamWriter(sendStream).Send(stream, null);
 
             byte[] readBuffer = new byte[100];
-            Stream receiveStream = new RpcStreamReader(serverStream).ToByteStream();
+            Stream receiveStream = new RpcStreamReader(serverStream, null).ToByteStream();
 
             ValueTask<int> readTask = receiveStream.ReadAsync(readBuffer);
-            await Task.Delay(100);
+
             Assert.That(readTask.IsCompleted, Is.False);
             sendStream.Semaphore.Release();
             Assert.That(await readTask, Is.EqualTo(100));
@@ -237,6 +239,60 @@ namespace IceRpc.Tests.Internal
             await stream.ReceiveAsync(new byte[1], default);
         }
 
+        [Test]
+        public async Task Stream_StreamReaderWriterCompressorAsync()
+        {
+            if (ConnectionType != MultiStreamConnectionType.Slic)
+            {
+                // TODO: add support for coloc once coloc streaming is simplified
+                return;
+            }
+
+            RpcStream clientStream = ClientConnection.CreateStream(true);
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
+            _ = clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default).AsTask();
+
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+            await serverStream.ReceiveAsync(new byte[1], default);
+
+            byte[] buffer = new byte[10000];
+            var sendStream = new MemoryStream(buffer);
+
+            bool compressorCalled = false;
+            bool decompressorCalled = false;
+
+            new RpcStreamWriter(sendStream).Send(
+                clientStream,
+                outputStream =>
+                {
+                    compressorCalled = true;
+                    return (CompressionFormat.Deflate,
+                            new DeflateStream(outputStream, System.IO.Compression.CompressionLevel.SmallestSize));
+                });
+
+            Stream receiveStream = new RpcStreamReader(
+                serverStream,
+                (compressionFormat, inputStream) =>
+                {
+                    decompressorCalled = true;
+                    return new DeflateStream(inputStream, CompressionMode.Decompress);
+                }
+                ).ToByteStream();
+
+            byte[] readBuffer = new byte[10000];
+            int offset = 0;
+            int received;
+            while ((received = await receiveStream.ReadAsync(readBuffer)) != 0)
+            {
+                offset += received;
+            }
+
+            Assert.That(compressorCalled, Is.True);
+            Assert.That(decompressorCalled, Is.True);
+            Assert.That(offset, Is.EqualTo(buffer.Length));
+            Assert.That(readBuffer, Is.EqualTo(buffer));
+        }
         private static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendBuffer(RpcStream stream, int length)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];
@@ -250,6 +306,8 @@ namespace IceRpc.Tests.Internal
             public TaskCompletionSource Completed = new();
             public SemaphoreSlim Semaphore { get; } = new SemaphoreSlim(0);
 
+            private int _received = 100;
+
             public TestMemoryStream(byte[] buffer)
                 : base(buffer)
             {
@@ -257,13 +315,19 @@ namespace IceRpc.Tests.Internal
 
             public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
             {
-                await Semaphore.WaitAsync(cancel);
-                if (Exception != null)
+                if (_received == 100)
                 {
-                    throw Exception;
+                    await Semaphore.WaitAsync(cancel);
+                    if (Exception != null)
+                    {
+                        throw Exception;
+                    }
+                    Seek(0, SeekOrigin.Begin);
+                    _received = 0;
                 }
-                Seek(0, SeekOrigin.Begin);
-                return await base.ReadAsync(buffer, cancel);
+                int received = await base.ReadAsync(buffer, cancel);
+                _received += received;
+                return received;
             }
 
             protected override void Dispose(bool disposing)

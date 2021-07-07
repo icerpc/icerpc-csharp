@@ -88,21 +88,14 @@ namespace IceRpc.Internal
             return (CompressionResult.Success, compressedPayload);
         }
 
-        internal static void Compress(this RpcStreamWriter writer, CompressionLevel compressionLevel)
-        {
-            if (writer.IsIOStreamData)
-            {
-                writer.StreamCompressor = stream => new DeflateStream(
+        internal static (CompressionFormat, Stream) CompressStream(
+            this Stream stream,
+            CompressionLevel compressionLevel) =>
+            (CompressionFormat.Deflate, new DeflateStream(
                     stream,
                     compressionLevel == CompressionLevel.Fastest ?
                         System.IO.Compression.CompressionLevel.Fastest :
-                        System.IO.Compression.CompressionLevel.Optimal);
-            }
-            else
-            {
-                // TODO: support compression for IAsyncEnumerable stream data.
-            }
-        }
+                        System.IO.Compression.CompressionLevel.Optimal));
 
         /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
         /// encoding.</summary>
@@ -175,6 +168,17 @@ namespace IceRpc.Internal
             }
 
             return decompressedPayload;
+        }
+
+        internal static Stream DecompressStream(this Stream stream, CompressionFormat compressionFormat)
+        {
+            if (compressionFormat != CompressionFormat.Deflate)
+            {
+                throw new NotSupportedException(
+                    $"cannot decompress compression format '{compressionFormat}'");
+            }
+
+            return new DeflateStream(stream, CompressionMode.Decompress);
         }
     }
 }

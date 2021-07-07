@@ -127,6 +127,10 @@ namespace IceRpc.Transports
         /// <param name="errorCode">The reason of the abort.</param>
         public abstract void AbortWrite(RpcStreamError errorCode);
 
+        /// <summary>Get a <see cref="System.IO.Stream"/> to allow using this stream using the C# stream API.</summary>
+        /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
+        public virtual System.IO.Stream AsByteStream() => new ByteStream(this);
+
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
         /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
@@ -446,7 +450,7 @@ namespace IceRpc.Transports
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            request.StreamWriter?.Send(this);
+            request.StreamWriter?.Send(this, request.StreamCompressor);
         }
 
         internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
@@ -455,7 +459,7 @@ namespace IceRpc.Transports
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            response.StreamWriter?.Send(this);
+            response.StreamWriter?.Send(this, response.StreamCompressor);
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
@@ -598,6 +602,124 @@ namespace IceRpc.Transports
             ReadCompleted = 1,
             WriteCompleted = 2,
             Shutdown = 4
+        }
+
+        // A System.IO.Stream class to wrap SendAsync/ReceiveAsync functionality of the RpcStream. For Quic,
+        // this won't be needed since the QuicStream is a System.IO.Stream.
+        private class ByteStream : System.IO.Stream
+        {
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => throw new NotImplementedException();
+
+            public override long Position
+            {
+                get => throw new NotImplementedException();
+                set => throw new NotImplementedException();
+            }
+
+            private readonly ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[2];
+            private readonly RpcStream _stream;
+
+            public override void Flush()
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                try
+                {
+                    return ReadAsync(buffer, offset, count, CancellationToken.None).Result;
+                }
+                catch (AggregateException ex)
+                {
+                    Debug.Assert(ex.InnerException != null);
+                    throw ExceptionUtil.Throw(ex.InnerException);
+                }
+            }
+
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
+                ReadAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+            {
+                try
+                {
+                    if (_stream.ReadCompleted)
+                    {
+                        return 0;
+                    }
+                    return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                {
+                    throw new System.IO.IOException("streaming canceled by the writer", ex);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                {
+                    throw new System.IO.IOException("streaming canceled by the reader", ex);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new System.IO.IOException($"unexpected exception", ex);
+                }
+            }
+
+            public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotImplementedException();
+
+            public override void SetLength(long value) => throw new NotImplementedException();
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                try
+                {
+                    WriteAsync(buffer, offset, count, CancellationToken.None).Wait();
+                }
+                catch (AggregateException ex)
+                {
+                    Debug.Assert(ex.InnerException != null);
+                    throw ExceptionUtil.Throw(ex.InnerException);
+                }
+            }
+
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
+                WriteAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
+
+            public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+            {
+                try
+                {
+                    _buffers[1] = buffer;
+                    await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                {
+                    throw new System.IO.IOException("streaming canceled by the writer", ex);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                {
+                    throw new System.IO.IOException("streaming canceled by the reader", ex);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new System.IO.IOException($"unexpected exception", ex);
+                }
+            }
+
+            internal ByteStream(RpcStream stream)
+            {
+                _stream = stream;
+                _buffers[0] = _stream.TransportHeader;
+            }
         }
     }
 }

@@ -3,7 +3,6 @@
 using IceRpc.Transports;
 using System;
 using System.Buffers;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc
@@ -11,89 +10,89 @@ namespace IceRpc
     /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
     public sealed class RpcStreamWriter
     {
-        internal bool IsIOStreamData { get; }
+        private readonly Func<RpcStream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>?, Task> _encoder;
 
-        internal Func<System.IO.Stream, System.IO.Stream>? StreamCompressor { get; set; }
-
-        private readonly Func<RpcStream, Task> _encoder;
-
-        internal void Send(RpcStream stream)
-        {
-            stream.EnableSendFlowControl();
-            Task.Run(() => _encoder(stream));
-        }
+        internal void Send(
+            RpcStream stream,
+            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
+            Task.Run(() => _encoder(stream, streamCompressor));
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
         /// request <see cref="RpcStream"/>.</summary>
         /// <param name="byteStream">The stream to read data from.</param>
-        public RpcStreamWriter(System.IO.Stream byteStream)
-        {
-            _encoder = stream => SendDataAsync(stream, byteStream);
-            IsIOStreamData = true;
-        }
+        public RpcStreamWriter(System.IO.Stream byteStream) =>
+            _encoder = (stream, streamCompressor) => SendDataAsync(stream, streamCompressor, byteStream);
 
-        private async Task SendDataAsync(RpcStream stream, System.IO.Stream ioStream)
+        static private async Task SendDataAsync(
+            RpcStream rpcStream,
+            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor,
+            System.IO.Stream inputStream)
         {
-            if (StreamCompressor != null)
+            try
             {
-                ioStream = StreamCompressor(ioStream);
-            }
+                rpcStream.EnableSendFlowControl();
 
-            // We use the same default buffer size as System.IO.Stream.CopyToAsync()
-            // TODO: Should this depend on the transport packet size? (Slic default packet size is 32KB for
-            // example).
-            int bufferSize = 81920;
-            if (ioStream.CanSeek)
-            {
-                long remaining = ioStream.Length - ioStream.Position;
-                if (remaining > 0)
+                // TODO: use a buffered stream to ensure the header isn't sent immediately?
+                using System.IO.Stream ioStream = rpcStream.AsByteStream();
+
+                // If there's a stream compressor, get the compression format and compressed output stream.
+                CompressionFormat compressionFormat;
+                System.IO.Stream outputStream;
+                if (streamCompressor != null)
                 {
-                    // Make sure there's enough space for the transport header
-                    remaining += stream.TransportHeader.Length;
-
-                    // In the case of a positive overflow, stick to the default size
-                    bufferSize = (int)Math.Min(bufferSize, remaining);
+                    (compressionFormat, outputStream) = streamCompressor(ioStream);
                 }
-            }
+                else
+                {
+                    (compressionFormat, outputStream) = (CompressionFormat.NotCompressed, ioStream);
+                }
 
-            using IMemoryOwner<byte> bufferOwner = MemoryPool<byte>.Shared.Rent(bufferSize);
-            Memory<byte> buffer = bufferOwner.Memory[0..bufferSize];
-            var sendBuffers = new ReadOnlyMemory<byte>[1];
-            int headerSize;
-            int readSize;
-            bool writeDataFrameHeader = true;
-            do
-            {
+                // Write the unbounded data frame header.
+                byte[] header = new byte[2];
+                header[0] = (byte)Ice2FrameType.UnboundedData;
+                header[1] = (byte)compressionFormat;
+                await ioStream.WriteAsync(header).ConfigureAwait(false);
+
                 try
                 {
-                    headerSize = stream.TransportHeader.Length;
-                    stream.TransportHeader.CopyTo(buffer);
-                    if (writeDataFrameHeader)
+                    const int bufferSize = 81920;
+
+                    // Write the data to the Rpc stream. We don't use Stream.CopyAsync here because we need to call
+                    // FlushAsync on the output stream (in particular if the output stream is a compression stream).
+                    byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+                    try
                     {
-                        // For now the header is just a byte that indicates the compression format.
-                        // TODO: Change the compression format to be a property of the writer?
-                        buffer.Span[headerSize++] = StreamCompressor == null ?
-                            (byte)CompressionFormat.NotCompressed : (byte)CompressionFormat.Deflate;
-                        writeDataFrameHeader = false;
+                        int bytesRead;
+                        while ((bytesRead = await inputStream.ReadAsync(
+                            new Memory<byte>(buffer)).ConfigureAwait(false)) != 0)
+                        {
+                            await outputStream.WriteAsync(
+                                new ReadOnlyMemory<byte>(buffer, 0, bytesRead)).ConfigureAwait(false);
+
+                            // TODO: should the frequency of the flush be configurable? When using compression and
+                            // the input stream provides only small amount of data, we'll send many small compressed
+                            // chunks of bytes.
+                            await outputStream.FlushAsync().ConfigureAwait(false);
+                        }
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(buffer);
                     }
 
-                    readSize = await ioStream.ReadAsync(buffer[bufferSize..],
-                                                        CancellationToken.None).ConfigureAwait(false);
-
-                    sendBuffers[0] = buffer.Slice(0, headerSize + readSize);
-                    await stream.SendAsync(sendBuffers,
-                                           readSize == 0,
-                                           CancellationToken.None).ConfigureAwait(false);
+                    // Write end of stream (TODO: this might not work with Quic)
+                    await ioStream.WriteAsync(Array.Empty<byte>()).ConfigureAwait(false);
                 }
                 catch
                 {
-                    stream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
-                    break;
+                    rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
+                    throw;
                 }
             }
-            while (readSize > 0);
-
-            ioStream.Dispose();
+            finally
+            {
+                inputStream.Dispose();
+            }
         }
     }
 }

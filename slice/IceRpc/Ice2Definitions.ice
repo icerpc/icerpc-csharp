@@ -18,7 +18,9 @@ module IceRpc
         Request = 1,
         Response = 2,
         GoAway = 3,
-        GoAwayCanceled = 4
+        GoAwayCanceled = 4,
+        BoundedData = 5,
+        UnboundedData = 6
     }
 
     dictionary<varint, ByteSeq> Fields;

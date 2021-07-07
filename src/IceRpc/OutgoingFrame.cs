@@ -70,7 +70,9 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream writer if the request or response has a stream param. The encoder is called
+        internal Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
+
+        /// <summary>The stream writer if the request or response has a stream param. The writer is called
         /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
