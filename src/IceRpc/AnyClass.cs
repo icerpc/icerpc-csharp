@@ -9,14 +9,14 @@ namespace IceRpc
     {
         /// <summary>An Ice reader for non-nullable class instances.</summary>
         public static readonly IceReader<AnyClass> IceReader =
-            decoder => decoder.ReadClass<AnyClass>(formalTypeId: null);
+            iceDecoder => iceDecoder.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An Ice writer for non-nullable class instances.</summary>
         public static readonly IceWriter<AnyClass> IceWriter = (encoder, value) => encoder.WriteClass(value, null);
 
         /// <summary>An Ice reader for nullable class instances.</summary>
         public static readonly IceReader<AnyClass?> NullableIceReader =
-            decoder => decoder.ReadNullableClass<AnyClass>(formalTypeId: null);
+            iceDecoder => iceDecoder.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An Ice writer for nullable class instances.</summary>
         public static readonly IceWriter<AnyClass?> NullableIceWriter =

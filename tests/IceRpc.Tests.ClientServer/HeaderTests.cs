@@ -53,7 +53,7 @@ namespace IceRpc.Tests.ClientServer
                     if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> buffer))
                     {
                         response.Features = new FeatureCollection();
-                        response.Features.Set<string>(buffer.ReadFieldValue(decoder => decoder.ReadString()));
+                        response.Features.Set<string>(buffer.ReadFieldValue(iceDecoder => iceDecoder.ReadString()));
                     }
                     return response;
                 }));

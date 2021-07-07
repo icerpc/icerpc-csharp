@@ -191,9 +191,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = reader(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
+            var iceDecoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = reader(iceDecoder);
+            iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -225,9 +225,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
-            T result = reader(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
+            var iceDecoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            T result = reader(iceDecoder);
+            iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -307,24 +307,24 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            var iceDecoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
 
-            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && iceDecoder.Encoding == Encoding.V11)
             {
                 // Skip reply status byte
-                decoder.Skip(1);
+                iceDecoder.Skip(1);
             }
 
             RemoteException exception;
-            if (decoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (iceDecoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
             {
-                exception = decoder.ReadIce1SystemException(replyStatus);
-                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                exception = iceDecoder.ReadIce1SystemException(replyStatus);
+                iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
             }
             else
             {
-                exception = decoder.ReadException();
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                exception = iceDecoder.ReadException();
+                iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
             }
             return exception;
         }

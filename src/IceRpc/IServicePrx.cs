@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      decoder => decoder.ReadArray(minElementSize: 1, BasicIceReaders.StringIceReader),
+                                      iceDecoder => iceDecoder.ReadArray(minElementSize: 1, BasicIceReaders.StringIceReader),
                                       connection,
                                       invoker);
 
