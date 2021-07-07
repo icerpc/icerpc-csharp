@@ -170,12 +170,12 @@ namespace IceRpc
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="reader">The reader for the arguments from the payload.</param>
+        /// <param name="iceReader">The reader for the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
-            IceReader<T> reader)
+            IceReader<T> iceReader)
         {
             if (payload.Length == 0)
             {
@@ -192,7 +192,7 @@ namespace IceRpc
             }
 
             var iceDecoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = reader(iceDecoder);
+            T result = iceReader(iceDecoder);
             iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
@@ -201,14 +201,14 @@ namespace IceRpc
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="reader">The reader for the return value.</param>
+        /// <param name="iceReader">The reader for the return value.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
         /// <returns>The return value.</returns>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            IceReader<T> reader,
+            IceReader<T> iceReader,
             Connection connection,
             IInvoker? invoker)
         {
@@ -226,7 +226,7 @@ namespace IceRpc
             }
 
             var iceDecoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
-            T result = reader(iceDecoder);
+            T result = iceReader(iceDecoder);
             iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }

@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M2, r.M2);
             Assert.AreEqual(p1.M3, r.M3);
 
-            // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshal
+            // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshaled
             // as 'MyDerivedClass' which is the base type and still known by the Ice decoder.
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             classFactories.Remove(MyMostDerivedClass.IceTypeId);
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M2, r.M2);
             Assert.AreEqual(p1.M3, r.M3);
 
-            // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshal
+            // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshaled
             // as 'MyCompactDerivedClass' which is the base type and still known by the Ice decoder.
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(
                 Runtime.CompactTypeIdClassFactoryDictionary);
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M2, r1.M2);
             Assert.AreEqual(p1.M3, r1.M3);
 
-            // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshal
+            // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshaled
             // as 'MyDerivedException' which is the base type and still known by the Ice decoder.
             var exceptionFactories = new Dictionary<string, Lazy<RemoteExceptionFactory>>(
                 Runtime.TypeIdRemoteExceptionFactoryDictionary);

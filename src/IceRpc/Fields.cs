@@ -37,20 +37,20 @@ namespace IceRpc
         /// <summary>Decodes a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="value">The field value as a byte buffer.</param>
-        /// <param name="decoder">The <see cref="IceReader{T}"/> for the field value.</param>
+        /// <param name="iceReader">The <see cref="IceReader{T}"/> for the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the decoded type.</param>
         /// <returns>The decoded value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="decoder"/> finds invalid data.
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="iceReader"/> finds invalid data.
         /// </exception>
         public static T ReadFieldValue<T>(
             this ReadOnlyMemory<byte> value,
-            IceReader<T> decoder,
+            IceReader<T> iceReader,
             Connection? connection = null,
             IInvoker? invoker = null)
         {
             var iceDecoder = new IceDecoder(value, Encoding.V20, connection, invoker);
-            T result = decoder(iceDecoder);
+            T result = iceReader(iceDecoder);
             iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
