@@ -195,8 +195,8 @@ namespace IceRpc
 
         /// <summary>Writes the options of this endpoint to the buffer. Used only when marshaling ice1 proxies with the
         /// 1.1 encoding.</summary>
-        /// <param name="writer">The Ice encoder.</param>
-        protected internal abstract void WriteOptions11(IceEncoder writer);
+        /// <param name="iceEncoder">The Ice encoder.</param>
+        protected internal abstract void WriteOptions11(IceEncoder iceEncoder);
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>

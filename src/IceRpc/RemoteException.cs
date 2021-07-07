@@ -153,13 +153,13 @@ namespace IceRpc
 
         /// <summary>Writes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
-        /// <param name="writer">The Ice encoder.</param>
+        /// <param name="iceEncoder">The Ice encoder.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceWrite(IceEncoder writer, bool firstSlice) =>
-            writer.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+        protected virtual void IceWrite(IceEncoder iceEncoder, bool firstSlice) =>
+            iceEncoder.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
 
-        internal void Write(IceEncoder writer) => IceWrite(writer, true);
+        internal void Write(IceEncoder iceEncoder) => IceWrite(iceEncoder, true);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>

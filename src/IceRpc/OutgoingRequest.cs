@@ -138,15 +138,15 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(IceEncoder writer)
+        internal override void WriteHeader(IceEncoder iceEncoder)
         {
-            Debug.Assert(writer.Encoding == Protocol.GetEncoding());
+            Debug.Assert(iceEncoder.Encoding == Protocol.GetEncoding());
 
             IDictionary<string, string> context = Features.GetContext();
 
             if (Protocol == Protocol.Ice2)
             {
-                IceEncoder.Position start = writer.StartFixedLengthSize(2);
+                IceEncoder.Position start = iceEncoder.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(
@@ -157,22 +157,22 @@ namespace IceRpc
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-                requestHeaderBody.IceWrite(writer);
+                requestHeaderBody.IceWrite(iceEncoder);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
                     // Writes or overrides context
                     Fields[(int)Ice2FieldKey.Context] =
-                        writer => writer.WriteDictionary(context,
+                        iceEncoder => iceEncoder.WriteDictionary(context,
                                                          BasicIceWriters.StringIceWriter,
                                                          BasicIceWriters.StringIceWriter);
                 }
                 // else context remains empty (not set)
 
-                WriteFields(writer);
-                PayloadEncoding.IceWrite(writer);
-                writer.WriteSize(PayloadSize);
-                writer.EndFixedLengthSize(start, 2);
+                WriteFields(iceEncoder);
+                PayloadEncoding.IceWrite(iceEncoder);
+                iceEncoder.WriteSize(PayloadSize);
+                iceEncoder.EndFixedLengthSize(start, 2);
             }
             else
             {
@@ -185,7 +185,7 @@ namespace IceRpc
                     context,
                     encapsulationSize: PayloadSize + 6,
                     PayloadEncoding);
-                requestHeader.IceWrite(writer);
+                requestHeader.IceWrite(iceEncoder);
             }
         }
 

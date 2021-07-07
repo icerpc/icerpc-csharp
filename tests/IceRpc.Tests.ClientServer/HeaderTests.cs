@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
                     OutgoingResponse response = await next.DispatchAsync(request, cancel);
                     if (response.Protocol == Protocol.Ice2 && response.Features.Get<string>() is string value)
                     {
-                        response.Fields[1] = writer => writer.WriteString(value);
+                        response.Fields[1] = iceEncoder => iceEncoder.WriteString(value);
                     }
                     return response;
                 }));

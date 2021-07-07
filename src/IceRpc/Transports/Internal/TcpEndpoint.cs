@@ -161,12 +161,12 @@ namespace IceRpc.Transports.Internal
             (other is TcpEndpoint otherTcpEndpoint &&
                 (_tls == otherTcpEndpoint._tls || _tls == null || otherTcpEndpoint._tls == null) && base.Equals(other));
 
-        protected internal override void WriteOptions11(IceEncoder writer)
+        protected internal override void WriteOptions11(IceEncoder iceEncoder)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
-            base.WriteOptions11(writer);
-            writer.WriteInt((int)_timeout.TotalMilliseconds);
-            writer.WriteBool(_hasCompressionFlag);
+            Debug.Assert(Protocol == Protocol.Ice1 && iceEncoder.Encoding == Encoding.V11);
+            base.WriteOptions11(iceEncoder);
+            iceEncoder.WriteInt((int)_timeout.TotalMilliseconds);
+            iceEncoder.WriteBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests

@@ -6,7 +6,7 @@ namespace IceRpc
     public interface IEncodable
     {
         /// <summary>Writes this instance to the buffer using the buffer's encoding.</summary>
-        /// <param name="writer">The Ice encoder.</param>
-        void IceWrite(IceEncoder writer);
+        /// <param name="iceEncoder">The Ice encoder.</param>
+        void IceWrite(IceEncoder iceEncoder);
     }
 }

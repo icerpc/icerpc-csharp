@@ -370,19 +370,19 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
+                var iceEncoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
-                    writer.WriteByteSpan(TransportHeader.Span);
+                    iceEncoder.WriteByteSpan(TransportHeader.Span);
                 }
-                writer.WriteByte((byte)Ice2FrameType.GoAway);
-                IceEncoder.Position sizePos = writer.StartFixedLengthSize();
+                iceEncoder.WriteByte((byte)Ice2FrameType.GoAway);
+                IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
-                goAwayFrameBody.IceWrite(writer);
-                writer.EndFixedLengthSize(sizePos);
+                goAwayFrameBody.IceWrite(iceEncoder);
+                iceEncoder.EndFixedLengthSize(sizePos);
 
-                await SendAsync(writer.Finish(), false, cancel).ConfigureAwait(false);
+                await SendAsync(iceEncoder.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
@@ -393,14 +393,14 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
 
             byte[] buffer = new byte[1024];
-            var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
+            var iceEncoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
-                writer.WriteByteSpan(TransportHeader.Span);
+                iceEncoder.WriteByteSpan(TransportHeader.Span);
             }
-            writer.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
-            writer.EndFixedLengthSize(writer.StartFixedLengthSize());
-            await SendAsync(writer.Finish(), true, CancellationToken.None).ConfigureAwait(false);
+            iceEncoder.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
+            iceEncoder.EndFixedLengthSize(iceEncoder.StartFixedLengthSize());
+            await SendAsync(iceEncoder.Finish(), true, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -414,27 +414,27 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
+                var iceEncoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
-                    writer.WriteByteSpan(TransportHeader.Span);
+                    iceEncoder.WriteByteSpan(TransportHeader.Span);
                 }
-                writer.WriteByte((byte)Ice2FrameType.Initialize);
-                IceEncoder.Position sizePos = writer.StartFixedLengthSize();
-                IceEncoder.Position pos = writer.Tail;
+                iceEncoder.WriteByte((byte)Ice2FrameType.Initialize);
+                IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize();
+                IceEncoder.Position pos = iceEncoder.Tail;
 
                 // Encode the transport parameters as Fields
-                writer.WriteSize(1);
+                iceEncoder.WriteSize(1);
 
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
-                writer.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                iceEncoder.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
                                 BasicIceWriters.VarULongIceWriter);
 
-                writer.EndFixedLengthSize(sizePos);
+                iceEncoder.EndFixedLengthSize(sizePos);
 
-                await SendAsync(writer.Finish(), false, cancel).ConfigureAwait(false);
+                await SendAsync(iceEncoder.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentInitializeFrame(_connection, _connection.IncomingFrameMaxSize);
@@ -506,14 +506,14 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var writer = new IceEncoder(Encoding.V20);
-            writer.WriteByteSpan(TransportHeader.Span);
+            var iceEncoder = new IceEncoder(Encoding.V20);
+            iceEncoder.WriteByteSpan(TransportHeader.Span);
 
-            writer.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            IceEncoder.Position start = writer.StartFixedLengthSize(4);
-            frame.WriteHeader(writer);
+            iceEncoder.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
+            IceEncoder.Position start = iceEncoder.StartFixedLengthSize(4);
+            frame.WriteHeader(iceEncoder);
 
-            int frameSize = writer.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
+            int frameSize = iceEncoder.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
             {
@@ -534,17 +534,17 @@ namespace IceRpc.Transports
                 }
             }
 
-            writer.RewriteFixedLengthSize20(frameSize, start, 4);
+            iceEncoder.RewriteFixedLengthSize20(frameSize, start, 4);
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= writer.Capacity - writer.Size)
+                   frame.Payload.Span[payloadIndex].Length <= iceEncoder.Capacity - iceEncoder.Size)
             {
-                writer.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                iceEncoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = iceEncoder.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {

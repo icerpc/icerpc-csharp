@@ -286,7 +286,7 @@ namespace IceRpc.Transports.Internal
                     var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        writer => versionBody.IceWrite(writer),
+                        iceEncoder => versionBody.IceWrite(iceEncoder),
                         frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
@@ -329,7 +329,7 @@ namespace IceRpc.Transports.Internal
                 parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.InitializeAck,
-                    writer => WriteParameters(writer, parameters),
+                    iceEncoder => WriteParameters(iceEncoder, parameters),
                     frameSize => Logger.LogSendingSlicInitializeAckFrame(frameSize, parameters),
                     cancel: cancel).ConfigureAwait(false);
             }
@@ -341,11 +341,11 @@ namespace IceRpc.Transports.Internal
                 Dictionary<ParameterKey, ulong> parameters = GetParameters();
                 await PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.Initialize,
-                    writer =>
+                    iceEncoder =>
                     {
-                        writer.WriteVarUInt(version);
-                        initializeBody.IceWrite(writer);
-                        WriteParameters(writer, parameters);
+                        iceEncoder.WriteVarUInt(version);
+                        initializeBody.IceWrite(iceEncoder);
+                        WriteParameters(iceEncoder, parameters);
                     },
                     frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),
                     cancel: cancel).ConfigureAwait(false);
@@ -441,7 +441,7 @@ namespace IceRpc.Transports.Internal
 
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
-            Action<IceEncoder>? encoder = null,
+            Action<IceEncoder>? iceWriter = null,
             Action<int>? logAction = null,
             SlicStream? stream = null,
             CancellationToken cancel = default)
@@ -450,17 +450,17 @@ namespace IceRpc.Transports.Internal
                 type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
-            var writer = new IceEncoder(SlicDefinitions.Encoding);
-            writer.WriteByte((byte)type);
-            IceEncoder.Position sizePos = writer.StartFixedLengthSize(4);
+            var iceEncoder = new IceEncoder(SlicDefinitions.Encoding);
+            iceEncoder.WriteByte((byte)type);
+            IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize(4);
             if (stream != null)
             {
-                writer.WriteVarULong((ulong)stream.Id);
+                iceEncoder.WriteVarULong((ulong)stream.Id);
             }
-            encoder?.Invoke(writer);
-            int frameSize = writer.Tail.Offset - sizePos.Offset - 4;
-            writer.EndFixedLengthSize(sizePos, 4);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish();
+            iceWriter?.Invoke(iceEncoder);
+            int frameSize = iceEncoder.Tail.Offset - sizePos.Offset - 4;
+            iceEncoder.EndFixedLengthSize(sizePos, 4);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = iceEncoder.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -650,12 +650,12 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static void WriteParameters(IceEncoder writer, Dictionary<ParameterKey, ulong> parameters)
+        private static void WriteParameters(IceEncoder iceEncoder, Dictionary<ParameterKey, ulong> parameters)
         {
-            writer.WriteSize(parameters.Count);
+            iceEncoder.WriteSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                writer.WriteField((int)key, value, BasicIceWriters.VarULongIceWriter);
+                iceEncoder.WriteField((int)key, value, BasicIceWriters.VarULongIceWriter);
             }
         }
 

@@ -15,7 +15,7 @@ namespace IceRpc.Internal
     {
         // There is no Equals as it's identical to the base.
 
-        protected internal override void WriteOptions11(IceEncoder writer) =>
+        protected internal override void WriteOptions11(IceEncoder iceEncoder) =>
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
         internal static LocEndpoint Create(string location, Protocol protocol) =>
