@@ -89,7 +89,18 @@ namespace IceRpc
             new((path, protocol) => new ServicePrx(path, protocol));
 
         /// <summary>A <see cref="IceReader{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceReader<IServicePrx> Decoder = reader => Proxy.Read(Factory, reader);
+        public static readonly IceReader<IServicePrx> IceReader = decoder => Proxy.Read(Factory, decoder);
+
+        /// <summary>An Ice writer for <see cref="IServicePrx"/> proxies.</summary>
+        public static readonly IceWriter<IServicePrx> IceWriter = (encoder, value) => encoder.WriteProxy(value);
+
+        /// <summary>An <see cref="IceReader{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
+        public static readonly IceReader<IServicePrx?> NullableIceReader = decoder =>
+            Proxy.ReadNullable(Factory, decoder);
+
+        /// <summary>An Ice writer for <see cref="IServicePrx"/> nullable proxies.</summary>
+        public static readonly IceWriter<IServicePrx?> NullableIceWriter =
+            (encoder, value) => encoder.WriteNullableProxy(value);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
@@ -119,16 +130,6 @@ namespace IceRpc
         /// <returns>The new proxy.</returns>
         public static IServicePrx FromServer(Server server, string? path = null) =>
             Factory.Create(server, path);
-
-        /// <summary>A <see cref="IceReader{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceReader<IServicePrx?> NullableDecoder = reader => Proxy.ReadNullable(Factory, reader);
-
-        /// <summary>An encoder for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceWriter<IServicePrx> Encoder = (writer, value) => writer.WriteProxy(value);
-
-        /// <summary>An encoder for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceWriter<IServicePrx?> NullableEncoder =
-            (writer, value) => writer.WriteNullableProxy(value);
 
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>

@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             var reader = new IceDecoder(data, encoding, connection: null, prx.Invoker);
-            var prx2 = IServicePrx.Decoder(reader);
+            var prx2 = IServicePrx.IceReader(reader);
             reader.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(prx, prx2);
         }
@@ -74,7 +74,7 @@ namespace IceRpc.Tests.Encoding
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             var reader = new IceDecoder(data, encoding, _connection);
-            var prx1 = IServicePrx.Decoder(reader);
+            var prx1 = IServicePrx.IceReader(reader);
             reader.CheckEndOfBuffer(skipTaggedParams: false);
 
             Assert.AreEqual(regular.Connection, prx1.Connection);

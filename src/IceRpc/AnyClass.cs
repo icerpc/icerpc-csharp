@@ -7,20 +7,20 @@ namespace IceRpc
     /// <summary>The base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
-        /// <summary>A decoder for non-nullable class instances.</summary>
-        public static readonly IceReader<AnyClass> Decoder =
-            reader => reader.ReadClass<AnyClass>(formalTypeId: null);
+        /// <summary>An Ice reader for non-nullable class instances.</summary>
+        public static readonly IceReader<AnyClass> IceReader =
+            decoder => decoder.ReadClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>A decoder for nullable class instances.</summary>
-        public static readonly IceReader<AnyClass?> NullableDecoder =
-            reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
+        /// <summary>An Ice writer for non-nullable class instances.</summary>
+        public static readonly IceWriter<AnyClass> IceWriter = (encoder, value) => encoder.WriteClass(value, null);
 
-        /// <summary>An encoder for non-nullable class instances.</summary>
-        public static readonly IceWriter<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
+        /// <summary>An Ice reader for nullable class instances.</summary>
+        public static readonly IceReader<AnyClass?> NullableIceReader =
+            decoder => decoder.ReadNullableClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An encoder for nullable class instances.</summary>
-        public static readonly IceWriter<AnyClass?> NullableEncoder =
-            (writer, value) => writer.WriteNullableClass(value, null);
+        /// <summary>An Ice writer for nullable class instances.</summary>
+        public static readonly IceWriter<AnyClass?> NullableIceWriter =
+            (encoder, value) => encoder.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>
