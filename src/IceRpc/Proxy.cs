@@ -371,7 +371,7 @@ namespace IceRpc
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
                 Endpoint[] endpointArray =
-                    reader.ReadArray(minElementSize: 8, reader => reader.ReadEndpoint11(proxyData.Protocol));
+                    reader.ReadArray(minElementSize: 8, decoder => decoder.ReadEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints;

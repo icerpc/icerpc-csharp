@@ -7,62 +7,62 @@ namespace IceRpc
     {
         /// <summary>An <see cref="IceWriter{T}"/> for <c>bool</c> values.</summary>
         public static readonly IceWriter<bool> BoolIceWriter =
-            (writer, value) => writer.WriteBool(value);
+            (encoder, value) => encoder.WriteBool(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>byte</c> values.</summary>
         public static readonly IceWriter<byte> ByteIceWriter =
-            (writer, value) => writer.WriteByte(value);
+            (encoder, value) => encoder.WriteByte(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>double</c> values.</summary>
         public static readonly IceWriter<double> DoubleIceWriter =
-            (writer, value) => writer.WriteDouble(value);
+            (encoder, value) => encoder.WriteDouble(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>float</c> values.</summary>
         public static readonly IceWriter<float> FloatIceWriter =
-            (writer, value) => writer.WriteFloat(value);
+            (encoder, value) => encoder.WriteFloat(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>int</c> values.</summary>
         public static readonly IceWriter<int> IntIceWriter =
-            (writer, value) => writer.WriteInt(value);
+            (encoder, value) => encoder.WriteInt(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>long</c> values.</summary>
         public static readonly IceWriter<long> LongIceWriter =
-            (writer, value) => writer.WriteLong(value);
+            (encoder, value) => encoder.WriteLong(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>short</c> values.</summary>
         public static readonly IceWriter<short> ShortIceWriter =
-            (writer, value) => writer.WriteShort(value);
+            (encoder, value) => encoder.WriteShort(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>string</c> instances.</summary>
         public static readonly IceWriter<string> StringIceWriter =
-            (writer, value) => writer.WriteString(value);
+            (encoder, value) => encoder.WriteString(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>uint</c> values.</summary>
         public static readonly IceWriter<uint> UIntIceWriter =
-            (writer, value) => writer.WriteUInt(value);
+            (encoder, value) => encoder.WriteUInt(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>ulong</c> values.</summary>
         public static readonly IceWriter<ulong> ULongIceWriter =
-            (writer, value) => writer.WriteULong(value);
+            (encoder, value) => encoder.WriteULong(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for <c>ushort</c> values.</summary>
         public static readonly IceWriter<ushort> UShortIceWriter =
-            (writer, value) => writer.WriteUShort(value);
+            (encoder, value) => encoder.WriteUShort(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for var int values.</summary>
         public static readonly IceWriter<int> VarIntIceWriter =
-            (writer, value) => writer.WriteVarInt(value);
+            (encoder, value) => encoder.WriteVarInt(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for var long values.</summary>
         public static readonly IceWriter<long> VarLongIceWriter =
-            (writer, value) => writer.WriteVarLong(value);
+            (encoder, value) => encoder.WriteVarLong(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for var uint values.</summary>
         public static readonly IceWriter<uint> VarUIntIceWriter =
-            (writer, value) => writer.WriteVarUInt(value);
+            (encoder, value) => encoder.WriteVarUInt(value);
 
         /// <summary>An <see cref="IceWriter{T}"/> for var ulong values.</summary>
         public static readonly IceWriter<ulong> VarULongIceWriter =
-            (writer, value) => writer.WriteVarULong(value);
+            (encoder, value) => encoder.WriteVarULong(value);
     }
 }

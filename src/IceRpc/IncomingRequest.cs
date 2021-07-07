@@ -136,7 +136,7 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context
                     {
-                        Value = value.ReadFieldValue(reader => reader.ReadDictionary(
+                        Value = value.ReadFieldValue(decoder => decoder.ReadDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
                             keyDecoder: BasicIceReaders.StringIceReader,
