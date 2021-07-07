@@ -38,10 +38,10 @@ namespace IceRpc
 
         /// <summary>Reads this instance by reading its data members from the <see cref="IceDecoder"/>.
         /// </summary>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(IceDecoder reader, bool firstSlice);
-        internal void Read(IceDecoder reader) => IceRead(reader, true);
+        protected abstract void IceRead(IceDecoder iceDecoder, bool firstSlice);
+        internal void Read(IceDecoder iceDecoder) => IceRead(iceDecoder, true);
 
         /// <summary>Writes this instance by writing its data to the <see cref="IceEncoder"/>.</summary>
         /// <param name="writer">The buffer writter.</param>

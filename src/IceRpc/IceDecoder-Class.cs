@@ -20,7 +20,7 @@ namespace IceRpc
     // This partial class provides the class/exception unmarshaling logic.
     public sealed partial class IceDecoder
     {
-        /// <summary>Tells the reader the end of a class or exception slice was reached. This is an IceRPC-internal
+        /// <summary>Tells the decoder the end of a class or exception slice was reached. This is an IceRPC-internal
         /// method marked public because it's called by the generated code.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()

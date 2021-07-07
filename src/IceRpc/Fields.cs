@@ -10,14 +10,14 @@ namespace IceRpc
     public static class Fields
     {
         /// <summary>Reads fields from a <see cref="IceDecoder"/>.</summary>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
-        /// <remarks>The values of the dictionary reference memory in the reader's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this IceDecoder reader)
+        /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this IceDecoder iceDecoder)
         {
-            Debug.Assert(reader.Encoding == Encoding.V20);
+            Debug.Assert(iceDecoder.Encoding == Encoding.V20);
 
-            int size = reader.ReadSize();
+            int size = iceDecoder.ReadSize();
             if (size == 0)
             {
                 return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();
@@ -49,9 +49,9 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var reader = new IceDecoder(value, Encoding.V20, connection, invoker);
-            T result = decoder(reader);
-            reader.CheckEndOfBuffer(skipTaggedParams: false);
+            var iceDecoder = new IceDecoder(value, Encoding.V20, connection, invoker);
+            T result = decoder(iceDecoder);
+            iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
     }

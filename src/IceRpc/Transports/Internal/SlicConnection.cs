@@ -182,10 +182,10 @@ namespace IceRpc.Transports.Internal
 
                         await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
-                        var reader = new IceDecoder(
+                        var iceDecoder = new IceDecoder(
                             _streamConsumedBuffer.Value[0..dataSize],
                             SlicDefinitions.Encoding);
-                        var streamConsumed = new StreamConsumedBody(reader);
+                        var streamConsumed = new StreamConsumedBody(iceDecoder);
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
@@ -206,8 +206,8 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var reader = new IceDecoder(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(reader);
+                        var iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(iceDecoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicResetFrame(frameSize, errorCode);
@@ -232,8 +232,8 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var reader = new IceDecoder(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(reader);
+                        var iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(iceDecoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
@@ -275,8 +275,8 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Check that the Slic version is supported (we only support version 1 for now)
-                var reader = new IceDecoder(data, SlicDefinitions.Encoding);
-                uint version = reader.ReadVarUInt();
+                var iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                uint version = iceDecoder.ReadVarUInt();
                 if (version != 1)
                 {
                     Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
@@ -296,8 +296,8 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                     }
 
-                    reader = new IceDecoder(data, SlicDefinitions.Encoding);
-                    version = reader.ReadVarUInt();
+                    iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                    version = iceDecoder.ReadVarUInt();
                     if (version != 1)
                     {
                         throw new InvalidDataException($"unsupported Slic version '{version}'");
@@ -305,8 +305,8 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Read initialize frame
-                var initializeBody = new InitializeHeaderBody(reader);
-                Dictionary<ParameterKey, ulong> parameters = ReadParameters(reader);
+                var initializeBody = new InitializeHeaderBody(iceDecoder);
+                Dictionary<ParameterKey, ulong> parameters = ReadParameters(iceDecoder);
                 Logger.LogReceivingSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
                 // Check the application protocol and set the parameters.
@@ -354,14 +354,14 @@ namespace IceRpc.Transports.Internal
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
-                var reader = new IceDecoder(data, SlicDefinitions.Encoding);
+                var iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
 
                 // If we receive a Version frame, there isn't much we can do as we only support V1 so we throw
                 // with an appropriate message to abort the connection.
                 if (type == SlicDefinitions.FrameType.Version)
                 {
                     // Read the version sequence provided by the server.
-                    var versionBody = new VersionBody(reader);
+                    var versionBody = new VersionBody(iceDecoder);
                     Logger.LogReceivingSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(
@@ -374,7 +374,7 @@ namespace IceRpc.Transports.Internal
                 else
                 {
                     // Read and set parameters.
-                    parameters = ReadParameters(reader);
+                    parameters = ReadParameters(iceDecoder);
                     Logger.LogReceivingSlicInitializeAckFrame(data.Length, parameters);
                     SetParameters(parameters);
                 }
@@ -659,13 +659,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static Dictionary<ParameterKey, ulong> ReadParameters(IceDecoder reader)
+        private static Dictionary<ParameterKey, ulong> ReadParameters(IceDecoder iceDecoder)
         {
-            int dictionarySize = reader.ReadSize();
+            int dictionarySize = iceDecoder.ReadSize();
             var parameters = new Dictionary<ParameterKey, ulong>();
             for (int i = 0; i < dictionarySize; ++i)
             {
-                (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
+                (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
                 parameters.Add((ParameterKey)key, value.Span.ReadVarULong().Value);
             }
             return parameters;

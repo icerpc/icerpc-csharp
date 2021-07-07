@@ -262,7 +262,7 @@ namespace IceRpc
                            cancel: cancel);
 
         /// <summary>Writes the proxy into a buffer.</summary>
-        /// <param name="writer">The buffer writer.</param>
+        /// <param name="writer">The Ice encoder.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceWrite(IceEncoder writer);
 

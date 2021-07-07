@@ -41,7 +41,7 @@ namespace IceRpc.Internal
             new LocEndpoint(new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty),
                             protocol);
 
-        public Endpoint CreateIce1Endpoint(IceDecoder reader) =>
+        public Endpoint CreateIce1Endpoint(IceDecoder iceDecoder) =>
             throw new InvalidOperationException("an ice1 loc endpoint cannot be read like a regular endpoint");
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

@@ -22,39 +22,39 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var reader = new IceDecoder(data, encoding);
-            MyMostDerivedClass r = reader.ReadClass<MyMostDerivedClass>(null);
+            var iceDecoder = new IceDecoder(data, encoding);
+            MyMostDerivedClass r = iceDecoder.ReadClass<MyMostDerivedClass>(null);
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
             Assert.AreEqual(p1.M3, r.M3);
 
             // Remove the factory for 'MyMostDerivedClass' and ensure that the class is unmarshal
-            // as 'MyDerivedClass' which is the base type and still known by the buffer reader.
+            // as 'MyDerivedClass' which is the base type and still known by the Ice decoder.
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             classFactories.Remove(MyMostDerivedClass.IceTypeId);
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyMostDerivedClass>(null));
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            MyDerivedClass r1 = reader.ReadClass<MyDerivedClass>(null);
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyMostDerivedClass>(null));
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            MyDerivedClass r1 = iceDecoder.ReadClass<MyDerivedClass>(null);
             Assert.That(r1.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
 
             // Repeat removing the factory for 'MyDerivedClass'
             classFactories.Remove(MyDerivedClass.IceTypeId);
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyDerivedClass>(null));
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            MyBaseClass r2 = reader.ReadClass<MyBaseClass>(null);
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyDerivedClass>(null));
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            MyBaseClass r2 = iceDecoder.ReadClass<MyBaseClass>(null);
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r2.M1);
 
             // Repeat removing the factory for 'MyBaseClass'
             classFactories.Remove(MyBaseClass.IceTypeId);
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyBaseClass>(null));
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            Assert.DoesNotThrow(() => reader.ReadClass<AnyClass>(null));
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyBaseClass>(null));
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            Assert.DoesNotThrow(() => iceDecoder.ReadClass<AnyClass>(null));
         }
 
         [TestCase((byte)1, (byte)1)]
@@ -69,52 +69,52 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var reader = new IceDecoder(data, encoding);
-            MyCompactMostDerivedClass r = reader.ReadClass<MyCompactMostDerivedClass>(null);
+            var iceDecoder = new IceDecoder(data, encoding);
+            MyCompactMostDerivedClass r = iceDecoder.ReadClass<MyCompactMostDerivedClass>(null);
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
             Assert.AreEqual(p1.M3, r.M3);
 
             // Remove the factory for 'MyCompactMostDerivedClass' and ensure that the class is unmarshal
-            // as 'MyCompactDerivedClass' which is the base type and still known by the buffer reader.
+            // as 'MyCompactDerivedClass' which is the base type and still known by the Ice decoder.
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(
                 Runtime.CompactTypeIdClassFactoryDictionary);
             classFactories.Remove(3);
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactMostDerivedClass>(null));
-            reader = new IceDecoder(data,
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyCompactMostDerivedClass>(null));
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            MyCompactDerivedClass r1 = reader.ReadClass<MyCompactDerivedClass>(null);
+            MyCompactDerivedClass r1 = iceDecoder.ReadClass<MyCompactDerivedClass>(null);
             Assert.That(r1.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
 
             // Repeat removing the factory for 'MyCompactDerivedClass'
             classFactories.Remove(2);
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactDerivedClass>(null));
-            reader = new IceDecoder(data,
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyCompactDerivedClass>(null));
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            MyCompactBaseClass r2 = reader.ReadClass<MyCompactBaseClass>(null);
+            MyCompactBaseClass r2 = iceDecoder.ReadClass<MyCompactBaseClass>(null);
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r2.M1);
 
             // Repeat removing the factory for 'MyCompactBaseClass'
             classFactories.Remove(1);
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyCompactBaseClass>(null));
-            reader = new IceDecoder(data,
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyCompactBaseClass>(null));
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            Assert.DoesNotThrow(() => reader.ReadClass<AnyClass>(null));
+            Assert.DoesNotThrow(() => iceDecoder.ReadClass<AnyClass>(null));
         }
 
         [TestCase((byte)1, (byte)1)]
@@ -130,8 +130,8 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = writer.Finish().Span[0];
 
             // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
-            var reader = new IceDecoder(data, encoding);
-            RemoteException r = reader.ReadException();
+            var iceDecoder = new IceDecoder(data, encoding);
+            RemoteException r = iceDecoder.ReadException();
             Assert.That(r.SlicedData, Is.Null);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             var r1 = (MyMostDerivedException)r;
@@ -140,15 +140,15 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r1.M3);
 
             // Remove the factory for 'MyMostDerivedException' and ensure that the exception is unmarshal
-            // as 'MyDerivedException' which is the base type and still known by the buffer reader.
+            // as 'MyDerivedException' which is the base type and still known by the Ice decoder.
             var exceptionFactories = new Dictionary<string, Lazy<RemoteExceptionFactory>>(
                 Runtime.TypeIdRemoteExceptionFactoryDictionary);
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyMostDerivedException");
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       typeIdExceptionFactories: exceptionFactories);
 
-            r = reader.ReadException();
+            r = iceDecoder.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.Not.InstanceOf<MyMostDerivedException>());
@@ -158,10 +158,10 @@ namespace IceRpc.Tests.Encoding
 
             // Repeat removing the factory for 'MyDerivedException'
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyDerivedException");
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       typeIdExceptionFactories: exceptionFactories);
-            r = reader.ReadException();
+            r = iceDecoder.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.InstanceOf<MyBaseException>());
@@ -170,10 +170,10 @@ namespace IceRpc.Tests.Encoding
 
             // Repeat removing the factory for 'MyBaseException'
             exceptionFactories.Remove("::IceRpc::Tests::Encoding::MyBaseException");
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       typeIdExceptionFactories: exceptionFactories);
-            r = reader.ReadException();
+            r = iceDecoder.ReadException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
 
@@ -182,8 +182,8 @@ namespace IceRpc.Tests.Encoding
             writer.WriteException(r);
             data = writer.Finish().Span[0];
 
-            reader = new IceDecoder(data, encoding);
-            r = reader.ReadException();
+            iceDecoder = new IceDecoder(data, encoding);
+            r = iceDecoder.ReadException();
             Assert.That(r.SlicedData, Is.Null);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             r1 = (MyMostDerivedException)r;
@@ -209,13 +209,13 @@ namespace IceRpc.Tests.Encoding
             // and the Slices are preserved.
             var classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
             bool factory = classFactories.Remove(MyPreservedDerivedClass1.IceTypeId);
-            var reader = new IceDecoder(data,
+            var iceDecoder = new IceDecoder(data,
                                           encoding,
                                           typeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyPreservedDerivedClass1>(null));
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyPreservedDerivedClass1>(null));
 
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            MyBaseClass r1 = reader.ReadClass<MyBaseClass>(null);
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            MyBaseClass r1 = iceDecoder.ReadClass<MyBaseClass>(null);
             Assert.That(r1.SlicedData, Is.Not.Null);
 
             // Marshal the sliced class
@@ -228,8 +228,8 @@ namespace IceRpc.Tests.Encoding
             // Slices.
             classFactories = new Dictionary<string, Lazy<ClassFactory>>(Runtime.TypeIdClassFactoryDictionary);
 
-            reader = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
-            MyPreservedDerivedClass1 r2 = reader.ReadClass<MyPreservedDerivedClass1>(null);
+            iceDecoder = new IceDecoder(data, encoding, typeIdClassFactories: classFactories);
+            MyPreservedDerivedClass1 r2 = iceDecoder.ReadClass<MyPreservedDerivedClass1>(null);
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual("p1-m1", r2.M1);
             Assert.AreEqual("p1-m2", r2.M2);
@@ -256,14 +256,14 @@ namespace IceRpc.Tests.Encoding
             // and the Slices are preserved.
             var classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
             bool factory = classFactories.Remove(56);
-            var reader = new IceDecoder(data,
+            var iceDecoder = new IceDecoder(data,
                                           encoding,
                                           compactTypeIdClassFactories: classFactories);
-            Assert.Throws<InvalidDataException>(() => reader.ReadClass<MyPreservedDerivedClass2>(null));
-            reader = new IceDecoder(data,
+            Assert.Throws<InvalidDataException>(() => iceDecoder.ReadClass<MyPreservedDerivedClass2>(null));
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            MyBaseClass r1 = reader.ReadClass<MyBaseClass>(null);
+            MyBaseClass r1 = iceDecoder.ReadClass<MyBaseClass>(null);
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
@@ -274,10 +274,10 @@ namespace IceRpc.Tests.Encoding
             // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved
             // Slices.
             classFactories = new Dictionary<int, Lazy<ClassFactory>>(Runtime.CompactTypeIdClassFactoryDictionary);
-            reader = new IceDecoder(data,
+            iceDecoder = new IceDecoder(data,
                                       encoding,
                                       compactTypeIdClassFactories: classFactories);
-            MyPreservedDerivedClass2 r2 = reader.ReadClass<MyPreservedDerivedClass2>(null);
+            MyPreservedDerivedClass2 r2 = iceDecoder.ReadClass<MyPreservedDerivedClass2>(null);
             Assert.AreEqual("p1-m1", r2.M1);
             Assert.AreEqual("p1-m2", r2.M2);
             Assert.That(r2.M3, Is.InstanceOf<MyPreservedDerivedClass2>());

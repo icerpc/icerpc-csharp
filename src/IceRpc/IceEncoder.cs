@@ -925,7 +925,7 @@ namespace IceRpc
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
-        // Constructs a buffer writer
+        // Constructs a Ice encoder
         internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             Encoding = encoding;
@@ -961,7 +961,7 @@ namespace IceRpc
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer writer after calling Finish, however rewriting previous data (with for example
+        /// this Ice encoder after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
@@ -1175,7 +1175,7 @@ namespace IceRpc
 
                 if (_bufferVector.Length == 0)
                 {
-                    // First Expand for a new buffer writer constructed with no buffer.
+                    // First Expand for a new Ice encoder constructed with no buffer.
                     Debug.Assert(_currentBuffer.Length == 0);
                     _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
                     _currentBuffer = buffer;

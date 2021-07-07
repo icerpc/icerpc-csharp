@@ -331,32 +331,32 @@ namespace IceRpc
         /// <summary>Reads a proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The non-null proxy read from the buffer.</returns>
         public static T Read<T>(
             ProxyFactory<T> proxyFactory,
-            IceDecoder reader) where T : class, IServicePrx =>
-            ReadNullable(proxyFactory, reader) ??
+            IceDecoder iceDecoder) where T : class, IServicePrx =>
+            ReadNullable(proxyFactory, iceDecoder) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
         /// <summary>Reads a nullable proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadNullable<T>(
             this ProxyFactory<T> proxyFactory,
-            IceDecoder reader) where T : class, IServicePrx
+            IceDecoder iceDecoder) where T : class, IServicePrx
         {
-            if (reader.Encoding == Encoding.V11)
+            if (iceDecoder.Encoding == Encoding.V11)
             {
-                var identity = new Identity(reader);
+                var identity = new Identity(iceDecoder);
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
                 {
                     return null;
                 }
 
-                var proxyData = new ProxyData11(reader);
+                var proxyData = new ProxyData11(iceDecoder);
 
                 if ((byte)proxyData.Protocol == 0)
                 {
@@ -371,14 +371,14 @@ namespace IceRpc
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
                 Endpoint[] endpointArray =
-                    reader.ReadArray(minElementSize: 8, decoder => decoder.ReadEndpoint11(proxyData.Protocol));
+                    iceDecoder.ReadArray(minElementSize: 8, decoder => decoder.ReadEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
-                    string adapterId = reader.ReadString();
+                    string adapterId = iceDecoder.ReadString();
                     if (adapterId.Length > 0)
                     {
                         endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
@@ -407,7 +407,7 @@ namespace IceRpc
                         proxy.Encoding = proxyData.Encoding;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                        proxy.Invoker = reader.Invoker;
+                        proxy.Invoker = iceDecoder.Invoker;
                         return proxy;
                     }
                     catch (InvalidDataException)
@@ -436,16 +436,16 @@ namespace IceRpc
                     {
                         T proxy;
 
-                        if (endpoint == null && reader.Connection is Connection connection)
+                        if (endpoint == null && iceDecoder.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, identity.ToPath(), reader.Invoker);
+                            proxy = proxyFactory.Create(connection, identity.ToPath(), iceDecoder.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(identity.ToPath(), proxyData.Protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
-                            proxy.Invoker = reader.Invoker;
+                            proxy.Invoker = iceDecoder.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding;
@@ -459,9 +459,9 @@ namespace IceRpc
             }
             else
             {
-                Debug.Assert(reader.Encoding == Encoding.V20);
+                Debug.Assert(iceDecoder.Encoding == Encoding.V20);
 
-                var proxyData = new ProxyData20(reader);
+                var proxyData = new ProxyData20(iceDecoder);
 
                 if (proxyData.Path == null)
                 {
@@ -503,7 +503,7 @@ namespace IceRpc
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
-                        proxy.Invoker = reader.Invoker;
+                        proxy.Invoker = iceDecoder.Invoker;
                         return proxy;
                     }
                     catch (InvalidDataException)
@@ -521,16 +521,16 @@ namespace IceRpc
                     {
                         T proxy;
 
-                        if (endpoint == null && reader.Connection is Connection connection)
+                        if (endpoint == null && iceDecoder.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, proxyData.Path, reader.Invoker);
+                            proxy = proxyFactory.Create(connection, proxyData.Path, iceDecoder.Invoker);
                         }
                         else
                         {
                             proxy = proxyFactory.Create(proxyData.Path, protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints;
-                            proxy.Invoker = reader.Invoker;
+                            proxy.Invoker = iceDecoder.Invoker;
                         }
 
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
@@ -548,15 +548,15 @@ namespace IceRpc
         /// <summary>Reads a tagged proxy from a buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the buffer, or null.</returns>
         public static T? ReadTagged<T>(
             this ProxyFactory<T> proxyFactory,
-            IceDecoder reader,
+            IceDecoder iceDecoder,
             int tag)
             where T : class, IServicePrx =>
-            reader.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, reader) : null;
+            iceDecoder.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, iceDecoder) : null;
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>

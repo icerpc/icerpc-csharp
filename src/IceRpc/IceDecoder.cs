@@ -15,7 +15,7 @@ namespace IceRpc
     /// <summary>Reads a byte buffer encoded using the Ice encoding.</summary>
     public sealed partial class IceDecoder
     {
-        /// <summary>The Ice encoding used by this reader when reading its byte buffer.</summary>
+        /// <summary>The Ice encoding used by this decoder when reading its byte buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
@@ -856,7 +856,7 @@ namespace IceRpc
             return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
         }
 
-        /// <summary>Constructs a new buffer reader over a byte buffer.</summary>
+        /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="connection">The connection (optional).</param>
@@ -891,7 +891,7 @@ namespace IceRpc
             _compactTypeIdClassFactories = compactTypeIdClassFactories;
         }
 
-        /// <summary>Verifies the buffer reader has reached the end of its underlying buffer.</summary>
+        /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
         /// <param name="skipTaggedParams">When true, first skips all remaining tagged parameters in the current
         /// buffer.</param>
         internal void CheckEndOfBuffer(bool skipTaggedParams)
@@ -907,7 +907,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads an endpoint from the buffer. Only called when the buffer reader uses the 1.1 encoding.
+        /// <summary>Reads an endpoint from the buffer. Only called when the Ice decoder uses the 1.1 encoding.
         /// </summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint read from the buffer.</returns>
@@ -1361,7 +1361,7 @@ namespace IceRpc
 
             public int Count { get; }
             public bool IsReadOnly => true;
-            protected IceDecoder Reader { get; }
+            protected IceDecoder IceDecoder { get; }
 
             private bool _enumeratorRetrieved;
 
@@ -1393,10 +1393,10 @@ namespace IceRpc
 
             private protected abstract T Read(int pos);
 
-            protected CollectionBase(IceDecoder reader, int minElementSize)
+            protected CollectionBase(IceDecoder iceDecoder, int minElementSize)
             {
-                Count = reader.ReadAndCheckSeqSize(minElementSize);
-                Reader = reader;
+                Count = iceDecoder.ReadAndCheckSeqSize(minElementSize);
+                IceDecoder = iceDecoder;
             }
         }
 
@@ -1407,13 +1407,13 @@ namespace IceRpc
         private sealed class Collection<T> : CollectionBase<T>
         {
             private readonly IceReader<T> _decoder;
-            internal Collection(IceDecoder reader, int minElementSize, IceReader<T> decoder)
-                : base(reader, minElementSize) => _decoder = decoder;
+            internal Collection(IceDecoder iceDecoder, int minElementSize, IceReader<T> decoder)
+                : base(iceDecoder, minElementSize) => _decoder = decoder;
 
             private protected override T Read(int pos)
             {
                 Debug.Assert(pos < Count);
-                return _decoder(Reader);
+                return _decoder(IceDecoder);
             }
         }
 
@@ -1424,10 +1424,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             readonly IceReader<T> _decoder;
 
-            internal NullableCollection(IceDecoder reader, IceReader<T> decoder)
-                : base(reader, 0)
+            internal NullableCollection(IceDecoder iceDecoder, IceReader<T> decoder)
+                : base(iceDecoder, 0)
             {
-                _bitSequenceMemory = reader.ReadBitSequenceMemory(Count);
+                _bitSequenceMemory = iceDecoder.ReadBitSequenceMemory(Count);
                 _decoder = decoder;
             }
 
@@ -1435,7 +1435,7 @@ namespace IceRpc
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decoder(Reader) : null;
+                return bitSequence[pos] ? _decoder(IceDecoder) : null;
             }
         }
 
@@ -1445,10 +1445,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly IceReader<T> _decoder;
 
-            internal NullableValueCollection(IceDecoder reader, IceReader<T> decoder)
-                : base(reader, 0)
+            internal NullableValueCollection(IceDecoder iceDecoder, IceReader<T> decoder)
+                : base(iceDecoder, 0)
             {
-                _bitSequenceMemory = reader.ReadBitSequenceMemory(Count);
+                _bitSequenceMemory = iceDecoder.ReadBitSequenceMemory(Count);
                 _decoder = decoder;
             }
 
@@ -1456,7 +1456,7 @@ namespace IceRpc
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decoder(Reader) : null;
+                return bitSequence[pos] ? _decoder(IceDecoder) : null;
             }
         }
     }

@@ -107,12 +107,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Reads an ice1 system exception.</summary>
-        /// <param name="reader">The buffer reader.</param>
+        /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <returns>The exception read from the buffer.</returns>
-        internal static RemoteException ReadIce1SystemException(this IceDecoder reader, ReplyStatus replyStatus)
+        internal static RemoteException ReadIce1SystemException(this IceDecoder iceDecoder, ReplyStatus replyStatus)
         {
-            Debug.Assert(reader.Encoding == Encoding.V11);
+            Debug.Assert(iceDecoder.Encoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -123,7 +123,7 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    var requestFailed = new Ice1RequestFailedExceptionData(reader);
+                    var requestFailed = new Ice1RequestFailedExceptionData(iceDecoder);
 
                     IList<string> facetPath = requestFailed.FacetPath;
                     if (facetPath.Count > 1)
@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                     break;
 
                 default:
-                    systemException = new UnhandledException(reader.ReadString());
+                    systemException = new UnhandledException(iceDecoder.ReadString());
                     break;
             }
 
@@ -158,7 +158,7 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Writes an ice1 system exception.</summary>
-        /// <param name="writer">This buffer writer.</param>
+        /// <param name="writer">This Ice encoder.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <param name="request">The request for which we write the exception.</param>
         /// <param name="message">The message carried by the exception.</param>

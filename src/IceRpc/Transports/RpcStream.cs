@@ -308,11 +308,11 @@ namespace IceRpc.Transports
             else
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var reader = new IceDecoder(data, Ice2Definitions.Encoding);
-                int dictionarySize = reader.ReadSize();
+                var iceDecoder = new IceDecoder(data, Ice2Definitions.Encoding);
+                int dictionarySize = iceDecoder.ReadSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
                         checked

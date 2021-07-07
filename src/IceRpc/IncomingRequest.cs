@@ -71,11 +71,11 @@ namespace IceRpc
         internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
-            var reader = new IceDecoder(data, Protocol.GetEncoding());
+            var iceDecoder = new IceDecoder(data, Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice1)
             {
-                var requestHeader = new Ice1RequestHeader(reader);
+                var requestHeader = new Ice1RequestHeader(iceDecoder);
                 Identity = requestHeader.Identity;
                 Path = Identity.ToPath();
                 FacetPath = requestHeader.FacetPath;
@@ -101,11 +101,11 @@ namespace IceRpc
             }
             else
             {
-                int headerSize = reader.ReadSize();
-                int startPos = reader.Pos;
+                int headerSize = iceDecoder.ReadSize();
+                int startPos = iceDecoder.Pos;
 
                 // We use the generated code for the header body and read the rest of the header "by hand".
-                var requestHeaderBody = new Ice2RequestHeaderBody(reader);
+                var requestHeaderBody = new Ice2RequestHeaderBody(iceDecoder);
                 Path = requestHeaderBody.Path;
                 Operation = requestHeaderBody.Operation;
                 IsIdempotent = requestHeaderBody.Idempotent ?? false;
@@ -118,15 +118,15 @@ namespace IceRpc
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
 
-                Fields = reader.ReadFieldDictionary();
+                Fields = iceDecoder.ReadFieldDictionary();
 
-                PayloadEncoding = new Encoding(reader);
-                PayloadSize = reader.ReadSize();
+                PayloadEncoding = new Encoding(iceDecoder);
+                PayloadSize = iceDecoder.ReadSize();
 
-                if (reader.Pos - startPos != headerSize)
+                if (iceDecoder.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(
-                        @$"received invalid request header: expected {headerSize} bytes but read {reader.Pos - startPos
+                        @$"received invalid request header: expected {headerSize} bytes but read {iceDecoder.Pos - startPos
                         } bytes");
                 }
 
@@ -150,7 +150,7 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
-            Payload = data[reader.Pos..];
+            Payload = data[iceDecoder.Pos..];
             if (PayloadSize != Payload.Length)
             {
                 throw new InvalidDataException(
