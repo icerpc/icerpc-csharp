@@ -55,7 +55,7 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="writer">The <see cref="TupleIceWriter{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="writer">The <see cref="TupleIceWriter{T}"/> that writes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
@@ -85,8 +85,7 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="writer">The <see cref="IceWriter{T}"/> that encodes the arguments into the payload.
-        /// </param>
+        /// <param name="writer">The <see cref="TupleIceWriter{T}"/> that writes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
@@ -110,7 +109,7 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="writer">The <see cref="IceWriter{T}"/> that encodes the argument into the payload.
+        /// <param name="writer">The <see cref="IceWriter{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
@@ -135,7 +134,7 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="writer">The <see cref="IceWriter{T}"/> that encodes the argument into the payload.
+        /// <param name="writer">The <see cref="IceWriter{T}"/> that writes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
