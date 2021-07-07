@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -127,6 +128,85 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(compressedResponse, Is.False);
         }
 
+        [TestCase(512, 100, "Optimal")]
+        [TestCase(2048, 100, "Optimal")]
+        [TestCase(512, 512, "Optimal")]
+        [TestCase(2048, 512, "Fastest")]
+        [TestCase(512, 2048, "Fastest")]
+        [TestCase(2048, 2048, "Fastest")]
+        public async Task Compress_StreamBytes(int size, int compressionMinSize, string compressionLevel)
+        {
+            var pipeline = new Pipeline();
+            pipeline.Use(Interceptors.CustomCompressor(
+                new Interceptors.CompressorOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }));
+
+            OutgoingRequest? outgoingRequest = null;
+            IncomingRequest? incomingRequest = null;
+            OutgoingResponse? outgoingResponse = null;
+
+            pipeline.Use(next => new InlineInvoker(
+                (request, cancel) =>
+                {
+                    outgoingRequest = request;
+                    return next.InvokeAsync(request, cancel);
+                }));
+
+            var router = new Router();
+            router.Use(next => new InlineDispatcher(
+                async (request, cancel) =>
+                {
+                    incomingRequest = request;
+                    outgoingResponse = await next.DispatchAsync(request, cancel);
+                    return outgoingResponse;
+                }));
+            router.Use(Middleware.CustomCompressor(
+                new Middleware.CompressorOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }));
+
+            await using var server = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+
+            server.Dispatcher = router;
+            server.Listen();
+
+            router.Map<ICompressTest>(new CompressTest());
+            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            var prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
+
+            using var sendStream = new MemoryStream(new byte[size]);
+            int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);
+            Assert.That(receivedSize, Is.EqualTo(size));
+            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
+            Assert.That(outgoingRequest!.StreamDecompressor, Is.Null);
+            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(outgoingResponse!.StreamCompressor, Is.Null);
+
+            using var receiveStream = await prx.OpCompressReturnStreamAsync(size);
+            Assert.That(ReadStream(receiveStream), Is.EqualTo(size));
+            Assert.That(outgoingRequest!.StreamCompressor, Is.Null);
+            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(incomingRequest!.StreamDecompressor, Is.Null);
+            Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
+
+            using var sendStream2 = new MemoryStream(new byte[size]);
+            using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
+            Assert.That(ReadStream(receiveStream2), Is.EqualTo(size));
+            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
+            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
+        }
+
         internal class CompressTest : ICompressTest
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
@@ -153,6 +233,35 @@ namespace IceRpc.Tests.ClientServer
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 throw new CompressMyException(Enumerable.Range(0, size).Select(i => (byte)i).ToArray());
+
+            public ValueTask<int> OpCompressStreamArgAsync(
+                Stream stream,
+                Dispatch dispatch,
+                CancellationToken cancel) => ReadStreamAsync(stream);
+
+            public ValueTask<Stream> OpCompressReturnStreamAsync(
+                int size,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new MemoryStream(new byte[size]));
+
+            public ValueTask<Stream> OpCompressStreamArgAndReturnStreamAsync(
+                Stream stream,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(stream);
+        }
+
+        static private int ReadStream(Stream stream) => ReadStreamAsync(stream).AsTask().Result;
+
+        static private async ValueTask<int> ReadStreamAsync(Stream stream)
+        {
+            int totalSize = 0;
+            int received;
+            byte[] buffer = new byte[512];
+            while ((received = await stream.ReadAsync(buffer)) != 0)
+            {
+                totalSize += received;
+            }
+            return totalSize;
         }
     }
 }

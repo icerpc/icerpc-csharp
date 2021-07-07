@@ -293,6 +293,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(offset, Is.EqualTo(buffer.Length));
             Assert.That(readBuffer, Is.EqualTo(buffer));
         }
+
         private static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendBuffer(RpcStream stream, int length)
         {
             byte[] buffer = new byte[stream.TransportHeader.Length + length];

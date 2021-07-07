@@ -12,10 +12,10 @@ namespace IceRpc.Transports.Internal
     /// <summary>The RpcStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
-        private Memory<byte> _receiveBuffer;
+        private ReadOnlyMemory<byte> _receiveBuffer;
         private readonly ColocConnection _connection;
-        private ChannelWriter<byte[]>? _streamWriter;
-        private ChannelReader<byte[]>? _streamReader;
+        private ChannelWriter<ReadOnlyMemory<byte>>? _streamWriter;
+        private ChannelReader<ReadOnlyMemory<byte>>? _streamReader;
 
         public override void AbortRead(RpcStreamError errorCode)
         {
@@ -67,7 +67,7 @@ namespace IceRpc.Transports.Internal
                 FullMode = BoundedChannelFullMode.Wait,
                 AllowSynchronousContinuations = false
             };
-            var channel = Channel.CreateBounded<byte[]>(channelOptions);
+            var channel = Channel.CreateBounded<ReadOnlyMemory<byte>>(channelOptions);
             _streamWriter = channel.Writer;
 
             // Send the channel decoder to the peer. Receiving data will first wait for the channel decoder
@@ -87,7 +87,7 @@ namespace IceRpc.Transports.Internal
             if (_streamReader == null)
             {
                 (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-                _streamReader = frame as ChannelReader<byte[]>;
+                _streamReader = frame as ChannelReader<ReadOnlyMemory<byte>>;
                 Debug.Assert(_streamReader != null);
                 _connection.FinishedReceivedFrame();
             }
@@ -148,16 +148,13 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                if (buffers.Span[0].Length > 0)
+                if (buffers.GetByteCount() > 0)
                 {
                     // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
                     // copying the data from the sender. Copying the data is necessary here because WriteAsync
                     // doesn't block if there's space in the channel and it's not possible to create a
                     // bounded channel with a null capacity.
-                    // TODO: why are we copying only the first buffer??
-                    byte[] copy = new byte[buffers.Span[0].Length];
-                    buffers.Span[0].CopyTo(copy);
-                    await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);
+                    await _streamWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
                 }
                 if (endStream)
                 {

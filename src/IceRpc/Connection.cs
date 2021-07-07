@@ -1164,7 +1164,8 @@ namespace IceRpc
                         // Wait for the closure of the peer control stream.
                         await waitForGoAwayCanceledTask.ConfigureAwait(false);
 
-                        Debug.Assert(State == ConnectionState.Closed);
+                        // Abort the connection.
+                        await AbortAsync(exception).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -1191,7 +1192,7 @@ namespace IceRpc
                 }
                 catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
                 {
-                    await AbortAsync(exception).ConfigureAwait(false);
+                    // Expected if the connection is shutdown.
                 }
             }
         }

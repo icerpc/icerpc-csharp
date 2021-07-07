@@ -77,8 +77,6 @@ namespace IceRpc
             {
                 if (_ioStream == null)
                 {
-                    _rpcStream.EnableReceiveFlowControl();
-
                     // Receive the data frame header.
                     byte[] header = new byte[2];
                     await _rpcStream.ReceiveAsync(header, default).ConfigureAwait(false);
@@ -126,6 +124,7 @@ namespace IceRpc
                 Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
             {
                 _rpcStream = stream;
+                _rpcStream.EnableReceiveFlowControl();
                 _streamDecompressor = streamDecompressor;
             }
         }

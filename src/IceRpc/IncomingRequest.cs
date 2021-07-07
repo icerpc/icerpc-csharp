@@ -50,6 +50,10 @@ namespace IceRpc
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
 
+        /// <summary>A stream parameter decompressor. Middlewares can use this property to decompress a stream
+        /// parameter.</summary>
+        public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
+
         /// <summary>The facet path of the target service. ice1 only.</summary>
         internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
 
@@ -62,8 +66,6 @@ namespace IceRpc
             get => _stream ?? throw new InvalidOperationException("stream not set");
             set => _stream = value;
         }
-
-        internal Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
         private RpcStream? _stream;
 
