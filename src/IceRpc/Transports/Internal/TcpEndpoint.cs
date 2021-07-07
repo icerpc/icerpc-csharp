@@ -161,7 +161,7 @@ namespace IceRpc.Transports.Internal
             (other is TcpEndpoint otherTcpEndpoint &&
                 (_tls == otherTcpEndpoint._tls || _tls == null || otherTcpEndpoint._tls == null) && base.Equals(other));
 
-        protected internal override void WriteOptions11(BufferWriter writer)
+        protected internal override void WriteOptions11(IceEncoder writer)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
             base.WriteOptions11(writer);
@@ -240,7 +240,7 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
             TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-        public Endpoint CreateIce1Endpoint(BufferReader reader)
+        public Endpoint CreateIce1Endpoint(IceDecoder reader)
         {
             Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 

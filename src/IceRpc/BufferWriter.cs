@@ -13,7 +13,7 @@ using System.Runtime.InteropServices;
 namespace IceRpc
 {
     /// <summary>Writes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed partial class BufferWriter
+    public sealed partial class IceEncoder
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
         /// buffer in the vector and the offset into that buffer.</summary>
@@ -225,8 +225,8 @@ namespace IceRpc
         /// <param name="valueEncoder">The encoder for the values.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
         {
             WriteSize(v.Count());
@@ -246,8 +246,8 @@ namespace IceRpc
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
             where TValue : class
         {
@@ -283,8 +283,8 @@ namespace IceRpc
         /// <param name="valueEncoder">The encoder for the non-null values.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
             where TValue : struct
         {
@@ -367,7 +367,7 @@ namespace IceRpc
         /// <summary>Writes a sequence to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encoder">The encoder for an element.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> encoder)
+        public void WriteSequence<T>(IEnumerable<T> v, IceWriter<T> encoder)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
@@ -380,7 +380,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encoder">The encoder for a non-null element.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> encoder)
+        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, IceWriter<T> encoder)
             where T : class
         {
             if (withBitSequence)
@@ -411,7 +411,7 @@ namespace IceRpc
         /// <summary>Writes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encoder">The encoder for the non-null values.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> encoder) where T : struct
+        public void WriteSequence<T>(IEnumerable<T?> v, IceWriter<T> encoder) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
             WriteSize(count);
@@ -629,8 +629,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
@@ -651,8 +651,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
@@ -675,8 +675,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             bool withBitSequence,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
             where TValue : class
         {
@@ -698,8 +698,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            IceWriter<TKey> keyEncoder,
+            IceWriter<TValue> valueEncoder)
             where TKey : notnull
             where TValue : struct
         {
@@ -773,7 +773,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encoder">The encoder for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> encoder)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, IceWriter<T> encoder)
         {
             if (v is IEnumerable<T> value)
             {
@@ -789,7 +789,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
         /// <param name="encoder">The encoder for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> encoder)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, IceWriter<T> encoder)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -822,7 +822,7 @@ namespace IceRpc
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            Encoder<T> encoder)
+            IceWriter<T> encoder)
             where T : class
         {
             if (v is IEnumerable<T?> value)
@@ -838,7 +838,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encoder">The encoder for a non-null element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> encoder)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, IceWriter<T> encoder)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
@@ -926,7 +926,7 @@ namespace IceRpc
         }
 
         // Constructs a buffer writer
-        internal BufferWriter(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
+        internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             Encoding = encoding;
             Encoding.CheckSupported();
@@ -1060,7 +1060,7 @@ namespace IceRpc
                 {
                     WriteString(endpoint.Data.Host);
                     WriteUShort(endpoint.Data.Port);
-                    WriteSequence(endpoint.Data.Options, BasicEncoders.StringEncoder);
+                    WriteSequence(endpoint.Data.Options, BasicIceWriters.StringIceWriter);
                 }
             }
             RewriteFixedLengthSize11(Distance(startPos), startPos);
@@ -1073,7 +1073,7 @@ namespace IceRpc
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, Encoder<T> encoder)
+        internal void WriteField<T>(int key, T value, IceWriter<T> encoder)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

@@ -239,7 +239,7 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
 
             // The position of the data to send next.
-            var start = new BufferWriter.Position();
+            var start = new IceEncoder.Position();
 
             while (offset < size)
             {
@@ -297,7 +297,7 @@ namespace IceRpc.Transports.Internal
                         if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
                         {
                             sendBuffer.Add(buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)]);
-                            start = new BufferWriter.Position(i, bufferOffset + sendBuffer[^1].Length);
+                            start = new IceEncoder.Position(i, bufferOffset + sendBuffer[^1].Length);
                             Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;

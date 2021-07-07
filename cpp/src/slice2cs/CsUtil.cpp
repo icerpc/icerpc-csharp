@@ -683,7 +683,7 @@ Slice::CsGenerator::encoder(const TypePtr& type, const string& scope, bool readO
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.BasicEncoders." << builtinSuffixTable[builtin->kind()] << "Encoder";
+        out << "IceRpc.BasicIceWriters." << builtinSuffixTable[builtin->kind()] << "IceWriter";
     }
     else if (EnumPtr::dynamicCast(type))
     {
@@ -826,7 +826,7 @@ Slice::CsGenerator::decoder(const TypePtr& type, const string& scope)
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.BasicDecoders." << builtinSuffixTable[builtin->kind()] << "Decoder";
+        out << "IceRpc.BasicIceReaders." << builtinSuffixTable[builtin->kind()] << "IceReader";
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {

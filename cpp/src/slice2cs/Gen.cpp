@@ -1202,14 +1202,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
+    _out << nl << "public static readonly new IceRpc.IceReader<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => reader.ReadClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
+    _out << nl << "public static readonly new IceRpc.IceReader<" << name << "?> NullableDecoder =";
     _out.inc();
     _out << nl << "reader => reader.ReadNullableClass<" << name << ">(IceTypeId);";
     _out.dec();
@@ -1220,14 +1220,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "> Encoder =";
+    _out << nl << "public static readonly new IceRpc.IceWriter<" << name << "> Encoder =";
     _out.inc();
     _out << nl << "(writer, value) => writer.WriteClass(value, IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.Encoder<" << name << "?> NullableEncoder =";
+    _out << nl << "public static readonly new IceRpc.IceWriter<" << name << "?> NullableEncoder =";
     _out.inc();
     _out << nl << "(writer, value) => writer.WriteNullableClass(value, IceTypeId);";
     _out.dec();
@@ -1380,7 +1380,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     }
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceRpc.BufferReader? reader)";
+    _out << nl << "public " << name << "(IceRpc.IceDecoder? reader)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
@@ -1418,7 +1418,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter writer, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.IceEncoder writer, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1458,7 +1458,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.IceDecoder reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1659,7 +1659,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceRead(IceRpc.BufferReader reader, bool firstSlice)";
+    _out << nl << "protected override void IceRead(IceRpc.IceDecoder reader, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1680,7 +1680,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << eb;
 
     _out << sp;
-    _out << nl << "protected override void IceWrite(IceRpc.BufferWriter writer, bool firstSlice)";
+    _out << nl << "protected override void IceWrite(IceRpc.IceEncoder writer, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1728,17 +1728,17 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     _out << sb;
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> for <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceReader{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder =";
+    _out << nl << "public static readonly IceRpc.IceReader<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => new " << name << "(reader);";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.Encoder{T}\"/> for <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceWriter{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder =";
+    _out << nl << "public static readonly IceRpc.IceWriter<" << name << "> Encoder =";
     _out.inc();
     _out << nl << "(writer, value) => value.IceWrite(writer);";
     _out.dec();
@@ -1789,7 +1789,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a buffer.</summary>";
     _out << nl << "/// <param name=\"reader\">The buffer reader.</param>";
-    _out << nl << "public " << name << "(IceRpc.BufferReader reader)";
+    _out << nl << "public " << name << "(IceRpc.IceDecoder reader)";
     _out << sb;
 
     writeUnmarshalDataMembers(dataMembers, ns, 0);
@@ -1916,7 +1916,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sp;
     _out << nl << "/// <summary>Writes the fields of this struct into a buffer.</summary>";
     _out << nl << "/// <param name=\"writer\">The buffer writer.</param>";
-    _out << nl << "public readonly void IceWrite(IceRpc.BufferWriter writer)";
+    _out << nl << "public readonly void IceWrite(IceRpc.IceEncoder writer)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
@@ -2007,11 +2007,11 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.Decoder<" << name << "> Decoder = Read" << p->name()
+    _out << nl << "public static readonly IceRpc.IceReader<" << name << "> Decoder = Read" << p->name()
         << ";";
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.Encoder<" << name << "> Encoder = Write;";
+    _out << nl << "public static readonly IceRpc.IceWriter<" << name << "> Encoder = Write;";
 
     _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";
@@ -2037,7 +2037,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.BufferReader reader) =>";
+    _out << nl << "public static " << name << " Read" << p->name() << "(this IceRpc.IceDecoder reader) =>";
     _out.inc();
     _out << nl << "As" << p->name() << "(reader.";
     if (p->underlying())
@@ -2052,7 +2052,7 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "public static void Write(this IceRpc.BufferWriter writer, " << name << " value) =>";
+    _out << nl << "public static void Write(this IceRpc.IceEncoder writer, " << name << " value) =>";
     _out.inc();
     if (p->underlying())
     {
@@ -2289,9 +2289,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.Decoder{T}\"/> used to read "
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceReader{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "> Decoder =";
+    _out << nl << "public static readonly new IceRpc.IceReader<" << name << "> Decoder =";
     _out.inc();
     _out << nl << "reader => IceRpc.Proxy.Read(Factory, reader);";
     _out.dec();
@@ -2346,9 +2346,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"Decoder{T}\"/> used to read <see cref=\"" << name
+    _out << nl << "// <summary>An <see cref=\"IceReader{T}\"/> used to read <see cref=\"" << name
          << "\"/> nullable proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.Decoder<" << name << "?> NullableDecoder =";
+    _out << nl << "public static readonly new IceRpc.IceReader<" << name << "?> NullableDecoder =";
     _out.inc();
     _out << nl << "reader => IceRpc.Proxy.ReadNullable(Factory, reader);";
     _out.dec();
@@ -2528,7 +2528,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestEncoder(const OperationPtr& operat
     }
     else
     {
-        _out << "(IceRpc.BufferWriter writer, ";
+        _out << "(IceRpc.IceEncoder writer, ";
         string inValue = params.size() > 1 ? "in " : "";
         _out << inValue << toTupleType(params, true) << " value) =>";
         _out << sb;
@@ -3085,7 +3085,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncoder(const OperationPtr& 
     }
     else
     {
-        _out << "(IceRpc.BufferWriter writer, ";
+        _out << "(IceRpc.IceEncoder writer, ";
         _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, true) << " value";
         _out << ") =>";
         _out << sb;

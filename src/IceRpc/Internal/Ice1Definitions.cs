@@ -110,7 +110,7 @@ namespace IceRpc.Internal
         /// <param name="reader">The buffer reader.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <returns>The exception read from the buffer.</returns>
-        internal static RemoteException ReadIce1SystemException(this BufferReader reader, ReplyStatus replyStatus)
+        internal static RemoteException ReadIce1SystemException(this IceDecoder reader, ReplyStatus replyStatus)
         {
             Debug.Assert(reader.Encoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
@@ -164,7 +164,7 @@ namespace IceRpc.Internal
         /// <param name="message">The message carried by the exception.</param>
         /// <remarks>The reply status itself is part of the response header and is not written by this method.</remarks>
         internal static void WriteIce1SystemException(
-            this BufferWriter writer,
+            this IceEncoder writer,
             ReplyStatus replyStatus,
             IncomingRequest request,
             string message)

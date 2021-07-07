@@ -18,7 +18,7 @@ namespace IceRpc
     internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
 
     // This partial class provides the class/exception unmarshaling logic.
-    public sealed partial class BufferReader
+    public sealed partial class IceDecoder
     {
         /// <summary>Tells the reader the end of a class or exception slice was reached. This is an IceRPC-internal
         /// method marked public because it's called by the generated code.</summary>
@@ -286,7 +286,7 @@ namespace IceRpc
                         break;
 
                     case EncodingDefinitions.TypeIdKind.Sequence20:
-                        typeIds = ReadArray(1, BasicDecoders.StringDecoder);
+                        typeIds = ReadArray(1, BasicIceReaders.StringIceReader);
                         if (typeIds.Length == 0)
                         {
                             throw new InvalidDataException("received empty type ID sequence");
@@ -306,7 +306,7 @@ namespace IceRpc
                 // Exception
                 if (typeIdKind == EncodingDefinitions.TypeIdKind.Sequence20)
                 {
-                    typeIds = ReadArray(1, BasicDecoders.StringDecoder);
+                    typeIds = ReadArray(1, BasicIceReaders.StringIceReader);
                     if (typeIds.Length == 0)
                     {
                         throw new InvalidDataException("received empty type ID sequence");

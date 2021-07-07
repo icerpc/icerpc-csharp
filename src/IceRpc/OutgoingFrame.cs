@@ -14,7 +14,7 @@ namespace IceRpc
         /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of
         /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
-        public Dictionary<int, Action<BufferWriter>> Fields
+        public Dictionary<int, Action<IceEncoder>> Fields
         {
             get
             {
@@ -25,7 +25,7 @@ namespace IceRpc
                         throw new NotSupportedException("ice1 does not support header fields");
                     }
 
-                    _fields = new Dictionary<int, Action<BufferWriter>>();
+                    _fields = new Dictionary<int, Action<IceEncoder>>();
                 }
                 return _fields;
             }
@@ -74,7 +74,7 @@ namespace IceRpc
         /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
-        private Dictionary<int, Action<BufferWriter>>? _fields;
+        private Dictionary<int, Action<IceEncoder>>? _fields;
 
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
@@ -94,7 +94,7 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var writer = new BufferWriter(Encoding.V20);
+                var writer = new IceEncoder(Encoding.V20);
                 WriteFields(writer);
                 return writer.Finish().ToSingleBuffer().ReadFieldValue(reader => reader.ReadFieldDictionary());
             }
@@ -102,7 +102,7 @@ namespace IceRpc
 
         /// <summary>Writes the header of a frame. This header does not include the frame's prologue.</summary>
         /// <param name="writer">The buffer writer.</param>
-        internal abstract void WriteHeader(BufferWriter writer);
+        internal abstract void WriteHeader(IceEncoder writer);
 
         private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)
         {
@@ -112,27 +112,27 @@ namespace IceRpc
             StreamWriter = streamWriter;
         }
 
-        private protected void WriteFields(BufferWriter writer)
+        private protected void WriteFields(IceEncoder writer)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
             Debug.Assert(writer.Encoding == Encoding.V20);
 
             // can be larger than necessary, which is fine
             int sizeLength =
-                BufferWriter.GetSizeLength20(FieldsDefaults.Count + (_fields?.Count ?? 0));
+                IceEncoder.GetSizeLength20(FieldsDefaults.Count + (_fields?.Count ?? 0));
 
             int size = 0;
 
-            BufferWriter.Position start = writer.StartFixedLengthSize(sizeLength);
+            IceEncoder.Position start = writer.StartFixedLengthSize(sizeLength);
 
             // First write the fields then the remaining FieldsDefaults.
 
-            if (_fields is Dictionary<int, Action<BufferWriter>> fields)
+            if (_fields is Dictionary<int, Action<IceEncoder>> fields)
             {
-                foreach ((int key, Action<BufferWriter> action) in fields)
+                foreach ((int key, Action<IceEncoder> action) in fields)
                 {
                     writer.WriteVarInt(key);
-                    BufferWriter.Position startValue = writer.StartFixedLengthSize(2);
+                    IceEncoder.Position startValue = writer.StartFixedLengthSize(2);
                     action(writer);
                     writer.EndFixedLengthSize(startValue, 2);
                     size++;

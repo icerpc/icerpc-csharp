@@ -10,7 +10,7 @@ namespace IceRpc
 {
     // This partial class provides the class/exception marshaling logic.
 
-    public sealed partial class BufferWriter
+    public sealed partial class IceEncoder
     {
         /// <summary>Marks the end of a slice for a class instance or user exception. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
@@ -414,7 +414,7 @@ namespace IceRpc
                         if (_classFormat == FormatType.Sliced)
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                            WriteSequence(allTypeIds, BasicEncoders.StringEncoder);
+                            WriteSequence(allTypeIds, BasicIceWriters.StringIceWriter);
                         }
                         else
                         {
@@ -433,7 +433,7 @@ namespace IceRpc
             else
             {
                 typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                WriteSequence(allTypeIds, BasicEncoders.StringEncoder);
+                WriteSequence(allTypeIds, BasicIceWriters.StringIceWriter);
 
                 Debug.Assert(errorMessage != null);
                 WriteString(errorMessage);

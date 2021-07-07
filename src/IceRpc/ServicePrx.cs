@@ -249,7 +249,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public void IceWrite(BufferWriter writer)
+        public void IceWrite(IceEncoder writer)
         {
             if (_connection?.IsServer ?? false)
             {

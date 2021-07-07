@@ -269,7 +269,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new BufferReader(data, Ice2Definitions.Encoding));
+                var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(data, Ice2Definitions.Encoding));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -308,7 +308,7 @@ namespace IceRpc.Transports
             else
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var reader = new BufferReader(data, Ice2Definitions.Encoding);
+                var reader = new IceDecoder(data, Ice2Definitions.Encoding);
                 int dictionarySize = reader.ReadSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
@@ -370,13 +370,13 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+                var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     writer.WriteByteSpan(TransportHeader.Span);
                 }
                 writer.WriteByte((byte)Ice2FrameType.GoAway);
-                BufferWriter.Position sizePos = writer.StartFixedLengthSize();
+                IceEncoder.Position sizePos = writer.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
                 goAwayFrameBody.IceWrite(writer);
@@ -393,7 +393,7 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
 
             byte[] buffer = new byte[1024];
-            var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+            var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
                 writer.WriteByteSpan(TransportHeader.Span);
@@ -414,14 +414,14 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+                var writer = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
                     writer.WriteByteSpan(TransportHeader.Span);
                 }
                 writer.WriteByte((byte)Ice2FrameType.Initialize);
-                BufferWriter.Position sizePos = writer.StartFixedLengthSize();
-                BufferWriter.Position pos = writer.Tail;
+                IceEncoder.Position sizePos = writer.StartFixedLengthSize();
+                IceEncoder.Position pos = writer.Tail;
 
                 // Encode the transport parameters as Fields
                 writer.WriteSize(1);
@@ -430,7 +430,7 @@ namespace IceRpc.Transports
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 writer.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
-                                BasicEncoders.VarULongEncoder);
+                                BasicIceWriters.VarULongIceWriter);
 
                 writer.EndFixedLengthSize(sizePos);
 
@@ -506,11 +506,11 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var writer = new BufferWriter(Encoding.V20);
+            var writer = new IceEncoder(Encoding.V20);
             writer.WriteByteSpan(TransportHeader.Span);
 
             writer.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            BufferWriter.Position start = writer.StartFixedLengthSize(4);
+            IceEncoder.Position start = writer.StartFixedLengthSize(4);
             frame.WriteHeader(writer);
 
             int frameSize = writer.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;

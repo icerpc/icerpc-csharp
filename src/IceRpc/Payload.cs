@@ -26,7 +26,7 @@ namespace IceRpc
                 }
                 payload = payload[1..];
             }
-            new BufferReader(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new IceDecoder(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
@@ -47,7 +47,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            new BufferReader(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
+            new IceDecoder(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -55,16 +55,16 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encoder">The <see cref="TupleEncoder{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="encoder">The <see cref="TupleIceWriter{T}"/> that encodes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
-            TupleEncoder<T> encoder,
+            TupleIceWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
+            var writer = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 writer.Write(CompressionFormat.NotCompressed);
@@ -85,17 +85,17 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the arguments into the payload.
+        /// <param name="encoder">The <see cref="IceWriter{T}"/> that encodes the arguments into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
-            TupleEncoder<T> encoder,
+            TupleIceWriter<T> encoder,
             FormatType classFormat = default) where T : struct
         {
-            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
+            var writer = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 writer.Write(CompressionFormat.NotCompressed);
@@ -110,17 +110,17 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the argument into the payload.
+        /// <param name="encoder">The <see cref="IceWriter{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
             IServicePrx proxy,
             T arg,
-            Encoder<T> encoder,
+            IceWriter<T> encoder,
             FormatType classFormat = default)
         {
-            var writer = new BufferWriter(proxy.Encoding, classFormat: classFormat);
+            var writer = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
                 writer.Write(CompressionFormat.NotCompressed);
@@ -135,17 +135,17 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="encoder">The <see cref="Encoder{T}"/> that encodes the argument into the payload.
+        /// <param name="encoder">The <see cref="IceWriter{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
-            Encoder<T> encoder,
+            IceWriter<T> encoder,
             FormatType classFormat = default)
         {
-            var writer = new BufferWriter(dispatch.Encoding, classFormat: classFormat);
+            var writer = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
                 writer.Write(CompressionFormat.NotCompressed);
@@ -176,7 +176,7 @@ namespace IceRpc
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
-            Decoder<T> decoder)
+            IceReader<T> decoder)
         {
             if (payload.Length == 0)
             {
@@ -192,7 +192,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var reader = new BufferReader(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            var reader = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
             T result = decoder(reader);
             reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -209,7 +209,7 @@ namespace IceRpc
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            Decoder<T> decoder,
+            IceReader<T> decoder,
             Connection connection,
             IInvoker? invoker)
         {
@@ -226,7 +226,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
+            var reader = new IceDecoder(payload, payloadEncoding, connection, invoker);
             T result = decoder(reader);
             reader.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -254,10 +254,10 @@ namespace IceRpc
                 };
             }
 
-            BufferWriter writer;
+            IceEncoder writer;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                writer = new BufferWriter(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                writer = new IceEncoder(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
@@ -281,7 +281,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                writer = new BufferWriter(Ice1Definitions.Encoding);
+                writer = new IceEncoder(Ice1Definitions.Encoding);
                 writer.WriteIce1SystemException(replyStatus, request, exception.Message);
             }
 
@@ -308,7 +308,7 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var reader = new BufferReader(payload, payloadEncoding, connection, invoker);
+            var reader = new IceDecoder(payload, payloadEncoding, connection, invoker);
 
             if (protocol == Protocol.Ice2 && reader.Encoding == Encoding.V11)
             {

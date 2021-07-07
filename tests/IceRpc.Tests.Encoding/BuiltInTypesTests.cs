@@ -14,15 +14,15 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly IceRpc.Encoding _encoding;
         private readonly Memory<byte> _buffer;
-        private readonly BufferWriter _writer;
-        private readonly BufferReader _reader;
+        private readonly IceEncoder _writer;
+        private readonly IceDecoder _reader;
 
         public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[256];
-            _writer = new BufferWriter(_encoding, _buffer);
-            _reader = new BufferReader(_buffer, _encoding);
+            _writer = new IceEncoder(_encoding, _buffer);
+            _reader = new IceDecoder(_buffer, _encoding);
         }
 
         [TestCase(true)]

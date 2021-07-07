@@ -8,18 +8,18 @@ namespace IceRpc
     public abstract class AnyClass
     {
         /// <summary>A decoder for non-nullable class instances.</summary>
-        public static readonly Decoder<AnyClass> Decoder =
+        public static readonly IceReader<AnyClass> Decoder =
             reader => reader.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>A decoder for nullable class instances.</summary>
-        public static readonly Decoder<AnyClass?> NullableDecoder =
+        public static readonly IceReader<AnyClass?> NullableDecoder =
             reader => reader.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encoder for non-nullable class instances.</summary>
-        public static readonly Encoder<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
+        public static readonly IceWriter<AnyClass> Encoder = (writer, value) => writer.WriteClass(value, null);
 
         /// <summary>An encoder for nullable class instances.</summary>
-        public static readonly Encoder<AnyClass?> NullableEncoder =
+        public static readonly IceWriter<AnyClass?> NullableEncoder =
             (writer, value) => writer.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
@@ -36,18 +36,18 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Reads this instance by reading its data members from the <see cref="BufferReader"/>.
+        /// <summary>Reads this instance by reading its data members from the <see cref="IceDecoder"/>.
         /// </summary>
         /// <param name="reader">The buffer reader.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(BufferReader reader, bool firstSlice);
-        internal void Read(BufferReader reader) => IceRead(reader, true);
+        protected abstract void IceRead(IceDecoder reader, bool firstSlice);
+        internal void Read(IceDecoder reader) => IceRead(reader, true);
 
-        /// <summary>Writes this instance by writing its data to the <see cref="BufferWriter"/>.</summary>
+        /// <summary>Writes this instance by writing its data to the <see cref="IceEncoder"/>.</summary>
         /// <param name="writer">The buffer writter.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceWrite(BufferWriter writer, bool firstSlice);
-        internal void Write(BufferWriter writer) => IceWrite(writer, true);
+        protected abstract void IceWrite(IceEncoder writer, bool firstSlice);
+        internal void Write(IceEncoder writer) => IceWrite(writer, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>

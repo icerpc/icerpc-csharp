@@ -34,7 +34,7 @@ namespace IceRpc
         internal IncomingResponse(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
-            var reader = new BufferReader(data, Protocol.GetEncoding());
+            var reader = new IceDecoder(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {
                 ReplyStatus = reader.ReadReplyStatus();
