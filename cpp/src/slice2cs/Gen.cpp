@@ -2524,7 +2524,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestIceWriter(const OperationPtr& oper
     bool defaultIceWriter = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
     if (defaultIceWriter)
     {
-        _out << encoder(params.front()->type(), ns, true, true);
+        _out << iceWriter(params.front()->type(), ns, true, true);
     }
     else
     {
@@ -2551,7 +2551,7 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseIceReader(const OperationPtr& ope
 
     if (defaultIceReader)
     {
-        _out << decoder(returnType.front()->type(), ns);
+        _out << iceReader(returnType.front()->type(), ns);
     }
     else if (returnType.size() > 0)
     {
@@ -3053,7 +3053,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestIceReader(const OperationPtr&
 
     if (defaultIceReader)
     {
-        _out << decoder(params.front()->type(), ns);
+        _out << iceReader(params.front()->type(), ns);
     }
     else if (params.size() > 0)
     {
@@ -3081,7 +3081,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseIceWriter(const OperationPtr
     bool defaultIceWriter = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
     if (defaultIceWriter)
     {
-        _out << encoder(returns.front()->type(), ns, true, true);
+        _out << iceWriter(returns.front()->type(), ns, true, true);
     }
     else
     {

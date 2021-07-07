@@ -656,7 +656,7 @@ Slice::toTupleType(const MemberList& params, bool readOnly)
 }
 
 string
-Slice::CsGenerator::encoder(const TypePtr& type, const string& scope, bool readOnly, bool param)
+Slice::CsGenerator::iceWriter(const TypePtr& type, const string& scope, bool readOnly, bool param)
 {
     ostringstream out;
     if (auto optional = OptionalPtr::dynamicCast(type))
@@ -813,7 +813,7 @@ Slice::CsGenerator::writeMarshalCode(
 }
 
 string
-Slice::CsGenerator::decoder(const TypePtr& type, const string& scope)
+Slice::CsGenerator::iceReader(const TypePtr& type, const string& scope)
 {
     ostringstream out;
     if (auto optional = OptionalPtr::dynamicCast(type))
@@ -1047,19 +1047,19 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             {
                 out << ", withBitSequence: true";
             }
-            out << ", " << encoder(underlying, scope, !isDataMember) << ");";
+            out << ", " << iceWriter(underlying, scope, !isDataMember) << ");";
         }
         else if (elementType->isVariableLength())
         {
             out << nl << "encoder.WriteTaggedSequence(" << tag << ", " << param
-                << ", " << encoder(elementType, scope, !isDataMember) << ");";
+                << ", " << iceWriter(elementType, scope, !isDataMember) << ");";
         }
         else
         {
             // Fixed size = min-size
             out << nl << "encoder.WriteTaggedSequence(" << tag << ", " << param << ", "
                 << "elementSize: " << elementType->minWireSize()
-                << ", " << encoder(elementType, scope, !isDataMember) << ");";
+                << ", " << iceWriter(elementType, scope, !isDataMember) << ");";
         }
     }
     else
@@ -1088,8 +1088,8 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             out << ", withBitSequence: true";
         }
-        out << ", " << encoder(keyType, scope)
-            << ", " << encoder(valueType, scope) << ");";
+        out << ", " << iceWriter(keyType, scope)
+            << ", " << iceWriter(valueType, scope) << ");";
     }
 }
 
@@ -1128,7 +1128,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     else if (st)
     {
         out << "decoder.ReadTaggedStruct(" << tag << ", fixedSize: " << (st->isVariableLength() ? "false" : "true")
-            << ", " << decoder(st, scope) << ")";
+            << ", " << iceReader(st, scope) << ")";
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
@@ -1165,7 +1165,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
                 TypePtr underlying = optional->underlying();
                 out << "decoder.ReadTaggedSequence(" << tag << ", "
                     << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
-                    << decoder(elementType, scope)
+                    << iceReader(elementType, scope)
                     << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
                     << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
                     << " : null";
@@ -1175,7 +1175,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
                 out << "decoder.ReadTaggedSequence("
                     << tag << ", minElementSize: " << elementType->minWireSize() << ", fixedSize: "
                     << (elementType->isVariableLength() ? "false" : "true")
-                    << ", " << decoder(elementType, scope)
+                    << ", " << iceReader(elementType, scope)
                     << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
                     << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
                     << " : null";
@@ -1188,13 +1188,13 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
                 TypePtr underlying = optional->underlying();
                 out << "decoder.ReadTaggedArray(" << tag << ", "
                     << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
-                    << decoder(underlying, scope) << ")";
+                    << iceReader(underlying, scope) << ")";
             }
             else
             {
                 out << "decoder.ReadTaggedArray(" << tag << ", minElementSize: " << elementType->minWireSize()
                     << ", fixedSize: " << (elementType->isVariableLength() ? "false" : "true")
-                    << ", " << decoder(elementType, scope) << ")";
+                    << ", " << iceReader(elementType, scope) << ")";
             }
         }
     }
@@ -1229,7 +1229,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
         {
             out << ", fixedSize: " << (fixedSize ? "true" : "false");
         }
-        out << ", " << decoder(keyType, scope) << ", " << decoder(valueType, scope) << ")";
+        out << ", " << iceReader(keyType, scope) << ", " << iceReader(valueType, scope) << ")";
     }
     out << ";";
 }
@@ -1267,11 +1267,11 @@ Slice::CsGenerator::sequenceMarshalCode(
         {
             out << ", withBitSequence: true";
         }
-        out << ", " << encoder(underlying, scope, readOnly) << ")";
+        out << ", " << iceWriter(underlying, scope, readOnly) << ")";
     }
     else
     {
-        out << "encoder.WriteSequence(" << value << ", " << encoder(type, scope, readOnly) << ")";
+        out << "encoder.WriteSequence(" << value << ", " << iceWriter(type, scope, readOnly) << ")";
     }
     return out.str();
 }
@@ -1302,12 +1302,12 @@ Slice::CsGenerator::sequenceUnmarshalCode(const SequencePtr& seq, const string& 
         {
             TypePtr underlying = optional->underlying();
             out << "decoder.ReadArray(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
-                << decoder(underlying, scope) << ")";
+                << iceReader(underlying, scope) << ")";
         }
         else
         {
             out << "decoder.ReadArray(minElementSize: " << type->minWireSize() << ", "
-                << decoder(type, scope) << ")";
+                << iceReader(type, scope) << ")";
         }
     }
     else
@@ -1335,12 +1335,12 @@ Slice::CsGenerator::sequenceUnmarshalCode(const SequencePtr& seq, const string& 
         {
             TypePtr underlying = optional->underlying();
             out << "decoder.ReadSequence(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
-                << decoder(underlying, scope) << ")";
+                << iceReader(underlying, scope) << ")";
         }
         else
         {
             out << "decoder.ReadSequence(minElementSize: " << type->minWireSize() << ", "
-                << decoder(type, scope) << ")";
+                << iceReader(type, scope) << ")";
         }
 
         if (generic == "Stack")
@@ -1372,8 +1372,8 @@ Slice::CsGenerator::dictionaryMarshalCode(const DictionaryPtr& dict, const strin
     {
         out << ", withBitSequence: true";
     }
-    out << ", " << encoder(key, scope)
-        << ", " << encoder(value, scope) << ")";
+    out << ", " << iceWriter(key, scope)
+        << ", " << iceWriter(value, scope) << ")";
     return out.str();
 }
 
@@ -1404,7 +1404,7 @@ Slice::CsGenerator::dictionaryUnmarshalCode(const DictionaryPtr& dict, const str
     {
         out << "withBitSequence: true, ";
     }
-    out << decoder(key, scope) << ", " << decoder(value, scope);
+    out << iceReader(key, scope) << ", " << iceReader(value, scope);
     if (SequencePtr::dynamicCast(value) || DictionaryPtr::dynamicCast(value))
     {
         out << " as " << typeToString(value, scope);
