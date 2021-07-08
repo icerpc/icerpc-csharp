@@ -314,7 +314,7 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Aborts the connection. This methods switches the connection state to 
+        /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for
         /// the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
@@ -1150,7 +1150,8 @@ namespace IceRpc
                         // Wait for the closure of the peer control stream.
                         await waitForGoAwayCanceledTask.ConfigureAwait(false);
 
-                        Debug.Assert(State == ConnectionState.Closed);
+                        // Abort the connection.
+                        await AbortAsync(exception).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -1177,7 +1178,7 @@ namespace IceRpc
                 }
                 catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
                 {
-                    await AbortAsync(exception).ConfigureAwait(false);
+                    // Expected if the connection is shutdown.
                 }
             }
         }
