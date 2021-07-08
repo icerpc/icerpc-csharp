@@ -120,7 +120,7 @@ namespace IceRpc
             Connection? GetCachedConnection(Endpoint endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
-                    connection => connection.State == ConnectionState.Active) is Connection connection ? 
+                    connection => connection.State == ConnectionState.Active) is Connection connection ?
                         connection : null;
         }
 

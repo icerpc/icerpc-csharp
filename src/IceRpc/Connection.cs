@@ -314,7 +314,7 @@ namespace IceRpc
         {
         }
 
-        /// <summary>Aborts the connection. This methods switches the connection state to 
+        /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for
         /// the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>

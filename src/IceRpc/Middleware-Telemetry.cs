@@ -25,7 +25,7 @@ namespace IceRpc
         public static Func<IDispatcher, IDispatcher> Telemetry { get; } = CustomTelemetry(new());
 
         /// <summary>A middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
-        /// conventions. The Activity is started if the ActivitySource has any active listeners, if 
+        /// conventions. The Activity is started if the ActivitySource has any active listeners, if
         /// <see cref="Activity.Current"/> is not null or if IceRpc logger is enabled.</summary>
         /// <param name="options">Options to configure the tracer interceptor.</param>
         /// <returns>The CustomTracer interceptor.</returns>
