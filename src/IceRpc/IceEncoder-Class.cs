@@ -57,20 +57,20 @@ namespace IceRpc
                 EncodeSize(_current.IndirectionTable.Count);
                 foreach (AnyClass v in _current.IndirectionTable)
                 {
-                    // We cannot use formal type optimization for instances written inline in an indirection table,
+                    // We cannot use formal type optimization for instances encoded inline in an indirection table,
                     // as the slice may not be known/unmarshaled by the recipient - therefore the formal type of the
                     // data member is not known.
                     EncodeInstance(v, formalTypeId: null);
                 }
                 _current.IndirectionTable.Clear();
-                _current.IndirectionMap?.Clear(); // IndirectionMap is null when writing SlicedData.
+                _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding SlicedData.
             }
 
             // Update SliceFlags in case they were updated.
             RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
         }
 
-        /// <summary>Starts writing the first slice of a class or exception instance. This is an Ice-internal method
+        /// <summary>Starts encoding the first slice of a class or exception instance. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
         /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
         /// most derived to least derived.</param>
@@ -106,7 +106,7 @@ namespace IceRpc
                     IceStartNextSlice(allTypeIds[0], compactTypeId);
                     return;
                 }
-                // else keep going, we're still writing the first slice and we're ignoring slicedData.
+                // else keep going, we're still encoding the first slice and we're ignoring slicedData.
             }
 
             if (OldEncoding && _classFormat == FormatType.Sliced)
@@ -137,7 +137,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts writing the next (i.e. not first) slice of a class or exception instance. This is an
+        /// <summary>Starts encoding the next (i.e. not first) slice of a class or exception instance. This is an
         /// Ice-internal method marked public because it's called by the generated code.</summary>
         /// <param name="typeId">The type ID of this slice.</param>
         /// <param name="compactId">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
@@ -164,14 +164,14 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a class instance to the buffer.</summary>
-        /// <param name="v">The class instance to write. This instance cannot be null.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
+        /// <param name="v">The class instance to encode. This instance cannot be null.</param>
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
         public void EncodeClass(AnyClass v, string? formalTypeId)
         {
             if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
             {
-                // If writing an instance within a slice and using the sliced format, write an index of that slice's
+                // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
                 // indirection table.
                 if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
                 {
@@ -195,7 +195,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a remote exception to the buffer.</summary>
-        /// <param name="v">The remote exception to write.</param>
+        /// <param name="v">The remote exception to encode.</param>
         public void EncodeException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
@@ -206,8 +206,8 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a class instance to the buffer, or null.</summary>
-        /// <param name="v">The class instance to write, or null.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
+        /// <param name="v">The class instance to encode, or null.</param>
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
         public void EncodeNullableClass(AnyClass? v, string? formalTypeId)
         {
@@ -222,7 +222,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes sliced-off slices to the buffer.</summary>
-        /// <param name="slicedData">The sliced-off slices to write.</param>
+        /// <param name="slicedData">The sliced-off slices to encode.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
         /// <param name="errorMessage">For exceptions, the exception's error message.</param>
         /// <param name="origin">For exceptions, the exception's origin.</param>
@@ -238,11 +238,11 @@ namespace IceRpc
             // slices, which essentially "slices" the instance into the most-derived type known by the sender.
             if (_classFormat != FormatType.Sliced)
             {
-                throw new NotSupportedException($"cannot write sliced data into payload using {_classFormat} format");
+                throw new NotSupportedException($"cannot encode sliced data into payload using {_classFormat} format");
             }
             if (Encoding != slicedData.Encoding)
             {
-                throw new NotSupportedException(@$"cannot write sliced data encoded with encoding {slicedData.Encoding
+                throw new NotSupportedException(@$"cannot encode sliced data encoded with encoding {slicedData.Encoding
                     } into payload encoded with encoding {Encoding}");
             }
 
@@ -282,8 +282,8 @@ namespace IceRpc
                     _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
                 }
 
-                // Make sure to also re-write the instance indirection table.
-                // These instances will be marshaled (and assigned instance IDs) in IceEndSlice.
+                // Make sure to also encode the instance indirection table.
+                // These instances will be encoded (and assigned instance IDs) in IceEndSlice.
                 if (sliceInfo.Instances.Count > 0)
                 {
                     _current.IndirectionTable ??= new List<AnyClass>();
@@ -313,13 +313,13 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes this class instance inline if not previously marshaled, otherwise just write its instance
+        /// <summary>Encodes this class instance inline if not previously marshaled, otherwise just encode its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
         /// <param name="formalTypeId">The type ID of the formal parameter or data member being marshaled.</param>
         private void EncodeInstance(AnyClass v, string? formalTypeId)
         {
-            // If the instance was already marshaled, just write its instance ID.
+            // If the instance was already marshaled, just encode its instance ID.
             if (_instanceMap != null && _instanceMap.TryGetValue(v, out int instanceId))
             {
                 EncodeSize(instanceId);
@@ -329,14 +329,14 @@ namespace IceRpc
                 _instanceMap ??= new Dictionary<AnyClass, int>();
 
                 // We haven't seen this instance previously, so we create a new instance ID and insert the instance
-                // and its ID in the marshaled map, before writing the instance inline.
-                // The instance IDs start at 2 (0 means null and 1 means the instance is written immediately after).
+                // and its ID in the marshaled map, before encoding the instance inline.
+                // The instance IDs start at 2 (0 means null and 1 means the instance is encoded immediately after).
                 instanceId = _instanceMap.Count + 2;
                 _instanceMap.Add(v, instanceId);
 
                 EncodeSize(1); // Class instance marker.
 
-                // Save _current in case we're writing a nested instance.
+                // Save _current in case we're encoding a nested instance.
                 InstanceData previousCurrent = _current;
                 _current = default;
                 _current.InstanceType = InstanceType.Class;
@@ -384,7 +384,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(compactId == null);
-                // With the 1.1 encoding, we always write a string and don't set a type ID kind in SliceFlags.
+                // With the 1.1 encoding, we always encode a string and don't set a type ID kind in SliceFlags.
                 EncodeString(typeId);
             }
 
@@ -428,7 +428,7 @@ namespace IceRpc
                         EncodeSize(index);
                     }
                 }
-                // else, don't write anything (formal type optimization)
+                // else, don't encode anything (formal type optimization)
             }
             else
             {
@@ -448,7 +448,7 @@ namespace IceRpc
         {
             // The following fields are used and reused for all the slices of a class or exception instance.
 
-            // (Class only) The type ID associated with the formal type of the parameter or data member being written.
+            // (Class only) The type ID associated with the formal type of the parameter or data member being encoded.
             // We use this formalTypeId to skip the marshaling of type IDs when there is a match.
             internal string? FormalTypeId20;
 

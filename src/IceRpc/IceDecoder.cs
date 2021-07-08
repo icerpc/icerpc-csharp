@@ -15,14 +15,14 @@ namespace IceRpc
     /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
     public sealed partial class IceDecoder
     {
-        /// <summary>The Ice encoding used by this decoder when reading its byte buffer.</summary>
+        /// <summary>The Ice encoding used by this decoder when decoding its byte buffer.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
-        /// <summary>Connection used when unmarshaling proxies.</summary>
+        /// <summary>Connection used when decoding proxies.</summary>
         internal Connection? Connection { get; }
 
-        /// <summary>Invoker used when unmarshaling proxies.</summary>
+        /// <summary>Invoker used when decoding proxies.</summary>
         internal IInvoker? Invoker { get; }
 
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
@@ -47,7 +47,7 @@ namespace IceRpc
 
         private bool OldEncoding => Encoding == Encoding.V11;
 
-        // The byte buffer we are reading.
+        // The byte buffer we are decoding.
         private readonly ReadOnlyMemory<byte> _buffer;
 
         private readonly int _classGraphMaxDepth;
@@ -57,19 +57,19 @@ namespace IceRpc
         // Data for the class or exception instance that is currently getting unmarshaled.
         private InstanceData _current;
 
-        // The current depth when reading nested class instances.
+        // The current depth when decoding nested class instances.
         private int _classGraphDepth;
 
         // Map of class instance ID to class instance.
-        // When reading a buffer:
+        // When decoding a buffer:
         //  - Instance ID = 0 means null
         //  - Instance ID = 1 means the instance is encoded inline afterwards
-        //  - Instance ID > 1 means a reference to a previously read instance, found in this map.
+        //  - Instance ID > 1 means a reference to a previously decoded instance, found in this map.
         // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
         private List<AnyClass>? _instanceMap;
 
-        // The sum of all the minimum sizes (in bytes) of the sequences read in this buffer. Must not exceed the buffer
-        // size.
+        // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
+        // buffer size.
         private int _minTotalSeqSize;
 
         // See DecodeTypeId11.
@@ -79,7 +79,7 @@ namespace IceRpc
         IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? _typeIdRemoteExceptionFactories;
 
         // Map of type ID index to type ID sequence, used only for classes.
-        // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we read, in order.
+        // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
         // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
         // _typeIdMap[index - 1]. With the 2.0 encoding, each entry has at least 1 element.
         private List<string>? _typeIdMap11;
@@ -88,15 +88,15 @@ namespace IceRpc
         // Decode methods for basic types
 
         /// <summary>Decodes a bool from the buffer.</summary>
-        /// <returns>The bool read from the buffer.</returns>
+        /// <returns>The bool decoded from the buffer.</returns>
         public bool DecodeBool() => _buffer.Span[Pos++] == 1;
 
         /// <summary>Decodes a byte from the buffer.</summary>
-        /// <returns>The byte read from the buffer.</returns>
+        /// <returns>The byte decoded from the buffer.</returns>
         public byte DecodeByte() => _buffer.Span[Pos++];
 
         /// <summary>Decodes a double from the buffer.</summary>
-        /// <returns>The double read from the buffer.</returns>
+        /// <returns>The double decoded from the buffer.</returns>
         public double DecodeDouble()
         {
             double value = BitConverter.ToDouble(_buffer.Span.Slice(Pos, sizeof(double)));
@@ -105,7 +105,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a float from the buffer.</summary>
-        /// <returns>The float read from the buffer.</returns>
+        /// <returns>The float decoded from the buffer.</returns>
         public float DecodeFloat()
         {
             float value = BitConverter.ToSingle(_buffer.Span.Slice(Pos, sizeof(float)));
@@ -114,7 +114,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes an int from the buffer.</summary>
-        /// <returns>The int read from the buffer.</returns>
+        /// <returns>The int decoded from the buffer.</returns>
         public int DecodeInt()
         {
             int value = BitConverter.ToInt32(_buffer.Span.Slice(Pos, sizeof(int)));
@@ -123,7 +123,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a long from the buffer.</summary>
-        /// <returns>The long read from the buffer.</returns>
+        /// <returns>The long decoded from the buffer.</returns>
         public long DecodeLong()
         {
             long value = BitConverter.ToInt64(_buffer.Span.Slice(Pos, sizeof(long)));
@@ -132,7 +132,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a short from the buffer.</summary>
-        /// <returns>The short read from the buffer.</returns>
+        /// <returns>The short decoded from the buffer.</returns>
         public short DecodeShort()
         {
             short value = BitConverter.ToInt16(_buffer.Span.Slice(Pos, sizeof(short)));
@@ -141,11 +141,11 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a size from the buffer. This size's encoding is variable-length.</summary>
-        /// <returns>The size read from the buffer.</returns>
+        /// <returns>The size decoded from the buffer.</returns>
         public int DecodeSize() => OldEncoding ? DecodeSize11() : DecodeSize20();
 
         /// <summary>Decodes a string from the buffer.</summary>
-        /// <returns>The string read from the buffer.</returns>
+        /// <returns>The string decoded from the buffer.</returns>
         public string DecodeString()
         {
             int size = DecodeSize();
@@ -162,7 +162,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a uint from the buffer.</summary>
-        /// <returns>The uint read from the buffer.</returns>
+        /// <returns>The uint decoded from the buffer.</returns>
         public uint DecodeUInt()
         {
             uint value = BitConverter.ToUInt32(_buffer.Span.Slice(Pos, sizeof(uint)));
@@ -171,7 +171,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a ulong from the buffer.</summary>
-        /// <returns>The ulong read from the buffer.</returns>
+        /// <returns>The ulong decoded from the buffer.</returns>
         public ulong DecodeULong()
         {
             ulong value = BitConverter.ToUInt64(_buffer.Span.Slice(Pos, sizeof(ulong)));
@@ -180,7 +180,7 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a ushort from the buffer.</summary>
-        /// <returns>The ushort read from the buffer.</returns>
+        /// <returns>The ushort decoded from the buffer.</returns>
         public ushort DecodeUShort()
         {
             ushort value = BitConverter.ToUInt16(_buffer.Span.Slice(Pos, sizeof(ushort)));
@@ -190,7 +190,7 @@ namespace IceRpc
 
         /// <summary>Decodes an int from the buffer. This int is encoded using Ice's variable-size integer encoding.
         /// </summary>
-        /// <returns>The int read from the buffer.</returns>
+        /// <returns>The int decoded from the buffer.</returns>
         public int DecodeVarInt()
         {
             try
@@ -208,7 +208,7 @@ namespace IceRpc
 
         /// <summary>Decodes a long from the buffer. This long is encoded using Ice's variable-size integer encoding.
         /// </summary>
-        /// <returns>The long read from the buffer.</returns>
+        /// <returns>The long decoded from the buffer.</returns>
         public long DecodeVarLong() =>
             (_buffer.Span[Pos] & 0x03) switch
             {
@@ -220,7 +220,7 @@ namespace IceRpc
 
         /// <summary>Decodes a uint from the buffer. This uint is encoded using Ice's variable-size integer encoding.
         /// </summary>
-        /// <returns>The uint read from the buffer.</returns>
+        /// <returns>The uint decoded from the buffer.</returns>
         public uint DecodeVarUInt()
         {
             try
@@ -238,7 +238,7 @@ namespace IceRpc
 
         /// <summary>Decodes a ulong from the buffer. This ulong is encoded using Ice's variable-size integer encoding.
         /// </summary>
-        /// <returns>The ulong read from the buffer.</returns>
+        /// <returns>The ulong decoded from the buffer.</returns>
         public ulong DecodeVarULong() =>
             (_buffer.Span[Pos] & 0x03) switch
             {
@@ -251,7 +251,7 @@ namespace IceRpc
         // Decode methods for constructed types except class and exception
 
         /// <summary>Decodes a sequence of fixed-size numeric values from the buffer and returns an array.</summary>
-        /// <returns>The sequence read from the buffer, as an array.</returns>
+        /// <returns>The sequence decoded from the buffer, as an array.</returns>
         public T[] DecodeArray<T>() where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
@@ -264,7 +264,7 @@ namespace IceRpc
 
         /// <summary>Decodes a sequence of fixed-size numeric values from the buffer and returns an array.</summary>
         /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence read from the buffer, as an array.</returns>
+        /// <returns>The sequence decoded from the buffer, as an array.</returns>
         public T[] DecodeArray<T>(Action<T> checkElement) where T : struct
         {
             T[] value = DecodeArray<T>();
@@ -278,7 +278,7 @@ namespace IceRpc
         /// <summary>Decodes a sequence from the buffer and returns an array.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence read from the buffer, as an array.</returns>
+        /// <returns>The sequence decoded from the buffer, as an array.</returns>
         public T[] DecodeArray<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
             DecodeSequence(minElementSize, decodeFunc).ToArray();
 
@@ -286,13 +286,13 @@ namespace IceRpc
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence read from the buffer, as an array.</returns>
+        /// <returns>The sequence decoded from the buffer, as an array.</returns>
         public T?[] DecodeArray<T>(bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
             DecodeSequence(withBitSequence, decodeFunc).ToArray();
 
         /// <summary>Decodes a sequence of nullable values from the buffer and returns an array.</summary>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence read from the buffer, as an array.</returns>
+        /// <returns>The sequence decoded from the buffer, as an array.</returns>
         public T?[] DecodeArray<T>(DecodeFunc<T> decodeFunc) where T : struct => DecodeSequence(decodeFunc).ToArray();
 
         /// <summary>Decodes a dictionary from the buffer.</summary>
@@ -300,7 +300,7 @@ namespace IceRpc
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer.</returns>
+        /// <returns>The dictionary decoded from the buffer.</returns>
         public Dictionary<TKey, TValue> DecodeDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
@@ -324,7 +324,7 @@ namespace IceRpc
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer.</returns>
+        /// <returns>The dictionary decoded from the buffer.</returns>
         public Dictionary<TKey, TValue?> DecodeDictionary<TKey, TValue>(
             int minKeySize,
             bool withBitSequence,
@@ -341,7 +341,7 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer.</returns>
+        /// <returns>The dictionary decoded from the buffer.</returns>
         public Dictionary<TKey, TValue?> DecodeDictionary<TKey, TValue>(
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
@@ -356,7 +356,7 @@ namespace IceRpc
         /// <summary>Decodes a sequence from the buffer.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
+        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
         /// the buffer. The return value does not fully implement ICollection{T}, in particular you can only call
         /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
         /// some other generic collection that can be constructed from an IEnumerable{T}.</returns>
@@ -368,7 +368,7 @@ namespace IceRpc
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
+        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
@@ -378,7 +378,7 @@ namespace IceRpc
         /// <summary>Decodes a sequence of nullable values from the buffer.</summary>
         /// <param name="decodeFunc">The decode function for each non-null element (value) of the sequence.
         /// </param>
-        /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
+        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
@@ -390,7 +390,7 @@ namespace IceRpc
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The sorted dictionary read from the buffer.</returns>
+        /// <returns>The sorted dictionary decoded from the buffer.</returns>
         public SortedDictionary<TKey, TValue> DecodeSortedDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
@@ -415,7 +415,7 @@ namespace IceRpc
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.
         /// </param>
-        /// <returns>The sorted dictionary read from the buffer.</returns>
+        /// <returns>The sorted dictionary decoded from the buffer.</returns>
         public SortedDictionary<TKey, TValue?> DecodeSortedDictionary<TKey, TValue>(
             int minKeySize,
             bool withBitSequence,
@@ -435,7 +435,7 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The sorted dictionary read from the buffer.</returns>
+        /// <returns>The sorted dictionary decoded from the buffer.</returns>
         public SortedDictionary<TKey, TValue?> DecodeSortedDictionary<TKey, TValue>(
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
@@ -452,97 +452,97 @@ namespace IceRpc
 
         /// <summary>Decodes a tagged bool from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The bool read from the buffer, or null.</returns>
+        /// <returns>The bool decoded from the buffer, or null.</returns>
         public bool? DecodeTaggedBool(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1) ? DecodeBool() : (bool?)null;
 
         /// <summary>Decodes a tagged byte from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The byte read from the buffer, or null.</returns>
+        /// <returns>The byte decoded from the buffer, or null.</returns>
         public byte? DecodeTaggedByte(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1) ? DecodeByte() : (byte?)null;
 
         /// <summary>Decodes a tagged double from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The double read from the buffer, or null.</returns>
+        /// <returns>The double decoded from the buffer, or null.</returns>
         public double? DecodeTaggedDouble(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeDouble() : (double?)null;
 
         /// <summary>Decodes a tagged float from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The float read from the buffer, or null.</returns>
+        /// <returns>The float decoded from the buffer, or null.</returns>
         public float? DecodeTaggedFloat(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeFloat() : (float?)null;
 
         /// <summary>Decodes a tagged int from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The int read from the buffer, or null.</returns>
+        /// <returns>The int decoded from the buffer, or null.</returns>
         public int? DecodeTaggedInt(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeInt() : (int?)null;
 
         /// <summary>Decodes a tagged long from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The long read from the buffer, or null.</returns>
+        /// <returns>The long decoded from the buffer, or null.</returns>
         public long? DecodeTaggedLong(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeLong() : (long?)null;
 
         /// <summary>Decodes a tagged short from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The short read from the buffer, or null.</returns>
+        /// <returns>The short decoded from the buffer, or null.</returns>
         public short? DecodeTaggedShort(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2) ? DecodeShort() : (short?)null;
 
         /// <summary>Decodes a tagged size from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The size read from the buffer, or null.</returns>
+        /// <returns>The size decoded from the buffer, or null.</returns>
         public int? DecodeTaggedSize(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size) ? DecodeSize() : (int?)null;
 
         /// <summary>Decodes a tagged string from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The string read from the buffer, or null.</returns>
+        /// <returns>The string decoded from the buffer, or null.</returns>
         public string? DecodeTaggedString(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize) ? DecodeString() : null;
 
         /// <summary>Decodes a tagged uint from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The uint read from the buffer, or null.</returns>
+        /// <returns>The uint decoded from the buffer, or null.</returns>
         public uint? DecodeTaggedUInt(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeUInt() : (uint?)null;
 
         /// <summary>Decodes a tagged ulong from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The ulong read from the buffer, or null.</returns>
+        /// <returns>The ulong decoded from the buffer, or null.</returns>
         public ulong? DecodeTaggedULong(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeULong() : (ulong?)null;
 
         /// <summary>Decodes a tagged ushort from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The ushort read from the buffer, or null.</returns>
+        /// <returns>The ushort decoded from the buffer, or null.</returns>
         public ushort? DecodeTaggedUShort(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2) ? DecodeUShort() : (ushort?)null;
 
         /// <summary>Decodes a tagged varint from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The int read from the buffer, or null.</returns>
+        /// <returns>The int decoded from the buffer, or null.</returns>
         public int? DecodeTaggedVarInt(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarInt() : (int?)null;
 
         /// <summary>Decodes a tagged varlong from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The long read from the buffer, or null.</returns>
+        /// <returns>The long decoded from the buffer, or null.</returns>
         public long? DecodeTaggedVarLong(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarLong() : (long?)null;
 
         /// <summary>Decodes a tagged varuint from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The uint read from the buffer, or null.</returns>
+        /// <returns>The uint decoded from the buffer, or null.</returns>
         public uint? DecodeTaggedVarUInt(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarUInt() : (uint?)null;
 
         /// <summary>Decodes a tagged varulong from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The ulong read from the buffer, or null.</returns>
+        /// <returns>The ulong decoded from the buffer, or null.</returns>
         public ulong? DecodeTaggedVarULong(int tag) =>
             DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarULong() : (ulong?)null;
 
@@ -550,7 +550,7 @@ namespace IceRpc
 
         /// <summary>Decodes a tagged array of a fixed-size numeric type from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>The sequence read from the buffer as an array, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an array, or null.</returns>
         public T[]? DecodeTaggedArray<T>(int tag) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
@@ -573,7 +573,7 @@ namespace IceRpc
         /// <summary>Decodes a tagged array of a fixed-size numeric type from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence read from the buffer as an array, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an array, or null.</returns>
         public T[]? DecodeTaggedArray<T>(int tag, Action<T> checkElement) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
@@ -599,7 +599,7 @@ namespace IceRpc
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence read from the buffer as an array, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an array, or null.</returns>
         public T[]? DecodeTaggedArray<T>(int tag, int minElementSize, bool fixedSize, DecodeFunc<T> decodeFunc) =>
             DecodeTaggedSequence(tag, minElementSize, fixedSize, decodeFunc)?.ToArray();
 
@@ -608,14 +608,14 @@ namespace IceRpc
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
         /// <param name="decodeFunc">The decode function for each non-null element of the array.</param>
-        /// <returns>The array read from the buffer, or null.</returns>
+        /// <returns>The array decoded from the buffer, or null.</returns>
         public T?[]? DecodeTaggedArray<T>(int tag, bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
             DecodeTaggedSequence(tag, withBitSequence, decodeFunc)?.ToArray();
 
         /// <summary>Decodes a tagged array of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">The decode function for each non-null value of the array.</param>
-        /// <returns>The array read from the buffer, or null.</returns>
+        /// <returns>The array decoded from the buffer, or null.</returns>
         public T?[]? DecodeTaggedArray<T>(int tag, DecodeFunc<T> decodeFunc) where T : struct =>
             DecodeTaggedSequence(tag, decodeFunc)?.ToArray();
 
@@ -626,7 +626,7 @@ namespace IceRpc
         /// <param name="fixedSize">When true, the entry size is fixed; otherwise, false.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer, or null.</returns>
+        /// <returns>The dictionary decoded from the buffer, or null.</returns>
         public Dictionary<TKey, TValue>? DecodeTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -651,7 +651,7 @@ namespace IceRpc
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer, or null.</returns>
+        /// <returns>The dictionary decoded from the buffer, or null.</returns>
         public Dictionary<TKey, TValue?>? DecodeTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -675,7 +675,7 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer, or null.</returns>
+        /// <returns>The dictionary decoded from the buffer, or null.</returns>
         public Dictionary<TKey, TValue?>? DecodeTaggedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -698,7 +698,7 @@ namespace IceRpc
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence read from the buffer as an ICollection{T}, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an ICollection{T}, or null.</returns>
         public ICollection<T>? DecodeTaggedSequence<T>(
             int tag,
             int minElementSize,
@@ -722,7 +722,7 @@ namespace IceRpc
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? DecodeTaggedSequence<T>(int tag, bool withBitSequence, DecodeFunc<T> decodeFunc)
             where T : class
         {
@@ -740,7 +740,7 @@ namespace IceRpc
         /// <summary>Decodes a tagged sequence of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">The decode function for each non-null value of the sequence.</param>
-        /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
+        /// <returns>The sequence decoded from the buffer as an ICollection{T?}, or null.</returns>
         public ICollection<T?>? DecodeTaggedSequence<T>(int tag, DecodeFunc<T> decodeFunc)
             where T : struct
         {
@@ -762,7 +762,7 @@ namespace IceRpc
         /// <param name="fixedSize">True when the entry size is fixed; otherwise, false.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The sorted dictionary read from the buffer, or null.</returns>
+        /// <returns>The sorted dictionary decoded from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue>? DecodeTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -786,7 +786,7 @@ namespace IceRpc
         /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer, or null.</returns>
+        /// <returns>The dictionary decoded from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -810,7 +810,7 @@ namespace IceRpc
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary read from the buffer, or null.</returns>
+        /// <returns>The dictionary decoded from the buffer, or null.</returns>
         public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionary<TKey, TValue>(
             int tag,
             int minKeySize,
@@ -830,8 +830,8 @@ namespace IceRpc
         /// <summary>Decodes a tagged struct from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="fixedSize">True when the struct has a fixed size on the wire; otherwise, false.</param>
-        /// <param name="decodeFunc">The decode function used to create and read the struct.</param>
-        /// <returns>The struct T read from the buffer, or null.</returns>
+        /// <param name="decodeFunc">The decode function used to create and decode the struct.</param>
+        /// <returns>The struct T decoded from the buffer, or null.</returns>
         public T? DecodeTaggedStruct<T>(int tag, bool fixedSize, DecodeFunc<T> decodeFunc) where T : struct
         {
             if (DecodeTaggedParamHeader(tag,
@@ -847,7 +847,7 @@ namespace IceRpc
 
         /// <summary>Decodes a bit sequence from the buffer.</summary>
         /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The read-only bit sequence read from the buffer.</returns>
+        /// <returns>The read-only bit sequence decoded from the buffer.</returns>
         public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
         {
             int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
@@ -910,7 +910,7 @@ namespace IceRpc
         /// <summary>Decodes an endpoint from the buffer. Only called when the Ice decoder uses the 1.1 encoding.
         /// </summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
-        /// <returns>The endpoint read from the buffer.</returns>
+        /// <returns>The endpoint decoded from the buffer.</returns>
         internal Endpoint DecodeEndpoint11(Protocol protocol)
         {
             Debug.Assert(OldEncoding);
@@ -944,7 +944,7 @@ namespace IceRpc
                 ice1EndpointFactory = factory as IIce1EndpointFactory;
             }
 
-            // We need to read the encapsulation except for ice1 + null factory.
+            // We need to decode the encapsulation except for ice1 + null factory.
             if (protocol == Protocol.Ice1 && ice1EndpointFactory == null)
             {
                 endpoint = OpaqueEndpoint.Create(transport,
@@ -980,7 +980,7 @@ namespace IceRpc
             {
                 string transportName = transport.ToString().ToLowerInvariant();
                 throw new InvalidDataException(
-                    @$"cannot read endpoint for protocol '{protocol.GetName()}' and transport '{transportName
+                    @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
             }
 
@@ -1025,7 +1025,7 @@ namespace IceRpc
             Pos += size;
         }
 
-        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to read the
+        /// <summary>Decodes a sequence size and makes sure there is enough space in the underlying buffer to decode the
         /// sequence. This validation is performed to make sure we do not allocate a large container based on an
         /// invalid encoded size.</summary>
         /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. This value is
@@ -1044,7 +1044,7 @@ namespace IceRpc
             int minSize = minElementSize > 0 ? sz * minElementSize : (sz >> 3) + ((sz & 0x07) != 0 ? 1 : 0);
 
             // With _minTotalSeqSize, we make sure that multiple sequences within a buffer can't trigger maliciously
-            // the allocation of a large amount of memory before we read these sequences from the buffer.
+            // the allocation of a large amount of memory before we decode these sequences from the buffer.
             _minTotalSeqSize += minSize;
 
             if (Pos + minSize > _buffer.Length || _minTotalSeqSize > _buffer.Length)
@@ -1124,7 +1124,7 @@ namespace IceRpc
             int size = DecodeInt();
             if (size < 0)
             {
-                throw new InvalidDataException($"read invalid size: {size}");
+                throw new InvalidDataException($"decoded invalid size: {size}");
             }
             return size;
         }
@@ -1145,7 +1145,7 @@ namespace IceRpc
             return length;
         }
 
-        /// <summary>Determines if a tagged parameter or data member is available for reading.</summary>
+        /// <summary>Determines if a tagged parameter or data member is available.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
@@ -1400,7 +1400,7 @@ namespace IceRpc
             }
         }
 
-        // Collection<T> holds the size of a Slice sequence and reads the sequence elements from the buffer on-demand.
+        // Collection<T> holds the size of a Slice sequence and decodes the sequence elements from the buffer on-demand.
         // It does not fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw NotSupportedException)
         // because it's not resettable: you can't use it to unmarshal the same bytes multiple times.
         private sealed class Collection<T> : CollectionBase<T>
@@ -1416,7 +1416,7 @@ namespace IceRpc
             }
         }
 
-        // Similar to Collection<T>, except we are reading a sequence<T?> where T is a reference type. T here must not
+        // Similar to Collection<T>, except we are decoding a sequence<T?> where T is a reference type. T here must not
         // correspond to a mapped Slice class or to a proxy class.
         private sealed class NullableCollection<T> : CollectionBase<T?> where T : class
         {
@@ -1438,7 +1438,7 @@ namespace IceRpc
             }
         }
 
-        // Similar to Collection<T>, except we are reading a sequence<T?> where T is a value type.
+        // Similar to Collection<T>, except we are decoding a sequence<T?> where T is a value type.
         private sealed class NullableValueCollection<T> : CollectionBase<T?> where T : struct
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;

@@ -43,8 +43,8 @@ namespace IceRpc
         /// </summary>
         internal int Capacity { get; private set; }
 
-        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written
-        /// using this writer.</summary>
+        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
+        /// using this encoder.</summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
 
@@ -89,11 +89,11 @@ namespace IceRpc
         // Encode methods for basic types
 
         /// <summary>Encodes a boolean to the buffer.</summary>
-        /// <param name="v">The boolean to write to the buffer.</param>
+        /// <param name="v">The boolean to encode to the buffer.</param>
         public void EncodeBool(bool v) => EncodeByte(v ? (byte)1 : (byte)0);
 
         /// <summary>Encodes a byte to the buffer.</summary>
-        /// <param name="v">The byte to write.</param>
+        /// <param name="v">The byte to encode.</param>
         public void EncodeByte(byte v)
         {
             Expand(1);
@@ -103,23 +103,23 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a double to the buffer.</summary>
-        /// <param name="v">The double to write to the buffer.</param>
+        /// <param name="v">The double to encode to the buffer.</param>
         public void EncodeDouble(double v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a float to the buffer.</summary>
-        /// <param name="v">The float to write to the buffer.</param>
+        /// <param name="v">The float to encode to the buffer.</param>
         public void EncodeFloat(float v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int to the buffer.</summary>
-        /// <param name="v">The int to write to the buffer.</param>
+        /// <param name="v">The int to encode to the buffer.</param>
         public void EncodeInt(int v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a long to the buffer.</summary>
-        /// <param name="v">The long to write to the buffer.</param>
+        /// <param name="v">The long to encode to the buffer.</param>
         public void EncodeLong(long v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a short to the buffer.</summary>
-        /// <param name="v">The short to write to the buffer.</param>
+        /// <param name="v">The short to encode to the buffer.</param>
         public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a size to the buffer.</summary>
@@ -145,7 +145,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a string to the buffer.</summary>
-        /// <param name="v">The string to write to the buffer.</param>
+        /// <param name="v">The string to encode to the buffer.</param>
         public void EncodeString(string v)
         {
             if (v.Length == 0)
@@ -155,9 +155,9 @@ namespace IceRpc
             else if (v.Length <= 100)
             {
                 Span<byte> data = stackalloc byte[_utf8.GetMaxByteCount(v.Length)];
-                int written = _utf8.GetBytes(v, data);
-                EncodeSize(written);
-                WriteByteSpan(data.Slice(0, written));
+                int encoded = _utf8.GetBytes(v, data);
+                EncodeSize(encoded);
+                WriteByteSpan(data.Slice(0, encoded));
             }
             else
             {
@@ -168,24 +168,24 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a uint to the buffer.</summary>
-        /// <param name="v">The uint to write to the buffer.</param>
+        /// <param name="v">The uint to encode to the buffer.</param>
         public void EncodeUInt(uint v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a ulong to the buffer.</summary>
-        /// <param name="v">The ulong to write to the buffer.</param>
+        /// <param name="v">The ulong to encode to the buffer.</param>
         public void EncodeULong(ulong v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes a ushort to the buffer.</summary>
-        /// <param name="v">The ushort to write to the buffer.</param>
+        /// <param name="v">The ushort to encode to the buffer.</param>
         public void EncodeUShort(ushort v) => EncodeFixedSizeNumeric(v);
 
         /// <summary>Encodes an int to the buffer, using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="v">The int to write to the buffer.</param>
+        /// <param name="v">The int to encode to the buffer.</param>
         public void EncodeVarInt(int v) => EncodeVarLong(v);
 
         /// <summary>Encodes a long to the buffer, using IceRPC's variable-size integer encoding, with the minimum number
         /// of bytes required by the encoding.</summary>
-        /// <param name="v">The long to write to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
+        /// <param name="v">The long to encode to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
         public void EncodeVarLong(long v)
         {
             int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
@@ -197,12 +197,12 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="v">The uint to write to the buffer.</param>
+        /// <param name="v">The uint to encode to the buffer.</param>
         public void EncodeVarUInt(uint v) => EncodeVarULong(v);
 
         /// <summary>Encodes a ulong to the buffer, using IceRPC's variable-size integer encoding, with the minimum
         /// number of bytes required by the encoding.</summary>
-        /// <param name="v">The ulong to write to the buffer. It must be in the range [0..2^62 - 1].</param>
+        /// <param name="v">The ulong to encode to the buffer. It must be in the range [0..2^62 - 1].</param>
         public void EncodeVarULong(ulong v)
         {
             int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
@@ -220,7 +220,7 @@ namespace IceRpc
         public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
 
         /// <summary>Encodes a dictionary to the buffer.</summary>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the values.</param>
         public void EncodeDictionary<TKey, TValue>(
@@ -238,7 +238,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a dictionary to the buffer. The dictionary's value type is reference type.</summary>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
@@ -278,7 +278,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a dictionary to the buffer. The dictionary's value type is a nullable value type.</summary>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
         public void EncodeDictionary<TKey, TValue>(
@@ -308,7 +308,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a nullable proxy to the buffer.</summary>
-        /// <param name="v">The proxy to write, or null.</param>
+        /// <param name="v">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(IServicePrx? v)
         {
             if (v != null)
@@ -330,7 +330,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a proxy to the buffer.</summary>
-        /// <param name="v">The proxy to write. This proxy cannot be null.</param>
+        /// <param name="v">The proxy to encode. This proxy cannot be null.</param>
         public void EncodeProxy(IServicePrx v) => v.IceEncode(this);
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
@@ -365,7 +365,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a sequence to the buffer.</summary>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public void EncodeSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
         {
@@ -377,7 +377,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a sequence to the buffer. The elements of the sequence are reference types.</summary>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
         public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
@@ -409,7 +409,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a sequence of nullable values to the buffer.</summary>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for the non-null values.</param>
         public void EncodeSequence<T>(IEnumerable<T?> v, EncodeAction<T> encodeAction) where T : struct
         {
@@ -432,14 +432,14 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a mapped Slice struct to the buffer.</summary>
-        /// <param name="v">The struct instance to write.</param>
+        /// <param name="v">The struct instance to encode.</param>
         public void EncodeStruct<T>(T v) where T : struct, IEncodable => v.IceEncode(this);
 
         // Encode methods for tagged basic types
 
         /// <summary>Encodes a tagged boolean to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The boolean to write to the buffer.</param>
+        /// <param name="v">The boolean to encode to the buffer.</param>
         public void EncodeTaggedBool(int tag, bool? v)
         {
             if (v is bool value)
@@ -451,7 +451,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged byte to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The byte to write to the buffer.</param>
+        /// <param name="v">The byte to encode to the buffer.</param>
         public void EncodeTaggedByte(int tag, byte? v)
         {
             if (v is byte value)
@@ -463,7 +463,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged double to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The double to write to the buffer.</param>
+        /// <param name="v">The double to encode to the buffer.</param>
         public void EncodeTaggedDouble(int tag, double? v)
         {
             if (v is double value)
@@ -475,7 +475,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged float to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The float to write to the buffer.</param>
+        /// <param name="v">The float to encode to the buffer.</param>
         public void EncodeTaggedFloat(int tag, float? v)
         {
             if (v is float value)
@@ -487,7 +487,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged int to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the buffer.</param>
+        /// <param name="v">The int to encode to the buffer.</param>
         public void EncodeTaggedInt(int tag, int? v)
         {
             if (v is int value)
@@ -499,7 +499,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged long to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the buffer.</param>
+        /// <param name="v">The long to encode to the buffer.</param>
         public void EncodeTaggedLong(int tag, long? v)
         {
             if (v is long value)
@@ -523,7 +523,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged short to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The short to write to the buffer.</param>
+        /// <param name="v">The short to encode to the buffer.</param>
         public void EncodeTaggedShort(int tag, short? v)
         {
             if (v is short value)
@@ -535,7 +535,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged string to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The string to write to the buffer.</param>
+        /// <param name="v">The string to encode to the buffer.</param>
         public void EncodeTaggedString(int tag, string? v)
         {
             if (v is string value)
@@ -547,7 +547,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged uint to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the buffer.</param>
+        /// <param name="v">The uint to encode to the buffer.</param>
         public void EncodeTaggedUInt(int tag, uint? v)
         {
             if (v is uint value)
@@ -559,7 +559,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged ulong to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the buffer.</param>
+        /// <param name="v">The ulong to encode to the buffer.</param>
         public void EncodeTaggedULong(int tag, ulong? v)
         {
             if (v is ulong value)
@@ -571,7 +571,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged ushort to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ushort to write to the buffer.</param>
+        /// <param name="v">The ushort to encode to the buffer.</param>
         public void EncodeTaggedUShort(int tag, ushort? v)
         {
             if (v is ushort value)
@@ -583,12 +583,12 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged int to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the buffer.</param>
+        /// <param name="v">The int to encode to the buffer.</param>
         public void EncodeTaggedVarInt(int tag, int? v) => EncodeTaggedVarLong(tag, v);
 
         /// <summary>Encodes a tagged long to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the buffer.</param>
+        /// <param name="v">The long to encode to the buffer.</param>
         public void EncodeTaggedVarLong(int tag, long? v)
         {
             if (v is long value)
@@ -601,12 +601,12 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the buffer.</param>
+        /// <param name="v">The uint to encode to the buffer.</param>
         public void EncodeTaggedVarUInt(int tag, uint? v) => EncodeTaggedVarULong(tag, v);
 
         /// <summary>Encodes a tagged ulong to the buffer, using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the buffer.</param>
+        /// <param name="v">The ulong to encode to the buffer.</param>
         public void EncodeTaggedVarULong(int tag, ulong? v)
         {
             if (v is ulong value)
@@ -621,7 +621,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged dictionary with fixed-size entries to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="entrySize">The size of each entry (key + value), in bytes.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the values.</param>
@@ -645,7 +645,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged dictionary with variable-size elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the values.</param>
         public void EncodeTaggedDictionary<TKey, TValue>(
@@ -666,7 +666,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged dictionary to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
@@ -692,7 +692,7 @@ namespace IceRpc
         /// <summary>Encodes a tagged dictionary to the buffer. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
         public void EncodeTaggedDictionary<TKey, TValue>(
@@ -714,7 +714,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged proxy to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The proxy to write.</param>
+        /// <param name="v">The proxy to encode.</param>
         public void EncodeTaggedProxy(int tag, IServicePrx? v)
         {
             if (v != null)
@@ -728,7 +728,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of fixed-size numeric values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         public void EncodeTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
         {
             // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
@@ -749,7 +749,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of fixed-size numeric values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
         {
             if (v is IEnumerable<T> value)
@@ -771,7 +771,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of variable-size elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
         {
@@ -786,7 +786,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of fixed-size values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<T> encodeAction)
@@ -815,7 +815,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of nullable elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
         public void EncodeTaggedSequence<T>(
@@ -836,7 +836,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
         public void EncodeTaggeSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
             where T : struct
@@ -852,7 +852,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged fixed-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to write.</param>
+        /// <param name="v">The struct to encode.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
         public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodable
         {
@@ -866,7 +866,7 @@ namespace IceRpc
 
         /// <summary>Encodes a tagged variable-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to write.</param>
+        /// <param name="v">The struct to encode.</param>
         public void EncodeTaggedStruct<T>(int tag, T? v) where T : struct, IEncodable
         {
             if (v is T value)
@@ -914,7 +914,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Computes the minimum number of bytes needed to write a variable-length size with the 2.0 encoding.
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
         /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
@@ -942,7 +942,7 @@ namespace IceRpc
             Capacity = _currentBuffer.Length;
         }
 
-        /// <summary>Computes the amount of data written from the start position to the current position and writes that
+        /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>
         /// <param name="start">The start position.</param>
@@ -971,8 +971,8 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a size on a fixed number of bytes at the given position.</summary>
-        /// <param name="size">The size to write.</param>
-        /// <param name="pos">The position to write to.</param>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="pos">The position to encode to.</param>
         /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
         internal void EncodeFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
         {
@@ -986,7 +986,7 @@ namespace IceRpc
 
         /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
         /// position must be used to rewrite the size later.</summary>
-        /// <param name="sizeLength">The number of bytes reserved to write the fixed-length size.</param>
+        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
         /// <returns>The position before writing the size.</returns>
         internal Position StartFixedLengthSize(int sizeLength = DefaultSizeLength)
         {
@@ -1159,7 +1159,7 @@ namespace IceRpc
             return Distance(_bufferVector, start, _tail);
         }
 
-        /// <summary>Expands the writer's buffer to make room for more data. If the bytes remaining in the buffer are
+        /// <summary>Expands the encoder's buffer to make room for more data. If the bytes remaining in the buffer are
         /// not enough to hold the given number of bytes, allocates a new byte array. The caller should then consume the
         /// new bytes immediately; calling Expand repeatedly is not supported.</summary>
         /// <param name="n">The number of bytes to accommodate in the buffer.</param>
@@ -1206,7 +1206,7 @@ namespace IceRpc
         /// <summary>Returns the buffer at the given index.</summary>
         private Memory<byte> GetBuffer(int index) => MemoryMarshal.AsMemory(_bufferVector.Span[index]);
 
-        /// <summary>Computes the minimum number of bytes needed to write a variable-length size with the current
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the current
         /// encoding.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
@@ -1233,8 +1233,8 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a size on 4 bytes at the given position.</summary>
-        /// <param name="size">The size to write.</param>
-        /// <param name="pos">The position to write to.</param>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="pos">The position to encode to.</param>
         internal void EncodeFixedLengthSize11(int size, Position pos)
         {
             Debug.Assert(pos.Buffer < _bufferVector.Length);
@@ -1262,7 +1262,7 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a fixed-size numeric value to the buffer.</summary>
-        /// <param name="v">The numeric value to write to the buffer.</param>
+        /// <param name="v">The numeric value to encode to the buffer.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
