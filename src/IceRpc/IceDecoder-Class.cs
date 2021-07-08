@@ -286,7 +286,7 @@ namespace IceRpc
                         break;
 
                     case EncodingDefinitions.TypeIdKind.Sequence20:
-                        typeIds = DecodeArray(1, BasicIceDecodeFuncs.StringIceDecodeFunc);
+                        typeIds = DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc);
                         if (typeIds.Length == 0)
                         {
                             throw new InvalidDataException("received empty type ID sequence");
@@ -306,7 +306,7 @@ namespace IceRpc
                 // Exception
                 if (typeIdKind == EncodingDefinitions.TypeIdKind.Sequence20)
                 {
-                    typeIds = DecodeArray(1, BasicIceDecodeFuncs.StringIceDecodeFunc);
+                    typeIds = DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc);
                     if (typeIds.Length == 0)
                     {
                         throw new InvalidDataException("received empty type ID sequence");

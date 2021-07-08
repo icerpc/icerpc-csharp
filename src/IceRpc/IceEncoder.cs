@@ -225,8 +225,8 @@ namespace IceRpc
         /// <param name="valueEncodeAction">The encode action for the values.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             WriteSize(v.Count());
@@ -246,8 +246,8 @@ namespace IceRpc
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : class
         {
@@ -283,8 +283,8 @@ namespace IceRpc
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
         public void WriteDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : struct
         {
@@ -367,7 +367,7 @@ namespace IceRpc
         /// <summary>Writes a sequence to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, IceEncodeAction<T> encodeAction)
+        public void WriteSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
@@ -380,7 +380,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, IceEncodeAction<T> encodeAction)
+        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
             where T : class
         {
             if (withBitSequence)
@@ -411,7 +411,7 @@ namespace IceRpc
         /// <summary>Writes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encodeAction">The encode action for the non-null values.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, IceEncodeAction<T> encodeAction) where T : struct
+        public void WriteSequence<T>(IEnumerable<T?> v, EncodeAction<T> encodeAction) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
             WriteSize(count);
@@ -629,8 +629,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
@@ -651,8 +651,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
@@ -675,8 +675,8 @@ namespace IceRpc
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             bool withBitSequence,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : class
         {
@@ -698,8 +698,8 @@ namespace IceRpc
         public void WriteTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            IceEncodeAction<TKey> keyEncodeAction,
-            IceEncodeAction<TValue> valueEncodeAction)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : struct
         {
@@ -773,7 +773,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, IceEncodeAction<T> encodeAction)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
         {
             if (v is IEnumerable<T> value)
             {
@@ -789,7 +789,7 @@ namespace IceRpc
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, IceEncodeAction<T> encodeAction)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<T> encodeAction)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -822,7 +822,7 @@ namespace IceRpc
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            IceEncodeAction<T> encodeAction)
+            EncodeAction<T> encodeAction)
             where T : class
         {
             if (v is IEnumerable<T?> value)
@@ -838,7 +838,7 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, IceEncodeAction<T> encodeAction)
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
@@ -1060,7 +1060,7 @@ namespace IceRpc
                 {
                     WriteString(endpoint.Data.Host);
                     WriteUShort(endpoint.Data.Port);
-                    WriteSequence(endpoint.Data.Options, BasicIceEncodeActions.StringIceEncodeAction);
+                    WriteSequence(endpoint.Data.Options, BasicEncodeActions.StringEncodeAction);
                 }
             }
             RewriteFixedLengthSize11(Distance(startPos), startPos);
@@ -1073,7 +1073,7 @@ namespace IceRpc
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, IceEncodeAction<T> encodeAction)
+        internal void WriteField<T>(int key, T value, EncodeAction<T> encodeAction)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

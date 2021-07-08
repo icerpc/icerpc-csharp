@@ -1202,14 +1202,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.IceDecodeFunc<" << name << "> IceDecodeFunc =";
+    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
     _out.inc();
     _out << nl << "iceDecoder => iceDecoder.DecodeClass<" << name << ">(IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.IceDecodeFunc<" << name << "?> NullableIceDecodeFunc =";
+    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "?> NullableDecodeFunc =";
     _out.inc();
     _out << nl << "iceDecoder => iceDecoder.DecodeNullableClass<" << name << ">(IceTypeId);";
     _out.dec();
@@ -1220,14 +1220,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.IceEncodeAction<" << name << "> IceEncodeAction =";
+    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "> EncodeAction =";
     _out.inc();
     _out << nl << "(iceEncoder, value) => iceEncoder.WriteClass(value, IceTypeId);";
     _out.dec();
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.IceEncodeAction<" << name << "?> NullableIceEncodeAction =";
+    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "?> NullableEncodeAction =";
     _out.inc();
     _out << nl << "(iceEncoder, value) => iceEncoder.WriteNullableClass(value, IceTypeId);";
     _out.dec();
@@ -1728,17 +1728,17 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     _out << sb;
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceDecodeFunc{T}\"/> for <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.IceDecodeFunc<" << name << "> IceDecodeFunc =";
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
     _out.inc();
     _out << nl << "iceDecoder => new " << name << "(iceDecoder);";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceEncodeAction{T}\"/> for <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> for <see cref=\""
          << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.IceEncodeAction<" << name << "> IceEncodeAction =";
+    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction =";
     _out.inc();
     _out << nl << "(iceEncoder, value) => value.IceWrite(iceEncoder);";
     _out.dec();
@@ -2007,11 +2007,11 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.IceDecodeFunc<" << name << "> IceDecodeFunc = Decode" << p->name()
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc = Decode" << p->name()
         << ";";
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.IceEncodeAction<" << name << "> IceEncodeAction = Write;";
+    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction = Write;";
 
     _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";
@@ -2212,7 +2212,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "proxy,";
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
                 _out << nl;
-                writeOutgoingRequestIceEncodeAction(operation);
+                writeOutgoingRequestEncodeAction(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2229,7 +2229,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateResponseClass)
     {
         _out << sp;
-        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseIceDecodeFunc{T}\"/> for each non-void "
+        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseDecodeFunc{T}\"/> for each non-void "
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static new class Response";
         _out << sb;
@@ -2240,7 +2240,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << sp;
                 string opName = fixId(operationName(operation));
-                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseIceDecodeFunc{T}\"/> for the return value type "
+                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseDecodeFunc{T}\"/> for the return value type "
                         << "of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
@@ -2251,7 +2251,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "payloadEncoding, ";
                 _out << nl;
-                writeIncomingResponseIceDecodeFunc(operation);
+                writeIncomingResponseDecodeFunc(operation);
                 _out << ",";
                 _out << nl << "connection,";
                 _out << nl << "invoker);";
@@ -2289,9 +2289,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.IceDecodeFunc{T}\"/> used to read "
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read "
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.IceDecodeFunc<" << name << "> IceDecodeFunc =";
+    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
     _out.inc();
     _out << nl << "iceDecoder => IceRpc.Proxy.Decode(Factory, iceDecoder);";
     _out.dec();
@@ -2346,9 +2346,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"IceDecodeFunc{T}\"/> used to read <see cref=\"" << name
+    _out << nl << "// <summary>An <see cref=\"DecodeFunc{T}\"/> used to read <see cref=\"" << name
          << "\"/> nullable proxies.</summary>";
-    _out << nl << "public static readonly new IceRpc.IceDecodeFunc<" << name << "?> NullableIceDecodeFunc =";
+    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "?> NullableDecodeFunc =";
     _out.inc();
     _out << nl << "iceDecoder => IceRpc.Proxy.DecodeNullable(Factory, iceDecoder);";
     _out.dec();
@@ -2508,7 +2508,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 }
 
 void
-Slice::Gen::ProxyVisitor::writeOutgoingRequestIceEncodeAction(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeOutgoingRequestEncodeAction(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -2520,9 +2520,9 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestIceEncodeAction(const OperationPtr
     }
 
     // When the operation's parameter is a T? where T is an interface or a class, there is a built-in iceEncoder, so
-    // defaultIceEncodeAction is true.
-    bool defaultIceEncodeAction = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
-    if (defaultIceEncodeAction)
+    // defaultEncodeAction is true.
+    bool defaultEncodeAction = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    if (defaultEncodeAction)
     {
         _out << encodeAction(params.front()->type(), ns, true, true);
     }
@@ -2538,7 +2538,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestIceEncodeAction(const OperationPtr
 }
 
 void
-Slice::Gen::ProxyVisitor::writeIncomingResponseIceDecodeFunc(const OperationPtr& operation)
+Slice::Gen::ProxyVisitor::writeIncomingResponseDecodeFunc(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -2546,10 +2546,10 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseIceDecodeFunc(const OperationPtr&
     auto returnType = operation->returnType();
     assert(!returnType.empty() && (returnType.size() > 1 || !returnType.back()->stream()));
 
-    bool defaultIceDecodeFunc = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
+    bool defaultDecodeFunc = returnType.size() == 1 && operation->returnBitSequenceSize() == 0 &&
         !returnType.front()->tagged();
 
-    if (defaultIceDecodeFunc)
+    if (defaultDecodeFunc)
     {
         _out << decodeFunc(returnType.front()->type(), ns);
     }
@@ -2652,7 +2652,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "payload,";
                 _out << nl << "dispatch,";
                 _out << nl;
-                writeIncomingRequestIceDecodeFunc(operation);
+                writeIncomingRequestDecodeFunc(operation);
                 _out << ");";
                 _out.dec();
                 _out.dec();
@@ -2719,7 +2719,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "dispatch,";
                 _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValueTuple,");
                 _out << nl;
-                writeOutgoingResponseIceEncodeAction(operation);
+                writeOutgoingResponseEncodeAction(operation);
                 string classFormat = opFormatTypeToString(operation);
                 if (classFormat != "default")
                 {
@@ -2848,7 +2848,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
         _out << nl << toTuple(returnType) << ",";
         _out << nl;
-        writeOutgoingResponseIceEncodeAction(operation);
+        writeOutgoingResponseEncodeAction(operation);
         string classFormat = opFormatTypeToString(operation);
         if (classFormat != "default")
         {
@@ -3041,7 +3041,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeIncomingRequestIceDecodeFunc(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeIncomingRequestDecodeFunc(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = operation->interface();
     string ns = getNamespace(interface);
@@ -3049,9 +3049,9 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestIceDecodeFunc(const Operation
     auto params = operation->params();
     assert(!params.empty() && (params.size() > 1 || !params.back()->stream()));
 
-    bool defaultIceDecodeFunc = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
+    bool defaultDecodeFunc = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
 
-    if (defaultIceDecodeFunc)
+    if (defaultDecodeFunc)
     {
         _out << decodeFunc(params.front()->type(), ns);
     }
@@ -3065,7 +3065,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestIceDecodeFunc(const Operation
 }
 
 void
-Slice::Gen::DispatcherVisitor::writeOutgoingResponseIceEncodeAction(const OperationPtr& operation)
+Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncodeAction(const OperationPtr& operation)
 {
     InterfaceDefPtr interface = InterfaceDefPtr::dynamicCast(operation->container());
     string ns = getNamespace(interface);
@@ -3077,9 +3077,9 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseIceEncodeAction(const Operat
     }
 
     // When the operation returns a T? where T is an interface or a class, there is a built-in iceEncoder, so
-    // defaultIceEncodeAction is true.
-    bool defaultIceEncodeAction = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
-    if (defaultIceEncodeAction)
+    // defaultEncodeAction is true.
+    bool defaultEncodeAction = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
+    if (defaultEncodeAction)
     {
         _out << encodeAction(returns.front()->type(), ns, true, true);
     }

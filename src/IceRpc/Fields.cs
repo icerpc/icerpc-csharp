@@ -37,7 +37,7 @@ namespace IceRpc
         /// <summary>Decodes a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="value">The field value as a byte buffer.</param>
-        /// <param name="decodeFunc">The <see cref="IceDecodeFunc{T}"/> for the field value.</param>
+        /// <param name="decodeFunc">The <see cref="DecodeFunc{T}"/> for the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the decoded type.</param>
         /// <returns>The decoded value.</returns>
@@ -45,7 +45,7 @@ namespace IceRpc
         /// </exception>
         public static T DecodeFieldValue<T>(
             this ReadOnlyMemory<byte> value,
-            IceDecodeFunc<T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             Connection? connection = null,
             IInvoker? invoker = null)
         {

@@ -17,7 +17,7 @@ namespace IceRpc
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
-    public delegate T ResponseIceDecodeFunc<T>(
+    public delegate T ResponseDecodeFunc<T>(
         ReadOnlyMemory<byte> payload,
         RpcStreamReader? streamReader,
         Encoding payloadEncoding,
@@ -36,14 +36,14 @@ namespace IceRpc
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
-                Payload.FromSingleArg(proxy, arg, BasicIceEncodeActions.StringIceEncodeAction);
+                Payload.FromSingleArg(proxy, arg, BasicEncodeActions.StringEncodeAction);
         }
 
-        /// <summary>Holds an <see cref="ResponseIceDecodeFunc{T}"/> for each non-void remote operation defined in the
+        /// <summary>Holds an <see cref="ResponseDecodeFunc{T}"/> for each non-void remote operation defined in the
         /// pseudo-interface Service.</summary>
         public static class Response
         {
-            /// <summary>The <see cref="ResponseIceDecodeFunc{T}"/> for the return type of operation ice_id.
+            /// <summary>The <see cref="ResponseDecodeFunc{T}"/> for the return type of operation ice_id.
             /// </summary>
             public static string IceId(
                 ReadOnlyMemory<byte> payload,
@@ -51,9 +51,9 @@ namespace IceRpc
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
-                payload.ToReturnValue(payloadEncoding, BasicIceDecodeFuncs.StringIceDecodeFunc, connection, invoker);
+                payload.ToReturnValue(payloadEncoding, BasicDecodeFuncs.StringDecodeFunc, connection, invoker);
 
-            /// <summary>The <see cref="ResponseIceDecodeFunc{T}"/> for the return type of operation ice_ids.
+            /// <summary>The <see cref="ResponseDecodeFunc{T}"/> for the return type of operation ice_ids.
             /// </summary>
             public static string[] IceIds(
                 ReadOnlyMemory<byte> payload,
@@ -62,11 +62,11 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      iceDecoder => iceDecoder.DecodeArray(minElementSize: 1, BasicIceDecodeFuncs.StringIceDecodeFunc),
+                                      iceDecoder => iceDecoder.DecodeArray(minElementSize: 1, BasicDecodeFuncs.StringDecodeFunc),
                                       connection,
                                       invoker);
 
-            /// <summary>The <see cref="ResponseIceDecodeFunc{T}"/> for the return type of operation ice_isA.
+            /// <summary>The <see cref="ResponseDecodeFunc{T}"/> for the return type of operation ice_isA.
             /// </summary>
             public static bool IceIsA(
                 ReadOnlyMemory<byte> payload,
@@ -75,7 +75,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      BasicIceDecodeFuncs.BoolIceDecodeFunc,
+                                      BasicDecodeFuncs.BoolDecodeFunc,
                                       connection,
                                       invoker);
         }
@@ -88,18 +88,18 @@ namespace IceRpc
         public static readonly ProxyFactory<IServicePrx> Factory =
             new((path, protocol) => new ServicePrx(path, protocol));
 
-        /// <summary>A <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceDecodeFunc<IServicePrx> IceDecodeFunc = iceDecoder => Proxy.Decode(Factory, iceDecoder);
+        /// <summary>A <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
+        public static readonly DecodeFunc<IServicePrx> DecodeFunc = iceDecoder => Proxy.Decode(Factory, iceDecoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceEncodeAction<IServicePrx> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
+        public static readonly EncodeAction<IServicePrx> EncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
 
-        /// <summary>An <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceDecodeFunc<IServicePrx?> NullableIceDecodeFunc = iceDecoder =>
+        /// <summary>An <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
+        public static readonly DecodeFunc<IServicePrx?> NullableDecodeFunc = iceDecoder =>
             Proxy.DecodeNullable(Factory, iceDecoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceEncodeAction<IServicePrx?> NullableIceEncodeAction =
+        public static readonly EncodeAction<IServicePrx?> NullableEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableProxy(value);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
@@ -287,7 +287,7 @@ namespace IceRpc
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             RpcStreamWriter? streamWriter,
-            ResponseIceDecodeFunc<T> responseDecodeFunc,
+            ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,

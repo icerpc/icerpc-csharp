@@ -55,13 +55,13 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleIceEncodeAction{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
             IServicePrx proxy,
             in T args,
-            TupleIceEncodeAction<T> encodeAction,
+            TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
@@ -85,13 +85,13 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleIceEncodeAction{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
             Dispatch dispatch,
             in T returnValueTuple,
-            TupleIceEncodeAction<T> encodeAction,
+            TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
             var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
@@ -109,14 +109,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="IceEncodeAction{T}"/> that encodes the argument into the payload.
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
             IServicePrx proxy,
             T arg,
-            IceEncodeAction<T> encodeAction,
+            EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
@@ -134,14 +134,14 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="IceEncodeAction{T}"/> that encodes the argument into the payload.
+        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
             Dispatch dispatch,
             T returnValue,
-            IceEncodeAction<T> encodeAction,
+            EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
             var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
@@ -175,7 +175,7 @@ namespace IceRpc
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
-            IceDecodeFunc<T> decodeFunc)
+            DecodeFunc<T> decodeFunc)
         {
             if (payload.Length == 0)
             {
@@ -208,7 +208,7 @@ namespace IceRpc
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            IceDecodeFunc<T> decodeFunc,
+            DecodeFunc<T> decodeFunc,
             Connection connection,
             IInvoker? invoker)
         {

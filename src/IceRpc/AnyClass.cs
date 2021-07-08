@@ -8,18 +8,18 @@ namespace IceRpc
     public abstract class AnyClass
     {
         /// <summary>A decode function for non-nullable class instances.</summary>
-        public static readonly IceDecodeFunc<AnyClass> IceDecodeFunc =
+        public static readonly DecodeFunc<AnyClass> DecodeFunc =
             iceDecoder => iceDecoder.DecodeClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for non-nullable class instances.</summary>
-        public static readonly IceEncodeAction<AnyClass> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
+        public static readonly EncodeAction<AnyClass> EncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
 
         /// <summary>A decode function for nullable class instances.</summary>
-        public static readonly IceDecodeFunc<AnyClass?> NullableIceDecodeFunc =
+        public static readonly DecodeFunc<AnyClass?> NullableDecodeFunc =
             iceDecoder => iceDecoder.DecodeNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for nullable class instances.</summary>
-        public static readonly IceEncodeAction<AnyClass?> NullableIceEncodeAction =
+        public static readonly EncodeAction<AnyClass?> NullableEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
@@ -36,7 +36,7 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Decodes this instance by reading its data members from the <see cref="IceDecoder"/>.
+        /// <summary>Decodes this instance by decoding its data members from the <see cref="IceDecoder"/>.
         /// </summary>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
