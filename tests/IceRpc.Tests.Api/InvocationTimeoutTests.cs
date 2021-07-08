@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
+    [Timeout(30000)]
     [Parallelizable]
-    public class InvocationTimeoutTests
+    public sealed class InvocationTimeoutTests : IAsyncDisposable
     {
         private readonly Server _server;
 
@@ -21,7 +22,7 @@ namespace IceRpc.Tests.Api
         }
 
         [OneTimeTearDown]
-        public async Task ShutdownAsync() => await _server.DisposeAsync();
+        public async ValueTask DisposeAsync() => await _server.DisposeAsync();
 
         /// <summary>Ensure that a request fails with OperationCanceledException after the invocation timeout expires.
         /// </summary>

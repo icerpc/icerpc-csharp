@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,14 +23,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            if (TrySetWriteCompleted())
-            {
-                // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
-        }
+        public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
 
         public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
@@ -54,6 +46,11 @@ namespace IceRpc.Transports.Internal
             // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
             Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
+
+            if (endStream)
+            {
+                TrySetWriteCompleted();
+            }
         }
 
         protected override void Shutdown()
@@ -84,7 +81,6 @@ namespace IceRpc.Transports.Internal
         {
             // Wait to be signaled for the reception of a new frame for this stream
             (Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
-            _connection.FinishedReceivedFrame();
 
             // If the received frame is not the one we expected, throw.
             if ((byte)frameType != expectedFrameType)
@@ -96,6 +92,11 @@ namespace IceRpc.Transports.Internal
             {
                 throw AbortException ?? new InvalidOperationException("stream receive is completed");
             }
+
+            // Notify the connection that the frame has been processed. This must be done after completing reads
+            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
+            // connection before the connection is shutdown if the next frame is a close connection frame.
+            _connection.FinishedReceivedFrame();
 
             // No more data will ever be received over this stream unless it's the validation connection frame.
             return frame;

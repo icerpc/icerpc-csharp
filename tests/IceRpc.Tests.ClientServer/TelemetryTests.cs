@@ -45,7 +45,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 // Starting the test activity ensures that Activity.Current is not null which in turn will
                 // trigger the creation of the Invocation activity.
-                var testActivity = new Activity("TestActivity");
+                using var testActivity = new Activity("TestActivity");
                 testActivity.Start();
                 Assert.That(Activity.Current, Is.Not.Null);
 
@@ -110,7 +110,7 @@ namespace IceRpc.Tests.ClientServer
                 // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
                 var dispatchStartedActivities = new List<Activity>();
                 var dispatchStoppedActivities = new List<Activity>();
-                var waitForStopSemaphore = new SemaphoreSlim(0);
+                using var waitForStopSemaphore = new SemaphoreSlim(0);
                 using var listener = new ActivityListener
                 {
                     ShouldListenTo = source => source == activitySource,
@@ -170,7 +170,7 @@ namespace IceRpc.Tests.ClientServer
 
             using var activitySource = new ActivitySource("TracingTestActivitySource");
             // Add a listener to ensure the ActivitySource creates a non null activity for the dispatch
-            var waitForStopSemaphore = new SemaphoreSlim(0);
+            using var waitForStopSemaphore = new SemaphoreSlim(0);
             var dispatchStartedActivities = new List<Activity>();
             var dispatchStoppedActivities = new List<Activity>();
             using var listener = new ActivityListener
@@ -215,7 +215,7 @@ namespace IceRpc.Tests.ClientServer
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.
-            var testActivity = new Activity("TestActivity");
+            using var testActivity = new Activity("TestActivity");
             testActivity.Start();
             Assert.That(Activity.Current, Is.Not.Null);
 

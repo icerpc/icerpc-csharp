@@ -99,8 +99,6 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(2)]
         [TestCase(10)]
         [TestCase(20)]
-        [Repeat(50)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_GracefulClose(int maxQueue)
         {
             await WithRetryServiceAsync(async (service, retry) =>
@@ -362,11 +360,10 @@ namespace IceRpc.Tests.ClientServer
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
-                (pipeline, pool) => pipeline.Use(Interceptors.Retry(maxAttempts: 5, bufferMaxSize: 2048),
+                (pipeline, pool) => pipeline.Use(Interceptors.Retry(5, bufferMaxSize: 2048),
                                                  Interceptors.Binder(pool)),
                 async (service, retry) =>
                 {
@@ -425,10 +422,9 @@ namespace IceRpc.Tests.ClientServer
         private static Pipeline CreatePipeline(ConnectionPool pool)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(
-                Interceptors.Logger(Runtime.DefaultLoggerFactory),
-                Interceptors.Retry(5, loggerFactory: Runtime.DefaultLoggerFactory),
-                Interceptors.Binder(pool));
+            pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory),
+                         Interceptors.Retry(5),
+                         Interceptors.Binder(pool));
             return pipeline;
         }
 

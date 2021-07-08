@@ -12,7 +12,7 @@ namespace IceRpc.Tests.CodeGeneration
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
     [TestFixture(Protocol.Ice2)]
-    public class StructTests
+    public sealed class StructTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -32,10 +32,10 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

@@ -10,7 +10,7 @@ namespace IceRpc.Tests.CodeGeneration
 {
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    public class OptionalTests
+    public sealed class OptionalTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
@@ -29,10 +29,10 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [OneTimeTearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
             await _server.DisposeAsync();
-            await _connection.ShutdownAsync();
+            await _connection.DisposeAsync();
         }
 
         [Test]

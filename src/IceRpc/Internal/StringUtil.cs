@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -100,7 +101,7 @@ namespace IceRpc.Internal
             for (int i = start; i < len; i++)
             {
                 char ch = str[i];
-                if (!match.Contains(ch))
+                if (!match.Contains(ch, StringComparison.InvariantCulture))
                 {
                     return i;
                 }
@@ -121,7 +122,7 @@ namespace IceRpc.Internal
             for (int i = start; i < len; i++)
             {
                 char ch = str[i];
-                if (match.IndexOf(ch) != -1)
+                if (match.IndexOf(ch, StringComparison.InvariantCulture) != -1)
                 {
                     return i;
                 }
@@ -370,7 +371,7 @@ namespace IceRpc.Internal
                     }
                     default:
                     {
-                        if (string.IsNullOrEmpty(special) || !special.Contains(c))
+                        if (string.IsNullOrEmpty(special) || !special.Contains(c, StringComparison.InvariantCulture))
                         {
                             result.Append('\\'); // not in special, so we keep the backslash
                         }
@@ -545,7 +546,7 @@ namespace IceRpc.Internal
                     quoteChar = '\0';
                     continue; // Skip the quote.
                 }
-                else if (separators.IndexOf(str[pos]) != -1)
+                else if (separators.IndexOf(str[pos], StringComparison.InvariantCulture) != -1)
                 {
                     if (quoteChar == '\0')
                     {

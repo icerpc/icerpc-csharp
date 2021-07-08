@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
+    [Timeout(5000)]
     public class ServerTests
     {
         [Test]
@@ -180,10 +181,14 @@ namespace IceRpc.Tests.Api
 
             Assert.That(server.ProxyEndpoint, Is.Null);
             server.Endpoint = "ice+tcp://127.0.0.1";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.HostName),
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1",
+                                                               server.HostName,
+                                                               StringComparison.InvariantCulture),
                             server.ProxyEndpoint!.ToString());
             server.HostName = "foobar";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1", server.HostName),
+            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1",
+                                                               server.HostName,
+                                                               StringComparison.InvariantCulture),
                             server.ProxyEndpoint.ToString());
 
             // Verifies that changing Endpoint updates Protocol
@@ -204,7 +209,7 @@ namespace IceRpc.Tests.Api
         // When a client cancels a request, the dispatch is canceled.
         public async Task Server_RequestCancelAsync()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             bool waitForCancellation = true;
             await using var server = new Server
             {
@@ -261,11 +266,11 @@ namespace IceRpc.Tests.Api
         [TestCase(true, Protocol.Ice2)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
-        //  Shutdown, which call ShutdownAsync with a canceled token.
+        // shutdown, which call ShutdownAsync with a canceled token.
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
         {
-            var semaphore = new SemaphoreSlim(0);
-            var server = new Server
+            using var semaphore = new SemaphoreSlim(0);
+            await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
                 {

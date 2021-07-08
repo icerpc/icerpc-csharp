@@ -52,7 +52,7 @@ namespace IceRpc
         }
 
         /// <summary>Checks if this protocol is supported by the IceRPC runtime. If not supported, throws
-        /// NotSupportedException.</summary>
+        /// <see cref="NotSupportedException"/>.</summary>
         /// <param name="protocol">The protocol.</param>
         internal static void CheckSupported(this Protocol protocol)
         {

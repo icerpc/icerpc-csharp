@@ -102,6 +102,7 @@ namespace IceRpc
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
+        // TODO missing test
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
@@ -175,7 +176,10 @@ namespace IceRpc
                 {
                     MultiStreamConnection multiStreamConnection =
                         serverConnectionFactory.Accept(ConnectionOptions, Logger);
+                    // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
+#pragma warning disable CA2000
                     var serverConnection = new Connection(multiStreamConnection, this);
+#pragma warning restore CA2000
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
 
@@ -245,6 +249,9 @@ namespace IceRpc
 
             async Task PerformShutdownAsync()
             {
+                // Yield to ensure _mutex is released while we perform the shutdown.
+                await Task.Yield();
+
                 CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
@@ -263,9 +270,6 @@ namespace IceRpc
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
                     _colocListener?.Dispose();
-
-                    // Yield to ensure the mutex is released while we shutdown the connections.
-                    await Task.Yield();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
@@ -303,8 +307,6 @@ namespace IceRpc
             endpoint.Transport == Transport.Coloc ? endpoint :
                 (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 
-        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
-
         private async Task AcceptAsync(IListener listener)
         {
             using IDisposable? scope = Logger.StartServerScope(listener);
@@ -335,7 +337,10 @@ namespace IceRpc
                     continue;
                 }
 
+                // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
+#pragma warning disable CA2000
                 var connection = new Connection(multiStreamConnection, this);
+#pragma warning restore CA2000
 
                 lock (_mutex)
                 {
@@ -381,5 +386,7 @@ namespace IceRpc
                 }
             }
         }
+
+        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
     }
 }

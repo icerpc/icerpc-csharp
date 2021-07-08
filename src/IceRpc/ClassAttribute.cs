@@ -32,8 +32,7 @@ namespace IceRpc
         /// Slice class or exception.</summary>
         public Type Type { get; }
 
-        /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/> or null if the
-        /// type does not implement <see cref="AnyClass"/>."</summary>
+        /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
         internal ClassFactory ClassFactory
         {
             get
@@ -60,8 +59,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/> or null if the
-        /// type does not implement <see cref="RemoteException"/>."</summary>
+        /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
         internal RemoteExceptionFactory ExceptionFactory
         {
             get

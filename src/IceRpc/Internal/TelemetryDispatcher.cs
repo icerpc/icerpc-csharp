@@ -49,6 +49,7 @@ namespace IceRpc.Internal
                 finally
                 {
                     activity?.Stop();
+                    activity?.Dispose();
                 }
             }
             else

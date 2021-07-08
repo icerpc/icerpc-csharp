@@ -23,14 +23,14 @@ namespace IceRpc
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
         public bool IsIPv6Only { get; set; }
 
-        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified
-        /// the client socket will bind to this address and port before connection establishment.</summary>
+        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified the
+        /// client socket will bind to this address and port before connection establishment.</summary>
         /// <value>The address and port to bind the socket to.</value>
         public IPEndPoint? LocalEndPoint { get; set; }
 
-        /// <summary>Configures the length of a server socket queue for accepting new connections. If a new
-        /// connection request arrives and the queue is full, the client connection establishment will fail
-        /// with a <see cref="ConnectionRefusedException"/> exception. The default value is 511.</summary>
+        /// <summary>Configures the length of a server socket queue for accepting new connections. If a new connection
+        /// request arrives and the queue is full, the client connection establishment will fail with a
+        /// <see cref="ConnectionRefusedException"/> exception. The default value is 511.</summary>
         /// <value>The server socket backlog size.</value>
         public int ListenerBackLog
         {
@@ -49,8 +49,8 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(ReceiveBufferSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>The socket send buffer size in bytes. It can't be less than 1KB. If not set, the OS default
-        /// send buffer size is used.</summary>
+        /// <summary>The socket send buffer size in bytes. It can't be less than 1KB. If not set, the OS default send
+        /// buffer size is used.</summary>
         /// <value>The send buffer size in bytes.</value>
         public int? SendBufferSize
         {
@@ -59,9 +59,8 @@ namespace IceRpc
                 throw new ArgumentException($"{nameof(SendBufferSize)} can't be less than 1KB", nameof(value));
         }
 
-        /// <summary>The Slic packet maximum size in bytes. It can't be less than 1KB and the default value
-        /// is 32KB. Slic is only used for the Ice2 protocol, this setting is ignored when using the Ice1
-        /// protocol.</summary>
+        /// <summary>The Slic packet maximum size in bytes. It can't be less than 1KB and the default value is 32KB.
+        /// Slic is only used for the Ice2 protocol, this setting is ignored when using the Ice1 protocol.</summary>
         /// <value>The Slic packet maximum size in bytes.</value>
         public int SlicPacketMaxSize
         {
@@ -102,8 +101,8 @@ namespace IceRpc
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
         public bool IsIPv6Only { get; set; }
 
-        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified
-        /// the client socket will bind to this address and port before connection establishment.</summary>
+        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified the
+        /// client socket will bind to this address and port before connection establishment.</summary>
         /// <value>The address and port to bind the socket to.</value>
         public IPEndPoint? LocalEndPoint { get; set; }
 
@@ -288,9 +287,9 @@ namespace IceRpc
             set => _authenticationOptions = value?.Clone();
         }
 
-        /// <summary>The connection accept timeout. If a new server connection takes longer than the accept timeout
-        /// to be initialized, the server will abandon and close the connection. It can't be 0 and the default value
-        /// is 10s.</summary>
+        /// <summary>The connection accept timeout. If a new server connection takes longer than the accept timeout to
+        /// be initialized, the server will abandon and close the connection. It can't be 0 and the default value is
+        /// 10s.</summary>
         /// <value>The connection accept timeout value.</value>
         public TimeSpan AcceptTimeout
         {

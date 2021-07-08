@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
-    public class ProtocolBridgingTests : ClientServerBaseTest
+    public sealed class ProtocolBridgingTests : ClientServerBaseTest, IAsyncDisposable
     {
         private readonly ConnectionPool _pool;
         private Server _forwarderServer = null!;
@@ -20,9 +21,10 @@ namespace IceRpc.Tests.ClientServer
         public ProtocolBridgingTests() => _pool = new ConnectionPool();
 
         [TearDown]
-        public async Task TearDownAsync()
+        public async ValueTask DisposeAsync()
         {
-            await Task.WhenAll(_forwarderServer.ShutdownAsync(), _targetServer.ShutdownAsync());
+            await Task.WhenAll(_forwarderServer.DisposeAsync().AsTask(),
+                               _targetServer.DisposeAsync().AsTask());
             await _pool.DisposeAsync();
         }
 
@@ -113,13 +115,13 @@ namespace IceRpc.Tests.ClientServer
             return forwardService;
 
             Server CreateServer(Protocol protocol, int port, bool colocated) => new()
-                {
-                    Endpoint = colocated ?
+            {
+                Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                    HasColocEndpoint = false,
-                    HostName = "127.0.0.1"
-                };
+                HasColocEndpoint = false,
+                HostName = "127.0.0.1"
+            };
         }
 
         internal class ProtocolBridgingTest : IProtocolBridgingTest

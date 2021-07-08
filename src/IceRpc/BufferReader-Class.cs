@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace IceRpc
 {
@@ -752,7 +753,7 @@ namespace IceRpc
 
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
             {
-                string printableId = typeId ?? compactId?.ToString() ?? "(none)";
+                string printableId = typeId ?? compactId?.ToString(CultureInfo.InvariantCulture) ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
                 throw new InvalidDataException(@$"no {kind} found for type ID '{printableId
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");

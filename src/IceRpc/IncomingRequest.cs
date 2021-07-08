@@ -25,14 +25,14 @@ namespace IceRpc
         public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
-        /// <summary>When true, the operation is idempotent.</summary>
+        /// <summary>When <c>true</c>, the operation is idempotent.</summary>
         public bool IsIdempotent { get; }
 
-        /// <summary><c>True</c> for oneway requests, <c>False</c> otherwise.</summary>
+        /// <summary><c>True</c> for oneway requests, <c>false</c> otherwise.</summary>
         public bool IsOneway => !IsBidirectional;
 
-        /// <summary>Returns <c>True</c> if the stream that received this request is a bidirectional stream,
-        /// <c>False</c> otherwise.</summary>
+        /// <summary>Returns <c>true</c> if the stream that received this request is a bidirectional stream,
+        /// <c>false</c> otherwise.</summary>
         public bool IsBidirectional => Stream.Id % 4 < 2;
 
         /// <summary>The operation called on the service.</summary>

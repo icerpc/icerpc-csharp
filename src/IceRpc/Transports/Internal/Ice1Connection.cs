@@ -31,7 +31,15 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+            ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+            if (receiveStreamCompletionTask.IsCompleted)
+            {
+                await receiveStreamCompletionTask.ConfigureAwait(false);
+            }
+            else
+            {
+                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
 
             while (true)
             {
@@ -142,9 +150,16 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
-
                             // Wait for the stream to process the frame before continuing receiving additional data.
-                            await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+                            receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+                            if (receiveStreamCompletionTask.IsCompleted)
+                            {
+                                await receiveStreamCompletionTask.ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                            }
                         }
                         catch
                         {
@@ -188,8 +203,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) => default;
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -284,10 +297,10 @@ namespace IceRpc.Transports.Internal
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
             // If the stream is aborted, stop sending stream frames.
-            if (stream?.AbortException is Exception exception)
+            if (stream?.WriteCompleted ?? false)
             {
                 _sendSemaphore.Release();
-                throw exception;
+                throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
             }
 
             try

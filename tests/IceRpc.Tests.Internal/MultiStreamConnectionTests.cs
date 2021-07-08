@@ -179,22 +179,6 @@ namespace IceRpc.Tests.Internal
             Assert.CatchAsync<TransportException>(async () => await ServerConnection.AcceptStreamAsync(default));
         }
 
-        [Test]
-        public async Task MultiStreamConnection_CloseAsync_CancellationAsync()
-        {
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            try
-            {
-                // This will either complete successfully or with an OperationCanceledException depending on the
-                // implementation (which might be a no-op).
-                await ClientConnection.CloseAsync(0, source.Token);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
         [TestCase(false)]
         [TestCase(true)]
         public async Task MultiStreamConnection_CreateStream(bool bidirectional)
@@ -289,7 +273,7 @@ namespace IceRpc.Tests.Internal
                     Interlocked.Increment(ref streamCount);
                 }
 
-                Assert.LessOrEqual(Thread.VolatileRead(ref streamCount), maxCount);
+                Assert.That(Thread.VolatileRead(ref streamCount), Is.LessThanOrEqualTo(maxCount));
 
                 if (bidirectional)
                 {
@@ -387,7 +371,7 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task MultiStreamConnection_PingAsync()
         {
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             ServerConnection.PingReceived = () => semaphore.Release();
             using var source = new CancellationTokenSource();
 

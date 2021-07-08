@@ -131,11 +131,6 @@ namespace IceRpc.Transports
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
-        /// <summary>Closes the connection.</summary>
-        /// <param name="errorCode">The error code indicating the reason of the connection closure.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel);
-
         /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
         /// be immediately available after the stream creation. It will be available after the first successful send
         /// call on the stream.</summary>
@@ -468,7 +463,7 @@ namespace IceRpc.Transports
                 // the code that aborts the last stream.
                 _incomingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            await _incomingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+            await _incomingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
 
         internal async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
@@ -485,7 +480,7 @@ namespace IceRpc.Transports
                 // the code that aborts the last stream.
                 _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            await _outgoingStreamsEmptySource.Task.IceWaitAsync(cancel).ConfigureAwait(false);
+            await _outgoingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
     }
 }

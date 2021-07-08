@@ -8,6 +8,7 @@ namespace IceRpc
     {
         /// <summary>A middleware that publishes dispatch metrics, using the default dispatch event source instance
         /// named "IceRpc.Dispatch".</summary>
+        /// <see cref="DispatchEventSource.Log"/>
         public static Func<IDispatcher, IDispatcher> Metrics { get; } =
             CustomMetrics(DispatchEventSource.Log);
 

@@ -13,18 +13,18 @@ namespace IceRpc
     {
         private readonly Action<RpcStream> _encoder;
 
-        internal void Send(RpcStream stream)
-        {
-            stream.EnableSendFlowControl();
-            _encoder(stream);
-        }
-
         /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
         /// request <see cref="RpcStream"/>.</summary>
         /// <param name="byteStream">The stream to read data from.</param>
         public RpcStreamWriter(System.IO.Stream byteStream)
             : this(stream => Task.Run(() => SendData(stream, byteStream)))
         {
+        }
+
+        internal void Send(RpcStream stream)
+        {
+            stream.EnableSendFlowControl();
+            _encoder(stream);
         }
 
         private RpcStreamWriter(Action<RpcStream> encoder) => _encoder = encoder;
@@ -67,7 +67,7 @@ namespace IceRpc
                 }
                 catch
                 {
-                    stream.AbortWrite(RpcStreamError.StreamingCanceled);
+                    stream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
                     break;
                 }
             }

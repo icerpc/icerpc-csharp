@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System;
-using System.Buffers;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,8 +26,11 @@ namespace IceRpc.Transports
         /// <summary>The stream was aborted because the dispatch was canceled.</summary>
         DispatchCanceled,
 
-        /// <summary>Streaming was canceled.</summary>
-        StreamingCanceled,
+        /// <summary>Streaming was canceled by the reader.</summary>
+        StreamingCanceledByReader,
+
+        /// <summary>Streaming was canceled by the writer.</summary>
+        StreamingCanceledByWriter,
 
         /// <summary>The stream was aborted because the connection was shutdown.</summary>
         ConnectionShutdown,
@@ -82,23 +84,23 @@ namespace IceRpc.Transports
         /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
         public bool IsControl { get; }
 
+        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
+        public bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
+
+        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        public bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
+
+        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
+        /// </summary>
+        public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
+
         /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
         /// this header to be set at the start of the first buffer.</summary>
         public virtual ReadOnlyMemory<byte> TransportHeader => default;
-
-        /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
-        protected bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
-
-        /// <summary>Returns <c>true</c> if the receiving side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
-        protected bool ReadCompleted => (Thread.VolatileRead(ref _state) & (int)State.ReadCompleted) > 0;
-
-        /// <summary>Returns <c>true</c> if the sending side of the stream is completed, <c>false</c> otherwise.
-        /// </summary>
-        protected bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
         /// <summary>Get the cancellation dispatch source.</summary>
         internal CancellationTokenSource? CancelDispatchSource { get; }
@@ -225,7 +227,6 @@ namespace IceRpc.Transports
             TrySetState(State.WriteCompleted, shutdown);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
-        /// <returns><c>true</c> if the stream was shutdown, <c>false</c> if the stream was already shutdown.</returns>
         protected void TryShutdown()
         {
             // If both reads and writes are completed, the stream is started and not already shutdown, call shutdown.
@@ -278,12 +279,12 @@ namespace IceRpc.Transports
             return ((lastBidirectionalId, lastUnidirectionalId), message);
         }
 
-        internal async ValueTask ReceiveGoAwayCanceledFrameAsync()
+        internal async ValueTask ReceiveGoAwayCanceledFrameAsync(CancellationToken cancel)
         {
             Debug.Assert(IsStarted && !IsIce1);
 
             byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
-            _ = await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
+            _ = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
 
             _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
@@ -364,7 +365,7 @@ namespace IceRpc.Transports
 
             if (IsIce1)
             {
-                await SendAsync(Ice1Definitions.CloseConnectionFrame, false, cancel).ConfigureAwait(false);
+                await SendAsync(Ice1Definitions.CloseConnectionFrame, true, cancel).ConfigureAwait(false);
             }
             else
             {

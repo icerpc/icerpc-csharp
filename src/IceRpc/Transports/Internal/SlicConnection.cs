@@ -53,11 +53,6 @@ namespace IceRpc.Transports.Internal
 
                 switch (type)
                 {
-                    case SlicDefinitions.FrameType.Close:
-                    {
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-                        throw new ConnectionClosedException();
-                    }
                     case SlicDefinitions.FrameType.Ping:
                     {
                         Logger.LogReceivingSlicFrame(type, frameSize);
@@ -82,6 +77,7 @@ namespace IceRpc.Transports.Internal
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
                     {
+                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
 
@@ -97,7 +93,6 @@ namespace IceRpc.Transports.Internal
 
                         bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
                         bool isBidirectional = streamId % 4 < 2;
-                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
 
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
@@ -171,57 +166,11 @@ namespace IceRpc.Transports.Internal
                         }
                         break;
                     }
-                    case SlicDefinitions.FrameType.StreamReset:
-                    {
-                        (long streamId, int dataSize) =
-                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("can't reset control streams");
-                        }
-
-                        using IDisposable? scope = Logger.StartStreamScope(streamId);
-                        Logger.LogReceivingSlicFrame(type, frameSize);
-
-                        Memory<byte> data = new byte[dataSize];
-                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
-
-                        var reader = new BufferReader(data, SlicDefinitions.Encoding);
-                        var streamReset = new StreamResetBody(reader);
-                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
-                        if (TryGetStream(streamId, out SlicStream? stream))
-                        {
-                            stream.ReceivedReset(errorCode);
-                        }
-                        else
-                        {
-                            bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
-                            bool isBidirectional = streamId % 4 < 2;
-                            // Release the stream count for the destroyed stream if it's an outgoing stream. For
-                            // incoming streams, the stream count is released on shutdown of the stream.
-                            if (!isIncoming)
-                            {
-                                if (isBidirectional)
-                                {
-                                    _bidirectionalStreamSemaphore!.Release();
-                                }
-                                else
-                                {
-                                    _unidirectionalStreamSemaphore!.Release();
-                                }
-                            }
-                        }
-                        break;
-                    }
                     case SlicDefinitions.FrameType.StreamConsumed:
                     {
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
-                        if (streamId == 2 || streamId == 3)
-                        {
-                            throw new InvalidDataException("control streams don't support flow control");
-                        }
-                        if (frameSize > 8)
+                        if (dataSize > 8)
                         {
                             throw new InvalidDataException("stream consumed frame too large");
                         }
@@ -233,11 +182,65 @@ namespace IceRpc.Transports.Internal
 
                         await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
-                        var reader = new BufferReader(_streamConsumedBuffer.Value[0..dataSize], SlicDefinitions.Encoding);
+                        var reader = new BufferReader(
+                            _streamConsumedBuffer.Value[0..dataSize],
+                            SlicDefinitions.Encoding);
                         var streamConsumed = new StreamConsumedBody(reader);
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
+                        }
+                        break;
+                    }
+                    case SlicDefinitions.FrameType.StreamReset:
+                    {
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
+                        if (dataSize > 8)
+                        {
+                            throw new InvalidDataException("stream reset frame too large");
+                        }
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+
+                        Memory<byte> data = new byte[dataSize];
+                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
+
+                        var reader = new BufferReader(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(reader);
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+
+                        Logger.LogReceivedSlicResetFrame(frameSize, errorCode);
+
+                        if (TryGetStream(streamId, out SlicStream? stream))
+                        {
+                            stream.ReceivedReset(errorCode);
+                        }
+                        break;
+                    }
+                    case SlicDefinitions.FrameType.StreamStopSending:
+                    {
+                        (long streamId, int dataSize) =
+                            await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
+                        if (dataSize > 8)
+                        {
+                            throw new InvalidDataException("stream reset frame too large");
+                        }
+
+                        using IDisposable? scope = Logger.StartStreamScope(streamId);
+
+                        Memory<byte> data = new byte[dataSize];
+                        await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
+
+                        var reader = new BufferReader(data, SlicDefinitions.Encoding);
+                        var streamReset = new StreamResetBody(reader);
+                        var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
+
+                        Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
+
+                        if (TryGetStream(streamId, out SlicStream? stream))
+                        {
+                            stream.TrySetWriteCompleted();
                         }
                         break;
                     }
@@ -248,19 +251,6 @@ namespace IceRpc.Transports.Internal
                 }
             }
         }
-
-        public override ValueTask CloseAsync(ConnectionErrorCode errorCode, CancellationToken cancel) =>
-            new(PrepareAndSendFrameAsync(
-                SlicDefinitions.FrameType.Close,
-                writer =>
-                {
-                    checked
-                    {
-                        new CloseBody((ulong)errorCode).IceWrite(writer);
-                    }
-                },
-                frameSize => Logger.LogSendingSlicFrame(SlicDefinitions.FrameType.Close, frameSize),
-                cancel: cancel));
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -563,10 +553,10 @@ namespace IceRpc.Transports.Internal
                 await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
 
                 // If the stream is aborted, stop sending stream frames.
-                if (stream.AbortException is Exception exception)
+                if (stream.WriteCompleted)
                 {
                     _sendSemaphore.Release();
-                    throw exception;
+                    throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
                 }
 
                 // Allocate stream ID if the stream isn't started. Thread-safety is provided by the send semaphore.
@@ -604,7 +594,15 @@ namespace IceRpc.Transports.Internal
             // Once we acquired the send semaphore, the sending of the packet is no longer cancellable. We can't
             // interrupt a send on the underlying connection and we want to make sure that once a stream is started,
             // the peer will always receive at least one stream frame.
-            await PerformSendPacketAsync().IceWaitAsync(cancel).ConfigureAwait(false);
+            ValueTask sendPacketTask = PerformSendPacketAsync();
+            if (sendPacketTask.IsCompleted)
+            {
+                await sendPacketTask.ConfigureAwait(false);
+            }
+            else
+            {
+                await sendPacketTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
 
             async ValueTask PerformSendPacketAsync()
             {
@@ -815,7 +813,17 @@ namespace IceRpc.Transports.Internal
         {
             // If the stream didn't fully read the stream data, finish reading it here before returning. The stream
             // might not have fully received the data if it was aborted or canceled.
-            int size = await _receiveStreamCompletionTaskSource.ValueTask.IceWaitAsync(cancel).ConfigureAwait(false);
+            int size;
+            ValueTask<int> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+            if (receiveStreamCompletionTask.IsCompletedSuccessfully)
+            {
+                size = receiveStreamCompletionTask.Result;
+            }
+            else
+            {
+                size = await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+            }
+
             if (size > 0)
             {
                 await IgnoreDataAsync(size, cancel).ConfigureAwait(false);

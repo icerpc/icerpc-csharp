@@ -21,11 +21,12 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortRead(RpcStreamError errorCode)
         {
+            // It's important to set the exception before completing the reads because ReceiveAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
             if (TrySetReadCompleted(shutdown: false))
             {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-
                 // Send stop sending frame before shutting down.
                 // TODO
 
@@ -44,9 +45,6 @@ namespace IceRpc.Transports.Internal
 
             if (TrySetWriteCompleted(shutdown: false))
             {
-                // Ensure further SendAsync calls raise StreamAbortException
-                SetException(new RpcStreamAbortedException(errorCode));
-
                 // Shutdown the stream if not already done.
                 TryShutdown();
             }
@@ -207,8 +205,16 @@ namespace IceRpc.Transports.Internal
         {
             if (frame is RpcStreamError errorCode)
             {
-                AbortRead(errorCode);
+                // It's important to set the exception before completing the reads because ReceiveAsync expects the
+                // exception to be set if reads are completed.
+                SetException(new RpcStreamAbortedException(errorCode));
+
+                // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
                 CancelDispatchSource?.Cancel();
+
+                TrySetReadCompleted();
+
+                _connection.FinishedReceivedFrame();
             }
             else
             {
@@ -218,37 +224,21 @@ namespace IceRpc.Transports.Internal
 
         internal override async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (fin && !TrySetReadCompleted()))
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
-            Debug.Assert(frameObject is IncomingRequest);
-            var frame = (IncomingRequest)frameObject;
-            return frame;
+            (object frame, bool _) = await WaitFrameAsync(cancel).ConfigureAwait(false);
+            return (IncomingRequest)frame;
         }
 
         internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (fin && !TrySetReadCompleted()))
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-            return (IncomingResponse)frameObject;
+            (object frame, bool _) = await WaitFrameAsync(cancel).ConfigureAwait(false);
+            return (IncomingResponse)frame;
         }
 
         private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (fin && !TrySetReadCompleted()))
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
+            (object frame, bool fin) = await WaitFrameAsync(cancel).ConfigureAwait(false);
             if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
             {
                 // Initialize or GoAway frame.
@@ -279,5 +269,21 @@ namespace IceRpc.Transports.Internal
                 frame.ToIncoming(),
                 fin: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
+
+        private async ValueTask<(object frameObject, bool fin)> WaitFrameAsync(CancellationToken cancel)
+        {
+            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
+            if (ReadCompleted || (fin && !TrySetReadCompleted()))
+            {
+                _connection.FinishedReceivedFrame();
+                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+            }
+
+            // Notify the connection that the frame has been processed. This must be done after completing reads
+            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
+            // connection before the connection is shutdown if the next frame is a close connection frame.
+            _connection.FinishedReceivedFrame();
+            return (frameObject, fin);
+        }
     }
 }

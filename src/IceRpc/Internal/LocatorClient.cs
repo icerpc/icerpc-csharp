@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
-using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -296,7 +295,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            return await task.IceWaitAsync(cancel).ConfigureAwait(false);
+            return await task.WaitAsync(cancel).ConfigureAwait(false);
 
             async Task<(Endpoint?, ImmutableList<Endpoint>)> PerformResolveWithLocatorAsync()
             {

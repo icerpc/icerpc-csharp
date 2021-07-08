@@ -19,8 +19,7 @@ namespace IceRpc.Tests.ClientServer
     public class LoggingTests : ClientServerBaseTest
     {
         /// <summary>Check that connection establishment retries are logged with IceRpc category and log level
-        /// lower or equal to Debug, there should be 4 log entries one after each retry for a total of 5 attempts
-        // and a last entry for the request exception.</summary>
+        /// lower or equal to Debug, there should be 5 log entries one for each attempt.</summary>
         [Test]
         public async Task Logging_ConnectionRetries()
         {
@@ -243,13 +242,13 @@ namespace IceRpc.Tests.ClientServer
                 });
 
         private Server CreateServer(bool colocated, int portNumber, IDispatcher dispatcher) => new()
-            {
-                HasColocEndpoint = false,
-                Dispatcher = dispatcher,
-                Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
-            };
+        {
+            HasColocEndpoint = false,
+            Dispatcher = dispatcher,
+            Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
+            // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
+            HostName = "127.0.0.1"
+        };
 
         private static string GetCategory(JsonDocument document) =>
             GetPropertyAsString(document.RootElement, "Category");

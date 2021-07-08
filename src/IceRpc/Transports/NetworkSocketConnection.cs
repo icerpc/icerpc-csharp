@@ -4,7 +4,6 @@ using IceRpc.Transports.Internal;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
 
 namespace IceRpc.Transports
 {
@@ -65,7 +64,7 @@ namespace IceRpc.Transports
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
 
-         /// <inheritdoc/>
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger

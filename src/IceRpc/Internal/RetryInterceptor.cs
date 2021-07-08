@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Internal
 {
     /// <summary>The implementation of <see cref="Interceptors.Retry"/>.</summary>
-    internal sealed class RetryInvoker : IInvoker
+    internal sealed class RetryInterceptor
     {
         private readonly int _bufferMaxSize;
         private int _bufferSize;
@@ -19,10 +19,12 @@ namespace IceRpc.Internal
         private readonly int _maxAttempts;
         private readonly object _mutex = new();
 
-        private readonly IInvoker _next;
         private readonly int _requestMaxSize;
 
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        internal async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            IInvoker next,
+            CancellationToken cancel)
         {
             // If the request size is greater than _requestMaxSize or the size of the request would increase the
             // buffer size beyond _bufferMaxSize we release the request after it was sent to avoid holding too
@@ -44,7 +46,7 @@ namespace IceRpc.Internal
                     RetryPolicy retryPolicy = RetryPolicy.NoRetry;
                     try
                     {
-                        response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
+                        response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
                         // TODO: release payload if releaseRequestAfterSent is true
 
@@ -135,7 +137,7 @@ namespace IceRpc.Internal
 
                         if (request.Connection != null &&
                             !request.Connection.IsServer &&
-                            (retryPolicy == RetryPolicy.OtherReplica || !request.Connection.IsActive))
+                            (retryPolicy == RetryPolicy.OtherReplica || request.Connection.State != ConnectionState.Active))
                         {
                             // Retry with a new connection
                             request.Connection = null;
@@ -170,18 +172,34 @@ namespace IceRpc.Internal
             }
         }
 
-        internal RetryInvoker(
+        internal RetryInterceptor(
             int maxAttempts,
-            int bufferMaxSize,
             int requestMaxSize,
-            ILoggerFactory? loggerFactory,
-            IInvoker next)
+            int bufferMaxSize,
+            ILoggerFactory? loggerFactory)
         {
-            _bufferMaxSize = bufferMaxSize;
+            if (maxAttempts < 1)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"Invalid value '{maxAttempts}' for '{nameof(maxAttempts)}', it must be greater than 0.");
+            }
             _maxAttempts = maxAttempts;
-            _logger = (loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-            _next = next;
+
             _requestMaxSize = requestMaxSize;
+            if (requestMaxSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"Invalid value '{requestMaxSize}' for '{nameof(requestMaxSize)}' it must be greater than 0.");
+            }
+
+            _bufferMaxSize = bufferMaxSize;
+            if (bufferMaxSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"Invalid value '{bufferMaxSize}' for '{nameof(bufferMaxSize)}' it must be greater than 0.");
+            }
+
+            _logger = (loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
         }
 
         private void DecBufferSize(int size)

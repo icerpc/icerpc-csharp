@@ -5,7 +5,6 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -257,7 +256,7 @@ namespace IceRpc.Tests.Internal
                     IdleTimeout = idleOnClient ? TimeSpan.FromHours(1) : TimeSpan.FromMilliseconds(500)
                 });
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             factory.Client.Closed += (sender, args) => semaphore.Release();
             factory.Server.Closed += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
@@ -302,10 +301,10 @@ namespace IceRpc.Tests.Internal
                 (factory.Server.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
             Assert.That(serverSocket, Is.Not.Null);
 
-            Assert.That(clientSocket.RemoteEndPoint, Is.Not.Null);
+            Assert.That(clientSocket!.RemoteEndPoint, Is.Not.Null);
             Assert.That(clientSocket.LocalEndPoint, Is.Not.Null);
 
-            Assert.That(serverSocket.LocalEndPoint, Is.Not.Null);
+            Assert.That(serverSocket!.LocalEndPoint, Is.Not.Null);
 
             Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint!.Host);
             Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint!.Host);
@@ -326,8 +325,8 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.Server.IsServer, Is.True);
 
             Assert.AreEqual(null, factory.Client.Server);
-            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint).Port);
-            Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint).Port);
+            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
+            Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
 
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
@@ -357,7 +356,7 @@ namespace IceRpc.Tests.Internal
 
                 Assert.That(serverSslStream, Is.Not.Null);
 
-                Assert.That(clientSslStream.CheckCertRevocationStatus, Is.False);
+                Assert.That(clientSslStream!.CheckCertRevocationStatus, Is.False);
                 Assert.That(clientSslStream.IsEncrypted, Is.True);
                 Assert.That(clientSslStream.IsMutuallyAuthenticated, Is.False);
                 Assert.That(clientSslStream.IsSigned, Is.True);
@@ -367,13 +366,13 @@ namespace IceRpc.Tests.Internal
                 {
                     // APLN doesn't work on macOS (we keep this check to figure out when it will be supported)
                     Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(), Is.Empty);
-                    Assert.That(serverSslStream.NegotiatedApplicationProtocol.ToString(), Is.Empty);
+                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(), Is.Empty);
                 }
                 else
                 {
                     Assert.That(clientSslStream.NegotiatedApplicationProtocol.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
-                    Assert.That(serverSslStream.NegotiatedApplicationProtocol.ToString(),
+                    Assert.That(serverSslStream!.NegotiatedApplicationProtocol.ToString(),
                                 Is.EqualTo(Protocol.Ice2.GetName()));
                 }
 
@@ -451,7 +450,7 @@ namespace IceRpc.Tests.Internal
                     KeepAlive = !heartbeatOnClient
                 });
 
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             EventHandler handler = (sender, args) =>
             {
                 Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.Server : factory.Client));
@@ -491,7 +490,7 @@ namespace IceRpc.Tests.Internal
             Task pingTask = factory.Proxy.IcePingAsync();
 
             // Make sure we receive few pings while the invocation is pending.
-            var semaphore = new SemaphoreSlim(0);
+            using var semaphore = new SemaphoreSlim(0);
             factory.Client.PingReceived += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();
@@ -507,8 +506,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
-        [Repeat(10)]
         public async Task Connection_ShutdownAsync(Protocol protocol, string transport, bool closeClientSide)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
@@ -552,7 +549,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(true, Protocol.Ice1)]
         [TestCase(false, Protocol.Ice2)]
         [TestCase(true, Protocol.Ice2)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
@@ -636,7 +632,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(Protocol.Ice1, "tcp", true)]
         [TestCase(Protocol.Ice2, "coloc", false)]
         [TestCase(Protocol.Ice2, "coloc", true)]
-        [Log(LogAttributeLevel.Debug)]
         public async Task Connection_ShutdownAsync_CloseTimeoutAsync(
             Protocol protocol,
             string transport,
