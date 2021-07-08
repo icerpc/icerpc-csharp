@@ -172,8 +172,7 @@ namespace IceRpc.Internal
         {
             if (compressionFormat != CompressionFormat.Deflate)
             {
-                throw new NotSupportedException(
-                    $"cannot decompress compression format '{compressionFormat}'");
+                throw new NotSupportedException($"cannot decompress compression format '{compressionFormat}'");
             }
 
             return new DeflateStream(stream, CompressionMode.Decompress);

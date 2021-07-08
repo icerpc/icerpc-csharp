@@ -17,10 +17,10 @@ module IceRpc
         Initialize = 0,
         Request = 1,
         Response = 2,
-        GoAway = 3,
-        GoAwayCanceled = 4,
-        BoundedData = 5,
-        UnboundedData = 6
+        BoundedData = 3,
+        UnboundedData = 4,
+        GoAway = 5,
+        GoAwayCanceled = 6
     }
 
     dictionary<varint, ByteSeq> Fields;

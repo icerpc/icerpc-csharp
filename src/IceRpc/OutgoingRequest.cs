@@ -67,8 +67,8 @@ namespace IceRpc
         /// <summary>The proxy that is sending this request.</summary>
         public IServicePrx Proxy { get; }
 
-        /// <summary>A stream parameter decompressor. Interceptors can use this property to decompress a
-        /// stream return value.</summary>
+        /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
+        /// decompress a stream return value.</summary>
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
         /// <summary>The facet path of the target service. ice1 only.</summary>

@@ -92,7 +92,8 @@ namespace IceRpc
                     {
                         if (_streamDecompressor == null)
                         {
-                            throw new InvalidDataException("cannot read compressed stream data");
+                            throw new NotSupportedException(
+                                $"cannot decompress compression format '{compressionFormat}'");
                         }
                         else
                         {

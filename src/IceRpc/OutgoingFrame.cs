@@ -70,7 +70,7 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>A stream parameter compressor. Middlewares or interceptors can use this property to
+        /// <summary>A stream parameter compressor. Middleware or interceptors can use this property to
         /// compress a stream parameter or return value.</summary>
         public Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
 

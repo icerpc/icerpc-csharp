@@ -626,18 +626,7 @@ namespace IceRpc.Transports
             {
             }
 
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                try
-                {
-                    return ReadAsync(buffer, offset, count, CancellationToken.None).Result;
-                }
-                catch (AggregateException ex)
-                {
-                    Debug.Assert(ex.InnerException != null);
-                    throw ExceptionUtil.Throw(ex.InnerException);
-                }
-            }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotImplementedException();
 
             public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
                 ReadAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
@@ -674,18 +663,7 @@ namespace IceRpc.Transports
 
             public override void SetLength(long value) => throw new NotImplementedException();
 
-            public override void Write(byte[] buffer, int offset, int count)
-            {
-                try
-                {
-                    WriteAsync(buffer, offset, count, CancellationToken.None).Wait();
-                }
-                catch (AggregateException ex)
-                {
-                    Debug.Assert(ex.InnerException != null);
-                    throw ExceptionUtil.Throw(ex.InnerException);
-                }
-            }
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
 
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
                 WriteAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
