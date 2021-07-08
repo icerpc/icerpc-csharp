@@ -273,12 +273,13 @@ namespace IceRpc
                     catch (FormatException ex)
                     {
                         throw new InvalidOperationException(
-                            @$"cannot marshal proxy with path '{Path}' using encoding 1.1", ex);
+                            $"cannot marshal proxy with path '{Path}' using encoding 1.1",
+                            ex);
                     }
                     if (identity.Name.Length == 0)
                     {
                         throw new InvalidOperationException(
-                            @$"cannot marshal proxy with path '{Path}' using encoding 1.1");
+                            $"cannot marshal proxy with path '{Path}' using encoding 1.1");
                     }
 
                     identity.IceWrite(writer);
@@ -406,7 +407,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Constructs a new proxy class instance with the specified options.</summary>
+        /// <summary>Constructs a new proxy class instance with the specified path and protocol.</summary>
+        /// <param name="path">The proxy path.</param>
+        /// <param name="protocol">The proxy protocol.</param>
         protected internal ServicePrx(string path, Protocol protocol)
         {
             Protocol = protocol;

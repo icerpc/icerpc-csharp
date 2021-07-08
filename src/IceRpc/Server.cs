@@ -102,6 +102,7 @@ namespace IceRpc
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
+        // TODO missing test
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");

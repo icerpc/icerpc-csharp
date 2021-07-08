@@ -205,18 +205,25 @@ namespace IceRpc
                         deadline = DateTime.UtcNow + timeout;
 
                         timeoutSource = new CancellationTokenSource(timeout);
-                        combinedSource = cancel.CanBeCanceled ?
-                            CancellationTokenSource.CreateLinkedTokenSource(cancel, timeoutSource.Token) :
-                                timeoutSource;
-
-                        cancel = combinedSource.Token;
+                        if (cancel.CanBeCanceled)
+                        {
+                            combinedSource = CancellationTokenSource.CreateLinkedTokenSource(
+                                cancel,
+                                timeoutSource.Token);
+                            cancel = combinedSource.Token;
+                        }
+                        else
+                        {
+                            cancel = timeoutSource.Token;
+                        }
                     }
                     // else deadline remains MaxValue
                 }
                 else if (!cancel.CanBeCanceled)
                 {
-                    throw new ArgumentException(@$"{nameof(cancel)
-                        } must be cancelable when the invocation deadline is set", nameof(cancel));
+                    throw new ArgumentException(
+                        $"{nameof(cancel)} must be cancelable when the invocation deadline is set",
+                        nameof(cancel));
                 }
 
                 var request = new OutgoingRequest(proxy,
@@ -235,10 +242,7 @@ namespace IceRpc
             catch
             {
                 combinedSource?.Dispose();
-                if (timeoutSource != combinedSource)
-                {
-                    timeoutSource?.Dispose();
-                }
+                timeoutSource?.Dispose();
                 throw;
 
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
@@ -281,10 +285,7 @@ namespace IceRpc
                 finally
                 {
                     combinedSource?.Dispose();
-                    if (timeoutSource != combinedSource)
-                    {
-                        timeoutSource?.Dispose();
-                    }
+                    timeoutSource?.Dispose();
                 }
             }
         }

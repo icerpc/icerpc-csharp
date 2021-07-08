@@ -266,7 +266,7 @@ namespace IceRpc.Tests.Api
         [TestCase(true, Protocol.Ice2)]
         // Canceling the cancellation token (source) of ShutdownAsync results in a DispatchException when the operation
         // completes with an OperationCanceledException. It also test calling DisposeAsync is called instead of
-        //  Shutdown, which call ShutdownAsync with a canceled token.
+        // shutdown, which call ShutdownAsync with a canceled token.
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
         {
             using var semaphore = new SemaphoreSlim(0);

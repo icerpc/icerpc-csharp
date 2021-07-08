@@ -142,8 +142,6 @@ namespace IceRpc.Internal
             int compressedIndex = 1 + decompressedSizeLength;
 
             Stream compressedByteStream;
-
-            // TODO: it would be nicer to use ReadOnlyMemoryExtensions.AsStream to build the byte stream
             if (MemoryMarshal.TryGetArray(payload, out ArraySegment<byte> segment))
             {
                 compressedByteStream = new MemoryStream(segment.Array!,
