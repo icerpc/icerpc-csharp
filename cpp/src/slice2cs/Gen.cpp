@@ -2229,7 +2229,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateResponseClass)
     {
         _out << sp;
-        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseReader{T}\"/> for each non-void "
+        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseIceDecodeFunc{T}\"/> for each non-void "
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static new class Response";
         _out << sb;
@@ -2240,7 +2240,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << sp;
                 string opName = fixId(operationName(operation));
-                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseReader{T}\"/> for the return value type "
+                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseIceDecodeFunc{T}\"/> for the return value type "
                         << "of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
