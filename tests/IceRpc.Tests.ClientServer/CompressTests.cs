@@ -156,18 +156,18 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             var router = new Router();
+            router.Use(Middleware.CustomCompressor(
+                new Middleware.CompressorOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                }));
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
                     incomingRequest = request;
                     outgoingResponse = await next.DispatchAsync(request, cancel);
                     return outgoingResponse;
-                }));
-            router.Use(Middleware.CustomCompressor(
-                new Middleware.CompressorOptions
-                {
-                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                    CompressionMinSize = compressionMinSize
                 }));
 
             await using var server = new Server
@@ -187,24 +187,27 @@ namespace IceRpc.Tests.ClientServer
             int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);
             Assert.That(receivedSize, Is.EqualTo(size));
             Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
-            Assert.That(outgoingRequest!.StreamDecompressor, Is.Null);
-            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
             Assert.That(outgoingResponse!.StreamCompressor, Is.Null);
+            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
 
             using var receiveStream = await prx.OpCompressReturnStreamAsync(size);
             Assert.That(ReadStream(receiveStream), Is.EqualTo(size));
             Assert.That(outgoingRequest!.StreamCompressor, Is.Null);
-            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
-            Assert.That(incomingRequest!.StreamDecompressor, Is.Null);
             Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
-
-            using var sendStream2 = new MemoryStream(new byte[size]);
-            using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
-            Assert.That(ReadStream(receiveStream2), Is.EqualTo(size));
-            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
             Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
             Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
+
+            byte[] data = new byte[size];
+            var random = new Random();
+            random.NextBytes(data);
+            using var sendStream2 = new MemoryStream(data);
+            using var receiveStream2 = await prx.OpCompressStreamArgAndReturnStreamAsync(sendStream2);
+            Assert.That(ReadStream(receiveStream2, data), Is.EqualTo(size));
+            Assert.That(outgoingRequest!.StreamCompressor, Is.Not.Null);
             Assert.That(outgoingResponse!.StreamCompressor, Is.Not.Null);
+            Assert.That(outgoingRequest!.StreamDecompressor, Is.Not.Null);
+            Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
         }
 
         internal class CompressTest : ICompressTest
@@ -250,15 +253,21 @@ namespace IceRpc.Tests.ClientServer
                 CancellationToken cancel) => new(stream);
         }
 
-        static private int ReadStream(Stream stream) => ReadStreamAsync(stream).AsTask().Result;
+        static private int ReadStream(Stream stream, byte[]? data = null) =>
+            ReadStreamAsync(stream, data).AsTask().Result;
 
-        static private async ValueTask<int> ReadStreamAsync(Stream stream)
+        static private async ValueTask<int> ReadStreamAsync(Stream stream, byte[]? data = null)
         {
             int totalSize = 0;
             int received;
-            byte[] buffer = new byte[512];
+            byte[] buffer = new byte[32];
+
             while ((received = await stream.ReadAsync(buffer)) != 0)
             {
+                if (data != null)
+                {
+                    Assert.That(buffer[0..received], Is.EqualTo(data[totalSize..(totalSize + received)]));
+                }
                 totalSize += received;
             }
             return totalSize;
