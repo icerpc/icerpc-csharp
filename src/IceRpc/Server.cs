@@ -20,10 +20,6 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
-        /// instances for dispatches.</summary>
-        public ActivitySource? ActivitySource { get; set; }
-
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
 
