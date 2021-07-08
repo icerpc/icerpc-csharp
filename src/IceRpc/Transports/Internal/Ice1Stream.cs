@@ -109,28 +109,28 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var iceEncoder = new IceEncoder(Encoding.V11);
-            iceEncoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-            iceEncoder.Encode(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            iceEncoder.EncodeByte(0); // compression status
-            IceEncoder.Position start = iceEncoder.StartFixedLengthSize();
+            var encoder = new IceEncoder(Encoding.V11);
+            encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+            encoder.Encode(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            encoder.EncodeByte(0); // compression status
+            IceEncoder.Position start = encoder.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
-            iceEncoder.EncodeInt(IsStarted ? RequestId : 0);
-            frame.WriteHeader(iceEncoder);
+            encoder.EncodeInt(IsStarted ? RequestId : 0);
+            frame.EncodeHeader(encoder);
 
-            iceEncoder.EncodeFixedLengthSize11(iceEncoder.Size + frame.PayloadSize, start); // frame size
+            encoder.EncodeFixedLengthSize11(encoder.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= iceEncoder.Capacity - iceEncoder.Size)
+                   frame.Payload.Span[payloadIndex].Length <= encoder.Capacity - encoder.Size)
             {
-                iceEncoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                encoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = iceEncoder.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {

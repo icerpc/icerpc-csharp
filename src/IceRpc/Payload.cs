@@ -64,14 +64,14 @@ namespace IceRpc
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
+            var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                iceEncoder.Encode(CompressionFormat.NotCompressed);
+                encoder.Encode(CompressionFormat.NotCompressed);
             }
 
-            encodeAction(iceEncoder, in args);
-            return iceEncoder.Finish();
+            encodeAction(encoder, in args);
+            return encoder.Finish();
         }
 
         /// <summary>Creates the payload of a request without parameter.</summary>
@@ -94,14 +94,14 @@ namespace IceRpc
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
+            var encoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                iceEncoder.Encode(CompressionFormat.NotCompressed);
+                encoder.Encode(CompressionFormat.NotCompressed);
             }
 
-            encodeAction(iceEncoder, in returnValueTuple);
-            return iceEncoder.Finish();
+            encodeAction(encoder, in returnValueTuple);
+            return encoder.Finish();
         }
 
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
@@ -119,14 +119,14 @@ namespace IceRpc
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
-            var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
+            var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                iceEncoder.Encode(CompressionFormat.NotCompressed);
+                encoder.Encode(CompressionFormat.NotCompressed);
             }
 
-            encodeAction(iceEncoder, arg);
-            return iceEncoder.Finish();
+            encodeAction(encoder, arg);
+            return encoder.Finish();
         }
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
@@ -144,14 +144,14 @@ namespace IceRpc
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
-            var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
+            var encoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                iceEncoder.Encode(CompressionFormat.NotCompressed);
+                encoder.Encode(CompressionFormat.NotCompressed);
             }
 
-            encodeAction(iceEncoder, returnValue);
-            return iceEncoder.Finish();
+            encodeAction(encoder, returnValue);
+            return encoder.Finish();
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
@@ -191,9 +191,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var iceDecoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = decodeFunc(iceDecoder);
-            iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
+            var decoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -225,9 +225,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var iceDecoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
-            T result = decodeFunc(iceDecoder);
-            iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
+            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
 
@@ -253,38 +253,38 @@ namespace IceRpc
                 };
             }
 
-            IceEncoder iceEncoder;
+            IceEncoder encoder;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                iceEncoder = new IceEncoder(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                encoder = new IceEncoder(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
-                    iceEncoder.Encode(replyStatus);
+                    encoder.Encode(replyStatus);
 
                     if (replyStatus == ReplyStatus.UserException)
                     {
-                        iceEncoder.EncodeException(exception);
+                        encoder.EncodeException(exception);
                     }
                     else
                     {
-                        iceEncoder.WriteIce1SystemException(replyStatus, request, exception.Message);
+                        encoder.EncodeIce1SystemException(replyStatus, request, exception.Message);
                     }
                 }
                 else
                 {
-                    iceEncoder.EncodeException(exception);
+                    encoder.EncodeException(exception);
                 }
             }
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                iceEncoder = new IceEncoder(Ice1Definitions.Encoding);
-                iceEncoder.WriteIce1SystemException(replyStatus, request, exception.Message);
+                encoder = new IceEncoder(Ice1Definitions.Encoding);
+                encoder.EncodeIce1SystemException(replyStatus, request, exception.Message);
             }
 
-            return (iceEncoder.Finish(), replyStatus);
+            return (encoder.Finish(), replyStatus);
         }
 
         /// <summary>Reads a remote exception from a response payload.</summary>
@@ -307,24 +307,24 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var iceDecoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
 
-            if (protocol == Protocol.Ice2 && iceDecoder.Encoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.V11)
             {
                 // Skip reply status byte
-                iceDecoder.Skip(1);
+                decoder.Skip(1);
             }
 
             RemoteException exception;
-            if (iceDecoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (decoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
             {
-                exception = iceDecoder.ReadIce1SystemException(replyStatus);
-                iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+                exception = decoder.DecodeIce1SystemException(replyStatus);
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
             }
             else
             {
-                exception = iceDecoder.DecodeException();
-                iceDecoder.CheckEndOfBuffer(skipTaggedParams: true);
+                exception = decoder.DecodeException();
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
             }
             return exception;
         }

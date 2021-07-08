@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
 
-        protected internal override void WriteOptions11(IceEncoder iceEncoder) =>
+        protected internal override void EncodeOptions11(IceEncoder encoder) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)

@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      iceDecoder => iceDecoder.DecodeArray(minElementSize: 1, BasicDecodeFuncs.StringDecodeFunc),
+                                      decoder => decoder.DecodeArray(minElementSize: 1, BasicDecodeFuncs.StringDecodeFunc),
                                       connection,
                                       invoker);
 
@@ -89,18 +89,18 @@ namespace IceRpc
             new((path, protocol) => new ServicePrx(path, protocol));
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly DecodeFunc<IServicePrx> DecodeFunc = iceDecoder => Proxy.Decode(Factory, iceDecoder);
+        public static readonly DecodeFunc<IServicePrx> DecodeFunc = decoder => Proxy.Decode(Factory, decoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly EncodeAction<IServicePrx> EncodeAction = (iceEncoder, value) => iceEncoder.EncodeProxy(value);
+        public static readonly EncodeAction<IServicePrx> EncodeAction = (encoder, value) => encoder.EncodeProxy(value);
 
         /// <summary>An <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly DecodeFunc<IServicePrx?> NullableDecodeFunc = iceDecoder =>
-            Proxy.DecodeNullable(Factory, iceDecoder);
+        public static readonly DecodeFunc<IServicePrx?> NullableDecodeFunc = decoder =>
+            Proxy.DecodeNullable(Factory, decoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly EncodeAction<IServicePrx?> NullableEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeNullableProxy(value);
+            (encoder, value) => encoder.EncodeNullableProxy(value);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
@@ -261,17 +261,17 @@ namespace IceRpc
                            idempotent: true,
                            cancel: cancel);
 
-        /// <summary>Writes the proxy into a buffer.</summary>
-        /// <param name="iceEncoder">The Ice encoder.</param>
+        /// <summary>Encodes the proxy into a buffer.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceEncode(IceEncoder iceEncoder);
+        public void IceEncode(IceEncoder encoder);
 
-        /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
+        /// <summary>Sends a request to this proxy's target service and decodes the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="streamWriter">The stream writer to write the stream parameter on the
         /// <see cref="Transports.RpcStream"/>.</param>
-        /// <param name="responseDecodeFunc">The decode function for the response payload. It reads and throws a
+        /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When <c>true</c>, the request payload should be compressed.</param>
@@ -316,7 +316,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Sends a request to this proxy's target service and reads the "void" response.</summary>
+        /// <summary>Sends a request to this proxy's target service and decodes the "void" response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="streamWriter">The stream writer to write the stream parameter on the

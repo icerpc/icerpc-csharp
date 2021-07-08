@@ -44,15 +44,15 @@ namespace IceRpc.Tests.Encoding
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var iceEncoder = new IceEncoder(encoding, _buffer);
+            var encoder = new IceEncoder(encoding, _buffer);
 
             var prx = IServicePrx.Parse(str);
-            iceEncoder.EncodeProxy(prx);
-            ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
+            encoder.EncodeProxy(prx);
+            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
-            var iceDecoder = new IceDecoder(data, encoding, connection: null, prx.Invoker);
-            var prx2 = IServicePrx.DecodeFunc(iceDecoder);
-            iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+            var decoder = new IceDecoder(data, encoding, connection: null, prx.Invoker);
+            var prx2 = IServicePrx.DecodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(prx, prx2);
         }
 
@@ -68,14 +68,14 @@ namespace IceRpc.Tests.Encoding
             var regular = IServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var iceEncoder = new IceEncoder(encoding, _buffer);
-            iceEncoder.EncodeProxy(endpointLess);
-            ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
+            var encoder = new IceEncoder(encoding, _buffer);
+            encoder.EncodeProxy(endpointLess);
+            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            var iceDecoder = new IceDecoder(data, encoding, _connection);
-            var prx1 = IServicePrx.DecodeFunc(iceDecoder);
-            iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+            var decoder = new IceDecoder(data, encoding, _connection);
+            var prx1 = IServicePrx.DecodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
             Assert.AreEqual(regular.Connection, prx1.Connection);
             Assert.AreEqual(prx1.Endpoint, regular.Connection!.RemoteEndpoint);

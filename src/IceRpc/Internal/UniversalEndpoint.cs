@@ -49,7 +49,7 @@ namespace IceRpc.Internal
             }
         }
 
-        protected internal override void WriteOptions11(IceEncoder iceEncoder) =>
+        protected internal override void EncodeOptions11(IceEncoder encoder) =>
             Debug.Assert(false); // WriteOptions is only for ice1.
 
         internal static UniversalEndpoint Create(EndpointData data, Protocol protocol) => new(data, protocol);

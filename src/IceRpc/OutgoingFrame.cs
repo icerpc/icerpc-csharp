@@ -70,7 +70,7 @@ namespace IceRpc
         /// <summary>Returns the Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The stream iceEncoder if the request or response has a stream param. The encoder is called
+        /// <summary>The stream encoder if the request or response has a stream param. The encoder is called
         /// after the request or response frame is sent over the stream.</summary>
         internal RpcStreamWriter? StreamWriter { get; set; }
 
@@ -94,15 +94,15 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var iceEncoder = new IceEncoder(Encoding.V20);
-                WriteFields(iceEncoder);
-                return iceEncoder.Finish().ToSingleBuffer().DecodeFieldValue(iceDecoder => iceDecoder.DecodeFieldDictionary());
+                var encoder = new IceEncoder(Encoding.V20);
+                EncodeFields(encoder);
+                return encoder.Finish().ToSingleBuffer().DecodeFieldValue(decoder => decoder.DecodeFieldDictionary());
             }
         }
 
-        /// <summary>Writes the header of a frame. This header does not include the frame's prologue.</summary>
-        /// <param name="iceEncoder">The Ice encoder.</param>
-        internal abstract void WriteHeader(IceEncoder iceEncoder);
+        /// <summary>Encodes the header of a frame. This header does not include the frame's prologue.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        internal abstract void EncodeHeader(IceEncoder encoder);
 
         private protected OutgoingFrame(Protocol protocol, FeatureCollection features, RpcStreamWriter? streamWriter)
         {
@@ -112,10 +112,10 @@ namespace IceRpc
             StreamWriter = streamWriter;
         }
 
-        private protected void WriteFields(IceEncoder iceEncoder)
+        private protected void EncodeFields(IceEncoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
-            Debug.Assert(iceEncoder.Encoding == Encoding.V20);
+            Debug.Assert(encoder.Encoding == Encoding.V20);
 
             // can be larger than necessary, which is fine
             int sizeLength =
@@ -123,18 +123,18 @@ namespace IceRpc
 
             int size = 0;
 
-            IceEncoder.Position start = iceEncoder.StartFixedLengthSize(sizeLength);
+            IceEncoder.Position start = encoder.StartFixedLengthSize(sizeLength);
 
-            // First write the fields then the remaining FieldsDefaults.
+            // First encode the fields then the remaining FieldsDefaults.
 
             if (_fields is Dictionary<int, Action<IceEncoder>> fields)
             {
                 foreach ((int key, Action<IceEncoder> action) in fields)
                 {
-                    iceEncoder.EncodeVarInt(key);
-                    IceEncoder.Position startValue = iceEncoder.StartFixedLengthSize(2);
-                    action(iceEncoder);
-                    iceEncoder.EndFixedLengthSize(startValue, 2);
+                    encoder.EncodeVarInt(key);
+                    IceEncoder.Position startValue = encoder.StartFixedLengthSize(2);
+                    action(encoder);
+                    encoder.EndFixedLengthSize(startValue, 2);
                     size++;
                 }
             }
@@ -142,13 +142,13 @@ namespace IceRpc
             {
                 if (_fields == null || !_fields.ContainsKey(key))
                 {
-                    iceEncoder.EncodeVarInt(key);
-                    iceEncoder.EncodeSize(value.Length);
-                    iceEncoder.WriteByteSpan(value.Span);
+                    encoder.EncodeVarInt(key);
+                    encoder.EncodeSize(value.Length);
+                    encoder.WriteByteSpan(value.Span);
                     size++;
                 }
             }
-            iceEncoder.EncodeFixedLengthSize20(size, start, sizeLength);
+            encoder.EncodeFixedLengthSize20(size, start, sizeLength);
         }
     }
 }

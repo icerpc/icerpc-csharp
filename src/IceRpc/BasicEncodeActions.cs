@@ -7,62 +7,62 @@ namespace IceRpc
     {
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>bool</c> values.</summary>
         public static readonly EncodeAction<bool> BoolEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeBool(value);
+            (encoder, value) => encoder.EncodeBool(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>byte</c> values.</summary>
         public static readonly EncodeAction<byte> ByteEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeByte(value);
+            (encoder, value) => encoder.EncodeByte(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>double</c> values.</summary>
         public static readonly EncodeAction<double> DoubleEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeDouble(value);
+            (encoder, value) => encoder.EncodeDouble(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>float</c> values.</summary>
         public static readonly EncodeAction<float> FloatEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeFloat(value);
+            (encoder, value) => encoder.EncodeFloat(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>int</c> values.</summary>
         public static readonly EncodeAction<int> IntEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeInt(value);
+            (encoder, value) => encoder.EncodeInt(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>long</c> values.</summary>
         public static readonly EncodeAction<long> LongEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeLong(value);
+            (encoder, value) => encoder.EncodeLong(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>short</c> values.</summary>
         public static readonly EncodeAction<short> ShortEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeShort(value);
+            (encoder, value) => encoder.EncodeShort(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>string</c> instances.</summary>
         public static readonly EncodeAction<string> StringEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeString(value);
+            (encoder, value) => encoder.EncodeString(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>uint</c> values.</summary>
         public static readonly EncodeAction<uint> UIntEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeUInt(value);
+            (encoder, value) => encoder.EncodeUInt(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>ulong</c> values.</summary>
         public static readonly EncodeAction<ulong> ULongEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeULong(value);
+            (encoder, value) => encoder.EncodeULong(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for <c>ushort</c> values.</summary>
         public static readonly EncodeAction<ushort> UShortEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeUShort(value);
+            (encoder, value) => encoder.EncodeUShort(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for var int values.</summary>
         public static readonly EncodeAction<int> VarIntEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeVarInt(value);
+            (encoder, value) => encoder.EncodeVarInt(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for var long values.</summary>
         public static readonly EncodeAction<long> VarLongEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeVarLong(value);
+            (encoder, value) => encoder.EncodeVarLong(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for var uint values.</summary>
         public static readonly EncodeAction<uint> VarUIntEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeVarUInt(value);
+            (encoder, value) => encoder.EncodeVarUInt(value);
 
         /// <summary>An <see cref="EncodeAction{T}"/> for var ulong values.</summary>
         public static readonly EncodeAction<ulong> VarULongEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeVarULong(value);
+            (encoder, value) => encoder.EncodeVarULong(value);
     }
 }

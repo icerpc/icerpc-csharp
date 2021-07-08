@@ -112,10 +112,10 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Writes a size into a span of bytes using a fixed number of bytes.</summary>
+        /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="buffer">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
         /// <param name="size">The size to write.</param>
-        internal static void WriteFixedLengthSize20(this Span<byte> buffer, long size)
+        internal static void EncodeFixedLengthSize20(this Span<byte> buffer, long size)
         {
             int sizeLength = buffer.Length;
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
@@ -144,6 +144,6 @@ namespace IceRpc.Internal
             ulongBuf.Slice(0, sizeLength).CopyTo(buffer);
         }
 
-        internal static void WriteInt(this Span<byte> buffer, int v) => MemoryMarshal.Write(buffer, ref v);
+        internal static void EncodeInt(this Span<byte> buffer, int v) => MemoryMarshal.Write(buffer, ref v);
     }
 }

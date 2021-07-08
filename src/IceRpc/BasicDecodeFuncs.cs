@@ -7,62 +7,62 @@ namespace IceRpc
     {
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>bool</c> values.</summary>
         public static readonly DecodeFunc<bool> BoolDecodeFunc =
-            iceDecoder => iceDecoder.DecodeBool();
+            decoder => decoder.DecodeBool();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>byte</c> values.</summary>
         public static readonly DecodeFunc<byte> ByteDecodeFunc =
-            iceDecoder => iceDecoder.DecodeByte();
+            decoder => decoder.DecodeByte();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>double</c> values.</summary>
         public static readonly DecodeFunc<double> DoubleDecodeFunc =
-            iceDecoder => iceDecoder.DecodeDouble();
+            decoder => decoder.DecodeDouble();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>float</c> values.</summary>
         public static readonly DecodeFunc<float> FloatDecodeFunc =
-            iceDecoder => iceDecoder.DecodeFloat();
+            decoder => decoder.DecodeFloat();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>int</c> values.</summary>
         public static readonly DecodeFunc<int> IntDecodeFunc =
-            iceDecoder => iceDecoder.DecodeInt();
+            decoder => decoder.DecodeInt();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>long</c> values.</summary>
         public static readonly DecodeFunc<long> LongDecodeFunc =
-            iceDecoder => iceDecoder.DecodeLong();
+            decoder => decoder.DecodeLong();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>short</c> values.</summary>
         public static readonly DecodeFunc<short> ShortDecodeFunc =
-            iceDecoder => iceDecoder.DecodeShort();
+            decoder => decoder.DecodeShort();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>string</c> instances.</summary>
         public static readonly DecodeFunc<string> StringDecodeFunc =
-            iceDecoder => iceDecoder.DecodeString();
+            decoder => decoder.DecodeString();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>uint</c> values.</summary>
         public static readonly DecodeFunc<uint> UIntDecodeFunc =
-            iceDecoder => iceDecoder.DecodeUInt();
+            decoder => decoder.DecodeUInt();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>ulong</c> values.</summary>
         public static readonly DecodeFunc<ulong> ULongDecodeFunc =
-            iceDecoder => iceDecoder.DecodeULong();
+            decoder => decoder.DecodeULong();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <c>ushort</c> values.</summary>
         public static readonly DecodeFunc<ushort> UShortDecodeFunc =
-            iceDecoder => iceDecoder.DecodeUShort();
+            decoder => decoder.DecodeUShort();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for var int values.</summary>
         public static readonly DecodeFunc<int> VarIntDecodeFunc =
-            iceDecoder => iceDecoder.DecodeVarInt();
+            decoder => decoder.DecodeVarInt();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for var long values.</summary>
         public static readonly DecodeFunc<long> VarLongDecodeFunc =
-            iceDecoder => iceDecoder.DecodeVarLong();
+            decoder => decoder.DecodeVarLong();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for var uint values.</summary>
         public static readonly DecodeFunc<uint> VarUIntDecodeFunc =
-            iceDecoder => iceDecoder.DecodeVarUInt();
+            decoder => decoder.DecodeVarUInt();
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for var ulong values.</summary>
         public static readonly DecodeFunc<ulong> VarULongDecodeFunc =
-            iceDecoder => iceDecoder.DecodeVarULong();
+            decoder => decoder.DecodeVarULong();
     }
 }

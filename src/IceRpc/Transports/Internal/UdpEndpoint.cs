@@ -222,11 +222,11 @@ namespace IceRpc.Transports.Internal
 
         protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
 
-        protected internal override void WriteOptions11(IceEncoder iceEncoder)
+        protected internal override void EncodeOptions11(IceEncoder encoder)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && iceEncoder.Encoding == Encoding.V11);
-            base.WriteOptions11(iceEncoder);
-            iceEncoder.EncodeBool(_hasCompressionFlag);
+            Debug.Assert(Protocol == Protocol.Ice1 && encoder.Encoding == Encoding.V11);
+            base.EncodeOptions11(encoder);
+            encoder.EncodeBool(_hasCompressionFlag);
         }
 
         internal static bool IsMulticast(IPAddress addr) =>
@@ -416,13 +416,13 @@ namespace IceRpc.Transports.Internal
             return new UdpEndpoint(data);
         }
 
-        public Endpoint CreateIce1Endpoint(IceDecoder iceDecoder) =>
+        public Endpoint CreateIce1Endpoint(IceDecoder decoder) =>
             // This is correct in C# since arguments are evaluated left-to-right.
             new UdpEndpoint(new EndpointData(Transport,
-                                             host: iceDecoder.DecodeString(),
-                                             port: checked((ushort)iceDecoder.DecodeInt()),
+                                             host: decoder.DecodeString(),
+                                             port: checked((ushort)decoder.DecodeInt()),
                                              ImmutableList<string>.Empty),
-                            compress: iceDecoder.DecodeBool());
+                            compress: decoder.DecodeBool());
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {

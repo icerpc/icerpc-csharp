@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromSingleArg(
                 Proxy,
                 new byte[size],
-                (IceEncoder iceEncoder, ReadOnlyMemory<byte> value) => iceEncoder.EncodeSequence(value.Span));
+                (IceEncoder encoder, ReadOnlyMemory<byte> value) => encoder.EncodeSequence(value.Span));
 
             var request = new OutgoingRequest(Proxy, "op", requestPayload, null, DateTime.MaxValue);
             ValueTask receiveTask = PerformReceiveAsync();

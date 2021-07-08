@@ -53,7 +53,7 @@ namespace IceRpc.Internal
             compressedData[offset++] = (byte)CompressionFormat.Deflate;
             // Write the size of the uncompressed data
             int sizeLength = IceEncoder.GetSizeLength20(payloadSize);
-            compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(payloadSize);
+            compressedData.AsSpan(offset, sizeLength).EncodeFixedLengthSize20(payloadSize);
             offset += sizeLength;
 
             using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);

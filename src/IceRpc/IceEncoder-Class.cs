@@ -26,14 +26,14 @@ namespace IceRpc
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.IsLastSlice;
             }
 
-            // Writes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
+            // Encodes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
             // before the indirection table and are included in the slice size.
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
             {
                 EncodeByte(EncodingDefinitions.TaggedEndMarker);
             }
 
-            // Writes the slice size if necessary.
+            // Encodes the slice size if necessary.
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
             {
                 if (OldEncoding)

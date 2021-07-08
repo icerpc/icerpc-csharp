@@ -10,14 +10,14 @@ namespace IceRpc
     public static class Fields
     {
         /// <summary>Decodes fields from a <see cref="IceDecoder"/>.</summary>
-        /// <param name="iceDecoder">The Ice decoder.</param>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder iceDecoder)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder decoder)
         {
-            Debug.Assert(iceDecoder.Encoding == Encoding.V20);
+            Debug.Assert(decoder.Encoding == Encoding.V20);
 
-            int size = iceDecoder.DecodeSize();
+            int size = decoder.DecodeSize();
             if (size == 0)
             {
                 return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.DecodeField();
+                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();
@@ -49,9 +49,9 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var iceDecoder = new IceDecoder(value, Encoding.V20, connection, invoker);
-            T result = decodeFunc(iceDecoder);
-            iceDecoder.CheckEndOfBuffer(skipTaggedParams: false);
+            var decoder = new IceDecoder(value, Encoding.V20, connection, invoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
     }

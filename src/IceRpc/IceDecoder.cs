@@ -1393,22 +1393,21 @@ namespace IceRpc
 
             private protected abstract T Decode(int pos);
 
-            protected CollectionBase(IceDecoder iceDecoder, int minElementSize)
+            protected CollectionBase(IceDecoder decoder, int minElementSize)
             {
-                Count = iceDecoder.DecodeAndCheckSeqSize(minElementSize);
-                IceDecoder = iceDecoder;
+                Count = decoder.DecodeAndCheckSeqSize(minElementSize);
+                IceDecoder = decoder;
             }
         }
 
-        // Collection<T> holds the size of a Slice sequence and reads the sequence elements from the Inputbuffer
-        // on-demand. It does not fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw
-        // NotSupportedException) because it's not resettable: you can't use it to unmarshal the same bytes multiple
-        // times.
+        // Collection<T> holds the size of a Slice sequence and reads the sequence elements from the buffer on-demand.
+        // It does not fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw NotSupportedException)
+        // because it's not resettable: you can't use it to unmarshal the same bytes multiple times.
         private sealed class Collection<T> : CollectionBase<T>
         {
             private readonly DecodeFunc<T> _decodeFunc;
-            internal Collection(IceDecoder iceDecoder, int minElementSize, DecodeFunc<T> decodeFunc)
-                : base(iceDecoder, minElementSize) => _decodeFunc = decodeFunc;
+            internal Collection(IceDecoder decoder, int minElementSize, DecodeFunc<T> decodeFunc)
+                : base(decoder, minElementSize) => _decodeFunc = decodeFunc;
 
             private protected override T Decode(int pos)
             {
@@ -1424,10 +1423,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             readonly DecodeFunc<T> _decodeFunc;
 
-            internal NullableCollection(IceDecoder iceDecoder, DecodeFunc<T> decodeFunc)
-                : base(iceDecoder, 0)
+            internal NullableCollection(IceDecoder decoder, DecodeFunc<T> decodeFunc)
+                : base(decoder, 0)
             {
-                _bitSequenceMemory = iceDecoder.DecodeBitSequenceMemory(Count);
+                _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
                 _decodeFunc = decodeFunc;
             }
 
@@ -1445,10 +1444,10 @@ namespace IceRpc
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             private readonly DecodeFunc<T> _decodeFunc;
 
-            internal NullableValueCollection(IceDecoder iceDecoder, DecodeFunc<T> decodeFunc)
-                : base(iceDecoder, 0)
+            internal NullableValueCollection(IceDecoder decoder, DecodeFunc<T> decodeFunc)
+                : base(decoder, 0)
             {
-                _bitSequenceMemory = iceDecoder.DecodeBitSequenceMemory(Count);
+                _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
                 _decodeFunc = decodeFunc;
             }
 

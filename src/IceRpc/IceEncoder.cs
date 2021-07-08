@@ -86,7 +86,7 @@ namespace IceRpc
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
-        // Write methods for basic types
+        // Encode methods for basic types
 
         /// <summary>Encodes a boolean to the buffer.</summary>
         /// <param name="v">The boolean to write to the buffer.</param>
@@ -213,7 +213,7 @@ namespace IceRpc
             WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        // Write methods for constructed types except class and exception
+        // Encode methods for constructed types except class and exception
 
         /// <summary>Encodes an array of fixed-size numeric values, such as int and long, to the buffer.</summary>
         /// <param name="v">The array of numeric values.</param>
@@ -360,7 +360,7 @@ namespace IceRpc
             }
             else
             {
-                EncodeSequence(v, (iceEncoder, element) => iceEncoder.EncodeFixedSizeNumeric(element));
+                EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
             }
         }
 
@@ -435,7 +435,7 @@ namespace IceRpc
         /// <param name="v">The struct instance to write.</param>
         public void EncodeStruct<T>(T v) where T : struct, IEncodable => v.IceEncode(this);
 
-        // Write methods for tagged basic types
+        // Encode methods for tagged basic types
 
         /// <summary>Encodes a tagged boolean to the buffer.</summary>
         /// <param name="tag">The tag.</param>
@@ -617,7 +617,7 @@ namespace IceRpc
             }
         }
 
-        // Write methods for tagged constructed types except class
+        // Encode methods for tagged constructed types except class
 
         /// <summary>Encodes a tagged dictionary with fixed-size entries to the buffer.</summary>
         /// <param name="tag">The tag.</param>
@@ -980,7 +980,7 @@ namespace IceRpc
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
 
             Span<byte> data = stackalloc byte[sizeLength];
-            data.WriteFixedLengthSize20(size);
+            data.EncodeFixedLengthSize20(size);
             RewriteByteSpan(data, pos);
         }
 
@@ -1054,7 +1054,7 @@ namespace IceRpc
                 Encoding.IceEncode(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
-                    endpoint.WriteOptions11(this);
+                    endpoint.EncodeOptions11(this);
                 }
                 else
                 {

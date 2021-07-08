@@ -315,7 +315,7 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> requestIdBuffer =
                             MemoryMarshal.AsMemory(buffers.Span[0][Ice1Definitions.HeaderSize..]);
 
-                        requestIdBuffer.Span.WriteInt(stream.RequestId);
+                        requestIdBuffer.Span.EncodeInt(stream.RequestId);
                     }
                 }
 

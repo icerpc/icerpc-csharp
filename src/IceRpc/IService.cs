@@ -42,7 +42,7 @@ namespace IceRpc
                 Payload.FromSingleReturnValue(
                     dispatch,
                     returnValue,
-                    (iceEncoder, returnValue) => iceEncoder.EncodeSequence(returnValue, BasicEncodeActions.StringEncodeAction));
+                    (encoder, returnValue) => encoder.EncodeSequence(returnValue, BasicEncodeActions.StringEncodeAction));
 
             /// <summary>Creates a response payload for operation ice_isA.</summary>
             /// <param name="dispatch">The dispatch properties.</param>

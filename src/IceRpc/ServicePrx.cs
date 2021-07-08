@@ -249,19 +249,19 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public void IceEncode(IceEncoder iceEncoder)
+        public void IceEncode(IceEncoder encoder)
         {
             if (_connection?.IsServer ?? false)
             {
                 throw new InvalidOperationException("cannot marshal a proxy bound to a server connection");
             }
 
-            if (iceEncoder.Encoding == Encoding.V11)
+            if (encoder.Encoding == Encoding.V11)
             {
                 if (Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(Identity.Name.Length > 0);
-                    Identity.IceEncode(iceEncoder);
+                    Identity.IceEncode(encoder);
                 }
                 else
                 {
@@ -282,7 +282,7 @@ namespace IceRpc
                             $"cannot marshal proxy with path '{Path}' using encoding 1.1");
                     }
 
-                    identity.IceEncode(iceEncoder);
+                    identity.IceEncode(encoder);
                 }
 
                 var proxyData = new ProxyData11(
@@ -293,17 +293,17 @@ namespace IceRpc
                     Protocol,
                     protocolMinor: 0,
                     Encoding);
-                proxyData.IceEncode(iceEncoder);
+                proxyData.IceEncode(encoder);
 
                 if (IsIndirect)
                 {
-                    iceEncoder.EncodeSize(0); // 0 endpoints
-                    iceEncoder.EncodeString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
                 }
                 else if (_endpoint == null)
                 {
-                    iceEncoder.EncodeSize(0); // 0 endpoints
-                    iceEncoder.EncodeString(""); // empty adapter ID
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(""); // empty adapter ID
                 }
                 else
                 {
@@ -312,18 +312,18 @@ namespace IceRpc
 
                     if (endpoints.Any())
                     {
-                        iceEncoder.EncodeSequence(endpoints, (iceEncoder, endpoint) => iceEncoder.EncodeEndpoint11(endpoint));
+                        encoder.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
                     }
                     else // marshaled as an endpointless proxy
                     {
-                        iceEncoder.EncodeSize(0); // 0 endpoints
-                        iceEncoder.EncodeString(""); // empty adapter ID
+                        encoder.EncodeSize(0); // 0 endpoints
+                        encoder.EncodeString(""); // empty adapter ID
                     }
                 }
             }
             else
             {
-                Debug.Assert(iceEncoder.Encoding == Encoding.V20);
+                Debug.Assert(encoder.Encoding == Encoding.V20);
                 string path = Path;
 
                 // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
@@ -340,7 +340,7 @@ namespace IceRpc
                          endpoint.Data : null,
                     altEndpoints: _altEndpoints.Count == 0 ? null : _altEndpoints.Select(e => e.Data).ToArray());
 
-                proxyData.IceEncode(iceEncoder);
+                proxyData.IceEncode(encoder);
             }
         }
 

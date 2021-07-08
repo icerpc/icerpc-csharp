@@ -9,18 +9,18 @@ namespace IceRpc
     {
         /// <summary>A decode function for non-nullable class instances.</summary>
         public static readonly DecodeFunc<AnyClass> DecodeFunc =
-            iceDecoder => iceDecoder.DecodeClass<AnyClass>(formalTypeId: null);
+            decoder => decoder.DecodeClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for non-nullable class instances.</summary>
-        public static readonly EncodeAction<AnyClass> EncodeAction = (iceEncoder, value) => iceEncoder.EncodeClass(value, null);
+        public static readonly EncodeAction<AnyClass> EncodeAction = (encoder, value) => encoder.EncodeClass(value, null);
 
         /// <summary>A decode function for nullable class instances.</summary>
         public static readonly DecodeFunc<AnyClass?> NullableDecodeFunc =
-            iceDecoder => iceDecoder.DecodeNullableClass<AnyClass>(formalTypeId: null);
+            decoder => decoder.DecodeNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for nullable class instances.</summary>
         public static readonly EncodeAction<AnyClass?> NullableEncodeAction =
-            (iceEncoder, value) => iceEncoder.EncodeNullableClass(value, null);
+            (encoder, value) => encoder.EncodeNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>
@@ -38,16 +38,16 @@ namespace IceRpc
 
         /// <summary>Decodes this instance by decoding its data members from the <see cref="IceDecoder"/>.
         /// </summary>
-        /// <param name="iceDecoder">The Ice decoder.</param>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceDecode(IceDecoder iceDecoder, bool firstSlice);
-        internal void Decode(IceDecoder iceDecoder) => IceDecode(iceDecoder, true);
+        protected abstract void IceDecode(IceDecoder decoder, bool firstSlice);
+        internal void Decode(IceDecoder decoder) => IceDecode(decoder, true);
 
-        /// <summary>Writes this instance by writing its data to the <see cref="IceEncoder"/>.</summary>
-        /// <param name="iceEncoder">The Ice encoder.</param>
+        /// <summary>Encodes this instance by encoding its data to the <see cref="IceEncoder"/>.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceEncode(IceEncoder iceEncoder, bool firstSlice);
-        internal void Encode(IceEncoder iceEncoder) => IceEncode(iceEncoder, true);
+        protected abstract void IceEncode(IceEncoder encoder, bool firstSlice);
+        internal void Encode(IceEncoder encoder) => IceEncode(encoder, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>
