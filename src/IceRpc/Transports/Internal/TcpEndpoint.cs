@@ -247,11 +247,11 @@ namespace IceRpc.Transports.Internal
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
             return new TcpEndpoint(new EndpointData(Transport,
-                                                    host: iceDecoder.ReadString(),
-                                                    port: checked((ushort)iceDecoder.ReadInt()),
+                                                    host: iceDecoder.DecodeString(),
+                                                    port: checked((ushort)iceDecoder.DecodeInt()),
                                                     ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(iceDecoder.ReadInt()),
-                                   compress: iceDecoder.ReadBool());
+                                   timeout: TimeSpan.FromMilliseconds(iceDecoder.DecodeInt()),
+                                   compress: iceDecoder.DecodeBool());
         }
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

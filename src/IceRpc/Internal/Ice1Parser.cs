@@ -120,7 +120,7 @@ namespace IceRpc.Internal
                     ReadOnlyMemory<byte> readBuffer = iceEncoder.Finish().ToSingleBuffer();
                     Debug.Assert(iceEncoder.Tail.Buffer == 0 && iceEncoder.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 
-                    return new IceDecoder(readBuffer, Ice1Definitions.Encoding).ReadEndpoint11(Protocol.Ice1);
+                    return new IceDecoder(readBuffer, Ice1Definitions.Encoding).DecodeEndpoint11(Protocol.Ice1);
                 }
                 else
                 {

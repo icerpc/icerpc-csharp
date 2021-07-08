@@ -35,19 +35,19 @@ namespace IceRpc.Internal
             return count;
         }
 
-        internal static int ReadInt(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt32(buffer);
-        internal static long ReadLong(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt64(buffer);
-        internal static short ReadShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt16(buffer);
-        internal static ushort ReadUShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToUInt16(buffer);
+        internal static int DecodeInt(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt32(buffer);
+        internal static long DecodeLong(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt64(buffer);
+        internal static short DecodeShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToInt16(buffer);
+        internal static ushort DecodeUShort(this ReadOnlySpan<byte> buffer) => BitConverter.ToUInt16(buffer);
 
-        /// <summary>Reads a string from a UTF-8 byte buffer. The size of the byte buffer corresponds to the number of
+        /// <summary>Decodes a string from a UTF-8 byte buffer. The size of the byte buffer corresponds to the number of
         /// UTF-8 code points in the string.</summary>
         /// <param name="buffer">The byte buffer.</param>
-        /// <returns>The string read from the buffer.</returns>
-        internal static string ReadString(this ReadOnlySpan<byte> buffer) =>
+        /// <returns>The string decoded from the buffer.</returns>
+        internal static string DecodeString(this ReadOnlySpan<byte> buffer) =>
             buffer.IsEmpty ? "" : _utf8.GetString(buffer);
 
-        internal static (int Size, int SizeLength) ReadSize20(this ReadOnlySpan<byte> buffer)
+        internal static (int Size, int SizeLength) DecodeSize20(this ReadOnlySpan<byte> buffer)
         {
             ulong size = (buffer[0] & 0x03) switch
             {
@@ -59,16 +59,16 @@ namespace IceRpc.Internal
 
             checked // make sure we don't overflow
             {
-                return ((int)size, buffer[0].ReadSizeLength20());
+                return ((int)size, buffer[0].DecodeSizeLength20());
             }
         }
 
-        internal static int ReadSizeLength20(this byte b) => b.ReadVarLongLength();
+        internal static int DecodeSizeLength20(this byte b) => b.DecodeVarLongLength();
 
         // Applies to all var type: varlong, varulong etc.
-        internal static int ReadVarLongLength(this byte b) => 1 << (b & 0x03);
+        internal static int DecodeVarLongLength(this byte b) => 1 << (b & 0x03);
 
-        internal static (ulong Value, int ValueLength) ReadVarULong(this ReadOnlySpan<byte> buffer)
+        internal static (ulong Value, int ValueLength) DecodeVarULong(this ReadOnlySpan<byte> buffer)
         {
             ulong value = (buffer[0] & 0x03) switch
             {
@@ -78,7 +78,7 @@ namespace IceRpc.Internal
                 _ => BitConverter.ToUInt64(buffer) >> 2
             };
 
-            return (value, buffer[0].ReadVarLongLength());
+            return (value, buffer[0].DecodeVarLongLength());
         }
 
         internal static IList<ArraySegment<byte>> ToSegmentList(this ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)

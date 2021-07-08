@@ -13,7 +13,7 @@ namespace IceRpc
         public string TypeId => IceSlicedData!.Value.Slices[0].TypeId;
 
         /// <inheritdoc/>
-        protected override void IceRead(IceDecoder iceDecoder, bool firstSlice) => IceSlicedData = iceDecoder.SlicedData;
+        protected override void IceDecode(IceDecoder iceDecoder, bool firstSlice) => IceSlicedData = iceDecoder.SlicedData;
 
         /// <inheritdoc/>
         protected override SlicedData? IceSlicedData { get; set; }

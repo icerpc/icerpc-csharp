@@ -309,15 +309,15 @@ namespace IceRpc.Transports
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
                 var iceDecoder = new IceDecoder(data, Ice2Definitions.Encoding);
-                int dictionarySize = iceDecoder.ReadSize();
+                int dictionarySize = iceDecoder.DecodeSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.DecodeField();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
                         checked
                         {
-                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.ReadVarULong().Value;
+                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.DecodeVarULong().Value;
                         }
 
                         if (_connection.PeerIncomingFrameMaxSize < 1024)
@@ -477,12 +477,12 @@ namespace IceRpc.Transports
             }
 
             // Read the remainder of the size if needed.
-            int sizeLength = buffer.Span[1].ReadSizeLength20();
+            int sizeLength = buffer.Span[1].DecodeSizeLength20();
             if (sizeLength > 1)
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = buffer[1..].AsReadOnlySpan().ReadSize20().Size;
+            int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
 
             // Read the frame data
             if (size > 0)

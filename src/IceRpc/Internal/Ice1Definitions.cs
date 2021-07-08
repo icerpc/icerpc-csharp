@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                     break;
 
                 default:
-                    systemException = new UnhandledException(iceDecoder.ReadString());
+                    systemException = new UnhandledException(iceDecoder.DecodeString());
                     break;
             }
 

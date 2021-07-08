@@ -37,7 +37,7 @@ namespace IceRpc
             var iceDecoder = new IceDecoder(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {
-                ReplyStatus = iceDecoder.ReadReplyStatus();
+                ReplyStatus = iceDecoder.DecodeReplyStatus();
                 ResultType = ReplyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
                 if (ReplyStatus <= ReplyStatus.UserException)
@@ -64,13 +64,13 @@ namespace IceRpc
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice2);
-                int headerSize = iceDecoder.ReadSize();
+                int headerSize = iceDecoder.DecodeSize();
                 int startPos = iceDecoder.Pos;
-                Fields = iceDecoder.ReadFieldDictionary();
-                ResultType = iceDecoder.ReadResultType();
+                Fields = iceDecoder.DecodeFieldDictionary();
+                ResultType = iceDecoder.DecodeResultType();
                 PayloadEncoding = new Encoding(iceDecoder);
 
-                int payloadSize = iceDecoder.ReadSize();
+                int payloadSize = iceDecoder.DecodeSize();
                 if (iceDecoder.Pos - startPos != headerSize)
                 {
                     throw new InvalidDataException(
@@ -86,7 +86,7 @@ namespace IceRpc
 
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
-                    ReplyStatus = iceDecoder.ReadReplyStatus(); // first byte of the payload
+                    ReplyStatus = iceDecoder.DecodeReplyStatus(); // first byte of the payload
                 }
                 else
                 {
@@ -139,7 +139,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.ReadFieldValue(iceDecoder => new RetryPolicy(iceDecoder));
+                retryPolicy = value.DecodeFieldValue(iceDecoder => new RetryPolicy(iceDecoder));
             }
             return retryPolicy;
         }

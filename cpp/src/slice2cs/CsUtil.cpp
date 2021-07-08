@@ -896,7 +896,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.Proxy.ReadNullable("
+            out << "IceRpc.Proxy.DecodeNullable("
                 << typeToString(underlying, scope) << ".Factory, "
                 << "iceDecoder);";
             return;
@@ -904,7 +904,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         else if (underlying->isClassType())
         {
             // does not use bit sequence
-            out << "iceDecoder.ReadNullableClass<" << typeToString(underlying, scope) << ">(";
+            out << "iceDecoder.DecodeNullableClass<" << typeToString(underlying, scope) << ">(";
             if (BuiltinPtr::dynamicCast(underlying))
             {
                 out << "formalTypeId: null";
@@ -927,14 +927,14 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.Proxy.Read("
+        out << "IceRpc.Proxy.Decode("
             << typeToString(underlying, scope) << ".Factory, "
             << "iceDecoder)";
     }
     else if (underlying->isClassType())
     {
         assert(!optional);
-        out << "iceDecoder.ReadClass<" << typeToString(underlying, scope) << ">(";
+        out << "iceDecoder.DecodeClass<" << typeToString(underlying, scope) << ">(";
         if (BuiltinPtr::dynamicCast(underlying))
         {
             out << "formalTypeId: null";
@@ -947,7 +947,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(underlying))
     {
-        out << "iceDecoder.Read" << builtinSuffixTable[builtin->kind()] << "()";
+        out << "iceDecoder.Decode" << builtinSuffixTable[builtin->kind()] << "()";
     }
     else if (auto st = StructPtr::dynamicCast(underlying))
     {
@@ -965,7 +965,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     {
         auto contained = ContainedPtr::dynamicCast(underlying);
         assert(contained);
-        out << helperName(underlying, scope) << ".Read" << contained->name() << "(iceDecoder)";
+        out << helperName(underlying, scope) << ".Decode" << contained->name() << "(iceDecoder)";
     }
 
     if (optional)
@@ -1113,21 +1113,21 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
 
     if (type->isClassType())
     {
-        out << "iceDecoder.ReadTaggedClass<" << typeToString(type, scope) << ">(" << tag << ")";
+        out << "iceDecoder.DecodeTaggedClass<" << typeToString(type, scope) << ">(" << tag << ")";
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.Proxy.ReadTagged("
+        out << "IceRpc.Proxy.DecodeTagged("
             << typeToString(type, scope) << ".Factory, "
             << "iceDecoder, " << tag << ")";
     }
     else if (builtin)
     {
-        out << "iceDecoder.ReadTagged" << builtinSuffixTable[builtin->kind()] << "(" << tag << ")";
+        out << "iceDecoder.DecodeTagged" << builtinSuffixTable[builtin->kind()] << "(" << tag << ")";
     }
     else if (st)
     {
-        out << "iceDecoder.ReadTaggedStruct(" << tag << ", fixedSize: " << (st->isVariableLength() ? "false" : "true")
+        out << "iceDecoder.DecodeTaggedStruct(" << tag << ", fixedSize: " << (st->isVariableLength() ? "false" : "true")
             << ", " << decodeFunc(st, scope) << ")";
     }
     else if (auto en = EnumPtr::dynamicCast(type))
@@ -1136,7 +1136,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
         string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
         string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
 
-        out << "iceDecoder.ReadTagged" << suffix << "(" << tag << ") is " << underlyingType << " " << tmpName << " ? "
+        out << "iceDecoder.DecodeTagged" << suffix << "(" << tag << ") is " << underlyingType << " " << tmpName << " ? "
             << helperName(en, scope) << ".As" << en->name() << "(" << tmpName << ") : ("
             << typeToString(en, scope) << "?)null";
     }
@@ -1145,7 +1145,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
         const TypePtr elementType = seq->type();
         if (isFixedSizeNumericSequence(seq) && !seq->hasMetadataWithPrefix("cs:generic"))
         {
-            out << "iceDecoder.ReadTaggedArray";
+            out << "iceDecoder.DecodeTaggedArray";
             if (auto enElement = EnumPtr::dynamicCast(elementType); enElement && !enElement->isUnchecked())
             {
                 out << "(" << tag << ", (" << typeToString(enElement, scope) << " e) => _ = "
@@ -1163,7 +1163,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
             if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
             {
                 TypePtr underlying = optional->underlying();
-                out << "iceDecoder.ReadTaggedSequence(" << tag << ", "
+                out << "iceDecoder.DecodeTaggedSequence(" << tag << ", "
                     << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
                     << decodeFunc(elementType, scope)
                     << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
@@ -1172,7 +1172,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
             }
             else
             {
-                out << "iceDecoder.ReadTaggedSequence("
+                out << "iceDecoder.DecodeTaggedSequence("
                     << tag << ", minElementSize: " << elementType->minWireSize() << ", fixedSize: "
                     << (elementType->isVariableLength() ? "false" : "true")
                     << ", " << decodeFunc(elementType, scope)
@@ -1186,13 +1186,13 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
             if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
             {
                 TypePtr underlying = optional->underlying();
-                out << "iceDecoder.ReadTaggedArray(" << tag << ", "
+                out << "iceDecoder.DecodeTaggedArray(" << tag << ", "
                     << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
                     << decodeFunc(underlying, scope) << ")";
             }
             else
             {
-                out << "iceDecoder.ReadTaggedArray(" << tag << ", minElementSize: " << elementType->minWireSize()
+                out << "iceDecoder.DecodeTaggedArray(" << tag << ", minElementSize: " << elementType->minWireSize()
                     << ", fixedSize: " << (elementType->isVariableLength() ? "false" : "true")
                     << ", " << decodeFunc(elementType, scope) << ")";
             }
@@ -1215,7 +1215,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
         bool fixedSize = !keyType->isVariableLength() && !valueType->isVariableLength();
         bool sorted = d->findMetadataWithPrefix("cs:generic:") == "SortedDictionary";
 
-        out << "iceDecoder.ReadTagged" << (sorted ? "Sorted" : "") << "Dictionary(" << tag
+        out << "iceDecoder.DecodeTagged" << (sorted ? "Sorted" : "") << "Dictionary(" << tag
             << ", minKeySize: " << keyType->minWireSize();
         if (!withBitSequence)
         {
@@ -1291,22 +1291,22 @@ Slice::CsGenerator::sequenceUnmarshalCode(const SequencePtr& seq, const string& 
         if ((builtin && builtin->isNumericTypeOrBool() && !builtin->isVariableLength()) ||
             (en && en->underlying() && en->isUnchecked()))
         {
-            out << "iceDecoder.ReadArray<" << typeToString(type, scope) << ">()";
+            out << "iceDecoder.DecodeArray<" << typeToString(type, scope) << ">()";
         }
         else if (en && en->underlying())
         {
-            out << "iceDecoder.ReadArray((" << typeToString(en, scope) << " e) => _ = " << helperName(en, scope)
+            out << "iceDecoder.DecodeArray((" << typeToString(en, scope) << " e) => _ = " << helperName(en, scope)
                 << ".As" << en->name() << "((" << typeToString(en->underlying(), scope) << ")e))";
         }
         else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
         {
             TypePtr underlying = optional->underlying();
-            out << "iceDecoder.ReadArray(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
+            out << "iceDecoder.DecodeArray(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
                 << decodeFunc(underlying, scope) << ")";
         }
         else
         {
-            out << "iceDecoder.ReadArray(minElementSize: " << type->minWireSize() << ", "
+            out << "iceDecoder.DecodeArray(minElementSize: " << type->minWireSize() << ", "
                 << decodeFunc(type, scope) << ")";
         }
     }
@@ -1323,23 +1323,23 @@ Slice::CsGenerator::sequenceUnmarshalCode(const SequencePtr& seq, const string& 
         {
             // We always read an array even when mapped to a collection, as it's expected to be faster than unmarshaling
             // the collection elements one by one.
-            out << "iceDecoder.ReadArray<" << typeToString(type, scope) << ">()";
+            out << "iceDecoder.DecodeArray<" << typeToString(type, scope) << ">()";
         }
         else if (en && en->underlying())
         {
-            out << "iceDecoder.ReadArray((" << typeToString(en, scope) << " e) => _ = "
+            out << "iceDecoder.DecodeArray((" << typeToString(en, scope) << " e) => _ = "
                 << helperName(en, scope) << ".As" << en->name()
                 << "((" << typeToString(en->underlying(), scope) << ")e))";
         }
         else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
         {
             TypePtr underlying = optional->underlying();
-            out << "iceDecoder.ReadSequence(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
+            out << "iceDecoder.DecodeSequence(" << (isReferenceType(underlying) ? "withBitSequence: true, " : "")
                 << decodeFunc(underlying, scope) << ")";
         }
         else
         {
-            out << "iceDecoder.ReadSequence(minElementSize: " << type->minWireSize() << ", "
+            out << "iceDecoder.DecodeSequence(minElementSize: " << type->minWireSize() << ", "
                 << decodeFunc(type, scope) << ")";
         }
 
@@ -1394,7 +1394,7 @@ Slice::CsGenerator::dictionaryUnmarshalCode(const DictionaryPtr& dict, const str
 
     ostringstream out;
     out << "iceDecoder.";
-    out << (generic == "SortedDictionary" ? "ReadSortedDictionary(" : "ReadDictionary(");
+    out << (generic == "SortedDictionary" ? "DecodeSortedDictionary(" : "DecodeDictionary(");
     out << "minKeySize: " << key->minWireSize() << ", ";
     if (!withBitSequence)
     {

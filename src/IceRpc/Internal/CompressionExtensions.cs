@@ -107,7 +107,7 @@ namespace IceRpc.Internal
 
             // Read the decompressed size that is written after the compression format byte when the payload is
             // compressed
-            (int decompressedSize, int decompressedSizeLength) = buffer[1..].ReadSize20();
+            (int decompressedSize, int decompressedSizeLength) = buffer[1..].DecodeSize20();
 
             if (decompressedSize > maxSize)
             {

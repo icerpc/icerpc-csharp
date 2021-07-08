@@ -96,7 +96,7 @@ namespace IceRpc
                 // Need to marshal/unmarshal these fields
                 var iceEncoder = new IceEncoder(Encoding.V20);
                 WriteFields(iceEncoder);
-                return iceEncoder.Finish().ToSingleBuffer().ReadFieldValue(iceDecoder => iceDecoder.ReadFieldDictionary());
+                return iceEncoder.Finish().ToSingleBuffer().DecodeFieldValue(iceDecoder => iceDecoder.DecodeFieldDictionary());
             }
         }
 

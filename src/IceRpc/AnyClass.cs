@@ -9,14 +9,14 @@ namespace IceRpc
     {
         /// <summary>A decode function for non-nullable class instances.</summary>
         public static readonly IceDecodeFunc<AnyClass> IceDecodeFunc =
-            iceDecoder => iceDecoder.ReadClass<AnyClass>(formalTypeId: null);
+            iceDecoder => iceDecoder.DecodeClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for non-nullable class instances.</summary>
         public static readonly IceEncodeAction<AnyClass> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
 
         /// <summary>A decode function for nullable class instances.</summary>
         public static readonly IceDecodeFunc<AnyClass?> NullableIceDecodeFunc =
-            iceDecoder => iceDecoder.ReadNullableClass<AnyClass>(formalTypeId: null);
+            iceDecoder => iceDecoder.DecodeNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for nullable class instances.</summary>
         public static readonly IceEncodeAction<AnyClass?> NullableIceEncodeAction =
@@ -36,12 +36,12 @@ namespace IceRpc
             set => IceSlicedData = value;
         }
 
-        /// <summary>Reads this instance by reading its data members from the <see cref="IceDecoder"/>.
+        /// <summary>Decodes this instance by reading its data members from the <see cref="IceDecoder"/>.
         /// </summary>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceRead(IceDecoder iceDecoder, bool firstSlice);
-        internal void Read(IceDecoder iceDecoder) => IceRead(iceDecoder, true);
+        protected abstract void IceDecode(IceDecoder iceDecoder, bool firstSlice);
+        internal void Decode(IceDecoder iceDecoder) => IceDecode(iceDecoder, true);
 
         /// <summary>Writes this instance by writing its data to the <see cref="IceEncoder"/>.</summary>
         /// <param name="iceEncoder">The Ice encoder.</param>

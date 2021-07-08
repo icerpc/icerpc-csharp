@@ -419,10 +419,10 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateIce1Endpoint(IceDecoder iceDecoder) =>
             // This is correct in C# since arguments are evaluated left-to-right.
             new UdpEndpoint(new EndpointData(Transport,
-                                             host: iceDecoder.ReadString(),
-                                             port: checked((ushort)iceDecoder.ReadInt()),
+                                             host: iceDecoder.DecodeString(),
+                                             port: checked((ushort)iceDecoder.DecodeInt()),
                                              ImmutableList<string>.Empty),
-                            compress: iceDecoder.ReadBool());
+                            compress: iceDecoder.DecodeBool());
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {

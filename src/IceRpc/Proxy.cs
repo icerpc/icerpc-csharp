@@ -328,23 +328,23 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Reads a proxy from the buffer.</summary>
+        /// <summary>Decodes a proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">A factory used to create the proxy.</param>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The non-null proxy read from the buffer.</returns>
-        public static T Read<T>(
+        public static T Decode<T>(
             ProxyFactory<T> proxyFactory,
             IceDecoder iceDecoder) where T : class, IServicePrx =>
-            ReadNullable(proxyFactory, iceDecoder) ??
+            DecodeNullable(proxyFactory, iceDecoder) ??
             throw new InvalidDataException("read null for a non-nullable proxy");
 
-        /// <summary>Reads a nullable proxy from the buffer.</summary>
+        /// <summary>Decodes a nullable proxy from the buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The proxy read from the buffer, or null.</returns>
-        public static T? ReadNullable<T>(
+        public static T? DecodeNullable<T>(
             this ProxyFactory<T> proxyFactory,
             IceDecoder iceDecoder) where T : class, IServicePrx
         {
@@ -371,14 +371,14 @@ namespace IceRpc
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
                 Endpoint[] endpointArray =
-                    iceDecoder.ReadArray(minElementSize: 8, iceDecoder => iceDecoder.ReadEndpoint11(proxyData.Protocol));
+                    iceDecoder.DecodeArray(minElementSize: 8, iceDecoder => iceDecoder.DecodeEndpoint11(proxyData.Protocol));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
-                    string adapterId = iceDecoder.ReadString();
+                    string adapterId = iceDecoder.DecodeString();
                     if (adapterId.Length > 0)
                     {
                         endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
@@ -545,18 +545,18 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads a tagged proxy from a buffer.</summary>
+        /// <summary>Decodes a tagged proxy from a buffer.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
         /// <param name="proxyFactory">The factory used to create the proxy.</param>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="tag">The tag.</param>
         /// <returns>The proxy read from the buffer, or null.</returns>
-        public static T? ReadTagged<T>(
+        public static T? DecodeTagged<T>(
             this ProxyFactory<T> proxyFactory,
             IceDecoder iceDecoder,
             int tag)
             where T : class, IServicePrx =>
-            iceDecoder.ReadTaggedProxyHeader(tag) ? Read(proxyFactory, iceDecoder) : null;
+            iceDecoder.DecodeTaggedProxyHeader(tag) ? Decode(proxyFactory, iceDecoder) : null;
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>

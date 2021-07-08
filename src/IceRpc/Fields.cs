@@ -6,18 +6,18 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>Extension class to read fields.</summary>
+    /// <summary>Extension class to decode fields.</summary>
     public static class Fields
     {
-        /// <summary>Reads fields from a <see cref="IceDecoder"/>.</summary>
+        /// <summary>Decodes fields from a <see cref="IceDecoder"/>.</summary>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
         /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this IceDecoder iceDecoder)
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder iceDecoder)
         {
             Debug.Assert(iceDecoder.Encoding == Encoding.V20);
 
-            int size = iceDecoder.ReadSize();
+            int size = iceDecoder.DecodeSize();
             if (size == 0)
             {
                 return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = iceDecoder.DecodeField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();
@@ -43,7 +43,7 @@ namespace IceRpc
         /// <returns>The decoded value.</returns>
         /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
         /// </exception>
-        public static T ReadFieldValue<T>(
+        public static T DecodeFieldValue<T>(
             this ReadOnlyMemory<byte> value,
             IceDecodeFunc<T> decodeFunc,
             Connection? connection = null,

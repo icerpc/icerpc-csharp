@@ -276,7 +276,7 @@ namespace IceRpc.Transports.Internal
 
                 // Check that the Slic version is supported (we only support version 1 for now)
                 var iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
-                uint version = iceDecoder.ReadVarUInt();
+                uint version = iceDecoder.DecodeVarUInt();
                 if (version != 1)
                 {
                     Logger.LogSlicReceivedUnsupportedInitializeFrame(data.Length, version);
@@ -297,7 +297,7 @@ namespace IceRpc.Transports.Internal
                     }
 
                     iceDecoder = new IceDecoder(data, SlicDefinitions.Encoding);
-                    version = iceDecoder.ReadVarUInt();
+                    version = iceDecoder.DecodeVarUInt();
                     if (version != 1)
                     {
                         throw new InvalidDataException($"unsupported Slic version '{version}'");
@@ -661,12 +661,12 @@ namespace IceRpc.Transports.Internal
 
         private static Dictionary<ParameterKey, ulong> ReadParameters(IceDecoder iceDecoder)
         {
-            int dictionarySize = iceDecoder.ReadSize();
+            int dictionarySize = iceDecoder.DecodeSize();
             var parameters = new Dictionary<ParameterKey, ulong>();
             for (int i = 0; i < dictionarySize; ++i)
             {
-                (int key, ReadOnlyMemory<byte> value) = iceDecoder.ReadField();
-                parameters.Add((ParameterKey)key, value.Span.ReadVarULong().Value);
+                (int key, ReadOnlyMemory<byte> value) = iceDecoder.DecodeField();
+                parameters.Add((ParameterKey)key, value.Span.DecodeVarULong().Value);
             }
             return parameters;
         }
@@ -771,19 +771,19 @@ namespace IceRpc.Transports.Internal
             // will be the frame type and the second is the first byte of the Slic frame size.
             ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(2, cancel).ConfigureAwait(false);
             var type = (SlicDefinitions.FrameType)buffer.Span[0];
-            int sizeLength = buffer.Span[1].ReadSizeLength20();
+            int sizeLength = buffer.Span[1].DecodeSizeLength20();
             int size;
             if (sizeLength > 1)
             {
                 Received(buffer.Slice(0, 1));
                 _bufferedConnection!.Rewind(1);
                 buffer = await _bufferedConnection!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
-                size = buffer.Span.ReadSize20().Size;
+                size = buffer.Span.DecodeSize20().Size;
                 Received(buffer.Slice(0, sizeLength));
             }
             else
             {
-                size = buffer.Span[1..2].ReadSize20().Size;
+                size = buffer.Span[1..2].DecodeSize20().Size;
                 Received(buffer.Slice(0, 2));
             }
 
@@ -801,7 +801,7 @@ namespace IceRpc.Transports.Internal
             // too much data.
             int size = Math.Min(frameSize, 8);
             ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(size, cancel).ConfigureAwait(false);
-            (ulong streamId, int streamIdLength) = buffer.Span.ReadVarULong();
+            (ulong streamId, int streamIdLength) = buffer.Span.DecodeVarULong();
             _bufferedConnection!.Rewind(size - streamIdLength);
             Received(buffer[0..streamIdLength]);
 

@@ -63,8 +63,8 @@ namespace IceRpc
 
         internal RetryPolicy(IceDecoder iceDecoder)
         {
-            Retryable = iceDecoder.ReadRetryable();
-            Delay = Retryable == Retryable.AfterDelay ? TimeSpan.FromMilliseconds(iceDecoder.ReadVarULong()) : TimeSpan.Zero;
+            Retryable = iceDecoder.DecodeRetryable();
+            Delay = Retryable == Retryable.AfterDelay ? TimeSpan.FromMilliseconds(iceDecoder.DecodeVarULong()) : TimeSpan.Zero;
         }
 
         private RetryPolicy(Retryable retryable, TimeSpan delay = default)
@@ -137,19 +137,19 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Reads a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
+        /// <summary>Decodes a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
         /// called on a plain RemoteException.</summary>
         /// <param name="iceDecoder">The Ice decoder.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceRead(IceDecoder iceDecoder, bool firstSlice)
+        protected virtual void IceDecode(IceDecoder iceDecoder, bool firstSlice)
         {
             Debug.Assert(firstSlice);
             IceSlicedData = iceDecoder.SlicedData;
             ConvertToUnhandled = true;
         }
 
-        internal void Read(IceDecoder iceDecoder) => IceRead(iceDecoder, true);
+        internal void Decode(IceDecoder iceDecoder) => IceDecode(iceDecoder, true);
 
         /// <summary>Writes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>

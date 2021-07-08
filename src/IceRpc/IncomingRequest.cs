@@ -101,7 +101,7 @@ namespace IceRpc
             }
             else
             {
-                int headerSize = iceDecoder.ReadSize();
+                int headerSize = iceDecoder.DecodeSize();
                 int startPos = iceDecoder.Pos;
 
                 // We use the generated code for the header body and read the rest of the header "by hand".
@@ -118,10 +118,10 @@ namespace IceRpc
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
 
-                Fields = iceDecoder.ReadFieldDictionary();
+                Fields = iceDecoder.DecodeFieldDictionary();
 
                 PayloadEncoding = new Encoding(iceDecoder);
-                PayloadSize = iceDecoder.ReadSize();
+                PayloadSize = iceDecoder.DecodeSize();
 
                 if (iceDecoder.Pos - startPos != headerSize)
                 {
@@ -130,13 +130,13 @@ namespace IceRpc
                         } bytes");
                 }
 
-                // Read Context from Fields and set corresponding feature.
+                // Decode Context from Fields and set corresponding feature.
                 if (Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
                     Features = new FeatureCollection();
                     Features.Set(new Context
                     {
-                        Value = value.ReadFieldValue(iceDecoder => iceDecoder.ReadDictionary(
+                        Value = value.DecodeFieldValue(iceDecoder => iceDecoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
                             keyDecodeFunc: BasicIceDecodeFuncs.StringIceDecodeFunc,

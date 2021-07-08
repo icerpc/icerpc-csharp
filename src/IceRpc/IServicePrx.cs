@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      iceDecoder => iceDecoder.ReadArray(minElementSize: 1, BasicIceDecodeFuncs.StringIceDecodeFunc),
+                                      iceDecoder => iceDecoder.DecodeArray(minElementSize: 1, BasicIceDecodeFuncs.StringIceDecodeFunc),
                                       connection,
                                       invoker);
 
@@ -89,14 +89,14 @@ namespace IceRpc
             new((path, protocol) => new ServicePrx(path, protocol));
 
         /// <summary>A <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceDecodeFunc<IServicePrx> IceDecodeFunc = iceDecoder => Proxy.Read(Factory, iceDecoder);
+        public static readonly IceDecodeFunc<IServicePrx> IceDecodeFunc = iceDecoder => Proxy.Decode(Factory, iceDecoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IceEncodeAction<IServicePrx> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
 
         /// <summary>An <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly IceDecodeFunc<IServicePrx?> NullableIceDecodeFunc = iceDecoder =>
-            Proxy.ReadNullable(Factory, iceDecoder);
+            Proxy.DecodeNullable(Factory, iceDecoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly IceEncodeAction<IServicePrx?> NullableIceEncodeAction =

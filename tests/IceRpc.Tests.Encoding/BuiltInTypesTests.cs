@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Bool(bool p1)
         {
             _iceEncoder.WriteBool(p1);
-            bool r1 = _iceDecoder.ReadBool();
+            bool r1 = _iceDecoder.DecodeBool();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -44,7 +44,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Byte(byte p1)
         {
             _iceEncoder.WriteByte(p1);
-            byte r1 = _iceDecoder.ReadByte();
+            byte r1 = _iceDecoder.DecodeByte();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Short(short p1)
         {
             _iceEncoder.WriteShort(p1);
-            short r1 = _iceDecoder.ReadShort();
+            short r1 = _iceDecoder.DecodeShort();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -71,7 +71,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_UShort(ushort p1)
         {
             _iceEncoder.WriteUShort(p1);
-            ushort r1 = _iceDecoder.ReadUShort();
+            ushort r1 = _iceDecoder.DecodeUShort();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Int(int p1)
         {
             _iceEncoder.WriteInt(p1);
-            int r1 = _iceDecoder.ReadInt();
+            int r1 = _iceDecoder.DecodeInt();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_UInt(uint p1)
         {
             _iceEncoder.WriteUInt(p1);
-            uint r1 = _iceDecoder.ReadUInt();
+            uint r1 = _iceDecoder.DecodeUInt();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -111,7 +111,7 @@ namespace IceRpc.Tests.Encoding
         {
             _iceEncoder.WriteLong(p1);
 
-            long r1 = _iceDecoder.ReadLong();
+            long r1 = _iceDecoder.DecodeLong();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_ULong(ulong p1)
         {
             _iceEncoder.WriteULong(p1);
-            ulong r1 = _iceDecoder.ReadULong();
+            ulong r1 = _iceDecoder.DecodeULong();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -135,7 +135,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_VarULong(ulong p1)
         {
             _iceEncoder.WriteVarULong(p1);
-            ulong r1 = _iceDecoder.ReadVarULong();
+            ulong r1 = _iceDecoder.DecodeVarULong();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -146,7 +146,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_VarLong(long p1)
         {
             _iceEncoder.WriteVarLong(p1);
-            long r1 = _iceDecoder.ReadVarLong();
+            long r1 = _iceDecoder.DecodeVarLong();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -158,7 +158,7 @@ namespace IceRpc.Tests.Encoding
         public void Encoding_Float(float p1)
         {
             _iceEncoder.WriteFloat(p1);
-            float r1 = _iceDecoder.ReadFloat();
+            float r1 = _iceDecoder.DecodeFloat();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -173,7 +173,7 @@ namespace IceRpc.Tests.Encoding
         {
             _iceEncoder.WriteDouble(p1);
 
-            double r1 = _iceDecoder.ReadDouble();
+            double r1 = _iceDecoder.DecodeDouble();
 
             Assert.AreEqual(p1, r1);
             Assert.AreEqual(0, _iceEncoder.Tail.Buffer);
@@ -189,7 +189,7 @@ namespace IceRpc.Tests.Encoding
         {
             _iceEncoder.WriteString(p1);
 
-            string r1 = _iceDecoder.ReadString();
+            string r1 = _iceDecoder.DecodeString();
 
             Assert.AreEqual(p1, r1);
         }
