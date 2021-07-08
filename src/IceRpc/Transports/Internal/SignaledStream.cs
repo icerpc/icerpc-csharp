@@ -120,7 +120,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Signals the stream with a new exception.</summary>
-        /// <param name="exception">The exception that will be raised by IceWaitAsync.</param>
+        /// <param name="exception">The exception that will be raised by WaitAsync.</param>
         protected void SetException(Exception exception)
         {
             bool lockTaken = false;
@@ -152,7 +152,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Signals the stream with a new result.</summary>
-        /// <param name="result">The result that will be returned by IceWaitAsync.</param>
+        /// <param name="result">The result that will be returned by WaitAsync.</param>
         protected void SetResult(T result)
         {
             bool lockTaken = false;

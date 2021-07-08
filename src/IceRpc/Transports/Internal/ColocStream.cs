@@ -12,10 +12,12 @@ namespace IceRpc.Transports.Internal
     /// <summary>The RpcStream class for the colocated transport.</summary>
     internal class ColocStream : SignaledStream<(object, bool)>
     {
-        private Memory<byte> _receiveBuffer;
+        private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
+        private (int Segment, int Offset) _receivedPos;
+        private bool _receivedEndStream;
         private readonly ColocConnection _connection;
-        private ColocStreamWriter? _streamWriter;
-        private ColocStreamReader? _streamReader;
+        private SemaphoreSlim? _sendSemaphore;
+        private SemaphoreSlim? _receiveSemaphore;
 
         public override void AbortRead(RpcStreamError errorCode)
         {
@@ -57,75 +59,104 @@ namespace IceRpc.Transports.Internal
 
         public override void EnableSendFlowControl()
         {
-            // Create a channel to send the data directly to the peer's stream. It's a bounded channel
-            // of one element which requires the sender to wait if the channel is full. This ensures
-            // that the sender doesn't send the data faster than the receiver can process. Using channels
-            // for this purpose might be a little overkill, we could consider adding a small async queue
-            // class for this purpose instead.
-            var channelOptions = new BoundedChannelOptions(1)
-            {
-                SingleReader = true,
-                SingleWriter = true,
-                FullMode = BoundedChannelFullMode.Wait,
-                AllowSynchronousContinuations = false
-            };
-            var channel = Channel.CreateBounded<byte[]>(channelOptions);
-            _streamWriter = new ColocStreamWriter();
+            // If we are going to send stream data, we create a send semaphore and sent it to the peer's
+            // stream. The semaphore is used to ensure the SendAsync call blocks until the peer received
+            // the data.
+            _sendSemaphore = new SemaphoreSlim(0);
 
             // Send the channel decoder to the peer. Receiving data will first wait for the channel decoder
             // to be transmitted.
-            _connection.SendFrameAsync(this, frame: _streamWriter.Reader, fin: false, cancel: default).AsTask();
+            _connection.SendFrameAsync(this, frame: _sendSemaphore, fin: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
-            // socket channel.
-            if (_streamReader == null)
+            // If the receive semaphore isn't set yet, get it from the channel, the semaphore is sent before
+            // stream data.
+            object frame;
+            if (_receiveSemaphore == null)
             {
-                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-                _streamReader = frame as ColocStreamReader;
-                Debug.Assert(_streamReader != null);
+                (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
+                Debug.Assert(!_receivedEndStream);
+                _receiveSemaphore = frame as SemaphoreSlim;
+                Debug.Assert(_receiveSemaphore != null);
             }
 
-            int received = 0;
-            while (buffer.Length > 0)
+            // If there's still received buffered data, first consume it.
+            if (_receivedPos.Segment < _receivedBuffers.Length)
             {
-                if (_receiveBuffer.Length > 0)
+                int received = ReceiveFromBuffer(buffer);
+                if (received > 0)
                 {
-                    if (buffer.Length < _receiveBuffer.Length)
+                    // If we consumed some data, that's good enough, return.
+                    return received;
+                }
+            }
+
+            if (ReadCompleted)
+            {
+                return 0;
+            }
+
+            // If we couldn't get data from the previously received buffers, wait for additional data to be received
+            // and fill the buffer with the received data.
+            (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
+            _receivedBuffers = (ReadOnlyMemory<ReadOnlyMemory<byte>>)frame;
+            _receivedPos = (0, 0);
+
+            Debug.Assert (!_receivedBuffers.IsEmpty);
+
+            return ReceiveFromBuffer(buffer);
+
+            int ReceiveFromBuffer(Memory<byte> buffer)
+            {
+                int offset = 0;
+                while (offset < buffer.Length)
+                {
+                    Debug.Assert(_receivedPos.Offset < _receivedBuffers.Span[_receivedPos.Segment].Length);
+
+                    ReadOnlyMemory<byte> receiveBuffer =
+                         _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
+                    int remaining = buffer.Length - offset;
+                    if (remaining < receiveBuffer.Length)
                     {
-                        _receiveBuffer[0..buffer.Length].CopyTo(buffer);
-                        received += buffer.Length;
-                        _receiveBuffer = _receiveBuffer[buffer.Length..];
-                        buffer = buffer[buffer.Length..];
+                        receiveBuffer[0..remaining].CopyTo(buffer);
+                        _receivedPos.Offset += remaining;
+                        offset += remaining;
                     }
                     else
                     {
-                        _receiveBuffer.CopyTo(buffer);
-                        received += _receiveBuffer.Length;
-                        _receiveBuffer = Memory<byte>.Empty;
-                        buffer = Memory<byte>.Empty;
+                        receiveBuffer.CopyTo(buffer);
+                        offset += receiveBuffer.Length;
+                        if (++_receivedPos.Segment == _receivedBuffers.Length)
+                        {
+                            // No more data available from the received buffers.
+                            break;
+                        }
+                        _receivedPos.Offset = 0;
                     }
                 }
-                else
-                {
-                    if (ReadCompleted)
-                    {
-                        return 0;
-                    }
 
+                // If all the buffered data has been consumed, release the semaphore to let the sender send more data.
+                if (_receivedPos.Segment == _receivedBuffers.Length)
+                {
                     try
                     {
-                        _receiveBuffer = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
+                        _receiveSemaphore.Release();
                     }
-                    catch (ChannelClosedException)
+                    catch (ObjectDisposedException)
                     {
-                        TrySetReadCompleted();
                     }
                 }
+
+                // If we received the end stream flag, we won't receive any additional data, complete the stream reads.
+                if (_receivedEndStream)
+                {
+                    TrySetReadCompleted();
+                }
+
+                return offset;
             }
-            return received;
         }
 
         public override async ValueTask SendAsync(
@@ -138,27 +169,11 @@ namespace IceRpc.Transports.Internal
                 throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
             }
 
-            if (_streamWriter == null)
+            await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
+
+            if (_sendSemaphore != null)
             {
-                await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                if (buffers.Span[0].Length > 0)
-                {
-                    // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
-                    // copying the data from the sender. Copying the data is necessary here because WriteAsync
-                    // doesn't block if there's space in the channel and it's not possible to create a
-                    // bounded channel with a null capacity.
-                    // TODO: why are we copying only the first buffer??
-                    byte[] copy = new byte[buffers.Span[0].Length];
-                    buffers.Span[0].CopyTo(copy);
-                    await _streamWriter.WriteAsync(copy, cancel).ConfigureAwait(false);
-                }
-                if (endStream)
-                {
-                    _streamWriter.Complete();
-                }
+                await _sendSemaphore.WaitAsync(cancel).ConfigureAwait(false);
             }
 
             if (endStream)
@@ -177,7 +192,7 @@ namespace IceRpc.Transports.Internal
         {
             base.Shutdown();
             _connection.ReleaseStream(this);
-            _streamWriter?.Dispose();
+            _sendSemaphore?.Dispose();
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
@@ -264,43 +279,5 @@ namespace IceRpc.Transports.Internal
                 frame.ToIncoming(),
                 fin: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
-
-        private sealed class ColocStreamReader
-        {
-            private readonly ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> _source;
-            private readonly SemaphoreSlim _semaphore;
-
-            public ReadOnlyMemory<byte> ReadAsync(CancellationToken cancel)
-            {
-                ReadOnlyMemory<byte> result = _source.WaitAsync(cancel);
-                _receiveSemaphore.Release();
-            }
-
-            ColocStreamReader(
-                ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> source,
-                SemaphoreSlim semaphore)
-            {
-                _source = source;
-                _semaphore = semaphore;
-            }
-        }
-
-        private sealed class ColocStreamWriter : IDisposable
-        {
-            public ColocStreamReader Reader => new ColocStreamReader(_source, _semaphore);
-
-            private readonly ManualResetValueTaskCompletionSource<ReadOnlyMemory<byte>> _source = new();
-            private readonly SemaphoreSlim _semaphore = new();
-
-            public void Complete() => _source.SetException(new ConnectionLostException());
-
-            public void Dispose() => _semaphore.Dispose();
-
-            public async Memory<byte> WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
-            {
-                _source.SetResult(buffer);
-                await _receiveSemaphore.WaitAsync(cancel).ConfigureAwait(false);
-            }
-        }
     }
 }
