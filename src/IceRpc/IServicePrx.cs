@@ -91,14 +91,14 @@ namespace IceRpc
         /// <summary>A <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IceDecodeFunc<IServicePrx> IceDecodeFunc = iceDecoder => Proxy.Read(Factory, iceDecoder);
 
-        /// <summary>An Ice writer for <see cref="IServicePrx"/> proxies.</summary>
+        /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly IceEncodeAction<IServicePrx> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
 
         /// <summary>An <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly IceDecodeFunc<IServicePrx?> NullableIceDecodeFunc = iceDecoder =>
             Proxy.ReadNullable(Factory, iceDecoder);
 
-        /// <summary>An Ice writer for <see cref="IServicePrx"/> nullable proxies.</summary>
+        /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly IceEncodeAction<IServicePrx?> NullableIceEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableProxy(value);
 

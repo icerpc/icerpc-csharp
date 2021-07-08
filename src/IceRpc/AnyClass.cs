@@ -7,18 +7,18 @@ namespace IceRpc
     /// <summary>The base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
-        /// <summary>An Ice reader for non-nullable class instances.</summary>
+        /// <summary>A decode function for non-nullable class instances.</summary>
         public static readonly IceDecodeFunc<AnyClass> IceDecodeFunc =
             iceDecoder => iceDecoder.ReadClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An Ice writer for non-nullable class instances.</summary>
+        /// <summary>An encode action for non-nullable class instances.</summary>
         public static readonly IceEncodeAction<AnyClass> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
 
-        /// <summary>An Ice reader for nullable class instances.</summary>
+        /// <summary>A decode function for nullable class instances.</summary>
         public static readonly IceDecodeFunc<AnyClass?> NullableIceDecodeFunc =
             iceDecoder => iceDecoder.ReadNullableClass<AnyClass>(formalTypeId: null);
 
-        /// <summary>An Ice writer for nullable class instances.</summary>
+        /// <summary>An encode action for nullable class instances.</summary>
         public static readonly IceEncodeAction<AnyClass?> NullableIceEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableClass(value, null);
 

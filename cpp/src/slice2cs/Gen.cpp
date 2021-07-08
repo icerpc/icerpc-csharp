@@ -893,7 +893,7 @@ Slice::CsVisitor::writeProxyDocComment(const InterfaceDefPtr& p, const std::stri
 {
     CommentInfo comment = processComment(p, deprecatedReason);
     comment.summaryLines.insert(comment.summaryLines.cbegin(),
-        "Proxy interface used to call remote Ice objects that implement Slice interface " + p->name() + ".");
+        "Proxy interface used to call remote services that implement Slice interface " + p->name() + ".");
     comment.summaryLines.push_back("<seealso cref=\"" + fixId(interfaceName(p)) + "\"/>.");
     writeDocCommentLines(_out, comment.summaryLines, "summary");
 }
@@ -903,7 +903,7 @@ Slice::CsVisitor::writeServantDocComment(const InterfaceDefPtr& p, const std::st
 {
     CommentInfo comment = processComment(p, deprecatedReason);
     comment.summaryLines.insert(comment.summaryLines.cbegin(),
-        "Interface used to implement servants for Slice interface " + p->name() + ".");
+        "Interface used to implement services for Slice interface " + p->name() + ".");
     comment.summaryLines.push_back("<seealso cref=\"" + interfaceName(p) + "Prx\"/>.");
     writeDocCommentLines(_out, comment.summaryLines, "summary");
 }
@@ -2524,7 +2524,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestIceEncodeAction(const OperationPtr
     bool defaultIceEncodeAction = params.size() == 1 && operation->paramsBitSequenceSize() == 0 && !params.front()->tagged();
     if (defaultIceEncodeAction)
     {
-        _out << iceWriter(params.front()->type(), ns, true, true);
+        _out << encodeAction(params.front()->type(), ns, true, true);
     }
     else
     {
@@ -2551,7 +2551,7 @@ Slice::Gen::ProxyVisitor::writeIncomingResponseIceDecodeFunc(const OperationPtr&
 
     if (defaultIceDecodeFunc)
     {
-        _out << iceReader(returnType.front()->type(), ns);
+        _out << decodeFunc(returnType.front()->type(), ns);
     }
     else if (returnType.size() > 0)
     {
@@ -3053,7 +3053,7 @@ Slice::Gen::DispatcherVisitor::writeIncomingRequestIceDecodeFunc(const Operation
 
     if (defaultIceDecodeFunc)
     {
-        _out << iceReader(params.front()->type(), ns);
+        _out << decodeFunc(params.front()->type(), ns);
     }
     else if (params.size() > 0)
     {
@@ -3081,7 +3081,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseIceEncodeAction(const Operat
     bool defaultIceEncodeAction = returns.size() == 1 && operation->returnBitSequenceSize() == 0 && !returns.front()->tagged();
     if (defaultIceEncodeAction)
     {
-        _out << iceWriter(returns.front()->type(), ns, true, true);
+        _out << encodeAction(returns.front()->type(), ns, true, true);
     }
     else
     {

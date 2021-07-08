@@ -277,23 +277,23 @@ namespace IceRpc
 
         /// <summary>Reads a sequence from the buffer and returns an array.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="iceReader">The reader for each element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
-        public T[] ReadArray<T>(int minElementSize, IceDecodeFunc<T> iceReader) =>
-            ReadSequence(minElementSize, iceReader).ToArray();
+        public T[] ReadArray<T>(int minElementSize, IceDecodeFunc<T> decodeFunc) =>
+            ReadSequence(minElementSize, decodeFunc).ToArray();
 
         /// <summary>Reads a sequence of nullable elements from the buffer and returns an array.</summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="iceReader">The reader for each non-null element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
-        public T?[] ReadArray<T>(bool withBitSequence, IceDecodeFunc<T> iceReader) where T : class =>
-            ReadSequence(withBitSequence, iceReader).ToArray();
+        public T?[] ReadArray<T>(bool withBitSequence, IceDecodeFunc<T> decodeFunc) where T : class =>
+            ReadSequence(withBitSequence, decodeFunc).ToArray();
 
         /// <summary>Reads a sequence of nullable values from the buffer and returns an array.</summary>
-        /// <param name="iceReader">The reader for each non-null element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer, as an array.</returns>
-        public T?[] ReadArray<T>(IceDecodeFunc<T> iceReader) where T : struct => ReadSequence(iceReader).ToArray();
+        public T?[] ReadArray<T>(IceDecodeFunc<T> decodeFunc) where T : struct => ReadSequence(decodeFunc).ToArray();
 
         /// <summary>Reads a dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -355,35 +355,35 @@ namespace IceRpc
 
         /// <summary>Reads a sequence from the buffer.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="iceReader">The reader for each element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The return value does not fully implement ICollection{T}, in particular you can only call
         /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
         /// some other generic collection that can be constructed from an IEnumerable{T}.</returns>
-        public ICollection<T> ReadSequence<T>(int minElementSize, IceDecodeFunc<T> iceReader) =>
-            new Collection<T>(this, minElementSize, iceReader);
+        public ICollection<T> ReadSequence<T>(int minElementSize, IceDecodeFunc<T> decodeFunc) =>
+            new Collection<T>(this, minElementSize, decodeFunc);
 
         /// <summary>Reads a sequence of nullable elements from the buffer. The element type is a reference type.
         /// </summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="iceReader">The reader for each non-null element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each non-null element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
-        public ICollection<T?> ReadSequence<T>(bool withBitSequence, IceDecodeFunc<T> iceReader) where T : class =>
-            withBitSequence ? new NullableCollection<T>(this, iceReader) : (ICollection<T?>)ReadSequence(1, iceReader);
+        public ICollection<T?> ReadSequence<T>(bool withBitSequence, IceDecodeFunc<T> decodeFunc) where T : class =>
+            withBitSequence ? new NullableCollection<T>(this, decodeFunc) : (ICollection<T?>)ReadSequence(1, decodeFunc);
 
         /// <summary>Reads a sequence of nullable values from the buffer.</summary>
-        /// <param name="iceReader">The reader for each non-null element (value) of the sequence.
+        /// <param name="decodeFunc">The reader for each non-null element (value) of the sequence.
         /// </param>
         /// <returns>A collection that provides the size of the sequence and allows you read the sequence from the
         /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
-        public ICollection<T?> ReadSequence<T>(IceDecodeFunc<T> iceReader) where T : struct =>
-            new NullableValueCollection<T>(this, iceReader);
+        public ICollection<T?> ReadSequence<T>(IceDecodeFunc<T> decodeFunc) where T : struct =>
+            new NullableValueCollection<T>(this, decodeFunc);
 
         /// <summary>Reads a sorted dictionary from the buffer.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -598,26 +598,26 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="iceReader">The reader for each element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an array, or null.</returns>
-        public T[]? ReadTaggedArray<T>(int tag, int minElementSize, bool fixedSize, IceDecodeFunc<T> iceReader) =>
-            ReadTaggedSequence(tag, minElementSize, fixedSize, iceReader)?.ToArray();
+        public T[]? ReadTaggedArray<T>(int tag, int minElementSize, bool fixedSize, IceDecodeFunc<T> decodeFunc) =>
+            ReadTaggedSequence(tag, minElementSize, fixedSize, decodeFunc)?.ToArray();
 
         /// <summary>Reads a tagged array of nullable elements from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="iceReader">The reader for each non-null element of the array.</param>
+        /// <param name="decodeFunc">The reader for each non-null element of the array.</param>
         /// <returns>The array read from the buffer, or null.</returns>
-        public T?[]? ReadTaggedArray<T>(int tag, bool withBitSequence, IceDecodeFunc<T> iceReader) where T : class =>
-            ReadTaggedSequence(tag, withBitSequence, iceReader)?.ToArray();
+        public T?[]? ReadTaggedArray<T>(int tag, bool withBitSequence, IceDecodeFunc<T> decodeFunc) where T : class =>
+            ReadTaggedSequence(tag, withBitSequence, decodeFunc)?.ToArray();
 
         /// <summary>Reads a tagged array of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="iceReader">The reader for each non-null value of the array.</param>
+        /// <param name="decodeFunc">The reader for each non-null value of the array.</param>
         /// <returns>The array read from the buffer, or null.</returns>
-        public T?[]? ReadTaggedArray<T>(int tag, IceDecodeFunc<T> iceReader) where T : struct =>
-            ReadTaggedSequence(tag, iceReader)?.ToArray();
+        public T?[]? ReadTaggedArray<T>(int tag, IceDecodeFunc<T> decodeFunc) where T : struct =>
+            ReadTaggedSequence(tag, decodeFunc)?.ToArray();
 
         /// <summary>Reads a tagged dictionary from the buffer.</summary>
         /// <param name="tag">The tag.</param>
@@ -697,13 +697,13 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
         /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="iceReader">The reader for each element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T}, or null.</returns>
         public ICollection<T>? ReadTaggedSequence<T>(
             int tag,
             int minElementSize,
             bool fixedSize,
-            IceDecodeFunc<T> iceReader)
+            IceDecodeFunc<T> decodeFunc)
         {
             if (ReadTaggedParamHeader(tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
@@ -712,7 +712,7 @@ namespace IceRpc
                 {
                     SkipSize(fixedLength: !fixedSize);
                 }
-                return ReadSequence(minElementSize, iceReader);
+                return ReadSequence(minElementSize, decodeFunc);
             }
             return null;
         }
@@ -721,15 +721,15 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
-        /// <param name="iceReader">The reader for each non-null element of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each non-null element of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
-        public ICollection<T?>? ReadTaggedSequence<T>(int tag, bool withBitSequence, IceDecodeFunc<T> iceReader)
+        public ICollection<T?>? ReadTaggedSequence<T>(int tag, bool withBitSequence, IceDecodeFunc<T> decodeFunc)
             where T : class
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadSequence(withBitSequence, iceReader);
+                return ReadSequence(withBitSequence, decodeFunc);
             }
             else
             {
@@ -739,15 +739,15 @@ namespace IceRpc
 
         /// <summary>Reads a tagged sequence of nullable values from the buffer.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="iceReader">The reader for each non-null value of the sequence.</param>
+        /// <param name="decodeFunc">The reader for each non-null value of the sequence.</param>
         /// <returns>The sequence read from the buffer as an ICollection{T?}, or null.</returns>
-        public ICollection<T?>? ReadTaggedSequence<T>(int tag, IceDecodeFunc<T> iceReader)
+        public ICollection<T?>? ReadTaggedSequence<T>(int tag, IceDecodeFunc<T> decodeFunc)
             where T : struct
         {
             if (ReadTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: true);
-                return ReadSequence(iceReader);
+                return ReadSequence(decodeFunc);
             }
             else
             {
@@ -830,15 +830,15 @@ namespace IceRpc
         /// <summary>Reads a tagged struct from the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="fixedSize">True when the struct has a fixed size on the wire; otherwise, false.</param>
-        /// <param name="iceReader">The reader used to create and read the struct.</param>
+        /// <param name="decodeFunc">The reader used to create and read the struct.</param>
         /// <returns>The struct T read from the buffer, or null.</returns>
-        public T? ReadTaggedStruct<T>(int tag, bool fixedSize, IceDecodeFunc<T> iceReader) where T : struct
+        public T? ReadTaggedStruct<T>(int tag, bool fixedSize, IceDecodeFunc<T> decodeFunc) where T : struct
         {
             if (ReadTaggedParamHeader(tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
                 SkipSize(fixedLength: !fixedSize);
-                return iceReader(this);
+                return decodeFunc(this);
             }
             return null;
         }
@@ -1406,14 +1406,14 @@ namespace IceRpc
         // times.
         private sealed class Collection<T> : CollectionBase<T>
         {
-            private readonly IceDecodeFunc<T> _iceReader;
-            internal Collection(IceDecoder iceDecoder, int minElementSize, IceDecodeFunc<T> iceReader)
-                : base(iceDecoder, minElementSize) => _iceReader = iceReader;
+            private readonly IceDecodeFunc<T> _decodeFunc;
+            internal Collection(IceDecoder iceDecoder, int minElementSize, IceDecodeFunc<T> decodeFunc)
+                : base(iceDecoder, minElementSize) => _decodeFunc = decodeFunc;
 
             private protected override T Read(int pos)
             {
                 Debug.Assert(pos < Count);
-                return _iceReader(IceDecoder);
+                return _decodeFunc(IceDecoder);
             }
         }
 
@@ -1422,20 +1422,20 @@ namespace IceRpc
         private sealed class NullableCollection<T> : CollectionBase<T?> where T : class
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            readonly IceDecodeFunc<T> _iceReader;
+            readonly IceDecodeFunc<T> _decodeFunc;
 
-            internal NullableCollection(IceDecoder iceDecoder, IceDecodeFunc<T> iceReader)
+            internal NullableCollection(IceDecoder iceDecoder, IceDecodeFunc<T> decodeFunc)
                 : base(iceDecoder, 0)
             {
                 _bitSequenceMemory = iceDecoder.ReadBitSequenceMemory(Count);
-                _iceReader = iceReader;
+                _decodeFunc = decodeFunc;
             }
 
             private protected override T? Read(int pos)
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _iceReader(IceDecoder) : null;
+                return bitSequence[pos] ? _decodeFunc(IceDecoder) : null;
             }
         }
 
@@ -1443,20 +1443,20 @@ namespace IceRpc
         private sealed class NullableValueCollection<T> : CollectionBase<T?> where T : struct
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            private readonly IceDecodeFunc<T> _iceReader;
+            private readonly IceDecodeFunc<T> _decodeFunc;
 
-            internal NullableValueCollection(IceDecoder iceDecoder, IceDecodeFunc<T> iceReader)
+            internal NullableValueCollection(IceDecoder iceDecoder, IceDecodeFunc<T> decodeFunc)
                 : base(iceDecoder, 0)
             {
                 _bitSequenceMemory = iceDecoder.ReadBitSequenceMemory(Count);
-                _iceReader = iceReader;
+                _decodeFunc = decodeFunc;
             }
 
             private protected override T? Read(int pos)
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _iceReader(IceDecoder) : null;
+                return bitSequence[pos] ? _decodeFunc(IceDecoder) : null;
             }
         }
     }

@@ -366,21 +366,21 @@ namespace IceRpc
 
         /// <summary>Writes a sequence to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="iceWriter">The writer for an element.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, IceEncodeAction<T> iceWriter)
+        /// <param name="encodeAction">The writer for an element.</param>
+        public void WriteSequence<T>(IEnumerable<T> v, IceEncodeAction<T> encodeAction)
         {
             WriteSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
             {
-                iceWriter(this, item);
+                encodeAction(this, item);
             }
         }
 
         /// <summary>Writes a sequence to the buffer. The elements of the sequence are reference types.</summary>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="iceWriter">The writer for a non-null element.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, IceEncodeAction<T> iceWriter)
+        /// <param name="encodeAction">The writer for a non-null element.</param>
+        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, IceEncodeAction<T> encodeAction)
             where T : class
         {
             if (withBitSequence)
@@ -393,7 +393,7 @@ namespace IceRpc
                 {
                     if (item is T value)
                     {
-                        iceWriter(this, value);
+                        encodeAction(this, value);
                     }
                     else
                     {
@@ -404,14 +404,14 @@ namespace IceRpc
             }
             else
             {
-                WriteSequence((IEnumerable<T>)v, iceWriter);
+                WriteSequence((IEnumerable<T>)v, encodeAction);
             }
         }
 
         /// <summary>Writes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="iceWriter">The writer for the non-null values.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, IceEncodeAction<T> iceWriter) where T : struct
+        /// <param name="encodeAction">The writer for the non-null values.</param>
+        public void WriteSequence<T>(IEnumerable<T?> v, IceEncodeAction<T> encodeAction) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
             WriteSize(count);
@@ -421,7 +421,7 @@ namespace IceRpc
             {
                 if (item is T value)
                 {
-                    iceWriter(this, value);
+                    encodeAction(this, value);
                 }
                 else
                 {
@@ -772,14 +772,14 @@ namespace IceRpc
         /// <summary>Writes a tagged sequence of variable-size elements to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="iceWriter">The writer for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, IceEncodeAction<T> iceWriter)
+        /// <param name="encodeAction">The writer for an element.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, IceEncodeAction<T> encodeAction)
         {
             if (v is IEnumerable<T> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, iceWriter);
+                WriteSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -788,8 +788,8 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="iceWriter">The writer for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, IceEncodeAction<T> iceWriter)
+        /// <param name="encodeAction">The writer for an element.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, IceEncodeAction<T> encodeAction)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -808,7 +808,7 @@ namespace IceRpc
                 WriteSize(count);
                 foreach (T item in value)
                 {
-                    iceWriter(this, item);
+                    encodeAction(this, item);
                 }
             }
         }
@@ -817,19 +817,19 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="iceWriter">The writer for a non-null element.</param>
+        /// <param name="encodeAction">The writer for a non-null element.</param>
         public void WriteTaggedSequence<T>(
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            IceEncodeAction<T> iceWriter)
+            IceEncodeAction<T> encodeAction)
             where T : class
         {
             if (v is IEnumerable<T?> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, withBitSequence, iceWriter);
+                WriteSequence(value, withBitSequence, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -837,15 +837,15 @@ namespace IceRpc
         /// <summary>Writes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to write.</param>
-        /// <param name="iceWriter">The writer for a non-null element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, IceEncodeAction<T> iceWriter)
+        /// <param name="encodeAction">The writer for a non-null element.</param>
+        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, IceEncodeAction<T> encodeAction)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
             {
                 WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, iceWriter);
+                WriteSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -1073,11 +1073,11 @@ namespace IceRpc
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, IceEncodeAction<T> iceWriter)
+        internal void WriteField<T>(int key, T value, IceEncodeAction<T> encodeAction)
         {
             WriteVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            iceWriter(this, value);
+            encodeAction(this, value);
             EndFixedLengthSize(pos, 2);
         }
 
