@@ -286,7 +286,7 @@ namespace IceRpc.Transports.Internal
                     var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        iceEncoder => versionBody.IceWrite(iceEncoder),
+                        iceEncoder => versionBody.IceEncode(iceEncoder),
                         frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
@@ -343,8 +343,8 @@ namespace IceRpc.Transports.Internal
                     SlicDefinitions.FrameType.Initialize,
                     iceEncoder =>
                     {
-                        iceEncoder.WriteVarUInt(version);
-                        initializeBody.IceWrite(iceEncoder);
+                        iceEncoder.EncodeVarUInt(version);
+                        initializeBody.IceEncode(iceEncoder);
                         WriteParameters(iceEncoder, parameters);
                     },
                     frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),
@@ -451,11 +451,11 @@ namespace IceRpc.Transports.Internal
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
             var iceEncoder = new IceEncoder(SlicDefinitions.Encoding);
-            iceEncoder.WriteByte((byte)type);
+            iceEncoder.EncodeByte((byte)type);
             IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize(4);
             if (stream != null)
             {
-                iceEncoder.WriteVarULong((ulong)stream.Id);
+                iceEncoder.EncodeVarULong((ulong)stream.Id);
             }
             encodeAction?.Invoke(iceEncoder);
             int frameSize = iceEncoder.Tail.Offset - sizePos.Offset - 4;
@@ -652,10 +652,10 @@ namespace IceRpc.Transports.Internal
 
         private static void WriteParameters(IceEncoder iceEncoder, Dictionary<ParameterKey, ulong> parameters)
         {
-            iceEncoder.WriteSize(parameters.Count);
+            iceEncoder.EncodeSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                iceEncoder.WriteField((int)key, value, BasicEncodeActions.VarULongEncodeAction);
+                iceEncoder.EncodeField((int)key, value, BasicEncodeActions.VarULongEncodeAction);
             }
         }
 

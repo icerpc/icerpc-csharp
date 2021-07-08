@@ -249,7 +249,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public void IceWrite(IceEncoder iceEncoder)
+        public void IceEncode(IceEncoder iceEncoder)
         {
             if (_connection?.IsServer ?? false)
             {
@@ -261,7 +261,7 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(Identity.Name.Length > 0);
-                    Identity.IceWrite(iceEncoder);
+                    Identity.IceEncode(iceEncoder);
                 }
                 else
                 {
@@ -282,7 +282,7 @@ namespace IceRpc
                             $"cannot marshal proxy with path '{Path}' using encoding 1.1");
                     }
 
-                    identity.IceWrite(iceEncoder);
+                    identity.IceEncode(iceEncoder);
                 }
 
                 var proxyData = new ProxyData11(
@@ -293,17 +293,17 @@ namespace IceRpc
                     Protocol,
                     protocolMinor: 0,
                     Encoding);
-                proxyData.IceWrite(iceEncoder);
+                proxyData.IceEncode(iceEncoder);
 
                 if (IsIndirect)
                 {
-                    iceEncoder.WriteSize(0); // 0 endpoints
-                    iceEncoder.WriteString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
+                    iceEncoder.EncodeSize(0); // 0 endpoints
+                    iceEncoder.EncodeString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
                 }
                 else if (_endpoint == null)
                 {
-                    iceEncoder.WriteSize(0); // 0 endpoints
-                    iceEncoder.WriteString(""); // empty adapter ID
+                    iceEncoder.EncodeSize(0); // 0 endpoints
+                    iceEncoder.EncodeString(""); // empty adapter ID
                 }
                 else
                 {
@@ -312,12 +312,12 @@ namespace IceRpc
 
                     if (endpoints.Any())
                     {
-                        iceEncoder.WriteSequence(endpoints, (iceEncoder, endpoint) => iceEncoder.WriteEndpoint11(endpoint));
+                        iceEncoder.EncodeSequence(endpoints, (iceEncoder, endpoint) => iceEncoder.EncodeEndpoint11(endpoint));
                     }
                     else // marshaled as an endpointless proxy
                     {
-                        iceEncoder.WriteSize(0); // 0 endpoints
-                        iceEncoder.WriteString(""); // empty adapter ID
+                        iceEncoder.EncodeSize(0); // 0 endpoints
+                        iceEncoder.EncodeString(""); // empty adapter ID
                     }
                 }
             }
@@ -340,7 +340,7 @@ namespace IceRpc
                          endpoint.Data : null,
                     altEndpoints: _altEndpoints.Count == 0 ? null : _altEndpoints.Select(e => e.Data).ToArray());
 
-                proxyData.IceWrite(iceEncoder);
+                proxyData.IceEncode(iceEncoder);
             }
         }
 

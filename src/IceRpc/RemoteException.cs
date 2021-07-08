@@ -156,10 +156,10 @@ namespace IceRpc
         /// <param name="iceEncoder">The Ice encoder.</param>
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
-        protected virtual void IceWrite(IceEncoder iceEncoder, bool firstSlice) =>
-            iceEncoder.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+        protected virtual void IceEncode(IceEncoder iceEncoder, bool firstSlice) =>
+            iceEncoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
 
-        internal void Write(IceEncoder iceEncoder) => IceWrite(iceEncoder, true);
+        internal void Encode(IceEncoder iceEncoder) => IceEncode(iceEncoder, true);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>

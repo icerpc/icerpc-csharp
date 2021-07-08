@@ -226,7 +226,7 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(Protocol == Protocol.Ice1 && iceEncoder.Encoding == Encoding.V11);
             base.WriteOptions11(iceEncoder);
-            iceEncoder.WriteBool(_hasCompressionFlag);
+            iceEncoder.EncodeBool(_hasCompressionFlag);
         }
 
         internal static bool IsMulticast(IPAddress addr) =>

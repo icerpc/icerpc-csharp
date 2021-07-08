@@ -29,7 +29,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(false)]
         public void Encoding_Bool(bool p1)
         {
-            _iceEncoder.WriteBool(p1);
+            _iceEncoder.EncodeBool(p1);
             bool r1 = _iceDecoder.DecodeBool();
 
             Assert.AreEqual(p1, r1);
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(byte.MaxValue)]
         public void Encoding_Byte(byte p1)
         {
-            _iceEncoder.WriteByte(p1);
+            _iceEncoder.EncodeByte(p1);
             byte r1 = _iceDecoder.DecodeByte();
 
             Assert.AreEqual(p1, r1);
@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(short.MaxValue)]
         public void Encoding_Short(short p1)
         {
-            _iceEncoder.WriteShort(p1);
+            _iceEncoder.EncodeShort(p1);
             short r1 = _iceDecoder.DecodeShort();
 
             Assert.AreEqual(p1, r1);
@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(ushort.MaxValue)]
         public void Encoding_UShort(ushort p1)
         {
-            _iceEncoder.WriteUShort(p1);
+            _iceEncoder.EncodeUShort(p1);
             ushort r1 = _iceDecoder.DecodeUShort();
 
             Assert.AreEqual(p1, r1);
@@ -84,7 +84,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(int.MaxValue)]
         public void Encoding_Int(int p1)
         {
-            _iceEncoder.WriteInt(p1);
+            _iceEncoder.EncodeInt(p1);
             int r1 = _iceDecoder.DecodeInt();
 
             Assert.AreEqual(p1, r1);
@@ -98,7 +98,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(uint.MaxValue)]
         public void Encoding_UInt(uint p1)
         {
-            _iceEncoder.WriteUInt(p1);
+            _iceEncoder.EncodeUInt(p1);
             uint r1 = _iceDecoder.DecodeUInt();
 
             Assert.AreEqual(p1, r1);
@@ -109,7 +109,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(long.MaxValue)]
         public void Encoding_Long(long p1)
         {
-            _iceEncoder.WriteLong(p1);
+            _iceEncoder.EncodeLong(p1);
 
             long r1 = _iceDecoder.DecodeLong();
 
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(ulong.MinValue)]
         public void Encoding_ULong(ulong p1)
         {
-            _iceEncoder.WriteULong(p1);
+            _iceEncoder.EncodeULong(p1);
             ulong r1 = _iceDecoder.DecodeULong();
 
             Assert.AreEqual(p1, r1);
@@ -134,7 +134,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(EncodingDefinitions.VarULongMinValue)]
         public void Encoding_VarULong(ulong p1)
         {
-            _iceEncoder.WriteVarULong(p1);
+            _iceEncoder.EncodeVarULong(p1);
             ulong r1 = _iceDecoder.DecodeVarULong();
 
             Assert.AreEqual(p1, r1);
@@ -145,7 +145,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(EncodingDefinitions.VarLongMinValue)]
         public void Encoding_VarLong(long p1)
         {
-            _iceEncoder.WriteVarLong(p1);
+            _iceEncoder.EncodeVarLong(p1);
             long r1 = _iceDecoder.DecodeVarLong();
 
             Assert.AreEqual(p1, r1);
@@ -157,7 +157,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(float.MaxValue)]
         public void Encoding_Float(float p1)
         {
-            _iceEncoder.WriteFloat(p1);
+            _iceEncoder.EncodeFloat(p1);
             float r1 = _iceDecoder.DecodeFloat();
 
             Assert.AreEqual(p1, r1);
@@ -171,7 +171,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(double.MaxValue)]
         public void Encoding_Double(double p1)
         {
-            _iceEncoder.WriteDouble(p1);
+            _iceEncoder.EncodeDouble(p1);
 
             double r1 = _iceDecoder.DecodeDouble();
 
@@ -187,7 +187,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")] // Japanese
         public void Encoding_String(string p1)
         {
-            _iceEncoder.WriteString(p1);
+            _iceEncoder.EncodeString(p1);
 
             string r1 = _iceDecoder.DecodeString();
 

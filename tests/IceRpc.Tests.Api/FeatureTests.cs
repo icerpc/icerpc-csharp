@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Api
             // This interceptor stores the multiplier into a header field (key = 1) to be read by the middleware.
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.Fields.Add(1, iceEncoder => iceEncoder.WriteInt(multiplier));
+                request.Fields.Add(1, iceEncoder => iceEncoder.EncodeInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
 

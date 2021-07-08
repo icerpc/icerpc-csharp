@@ -131,7 +131,7 @@ namespace IceRpc
             {
                 foreach ((int key, Action<IceEncoder> action) in fields)
                 {
-                    iceEncoder.WriteVarInt(key);
+                    iceEncoder.EncodeVarInt(key);
                     IceEncoder.Position startValue = iceEncoder.StartFixedLengthSize(2);
                     action(iceEncoder);
                     iceEncoder.EndFixedLengthSize(startValue, 2);
@@ -142,13 +142,13 @@ namespace IceRpc
             {
                 if (_fields == null || !_fields.ContainsKey(key))
                 {
-                    iceEncoder.WriteVarInt(key);
-                    iceEncoder.WriteSize(value.Length);
+                    iceEncoder.EncodeVarInt(key);
+                    iceEncoder.EncodeSize(value.Length);
                     iceEncoder.WriteByteSpan(value.Span);
                     size++;
                 }
             }
-            iceEncoder.RewriteFixedLengthSize20(size, start, sizeLength);
+            iceEncoder.EncodeFixedLengthSize20(size, start, sizeLength);
         }
     }
 }

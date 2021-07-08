@@ -157,21 +157,21 @@ namespace IceRpc
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-                requestHeaderBody.IceWrite(iceEncoder);
+                requestHeaderBody.IceEncode(iceEncoder);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
                     // Writes or overrides context
                     Fields[(int)Ice2FieldKey.Context] =
-                        iceEncoder => iceEncoder.WriteDictionary(context,
+                        iceEncoder => iceEncoder.EncodeDictionary(context,
                                                          BasicEncodeActions.StringEncodeAction,
                                                          BasicEncodeActions.StringEncodeAction);
                 }
                 // else context remains empty (not set)
 
                 WriteFields(iceEncoder);
-                PayloadEncoding.IceWrite(iceEncoder);
-                iceEncoder.WriteSize(PayloadSize);
+                PayloadEncoding.IceEncode(iceEncoder);
+                iceEncoder.EncodeSize(PayloadSize);
                 iceEncoder.EndFixedLengthSize(start, 2);
             }
             else
@@ -185,7 +185,7 @@ namespace IceRpc
                     context,
                     encapsulationSize: PayloadSize + 6,
                     PayloadEncoding);
-                requestHeader.IceWrite(iceEncoder);
+                requestHeader.IceEncode(iceEncoder);
             }
         }
 

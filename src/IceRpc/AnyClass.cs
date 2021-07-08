@@ -12,7 +12,7 @@ namespace IceRpc
             iceDecoder => iceDecoder.DecodeClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for non-nullable class instances.</summary>
-        public static readonly EncodeAction<AnyClass> EncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
+        public static readonly EncodeAction<AnyClass> EncodeAction = (iceEncoder, value) => iceEncoder.EncodeClass(value, null);
 
         /// <summary>A decode function for nullable class instances.</summary>
         public static readonly DecodeFunc<AnyClass?> NullableDecodeFunc =
@@ -20,7 +20,7 @@ namespace IceRpc
 
         /// <summary>An encode action for nullable class instances.</summary>
         public static readonly EncodeAction<AnyClass?> NullableEncodeAction =
-            (iceEncoder, value) => iceEncoder.WriteNullableClass(value, null);
+            (iceEncoder, value) => iceEncoder.EncodeNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>
@@ -46,8 +46,8 @@ namespace IceRpc
         /// <summary>Writes this instance by writing its data to the <see cref="IceEncoder"/>.</summary>
         /// <param name="iceEncoder">The Ice encoder.</param>
         /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceWrite(IceEncoder iceEncoder, bool firstSlice);
-        internal void Write(IceEncoder iceEncoder) => IceWrite(iceEncoder, true);
+        protected abstract void IceEncode(IceEncoder iceEncoder, bool firstSlice);
+        internal void Encode(IceEncoder iceEncoder) => IceEncode(iceEncoder, true);
     }
 
     /// <summary>Provides public extensions methods for AnyClass instances.</summary>

@@ -375,11 +375,11 @@ namespace IceRpc.Transports
                 {
                     iceEncoder.WriteByteSpan(TransportHeader.Span);
                 }
-                iceEncoder.WriteByte((byte)Ice2FrameType.GoAway);
+                iceEncoder.EncodeByte((byte)Ice2FrameType.GoAway);
                 IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
-                goAwayFrameBody.IceWrite(iceEncoder);
+                goAwayFrameBody.IceEncode(iceEncoder);
                 iceEncoder.EndFixedLengthSize(sizePos);
 
                 await SendAsync(iceEncoder.Finish(), false, cancel).ConfigureAwait(false);
@@ -398,7 +398,7 @@ namespace IceRpc.Transports
             {
                 iceEncoder.WriteByteSpan(TransportHeader.Span);
             }
-            iceEncoder.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
+            iceEncoder.EncodeByte((byte)Ice2FrameType.GoAwayCanceled);
             iceEncoder.EndFixedLengthSize(iceEncoder.StartFixedLengthSize());
             await SendAsync(iceEncoder.Finish(), true, CancellationToken.None).ConfigureAwait(false);
 
@@ -419,16 +419,16 @@ namespace IceRpc.Transports
                 {
                     iceEncoder.WriteByteSpan(TransportHeader.Span);
                 }
-                iceEncoder.WriteByte((byte)Ice2FrameType.Initialize);
+                iceEncoder.EncodeByte((byte)Ice2FrameType.Initialize);
                 IceEncoder.Position sizePos = iceEncoder.StartFixedLengthSize();
                 IceEncoder.Position pos = iceEncoder.Tail;
 
                 // Encode the transport parameters as Fields
-                iceEncoder.WriteSize(1);
+                iceEncoder.EncodeSize(1);
 
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
-                iceEncoder.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                iceEncoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
                                 BasicEncodeActions.VarULongEncodeAction);
 
@@ -509,7 +509,7 @@ namespace IceRpc.Transports
             var iceEncoder = new IceEncoder(Encoding.V20);
             iceEncoder.WriteByteSpan(TransportHeader.Span);
 
-            iceEncoder.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
+            iceEncoder.Encode(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
             IceEncoder.Position start = iceEncoder.StartFixedLengthSize(4);
             frame.WriteHeader(iceEncoder);
 
@@ -534,7 +534,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            iceEncoder.RewriteFixedLengthSize20(frameSize, start, 4);
+            iceEncoder.EncodeFixedLengthSize20(frameSize, start, 4);
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;

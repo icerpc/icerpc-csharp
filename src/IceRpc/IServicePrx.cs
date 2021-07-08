@@ -92,7 +92,7 @@ namespace IceRpc
         public static readonly DecodeFunc<IServicePrx> DecodeFunc = iceDecoder => Proxy.Decode(Factory, iceDecoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly EncodeAction<IServicePrx> EncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
+        public static readonly EncodeAction<IServicePrx> EncodeAction = (iceEncoder, value) => iceEncoder.EncodeProxy(value);
 
         /// <summary>An <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly DecodeFunc<IServicePrx?> NullableDecodeFunc = iceDecoder =>
@@ -100,7 +100,7 @@ namespace IceRpc
 
         /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly EncodeAction<IServicePrx?> NullableEncodeAction =
-            (iceEncoder, value) => iceEncoder.WriteNullableProxy(value);
+            (iceEncoder, value) => iceEncoder.EncodeNullableProxy(value);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>
         /// <param name="connection">The connection. If it's a client connection, the endpoint of the new proxy is
@@ -264,7 +264,7 @@ namespace IceRpc
         /// <summary>Writes the proxy into a buffer.</summary>
         /// <param name="iceEncoder">The Ice encoder.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceWrite(IceEncoder iceEncoder);
+        public void IceEncode(IceEncoder iceEncoder);
 
         /// <summary>Sends a request to this proxy's target service and reads the response.</summary>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>

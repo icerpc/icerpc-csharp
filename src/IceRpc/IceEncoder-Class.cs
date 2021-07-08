@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    // This partial class provides the class/exception marshaling logic.
+    // This partial class provides the class/exception encoding logic.
 
     public sealed partial class IceEncoder
     {
@@ -30,7 +30,7 @@ namespace IceRpc
             // before the indirection table and are included in the slice size.
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
             {
-                WriteByte(EncodingDefinitions.TaggedEndMarker);
+                EncodeByte(EncodingDefinitions.TaggedEndMarker);
             }
 
             // Writes the slice size if necessary.
@@ -39,12 +39,12 @@ namespace IceRpc
                 if (OldEncoding)
                 {
                     // Size includes the size length.
-                    RewriteFixedLengthSize11(Distance(_current.SliceSizePos), _current.SliceSizePos);
+                    EncodeFixedLengthSize11(Distance(_current.SliceSizePos), _current.SliceSizePos);
                 }
                 else
                 {
                     // Size does not include the size length.
-                    RewriteFixedLengthSize20(Distance(_current.SliceSizePos) - DefaultSizeLength,
+                    EncodeFixedLengthSize20(Distance(_current.SliceSizePos) - DefaultSizeLength,
                         _current.SliceSizePos);
                 }
             }
@@ -54,13 +54,13 @@ namespace IceRpc
                 Debug.Assert(_classFormat == FormatType.Sliced);
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasIndirectionTable;
 
-                WriteSize(_current.IndirectionTable.Count);
+                EncodeSize(_current.IndirectionTable.Count);
                 foreach (AnyClass v in _current.IndirectionTable)
                 {
                     // We cannot use formal type optimization for instances written inline in an indirection table,
                     // as the slice may not be known/unmarshaled by the recipient - therefore the formal type of the
                     // data member is not known.
-                    WriteInstance(v, formalTypeId: null);
+                    EncodeInstance(v, formalTypeId: null);
                 }
                 _current.IndirectionTable.Clear();
                 _current.IndirectionMap?.Clear(); // IndirectionMap is null when writing SlicedData.
@@ -94,7 +94,7 @@ namespace IceRpc
                 try
                 {
                     // WriteSlicedData calls IceStartFirstSlice.
-                    WriteSlicedData(slicedDataValue, allTypeIds, errorMessage, origin);
+                    EncodeSlicedData(slicedDataValue, allTypeIds, errorMessage, origin);
                     firstSliceWritten = true;
                 }
                 catch (NotSupportedException)
@@ -118,15 +118,15 @@ namespace IceRpc
             {
                 _current.SliceFlags = default;
                 _current.SliceFlagsPos = _tail;
-                WriteByte(0); // Placeholder for the slice flags
+                EncodeByte(0); // Placeholder for the slice flags
 
                 if (OldEncoding)
                 {
-                    WriteTypeId11(allTypeIds[0], compactTypeId);
+                    EncodeTypeId11(allTypeIds[0], compactTypeId);
                 }
                 else
                 {
-                    WriteTypeId20(allTypeIds, errorMessage, origin);
+                    EncodeTypeId20(allTypeIds, errorMessage, origin);
                     if (_classFormat == FormatType.Sliced)
                     {
                         // Encode the slice size if using the sliced format.
@@ -148,11 +148,11 @@ namespace IceRpc
 
             _current.SliceFlags = default;
             _current.SliceFlagsPos = _tail;
-            WriteByte(0); // Placeholder for the slice flags
+            EncodeByte(0); // Placeholder for the slice flags
 
             if (OldEncoding && _classFormat == FormatType.Sliced)
             {
-                WriteTypeId11(typeId, compactId);
+                EncodeTypeId11(typeId, compactId);
             }
 
             if (_classFormat == FormatType.Sliced)
@@ -163,11 +163,11 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a class instance to the buffer.</summary>
+        /// <summary>Encodes a class instance to the buffer.</summary>
         /// <param name="v">The class instance to write. This instance cannot be null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
-        public void WriteClass(AnyClass v, string? formalTypeId)
+        public void EncodeClass(AnyClass v, string? formalTypeId)
         {
             if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
             {
@@ -186,47 +186,47 @@ namespace IceRpc
                     index = _current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
                     _current.IndirectionMap.Add(v, index);
                 }
-                WriteSize(index);
+                EncodeSize(index);
             }
             else
             {
-                WriteInstance(v, formalTypeId); // Writes the instance or a reference if already marshaled.
+                EncodeInstance(v, formalTypeId); // Encodes the instance or a reference if already marshaled.
             }
         }
 
-        /// <summary>Writes a remote exception to the buffer.</summary>
+        /// <summary>Encodes a remote exception to the buffer.</summary>
         /// <param name="v">The remote exception to write.</param>
-        public void WriteException(RemoteException v)
+        public void EncodeException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_classFormat == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
-            v.Write(this);
+            v.Encode(this);
             _current = default;
         }
 
-        /// <summary>Writes a class instance to the buffer, or null.</summary>
+        /// <summary>Encodes a class instance to the buffer, or null.</summary>
         /// <param name="v">The class instance to write, or null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being written.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
-        public void WriteNullableClass(AnyClass? v, string? formalTypeId)
+        public void EncodeNullableClass(AnyClass? v, string? formalTypeId)
         {
             if (v == null)
             {
-                WriteSize(0);
+                EncodeSize(0);
             }
             else
             {
-                WriteClass(v, formalTypeId);
+                EncodeClass(v, formalTypeId);
             }
         }
 
-        /// <summary>Writes sliced-off slices to the buffer.</summary>
+        /// <summary>Encodes sliced-off slices to the buffer.</summary>
         /// <param name="slicedData">The sliced-off slices to write.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
         /// <param name="errorMessage">For exceptions, the exception's error message.</param>
         /// <param name="origin">For exceptions, the exception's origin.</param>
-        internal void WriteSlicedData(
+        internal void EncodeSlicedData(
             SlicedData slicedData,
             string[] baseTypeIds,
             string? errorMessage = null,
@@ -313,16 +313,16 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes this class instance inline if not previously marshaled, otherwise just write its instance
+        /// <summary>Encodes this class instance inline if not previously marshaled, otherwise just write its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
         /// <param name="formalTypeId">The type ID of the formal parameter or data member being marshaled.</param>
-        private void WriteInstance(AnyClass v, string? formalTypeId)
+        private void EncodeInstance(AnyClass v, string? formalTypeId)
         {
             // If the instance was already marshaled, just write its instance ID.
             if (_instanceMap != null && _instanceMap.TryGetValue(v, out int instanceId))
             {
-                WriteSize(instanceId);
+                EncodeSize(instanceId);
             }
             else
             {
@@ -334,7 +334,7 @@ namespace IceRpc
                 instanceId = _instanceMap.Count + 2;
                 _instanceMap.Add(v, instanceId);
 
-                WriteSize(1); // Class instance marker.
+                EncodeSize(1); // Class instance marker.
 
                 // Save _current in case we're writing a nested instance.
                 InstanceData previousCurrent = _current;
@@ -342,18 +342,18 @@ namespace IceRpc
                 _current.InstanceType = InstanceType.Class;
                 _current.FormalTypeId20 = formalTypeId;
 
-                v.Write(this);
+                v.Encode(this);
 
                 // Restore previous _current.
                 _current = previousCurrent;
             }
         }
 
-        /// <summary>Writes the type ID or compact ID immediately after the slice flags byte, and updates the slice
+        /// <summary>Encodes the type ID or compact ID immediately after the slice flags byte, and updates the slice
         /// flags byte as needed.</summary>
         /// <param name="typeId">The type ID of the current slice.</param>
         /// <param name="compactId">The compact ID of the current slice.</param>
-        private void WriteTypeId11(string typeId, int? compactId)
+        private void EncodeTypeId11(string typeId, int? compactId)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -364,7 +364,7 @@ namespace IceRpc
                 if (compactId is int compactIdValue)
                 {
                     typeIdKind = EncodingDefinitions.TypeIdKind.CompactId11;
-                    WriteSize(compactIdValue);
+                    EncodeSize(compactIdValue);
                 }
                 else
                 {
@@ -372,12 +372,12 @@ namespace IceRpc
                     if (index < 0)
                     {
                         typeIdKind = EncodingDefinitions.TypeIdKind.String;
-                        WriteString(typeId);
+                        EncodeString(typeId);
                     }
                     else
                     {
                         typeIdKind = EncodingDefinitions.TypeIdKind.Index;
-                        WriteSize(index);
+                        EncodeSize(index);
                     }
                 }
             }
@@ -385,19 +385,19 @@ namespace IceRpc
             {
                 Debug.Assert(compactId == null);
                 // With the 1.1 encoding, we always write a string and don't set a type ID kind in SliceFlags.
-                WriteString(typeId);
+                EncodeString(typeId);
             }
 
             _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;
         }
 
-        /// <summary>Writes the type ID or type ID sequence immediately after the slice flags byte of the first slice,
+        /// <summary>Encodes the type ID or type ID sequence immediately after the slice flags byte of the first slice,
         /// and updates the slice flags byte as needed. Applies formal type optimization (class only), if possible.
         /// </summary>
         /// <param name="allTypeIds">The type IDs of all slices of this class or exception instance.</param>
         /// <param name="errorMessage">The exception's error message. Provided only for exceptions.</param>
         /// <param name="origin">The exception's origin. Provided only for exceptions.</param>
-        private void WriteTypeId20(string[] allTypeIds, string? errorMessage, RemoteExceptionOrigin? origin)
+        private void EncodeTypeId20(string[] allTypeIds, string? errorMessage, RemoteExceptionOrigin? origin)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -414,18 +414,18 @@ namespace IceRpc
                         if (_classFormat == FormatType.Sliced)
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                            WriteSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
+                            EncodeSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
                         }
                         else
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.String;
-                            WriteString(typeId);
+                            EncodeString(typeId);
                         }
                     }
                     else
                     {
                         typeIdKind = EncodingDefinitions.TypeIdKind.Index;
-                        WriteSize(index);
+                        EncodeSize(index);
                     }
                 }
                 // else, don't write anything (formal type optimization)
@@ -433,12 +433,12 @@ namespace IceRpc
             else
             {
                 typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                WriteSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
+                EncodeSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
 
                 Debug.Assert(errorMessage != null);
-                WriteString(errorMessage);
+                EncodeString(errorMessage);
                 Debug.Assert(origin != null);
-                origin.Value.IceWrite(this);
+                origin.Value.IceEncode(this);
             }
 
             _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;

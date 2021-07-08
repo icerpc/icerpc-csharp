@@ -116,7 +116,7 @@ namespace IceRpc.Internal
                     // 8 = size of short + size of 1.1 encapsulation header
                     var buffer = new byte[8 + opaqueEndpoint.Value.Length];
                     var iceEncoder = new IceEncoder(Ice1Definitions.Encoding, buffer);
-                    iceEncoder.WriteEndpoint11(opaqueEndpoint);
+                    iceEncoder.EncodeEndpoint11(opaqueEndpoint);
                     ReadOnlyMemory<byte> readBuffer = iceEncoder.Finish().ToSingleBuffer();
                     Debug.Assert(iceEncoder.Tail.Buffer == 0 && iceEncoder.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
 

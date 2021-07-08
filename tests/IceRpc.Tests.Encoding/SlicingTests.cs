@@ -18,7 +18,7 @@ namespace IceRpc.Tests.Encoding
             var iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
-            iceEncoder.WriteClass(p1, null);
+            iceEncoder.EncodeClass(p1, null);
             ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Encoding
             var iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
-            iceEncoder.WriteClass(p1, null);
+            iceEncoder.EncodeClass(p1, null);
             ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Encoding
             var iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
-            iceEncoder.WriteException(p1);
+            iceEncoder.EncodeException(p1);
             ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
 
             // First we unmarshal the exception using the default factories, no Slicing should occur in this case.
@@ -179,7 +179,7 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the exception again to ensure all Slices are correctly preserved
             iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
-            iceEncoder.WriteException(r);
+            iceEncoder.EncodeException(r);
             data = iceEncoder.Finish().Span[0];
 
             iceDecoder = new IceDecoder(data, encoding);
@@ -202,7 +202,7 @@ namespace IceRpc.Tests.Encoding
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
-            iceEncoder.WriteClass(p1, null);
+            iceEncoder.EncodeClass(p1, null);
             ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
 
             // Unmarshal the 'MyPreservedDerivedClass1' class without its factory ensure the class is Sliced
@@ -221,7 +221,7 @@ namespace IceRpc.Tests.Encoding
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
-            iceEncoder.WriteClass(r1, null);
+            iceEncoder.EncodeClass(r1, null);
             data = iceEncoder.Finish().Span[0];
 
             // now add back the factory and read a unmarshal again, the unmarshaled class should contain the preserved
@@ -249,7 +249,7 @@ namespace IceRpc.Tests.Encoding
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
-            iceEncoder.WriteClass(p1, null);
+            iceEncoder.EncodeClass(p1, null);
             ReadOnlyMemory<byte> data = iceEncoder.Finish().Span[0];
 
             // Unmarshal the 'MyPreservedDerivedClass2' class without its factory to ensure that the class is Sliced
@@ -268,7 +268,7 @@ namespace IceRpc.Tests.Encoding
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
             iceEncoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
-            iceEncoder.WriteClass(r1, null);
+            iceEncoder.EncodeClass(r1, null);
             data = iceEncoder.Finish().Span[0];
 
             // now add back the factory and unmarshal it again, the unmarshaled class should contain the preserved

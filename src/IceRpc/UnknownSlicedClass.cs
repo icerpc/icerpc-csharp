@@ -19,8 +19,8 @@ namespace IceRpc
         protected override SlicedData? IceSlicedData { get; set; }
 
         /// <inheritdoc/>
-        protected override void IceWrite(IceEncoder iceEncoder, bool firstSlice) =>
-            iceEncoder.WriteSlicedData(IceSlicedData!.Value, Array.Empty<string>());
+        protected override void IceEncode(IceEncoder iceEncoder, bool firstSlice) =>
+            iceEncoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>());
 
         internal UnknownSlicedClass()
         {

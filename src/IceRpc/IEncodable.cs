@@ -7,6 +7,6 @@ namespace IceRpc
     {
         /// <summary>Writes this instance to the buffer using the buffer's encoding.</summary>
         /// <param name="iceEncoder">The Ice encoder.</param>
-        void IceWrite(IceEncoder iceEncoder);
+        void IceEncode(IceEncoder iceEncoder);
     }
 }

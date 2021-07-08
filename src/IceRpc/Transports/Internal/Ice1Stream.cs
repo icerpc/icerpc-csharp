@@ -111,16 +111,16 @@ namespace IceRpc.Transports.Internal
 
             var iceEncoder = new IceEncoder(Encoding.V11);
             iceEncoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-            iceEncoder.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            iceEncoder.WriteByte(0); // compression status
+            iceEncoder.Encode(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            iceEncoder.EncodeByte(0); // compression status
             IceEncoder.Position start = iceEncoder.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
-            iceEncoder.WriteInt(IsStarted ? RequestId : 0);
+            iceEncoder.EncodeInt(IsStarted ? RequestId : 0);
             frame.WriteHeader(iceEncoder);
 
-            iceEncoder.RewriteFixedLengthSize11(iceEncoder.Size + frame.PayloadSize, start); // frame size
+            iceEncoder.EncodeFixedLengthSize11(iceEncoder.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;

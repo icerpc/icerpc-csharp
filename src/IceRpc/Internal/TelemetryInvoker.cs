@@ -109,22 +109,22 @@ namespace IceRpc.Internal
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                        iceEncoder.WriteByte(0);
+                        iceEncoder.EncodeByte(0);
                         Span<byte> buffer = stackalloc byte[16];
                         activity.TraceId.CopyTo(buffer);
                         iceEncoder.WriteByteSpan(buffer);
                         activity.SpanId.CopyTo(buffer[0..8]);
                         iceEncoder.WriteByteSpan(buffer[0..8]);
-                        iceEncoder.WriteByte((byte)activity.ActivityTraceFlags);
+                        iceEncoder.EncodeByte((byte)activity.ActivityTraceFlags);
 
                         // Tracestate encoded as an string
-                        iceEncoder.WriteString(activity.TraceStateString ?? "");
+                        iceEncoder.EncodeString(activity.TraceStateString ?? "");
 
                         // Baggage encoded as a sequence<BaggageEntry>
-                        iceEncoder.WriteSequence(activity.Baggage, (iceEncoder, entry) =>
+                        iceEncoder.EncodeSequence(activity.Baggage, (iceEncoder, entry) =>
                         {
-                            iceEncoder.WriteString(entry.Key);
-                            iceEncoder.WriteString(entry.Value ?? "");
+                            iceEncoder.EncodeString(entry.Key);
+                            iceEncoder.EncodeString(entry.Value ?? "");
                         });
                     });
             }

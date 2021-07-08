@@ -191,11 +191,11 @@ namespace IceRpc.Internal
                     var requestFailed =
                         new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
 
-                    requestFailed.IceWrite(iceEncoder);
+                    requestFailed.IceEncode(iceEncoder);
                     break;
 
                 case ReplyStatus.UnknownLocalException:
-                    iceEncoder.WriteString(message);
+                    iceEncoder.EncodeString(message);
                     break;
 
                 default:

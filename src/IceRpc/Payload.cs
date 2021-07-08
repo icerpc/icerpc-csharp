@@ -67,7 +67,7 @@ namespace IceRpc
             var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                iceEncoder.Write(CompressionFormat.NotCompressed);
+                iceEncoder.Encode(CompressionFormat.NotCompressed);
             }
 
             encodeAction(iceEncoder, in args);
@@ -97,7 +97,7 @@ namespace IceRpc
             var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                iceEncoder.Write(CompressionFormat.NotCompressed);
+                iceEncoder.Encode(CompressionFormat.NotCompressed);
             }
 
             encodeAction(iceEncoder, in returnValueTuple);
@@ -122,7 +122,7 @@ namespace IceRpc
             var iceEncoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                iceEncoder.Write(CompressionFormat.NotCompressed);
+                iceEncoder.Encode(CompressionFormat.NotCompressed);
             }
 
             encodeAction(iceEncoder, arg);
@@ -147,7 +147,7 @@ namespace IceRpc
             var iceEncoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
             if (dispatch.Encoding == Encoding.V20)
             {
-                iceEncoder.Write(CompressionFormat.NotCompressed);
+                iceEncoder.Encode(CompressionFormat.NotCompressed);
             }
 
             encodeAction(iceEncoder, returnValue);
@@ -261,11 +261,11 @@ namespace IceRpc
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
-                    iceEncoder.Write(replyStatus);
+                    iceEncoder.Encode(replyStatus);
 
                     if (replyStatus == ReplyStatus.UserException)
                     {
-                        iceEncoder.WriteException(exception);
+                        iceEncoder.EncodeException(exception);
                     }
                     else
                     {
@@ -274,7 +274,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    iceEncoder.WriteException(exception);
+                    iceEncoder.EncodeException(exception);
                 }
             }
             else

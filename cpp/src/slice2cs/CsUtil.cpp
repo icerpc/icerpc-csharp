@@ -722,12 +722,12 @@ Slice::CsGenerator::writeMarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << nl << "iceEncoder.WriteNullableProxy(" << param << ");";
+            out << nl << "iceEncoder.EncodeNullableProxy(" << param << ");";
         }
         else if (underlying->isClassType())
         {
             // does not use bit sequence
-            out << nl << "iceEncoder.WriteNullableClass(" << param;
+            out << nl << "iceEncoder.EncodeNullableClass(" << param;
             if (BuiltinPtr::dynamicCast(underlying))
             {
                 out << ", null);"; // no formal type optimization
@@ -775,11 +775,11 @@ Slice::CsGenerator::writeMarshalCode(
     {
         if (type->isInterfaceType())
         {
-            out << nl << "iceEncoder.WriteProxy(" << param << ");";
+            out << nl << "iceEncoder.EncodeProxy(" << param << ");";
         }
         else if (type->isClassType())
         {
-            out << nl << "iceEncoder.WriteClass(" << param;
+            out << nl << "iceEncoder.EncodeClass(" << param;
             if (BuiltinPtr::dynamicCast(type))
             {
                 out << ", null);"; // no formal type optimization
@@ -791,11 +791,11 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else if (auto builtin = BuiltinPtr::dynamicCast(type))
         {
-            out << nl << "iceEncoder.Write" << builtinSuffixTable[builtin->kind()] << "(" << param << ");";
+            out << nl << "iceEncoder.Encode" << builtinSuffixTable[builtin->kind()] << "(" << param << ");";
         }
         else if (StructPtr::dynamicCast(type))
         {
-            out << nl << param << ".IceWrite(iceEncoder);";
+            out << nl << param << ".IceEncode(iceEncoder);";
         }
         else if (auto seq = SequencePtr::dynamicCast(type))
         {
@@ -807,7 +807,7 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else
         {
-            out << nl << helperName(type, scope) << ".Write(iceEncoder, " << param << ");";
+            out << nl << helperName(type, scope) << ".Encode(iceEncoder, " << param << ");";
         }
     }
 }
@@ -1001,11 +1001,11 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     if (builtin || type->isInterfaceType() || type->isClassType())
     {
         auto kind = builtin ? builtin->kind() : type->isInterfaceType() ? Builtin::KindObject : Builtin::KindAnyClass;
-        out << nl << "iceEncoder.WriteTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
+        out << nl << "iceEncoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
     }
     else if(st)
     {
-        out << nl << "iceEncoder.WriteTaggedStruct(" << tag << ", " << param;
+        out << nl << "iceEncoder.EncodeTaggedStruct(" << tag << ", " << param;
         if(!st->isVariableLength())
         {
             out << ", fixedSize: " << st->minWireSize();
@@ -1016,7 +1016,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     {
         string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
         string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
-        out << nl << "iceEncoder.WriteTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
+        out << nl << "iceEncoder.EncodeTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
             << param << ");";
     }
     else if(seq)
@@ -1031,18 +1031,18 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             if (readOnly && !hasCustomType)
             {
-                out << nl << "iceEncoder.WriteTaggedSequence(" << tag << ", " << param << ".Span" << ");";
+                out << nl << "iceEncoder.EncodeTaggedSequence(" << tag << ", " << param << ".Span" << ");";
             }
             else
             {
                 // param is an IEnumerable<T>
-                out << nl << "iceEncoder.WriteTaggedSequence(" << tag << ", " << param << ");";
+                out << nl << "iceEncoder.EncodeTaggedSequence(" << tag << ", " << param << ");";
             }
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
         {
             TypePtr underlying = optional->underlying();
-            out << nl << "iceEncoder.WriteTaggedSequence(" << tag << ", " << param;
+            out << nl << "iceEncoder.EncodeTaggedSequence(" << tag << ", " << param;
             if (isReferenceType(underlying))
             {
                 out << ", withBitSequence: true";
@@ -1051,13 +1051,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (elementType->isVariableLength())
         {
-            out << nl << "iceEncoder.WriteTaggedSequence(" << tag << ", " << param
+            out << nl << "iceEncoder.EncodeTaggedSequence(" << tag << ", " << param
                 << ", " << encodeAction(elementType, scope, !isDataMember) << ");";
         }
         else
         {
             // Fixed size = min-size
-            out << nl << "iceEncoder.WriteTaggedSequence(" << tag << ", " << param << ", "
+            out << nl << "iceEncoder.EncodeTaggedSequence(" << tag << ", " << param << ", "
                 << "elementSize: " << elementType->minWireSize()
                 << ", " << encodeAction(elementType, scope, !isDataMember) << ");";
         }
@@ -1077,7 +1077,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             valueType = optional->underlying();
         }
 
-        out << nl << "iceEncoder.WriteTaggedDictionary(" << tag << ", " << param;
+        out << nl << "iceEncoder.EncodeTaggedDictionary(" << tag << ", " << param;
 
         if (!withBitSequence && !keyType->isVariableLength() && !valueType->isVariableLength())
         {
@@ -1251,18 +1251,18 @@ Slice::CsGenerator::sequenceMarshalCode(
     {
         if (isParam && readOnly && !hasCustomType)
         {
-            out << "iceEncoder.WriteSequence(" << value << ".Span)";
+            out << "iceEncoder.EncodeSequence(" << value << ".Span)";
         }
         else
         {
             // value is an IEnumerable<T>
-            out << "iceEncoder.WriteSequence(" << value << ")";
+            out << "iceEncoder.EncodeSequence(" << value << ")";
         }
     }
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
     {
         TypePtr underlying = optional->underlying();
-        out << "iceEncoder.WriteSequence(" << value;
+        out << "iceEncoder.EncodeSequence(" << value;
         if (isReferenceType(underlying))
         {
             out << ", withBitSequence: true";
@@ -1271,7 +1271,7 @@ Slice::CsGenerator::sequenceMarshalCode(
     }
     else
     {
-        out << "iceEncoder.WriteSequence(" << value << ", " << encodeAction(type, scope, readOnly) << ")";
+        out << "iceEncoder.EncodeSequence(" << value << ", " << encodeAction(type, scope, readOnly) << ")";
     }
     return out.str();
 }
@@ -1367,7 +1367,7 @@ Slice::CsGenerator::dictionaryMarshalCode(const DictionaryPtr& dict, const strin
 
     ostringstream out;
 
-    out << "iceEncoder.WriteDictionary(" << param;
+    out << "iceEncoder.EncodeDictionary(" << param;
     if (withBitSequence && isReferenceType(value))
     {
         out << ", withBitSequence: true";

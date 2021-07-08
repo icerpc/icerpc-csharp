@@ -39,8 +39,8 @@ namespace IceRpc.Transports.Internal
         protected internal override void WriteOptions11(IceEncoder iceEncoder)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && iceEncoder.Encoding == Encoding.V11);
-            iceEncoder.WriteString(Host);
-            iceEncoder.WriteInt(Port);
+            iceEncoder.EncodeString(Host);
+            iceEncoder.EncodeInt(Port);
         }
 
         private protected static void SetBufferSize(

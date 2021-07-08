@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamStopSending,
-                    ostr => new StreamStopSendingBody((ulong)errorCode).IceWrite(ostr),
+                    ostr => new StreamStopSendingBody((ulong)errorCode).IceEncode(ostr),
                     frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
                     this);
                 }
@@ -76,7 +76,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamReset,
-                        iceEncoder => new StreamResetBody((ulong)errorCode).IceWrite(iceEncoder),
+                        iceEncoder => new StreamResetBody((ulong)errorCode).IceEncode(iceEncoder),
                         frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                         this);
                 }
@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        iceEncoder => new StreamConsumedBody((ulong)consumed).IceWrite(iceEncoder),
+                        iceEncoder => new StreamConsumedBody((ulong)consumed).IceEncode(iceEncoder),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),

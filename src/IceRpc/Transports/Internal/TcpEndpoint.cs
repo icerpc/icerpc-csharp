@@ -165,8 +165,8 @@ namespace IceRpc.Transports.Internal
         {
             Debug.Assert(Protocol == Protocol.Ice1 && iceEncoder.Encoding == Encoding.V11);
             base.WriteOptions11(iceEncoder);
-            iceEncoder.WriteInt((int)_timeout.TotalMilliseconds);
-            iceEncoder.WriteBool(_hasCompressionFlag);
+            iceEncoder.EncodeInt((int)_timeout.TotalMilliseconds);
+            iceEncoder.EncodeBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests

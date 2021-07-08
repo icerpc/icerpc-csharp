@@ -193,8 +193,8 @@ namespace IceRpc.Tests.CodeGeneration
                 (15, "test"),
                 (IceEncoder iceEncoder, in (int n, string s) value) =>
                 {
-                    iceEncoder.WriteTaggedInt(1, value.n);
-                    iceEncoder.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
+                    iceEncoder.EncodeTaggedInt(1, value.n);
+                    iceEncoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
             (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, Connection connection) =

@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Bool(int size)
         {
             bool[] p1 = Enumerable.Range(0, size).Select(i => i % 2 == 0).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             bool[] r1 = _iceDecoder.DecodeArray<bool>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Byte(int size)
         {
             byte[] p1 = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             byte[] r1 = _iceDecoder.DecodeArray<byte>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Short(int size)
         {
             short[] p1 = Enumerable.Range(0, size).Select(i => (short)i).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             short[] r1 = _iceDecoder.DecodeArray<short>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Int(int size)
         {
             int[] p1 = Enumerable.Range(0, size).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             int[] r1 = _iceDecoder.DecodeArray<int>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -79,7 +79,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Long(int size)
         {
             long[] p1 = Enumerable.Range(0, size).Select(i => (long)i).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             long[] r1 = _iceDecoder.DecodeArray<long>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -91,7 +91,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Float(int size)
         {
             float[] p1 = Enumerable.Range(0, size).Select(i => (float)i).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             float[] r1 = _iceDecoder.DecodeArray<float>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_Double(int size)
         {
             double[] p1 = Enumerable.Range(0, size).Select(i => (double)i).ToArray();
-            _iceEncoder.WriteArray(p1);
+            _iceEncoder.EncodeArray(p1);
             double[] r1 = _iceDecoder.DecodeArray<double>();
 
             CollectionAssert.AreEqual(p1, r1);
@@ -115,7 +115,7 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_String(int size)
         {
             IEnumerable<string> p1 = Enumerable.Range(0, size).Select(i => $"string-{i}");
-            _iceEncoder.WriteSequence(p1, BasicEncodeActions.StringEncodeAction);
+            _iceEncoder.EncodeSequence(p1, BasicEncodeActions.StringEncodeAction);
             IEnumerable<string> r1 = _iceDecoder.DecodeSequence(1, BasicDecodeFuncs.StringDecodeFunc);
 
             CollectionAssert.AreEqual(p1, r1);

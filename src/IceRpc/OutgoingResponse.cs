@@ -145,10 +145,10 @@ namespace IceRpc
                     (int)Ice2FieldKey.RetryPolicy,
                     iceEncoder =>
                     {
-                        iceEncoder.Write(retryPolicy.Retryable);
+                        iceEncoder.Encode(retryPolicy.Retryable);
                         if (retryPolicy.Retryable == Retryable.AfterDelay)
                         {
-                            iceEncoder.WriteVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
+                            iceEncoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
                         }
                     });
             }
@@ -166,20 +166,20 @@ namespace IceRpc
             {
                 IceEncoder.Position startPos = iceEncoder.StartFixedLengthSize(2);
                 WriteFields(iceEncoder);
-                iceEncoder.Write(ResultType);
-                PayloadEncoding.IceWrite(iceEncoder);
-                iceEncoder.WriteSize(PayloadSize);
+                iceEncoder.Encode(ResultType);
+                PayloadEncoding.IceEncode(iceEncoder);
+                iceEncoder.EncodeSize(PayloadSize);
                 iceEncoder.EndFixedLengthSize(startPos, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
 
-                iceEncoder.Write(ReplyStatus);
+                iceEncoder.Encode(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
-                    responseHeader.IceWrite(iceEncoder);
+                    responseHeader.IceEncode(iceEncoder);
                 }
             }
         }
