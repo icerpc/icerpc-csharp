@@ -134,8 +134,8 @@ private:
 
     protected:
 
-        void writeIncomingResponseIceReader(const OperationPtr&);
-        void writeOutgoingRequestIceWriter(const OperationPtr&);
+        void writeIncomingResponseIceDecodeFunc(const OperationPtr&);
+        void writeOutgoingRequestIceEncodeAction(const OperationPtr&);
     };
 
     class DispatcherVisitor : public CsVisitor
@@ -155,8 +155,8 @@ private:
         void writeReturnValueStruct(const OperationPtr&);
         void writeMethodDeclaration(const OperationPtr&);
 
-        void writeIncomingRequestIceReader(const OperationPtr&);
-        void writeOutgoingResponseIceWriter(const OperationPtr&);
+        void writeIncomingRequestIceDecodeFunc(const OperationPtr&);
+        void writeOutgoingResponseIceEncodeAction(const OperationPtr&);
     };
 
     class ClassAttributeVisitor : public CsVisitor

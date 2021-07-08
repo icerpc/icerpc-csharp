@@ -665,29 +665,29 @@ Slice::CsGenerator::iceWriter(const TypePtr& type, const string& scope, bool rea
         TypePtr underlying = optional->underlying();
         if (underlying->isInterfaceType())
         {
-            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".NullableIceWriter";
+            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".NullableIceEncodeAction";
         }
         else
         {
             assert(underlying->isClassType());
-            out << typeToString(underlying, scope, readOnly, param) << ".NullableIceWriter";
+            out << typeToString(underlying, scope, readOnly, param) << ".NullableIceEncodeAction";
         }
     }
     else if (type->isInterfaceType())
     {
-        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".IceEncodeAction";
     }
     else if (type->isClassType())
     {
-        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".IceEncodeAction";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.BasicIceWriters." << builtinSuffixTable[builtin->kind()] << "IceWriter";
+        out << "IceRpc.BasicIceEncodeActions." << builtinSuffixTable[builtin->kind()] << "IceEncodeAction";
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".IceWriter";
+        out << helperName(type, scope) << ".IceEncodeAction";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(type))
     {
@@ -701,7 +701,7 @@ Slice::CsGenerator::iceWriter(const TypePtr& type, const string& scope, bool rea
     }
     else
     {
-        out << typeToString(type, scope, readOnly, param) << ".IceWriter";
+        out << typeToString(type, scope, readOnly, param) << ".IceEncodeAction";
     }
     return out.str();
 }
@@ -821,12 +821,12 @@ Slice::CsGenerator::iceReader(const TypePtr& type, const string& scope)
         TypePtr underlying = optional->underlying();
         // Expected for classes and proxies
         assert(underlying->isClassType() || underlying->isInterfaceType());
-        out << typeToString(underlying, scope) << ".NullableIceReader";
+        out << typeToString(underlying, scope) << ".NullableIceDecodeFunc";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
                 builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.BasicIceReaders." << builtinSuffixTable[builtin->kind()] << "IceReader";
+        out << "IceRpc.BasicIceDecodeFuncs." << builtinSuffixTable[builtin->kind()] << "IceDecodeFunc";
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {
@@ -838,11 +838,11 @@ Slice::CsGenerator::iceReader(const TypePtr& type, const string& scope)
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".IceReader";
+        out << helperName(type, scope) << ".IceDecodeFunc";
     }
     else
     {
-        out << typeToString(type, scope) << ".IceReader";
+        out << typeToString(type, scope) << ".IceDecodeFunc";
     }
     return out.str();
 }

@@ -8,18 +8,18 @@ namespace IceRpc
     public abstract class AnyClass
     {
         /// <summary>An Ice reader for non-nullable class instances.</summary>
-        public static readonly IceReader<AnyClass> IceReader =
+        public static readonly IceDecodeFunc<AnyClass> IceDecodeFunc =
             iceDecoder => iceDecoder.ReadClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An Ice writer for non-nullable class instances.</summary>
-        public static readonly IceWriter<AnyClass> IceWriter = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
+        public static readonly IceEncodeAction<AnyClass> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteClass(value, null);
 
         /// <summary>An Ice reader for nullable class instances.</summary>
-        public static readonly IceReader<AnyClass?> NullableIceReader =
+        public static readonly IceDecodeFunc<AnyClass?> NullableIceDecodeFunc =
             iceDecoder => iceDecoder.ReadNullableClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An Ice writer for nullable class instances.</summary>
-        public static readonly IceWriter<AnyClass?> NullableIceWriter =
+        public static readonly IceEncodeAction<AnyClass?> NullableIceEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableClass(value, null);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during

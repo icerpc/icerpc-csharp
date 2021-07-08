@@ -36,7 +36,7 @@ namespace IceRpc
             /// <param name="arg">The type ID argument to write into the request.</param>
             /// <returns>The payload.</returns>
             public static ReadOnlyMemory<ReadOnlyMemory<byte>> IceIsA(IServicePrx proxy, string arg) =>
-                Payload.FromSingleArg(proxy, arg, BasicIceWriters.StringIceWriter);
+                Payload.FromSingleArg(proxy, arg, BasicIceEncodeActions.StringIceEncodeAction);
         }
 
         /// <summary>Holds an <see cref="ResponseReader{T}"/> for each non-void remote operation defined in the
@@ -51,7 +51,7 @@ namespace IceRpc
                 Encoding payloadEncoding,
                 Connection connection,
                 IInvoker? invoker) =>
-                payload.ToReturnValue(payloadEncoding, BasicIceReaders.StringIceReader, connection, invoker);
+                payload.ToReturnValue(payloadEncoding, BasicIceDecodeFuncs.StringIceDecodeFunc, connection, invoker);
 
             /// <summary>The <see cref="ResponseReader{T}"/> for the return type of operation ice_ids.
             /// </summary>
@@ -62,7 +62,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      iceDecoder => iceDecoder.ReadArray(minElementSize: 1, BasicIceReaders.StringIceReader),
+                                      iceDecoder => iceDecoder.ReadArray(minElementSize: 1, BasicIceDecodeFuncs.StringIceDecodeFunc),
                                       connection,
                                       invoker);
 
@@ -75,7 +75,7 @@ namespace IceRpc
                 Connection connection,
                 IInvoker? invoker) =>
                 payload.ToReturnValue(payloadEncoding,
-                                      BasicIceReaders.BoolIceReader,
+                                      BasicIceDecodeFuncs.BoolIceDecodeFunc,
                                       connection,
                                       invoker);
         }
@@ -88,18 +88,18 @@ namespace IceRpc
         public static readonly ProxyFactory<IServicePrx> Factory =
             new((path, protocol) => new ServicePrx(path, protocol));
 
-        /// <summary>A <see cref="IceReader{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceReader<IServicePrx> IceReader = iceDecoder => Proxy.Read(Factory, iceDecoder);
+        /// <summary>A <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
+        public static readonly IceDecodeFunc<IServicePrx> IceDecodeFunc = iceDecoder => Proxy.Read(Factory, iceDecoder);
 
         /// <summary>An Ice writer for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly IceWriter<IServicePrx> IceWriter = (iceEncoder, value) => iceEncoder.WriteProxy(value);
+        public static readonly IceEncodeAction<IServicePrx> IceEncodeAction = (iceEncoder, value) => iceEncoder.WriteProxy(value);
 
-        /// <summary>An <see cref="IceReader{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceReader<IServicePrx?> NullableIceReader = iceDecoder =>
+        /// <summary>An <see cref="IceDecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
+        public static readonly IceDecodeFunc<IServicePrx?> NullableIceDecodeFunc = iceDecoder =>
             Proxy.ReadNullable(Factory, iceDecoder);
 
         /// <summary>An Ice writer for <see cref="IServicePrx"/> nullable proxies.</summary>
-        public static readonly IceWriter<IServicePrx?> NullableIceWriter =
+        public static readonly IceEncodeAction<IServicePrx?> NullableIceEncodeAction =
             (iceEncoder, value) => iceEncoder.WriteNullableProxy(value);
 
         /// <summary>Creates an <see cref="IServicePrx"/> proxy from the given connection and path.</summary>

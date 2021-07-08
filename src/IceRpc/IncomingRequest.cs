@@ -139,8 +139,8 @@ namespace IceRpc
                         Value = value.ReadFieldValue(iceDecoder => iceDecoder.ReadDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
-                            keyReader: BasicIceReaders.StringIceReader,
-                            valueReader: BasicIceReaders.StringIceReader))
+                            keyReader: BasicIceDecodeFuncs.StringIceDecodeFunc,
+                            valueReader: BasicIceDecodeFuncs.StringIceDecodeFunc))
                     });
                 }
             }
