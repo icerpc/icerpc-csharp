@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamStopSending,
-                    ostr => new StreamStopSendingBody((ulong)errorCode).IceWrite(ostr),
+                    ostr => new StreamStopSendingBody((ulong)errorCode).IceEncode(ostr),
                     frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
                     this);
                 }
@@ -76,7 +76,7 @@ namespace IceRpc.Transports.Internal
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamReset,
-                        writer => new StreamResetBody((ulong)errorCode).IceWrite(writer),
+                        encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
                         frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                         this);
                 }
@@ -186,7 +186,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        writer => new StreamConsumedBody((ulong)consumed).IceWrite(writer),
+                        encoder => new StreamConsumedBody((ulong)consumed).IceEncode(encoder),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
@@ -239,7 +239,7 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
 
             // The position of the data to send next.
-            var start = new BufferWriter.Position();
+            var start = new IceEncoder.Position();
 
             while (offset < size)
             {
@@ -297,7 +297,7 @@ namespace IceRpc.Transports.Internal
                         if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
                         {
                             sendBuffer.Add(buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)]);
-                            start = new BufferWriter.Position(i, bufferOffset + sendBuffer[^1].Length);
+                            start = new IceEncoder.Position(i, bufferOffset + sendBuffer[^1].Length);
                             Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;

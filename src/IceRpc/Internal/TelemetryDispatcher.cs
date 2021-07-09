@@ -83,16 +83,16 @@ namespace IceRpc.Internal
                 activity.SetParentId(traceId, spanId, traceFlags);
 
                 // Read tracestate encoded as a string
-                var reader = new BufferReader(buffer[i..], Encoding.V20);
-                activity.TraceStateString = reader.ReadString();
+                var decoder = new IceDecoder(buffer[i..], Encoding.V20);
+                activity.TraceStateString = decoder.DecodeString();
 
                 // The min element size is 2 bytes for a struct with two empty strings.
-                IEnumerable<(string key, string value)> baggage = reader.ReadSequence(
+                IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
                     minElementSize: 2,
-                    reader =>
+                    decoder =>
                     {
-                        string key = reader.ReadString();
-                        string value = reader.ReadString();
+                        string key = decoder.DecodeString();
+                        string value = decoder.DecodeString();
                         return (key, value);
                     });
 

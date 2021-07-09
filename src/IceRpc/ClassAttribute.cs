@@ -44,7 +44,7 @@ namespace IceRpc
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
-                        new Type[] { typeof(BufferReader) },
+                        new Type[] { typeof(IceDecoder) },
                         null);
                     if (constructor == null)
                     {
@@ -53,7 +53,7 @@ namespace IceRpc
 
                     _classFactory = (ClassFactory)Expression.Lambda(
                         typeof(ClassFactory),
-                        Expression.New(constructor, Expression.Constant(null, typeof(BufferReader)))).Compile();
+                        Expression.New(constructor, Expression.Constant(null, typeof(IceDecoder)))).Compile();
                 }
                 return _classFactory;
             }

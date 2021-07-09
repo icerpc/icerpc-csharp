@@ -85,7 +85,7 @@ public:
 
 protected:
 
-    std::string encoder(
+    std::string encodeAction(
         const TypePtr& type,
         const std::string& scope,
         bool readOnly = false,
@@ -99,7 +99,7 @@ protected:
         const std::string& scope,
         const std::string& param);
 
-    std::string decoder(const TypePtr& type, const std::string& scope);
+    std::string decodeFunc(const TypePtr& type, const std::string& scope);
 
     std::string streamDataReader(const TypePtr& type);
 

@@ -193,10 +193,10 @@ namespace IceRpc
         /// </summary>
         protected internal virtual bool IsEquivalent(Endpoint other) => Equals(other);
 
-        /// <summary>Writes the options of this endpoint to the buffer. Used only when marshaling ice1 proxies with the
-        /// 1.1 encoding.</summary>
-        /// <param name="writer">The buffer writer.</param>
-        protected internal abstract void WriteOptions11(BufferWriter writer);
+        /// <summary>Encodes the options of this endpoint. Used only when encoding ice1 proxies with the 1.1 encoding.
+        /// </summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        protected internal abstract void EncodeOptions11(IceEncoder encoder);
 
         /// <summary>Constructs a new endpoint</summary>
         /// <param name="data">The <see cref="EndpointData"/> struct.</param>
