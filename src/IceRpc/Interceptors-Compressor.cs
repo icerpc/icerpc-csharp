@@ -34,20 +34,34 @@ namespace IceRpc
             next => new InlineInvoker(
                 async (request, cancel) =>
                 {
+                    // TODO: rename CompressRequestPayload to CompressRequest or add CompressStreamParam?
                     if (compressorOptions.CompressRequestPayload &&
                         request.PayloadEncoding == Encoding.V20 &&
-                        request.PayloadSize >= 1 &&
-                        request.Payload.Span[0].Span[0] == (byte)CompressionFormat.NotCompressed &&
                         request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
                     {
-                        (CompressionResult result, ReadOnlyMemory<byte> compressedPayload) =
-                            request.Payload.Compress(request.PayloadSize,
-                                                     compressorOptions.CompressionLevel,
-                                                     compressorOptions.CompressionMinSize);
-                        if (result == CompressionResult.Success)
+                        if (request.PayloadSize >= 1 &&
+                            request.Payload.Span[0].Span[0] == (byte)CompressionFormat.NotCompressed)
                         {
-                            request.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
+                            (CompressionResult result, ReadOnlyMemory<byte> compressedPayload) =
+                                request.Payload.Compress(request.PayloadSize,
+                                                         compressorOptions.CompressionLevel,
+                                                         compressorOptions.CompressionMinSize);
+                            if (result == CompressionResult.Success)
+                            {
+                                request.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
+                            }
                         }
+
+                        request.StreamCompressor =
+                            outputStream => outputStream.CompressStream(compressorOptions.CompressionLevel);
+                    }
+
+                    // TODO: rename DecompressResponsePayload to DecompressResponse or add DecompressStreamParam?
+                    if (compressorOptions.DecompressResponsePayload)
+                    {
+                        // TODO: check for response Features.DecompressPayload?
+                        request.StreamDecompressor =
+                            (compressFormat, inputStream) => inputStream.DecompressStream(compressFormat);
                     }
 
                     IncomingResponse response = await next.InvokeAsync(request, cancel).ConfigureAwait(false);
@@ -65,6 +79,7 @@ namespace IceRpc
                                 maxSize: request.Connection!.Options!.IncomingFrameMaxSize);
                         }
                     }
+
                     return response;
                 });
     }

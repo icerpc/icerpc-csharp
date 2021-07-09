@@ -88,6 +88,15 @@ namespace IceRpc.Internal
             return (CompressionResult.Success, compressedPayload);
         }
 
+        internal static (CompressionFormat, Stream) CompressStream(
+            this Stream stream,
+            CompressionLevel compressionLevel) =>
+            (CompressionFormat.Deflate, new DeflateStream(
+                    stream,
+                    compressionLevel == CompressionLevel.Fastest ?
+                        System.IO.Compression.CompressionLevel.Fastest :
+                        System.IO.Compression.CompressionLevel.Optimal));
+
         /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
         /// encoding.</summary>
         internal static ReadOnlyMemory<byte> Decompress(this ReadOnlyMemory<byte> payload, int maxSize)
@@ -157,6 +166,16 @@ namespace IceRpc.Internal
             }
 
             return decompressedPayload;
+        }
+
+        internal static Stream DecompressStream(this Stream stream, CompressionFormat compressionFormat)
+        {
+            if (compressionFormat != CompressionFormat.Deflate)
+            {
+                throw new NotSupportedException($"cannot decompress compression format '{compressionFormat}'");
+            }
+
+            return new DeflateStream(stream, CompressionMode.Decompress);
         }
     }
 }
