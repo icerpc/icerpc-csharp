@@ -4,12 +4,15 @@ using IceRpc.Internal;
 using System;
 using System.Diagnostics;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The RpcStream class for the colocated transport.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Microsoft.Design",
+        "CA1001:Type 'ColocStream' owns disposable field(s) '_sendSemaphore' but is not disposable",
+        Justification = "_sendSemaphore is disposed by Shutdown")]
     internal class ColocStream : SignaledStream<(object, bool)>
     {
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
