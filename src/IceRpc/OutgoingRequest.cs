@@ -164,8 +164,8 @@ namespace IceRpc
                     // Encodes context
                     Fields[(int)Ice2FieldKey.Context] =
                         encoder => encoder.EncodeDictionary(context,
-                                                                  BasicEncodeActions.StringEncodeAction,
-                                                                  BasicEncodeActions.StringEncodeAction);
+                                                            BasicEncodeActions.StringEncodeAction,
+                                                            BasicEncodeActions.StringEncodeAction);
                 }
                 // else context remains empty (not set)
 

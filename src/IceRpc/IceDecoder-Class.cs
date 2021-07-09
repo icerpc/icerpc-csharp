@@ -784,7 +784,7 @@ namespace IceRpc
             bool hasIndirectionTable = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0;
 
             // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
-            // _current.DeferredIndirectionTableList11 for later decodeing.
+            // _current.DeferredIndirectionTableList11 for later decoding.
             // For exceptions and with the 2.0 encoding, we always decode the indirection table before calling SkipSlice
             // (if there is an indirection table), hence no need for a DeferredIndirectionTableList.
             if (OldEncoding && _current.InstanceType == InstanceType.Class)
