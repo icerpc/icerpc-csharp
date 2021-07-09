@@ -40,7 +40,7 @@ namespace IceRpc.Transports.Internal
             // Notify the peer of the abort if the stream or connection is not aborted already.
             if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
-                _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+                _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, CancellationToken.None).AsTask();
             }
 
             if (TrySetWriteCompleted(shutdown: false))
@@ -57,14 +57,11 @@ namespace IceRpc.Transports.Internal
 
         public override void EnableSendFlowControl()
         {
-            // If we are going to send stream data, we create a send semaphore and sent it to the peer's
+            // If we are going to send stream data, we create a send semaphore and send it to the peer's
             // stream. The semaphore is used to ensure the SendAsync call blocks until the peer received
             // the data.
             _sendSemaphore = new SemaphoreSlim(0);
-
-            // Send the channel decoder to the peer. Receiving data will first wait for the channel decoder
-            // to be transmitted.
-            _connection.SendFrameAsync(this, frame: _sendSemaphore, fin: false, cancel: default).AsTask();
+            _connection.SendFrameAsync(this, frame: _sendSemaphore, endStream: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -201,7 +198,7 @@ namespace IceRpc.Transports.Internal
         internal ColocStream(ColocConnection connection, bool bidirectional, bool control)
             : base(connection, bidirectional, control) => _connection = connection;
 
-        internal void ReceivedFrame(object frame, bool fin)
+        internal void ReceivedFrame(object frame, bool endStream)
         {
             if (frame is RpcStreamError errorCode)
             {
@@ -218,7 +215,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                QueueResult((frame, fin));
+                QueueResult((frame, endStream));
             }
         }
 
@@ -238,7 +235,7 @@ namespace IceRpc.Transports.Internal
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitFrameAsync(cancel).ConfigureAwait(false);
+            (object frame, bool endStream) = await WaitFrameAsync(cancel).ConfigureAwait(false);
             if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
             {
                 // Initialize or GoAway frame.
@@ -267,13 +264,13 @@ namespace IceRpc.Transports.Internal
             await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
-                fin: frame.StreamWriter == null,
+                endStream: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
 
-        private async ValueTask<(object frameObject, bool fin)> WaitFrameAsync(CancellationToken cancel)
+        private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (fin && !TrySetReadCompleted()))
+            (object frameObject, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
+            if (ReadCompleted || (endStream && !TrySetReadCompleted()))
             {
                 _connection.FinishedReceivedFrame();
                 throw AbortException ?? new InvalidOperationException("stream receive is completed");
@@ -283,7 +280,7 @@ namespace IceRpc.Transports.Internal
             // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
             // connection before the connection is shutdown if the next frame is a close connection frame.
             _connection.FinishedReceivedFrame();
-            return (frameObject, fin);
+            return (frameObject, endStream);
         }
     }
 }

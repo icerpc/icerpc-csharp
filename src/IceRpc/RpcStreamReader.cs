@@ -4,7 +4,6 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,27 +13,32 @@ namespace IceRpc
     public sealed class RpcStreamReader
     {
         private readonly RpcStream _stream;
+        private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
-        /// <summary>Reads the stream data from the given dispatch's <see cref="RpcStream"/> with a
-        /// <see cref="Stream"/>.</summary>
-        /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
-        public static Stream ToByteStream(Dispatch dispatch)
+        /// <summary>Reads the stream data from an incoming request with a <see cref="System.IO.Stream"/>.</summary>
+        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        static public System.IO.Stream ToByteStream(Dispatch dispatch) =>
+            new StreamReaderIOStream(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
+
+        /// <summary>Reads the stream data from an outgoing request with a <see cref="System.IO.Stream"/>.</summary>
+        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        public System.IO.Stream ToByteStream() => new StreamReaderIOStream(_stream, _streamDecompressor);
+
+        /// <summary>Constructs a stream reader to read a stream param from an outgoing request.</summary>
+        public RpcStreamReader(OutgoingRequest request)
+            : this(request.Stream, request.StreamDecompressor)
         {
-            dispatch.IncomingRequest.Stream.EnableReceiveFlowControl();
-            return new ByteStream(dispatch.IncomingRequest.Stream);
         }
 
-        /// <summary>Reads the stream data with a <see cref="Stream"/>.</summary>
-        /// <returns>The read-only <see cref="Stream"/> to read the data from the request stream.</returns>
-        public Stream ToByteStream()
+        internal RpcStreamReader(
+            RpcStream stream,
+            Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
         {
-            _stream.EnableReceiveFlowControl();
-            return new ByteStream(_stream);
+            _stream = stream;
+            _streamDecompressor = streamDecompressor;
         }
 
-        internal RpcStreamReader(RpcStream stream) => _stream = stream;
-
-        private class ByteStream : Stream
+        private class StreamReaderIOStream : System.IO.Stream
         {
             public override bool CanRead => true;
             public override bool CanSeek => false;
@@ -47,7 +51,9 @@ namespace IceRpc
                 set => throw new NotImplementedException();
             }
 
-            private readonly RpcStream _stream;
+            private System.IO.Stream? _ioStream;
+            private readonly RpcStream _rpcStream;
+            private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
             public override void Flush() => throw new NotImplementedException();
 
@@ -69,30 +75,39 @@ namespace IceRpc
 
             public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
             {
-                try
+                if (_ioStream == null)
                 {
-                    return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                    // Receive the data frame header.
+                    byte[] header = new byte[2];
+                    await _rpcStream.ReceiveAsync(header, default).ConfigureAwait(false);
+                    if (header[0] != (byte)Ice2FrameType.UnboundedData)
+                    {
+                        throw new InvalidDataException("invalid stream data");
+                    }
+                    var compressionFormat = (CompressionFormat)header[1];
+
+                    // Read the unbounded data from the Rpc stream.
+                    _ioStream = _rpcStream.AsByteStream();
+                    if (compressionFormat != CompressionFormat.NotCompressed)
+                    {
+                        if (_streamDecompressor == null)
+                        {
+                            throw new NotSupportedException(
+                                $"cannot decompress compression format '{compressionFormat}'");
+                        }
+                        else
+                        {
+                            _ioStream = _streamDecompressor(compressionFormat, _ioStream);
+                        }
+                    }
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
-                {
-                    throw new IOException("streaming canceled by the writer", ex);
-                }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
-                {
-                    throw new IOException("streaming canceled by the reader", ex);
-                }
-                catch (RpcStreamAbortedException ex)
-                {
-                    throw new IOException($"unexpected streaming error {ex.ErrorCode}", ex);
-                }
-                catch (Exception ex)
-                {
-                    throw new IOException($"unexpected exception", ex);
-                }
+                return await _ioStream.ReadAsync(buffer, cancel).ConfigureAwait(false);
             }
 
             public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotImplementedException();
+
             public override void SetLength(long value) => throw new NotImplementedException();
+
             public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
 
             protected override void Dispose(bool disposing)
@@ -100,11 +115,19 @@ namespace IceRpc
                 base.Dispose(disposing);
                 if (disposing)
                 {
-                    _stream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                    _ioStream?.Dispose();
+                    _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
                 }
             }
 
-            internal ByteStream(RpcStream stream) => _stream = stream;
+            internal StreamReaderIOStream(
+                RpcStream stream,
+                Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? streamDecompressor)
+            {
+                _rpcStream = stream;
+                _rpcStream.EnableReceiveFlowControl();
+                _streamDecompressor = streamDecompressor;
+            }
         }
     }
 }

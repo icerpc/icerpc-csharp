@@ -54,14 +54,15 @@ namespace IceRpc.Transports.Internal
             {
                 try
                 {
-                    (long streamId, object frame, bool fin) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
+                    (long streamId, object frame, bool endStream) =
+                        await _reader.ReadAsync(cancel).ConfigureAwait(false);
                     if (streamId == -1)
                     {
                         if (frame == _pingFrame)
                         {
                             PingReceived?.Invoke();
                         }
-                        else if (fin)
+                        else if (endStream)
                         {
                             throw new ConnectionClosedException();
                         }
@@ -74,7 +75,7 @@ namespace IceRpc.Transports.Internal
                     {
                         try
                         {
-                            stream.ReceivedFrame(frame, fin);
+                            stream.ReceivedFrame(frame, endStream);
 
                             // Wait for the stream to process the frame before continuing receiving additional data.
                             receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
@@ -100,7 +101,7 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream = new ColocStream(this, streamId);
-                            stream.ReceivedFrame(frame, fin);
+                            stream.ReceivedFrame(frame, endStream);
                             return stream;
                         }
                         catch
@@ -251,7 +252,7 @@ namespace IceRpc.Transports.Internal
         internal async ValueTask SendFrameAsync(
             ColocStream stream,
             object frame,
-            bool fin,
+            bool endStream,
             CancellationToken cancel)
         {
             AsyncSemaphore streamSemaphore = stream.IsBidirectional ?
@@ -300,12 +301,12 @@ namespace IceRpc.Transports.Internal
                     // Write the frame. It's important to allocate the ID and to send the frame within the
                     // synchronization block to ensure the decoder won't receive frames with out-of-order
                     // stream IDs.
-                    task = _writer.WriteAsync((stream.Id, frame, fin), cancel);
+                    task = _writer.WriteAsync((stream.Id, frame, endStream), cancel);
                 }
 
                 await task.ConfigureAwait(false);
 
-                if (fin)
+                if (endStream)
                 {
                     stream.TrySetWriteCompleted();
                 }
