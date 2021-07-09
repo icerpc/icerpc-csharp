@@ -40,11 +40,16 @@ namespace IceRpc.Transports.Internal
             // Notify the peer of the abort if the stream or connection is not aborted already.
             if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
-                _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, CancellationToken.None).AsTask();
+                _ = _connection.SendFrameAsync(
+                    this,
+                    frame: errorCode,
+                    endStream: true,
+                    CancellationToken.None).AsTask();
             }
 
             if (TrySetWriteCompleted(shutdown: false))
             {
+
                 // Shutdown the stream if not already done.
                 TryShutdown();
             }
@@ -75,6 +80,7 @@ namespace IceRpc.Transports.Internal
                 Debug.Assert(!_receivedEndStream);
                 _receiveSemaphore = frame as SemaphoreSlim;
                 Debug.Assert(_receiveSemaphore != null);
+                _connection.FinishedReceivedFrame();
             }
 
             // If there's still received buffered data, first consume it.
@@ -108,7 +114,7 @@ namespace IceRpc.Transports.Internal
                 int offset = 0;
                 while (offset < buffer.Length)
                 {
-                    Debug.Assert(_receivedPos.Offset < _receivedBuffers.Span[_receivedPos.Segment].Length);
+                    Debug.Assert(_receivedPos.Offset <= _receivedBuffers.Span[_receivedPos.Segment].Length);
 
                     ReadOnlyMemory<byte> receiveBuffer =
                          _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
@@ -149,7 +155,6 @@ namespace IceRpc.Transports.Internal
                 {
                     TrySetReadCompleted();
                 }
-
                 return offset;
             }
         }
@@ -213,9 +218,14 @@ namespace IceRpc.Transports.Internal
 
                 _connection.FinishedReceivedFrame();
             }
+            else if (_receiveSemaphore == null)
+            {
+                QueueResult((frame, endStream));
+            }
             else
             {
                 QueueResult((frame, endStream));
+                _connection.FinishedReceivedFrame();
             }
         }
 
