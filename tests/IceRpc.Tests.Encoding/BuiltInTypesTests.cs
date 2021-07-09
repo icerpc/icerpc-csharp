@@ -14,28 +14,28 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly IceRpc.Encoding _encoding;
         private readonly Memory<byte> _buffer;
-        private readonly BufferWriter _writer;
-        private readonly BufferReader _reader;
+        private readonly IceEncoder _encoder;
+        private readonly IceDecoder _decoder;
 
         public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
         {
             _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             _buffer = new byte[256];
-            _writer = new BufferWriter(_encoding, _buffer);
-            _reader = new BufferReader(_buffer, _encoding);
+            _encoder = new IceEncoder(_encoding, _buffer);
+            _decoder = new IceDecoder(_buffer, _encoding);
         }
 
         [TestCase(true)]
         [TestCase(false)]
         public void Encoding_Bool(bool p1)
         {
-            _writer.WriteBool(p1);
-            bool r1 = _reader.ReadBool();
+            _encoder.EncodeBool(p1);
+            bool r1 = _decoder.DecodeBool();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(bool), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(bool), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(bool), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(bool), _decoder.Pos);
         }
 
         [TestCase(byte.MinValue)]
@@ -43,13 +43,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(byte.MaxValue)]
         public void Encoding_Byte(byte p1)
         {
-            _writer.WriteByte(p1);
-            byte r1 = _reader.ReadByte();
+            _encoder.EncodeByte(p1);
+            byte r1 = _decoder.DecodeByte();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(byte), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(byte), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(byte), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(byte), _decoder.Pos);
         }
 
         [TestCase(short.MinValue)]
@@ -57,26 +57,26 @@ namespace IceRpc.Tests.Encoding
         [TestCase(short.MaxValue)]
         public void Encoding_Short(short p1)
         {
-            _writer.WriteShort(p1);
-            short r1 = _reader.ReadShort();
+            _encoder.EncodeShort(p1);
+            short r1 = _decoder.DecodeShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(short), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(short), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(short), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(short), _decoder.Pos);
         }
 
         [TestCase(ushort.MinValue)]
         [TestCase(ushort.MaxValue)]
         public void Encoding_UShort(ushort p1)
         {
-            _writer.WriteUShort(p1);
-            ushort r1 = _reader.ReadUShort();
+            _encoder.EncodeUShort(p1);
+            ushort r1 = _decoder.DecodeUShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(ushort), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(ushort), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(ushort), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(ushort), _decoder.Pos);
         }
 
         [TestCase(int.MinValue)]
@@ -84,13 +84,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(int.MaxValue)]
         public void Encoding_Int(int p1)
         {
-            _writer.WriteInt(p1);
-            int r1 = _reader.ReadInt();
+            _encoder.EncodeInt(p1);
+            int r1 = _decoder.DecodeInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(int), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(int), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(int), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(int), _decoder.Pos);
         }
 
         [TestCase(uint.MinValue)]
@@ -98,58 +98,58 @@ namespace IceRpc.Tests.Encoding
         [TestCase(uint.MaxValue)]
         public void Encoding_UInt(uint p1)
         {
-            _writer.WriteUInt(p1);
-            uint r1 = _reader.ReadUInt();
+            _encoder.EncodeUInt(p1);
+            uint r1 = _decoder.DecodeUInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
         }
 
         [TestCase(long.MinValue)]
         [TestCase(long.MaxValue)]
         public void Encoding_Long(long p1)
         {
-            _writer.WriteLong(p1);
+            _encoder.EncodeLong(p1);
 
-            long r1 = _reader.ReadLong();
+            long r1 = _decoder.DecodeLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(long), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(long), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(long), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(long), _decoder.Pos);
         }
 
         [TestCase(ulong.MinValue)]
         [TestCase(ulong.MinValue)]
         public void Encoding_ULong(ulong p1)
         {
-            _writer.WriteULong(p1);
-            ulong r1 = _reader.ReadULong();
+            _encoder.EncodeULong(p1);
+            ulong r1 = _decoder.DecodeULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarULongMinValue)]
         [TestCase(EncodingDefinitions.VarULongMinValue)]
         public void Encoding_VarULong(ulong p1)
         {
-            _writer.WriteVarULong(p1);
-            ulong r1 = _reader.ReadVarULong();
+            _encoder.EncodeVarULong(p1);
+            ulong r1 = _decoder.DecodeVarULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarLongMinValue)]
         [TestCase(EncodingDefinitions.VarLongMinValue)]
         public void Encoding_VarLong(long p1)
         {
-            _writer.WriteVarLong(p1);
-            long r1 = _reader.ReadVarLong();
+            _encoder.EncodeVarLong(p1);
+            long r1 = _decoder.DecodeVarLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
         }
 
         [TestCase(float.MinValue)]
@@ -157,13 +157,13 @@ namespace IceRpc.Tests.Encoding
         [TestCase(float.MaxValue)]
         public void Encoding_Float(float p1)
         {
-            _writer.WriteFloat(p1);
-            float r1 = _reader.ReadFloat();
+            _encoder.EncodeFloat(p1);
+            float r1 = _decoder.DecodeFloat();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(float), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(float), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(float), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(float), _decoder.Pos);
         }
 
         [TestCase(double.MinValue)]
@@ -171,14 +171,14 @@ namespace IceRpc.Tests.Encoding
         [TestCase(double.MaxValue)]
         public void Encoding_Double(double p1)
         {
-            _writer.WriteDouble(p1);
+            _encoder.EncodeDouble(p1);
 
-            double r1 = _reader.ReadDouble();
+            double r1 = _decoder.DecodeDouble();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _writer.Tail.Buffer);
-            Assert.AreEqual(sizeof(double), _writer.Tail.Offset);
-            Assert.AreEqual(sizeof(double), _reader.Pos);
+            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(sizeof(double), _encoder.Tail.Offset);
+            Assert.AreEqual(sizeof(double), _decoder.Pos);
         }
 
         [TestCase("")]
@@ -187,9 +187,9 @@ namespace IceRpc.Tests.Encoding
         [TestCase("旅ロ京青利セムレ弱改フヨス波府かばぼ意送でぼ調掲察たス日西重ケアナ住橋ユムミク順待ふかんぼ人奨貯鏡すびそ")] // Japanese
         public void Encoding_String(string p1)
         {
-            _writer.WriteString(p1);
+            _encoder.EncodeString(p1);
 
-            string r1 = _reader.ReadString();
+            string r1 = _decoder.DecodeString();
 
             Assert.AreEqual(p1, r1);
         }

@@ -18,9 +18,9 @@ namespace IceRpc
     internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
 
     // This partial class provides the class/exception unmarshaling logic.
-    public sealed partial class BufferReader
+    public sealed partial class IceDecoder
     {
-        /// <summary>Tells the reader the end of a class or exception slice was reached. This is an IceRPC-internal
+        /// <summary>Tells the decoder the end of a class or exception slice was reached. This is an IceRPC-internal
         /// method marked public because it's called by the generated code.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
@@ -40,33 +40,33 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts reading the first slice of a class or exception. This is an Ice-internal method marked
+        /// <summary>Starts decoding the first slice of a class or exception. This is an Ice-internal method marked
         /// public because it's called by the generated code.</summary>
         /// <returns>The sliced-off slices, if any.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public SlicedData? IceStartFirstSlice() => SlicedData;
 
-        /// <summary>Starts reading a base slice of a class instance or remote exception (any slice except the first
+        /// <summary>Starts decoding a base slice of a class instance or remote exception (any slice except the first
         /// slice). This is an Ice-internal method marked public because it's called by the generated code.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartNextSlice()
         {
-            ReadNextSliceHeaderIntoCurrent();
-            ReadIndirectionTableIntoCurrent();
+            DecodeNextSliceHeaderIntoCurrent();
+            DecodeIndirectionTableIntoCurrent();
         }
 
-        /// <summary>Reads a class instance from the buffer.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
+        /// <summary>Decodes a class instance from the buffer.</summary>
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// It's T.IceTypeId for generated classes. Use null when the type of the parameter/data member is AnyClass.
         /// </param>
-        /// <returns>The class instance read from the buffer.</returns>
-        public T ReadClass<T>(string? formalTypeId) where T : AnyClass =>
-            ReadNullableClass<T>(formalTypeId) ??
-                throw new InvalidDataException("read a null class instance, but expected a non-null instance");
+        /// <returns>The class instance decoded from the buffer.</returns>
+        public T DecodeClass<T>(string? formalTypeId) where T : AnyClass =>
+            DecodeNullableClass<T>(formalTypeId) ??
+                throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
-        /// <summary>Reads a remote exception from the buffer.</summary>
+        /// <summary>Decodes a remote exception from the buffer.</summary>
         /// <returns>The remote exception.</returns>
-        public RemoteException ReadException()
+        public RemoteException DecodeException()
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
             _current.InstanceType = InstanceType.Exception;
@@ -76,7 +76,7 @@ namespace IceRpc
             RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
             // The unmarshaling of remote exceptions is similar with the 1.1 and 2.0 encodings, in particular we can
-            // read the indirection table (if there is one) immediately after reading each slice header because the
+            // decode the indirection table (if there is one) immediately after decoding each slice header because the
             // indirection table cannot reference the exception itself.
             // With the 1.1 encoding, each slice contains its type ID (as a string), while with the 2.0 encoding the
             // first slice contains all the type IDs.
@@ -85,11 +85,11 @@ namespace IceRpc
             {
                 do
                 {
-                    // The type ID is always read for an exception and cannot be null.
-                    (string? typeId, _) = ReadSliceHeaderIntoCurrent11();
+                    // The type ID is always decoded for an exception and cannot be null.
+                    (string? typeId, _) = DecodeSliceHeaderIntoCurrent11();
                     Debug.Assert(typeId != null);
 
-                    ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
+                    DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
                     if (FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
                     {
@@ -106,9 +106,9 @@ namespace IceRpc
             }
             else
             {
-                // The type IDs are always read and cannot be null or empty.
+                // The type IDs are always decoded and cannot be null or empty.
                 string[]? allTypeIds;
-                (allTypeIds, errorMessage, origin) = ReadFirstSliceHeaderIntoCurrent20();
+                (allTypeIds, errorMessage, origin) = DecodeFirstSliceHeaderIntoCurrent20();
                 Debug.Assert(allTypeIds != null && allTypeIds.Length > 0 && errorMessage != null);
                 bool firstSlice = true;
 
@@ -120,9 +120,9 @@ namespace IceRpc
                     }
                     else
                     {
-                        ReadNextSliceHeaderIntoCurrent();
+                        DecodeNextSliceHeaderIntoCurrent();
                     }
-                    ReadIndirectionTableIntoCurrent(); // we read the indirection table immediately.
+                    DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
                     RemoteExceptionFactory? factory = FindRemoteExceptionFactory(typeId);
                     if (factory != null)
@@ -132,7 +132,7 @@ namespace IceRpc
                     }
                     else if (SkipSlice(typeId))
                     {
-                        // It should be the last element of allTypeIds; if it's not, we'll fail when reading the slices.
+                        // It should be the last element of allTypeIds; if it's not, we'll fail when decoding the slices.
                         break;
                     }
                     // else, loop.
@@ -140,19 +140,19 @@ namespace IceRpc
             }
 
             remoteEx ??= new RemoteException(errorMessage);
-            remoteEx.Read(this);
+            remoteEx.Decode(this);
 
             _current = default;
             return remoteEx;
         }
 
-        /// <summary>Reads a nullable class instance from the buffer.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
+        /// <summary>Decodes a nullable class instance from the buffer.</summary>
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
-        /// <returns>The class instance read from the buffer, or null.</returns>
-        public T? ReadNullableClass<T>(string? formalTypeId) where T : AnyClass
+        /// <returns>The class instance decoded from the buffer, or null.</returns>
+        public T? DecodeNullableClass<T>(string? formalTypeId) where T : AnyClass
         {
-            AnyClass? obj = ReadAnyClass(formalTypeId);
+            AnyClass? obj = DecodeAnyClass(formalTypeId);
             if (obj is T result)
             {
                 return result;
@@ -163,7 +163,7 @@ namespace IceRpc
             }
             else
             {
-                throw new InvalidDataException(@$"read instance of type '{obj.GetType().FullName
+                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
                     }' but expected instance of type '{typeof(T).FullName}'");
             }
         }
@@ -210,16 +210,16 @@ namespace IceRpc
             return null;
         }
 
-        /// <summary>Reads a class instance from the buffer.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
+        /// <summary>Decodes a class instance from the buffer.</summary>
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// </param>
-        /// <returns>The class instance read from the buffer. Can be null.</returns>
-        private AnyClass? ReadAnyClass(string? formalTypeId)
+        /// <returns>The class instance decoded from the buffer. Can be null.</returns>
+        private AnyClass? DecodeAnyClass(string? formalTypeId)
         {
-            int index = ReadSize();
+            int index = DecodeSize();
             if (index < 0)
             {
-                throw new InvalidDataException($"invalid index {index} while reading a class");
+                throw new InvalidDataException($"invalid index {index} while decoding a class");
             }
             else if (index == 0)
             {
@@ -228,7 +228,7 @@ namespace IceRpc
             else if (_current.InstanceType != InstanceType.None &&
                 (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
             {
-                // When reading an instance within a slice and there is an indirection table, we have an index within
+                // When decoding an instance within a slice and there is an indirection table, we have an index within
                 // this indirection table.
                 // We need to decrement index since position 0 in the indirection table corresponds to index 1.
                 index--;
@@ -243,22 +243,22 @@ namespace IceRpc
             }
             else
             {
-                return ReadInstance(index, formalTypeId);
+                return DecodeInstance(index, formalTypeId);
             }
         }
 
-        /// <summary>Reads the header of the first (and current) slice of a class/exception instance into _current.
+        /// <summary>Decodes the header of the first (and current) slice of a class/exception instance into _current.
         /// </summary>
         /// <returns>Null when no type ID was encoded (because of formal type optimization) or a non-empty array of type
         /// IDs. With the compact format, this array contains a single element. Also returns an error message for remote
         /// exceptions.</returns>
-        private (string[]? AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) ReadFirstSliceHeaderIntoCurrent20()
+        private (string[]? AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) DecodeFirstSliceHeaderIntoCurrent20()
         {
             string[]? typeIds;
             string? errorMessage = null;
             RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
-            _current.SliceFlags = (EncodingDefinitions.SliceFlags)ReadByte();
+            _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
             EncodingDefinitions.TypeIdKind typeIdKind = _current.SliceFlags.GetTypeIdKind();
 
             if (_current.InstanceType == InstanceType.Class)
@@ -268,7 +268,7 @@ namespace IceRpc
                 switch (typeIdKind)
                 {
                     case EncodingDefinitions.TypeIdKind.Index:
-                        int index = ReadSize();
+                        int index = DecodeSize();
                         if (index > 0 && index - 1 < _typeIdMap20.Count)
                         {
                             // The encoded type-id indexes start at 1, not 0.
@@ -276,17 +276,17 @@ namespace IceRpc
                         }
                         else
                         {
-                            throw new InvalidDataException($"read invalid type ID index {index}");
+                            throw new InvalidDataException($"decoded invalid type ID index {index}");
                         }
                         break;
 
                     case EncodingDefinitions.TypeIdKind.String:
-                        typeIds = new string[] { ReadString() };
+                        typeIds = new string[] { DecodeString() };
                         _typeIdMap20.Add(typeIds);
                         break;
 
                     case EncodingDefinitions.TypeIdKind.Sequence20:
-                        typeIds = ReadArray(1, BasicDecoders.StringDecoder);
+                        typeIds = DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc);
                         if (typeIds.Length == 0)
                         {
                             throw new InvalidDataException("received empty type ID sequence");
@@ -306,7 +306,7 @@ namespace IceRpc
                 // Exception
                 if (typeIdKind == EncodingDefinitions.TypeIdKind.Sequence20)
                 {
-                    typeIds = ReadArray(1, BasicDecoders.StringDecoder);
+                    typeIds = DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc);
                     if (typeIds.Length == 0)
                     {
                         throw new InvalidDataException("received empty type ID sequence");
@@ -317,14 +317,14 @@ namespace IceRpc
                     throw new InvalidDataException(
                         $"the type IDs for an exception cannot be encoded using {typeIdKind}");
                 }
-                errorMessage = ReadString();
+                errorMessage = DecodeString();
                 origin = new RemoteExceptionOrigin(this);
             }
 
-            // Read the slice size if available.
+            // Decode the slice size if available.
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
             {
-                _current.SliceSize = ReadSize();
+                _current.SliceSize = DecodeSize();
             }
             else
             {
@@ -333,11 +333,11 @@ namespace IceRpc
             return (typeIds, errorMessage, origin);
         }
 
-        /// <summary>Reads an indirection table from the buffer, without updating _current.</summary>
+        /// <summary>Decodes an indirection table from the buffer, without updating _current.</summary>
         /// <returns>The indirection table.</returns>
-        private AnyClass[] ReadIndirectionTable()
+        private AnyClass[] DecodeIndirectionTable()
         {
-            int size = ReadAndCheckSeqSize(1);
+            int size = DecodeAndCheckSeqSize(1);
             if (size == 0)
             {
                 throw new InvalidDataException("invalid empty indirection table");
@@ -345,20 +345,20 @@ namespace IceRpc
             var indirectionTable = new AnyClass[size];
             for (int i = 0; i < indirectionTable.Length; ++i)
             {
-                int index = ReadSize();
+                int index = DecodeSize();
                 if (index < 1)
                 {
-                    throw new InvalidDataException($"read invalid index {index} in indirection table");
+                    throw new InvalidDataException($"decoded invalid index {index} in indirection table");
                 }
-                indirectionTable[i] = ReadInstance(index, formalTypeId: null);
+                indirectionTable[i] = DecodeInstance(index, formalTypeId: null);
             }
             return indirectionTable;
         }
 
-        /// <summary>Reads the indirection table into _current's fields if there is an indirection table.
-        /// Precondition: called after reading the header of the current slice. This method does not change _pos.
+        /// <summary>Decodes the indirection table into _current's fields if there is an indirection table.
+        /// Precondition: called after decoding the header of the current slice. This method does not change _pos.
         /// </summary>
-        private void ReadIndirectionTableIntoCurrent()
+        private void DecodeIndirectionTableIntoCurrent()
         {
             Debug.Assert(_current.IndirectionTable == null);
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
@@ -370,18 +370,18 @@ namespace IceRpc
 
                 int savedPos = Pos;
                 Pos = savedPos + _current.SliceSize;
-                _current.IndirectionTable = ReadIndirectionTable();
+                _current.IndirectionTable = DecodeIndirectionTable();
                 _current.PosAfterIndirectionTable = Pos;
                 Pos = savedPos;
             }
         }
 
-        /// <summary>Reads a class instance from the buffer.</summary>
+        /// <summary>Decodes a class instance from the buffer.</summary>
         /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
         /// seen class; if 1, the class's bytes are next in the buffer. Cannot be 0 or less.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being read.
+        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// </param>
-        private AnyClass ReadInstance(int index, string? formalTypeId)
+        private AnyClass DecodeInstance(int index, string? formalTypeId)
         {
             Debug.Assert(index > 0);
 
@@ -399,7 +399,7 @@ namespace IceRpc
                 throw new InvalidDataException("maximum class graph depth reached");
             }
 
-            // Save current in case we're reading a nested instance.
+            // Save current in case we're decoding a nested instance.
             InstanceData previousCurrent = _current;
             _current = default;
             _current.InstanceType = InstanceType.Class;
@@ -409,13 +409,13 @@ namespace IceRpc
 
             if (OldEncoding)
             {
-                bool readIndirectionTable = true;
+                bool decodeIndirectionTable = true;
                 do
                 {
-                    // Read the slice header.
-                    (string? typeId, int? compactId) = ReadSliceHeaderIntoCurrent11();
+                    // Decode the slice header.
+                    (string? typeId, int? compactId) = DecodeSliceHeaderIntoCurrent11();
 
-                    // We cannot read the indirection table at this point as it may reference the new instance that is
+                    // We cannot decode the indirection table at this point as it may reference the new instance that is
                     // not created yet.
 
                     ClassFactory? factory = null;
@@ -435,17 +435,17 @@ namespace IceRpc
                     else if (SkipSlice(typeId, compactId)) // Slice off what we don't understand.
                     {
                         instance = new UnknownSlicedClass();
-                        // Don't read the indirection table as it's the last entry in DeferredIndirectionTableList11.
-                        readIndirectionTable = false;
+                        // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.
+                        decodeIndirectionTable = false;
                     }
                 }
                 while (instance == null);
 
-                // Add the instance to the map/list of instances. This must be done before reading the instances (for
+                // Add the instance to the map/list of instances. This must be done before decoding the instances (for
                 // circular references).
                 _instanceMap.Add(instance);
 
-                // Read all the deferred indirection tables now that the instance is inserted in _instanceMap.
+                // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
                 if (_current.DeferredIndirectionTableList11?.Count > 0)
                 {
                     int savedPos = Pos;
@@ -457,7 +457,7 @@ namespace IceRpc
                         if (pos > 0)
                         {
                             Pos = pos;
-                            _current.Slices[i].Instances = Array.AsReadOnly(ReadIndirectionTable());
+                            _current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
                         }
                         // else remains empty
                     }
@@ -465,9 +465,9 @@ namespace IceRpc
                     Pos = savedPos;
                 }
 
-                if (readIndirectionTable)
+                if (decodeIndirectionTable)
                 {
-                    ReadIndirectionTableIntoCurrent();
+                    DecodeIndirectionTableIntoCurrent();
                 }
             }
             else
@@ -475,7 +475,7 @@ namespace IceRpc
                 // With the 2.0 encoding, we don't need a DeferredIndirectionTableList because all the type IDs are
                 // provided by the first slice (when using the sliced format).
 
-                (string[]? allTypeIds, _, _) = ReadFirstSliceHeaderIntoCurrent20();
+                (string[]? allTypeIds, _, _) = DecodeFirstSliceHeaderIntoCurrent20();
                 if (allTypeIds != null)
                 {
                     int skipCount = 0;
@@ -495,7 +495,7 @@ namespace IceRpc
                     instance ??= new UnknownSlicedClass();
 
                     _instanceMap.Add(instance);
-                    ReadIndirectionTableIntoCurrent(); // read the indirection table immediately
+                    DecodeIndirectionTableIntoCurrent(); // decode the indirection table immediately
 
                     for (int i = 0; i < skipCount; ++i)
                     {
@@ -511,8 +511,8 @@ namespace IceRpc
                         }
                         else
                         {
-                            ReadNextSliceHeaderIntoCurrent();
-                            ReadIndirectionTableIntoCurrent();
+                            DecodeNextSliceHeaderIntoCurrent();
+                            DecodeIndirectionTableIntoCurrent();
                         }
                     }
                 }
@@ -523,7 +523,7 @@ namespace IceRpc
                     {
                         instance = factory();
                         _instanceMap.Add(instance);
-                        ReadIndirectionTableIntoCurrent();
+                        DecodeIndirectionTableIntoCurrent();
                         // Nothing to skip
                     }
                     else
@@ -535,41 +535,41 @@ namespace IceRpc
                 else
                 {
                     throw new InvalidDataException(
-                        @$"cannot read a class instance with no type ID; did you forget to specify the {
+                        @$"cannot decode a class instance with no type ID; did you forget to specify the {
                             nameof(formalTypeId)}?");
                 }
             }
 
-            instance.Read(this);
+            instance.Decode(this);
 
             _current = previousCurrent;
             --_classGraphDepth;
             return instance;
         }
 
-        /// <summary>Reads the header of the current slice into _current; this method is used when the current slice
+        /// <summary>Decodes the header of the current slice into _current; this method is used when the current slice
         /// is not the first (most derived) slice.</summary>
-        private void ReadNextSliceHeaderIntoCurrent()
+        private void DecodeNextSliceHeaderIntoCurrent()
         {
             if (OldEncoding)
             {
-                // With the 1.1 encoding, each slice header in sliced format contains a type ID - we read it and
+                // With the 1.1 encoding, each slice header in sliced format contains a type ID - we decode it and
                 // ignore it.
-                _ = ReadSliceHeaderIntoCurrent11();
+                _ = DecodeSliceHeaderIntoCurrent11();
             }
             else
             {
-                _current.SliceFlags = (EncodingDefinitions.SliceFlags)ReadByte();
+                _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
                 if (_current.SliceFlags.GetTypeIdKind() != EncodingDefinitions.TypeIdKind.None)
                 {
                     throw new InvalidDataException(
                         $"invalid type ID kind '{_current.SliceFlags.GetTypeIdKind()}' for next slice");
                 }
 
-                // Read the slice size if available.
+                // Decode the slice size if available.
                 if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
                 {
-                    _current.SliceSize = ReadSize();
+                    _current.SliceSize = DecodeSize();
                 }
                 else
                 {
@@ -578,20 +578,20 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Reads the header of the current slice into _current.</summary>
+        /// <summary>Decodes the header of the current slice into _current.</summary>
         /// <returns>The type ID or the compact ID of the current slice.</returns>
-        private (string? TypeId, int? CompactId) ReadSliceHeaderIntoCurrent11()
+        private (string? TypeId, int? CompactId) DecodeSliceHeaderIntoCurrent11()
         {
-            _current.SliceFlags = (EncodingDefinitions.SliceFlags)ReadByte();
+            _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
 
             string? typeId;
             int? compactId = null;
 
-            // Read the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact ID,
+            // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact ID,
             // for exceptions it's always encoded as a string.
             if (_current.InstanceType == InstanceType.Class)
             {
-                (typeId, compactId) = ReadTypeId11(_current.SliceFlags.GetTypeIdKind());
+                (typeId, compactId) = DecodeTypeId11(_current.SliceFlags.GetTypeIdKind());
 
                 if (typeId == null && compactId == null)
                 {
@@ -605,13 +605,13 @@ namespace IceRpc
             else
             {
                 // Exception slices always include the type ID, even when using the compact format.
-                typeId = ReadString();
+                typeId = DecodeString();
             }
 
-            // Read the slice size if available.
+            // Decode the slice size if available.
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
             {
-                _current.SliceSize = ReadSliceSize11();
+                _current.SliceSize = DecodeSliceSize11();
             }
             else
             {
@@ -625,11 +625,11 @@ namespace IceRpc
             return (typeId, compactId);
         }
 
-        /// <summary>Reads the size of the current slice.</summary>
+        /// <summary>Decodes the size of the current slice.</summary>
         /// <returns>The slice of the current slice, not including the size length.</returns>
-        private int ReadSliceSize11()
+        private int DecodeSliceSize11()
         {
-            int size = ReadInt();
+            int size = DecodeInt();
             if (size < 4)
             {
                 throw new InvalidDataException($"invalid slice size: {size}");
@@ -638,31 +638,31 @@ namespace IceRpc
             return size - 4;
         }
 
-        /// <summary>Reads the type ID of a class instance.</summary>
-        /// <param name="typeIdKind">The kind of type ID to read.</param>
+        /// <summary>Decodes the type ID of a class instance.</summary>
+        /// <param name="typeIdKind">The kind of type ID to decode.</param>
         /// <returns>The type ID and the compact ID, if any.</returns>
-        private (string? TypeId, int? CompactId) ReadTypeId11(EncodingDefinitions.TypeIdKind typeIdKind)
+        private (string? TypeId, int? CompactId) DecodeTypeId11(EncodingDefinitions.TypeIdKind typeIdKind)
         {
             _typeIdMap11 ??= new List<string>();
 
             switch (typeIdKind)
             {
                 case EncodingDefinitions.TypeIdKind.Index:
-                    int index = ReadSize();
+                    int index = DecodeSize();
                     if (index > 0 && index - 1 < _typeIdMap11.Count)
                     {
                         // The encoded type-id indexes start at 1, not 0.
                         return (_typeIdMap11[index - 1], null);
                     }
-                    throw new InvalidDataException($"read invalid type ID index {index}");
+                    throw new InvalidDataException($"decoded invalid type ID index {index}");
 
                 case EncodingDefinitions.TypeIdKind.String:
-                    string typeId = ReadString();
+                    string typeId = DecodeString();
 
-                    // The typeIds of slices in indirection tables can be read several times: when we skip the
-                    // indirection table and later on when we read it. We only want to add this typeId to the list and
-                    // assign it an index when it's the first time we read it, so we save the largest position we read
-                    // to figure out when to add to the list.
+                    // The typeIds of slices in indirection tables can be decoded several times: when we skip the
+                    // indirection table and later on when we decode it. We only want to add this typeId to the list and
+                    // assign it an index when it's the first time we decode it, so we save the largest position we
+                    // decode to figure out when to add to the list.
                     if (Pos > _posAfterLatestInsertedTypeId11)
                     {
                         _posAfterLatestInsertedTypeId11 = Pos;
@@ -671,7 +671,7 @@ namespace IceRpc
                     return (typeId, null);
 
                 case EncodingDefinitions.TypeIdKind.CompactId11:
-                    return (null, ReadSize());
+                    return (null, DecodeSize());
 
                 default:
                     // TypeIdKind has only 4 possible values.
@@ -681,23 +681,23 @@ namespace IceRpc
         }
 
         /// <summary>Skips the indirection table. The caller must save the current buffer position before calling
-        /// SkipIndirectionTable11 (to read the indirection table at a later point) except when the caller is
+        /// SkipIndirectionTable11 (to decode the indirection table at a later point) except when the caller is
         /// SkipIndirectionTable11 itself.</summary>
         private void SkipIndirectionTable11()
         {
             // We should never skip an exception's indirection table
             Debug.Assert(_current.InstanceType == InstanceType.Class);
 
-            // We use ReadSize and not ReadAndCheckSeqSize here because we don't allocate memory for this sequence, and
-            // since we are skipping this sequence to read it later, we don't want to double-count its contribution to
+            // We use DecodeSize and not DecodeAndCheckSeqSize here because we don't allocate memory for this sequence, and
+            // since we are skipping this sequence to decode it later, we don't want to double-count its contribution to
             // _minTotalSeqSize.
-            int tableSize = ReadSize();
+            int tableSize = DecodeSize();
             for (int i = 0; i < tableSize; ++i)
             {
-                int index = ReadSize();
+                int index = DecodeSize();
                 if (index <= 0)
                 {
-                    throw new InvalidDataException($"read invalid index {index} in indirection table");
+                    throw new InvalidDataException($"decoded invalid index {index} in indirection table");
                 }
                 if (index == 1)
                 {
@@ -706,22 +706,22 @@ namespace IceRpc
                         throw new InvalidDataException("maximum class graph depth reached");
                     }
 
-                    // Read/skip this instance
+                    // Decode/skip this instance
                     EncodingDefinitions.SliceFlags sliceFlags;
                     do
                     {
-                        sliceFlags = (EncodingDefinitions.SliceFlags)ReadByte();
+                        sliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
 
                         // Skip type ID - can update _typeIdMap11
-                        _ = ReadTypeId11(sliceFlags.GetTypeIdKind());
+                        _ = DecodeTypeId11(sliceFlags.GetTypeIdKind());
 
-                        // Read the slice size, then skip the slice
+                        // Decode the slice size, then skip the slice
                         if ((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
                         {
                             throw new InvalidDataException("size of slice missing");
                         }
-                        int sliceSize = ReadSliceSize11();
-                        Pos += sliceSize; // we need a temporary sliceSize because ReadSliceSize11 updates _pos.
+                        int sliceSize = DecodeSliceSize11();
+                        Pos += sliceSize; // we need a temporary sliceSize because DecodeSliceSize11 updates _pos.
 
                         // If this slice has an indirection table, skip it too.
                         if ((sliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
@@ -784,8 +784,8 @@ namespace IceRpc
             bool hasIndirectionTable = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0;
 
             // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
-            // _current.DeferredIndirectionTableList11 for later reading.
-            // For exceptions and with the 2.0 encoding, we always read the indirection table before calling SkipSlice
+            // _current.DeferredIndirectionTableList11 for later decoding.
+            // For exceptions and with the 2.0 encoding, we always decode the indirection table before calling SkipSlice
             // (if there is an indirection table), hence no need for a DeferredIndirectionTableList.
             if (OldEncoding && _current.InstanceType == InstanceType.Class)
             {
@@ -817,7 +817,7 @@ namespace IceRpc
                                      hasTaggedMembers);
             _current.Slices.Add(info);
 
-            // If we read the indirection table previously, we don't need it anymore since we're skipping this slice.
+            // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
             _current.IndirectionTable = null;
 
             return (_current.SliceFlags & EncodingDefinitions.SliceFlags.IsLastSlice) != 0;

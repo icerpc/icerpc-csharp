@@ -6,18 +6,18 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>Extension class to read fields.</summary>
+    /// <summary>Extension class to decode fields.</summary>
     public static class Fields
     {
-        /// <summary>Reads fields from a <see cref="BufferReader"/>.</summary>
-        /// <param name="reader">The buffer reader.</param>
+        /// <summary>Decodes fields from a <see cref="IceDecoder"/>.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <returns>The fields as an immutable dictionary.</returns>
-        /// <remarks>The values of the dictionary reference memory in the reader's underlying buffer.</remarks>
-        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> ReadFieldDictionary(this BufferReader reader)
+        /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
+        public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder decoder)
         {
-            Debug.Assert(reader.Encoding == Encoding.V20);
+            Debug.Assert(decoder.Encoding == Encoding.V20);
 
-            int size = reader.ReadSize();
+            int size = decoder.DecodeSize();
             if (size == 0)
             {
                 return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
@@ -27,7 +27,7 @@ namespace IceRpc
                 var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
                 for (int i = 0; i < size; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
                     builder.Add(key, value);
                 }
                 return builder.ToImmutable();
@@ -37,21 +37,21 @@ namespace IceRpc
         /// <summary>Decodes a field value written using <see cref="OutgoingFrame.Fields"/>.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="value">The field value as a byte buffer.</param>
-        /// <param name="decoder">The <see cref="Decoder{T}"/> for the field value.</param>
+        /// <param name="decodeFunc">The <see cref="DecodeFunc{T}"/> for the field value.</param>
         /// <param name="connection">The connection that received this field (used only for proxies).</param>
         /// <param name="invoker">The invoker of proxies in the decoded type.</param>
         /// <returns>The decoded value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="decoder"/> finds invalid data.
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
         /// </exception>
-        public static T ReadFieldValue<T>(
+        public static T DecodeFieldValue<T>(
             this ReadOnlyMemory<byte> value,
-            Decoder<T> decoder,
+            DecodeFunc<T> decodeFunc,
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var reader = new BufferReader(value, Encoding.V20, connection, invoker);
-            T result = decoder(reader);
-            reader.CheckEndOfBuffer(skipTaggedParams: false);
+            var decoder = new IceDecoder(value, Encoding.V20, connection, invoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
     }

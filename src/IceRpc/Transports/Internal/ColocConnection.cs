@@ -299,7 +299,7 @@ namespace IceRpc.Transports.Internal
                     }
 
                     // Write the frame. It's important to allocate the ID and to send the frame within the
-                    // synchronization block to ensure the decoder won't receive frames with out-of-order
+                    // synchronization block to ensure the reader won't receive frames with out-of-order
                     // stream IDs.
                     task = _writer.WriteAsync((stream.Id, frame, endStream), cancel);
                 }

@@ -30,10 +30,10 @@ namespace IceRpc.Transports.Internal
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
-            (long id, ColocChannelWriter encoder, ColocChannelReader decoder) =
+            (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocConnection(_endpoint, id, encoder, decoder, _options, _logger);
+            return new ColocConnection(_endpoint, id, writer, reader, _options, _logger);
         }
 
         public void Dispose()
@@ -55,7 +55,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
 
-            // There's always a single decoder (the listener) but there might be several encoders calling Write
+            // There's always a single reader (the listener) but there might be several writers calling Write
             // concurrently if there are connection establishment attempts from multiple threads. Not allowing
             // synchronous continuations is safer as otherwise disposal of the listener could end up running
             // the continuation of AcceptAsync.
@@ -75,7 +75,7 @@ namespace IceRpc.Transports.Internal
 
         internal (ColocChannelReader, ColocChannelWriter, long) NewClientConnection()
         {
-            var decoder = Channel.CreateUnbounded<(long, object, bool)>(
+            var reader = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
@@ -83,7 +83,7 @@ namespace IceRpc.Transports.Internal
                     AllowSynchronousContinuations = false
                 });
 
-            var encoder = Channel.CreateUnbounded<(long, object, bool)>(
+            var writer = Channel.CreateUnbounded<(long, object, bool)>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
@@ -93,12 +93,12 @@ namespace IceRpc.Transports.Internal
 
             long id = Interlocked.Increment(ref _nextId);
 
-            if (!_channel.Writer.TryWrite((id, encoder.Writer, decoder.Reader)))
+            if (!_channel.Writer.TryWrite((id, writer.Writer, reader.Reader)))
             {
                 throw new ConnectionRefusedException();
             }
 
-            return (encoder.Reader, decoder.Writer, id);
+            return (writer.Reader, reader.Writer, id);
         }
     }
 }
