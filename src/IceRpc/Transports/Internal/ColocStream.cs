@@ -4,18 +4,23 @@ using IceRpc.Internal;
 using System;
 using System.Diagnostics;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The RpcStream class for the colocated transport.</summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Microsoft.Design",
+        "CA1001:Type 'ColocStream' owns disposable field(s) '_sendSemaphore' but is not disposable",
+        Justification = "_sendSemaphore is disposed by Shutdown")]
     internal class ColocStream : SignaledStream<(object, bool)>
     {
-        private ReadOnlyMemory<byte> _receiveBuffer;
+        private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
+        private (int Segment, int Offset) _receivedPos;
+        private bool _receivedEndStream;
         private readonly ColocConnection _connection;
-        private ChannelWriter<ReadOnlyMemory<byte>>? _streamWriter;
-        private ChannelReader<ReadOnlyMemory<byte>>? _streamReader;
+        private SemaphoreSlim? _sendSemaphore;
+        private SemaphoreSlim? _receiveSemaphore;
 
         public override void AbortRead(RpcStreamError errorCode)
         {
@@ -38,11 +43,16 @@ namespace IceRpc.Transports.Internal
             // Notify the peer of the abort if the stream or connection is not aborted already.
             if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
-                _ = _connection.SendFrameAsync(this, frame: errorCode, fin: true, CancellationToken.None).AsTask();
+                _ = _connection.SendFrameAsync(
+                    this,
+                    frame: errorCode,
+                    endStream: true,
+                    CancellationToken.None).AsTask();
             }
 
             if (TrySetWriteCompleted(shutdown: false))
             {
+
                 // Shutdown the stream if not already done.
                 TryShutdown();
             }
@@ -55,81 +65,101 @@ namespace IceRpc.Transports.Internal
 
         public override void EnableSendFlowControl()
         {
-            // Create a channel to send the data directly to the peer's stream. It's a bounded channel
-            // of one element which requires the sender to wait if the channel is full. This ensures
-            // that the sender doesn't send the data faster than the receiver can process. Using channels
-            // for this purpose might be a little overkill, we could consider adding a small async queue
-            // class for this purpose instead.
-            var channelOptions = new BoundedChannelOptions(1)
-            {
-                SingleReader = true,
-                SingleWriter = true,
-                FullMode = BoundedChannelFullMode.Wait,
-                AllowSynchronousContinuations = false
-            };
-            var channel = Channel.CreateBounded<ReadOnlyMemory<byte>>(channelOptions);
-            _streamWriter = channel.Writer;
-
-            // Send the channel reader to the peer. Receiving data will first wait for the channel reader
-            // to be transmitted.
-            _connection.SendFrameAsync(this, frame: channel.Reader, fin: false, cancel: default).AsTask();
+            // If we are going to send stream data, we create a send semaphore and send it to the peer's
+            // stream. The semaphore is used to ensure the SendAsync call blocks until the peer received
+            // the data.
+            _sendSemaphore = new SemaphoreSlim(0);
+            _connection.SendFrameAsync(this, frame: _sendSemaphore, endStream: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            if (ReadCompleted)
+            // If the receive semaphore isn't set yet, get it from the channel, the semaphore is sent before
+            // stream data.
+            object frame;
+            if (_receiveSemaphore == null)
             {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
-            // If we didn't get the stream reader yet, wait for the peer stream to provide it through the
-            // socket channel.
-            if (_streamReader == null)
-            {
-                (object frame, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-                _streamReader = frame as ChannelReader<ReadOnlyMemory<byte>>;
-                Debug.Assert(_streamReader != null);
+                (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
+                Debug.Assert(!_receivedEndStream);
+                _receiveSemaphore = frame as SemaphoreSlim;
+                Debug.Assert(_receiveSemaphore != null);
                 _connection.FinishedReceivedFrame();
             }
 
-            int received = 0;
-            while (buffer.Length > 0)
+            // If there's still received buffered data, first consume it.
+            if (_receivedPos.Segment < _receivedBuffers.Length)
             {
-                if (_receiveBuffer.Length > 0)
+                int received = ReceiveFromBuffer(buffer);
+                if (received > 0)
                 {
-                    if (buffer.Length < _receiveBuffer.Length)
+                    // If we consumed some data, that's good enough, return.
+                    return received;
+                }
+            }
+
+            if (ReadCompleted)
+            {
+                return 0;
+            }
+
+            // If we couldn't get data from the previously received buffers, wait for additional data to be received
+            // and fill the buffer with the received data.
+            (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
+            _receivedBuffers = (ReadOnlyMemory<ReadOnlyMemory<byte>>)frame;
+            _receivedPos = (0, 0);
+
+            Debug.Assert (!_receivedBuffers.IsEmpty);
+
+            return ReceiveFromBuffer(buffer);
+
+            int ReceiveFromBuffer(Memory<byte> buffer)
+            {
+                int offset = 0;
+                while (offset < buffer.Length)
+                {
+                    Debug.Assert(_receivedPos.Offset <= _receivedBuffers.Span[_receivedPos.Segment].Length);
+
+                    ReadOnlyMemory<byte> receiveBuffer =
+                         _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
+                    int remaining = buffer.Length - offset;
+                    if (remaining < receiveBuffer.Length)
                     {
-                        _receiveBuffer[0..buffer.Length].CopyTo(buffer);
-                        received += buffer.Length;
-                        _receiveBuffer = _receiveBuffer[buffer.Length..];
-                        buffer = buffer[buffer.Length..];
+                        receiveBuffer[0..remaining].CopyTo(buffer);
+                        _receivedPos.Offset += remaining;
+                        offset += remaining;
                     }
                     else
                     {
-                        _receiveBuffer.CopyTo(buffer);
-                        received += _receiveBuffer.Length;
-                        _receiveBuffer = Memory<byte>.Empty;
-                        buffer = Memory<byte>.Empty;
+                        receiveBuffer.CopyTo(buffer);
+                        offset += receiveBuffer.Length;
+                        if (++_receivedPos.Segment == _receivedBuffers.Length)
+                        {
+                            // No more data available from the received buffers.
+                            break;
+                        }
+                        _receivedPos.Offset = 0;
                     }
                 }
-                else
-                {
-                    if (ReadCompleted)
-                    {
-                        return 0;
-                    }
 
+                // If all the buffered data has been consumed, release the semaphore to let the sender send more data.
+                if (_receivedPos.Segment == _receivedBuffers.Length)
+                {
                     try
                     {
-                        _receiveBuffer = await _streamReader.ReadAsync(cancel).ConfigureAwait(false);
+                        _receiveSemaphore.Release();
                     }
-                    catch (ChannelClosedException)
+                    catch (ObjectDisposedException)
                     {
-                        TrySetReadCompleted();
                     }
                 }
+
+                // If we received the end stream flag, we won't receive any additional data, complete the stream reads.
+                if (_receivedEndStream)
+                {
+                    TrySetReadCompleted();
+                }
+                return offset;
             }
-            return received;
         }
 
         public override async ValueTask SendAsync(
@@ -142,24 +172,11 @@ namespace IceRpc.Transports.Internal
                 throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
             }
 
-            if (_streamWriter == null)
+            await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
+
+            if (_sendSemaphore != null)
             {
-                await _connection.SendFrameAsync(this, buffers, endStream, cancel).ConfigureAwait(false);
-            }
-            else
-            {
-                if (buffers.GetByteCount() > 0)
-                {
-                    // TODO: replace the channel with a lightweight asynchronous queue which doesn't require
-                    // copying the data from the sender. Copying the data is necessary here because WriteAsync
-                    // doesn't block if there's space in the channel and it's not possible to create a
-                    // bounded channel with a null capacity.
-                    await _streamWriter.WriteAsync(buffers.ToSingleBuffer(), cancel).ConfigureAwait(false);
-                }
-                if (endStream)
-                {
-                    _streamWriter.Complete();
-                }
+                await _sendSemaphore.WaitAsync(cancel).ConfigureAwait(false);
             }
 
             if (endStream)
@@ -178,6 +195,7 @@ namespace IceRpc.Transports.Internal
         {
             base.Shutdown();
             _connection.ReleaseStream(this);
+            _sendSemaphore?.Dispose();
         }
 
         /// <summary>Constructor for incoming colocated stream</summary>
@@ -188,7 +206,7 @@ namespace IceRpc.Transports.Internal
         internal ColocStream(ColocConnection connection, bool bidirectional, bool control)
             : base(connection, bidirectional, control) => _connection = connection;
 
-        internal void ReceivedFrame(object frame, bool fin)
+        internal void ReceivedFrame(object frame, bool endStream)
         {
             if (frame is RpcStreamError errorCode)
             {
@@ -203,9 +221,14 @@ namespace IceRpc.Transports.Internal
 
                 _connection.FinishedReceivedFrame();
             }
+            else if (_receiveSemaphore == null)
+            {
+                QueueResult((frame, endStream));
+            }
             else
             {
-                QueueResult((frame, fin));
+                QueueResult((frame, endStream));
+                _connection.FinishedReceivedFrame();
             }
         }
 
@@ -225,7 +248,7 @@ namespace IceRpc.Transports.Internal
             byte expectedFrameType,
             CancellationToken cancel)
         {
-            (object frame, bool fin) = await WaitFrameAsync(cancel).ConfigureAwait(false);
+            (object frame, bool endStream) = await WaitFrameAsync(cancel).ConfigureAwait(false);
             if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
             {
                 // Initialize or GoAway frame.
@@ -254,13 +277,13 @@ namespace IceRpc.Transports.Internal
             await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
-                fin: frame.StreamWriter == null,
+                endStream: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
 
-        private async ValueTask<(object frameObject, bool fin)> WaitFrameAsync(CancellationToken cancel)
+        private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {
-            (object frameObject, bool fin) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (fin && !TrySetReadCompleted()))
+            (object frameObject, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
+            if (ReadCompleted || (endStream && !TrySetReadCompleted()))
             {
                 _connection.FinishedReceivedFrame();
                 throw AbortException ?? new InvalidOperationException("stream receive is completed");
@@ -270,7 +293,7 @@ namespace IceRpc.Transports.Internal
             // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
             // connection before the connection is shutdown if the next frame is a close connection frame.
             _connection.FinishedReceivedFrame();
-            return (frameObject, fin);
+            return (frameObject, endStream);
         }
     }
 }

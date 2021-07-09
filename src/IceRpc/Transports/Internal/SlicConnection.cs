@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
                     case SlicDefinitions.FrameType.Stream:
                     case SlicDefinitions.FrameType.StreamLast:
                     {
-                        bool fin = type == SlicDefinitions.FrameType.StreamLast;
+                        bool endStream = type == SlicDefinitions.FrameType.StreamLast;
                         (long streamId, int dataSize) =
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
 
@@ -97,7 +97,7 @@ namespace IceRpc.Transports.Internal
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             // Notify the stream that data is available for read.
-                            stream.ReceivedFrame(dataSize, fin);
+                            stream.ReceivedFrame(dataSize, endStream);
 
                             // Wait for the stream to receive the data before reading a new Slic frame.
                             if (dataSize > 0)
@@ -152,10 +152,10 @@ namespace IceRpc.Transports.Internal
                                 }
                                 Interlocked.Increment(ref _unidirectionalStreamCount);
                             }
-                            stream.ReceivedFrame(dataSize, fin);
+                            stream.ReceivedFrame(dataSize, endStream);
                             return stream;
                         }
-                        else if (!isBidirectional && fin && streamId != 2 && streamId != 3)
+                        else if (!isBidirectional && endStream && streamId != 2 && streamId != 3)
                         {
                             // Release the stream count for the unidirectional stream.
                             _unidirectionalStreamSemaphore!.Release();

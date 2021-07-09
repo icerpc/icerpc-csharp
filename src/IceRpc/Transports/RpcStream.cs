@@ -404,7 +404,7 @@ namespace IceRpc.Transports
             }
             encoder.EncodeByte((byte)Ice2FrameType.GoAwayCanceled);
             encoder.EndFixedLengthSize(encoder.StartFixedLengthSize());
-            await SendAsync(encoder.Finish(), true, CancellationToken.None).ConfigureAwait(false);
+            await SendAsync(encoder.Finish(), false, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -619,7 +619,7 @@ namespace IceRpc.Transports
                 set => throw new NotImplementedException();
             }
 
-            private readonly ReadOnlyMemory<byte>[] _buffers = new ReadOnlyMemory<byte>[2];
+            private readonly ReadOnlyMemory<byte>[] _buffers;
             private readonly RpcStream _stream;
 
             public override void Flush()
@@ -672,7 +672,7 @@ namespace IceRpc.Transports
             {
                 try
                 {
-                    _buffers[1] = buffer;
+                    _buffers[^1] = buffer;
                     await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
                 }
                 catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
@@ -696,7 +696,15 @@ namespace IceRpc.Transports
             internal ByteStream(RpcStream stream)
             {
                 _stream = stream;
-                _buffers[0] = _stream.TransportHeader;
+                if (_stream.TransportHeader.Length > 0)
+                {
+                    _buffers = new ReadOnlyMemory<byte>[2];
+                    _buffers[0] = _stream.TransportHeader.ToArray();
+                }
+                else
+                {
+                    _buffers = new ReadOnlyMemory<byte>[1];
+                }
             }
         }
     }

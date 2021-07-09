@@ -56,10 +56,10 @@ namespace IceRpc.Transports.Internal
                 if (errorCode != RpcStreamError.ConnectionAborted)
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
-                    SlicDefinitions.FrameType.StreamStopSending,
-                    ostr => new StreamStopSendingBody((ulong)errorCode).IceEncode(ostr),
-                    frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
-                    this);
+                        SlicDefinitions.FrameType.StreamStopSending,
+                        encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
+                        frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                        this);
                 }
 
                 // Shutdown the stream if not already done.
@@ -69,18 +69,18 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortWrite(RpcStreamError errorCode)
         {
+            // Notify the peer of the abort if the stream or connection is not aborted already.
+            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            {
+                _ = _connection.PrepareAndSendFrameAsync(
+                    SlicDefinitions.FrameType.StreamReset,
+                    encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
+                    frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
+                    this);
+            }
+
             if (TrySetWriteCompleted(shutdown: false))
             {
-                // Notify the peer of the abort if the stream or connection is not aborted already.
-                if (errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.PrepareAndSendFrameAsync(
-                        SlicDefinitions.FrameType.StreamReset,
-                        encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
-                        frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                        this);
-                }
-
                 // Shutdown the stream if not already done.
                 TryShutdown();
             }
@@ -219,9 +219,6 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            // Ensure the caller reserved space for the Slic header by checking for the sentinel header.
-            Debug.Assert(TransportHeader.Span.SequenceEqual(buffers.Span[0].Slice(0, TransportHeader.Length).Span));
-
             int size = buffers.GetByteCount() - TransportHeader.Length;
             if (size == 0)
             {
@@ -427,7 +424,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedFrame(int size, bool fin)
+        internal void ReceivedFrame(int size, bool endStream)
         {
             if (!IsBidirectional && !IsIncoming)
             {
@@ -446,7 +443,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        SetResult((size, fin));
+                        SetResult((size, endStream));
                     }
                     catch
                     {
@@ -464,8 +461,8 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException("flow control violation, peer sent too much data");
                     }
 
-                    // Receive the data asynchronously. The task will notify the connection when the Slic frame is fully
-                    // received to allow the connection to process the next Slic frame.
+                    // Receive the data asynchronously. The task will notify the connection when the Slic
+                    // frame is fully received to allow the connection to process the next Slic frame.
                     _ = PerformReceiveInBufferAsync();
                 }
             }
@@ -504,7 +501,7 @@ namespace IceRpc.Transports.Internal
                 // to ensure the received frames are queued in order.
                 try
                 {
-                    QueueResult((size, fin));
+                    QueueResult((size, endStream));
                 }
                 catch
                 {

@@ -82,7 +82,7 @@ namespace IceRpc.Transports.Internal
             _tokenRegistration.Dispose();
         }
 
-        /// <summary>Queue a new result. Results are typically queue when stream buffering is enabled to receive
+        /// <summary>Queue a new result. Results are typically queued when stream buffering is enabled to receive
         /// stream data.</summary>
         /// <param name="result">The result to queue.</param>
         protected void QueueResult(T result)
