@@ -54,7 +54,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 await using var server = new Server
                 {
-                    HasColocEndpoint = false,
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
                     HostName = "localhost"
@@ -72,7 +71,6 @@ namespace IceRpc.Tests.ClientServer
 
             await using var server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = new Bidir(),
                 Endpoint = GetTestEndpoint(),
                 // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
@@ -433,7 +431,6 @@ namespace IceRpc.Tests.ClientServer
             Server[] servers = Enumerable.Range(0, replicas).Select(
                 i => new Server
                 {
-                    HasColocEndpoint = false,
                     Endpoint = GetTestEndpoint(port: i),
                     HostName = "localhost"
                 }).ToArray();
@@ -476,7 +473,6 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = router,
-                HasColocEndpoint = false,
                 Endpoint = GetTestEndpoint(protocol: protocol),
                 HostName = "localhost"
             };

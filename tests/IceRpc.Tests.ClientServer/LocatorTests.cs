@@ -30,7 +30,6 @@ namespace IceRpc.Tests.ClientServer
             router.Map(path, new Greeter());
             _server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = router,
                 Endpoint = "tcp -h 127.0.0.1 -p 0",
                 // TODO use localhost see https://github.com/dotnet/runtime/issues/53447

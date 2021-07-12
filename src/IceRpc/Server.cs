@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -46,13 +45,6 @@ namespace IceRpc
                 UpdateProxyEndpoint();
             }
         }
-
-        /// <summary>Gets or sets whether this server listens on an endpoint for the coloc transport in addition to its
-        /// regular endpoint. This property has no effect when <see cref="Endpoint"/>'s transport is coloc. Changing
-        /// this value after calling <see cref="Listen"/> has no effect as well.</summary>
-        /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
-        /// value is true.</value>
-        public bool HasColocEndpoint { get; set; } = true;
 
         /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
         /// address.</summary>
@@ -106,8 +98,6 @@ namespace IceRpc
         /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
         private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
             new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
-
-        private IListener? _colocListener;
 
         private readonly HashSet<Connection> _connections = new();
 
@@ -190,23 +180,6 @@ namespace IceRpc
                 }
 
                 _listening = true;
-
-                if (HasColocEndpoint && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
-                {
-                    var colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
-                                                          port: _endpoint.Port,
-                                                          protocol: _endpoint.Protocol);
-
-                    _colocListener = colocEndpoint.CreateListener(ConnectionOptions, Logger);
-                    Task.Run(() => AcceptAsync(_colocListener));
-
-                    _colocRegistry.Add(_endpoint, colocEndpoint);
-                    if (ProxyEndpoint != _endpoint)
-                    {
-                        _colocRegistry.Add(ProxyEndpoint!, colocEndpoint);
-                    }
-                }
-
                 Logger.LogServerListening(this);
             }
         }
@@ -265,7 +238,6 @@ namespace IceRpc
 
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
-                    _colocListener?.Dispose();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
