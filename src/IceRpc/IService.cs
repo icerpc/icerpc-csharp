@@ -63,20 +63,12 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel);
 
-        /// <summary>Returns the Slice type ID of the most-derived interface supported by this object.</summary>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is cancelled.
-        /// </param>
-        /// <returns>The Slice type ID of the most-derived interface.</returns>
-        public ValueTask<string> IceIdAsync(Dispatch dispatch, CancellationToken cancel) => new("::Ice::Object");
-
         /// <summary>Returns the Slice type IDs of the interfaces supported by this object.</summary>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The Slice type IDs of the interfaces supported by this object, in alphabetical order.</returns>
-        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) =>
-            new(new string[] { "::Ice::Object" });
+        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>Tests whether this service supports the specified Slice interface.</summary>
         /// <param name="typeId">The type ID of the Slice interface to test against.</param>
@@ -84,17 +76,13 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>True if this object implements the interface specified by typeId.</returns>
-        public async ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel)
-        {
-            var array = (string[])await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
-            return Array.BinarySearch(array, typeId, StringComparer.Ordinal) >= 0;
-        }
+        public ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>Tests whether this object can be reached.</summary>
         /// <param name="dispatch">The dispatch properties.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
-        public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
+        public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel);
 
         /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
         /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
@@ -116,29 +104,13 @@ namespace IceRpc
         protected static void IceStreamReadingComplete(Dispatch dispatch) =>
             dispatch.IncomingRequest.Stream.AbortRead(Transports.RpcStreamError.UnexpectedStreamData);
 
-        /// <summary>Dispatches an ice_id request.</summary>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch for this request.</param>
-        /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
-        /// </param>
-        /// <returns>The response frame.</returns>
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdAsync(
-            ReadOnlyMemory<byte> payload,
-            Dispatch dispatch,
-            CancellationToken cancel)
-        {
-            IceStreamReadingComplete(dispatch);
-            payload.CheckEmptyArgs(dispatch);
-            string returnValue = await IceIdAsync(dispatch, cancel).ConfigureAwait(false);
-            return (Response.IceId(dispatch, returnValue), null);
-        }
-
         /// <summary>Dispatches an ice_ids request.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
+        [Operation("ice_ids")]
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdsAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
@@ -156,6 +128,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
+        [Operation("ice_isA")]
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIsAAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
@@ -173,6 +146,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
+        [Operation("ice_ping")]
         protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIcePingAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
