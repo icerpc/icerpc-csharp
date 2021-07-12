@@ -5,7 +5,6 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -95,9 +94,6 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
-        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
-            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
 
         private readonly HashSet<Connection> _connections = new();
 
@@ -226,16 +222,6 @@ namespace IceRpc
                 {
                     Logger.LogServerShuttingDown(this);
 
-                    // No longer available for coloc connections (may not be registered at all)
-                    if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
-                    {
-                        _colocRegistry.Remove(endpoint);
-                        if (ProxyEndpoint != _endpoint)
-                        {
-                            _colocRegistry.Remove(ProxyEndpoint!);
-                        }
-                    }
-
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
 
@@ -267,13 +253,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
-
-        /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
-        /// <param name="endpoint">The endpoint to check.</param>
-        /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
-        internal static Endpoint? GetColocEndpoint(Endpoint endpoint) =>
-            endpoint.Transport == Transport.Coloc ? endpoint :
-                (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
 
         private async Task AcceptAsync(IListener listener)
         {
