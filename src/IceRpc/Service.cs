@@ -57,7 +57,7 @@ namespace IceRpc
                     foreach (MethodInfo method in methods)
                     {
                         object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
-                        if (attributes[0] is OperationAttribute attribute)
+                        if (attributes.Length > 0 && attributes[0] is OperationAttribute attribute)
                         {
                             operations.Add((method, attribute.Value));
                         }
@@ -71,8 +71,8 @@ namespace IceRpc
                 ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
                 ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
 
-                // Create a case to dispatch each operation and an additional case for the default
-                var cases = new SwitchCase[operations.Count + 1];
+                // Create a case to dispatch each operation
+                var cases = new SwitchCase[operations.Count];
                 for (int i = 0; i < cases.Length; ++i)
                 {
                     (MethodInfo method, string operationName) = operations[i];
