@@ -108,7 +108,7 @@ namespace IceRpc.Transports.Internal
             _receivedBuffers = (ReadOnlyMemory<ReadOnlyMemory<byte>>)frame;
             _receivedPos = (0, 0);
 
-            Debug.Assert (!_receivedBuffers.IsEmpty);
+            Debug.Assert(!_receivedBuffers.IsEmpty);
 
             return ReceiveFromBuffer(buffer);
 

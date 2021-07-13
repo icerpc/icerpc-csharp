@@ -430,7 +430,6 @@ namespace IceRpc.Tests.ClientServer
 
             var server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = new Greeter(),
                 Endpoint = GetTestEndpoint(serverHost, tls: true),
                 ConnectionOptions = new()
