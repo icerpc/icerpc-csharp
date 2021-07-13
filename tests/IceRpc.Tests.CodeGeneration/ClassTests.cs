@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
+using NUnit.Framework.Constraints;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -45,7 +46,19 @@ namespace IceRpc.Tests.CodeGeneration
         {
             var router = new Router();
             router.Map<IClassOperations>(new ClassOperations());
-            router.Map<IClassOperationsUnexpectedClass>(new ClassOperationsUnexpectedClass());
+            router.Map(
+                "/IceRpc.Tests.CodeGeneration.ClassOperationsUnexpectedClass",
+                new InlineDispatcher(
+                    (request, cancel) =>
+                    {
+                        var response = new OutgoingResponse(
+                            request,
+                            Payload.FromSingleReturnValue(
+                                request.PayloadEncoding,
+                                new MyClassAlsoEmpty(),
+                                (encoder, ae) => encoder.EncodeClass(ae, null)), null);
+                        return new(response);
+                    }));
 
             _server = new Server
             {
@@ -254,7 +267,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class ClassOperations : IClassOperations
+        public class ClassOperations : Service, IClassOperations
         {
             private readonly MyClassB _b1;
             private readonly MyClassB _b2;
@@ -354,17 +367,6 @@ namespace IceRpc.Tests.CodeGeneration
                                              new MyClassA1("a2"),
                                              new MyClassA1("a3"),
                                              new MyClassA1("a4"));
-        }
-
-        public class ClassOperationsUnexpectedClass : IService
-        {
-            public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
-                ReadOnlyMemory<byte> payload,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new((IceRpc.Payload.FromSingleReturnValue(dispatch,
-                                                          new MyClassAlsoEmpty(),
-                                                          (encoder, ae) => encoder.EncodeClass(ae, null)), null));
         }
     }
 }

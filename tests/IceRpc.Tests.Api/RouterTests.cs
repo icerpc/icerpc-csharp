@@ -278,22 +278,22 @@ namespace IceRpc.Tests.Api
             await _connection.DisposeAsync();
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();
         }
 
-        public class BaseA : IBaseA { }
-        public class DerivedA : IDerivedA { }
-        public class MostDerivedA : IMostDerivedA { }
+        public class BaseA : Service, IBaseA { }
+        public class DerivedA : Service, IDerivedA { }
+        public class MostDerivedA : Service, IMostDerivedA { }
 
-        public class BaseB : IBaseB { }
-        public class DerivedB : IDerivedB { }
-        public class MostDerivedB : IMostDerivedB { }
+        public class BaseB : Service, IBaseB { }
+        public class DerivedB : Service, IDerivedB { }
+        public class MostDerivedB : Service, IMostDerivedB { }
 
-        public class BaseC : IBaseC { }
-        public class DerivedC : IDerivedC { }
-        public class MostDerivedC : IMostDerivedC { }
+        public class BaseC : Service, IBaseC { }
+        public class DerivedC : Service, IDerivedC { }
+        public class MostDerivedC : Service, IMostDerivedC { }
     }
 }

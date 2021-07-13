@@ -1142,7 +1142,7 @@ namespace IceRpc
                         }
 
                         // Wait for the GoAwayCanceled frame from the peer or the closure of the peer control stream.
-                        Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(exception, cancel);
+                        Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(cancel);
 
                         // Wait for all the streams to complete.
                         await WaitForEmptyStreamsAsync(cancel).ConfigureAwait(false);
@@ -1166,7 +1166,7 @@ namespace IceRpc
                 }
             }
 
-            async Task WaitForGoAwayCanceledOrCloseAsync(Exception exception, CancellationToken cancel)
+            async Task WaitForGoAwayCanceledOrCloseAsync(CancellationToken cancel)
             {
                 try
                 {

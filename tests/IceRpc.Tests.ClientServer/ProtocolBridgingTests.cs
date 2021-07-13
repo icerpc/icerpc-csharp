@@ -124,7 +124,7 @@ namespace IceRpc.Tests.ClientServer
             };
         }
 
-        internal class ProtocolBridgingTest : IProtocolBridgingTest
+        internal class ProtocolBridgingTest : Service, IProtocolBridgingTest
         {
             public ValueTask<int> OpAsync(int x, Dispatch dispatch, CancellationToken cancel) =>
                 new(x);

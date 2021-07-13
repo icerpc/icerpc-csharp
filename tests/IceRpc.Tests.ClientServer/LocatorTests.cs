@@ -266,7 +266,7 @@ namespace IceRpc.Tests.ClientServer
             return locator;
         }
 
-        private class Locator : ISimpleLocatorTest
+        private class Locator : Service, ISimpleLocatorTest
         {
             private readonly IDictionary<string, IServicePrx> _adapterMap =
                 new ConcurrentDictionary<string, IServicePrx>();
@@ -318,7 +318,7 @@ namespace IceRpc.Tests.ClientServer
                 new(_identityMap.Remove(identity));
         }
 
-        private class Greeter : IGreeter
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {

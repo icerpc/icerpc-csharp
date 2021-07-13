@@ -11,39 +11,68 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    class Service : IService
+    /// <summary>Base class of all service implementations.</summary>
+    public class Service : IService, IDispatcher
     {
-        internal delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> Dispatcher(
+        private delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> Dispatcher(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel);
 
         private Dispatcher? _dispatcher;
-        private ImmutableSortedSet<string> _ids = ImmutableSortedSet<string>.Empty;
+        private readonly Lazy<ImmutableSortedSet<string>> _ids;
 
-        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel)
+        /// <summary>Constructs a new service.</summary>
+        public Service()
         {
-            if (_ids == ImmutableSortedSet<string>.Empty)
-            {
-                ImmutableArray<string> ids = ImmutableArray<string>.Empty;
-                foreach (Type t in GetType().GetInterfaces())
+            _ids = new Lazy<ImmutableSortedSet<string>>(
+                () =>
                 {
-                    ids = ids.AddRange(TypeExtensions.GetAllIceTypeIds(t));
-                }
-                _ids = ids.ToImmutableSortedSet(StringComparer.Ordinal);
-            }
-            return new(_ids);
+                    ImmutableArray<string> ids = ImmutableArray<string>.Empty;
+                    foreach (Type t in GetType().GetInterfaces())
+                    {
+                        ids = ids.AddRange(TypeExtensions.GetAllIceTypeIds(t));
+                    }
+                    return ids.ToImmutableSortedSet(StringComparer.Ordinal);
+                });
         }
 
-        public async ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel)
-        {
-            var array = (string[])await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
-            return Array.BinarySearch(array, typeId, StringComparer.Ordinal) >= 0;
-        }
+        /// <inheritdoc/>
+        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) => new(_ids.Value);
 
+        /// <inheritdoc/>
+        public ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel) =>
+            new(_ids.Value.Contains(typeId));
+
+        /// <inheritdoc/>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
 
-        public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
+        /// <inheritdoc/>
+        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
+        {
+            var dispatch = new Dispatch(request);
+            try
+            {
+                ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
+                (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, RpcStreamWriter? streamWriter) =
+                    await DispatchAsync(requestPayload, dispatch, cancel).ConfigureAwait(false);
+
+                return new OutgoingResponse(dispatch, responsePayload, streamWriter);
+            }
+            catch (RemoteException exception)
+            {
+                exception.Features = dispatch.ResponseFeatures;
+                throw;
+            }
+        }
+
+        /// <summary>Dispatches an incoming request and returns the corresponding response.</summary>
+        /// <param name="payload">The request payload.</param>
+        /// <param name="dispatch">The dispatch properties, which include properties of both the request and response.
+        /// </param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The response payload and optional stream writer.</returns>
+        private ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
@@ -71,7 +100,7 @@ namespace IceRpc
                 ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
                 ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
 
-                // Create a case to dispatch each operation
+                // Create a switch case to dispatch each operation
                 var cases = new SwitchCase[operations.Count];
                 for (int i = 0; i < cases.Length; ++i)
                 {
@@ -87,11 +116,19 @@ namespace IceRpc
 
                 // Create a switch expression that switchs on dispatch.Operation
                 SwitchExpression switchExpr = Expression.Switch(
+                    typeof(ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)>),
                     Expression.Property(dispatchParam, typeof(Dispatch).GetProperty("Operation")!),
-                    Expression.Throw(Expression.Constant(new OperationNotFoundException())),
+                    Expression.Throw(
+                        Expression.Constant(new OperationNotFoundException()),
+                        typeof(ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)>)),
+                    null,
                     cases);
 
-                _dispatcher = Expression.Lambda<Dispatcher>(switchExpr, dispatchParam).Compile();
+                _dispatcher = Expression.Lambda<Dispatcher>(
+                    switchExpr,
+                    payloadParam,
+                    dispatchParam,
+                    cancelParam).Compile();
             }
             return _dispatcher(payload, dispatch, cancel);
         }

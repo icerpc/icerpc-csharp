@@ -73,7 +73,7 @@ namespace IceRpc
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IService service) where T : IService =>
+        public void Map<T>(Service service) =>
             _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
@@ -115,7 +115,7 @@ namespace IceRpc
             return _exactMatchRoutes.Remove(path);
         }
 
-        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(IService)"/>.</summary>
+        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(Service)"/>.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         // TODO missing test

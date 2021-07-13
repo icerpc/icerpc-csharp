@@ -620,7 +620,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(multiOtional.MAnotherStructDict, Is.Null);
         }
 
-        class OptionalOperations : IOptionalOperations
+        class OptionalOperations : Service, IOptionalOperations
         {
             public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
                 AnotherStruct? p1,

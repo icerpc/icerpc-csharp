@@ -445,7 +445,7 @@ namespace IceRpc.Tests.ClientServer
             return server;
         }
 
-        internal class Greeter : IGreeter
+        internal class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

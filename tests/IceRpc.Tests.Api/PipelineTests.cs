@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Api
             });
 
         // TODO: move to shared location?
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

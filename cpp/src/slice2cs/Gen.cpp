@@ -2597,13 +2597,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public partial interface " << fixId(name) << " : ";
-    if (bases.empty())
+    _out << nl << "public partial interface " << fixId(name);
+    if (!bases.empty())
     {
-        _out << "IceRpc.IService";
-    }
-    else
-    {
+        _out << " : ";
         for(InterfaceList::const_iterator q = bases.begin(); q != bases.end();)
         {
             _out << getUnqualified(getNamespace(*q) + "." + interfaceName(*q), ns);
@@ -2631,7 +2628,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateRequestClass)
     {
         _out << nl << "/// <summary>Provides static methods that read the arguments of requests.</summary>";
-        _out << nl << "public static new class Request";
+        _out << nl << "public static" << (bases.empty() ? "" : " new") << " class Request";
         _out << sb;
 
         for (auto operation : operationList)
@@ -2665,7 +2662,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateResponseClass)
     {
         _out << nl << "/// <summary>Provides static methods that create response payloads.</summary>";
-        _out << nl << "public static new class Response";
+        _out << nl << "public static" << (bases.empty() ? "" : " new") << " class Response";
         _out << sb;
         for (auto operation : operationList)
         {
@@ -2716,7 +2713,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
 
                 _out.inc();
-                _out << nl << "dispatch,";
+                _out << nl << "dispatch.Encoding,";
                 _out << nl << (returns.size() == 1 ? "returnValue," : "in returnValueTuple,");
                 _out << nl;
                 writeOutgoingResponseEncodeAction(operation);
@@ -2734,72 +2731,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << eb;
         _out << sp;
     }
-
-    // The _ice prefix is in case the user "extends" the partial generated interface.
-    _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
-        << name << "))!;";
-    _out << nl
-        << "private static readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
-        << name << "));";
-
     for (const auto& op : p->operations())
     {
         writeReturnValueStruct(op);
         writeMethodDeclaration(op);
     }
-
-    _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<string> IceRpc.IService.IceIdAsync("
-         << "IceRpc.Dispatch dispatch, "
-         << "global::System.Threading.CancellationToken cancel) => new(_iceTypeId);";
-    _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> "
-         << "IceRpc.IService.IceIdsAsync(IceRpc.Dispatch dispatch, "
-         << "global::System.Threading.CancellationToken cancel) => new(_iceAllTypeIds);";
-
-    _out << sp;
-    _out << nl << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)> IceRpc.IService"
-         << ".DispatchAsync(";
-    _out.inc();
-     _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
-          << nl << "IceRpc.Dispatch dispatch,"
-          << nl << "global::System.Threading.CancellationToken cancel) => "
-          << "DispatchAsync(this, payload, dispatch, cancel);";
-    _out.dec();
-
-    _out << sp;
-    _out << nl << "// This protected static DispatchAsync allows a derived class to override the instance DispatchAsync";
-    _out << nl << "// and reuse the generated implementation.";
-    _out << nl << "protected static global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)> "
-         << "DispatchAsync(";
-    _out.inc();
-    _out << nl << fixId(name) << " servant,"
-         << nl << "global::System.ReadOnlyMemory<byte> payload,"
-         << nl << "IceRpc.Dispatch dispatch,"
-         << nl << "global::System.Threading.CancellationToken cancel) =>";
-    _out.inc();
-    _out << nl << "dispatch.Operation switch";
-    _out << sb;
-    vector<pair<string, string>> allOpNames;
-    for(const auto& op : p->allOperations())
-    {
-        allOpNames.push_back(make_pair(op->name(), operationName(op)));
-    }
-    allOpNames.push_back(make_pair("ice_id", "IceId"));
-    allOpNames.push_back(make_pair("ice_ids", "IceIds"));
-    allOpNames.push_back(make_pair("ice_isA", "IceIsA"));
-    allOpNames.push_back(make_pair("ice_ping", "IcePing"));
-
-    for(const auto& opName : allOpNames)
-    {
-        _out << nl << "\"" << opName.first << "\" => " << "servant.IceD" << opName.second << "Async(payload, dispatch, cancel),";
-    }
-
-    _out << nl << "_ => throw new IceRpc.OperationNotFoundException()";
-
-    _out << eb << ";"; // switch expression
-    _out.dec(); // params
-    _out.dec(); // method
     return true;
 }
 
@@ -2845,7 +2781,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
             _out << "IceRpc.Payload.FromReturnValueTuple(";
         }
         _out.inc();
-        _out << nl << getEscapedParamName(operation, "dispatch") << ", ";
+        _out << nl << getEscapedParamName(operation, "dispatch") << ".Encoding, ";
         _out << nl << toTuple(returnType) << ",";
         _out << nl;
         writeOutgoingResponseEncodeAction(operation);
@@ -2923,6 +2859,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     _out << sp;
+    _out << nl << "[IceRpc.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)>";
@@ -2936,11 +2873,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (!streamParam)
     {
-        _out << nl << "IceStreamReadingComplete(dispatch);";
+        _out << nl << "IceRpc.IService.IceStreamReadingComplete(dispatch);";
     }
     if (!isIdempotent(operation))
     {
-         _out << nl << "IceCheckNonIdempotent(dispatch);";
+         _out << nl << "IceRpc.IService.IceCheckNonIdempotent(dispatch);";
     }
 
     if (opCompressReturn(operation))

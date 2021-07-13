@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, middlewareCalls.Count);
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public bool Called { get; private set; }
 

@@ -111,7 +111,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             stream.Dispose();
         }
 
-        public class Streams : IStreams
+        public class Streams : Service, IStreams
         {
             private readonly byte[] _sendBuffer;
 
