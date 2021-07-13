@@ -1,10 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -17,7 +13,7 @@ namespace IceRpc
         /// <value>The operation name.</value>
         public string Value { get; }
 
-        /// <summary>Constructs a OperationAttribute.</summary>
+        /// <summary>Constructs an OperationAttribute.</summary>
         /// <param name="value">The operation name.</param>>
         public OperationAttribute(string value) => Value = value;
     }
