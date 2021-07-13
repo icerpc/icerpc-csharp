@@ -29,7 +29,6 @@ namespace IceRpc.Tests.ClientServer
             Servant = new StressTest();
             Server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
                 HostName = "127.0.0.1"
