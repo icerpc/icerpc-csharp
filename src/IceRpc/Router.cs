@@ -68,19 +68,6 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
-        /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
-        /// </summary>
-        /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
-        /// must start with a <c>/</c>.</param>
-        /// <param name="service">The target of this route. It is typically an <see cref="IService"/>.</param>
-        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
-        /// <seealso cref="Mount"/>
-        public void Map<T>(string path, IDispatcher service) where T : class
-        {
-            Internal.UriParser.CheckPath(path, nameof(path));
-            _exactMatchRoutes[path] = service;
-        }
-
         /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
         /// an existing route at the same path, it is replaced.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
