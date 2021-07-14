@@ -50,9 +50,9 @@ namespace IceRpc
         // The byte buffer we are decoding.
         private readonly ReadOnlyMemory<byte> _buffer;
 
-        private readonly int _classGraphMaxDepth;
+        private readonly IClassFactory _classFactory;
 
-        private IReadOnlyDictionary<int, Lazy<ClassFactory>>? _compactTypeIdClassFactories;
+        private readonly int _classGraphMaxDepth;
 
         // Data for the class or exception instance that is currently getting unmarshaled.
         private InstanceData _current;
@@ -74,9 +74,6 @@ namespace IceRpc
 
         // See DecodeTypeId11.
         private int _posAfterLatestInsertedTypeId11;
-
-        IReadOnlyDictionary<string, Lazy<ClassFactory>>? _typeIdClassFactories;
-        IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? _typeIdRemoteExceptionFactories;
 
         // Map of type ID index to type ID sequence, used only for classes.
         // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
@@ -861,34 +858,24 @@ namespace IceRpc
         /// <param name="encoding">The encoding of the buffer.</param>
         /// <param name="connection">The connection (optional).</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="typeIdClassFactories">Optional dictionary used to map Slice type Ids to classes, if null
-        /// <see cref="Runtime.TypeIdClassFactoryDictionary"/> will be used.</param>
-        /// <param name="typeIdExceptionFactories">Optional dictionary used to map Slice type Ids to exceptions, if
-        /// null <see cref="Runtime.TypeIdRemoteExceptionFactoryDictionary"/> will be used.</param>
-        /// <param name="compactTypeIdClassFactories">Optional dictionary used to map Slice compact type Ids to
-        /// classes, if null <see cref="Runtime.CompactTypeIdClassFactoryDictionary"/> will be used.</param>
+        /// <param name="classFactory">Optional class factory used to create class and exception instances.</param>
         internal IceDecoder(
             ReadOnlyMemory<byte> buffer,
             Encoding encoding,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IReadOnlyDictionary<string, Lazy<ClassFactory>>? typeIdClassFactories = null,
-            IReadOnlyDictionary<string, Lazy<RemoteExceptionFactory>>? typeIdExceptionFactories = null,
-            IReadOnlyDictionary<int, Lazy<ClassFactory>>? compactTypeIdClassFactories = null)
+            IClassFactory? classFactory = null)
         {
             Connection = connection;
             Invoker = invoker;
 
+            _classFactory = classFactory ?? ClassFactory.Default;
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
 
             Pos = 0;
             _buffer = buffer;
             Encoding = encoding;
             Encoding.CheckSupported();
-
-            _typeIdClassFactories = typeIdClassFactories;
-            _typeIdRemoteExceptionFactories = typeIdExceptionFactories;
-            _compactTypeIdClassFactories = compactTypeIdClassFactories;
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
