@@ -2860,12 +2860,13 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     _out << sp;
     _out << nl << "[IceRpc.Operation(\"" << operation->name() << "\")]";
-    _out << nl << "protected ";
+    _out << nl << "protected static ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)>";
     _out << " " << internalName << "(";
     _out.inc();
-    _out << nl << "global::System.ReadOnlyMemory<byte> payload,"
+    _out << nl << fixId(interfaceName(interface)) << " target,"
+         << nl << "global::System.ReadOnlyMemory<byte> payload,"
          << nl << "IceRpc.Dispatch dispatch,"
          << nl << "global::System.Threading.CancellationToken cancel)";
     _out.dec();
@@ -2908,7 +2909,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     {
         // TODO: support for stream param with marshaled result?
 
-        _out << nl << "var returnValue = await this." << name << spar;
+        _out << nl << "var returnValue = await target." << name << spar;
         if(params.size() > 1)
         {
             _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });
@@ -2930,7 +2931,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << "var returnValue = ";
         }
 
-        _out << "await this." << name << spar;
+        _out << "await target." << name << spar;
         if (params.size() > 1)
         {
             _out << getNames(params, [](const MemberPtr& param) { return "args." + fieldName(param); });

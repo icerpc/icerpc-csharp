@@ -14,26 +14,48 @@ namespace IceRpc
     /// <summary>Base class of all service implementations.</summary>
     public class Service : IService, IDispatcher
     {
-        private delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> Dispatcher(
+        private delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDMethod(
+            object target,
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel);
 
-        private Dispatcher? _dispatcher;
+        private ImmutableSortedDictionary<string, IceDMethod> _dispatchMethods =
+            ImmutableSortedDictionary<string, IceDMethod>.Empty;
+        private static ImmutableDictionary<Type, ImmutableSortedDictionary<string, IceDMethod>> _dispatchMethodsCache =
+            ImmutableDictionary<Type, ImmutableSortedDictionary<string, IceDMethod>>.Empty;
+        // proctects the dispatch methods and type ids caches
+        private static readonly object _mutex = new();
         private readonly Lazy<ImmutableSortedSet<string>> _ids;
+        private static ImmutableDictionary<Type, ImmutableSortedSet<string>> _typeIdsCache =
+            ImmutableDictionary<Type, ImmutableSortedSet<string>>.Empty;
 
         /// <summary>Constructs a new service.</summary>
         public Service()
         {
+            // Cache per type
             _ids = new Lazy<ImmutableSortedSet<string>>(
                 () =>
                 {
-                    ImmutableArray<string> ids = ImmutableArray<string>.Empty;
-                    foreach (Type t in GetType().GetInterfaces())
+                    Type type = GetType();
+                    if (!_typeIdsCache.TryGetValue(type, out ImmutableSortedSet<string>? ids))
                     {
-                        ids = ids.AddRange(TypeExtensions.GetAllIceTypeIds(t));
+                        ImmutableArray<string> newIds = ImmutableArray<string>.Empty;
+                        foreach (Type interfaceType in type.GetInterfaces())
+                        {
+                            newIds = newIds.AddRange(TypeExtensions.GetAllIceTypeIds(interfaceType));
+                        }
+                        ids = newIds.ToImmutableSortedSet(StringComparer.Ordinal);
+
+                        lock (_mutex)
+                        {
+                            if (!_typeIdsCache.ContainsKey(type))
+                            {
+                                _typeIdsCache = _typeIdsCache.Add(type, ids);
+                            }
+                        }
                     }
-                    return ids.ToImmutableSortedSet(StringComparer.Ordinal);
+                    return ids;
                 });
         }
 
@@ -77,60 +99,77 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel)
         {
-            if (_dispatcher == null)
+            if (_dispatchMethods.IsEmpty)
             {
-                var operations = new List<(MethodInfo, string)>();
-                foreach (Type t in GetType().GetInterfaces())
+                Type type = GetType();
+                if (!_dispatchMethodsCache.TryGetValue(type,
+                    out ImmutableSortedDictionary<string, IceDMethod>? dispatchMethods))
                 {
-                    MethodInfo[] methods = t.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic);
-                    foreach (MethodInfo method in methods)
+                    var operations = new List<(MethodInfo, string)>();
+                    foreach (Type interfaceType in type.GetInterfaces())
                     {
-                        object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
-                        if (attributes.Length > 0 && attributes[0] is OperationAttribute attribute)
+                        MethodInfo[] methods = interfaceType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic);
+                        foreach (MethodInfo method in methods)
                         {
-                            operations.Add((method, attribute.Value));
+                            object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
+                            if (attributes.Length > 0 && attributes[0] is OperationAttribute attribute)
+                            {
+                                operations.Add((method, attribute.Value));
+                            }
+                        }
+                    }
+
+                    // There is atleast the 3 builtin operations
+                    Debug.Assert(operations.Count >= 3);
+
+                    ParameterExpression targetParam = Expression.Parameter(typeof(object));
+                    ParameterExpression payloadParam = Expression.Parameter(typeof(ReadOnlyMemory<byte>));
+                    ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
+                    ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
+
+                    // Create a switch case to dispatch each operation
+                    var cases = new SwitchCase[operations.Count];
+                    var newDispatchMethods = new Dictionary<string, IceDMethod>();
+                    for (int i = 0; i < cases.Length; ++i)
+                    {
+                        (MethodInfo method, string operationName) = operations[i];
+                        newDispatchMethods[operationName] = Expression.Lambda<IceDMethod>(
+                            Expression.Call(
+                                method,
+                                Expression.Convert(targetParam, type),
+                                payloadParam,
+                                dispatchParam,
+                                cancelParam),
+                            targetParam,
+                            payloadParam,
+                            dispatchParam,
+                            cancelParam).Compile();
+                    };
+
+                    lock (_mutex)
+                    {
+                        dispatchMethods = newDispatchMethods.ToImmutableSortedDictionary();
+                        _dispatchMethods = dispatchMethods;
+                        if (!_dispatchMethodsCache.ContainsKey(type))
+                        {
+                            _dispatchMethodsCache = _dispatchMethodsCache.Add(type, dispatchMethods);
                         }
                     }
                 }
-
-                // There is atleast the 3 builtin operations
-                Debug.Assert(operations.Count >= 3);
-
-                ParameterExpression payloadParam = Expression.Parameter(typeof(ReadOnlyMemory<byte>));
-                ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
-                ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
-
-                // Create a switch case to dispatch each operation
-                var cases = new SwitchCase[operations.Count];
-                for (int i = 0; i < cases.Length; ++i)
+                else
                 {
-                    (MethodInfo method, string operationName) = operations[i];
-                    cases[i] = Expression.SwitchCase(
-                        Expression.Call(Expression.Constant(this),
-                                        method,
-                                        payloadParam,
-                                        dispatchParam,
-                                        cancelParam),
-                        Expression.Constant(operationName));
+                    _dispatchMethods = dispatchMethods;
                 }
-
-                // Create a switch expression that switchs on dispatch.Operation
-                SwitchExpression switchExpr = Expression.Switch(
-                    typeof(ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)>),
-                    Expression.Property(dispatchParam, typeof(Dispatch).GetProperty("Operation")!),
-                    Expression.Throw(
-                        Expression.Constant(new OperationNotFoundException()),
-                        typeof(ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)>)),
-                    null,
-                    cases);
-
-                _dispatcher = Expression.Lambda<Dispatcher>(
-                    switchExpr,
-                    payloadParam,
-                    dispatchParam,
-                    cancelParam).Compile();
             }
-            return _dispatcher(payload, dispatch, cancel);
+
+            if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
+            {
+                return dispatchMethod(this, payload, dispatch, cancel);
+            }
+            else
+            {
+                throw new OperationNotFoundException();
+            }
         }
     }
 }

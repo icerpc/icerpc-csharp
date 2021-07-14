@@ -94,56 +94,62 @@ namespace IceRpc
             dispatch.IncomingRequest.Stream.AbortRead(Transports.RpcStreamError.UnexpectedStreamData);
 
         /// <summary>Dispatches an ice_ids request.</summary>
+        /// <param name="target">The target service.</param>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         [Operation("ice_ids")]
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdsAsync(
+        protected static async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIdsAsync(
+            IService target,
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
             IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
-            IEnumerable<string> returnValue = await IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
+            IEnumerable<string> returnValue = await target.IceIdsAsync(dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIds(dispatch, returnValue), null);
         }
 
         /// <summary>Dispatches an ice_isA request.</summary>
+        /// <param name="target">The target service.</param>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         [Operation("ice_isA")]
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIsAAsync(
+        protected static async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIceIsAAsync(
+            IService target,
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
             IceStreamReadingComplete(dispatch);
             string id = Request.IceIsA(payload, dispatch);
-            bool returnValue = await IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
+            bool returnValue = await target.IceIsAAsync(id, dispatch, cancel).ConfigureAwait(false);
             return (Response.IceIsA(dispatch, returnValue), null);
         }
 
         /// <summary>Dispatches an ice_ping request.</summary>
+        /// <param name="target">The target service.</param>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch for this request.</param>
         /// <param name="cancel">A cancellation token that is notified of cancellation when the dispatch is canceled.
         /// </param>
         /// <returns>The response frame.</returns>
         [Operation("ice_ping")]
-        protected async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIcePingAsync(
+        protected static async ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDIcePingAsync(
+            IService target,
             ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
             CancellationToken cancel)
         {
             IceStreamReadingComplete(dispatch);
             payload.CheckEmptyArgs(dispatch);
-            await IcePingAsync(dispatch, cancel).ConfigureAwait(false);
+            await target.IcePingAsync(dispatch, cancel).ConfigureAwait(false);
             return (Payload.FromVoidReturnValue(dispatch), null);
         }
     }

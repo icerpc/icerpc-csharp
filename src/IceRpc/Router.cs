@@ -68,12 +68,25 @@ namespace IceRpc
             _exactMatchRoutes[path] = dispatcher;
         }
 
+        /// <summary>Registers a route with a path. If there is an existing route at the same path, it is replaced.
+        /// </summary>
+        /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
+        /// must start with a <c>/</c>.</param>
+        /// <param name="service">The target of this route. It is typically an <see cref="IService"/>.</param>
+        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        /// <seealso cref="Mount"/>
+        public void Map<T>(string path, IDispatcher service) where T : class
+        {
+            Internal.UriParser.CheckPath(path, nameof(path));
+            _exactMatchRoutes[path] = service;
+        }
+
         /// <summary>Registers a route to a service that uses the service default path as the route path. If there is
         /// an existing route at the same path, it is replaced.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <seealso cref="Mount"/>
-        public void Map<T>(Service service) =>
+        public void Map<T>(IDispatcher service) where T : class  =>
             _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
@@ -115,11 +128,11 @@ namespace IceRpc
             return _exactMatchRoutes.Remove(path);
         }
 
-        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(Service)"/>.</summary>
+        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(IDispatcher)"/>.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         // TODO missing test
-        public bool Unmap<T>() where T : IService =>
+        public bool Unmap<T>() =>
             _exactMatchRoutes.Remove(typeof(T).GetDefaultPath());
 
         /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
