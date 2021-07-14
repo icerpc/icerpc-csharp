@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
-    public static class Proxy
+    public static class ProxyExtensions
     {
         /// <summary>The invoker that a proxy calls when its invoker is null.</summary>
         internal static IInvoker NullInvoker { get; } =

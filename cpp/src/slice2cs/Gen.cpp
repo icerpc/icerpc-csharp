@@ -2293,7 +2293,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "<see cref=\"" << name << "\"/> proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => IceRpc.Proxy.Decode(Factory, decoder);";
+    _out << nl << "decoder => IceRpc.ProxyExtensions.Decode(Factory, decoder);";
     _out.dec();
 
     _out << sp;
@@ -2315,7 +2315,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "IceRpc.Connection connection,";
     _out << nl << "string? path = null,";
     _out << nl << "IceRpc.IInvoker? invoker = null) =>";
-    _out << nl << "IceRpc.Proxy.Create(Factory, connection, path, invoker);";
+    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, connection, path, invoker);";
     _out.dec();
 
     _out << sp;
@@ -2327,7 +2327,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "public static new "
          << name << " FromPath(string path, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, path, protocol, setIdentity: true);";
+    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, path, protocol, setIdentity: true);";
     _out.dec();
 
     _out << sp;
@@ -2342,7 +2342,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <returns>The new proxy.</returns>";
     _out << nl << "public static new " << name << " FromServer(IceRpc.Server server, string? path = null) =>";
     _out.inc();
-    _out << nl << "IceRpc.Proxy.Create(Factory, server, path);";
+    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, server, path);";
     _out.dec();
 
     _out << sp;
@@ -2350,7 +2350,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
          << "\"/> nullable proxies.</summary>";
     _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "?> NullableDecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => IceRpc.Proxy.DecodeNullable(Factory, decoder);";
+    _out << nl << "decoder => IceRpc.ProxyExtensions.DecodeNullable(Factory, decoder);";
     _out.dec();
 
     _out << sp;
@@ -2362,7 +2362,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
     _out << nl << "public static new " << name << " Parse(string s, IceRpc.IInvoker? invoker = null) => "
-         << "IceRpc.Proxy.Parse(Factory, s, invoker);";
+         << "IceRpc.ProxyExtensions.Parse(Factory, s, invoker);";
 
     _out << sp;
     _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << name

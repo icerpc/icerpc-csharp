@@ -896,7 +896,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.Proxy.DecodeNullable("
+            out << "IceRpc.ProxyExtensions.DecodeNullable("
                 << typeToString(underlying, scope) << ".Factory, "
                 << "decoder);";
             return;
@@ -927,7 +927,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.Proxy.Decode("
+        out << "IceRpc.ProxyExtensions.Decode("
             << typeToString(underlying, scope) << ".Factory, "
             << "decoder)";
     }
@@ -1117,7 +1117,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.Proxy.DecodeTagged("
+        out << "IceRpc.ProxyExtensions.DecodeTagged("
             << typeToString(type, scope) << ".Factory, "
             << "decoder, " << tag << ")";
     }

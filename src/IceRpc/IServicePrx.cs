@@ -89,14 +89,14 @@ namespace IceRpc
             new((path, protocol) => new ServicePrx(path, protocol));
 
         /// <summary>A <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> proxies.</summary>
-        public static readonly DecodeFunc<IServicePrx> DecodeFunc = decoder => Proxy.Decode(Factory, decoder);
+        public static readonly DecodeFunc<IServicePrx> DecodeFunc = decoder => ProxyExtensions.Decode(Factory, decoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> proxies.</summary>
         public static readonly EncodeAction<IServicePrx> EncodeAction = (encoder, value) => encoder.EncodeProxy(value);
 
         /// <summary>An <see cref="DecodeFunc{T}"/> for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly DecodeFunc<IServicePrx?> NullableDecodeFunc = decoder =>
-            Proxy.DecodeNullable(Factory, decoder);
+            ProxyExtensions.DecodeNullable(Factory, decoder);
 
         /// <summary>An encode action for <see cref="IServicePrx"/> nullable proxies.</summary>
         public static readonly EncodeAction<IServicePrx?> NullableEncodeAction =
