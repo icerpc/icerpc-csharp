@@ -45,8 +45,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             var router = new Router();
             router.Map<IClassOperations>(new ClassOperations());
-            router.Map(
-                "/IceRpc.Tests.CodeGeneration.ClassOperationsUnexpectedClass",
+            router.Map<IClassOperationsUnexpectedClass>(
                 new InlineDispatcher(
                     (request, cancel) =>
                     {

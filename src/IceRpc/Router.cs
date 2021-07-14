@@ -73,7 +73,7 @@ namespace IceRpc
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IDispatcher service) where T : class  =>
+        public void Map<T>(IDispatcher service) where T : class =>
             _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.

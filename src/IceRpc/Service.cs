@@ -22,12 +22,16 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel);
 
+        // A dictionary of operation name to IceDMethod ussed by DispatchAsync implementation, lazzy initialized.
         private readonly Lazy<ImmutableSortedDictionary<string, IceDMethod>> _dispatchMethods;
+        // A per type cache of dispatch methods dictionary.
         private static ImmutableDictionary<Type, ImmutableSortedDictionary<string, IceDMethod>> _dispatchMethodsCache =
             ImmutableDictionary<Type, ImmutableSortedDictionary<string, IceDMethod>>.Empty;
-        // proctects the dispatch methods and type ids caches
+        // proctects the dispatch methods and type ids caches.
         private static readonly object _mutex = new();
+        // The service type IDs.
         private readonly Lazy<ImmutableSortedSet<string>> _typeIds;
+        // A per type cache of type IDs.
         private static ImmutableDictionary<Type, ImmutableSortedSet<string>> _typeIdsCache =
             ImmutableDictionary<Type, ImmutableSortedSet<string>>.Empty;
 
@@ -49,9 +53,8 @@ namespace IceRpc
                         var newDispatchMethods = new Dictionary<string, IceDMethod>();
                         foreach (Type interfaceType in type.GetInterfaces())
                         {
-                            MethodInfo[] methods = interfaceType.GetMethods(
-                                BindingFlags.Static |
-                                BindingFlags.NonPublic);
+                            MethodInfo[] methods = interfaceType.GetMethods(BindingFlags.Static |
+                                                                            BindingFlags.NonPublic);
                             foreach (MethodInfo method in methods)
                             {
                                 object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
@@ -113,7 +116,8 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) => new(_typeIds.Value);
+        public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) =>
+            new(_typeIds.Value);
 
         /// <inheritdoc/>
         public ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel) =>
