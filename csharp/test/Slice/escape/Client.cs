@@ -16,7 +16,7 @@ public class Client : TestHelper
             new(0);
     }
 
-    public sealed class Decimal : Idecimal
+    public sealed class Decimal : Service, Idecimal
     {
         public ValueTask defaultAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
@@ -33,12 +33,12 @@ public class Client : TestHelper
         }
     }
 
-    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
+    public sealed class Test1I : Service, IceRpc.Slice.Test.Escape.@abstract.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
+    public sealed class Test2I : Service, IceRpc.Slice.Test.Escape.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
