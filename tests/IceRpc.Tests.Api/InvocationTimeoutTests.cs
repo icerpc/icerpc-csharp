@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Api
             Assert.That(dispatchDeadline, Is.GreaterThanOrEqualTo(expectedDeadline));
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

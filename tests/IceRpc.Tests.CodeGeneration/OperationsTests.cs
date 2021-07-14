@@ -83,7 +83,7 @@ namespace IceRpc.Tests.CodeGeneration
             await _prx.IcePingAsync();
         }
 
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             // Builtin types
             public ValueTask<(byte, byte)> OpByteAsync(

@@ -274,7 +274,7 @@ namespace IceRpc.Tests.ClientServer
             data.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(
                 line => JsonDocument.Parse(line)).ToList();
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

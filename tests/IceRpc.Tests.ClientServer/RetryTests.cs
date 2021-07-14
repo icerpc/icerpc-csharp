@@ -490,7 +490,7 @@ namespace IceRpc.Tests.ClientServer
             Func<RetryTest, IRetryTestPrx, Task> closure) =>
             WithRetryServiceAsync(Protocol.Ice2, configure, closure);
 
-        internal class RetryTest : IRetryTest
+        internal class RetryTest : Service, IRetryTest
         {
             internal volatile int Attempts;
             internal Connection? Connection;
@@ -565,7 +565,7 @@ namespace IceRpc.Tests.ClientServer
         }
     }
 
-    public class Bidir : IRetryBidirTest
+    public class Bidir : Service, IRetryBidirTest
     {
         private int _n;
 
@@ -583,7 +583,7 @@ namespace IceRpc.Tests.ClientServer
             throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
     }
 
-    public class Replicated : IRetryReplicatedTest
+    public class Replicated : Service, IRetryReplicatedTest
     {
         private readonly bool _fail;
         public Replicated(bool fail) => _fail = fail;

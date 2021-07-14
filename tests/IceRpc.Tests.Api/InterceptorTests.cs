@@ -146,7 +146,7 @@ namespace IceRpc.Tests.Api
             await _connection.DisposeAsync();
         }
 
-        internal class InterceptorTest : IInterceptorTest
+        internal class InterceptorTest : Service, IInterceptorTest
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
                 Dispatch dispatch,

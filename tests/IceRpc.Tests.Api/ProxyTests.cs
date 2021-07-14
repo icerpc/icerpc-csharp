@@ -31,7 +31,7 @@ namespace IceRpc.Tests.Api
 
             await prx.IcePingAsync();
 
-            Assert.AreEqual("::IceRpc::Tests::Api::Greeter", await prx.IceIdAsync());
+            Assert.ThrowsAsync<OperationNotFoundException>(async () => await prx.IceIdAsync());
 
             string[] ids = new string[]
             {
@@ -48,7 +48,6 @@ namespace IceRpc.Tests.Api
             // Test that builtin operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
-            Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdAsync(cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(
                 async () => await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", cancel: canceled));
@@ -70,7 +69,6 @@ namespace IceRpc.Tests.Api
             }));
 
             await prx.IcePingAsync(invocation);
-            await prx.IceIdAsync(invocation);
             await prx.IceIdsAsync(invocation);
             await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter", invocation);
             await prx.As<IServicePrx>().CheckedCastAsync<IGreeterPrx>(invocation);
@@ -558,13 +556,13 @@ namespace IceRpc.Tests.Api
             Assert.That(capture.Greeter.Endpoint, Is.Null);
         }
 
-        private class Greeter : IGreeter
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 default;
         }
 
-        private class ProxyTest : IProxyTest
+        private class ProxyTest : Service, IProxyTest
         {
             internal IProxyTestPrx? Proxy { get; set; }
 

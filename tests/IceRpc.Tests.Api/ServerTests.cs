@@ -322,7 +322,7 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
         }
 
-        private class Greeter : IGreeter
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 default;

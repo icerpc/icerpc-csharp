@@ -249,7 +249,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

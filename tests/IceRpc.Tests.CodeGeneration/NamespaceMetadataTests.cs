@@ -50,7 +50,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
     }
 
-    public class NamespaceMDOperations : INamespaceMDOperations
+    public class NamespaceMDOperations : Service, INamespaceMDOperations
     {
         public ValueTask<S2> GetNestedM0M2M3S2Async(Dispatch dispatch, CancellationToken cancel) =>
             new(new S2());

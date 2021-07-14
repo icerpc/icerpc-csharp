@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Api
         }
     }
 
-    public class FeatureTest : IFeatureTest
+    public class FeatureTest : Service, IFeatureTest
     {
         public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {

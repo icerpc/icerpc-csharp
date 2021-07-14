@@ -94,7 +94,6 @@ namespace IceRpc
 
         internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
 
-
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;

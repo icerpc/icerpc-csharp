@@ -210,7 +210,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
         }
 
-        internal class CompressTest : ICompressTest
+        internal class CompressTest : Service, ICompressTest
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
                 byte[] p1,
