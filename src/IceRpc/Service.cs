@@ -14,6 +14,8 @@ namespace IceRpc
     /// <summary>Base class of all service implementations.</summary>
     public class Service : IService, IDispatcher
     {
+        /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
+        /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
         private delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> IceDMethod(
             object target,
             ReadOnlyMemory<byte> payload,
