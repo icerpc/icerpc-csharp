@@ -2131,23 +2131,55 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                                                      interfaceName(c) + "Prx", ns);
                            });
 
-    if(baseInterfaces.empty())
-    {
-        baseInterfaces.push_back("IceRpc.IServicePrx");
-    }
-
-    for(vector<string>::const_iterator q = baseInterfaces.begin(); q != baseInterfaces.end();)
+    for (vector<string>::const_iterator q = baseInterfaces.begin(); q != baseInterfaces.end();)
     {
         _out << *q;
-        if(++q != baseInterfaces.end())
+        if (++q != baseInterfaces.end())
         {
             _out << ", ";
         }
     }
     _out << sb;
 
-    // Generate nested Request and Response classes if this interface has operations.
     auto operationList = p->operations();
+
+    // Generate abstract methods and documentation
+    for (auto operation : operationList)
+    {
+        string deprecateReason = getDeprecateReason(operation, true);
+        string asyncName = fixId(operationName(operation) + "Async");
+
+        _out << sp;
+        writeOperationDocComment(operation, deprecateReason, false);
+        if (!deprecateReason.empty())
+        {
+            _out << nl << "[global::System.Obsolete(\"" << deprecateReason << "\")]";
+        }
+
+        _out << nl << returnTaskStr(operation, ns, false) << " " << asyncName << spar
+            << getInvocationParams(operation, ns, true) << ";"
+    }
+
+    _out << eb;
+    _out << sp;
+
+    string structName = interfaceName(p).substr(1);
+
+    writeProxyDocComment(p, getDeprecateReason(p));
+    emitCommonAttributes();
+    emitTypeIdAttribute(p->scoped());
+    emitCustomAttributes(p);
+    _out << nl << "public partial struct " << structName << " : global::System.IEquatable<" << structName << ">, "
+        << interfaceName(p);
+
+    if (ns != "IceRpc" && name != "Service")
+    {
+        _out << nl << ", IceRpc.IServicePrx";
+    }
+
+    _out << sb;
+
+    // Generate nested Request and Response classes if this interface has operations.
     bool generateRequestClass =
         find_if(operationList.begin(), operationList.end(), [](const auto& op) {
             return !op->params().empty() && (op->params().size() > 1 || !op->params().front()->stream());
@@ -2390,7 +2422,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr& p)
     _out << sp;
 
     // private impl
-    _out << nl << "private class " << impl << " : IceRpc.ServicePrx, " << name;
+    _out << nl << "private class " << impl << " : " << name;
     _out << sb;
     _out << nl << "internal " << impl << "(string path, IceRpc.Protocol protocol)";
     _out.inc();

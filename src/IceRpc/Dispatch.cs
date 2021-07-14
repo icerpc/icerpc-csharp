@@ -54,6 +54,24 @@ namespace IceRpc
         /// <summary>The server.</summary>
         public Server? Server => Connection.Server;
 
+        /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
+        /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
+        /// incorrectly believes this operation is idempotent.</summary>
+        public void IceCheckNonIdempotent()
+        {
+            if (IsIdempotent)
+            {
+                throw new InvalidDataException(
+                    $@"idempotent mismatch for operation '{dispatch.Operation
+                    }': received request marked idempotent for a non-idempotent operation");
+            }
+        }
+
+        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
+        /// doesn't specify a stream parameter.</summary>
+        public void IceStreamReadingComplete() =>
+            IncomingRequest.Stream.AbortRead(Transports.RpcStreamError.UnexpectedStreamData);
+
         /// <summary>The incoming request frame.</summary>
         internal IncomingRequest IncomingRequest { get; }
 
