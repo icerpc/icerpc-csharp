@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -40,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Retry_ConnectionEstablishment(Protocol protocol)
         {
-            await using var pool = new ConnectionPool();
+            await using var pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
 
             var prx1 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 0, protocol: protocol), pipeline);
@@ -66,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_EndpointlessProxy()
         {
-            await using var pool = new ConnectionPool();
+            await using var pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
 
             await using var server = new Server
@@ -251,7 +252,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_OtherReplica()
         {
-            await using var pool = new ConnectionPool();
+            await using var pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
@@ -290,10 +291,8 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_ReportLastFailure()
         {
-            await using var pool = new ConnectionPool
-            {
-                PreferExistingConnection = false
-            };
+            await using var pool = CreateConnectionPool();
+            pool.PreferExistingConnection = false;
             Pipeline pipeline = CreatePipeline(pool);
 
             var calls = new List<string>();
@@ -368,9 +367,16 @@ namespace IceRpc.Tests.ClientServer
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
-
-                    await using var connection1 = new Connection { RemoteEndpoint = retry.Endpoint };
-                    await using var connection2 = new Connection { RemoteEndpoint = retry.Endpoint };
+                    var connectionOptions = new ClientConnectionOptions()
+                    {
+                        ClassFactory = new ClassFactory(new Assembly[]
+                            {
+                                typeof(RemoteException).Assembly,
+                                typeof(RetrySystemFailure).Assembly
+                            })
+                    };
+                    await using var connection1 = new Connection { RemoteEndpoint = retry.Endpoint, Options = connectionOptions };
+                    await using var connection2 = new Connection { RemoteEndpoint = retry.Endpoint, Options = connectionOptions };
 
                     await connection1.ConnectAsync();
                     await connection2.ConnectAsync();
@@ -426,6 +432,21 @@ namespace IceRpc.Tests.ClientServer
             return pipeline;
         }
 
+        private static ConnectionPool CreateConnectionPool()
+        {
+            var pool = new ConnectionPool();
+            pool.ConnectionOptions = new ClientConnectionOptions()
+            {
+                ClassFactory = new ClassFactory(
+                    new Assembly[]
+                    {
+                        typeof(RemoteException).Assembly,
+                        typeof(RetrySystemFailure).Assembly
+                    })
+            };
+            return pool;
+        }
+
         private async Task WithReplicatedRetryServiceAsync(int replicas, Action<Server[], Router[]> closure)
         {
             Server[] servers = Enumerable.Range(0, replicas).Select(
@@ -446,7 +467,7 @@ namespace IceRpc.Tests.ClientServer
             Action<Pipeline, IConnectionProvider>? configure,
             Func<RetryTest, IRetryTestPrx, Task> closure)
         {
-            await using var pool = new ConnectionPool();
+            await using var pool = CreateConnectionPool();
             Pipeline pipeline;
             if (configure != null)
             {

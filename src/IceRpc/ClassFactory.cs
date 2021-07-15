@@ -7,11 +7,15 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
-
 namespace IceRpc
 {
-    class ClassFactory : IClassFactory
+    /// <summary>A class factory implementation that creates instances of types using the
+    /// <see cref="ClassAttribute"/> attribute.</summary>
+    public class ClassFactory : IClassFactory
     {
+        /// <summary>An instance of the class factory that is setup to create instances of types from the IceRPC
+        /// and the entry assemblies, for types using <see cref="ClassAttribute"/> attribute.</summary>
+        /// <seealso cref="Assembly.GetEntryAssembly"/>
         public static ClassFactory Default { get; } = new ClassFactory(GetDefaultAssemblies()); // the local default
 
         private readonly ImmutableDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache =
@@ -21,12 +25,14 @@ namespace IceRpc
         private readonly ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache =
             ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>.Empty;
 
-
+        /// <summary>Constructs a class factory that can create instances of types in the given
+        /// <para>assemblies</para>, for types using the <see cref="ClassAttribute"/> attribute.</summary>
+        /// <param name="assemblies">The assemblies containing the types that this factory will create.</param>
         public ClassFactory(IEnumerable<Assembly> assemblies)
         {
             var typeIdClassFactories = new Dictionary<string, Lazy<Func<AnyClass>>>();
             var compactIdClassFactories = new Dictionary<int, Lazy<Func<AnyClass>>>();
-            var typeIdExceptionFactories = 
+            var typeIdExceptionFactories =
                 new Dictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
 
             foreach (Assembly? assembly in assemblies)
@@ -58,6 +64,7 @@ namespace IceRpc
             _typeIdExceptionFactoryCache = typeIdExceptionFactories.ToImmutableDictionary();
         }
 
+        /// <inheritdoc/>
         public AnyClass? CreateClassInstance(string typeId)
         {
             if (_typeIdClassFactoryCache.TryGetValue(typeId, out Lazy<Func<AnyClass>>? factory))
@@ -69,7 +76,8 @@ namespace IceRpc
                 return null;
             }
         }
-        
+
+        /// <inheritdoc/>
         public AnyClass? CreateClassInstance(int compactId)
         {
             if (_compactTypeIdClassFactoryCache.TryGetValue(compactId, out Lazy<Func<AnyClass>>? factory))
@@ -81,7 +89,8 @@ namespace IceRpc
                 return null;
             }
         }
-        
+
+        /// <inheritdoc/>
         public RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin)
         {
             if (_typeIdExceptionFactoryCache.TryGetValue(
@@ -102,10 +111,10 @@ namespace IceRpc
             {
                 typeof(ClassFactory).Assembly // The IceRpc assembly
             };
-            
-            if (Assembly.GetExecutingAssembly() is Assembly executingAssembly)
+
+            if (Assembly.GetEntryAssembly() is Assembly entryAssembly)
             {
-                assemblies.Add(executingAssembly);
+                assemblies.Add(entryAssembly);
             }
             return assemblies;
         }

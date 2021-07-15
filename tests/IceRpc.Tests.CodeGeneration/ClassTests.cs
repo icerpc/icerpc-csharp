@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,14 +59,25 @@ namespace IceRpc.Tests.CodeGeneration
                         return new(response);
                     }));
 
+            var classFactory = new ClassFactory(new Assembly[]
+            {
+                typeof(RemoteException).Assembly,
+                typeof(ClassTests).Assembly
+            });
+
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.ProxyEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
 
             _prx = IClassOperationsPrx.FromConnection(_connection);
             _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromConnection(_connection);

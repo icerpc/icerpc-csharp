@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,14 +26,25 @@ namespace IceRpc.Tests.CodeGeneration
             router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
             router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
 
+            var classFactory = new ClassFactory(new Assembly[]
+            {
+                typeof(RemoteException).Assembly,
+                typeof(ScopeTests).Assembly
+            });
+
             _server = new Server()
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.ProxyEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
             _prx1 = Scope.IOperationsPrx.FromConnection(_connection);
             _prx2 = Scope.Inner.IOperationsPrx.FromConnection(_connection);
             _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromConnection(_connection);

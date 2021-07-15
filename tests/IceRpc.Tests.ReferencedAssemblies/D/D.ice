@@ -4,9 +4,14 @@
 
 #include <C.ice>
 
-module IceRpc::Tests::Internal
+module IceRpc::Tests::Api
 {
     class MyClassD : MyClassC
+    {
+        string dValue;
+    }
+
+    class MyCompactClassD(4) : MyCompactClassC
     {
         string dValue;
     }

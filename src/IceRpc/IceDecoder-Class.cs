@@ -370,7 +370,7 @@ namespace IceRpc
                         instance = _classFactory.CreateClassInstance(compactIdValue);
                     }
 
-                    if (instance == null && !SkipSlice(typeId, compactId)) // Slice off what we don't understand.
+                    if (instance == null && SkipSlice(typeId, compactId)) // Slice off what we don't understand.
                     {
                         instance = new UnknownSlicedClass();
                         // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.

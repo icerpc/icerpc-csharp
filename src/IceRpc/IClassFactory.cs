@@ -4,7 +4,7 @@ namespace IceRpc
 {
     /// <summary>A class factory is responsible for creating class an exception instances from IceRPC type IDs and
     /// compact type IDs.</summary>
-    interface IClassFactory
+    public interface IClassFactory
     {
         /// <summary>Create a class instance for the given type ID.</summary>
         /// <param name="typeId">The class type ID</param>

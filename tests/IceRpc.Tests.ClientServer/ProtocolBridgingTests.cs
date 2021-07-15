@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +19,19 @@ namespace IceRpc.Tests.ClientServer
         private readonly Router _router = new(); // shared by both servers for coloc to work properly
         private Server _targetServer = null!;
 
-        public ProtocolBridgingTests() => _pool = new ConnectionPool();
+        public ProtocolBridgingTests()
+        {
+            _pool = new ConnectionPool();
+            _pool.ConnectionOptions = new ClientConnectionOptions()
+            {
+                ClassFactory = new ClassFactory(
+                    new Assembly[]
+                    {
+                        typeof(RemoteException).Assembly,
+                        typeof(ProtocolBridgingException).Assembly
+                    })
+            };
+        }
 
         [TearDown]
         public async ValueTask DisposeAsync()
