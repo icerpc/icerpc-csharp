@@ -22,12 +22,9 @@ namespace IceRpc
             Dispatch dispatch,
             CancellationToken cancel);
 
-        // A per type cache of dispatch methods dictionary.
-        private static ImmutableDictionary<Type, ImmutableDictionary<string, IceDMethod>> _dispatchMethodsCache =
-            ImmutableDictionary<Type, ImmutableDictionary<string, IceDMethod>>.Empty;
-        // A per type cache of type IDs.
-        private static ImmutableDictionary<Type, ImmutableSortedSet<string>> _typeIdsCache =
-            ImmutableDictionary<Type, ImmutableSortedSet<string>>.Empty;
+        // A per type cache of dispatch methods and type IDs.
+        private static ImmutableDictionary<Type, (ImmutableDictionary<string, IceDMethod> Methods, ImmutableSortedSet<string> TypeIds)> _cache =
+           ImmutableDictionary<Type, (ImmutableDictionary<string, IceDMethod> Methods, ImmutableSortedSet<string> TypeIds)>.Empty;
 
         // A dictionary of operation name to IceDMethod used by DispatchAsync implementation.
         private readonly ImmutableDictionary<string, IceDMethod> _dispatchMethods;
@@ -39,8 +36,9 @@ namespace IceRpc
         {
             // Initialize IceDMethods cache
             Type type = GetType();
-            if (!_dispatchMethodsCache.TryGetValue(type,
-                out ImmutableDictionary<string, IceDMethod>? dispatchMethods))
+            if (!_cache.TryGetValue(
+                type,
+                out (ImmutableDictionary<string, IceDMethod> Methods, ImmutableSortedSet<string> TypeIds) entry))
             {
                 ParameterExpression targetParam = Expression.Parameter(typeof(object));
                 ParameterExpression payloadParam = Expression.Parameter(typeof(ReadOnlyMemory<byte>));
@@ -74,27 +72,20 @@ namespace IceRpc
                 }
 
                 // There is at least the 3 built-in operations
-                dispatchMethods = dispatchMethodsBuilder.ToImmutableDictionary();
-                Debug.Assert(dispatchMethods.Count >= 3);
+                entry.Methods = dispatchMethodsBuilder.ToImmutableDictionary();
+                Debug.Assert(entry.Methods.Count >= 3);
 
-                _dispatchMethodsCache = _dispatchMethodsCache.SetItem(type, dispatchMethods);
-            }
-            _dispatchMethods = dispatchMethods;
-
-
-            // Type ids cache
-            if (!_typeIdsCache.TryGetValue(type, out ImmutableSortedSet<string>? ids))
-            {
                 var newIdsBuilder = ImmutableSortedSet.CreateBuilder<string>();
                 foreach (Type interfaceType in type.GetInterfaces())
                 {
                     newIdsBuilder.UnionWith(TypeExtensions.GetAllIceTypeIds(interfaceType));
                 }
+                entry.TypeIds = newIdsBuilder.ToImmutableSortedSet(StringComparer.Ordinal);
 
-                ids = newIdsBuilder.ToImmutableSortedSet(StringComparer.Ordinal);
-                _typeIdsCache = _typeIdsCache.SetItem(type, ids);
+                _cache = _cache.SetItem(type, entry);
             }
-            _typeIds =  ids;
+            _dispatchMethods = entry.Methods;
+            _typeIds =  entry.TypeIds;
         }
 
         /// <inheritdoc/>
