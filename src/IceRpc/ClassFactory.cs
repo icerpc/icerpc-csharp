@@ -14,14 +14,18 @@ namespace IceRpc
     public class ClassFactory : IClassFactory
     {
         /// <summary>An instance of the class factory that is setup to create instances of types from the IceRPC
-        /// and the entry assemblies, for types using <see cref="ClassAttribute"/> attribute.</summary>
+        /// and the entry assemblies, for types using <see cref="ClassAttribute"/> attribute. This instance is used as
+        /// the local default when the application doesn't configured a class factory.</summary>
         /// <seealso cref="Assembly.GetEntryAssembly"/>
-        public static ClassFactory Default { get; } = new ClassFactory(GetDefaultAssemblies()); // the local default
+        public static ClassFactory Default { get; } =
+            new ClassFactory(Assembly.GetEntryAssembly() is Assembly entryAssembly ?
+                new Assembly[] { typeof(RemoteException).Assembly, entryAssembly } :
+                new Assembly[] { typeof(RemoteException).Assembly});
 
-        private readonly ImmutableDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache =
-            ImmutableDictionary<string, Lazy<Func<AnyClass>>>.Empty;
         private readonly ImmutableDictionary<int, Lazy<Func<AnyClass>>> _compactTypeIdClassFactoryCache =
             ImmutableDictionary<int, Lazy<Func<AnyClass>>>.Empty;
+        private readonly ImmutableDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache =
+            ImmutableDictionary<string, Lazy<Func<AnyClass>>>.Empty;
         private readonly ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache =
             ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>.Empty;
 
@@ -35,7 +39,7 @@ namespace IceRpc
             var typeIdExceptionFactories =
                 new Dictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
 
-            foreach (Assembly? assembly in assemblies)
+            foreach (Assembly assembly in assemblies)
             {
                 IEnumerable<ClassAttribute> attributes =
                     assemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>());
@@ -65,58 +69,20 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public AnyClass? CreateClassInstance(string typeId)
-        {
-            if (_typeIdClassFactoryCache.TryGetValue(typeId, out Lazy<Func<AnyClass>>? factory))
-            {
-                return factory.Value();
-            }
-            else
-            {
-                return null;
-            }
-        }
+        public AnyClass? CreateClassInstance(string typeId) =>
+            _typeIdClassFactoryCache.TryGetValue(typeId, out Lazy<Func<AnyClass>>? factory) ? factory.Value() : null;
 
         /// <inheritdoc/>
-        public AnyClass? CreateClassInstance(int compactId)
-        {
-            if (_compactTypeIdClassFactoryCache.TryGetValue(compactId, out Lazy<Func<AnyClass>>? factory))
-            {
-                return factory.Value();
-            }
-            else
-            {
-                return null;
-            }
-        }
+        public AnyClass? CreateClassInstance(int compactId) =>
+            _compactTypeIdClassFactoryCache.TryGetValue(
+                compactId,
+                out Lazy<Func<AnyClass>>? factory) ? factory.Value() : null;
 
         /// <inheritdoc/>
-        public RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin)
-        {
-            if (_typeIdExceptionFactoryCache.TryGetValue(
+        public RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin) =>
+            _typeIdExceptionFactoryCache.TryGetValue(
                 typeId,
-                out Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>? factory))
-            {
-                return factory.Value(message, origin);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private static IEnumerable<Assembly> GetDefaultAssemblies()
-        {
-            var assemblies = new List<Assembly>()
-            {
-                typeof(ClassFactory).Assembly // The IceRpc assembly
-            };
-
-            if (Assembly.GetEntryAssembly() is Assembly entryAssembly)
-            {
-                assemblies.Add(entryAssembly);
-            }
-            return assemblies;
-        }
+                out Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>? factory) ?
+            factory.Value(message, origin) : null;
     }
 }
