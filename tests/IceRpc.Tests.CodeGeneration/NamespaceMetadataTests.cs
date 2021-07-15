@@ -20,12 +20,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public NamespaceMetadataTests()
         {
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(NamespaceMetadataTests).Assembly
-            });
-
+            var classFactory = new ClassFactory(new Assembly[] { typeof(NamespaceMetadataTests).Assembly });
             _server = new Server
             {
                 Dispatcher = new NamespaceMDOperations(),

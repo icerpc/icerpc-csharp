@@ -19,12 +19,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OptionalTests()
         {
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(OptionalTests).Assembly
-            });
-
+            var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
             _server = new Server()
             {
                 Dispatcher = new OptionalOperations(),

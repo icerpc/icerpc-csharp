@@ -28,12 +28,7 @@ namespace IceRpc.Tests.Encoding
             router.Map<ICompactFormatOperations>(new CompactFormatOperations());
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(ClassTests).Assembly
-            });
-
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
             _server = new Server()
             {
                 Dispatcher = router,
@@ -202,11 +197,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(ClassTests).Assembly
-            });
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
 
             await using var server = new Server
             {

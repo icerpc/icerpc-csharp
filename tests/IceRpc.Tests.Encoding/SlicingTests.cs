@@ -59,7 +59,6 @@ namespace IceRpc.Tests.Encoding
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
             {
-                typeof(RemoteException).Assembly,
                 typeof(MyMostDerivedClass).Assembly,
                 typeof(MyDerivedClass).Assembly,
                 typeof(MyBaseClass).Assembly
@@ -126,7 +125,6 @@ namespace IceRpc.Tests.Encoding
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
             {
-                typeof(RemoteException).Assembly,
                 typeof(MyCompactMostDerivedClass).Assembly,
                 typeof(MyCompactDerivedClass).Assembly,
                 typeof(MyCompactBaseClass).Assembly
@@ -188,7 +186,6 @@ namespace IceRpc.Tests.Encoding
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
             {
-                typeof(RemoteException).Assembly,
                 typeof(MyMostDerivedException).Assembly,
                 typeof(MyMostDerivedException).Assembly,
                 typeof(MyBaseException).Assembly
@@ -277,11 +274,7 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(MyPreservedDerivedClass1).Assembly
-            });
+            var classFactory = new ClassFactory(new Assembly[] { typeof(MyPreservedDerivedClass1).Assembly });
 
             // Create a factory that exclude 'MyPreservedDerivedClass1' type ID and ensure that the class is sliced and
             // the Slices are preserved.
@@ -328,11 +321,7 @@ namespace IceRpc.Tests.Encoding
             ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(MyPreservedDerivedClass2).Assembly
-            });
+            var classFactory = new ClassFactory(new Assembly[] { typeof(MyPreservedDerivedClass2).Assembly });
 
             // Create a factory that exclude 'MyPreservedDerivedClass2' compact type ID (56) and ensure that the class
             // is sliced and the Slices are preserved.

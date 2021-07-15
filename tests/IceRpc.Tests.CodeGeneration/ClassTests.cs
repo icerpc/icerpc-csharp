@@ -59,11 +59,7 @@ namespace IceRpc.Tests.CodeGeneration
                         return new(response);
                     }));
 
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(ClassTests).Assembly
-            });
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
 
             _server = new Server
             {

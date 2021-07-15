@@ -19,12 +19,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public TaggedTests()
         {
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(TaggedTests).Assembly
-            });
-
+            var classFactory = new ClassFactory(new Assembly[] { typeof(TaggedTests).Assembly });
             _server = new Server
             {
                 Dispatcher = new TaggedOperations(),

@@ -22,11 +22,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OperationsTests(Protocol protocol)
         {
-            var classFactory = new ClassFactory(new Assembly[]
-            {
-                typeof(RemoteException).Assembly,
-                typeof(OperationsTests).Assembly
-            });
+            var classFactory = new ClassFactory(new Assembly[] { typeof(OperationsTests).Assembly });
 
             _server = new Server
             {

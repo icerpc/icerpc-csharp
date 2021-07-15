@@ -41,7 +41,7 @@ namespace IceRpc.Tests.ClientServer
         [TestCase(Protocol.Ice2)]
         public async Task Retry_ConnectionEstablishment(Protocol protocol)
         {
-            await using var pool = CreateConnectionPool();
+            await using ConnectionPool pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
 
             var prx1 = IRetryReplicatedTestPrx.Parse(GetTestProxy("/retry", port: 0, protocol: protocol), pipeline);
@@ -67,7 +67,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_EndpointlessProxy()
         {
-            await using var pool = CreateConnectionPool();
+            await using ConnectionPool pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
 
             await using var server = new Server
@@ -252,7 +252,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_OtherReplica()
         {
-            await using var pool = CreateConnectionPool();
+            await using ConnectionPool pool = CreateConnectionPool();
             Pipeline pipeline = CreatePipeline(pool);
             var calls = new List<string>();
             await WithReplicatedRetryServiceAsync(
@@ -291,7 +291,7 @@ namespace IceRpc.Tests.ClientServer
         [Test]
         public async Task Retry_ReportLastFailure()
         {
-            await using var pool = CreateConnectionPool();
+            await using ConnectionPool pool = CreateConnectionPool();
             pool.PreferExistingConnection = false;
             Pipeline pipeline = CreatePipeline(pool);
 
@@ -369,11 +369,7 @@ namespace IceRpc.Tests.ClientServer
                     // and the second should fail because the buffer size max.
                     var connectionOptions = new ClientConnectionOptions()
                     {
-                        ClassFactory = new ClassFactory(new Assembly[]
-                            {
-                                typeof(RemoteException).Assembly,
-                                typeof(RetrySystemFailure).Assembly
-                            })
+                        ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
                     };
                     await using var connection1 = new Connection { RemoteEndpoint = retry.Endpoint, Options = connectionOptions };
                     await using var connection2 = new Connection { RemoteEndpoint = retry.Endpoint, Options = connectionOptions };
@@ -437,12 +433,7 @@ namespace IceRpc.Tests.ClientServer
             var pool = new ConnectionPool();
             pool.ConnectionOptions = new ClientConnectionOptions()
             {
-                ClassFactory = new ClassFactory(
-                    new Assembly[]
-                    {
-                        typeof(RemoteException).Assembly,
-                        typeof(RetrySystemFailure).Assembly
-                    })
+                ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
             };
             return pool;
         }
@@ -467,7 +458,7 @@ namespace IceRpc.Tests.ClientServer
             Action<Pipeline, IConnectionProvider>? configure,
             Func<RetryTest, IRetryTestPrx, Task> closure)
         {
-            await using var pool = CreateConnectionPool();
+            await using ConnectionPool pool = CreateConnectionPool();
             Pipeline pipeline;
             if (configure != null)
             {
