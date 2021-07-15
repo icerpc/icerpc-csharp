@@ -51,7 +51,6 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionC", "", default), Is.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionD", "", default), Is.Null);
 
-
             // Create a class factory that knows about A and B assemblies
             factory = new IceRpc.ClassFactory(new Assembly[]
             {
