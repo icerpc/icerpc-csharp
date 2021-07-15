@@ -307,32 +307,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes a nullable proxy to the buffer.</summary>
-        /// <param name="v">The proxy to encode, or null.</param>
-        public void EncodeNullableProxy(IServicePrx? v)
-        {
-            if (v != null)
-            {
-                v.IceEncode(this);
-            }
-            else
-            {
-                if (OldEncoding)
-                {
-                    Identity.Empty.IceEncode(this);
-                }
-                else
-                {
-                    ProxyData20 nullValue = default;
-                    nullValue.IceEncode(this);
-                }
-            }
-        }
-
-        /// <summary>Encodes a proxy to the buffer.</summary>
-        /// <param name="v">The proxy to encode. This proxy cannot be null.</param>
-        public void EncodeProxy(IServicePrx v) => v.IceEncode(this);
-
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
         // This method works because (as long as) there is no padding in the memory representation of the
@@ -708,20 +682,6 @@ namespace IceRpc
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
                 EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged proxy to the buffer.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The proxy to encode.</param>
-        public void EncodeTaggedProxy(int tag, IServicePrx? v)
-        {
-            if (v != null)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
-                EncodeProxy(v);
                 EndFixedLengthSize(pos);
             }
         }

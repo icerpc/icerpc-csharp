@@ -55,7 +55,7 @@ namespace IceRpc.Internal
                             return response;
                         }
 
-                        retryPolicy = response.GetRetryPolicy(request.Proxy.Impl);
+                        retryPolicy = response.GetRetryPolicy(request.Proxy);
                     }
                     catch (OperationCanceledException)
                     {

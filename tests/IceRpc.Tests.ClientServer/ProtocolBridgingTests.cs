@@ -162,7 +162,7 @@ namespace IceRpc.Tests.ClientServer
 
         public sealed class Forwarder : IDispatcher
         {
-            private readonly IServicePrx _target;
+            private readonly Proxy _target;
 
             async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(
                 IncomingRequest incomingRequest,
@@ -174,7 +174,7 @@ namespace IceRpc.Tests.ClientServer
                 return new OutgoingResponse(incomingRequest, incomingResponse);
             }
 
-            internal Forwarder(IServicePrx target) => _target = target;
+            internal Forwarder(Proxy target) => _target = target;
         }
     }
 }

@@ -37,5 +37,38 @@ namespace IceRpc
             await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
                 new T { Proxy = prx.Proxy } : null;
+
+        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
+        /// <paramtype name="T">The type of the new service proxy.</paramtype>
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <param name="path">The new path.</param>
+        /// <returns>A proxy with the specified path and type.</returns>
+        public static T WithPath<T>(this IPrx prx, string path) where T : IPrx, new()
+        {
+            Proxy source = prx.Proxy;
+
+            if (path == source.Path && prx is T newPrx)
+            {
+                return newPrx;
+            }
+
+            var newProxy = Proxy.FromPath(path, source.Protocol);
+            if (newProxy.Protocol == Protocol.Ice1)
+            {
+                newProxy.Facet = source.GetFacet();
+                // clear cached connection of well-known proxy
+                newProxy.Connection = source.Endpoint == null ? null : source.Connection;
+            }
+            else
+            {
+                newProxy.Connection = source.Connection;
+            }
+
+            newProxy.AltEndpoints = source.AltEndpoints;
+            newProxy.Encoding = source.Encoding;
+            newProxy.Endpoint = source.Endpoint;
+            newProxy.Invoker = source.Invoker;
+            return new T { Proxy = newProxy };
         }
+    }
 }

@@ -126,7 +126,7 @@ namespace IceRpc
             Payload = Protocol.GetVoidReturnPayload(encoding);
         }
 
-        internal RetryPolicy GetRetryPolicy(ServicePrx proxy)
+        internal RetryPolicy GetRetryPolicy(Proxy proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
             if (PayloadEncoding == Encoding.V11)

@@ -1824,11 +1824,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
             TypePtr mType = unwrapIfOptional((*q)->type());
 
-            if (mType->isInterfaceType())
-            {
-                _out << "IceRpc.IServicePrx.Equals(" << lhs << ", " << rhs << ")";
-            }
-            else if (SequencePtr::dynamicCast(mType))
+            if (SequencePtr::dynamicCast(mType))
             {
                 // We always check for null values because a default-initialized struct will have null fields even for
                 // non nullable fields.
@@ -2444,7 +2440,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public override bool Equals(object? obj) => obj is " << name << " value && Equals(value);";
+    _out << nl << "public override bool Equals(object? obj) => obj is " << prxImpl << " value && Equals(value);";
 
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
@@ -2532,7 +2528,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
-    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(this, \"" << operation->name() << "\", ";
+    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(Proxy, \"" << operation->name() << "\", ";
     if (params.size() == 0)
     {
         _out << "IceRpc.Payload.FromEmptyArgs(this), ";

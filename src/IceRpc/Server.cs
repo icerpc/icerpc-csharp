@@ -81,9 +81,8 @@ namespace IceRpc
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>Returns the endpoint included in proxies created by
-        /// <see cref="IServicePrx.FromServer(Server, string?)"/>. This endpoint is computed from the values of
-        /// <see cref="Endpoint"/> and <see cref="HostName"/>.</summary>
+        /// <summary>Returns the endpoint included in proxies created by using this server. This endpoint is computed
+        /// from the values of <see cref="Endpoint"/> and <see cref="HostName"/>.</summary>
         /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
         public Endpoint? ProxyEndpoint { get; private set; }
 

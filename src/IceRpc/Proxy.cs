@@ -277,6 +277,7 @@ namespace IceRpc
             }
             catch
             {
+                proxy = null;
                 return false;
             }
         }
@@ -346,7 +347,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object? obj) => Equals(obj as ServicePrx);
+        public override bool Equals(object? obj) => Equals(obj as Proxy);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -366,103 +367,6 @@ namespace IceRpc
                 hash.Add(_connection);
             }
             return hash.ToHashCode();
-        }
-
-        /// <summary>Encodes the proxy into a buffer.</summary>
-        /// <param name="encoder">The Ice encoder.</param>
-        public void IceEncode(IceEncoder encoder)
-        {
-            if (_connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot marshal a proxy bound to a server connection");
-            }
-
-            if (encoder.Encoding == Encoding.V11)
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    Debug.Assert(Identity.Name.Length > 0);
-                    Identity.IceEncode(encoder);
-                }
-                else
-                {
-                    Identity identity;
-                    try
-                    {
-                        identity = Identity.FromPath(Path);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot marshal proxy with path '{Path}' using encoding 1.1",
-                            ex);
-                    }
-                    if (identity.Name.Length == 0)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot marshal proxy with path '{Path}' using encoding 1.1");
-                    }
-
-                    identity.IceEncode(encoder);
-                }
-
-                var proxyData = new ProxyData11(
-                    FacetPath,
-                    Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false) ?
-                        InvocationMode.Datagram : InvocationMode.Twoway,
-                    secure: false,
-                    Protocol,
-                    protocolMinor: 0,
-                    Encoding);
-                proxyData.IceEncode(encoder);
-
-                if (IsIndirect)
-                {
-                    encoder.EncodeSize(0); // 0 endpoints
-                    encoder.EncodeString(IsWellKnown ? "" : _endpoint!.Host); // adapter ID unless well-known
-                }
-                else if (_endpoint == null)
-                {
-                    encoder.EncodeSize(0); // 0 endpoints
-                    encoder.EncodeString(""); // empty adapter ID
-                }
-                else
-                {
-                    IEnumerable<Endpoint> endpoints = _endpoint.Transport == Transport.Coloc ?
-                        _altEndpoints : Enumerable.Empty<Endpoint>().Append(_endpoint).Concat(_altEndpoints);
-
-                    if (endpoints.Any())
-                    {
-                        encoder.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
-                    }
-                    else // marshaled as an endpointless proxy
-                    {
-                        encoder.EncodeSize(0); // 0 endpoints
-                        encoder.EncodeString(""); // empty adapter ID
-                    }
-                }
-            }
-            else
-            {
-                Debug.Assert(encoder.Encoding == Encoding.V20);
-                string path = Path;
-
-                // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
-                if (Facet.Length > 0)
-                {
-                    path = $"{path}#{Uri.EscapeDataString(Facet)}";
-                }
-
-                var proxyData = new ProxyData20(
-                    path,
-                    protocol: Protocol != Protocol.Ice2 ? Protocol : null,
-                    encoding: Encoding != Encoding.V20 ? Encoding : null,
-                    endpoint: _endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
-                         endpoint.Data : null,
-                    altEndpoints: _altEndpoints.Count == 0 ? null : _altEndpoints.Select(e => e.Data).ToArray());
-
-                proxyData.IceEncode(encoder);
-            }
         }
 
         /// <inherit-doc/>
@@ -536,7 +440,7 @@ namespace IceRpc
         }
     }
 
-    /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
+    /// <summary>Provides extension methods for <see cref="Proxy"/>.</summary>
     public static class ProxyExtensions
     {
         /// <summary>The invoker that a proxy calls when its invoker is null.</summary>
@@ -679,40 +583,9 @@ namespace IceRpc
                 }
             }
         }
-
-        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxy">The proxy being copied.</param>
-        /// <param name="path">The new path.</param>
-        /// <returns>A proxy with the specified path and type.</returns>
-        public static T WithPath<T>(this IServicePrx proxy, string path) where T : class, IServicePrx
-        {
-            if (path == proxy.Path && proxy is T newProxy)
-            {
-                return newProxy;
-            }
-
-            newProxy = GetFactory<T>().Create(path, proxy.Protocol, setIdentity: true);
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                newProxy.Impl.Facet = proxy.GetFacet();
-                // clear cached connection of well-known proxy
-                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
-            }
-            else
-            {
-                newProxy.Connection = proxy.Connection;
-            }
-
-            newProxy.AltEndpoints = proxy.AltEndpoints;
-            newProxy.Encoding = proxy.Encoding;
-            newProxy.Endpoint = proxy.Endpoint;
-            newProxy.Invoker = proxy.Invoker;
-            return newProxy;
-        }
     }
 
-     /// <summary>Proxy provides extension methods for IceDecoder.</summary>
+    /// <summary>Proxy provides extension methods for IceDecoder.</summary>
     public static class IceDecoderProxyExtensions
     {
         /// <summary>Decodes a nullable proxy.</summary>
@@ -951,5 +824,165 @@ namespace IceRpc
         /// <returns>The decoded proxy (can be null).</returns>
         public static T? DecodeTaggedProxy<T>(this IceDecoder decoder, int tag) where T : struct, IPrx =>
             decoder.DecodeTaggedProxyHeader(tag) ? decoder.DecodeProxy<T>() : null;
+    }
+
+    /// <summary>Proxy provides extension methods for IceEncoder.</summary>
+    public static class IceEncoderProxyExtensions
+    {
+        /// <summary>Encodes a nullable proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="proxy">The proxy to encode, or null.</param>
+        public static void EncodeNullableProxy(this IceEncoder encoder, Proxy? proxy)
+        {
+            if (proxy != null)
+            {
+                encoder.Encode(proxy.Value);
+            }
+            else
+            {
+                if (encoder.OldEncoding)
+                {
+                    proxy.Identity.Empty.IceEncode(encoder);
+                }
+                else
+                {
+                    ProxyData20 nullValue = default;
+                    nullValue.IceEncode(encoder);
+                }
+            }
+        }
+
+        /// <summary>Encodes a nullable typed proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="prx">The proxy to encode, or null.</param>
+        public static void EncodeNullableProxy(this IceEncoder encoder, IPrx? prx) =>
+            encoder.EncodeNullableProxy(prx?.Proxy);
+
+        /// <summary>Encodes a proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="proxy">The proxy to encode, or null.</param>
+        public static void EncodeProxy(this IceEncoder encoder, Proxy proxy)
+        {
+            if (proxy.Connection?.IsServer ?? false)
+            {
+                throw new InvalidOperationException("cannot marshal a proxy bound to a server connection");
+            }
+
+            if (encoder.OldEncoding)
+            {
+                if (proxy.Protocol == Protocol.Ice1)
+                {
+                    Debug.Assert(Identity.Name.Length > 0);
+                    Identity.IceEncode(encoder);
+                }
+                else
+                {
+                    Identity identity;
+                    try
+                    {
+                        identity = Identity.FromPath(proxy.Path);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot marshal proxy with path '{proxy.Path}' using encoding 1.1",
+                            ex);
+                    }
+                    if (identity.Name.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot marshal proxy with path '{proxy.Path}' using encoding 1.1");
+                    }
+
+                    identity.IceEncode(encoder);
+                }
+
+                var proxyData = new ProxyData11(
+                    proxy.FacetPath,
+                    proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.IsDatagram ?? false) ?
+                        InvocationMode.Datagram : InvocationMode.Twoway,
+                    secure: false,
+                    proxy.Protocol,
+                    protocolMinor: 0,
+                    proxy.Encoding);
+                proxyData.IceEncode(encoder);
+
+                if (IsIndirect)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(proxy.IsWellKnown ? "" : proxy.Endpoint!.Host); // adapter ID unless well-known
+                }
+                else if (proxy.Endpoint == null)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(""); // empty adapter ID
+                }
+                else
+                {
+                    IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == Transport.Coloc ?
+                        proxy.AltEndpoints :
+                            Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
+
+                    if (endpoints.Any())
+                    {
+                        encoder.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
+                    }
+                    else // marshaled as an endpointless proxy
+                    {
+                        encoder.EncodeSize(0); // 0 endpoints
+                        encoder.EncodeString(""); // empty adapter ID
+                    }
+                }
+            }
+            else
+            {
+                Debug.Assert(encoder.Encoding == Encoding.V20);
+                string path = proxy.Path;
+
+                // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
+                if (proxy.Facet.Length > 0)
+                {
+                    path = $"{path}#{Uri.EscapeDataString(proxy.Facet)}";
+                }
+
+                var proxyData = new ProxyData20(
+                    path,
+                    protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
+                    encoding: proxy.Encoding != Encoding.V20 ? proxy.Encoding : null,
+                    endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
+                        endpoint.Data : null,
+                    altEndpoints: proxy.AltEndpoints.Count() == 0 ?
+                        null : proxy.AltEndpoints.Select(e => e.Data).ToArray());
+
+                proxyData.IceEncode(encoder);
+            }
+        }
+
+        /// <summary>Encodes a typed proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="prx">The proxy to encode.</param>
+        public static void EncodeProxy(this IceEncoder encoder, IPrx prx) => encoder.EncodeProxy(prx.Proxy);
+
+        /// <summary>Encodes a tagged proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="proxy">The proxy to encode.</param>
+        public static void EncodeTaggedProxy(this IceEncoder encoder, int tag, Proxy? proxy)
+        {
+            if (proxy != null)
+            {
+                encoder.EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                Position pos = encoder.StartFixedLengthSize();
+                encoder.EncodeProxy(proxy);
+                encoder.EndFixedLengthSize(pos);
+            }
+        }
+
+        /// <summary>Encodes a tagged typed proxy.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        /// <param name="tag">The tag.</param>
+        /// <param name="proxy">The proxy to encode.</param>
+        public static void EncodeTaggedProxy(this IceEncoder encoder, int tag, IPrx? prx) =>
+            encoder.EncodeTaggedProxy(tag, prx);
     }
 }

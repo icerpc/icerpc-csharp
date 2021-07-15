@@ -45,11 +45,11 @@ namespace IceRpc.Interop
         /// <returns>A proxy with the specified facet and type.</returns>
         public static T WithFacet<T>(this IPrx prx, string facet) where T : IPrx, new()
         {
-            if (facet == prx.Facet && proxy is T t)
+            if (facet == prx.Proxy.Facet && prx is T t)
             {
                 return t;
             }
-            else if (prx.Protocol == Protocol.Ice1)
+            else if (prx.Proxy.Protocol == Protocol.Ice1)
             {
                 T newPrx = new T { Proxy = prx.Proxy.Clone() };
                 newPrx.Proxy.Facet = facet;
@@ -58,7 +58,7 @@ namespace IceRpc.Interop
             }
             else
             {
-                throw new ArgumentException($"cannot change the facet of an {prx.Protocol.GetName()} proxy",
+                throw new ArgumentException($"cannot change the facet of an {prx.Proxy.Protocol.GetName()} proxy",
                                             nameof(prx));
             }
         }
