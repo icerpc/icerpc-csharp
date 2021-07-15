@@ -17,10 +17,10 @@ namespace IceRpc.Transports.Internal
     {
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
         private (int Segment, int Offset) _receivedPos;
-        private bool _receivedEndStream;
         private readonly ColocConnection _connection;
         private SemaphoreSlim? _sendSemaphore;
         private SemaphoreSlim? _receiveSemaphore;
+        static private readonly object _stopSending = new();
 
         public override void AbortRead(RpcStreamError errorCode)
         {
@@ -30,8 +30,15 @@ namespace IceRpc.Transports.Internal
 
             if (TrySetReadCompleted(shutdown: false))
             {
-                // Send stop sending frame before shutting down.
-                // TODO
+                // Notify the peer of the abort of the read side
+                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+                {
+                    _ = _connection.SendFrameAsync(
+                        this,
+                        frame: _stopSending,
+                        endStream: false,
+                        CancellationToken.None).AsTask();
+                }
 
                 // Shutdown the stream if not already done.
                 TryShutdown();
@@ -41,7 +48,7 @@ namespace IceRpc.Transports.Internal
         public override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
                 _ = _connection.SendFrameAsync(
                     this,
@@ -50,12 +57,7 @@ namespace IceRpc.Transports.Internal
                     CancellationToken.None).AsTask();
             }
 
-            if (TrySetWriteCompleted(shutdown: false))
-            {
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
+            TrySetWriteCompleted();
         }
 
         public override void EnableReceiveFlowControl()
@@ -68,48 +70,50 @@ namespace IceRpc.Transports.Internal
             // If we are going to send stream data, we create a send semaphore and send it to the peer's
             // stream. The semaphore is used to ensure the SendAsync call blocks until the peer received
             // the data.
+            Debug.Assert(_sendSemaphore == null);
             _sendSemaphore = new SemaphoreSlim(0);
             _connection.SendFrameAsync(this, frame: _sendSemaphore, endStream: false, cancel: default).AsTask();
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            // If the receive semaphore isn't set yet, get it from the channel, the semaphore is sent before
-            // stream data.
-            object frame;
-            if (_receiveSemaphore == null)
+            // If we couldn't get data from the previously received buffers, wait for additional data to be received
+            // and fill the buffer with the received data.
+            if (_receivedPos.Segment == _receivedBuffers.Length)
             {
-                (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
-                Debug.Assert(!_receivedEndStream);
-                _receiveSemaphore = frame as SemaphoreSlim;
-                Debug.Assert(_receiveSemaphore != null);
-                _connection.FinishedReceivedFrame();
-            }
-
-            // If there's still received buffered data, first consume it.
-            if (_receivedPos.Segment < _receivedBuffers.Length)
-            {
-                int received = ReceiveFromBuffer(buffer);
-                if (received > 0)
+                if (ReadCompleted)
                 {
-                    // If we consumed some data, that's good enough, return.
-                    return received;
+                    throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                }
+
+                (object frame, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
+
+                if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+                {
+                    _receivedBuffers = buffers;
+                    _receivedPos = (0, 0);
+                }
+                else
+                {
+                    Debug.Assert(false, $"unexpected frame {frame}");
+                }
+
+                if (_receiveSemaphore == null)
+                {
+                    if (endStream)
+                    {
+                        TrySetReadCompleted();
+                    }
+                    _connection.FinishedReceivedFrame();
                 }
             }
 
-            if (ReadCompleted)
+            if (_receivedBuffers.Length == 0)
             {
                 return 0;
             }
 
-            // If we couldn't get data from the previously received buffers, wait for additional data to be received
-            // and fill the buffer with the received data.
-            (frame, _receivedEndStream) = await WaitAsync(cancel).ConfigureAwait(false);
-            _receivedBuffers = (ReadOnlyMemory<ReadOnlyMemory<byte>>)frame;
-            _receivedPos = (0, 0);
-
-            Debug.Assert(!_receivedBuffers.IsEmpty);
-
+            Debug.Assert(_receivedPos.Segment < _receivedBuffers.Length);
             return ReceiveFromBuffer(buffer);
 
             int ReceiveFromBuffer(Memory<byte> buffer)
@@ -146,17 +150,11 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        _receiveSemaphore.Release();
+                        _receiveSemaphore?.Release();
                     }
                     catch (ObjectDisposedException)
                     {
                     }
-                }
-
-                // If we received the end stream flag, we won't receive any additional data, complete the stream reads.
-                if (_receivedEndStream)
-                {
-                    TrySetReadCompleted();
                 }
                 return offset;
             }
@@ -177,11 +175,6 @@ namespace IceRpc.Transports.Internal
             if (_sendSemaphore != null)
             {
                 await _sendSemaphore.WaitAsync(cancel).ConfigureAwait(false);
-            }
-
-            if (endStream)
-            {
-                TrySetWriteCompleted();
             }
         }
 
@@ -210,6 +203,8 @@ namespace IceRpc.Transports.Internal
         {
             if (frame is RpcStreamError errorCode)
             {
+                // An error code indicates a reset frame.
+
                 // It's important to set the exception before completing the reads because ReceiveAsync expects the
                 // exception to be set if reads are completed.
                 SetException(new RpcStreamAbortedException(errorCode));
@@ -218,17 +213,33 @@ namespace IceRpc.Transports.Internal
                 CancelDispatchSource?.Cancel();
 
                 TrySetReadCompleted();
-
                 _connection.FinishedReceivedFrame();
             }
-            else if (_receiveSemaphore == null)
+            else if (frame == _stopSending)
             {
+                // Stop sending frame.
+                TrySetWriteCompleted();
+                _connection.FinishedReceivedFrame();
+            }
+            else if (frame is SemaphoreSlim semaphore)
+            {
+                _receiveSemaphore = semaphore;
+                _connection.FinishedReceivedFrame();
+            }
+            else if (_receiveSemaphore != null && frame is ReadOnlyMemory<ReadOnlyMemory<byte>>)
+            {
+                Debug.Assert(_receivedPos.Segment == _receivedBuffers.Length);
+                if(endStream)
+                {
+                    TrySetReadCompleted();
+                }
+                _connection.FinishedReceivedFrame();
                 QueueResult((frame, endStream));
             }
             else
             {
+                Debug.Assert(frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>);
                 QueueResult((frame, endStream));
-                _connection.FinishedReceivedFrame();
             }
         }
 
@@ -248,28 +259,29 @@ namespace IceRpc.Transports.Internal
             byte expectedFrameType,
             CancellationToken cancel)
         {
+            // This is called for receiving the Initialize or GoAway frame.
             (object frame, bool endStream) = await WaitFrameAsync(cancel).ConfigureAwait(false);
-            if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> data)
+
+            if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
             {
-                // Initialize or GoAway frame.
+                Debug.Assert(buffers.Length == 1);
+                ReadOnlyMemory<byte> buffer = buffers.Span[0];
                 if (_connection.Protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(expectedFrameType == data.Span[0].Span[8]);
+                    Debug.Assert(expectedFrameType == buffer.Span[8]);
                     return Memory<byte>.Empty;
                 }
                 else
                 {
-                    Debug.Assert(expectedFrameType == data.Span[0].Span[0]);
-                    (int size, int sizeLength) = data.Span[0].Span[1..].DecodeSize20();
-
-                    // TODO: why are we returning only the first buffer?
-                    return data.Span[0].Slice(1 + sizeLength, size);
+                    Debug.Assert(expectedFrameType == buffer.Span[0]);
+                    (int size, int sizeLength) = buffer.Span[1..].DecodeSize20();
+                    return buffer.Slice(1 + sizeLength, size);
                 }
             }
             else
             {
-                Debug.Assert(false);
-                throw new InvalidDataException("unexpected frame");
+                Debug.Assert(false, $"unexpected frame {frame}");
+                return Memory<byte>.Empty;
             }
         }
 

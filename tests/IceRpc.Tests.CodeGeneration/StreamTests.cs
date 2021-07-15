@@ -58,6 +58,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task Streams_Byte()
         {
             System.IO.Stream stream;

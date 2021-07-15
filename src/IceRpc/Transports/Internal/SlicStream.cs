@@ -53,7 +53,7 @@ namespace IceRpc.Transports.Internal
             if (TrySetReadCompleted(shutdown: false))
             {
                 // Notify the peer of the abort of the read side
-                if (errorCode != RpcStreamError.ConnectionAborted)
+                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
                 {
                     _ = _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamStopSending,
@@ -70,7 +70,7 @@ namespace IceRpc.Transports.Internal
         public override void AbortWrite(RpcStreamError errorCode)
         {
             // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
             {
                 _ = _connection.PrepareAndSendFrameAsync(
                     SlicDefinitions.FrameType.StreamReset,
@@ -79,11 +79,7 @@ namespace IceRpc.Transports.Internal
                     this);
             }
 
-            if (TrySetWriteCompleted(shutdown: false))
-            {
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
+            TrySetWriteCompleted();
         }
 
         public override void EnableReceiveFlowControl()

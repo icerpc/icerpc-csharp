@@ -40,22 +40,27 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-            if (receiveStreamCompletionTask.IsCompleted)
-            {
-                await receiveStreamCompletionTask.ConfigureAwait(false);
-            }
-            else
-            {
-                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-            }
-
             while (true)
             {
+                // Console.Error.WriteLine($"{IsServer} {this} accept stream async");
+                ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
+                if (receiveStreamCompletionTask.IsCompleted)
+                {
+                    await receiveStreamCompletionTask.ConfigureAwait(false);
+                }
+                else
+                {
+                    await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
+                }
+
                 try
                 {
                     (long streamId, object frame, bool endStream) =
                         await _reader.ReadAsync(cancel).ConfigureAwait(false);
+
+                    bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
+                    bool isBidirectional = streamId % 4 < 2;
+
                     if (streamId == -1)
                     {
                         if (frame == _pingFrame)
@@ -70,30 +75,21 @@ namespace IceRpc.Transports.Internal
                         {
                             Debug.Assert(false);
                         }
+                        FinishedReceivedFrame();
                     }
                     else if (TryGetStream(streamId, out ColocStream? stream))
                     {
                         try
                         {
                             stream.ReceivedFrame(frame, endStream);
-
-                            // Wait for the stream to process the frame before continuing receiving additional data.
-                            receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-                            if (receiveStreamCompletionTask.IsCompleted)
-                            {
-                                await receiveStreamCompletionTask.ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                            }
                         }
                         catch
                         {
-                            // Ignore the stream has been aborted.
+                            // Ignore, the stream got aborted or the socket is being shutdown.
+                            FinishedReceivedFrame();
                         }
                     }
-                    else if (frame is IncomingRequest || streamId == (IsServer ? 2 : 3))
+                    else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
                     {
                         // If we received an incoming request frame or a frame for the incoming control stream,
                         // create a new stream and provide it the received frame.
@@ -107,11 +103,13 @@ namespace IceRpc.Transports.Internal
                         catch
                         {
                             // Ignore, the stream got aborted or the socket is being shutdown.
+                            FinishedReceivedFrame();
                         }
                     }
                     else
                     {
                         // Canceled request, ignore
+                        FinishedReceivedFrame();
                     }
                 }
                 catch (ChannelClosedException exception)
@@ -229,7 +227,8 @@ namespace IceRpc.Transports.Internal
 
         internal void FinishedReceivedFrame()
         {
-            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
+            // Console.Error.WriteLine($"{IsServer} {this} finished received frame");
+            // Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
             _receiveStreamCompletionTaskSource.SetResult(true);
         }
 

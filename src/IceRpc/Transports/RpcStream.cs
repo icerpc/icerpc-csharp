@@ -14,7 +14,8 @@ namespace IceRpc.Transports
     {
         internal RpcStreamError ErrorCode { get; }
 
-        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) :
+            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>

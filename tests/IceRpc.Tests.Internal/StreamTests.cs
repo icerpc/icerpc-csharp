@@ -12,9 +12,9 @@ namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
     [Timeout(10000)]
-    [TestFixture(MultiStreamConnectionType.Slic)]
+    // [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
-    [TestFixture(MultiStreamConnectionType.Ice1)]
+    // [TestFixture(MultiStreamConnectionType.Ice1)]
     [Log(LogAttributeLevel.Debug)]
     public class StreamTests : MultiStreamConnectionBaseTest
     {
@@ -73,23 +73,20 @@ namespace IceRpc.Tests.Internal
         [TestCase((RpcStreamError)10)]
         public async Task Stream_Abort(RpcStreamError errorCode)
         {
-            // SendAsync/ReceiveAsync is only supported with Slic
-            if (ConnectionType != MultiStreamConnectionType.Slic)
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
             {
+                // Not supported with Ice1
                 return;
             }
 
+            Task<(int, RpcStream)> serverTask = ReceiveAsync();
+
+            // Create client stream and send one byte.
             RpcStream clientStream = ClientConnection.CreateStream(true);
-            // Send one byte.
             await clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default);
 
-            // Accept the new stream on the server connection
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            (int received, RpcStream serverStream) = await serverTask;
 
-            // Continue reading from on the server connection and receive the byte sent over the client stream.
-            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
-
-            int received = await serverStream.ReceiveAsync(new byte[256], default);
             Assert.That(received, Is.EqualTo(1));
             var dispatchCanceled = new TaskCompletionSource();
             serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
@@ -106,6 +103,16 @@ namespace IceRpc.Tests.Internal
             // Ensure we can still create a new stream after the cancellation
             RpcStream clientStream2 = ClientConnection.CreateStream(true);
             await clientStream2.SendAsync(CreateSendBuffer(clientStream2, 1), true, default);
+
+            async Task<(int, RpcStream)> ReceiveAsync()
+            {
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+
+                // Continue reading from the server connection and receive the byte sent over the client stream.
+                _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+                return (await serverStream.ReceiveAsync(new byte[256], default), serverStream);
+            }
         }
 
         [Test]
@@ -177,19 +184,19 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Stream_StreamReaderWriterAsync(bool cancelClientSide)
         {
-            if (ConnectionType != MultiStreamConnectionType.Slic)
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
             {
-                // TODO: add support for coloc once coloc streaming is simplified
+                // Not supported with Ice1
                 return;
             }
+
+            Task<RpcStream> serverAcceptStream = AcceptServerStreamAsync();
 
             RpcStream stream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
             _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
 
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
-            await serverStream.ReceiveAsync(new byte[1], default);
+            RpcStream serverStream = await serverAcceptStream;
 
             var sendStream = new TestMemoryStream(new byte[100]);
 
@@ -237,6 +244,18 @@ namespace IceRpc.Tests.Internal
             // the server.
             await serverStream.SendAsync(CreateSendBuffer(serverStream, 1), false, default);
             await stream.ReceiveAsync(new byte[1], default);
+
+            async Task<RpcStream> AcceptServerStreamAsync()
+            {
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+
+                // Continue reading from the server connection and receive the byte sent over the client stream.
+                _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+                int received = await serverStream.ReceiveAsync(new byte[256], default);
+                Assert.That(received, Is.EqualTo(1));
+                return serverStream;
+            }
         }
 
         [Test]
