@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateClassInstance(4), Is.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Not.Null);
-            
+
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionB", "", default), Is.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionC", "", default), Is.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionD", "", default), Is.Null);
