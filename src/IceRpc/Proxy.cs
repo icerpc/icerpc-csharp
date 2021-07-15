@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -563,7 +564,7 @@ namespace IceRpc
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
         public static Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> InvokeAsync(
-            this IServicePrx proxy,
+            this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             RpcStreamWriter? streamWriter = null,
@@ -679,25 +680,45 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes a proxy from the buffer.</summary>
+        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="decoder">The Ice decoder.</param>
-        /// <returns>The non-null proxy read from the buffer.</returns>
-        public static T Decode<T>(
-            ProxyFactory<T> proxyFactory,
-            IceDecoder decoder) where T : class, IServicePrx =>
-            DecodeNullable(proxyFactory, decoder) ??
-            throw new InvalidDataException("read null for a non-nullable proxy");
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <param name="path">The new path.</param>
+        /// <returns>A proxy with the specified path and type.</returns>
+        public static T WithPath<T>(this IServicePrx proxy, string path) where T : class, IServicePrx
+        {
+            if (path == proxy.Path && proxy is T newProxy)
+            {
+                return newProxy;
+            }
 
-        /// <summary>Decodes a nullable proxy from the buffer.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">The factory used to create the proxy.</param>
+            newProxy = GetFactory<T>().Create(path, proxy.Protocol, setIdentity: true);
+            if (proxy.Protocol == Protocol.Ice1)
+            {
+                newProxy.Impl.Facet = proxy.GetFacet();
+                // clear cached connection of well-known proxy
+                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
+            }
+            else
+            {
+                newProxy.Connection = proxy.Connection;
+            }
+
+            newProxy.AltEndpoints = proxy.AltEndpoints;
+            newProxy.Encoding = proxy.Encoding;
+            newProxy.Endpoint = proxy.Endpoint;
+            newProxy.Invoker = proxy.Invoker;
+            return newProxy;
+        }
+    }
+
+     /// <summary>Proxy provides extension methods for IceDecoder.</summary>
+    public static class IceDecoderProxyExtensions
+    {
+        /// <summary>Decodes a nullable proxy.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        /// <returns>The proxy read from the buffer, or null.</returns>
-        public static T? DecodeNullable<T>(
-            this ProxyFactory<T> proxyFactory,
-            IceDecoder decoder) where T : class, IServicePrx
+        /// <returns>The proxy decoded by the decoder (can be null).</returns>
+        public static Proxy? DecodeNullableProxy(this IceDecoder decoder)
         {
             if (decoder.Encoding == Encoding.V11)
             {
@@ -752,9 +773,9 @@ namespace IceRpc
 
                     try
                     {
-                        T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
-                        proxy.Impl.Identity = identity;
-                        proxy.Impl.FacetPath = proxyData.FacetPath;
+                        var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
+                        proxy.Identity = identity;
+                        proxy.FacetPath = proxyData.FacetPath;
                         proxy.Encoding = proxyData.Encoding;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
@@ -785,15 +806,15 @@ namespace IceRpc
 
                     try
                     {
-                        T proxy;
+                        Proxy proxy;
 
                         if (endpoint == null && decoder.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, identity.ToPath(), decoder.Invoker);
+                            proxy = Proxy.FromConnection(connection, identity.ToPath(), decoder.Invoker);
                         }
                         else
                         {
-                            proxy = proxyFactory.Create(identity.ToPath(), proxyData.Protocol);
+                            proxy = new Proxy(identity.ToPath(), proxyData.Protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints.ToImmutableList();
                             proxy.Invoker = decoder.Invoker;
@@ -849,8 +870,8 @@ namespace IceRpc
 
                     try
                     {
-                        T proxy = proxyFactory.Create(path, Protocol.Ice1, setIdentity: true);
-                        proxy.Impl.FacetPath = facetPath;
+                        var proxy = Proxy.FromPath(path, Protocol.Ice1);
+                        proxy.FacetPath = facetPath;
                         proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
@@ -870,15 +891,15 @@ namespace IceRpc
                 {
                     try
                     {
-                        T proxy;
+                        Proxy proxy;
 
                         if (endpoint == null && decoder.Connection is Connection connection)
                         {
-                            proxy = proxyFactory.Create(connection, proxyData.Path, decoder.Invoker);
+                            proxy = Proxy.FromConnection(connection, proxyData.Path, decoder.Invoker);
                         }
                         else
                         {
-                            proxy = proxyFactory.Create(proxyData.Path, protocol);
+                            proxy = new Proxy(proxyData.Path, protocol);
                             proxy.Endpoint = endpoint;
                             proxy.AltEndpoints = altEndpoints;
                             proxy.Invoker = decoder.Invoker;
@@ -896,48 +917,39 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes a tagged proxy from a buffer.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxyFactory">The factory used to create the proxy.</param>
+        /// <summary>Decodes a nullable typed proxy.</summary>
+        /// <paramtype name="T">The type of the new proxy.</paramtype>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>The proxy decoded by the decoder (can be null).</returns>
+        public static T? DecodeNullableProxy<T>(this IceDecoder decoder) where T : struct, IPrx =>
+            decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
+
+        /// <summary>Decodes a non-null proxy.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>The non-null proxy decoded by the decoder.</returns>
+        public static Proxy DecodeProxy(this IceDecoder decoder) =>
+            decoder.DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
+
+        /// <summary>Decodes a non-null typed proxy.</summary>
+        /// <paramtype name="T">The type of the new proxy.</paramtype>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>The non-null proxy decoded by the decoder.</returns>
+        public static T DecodeProxy<T>(this IceDecoder decoder) where T : IPrx, new() =>
+           new T { Proxy = decoder.DecodeProxy()};
+
+        /// <summary>Decodes a tagged proxy.</summary>
         /// <param name="decoder">The Ice decoder.</param>
         /// <param name="tag">The tag.</param>
-        /// <returns>The proxy read from the buffer, or null.</returns>
-        public static T? DecodeTagged<T>(
-            this ProxyFactory<T> proxyFactory,
-            IceDecoder decoder,
-            int tag)
-            where T : class, IServicePrx =>
-            decoder.DecodeTaggedProxyHeader(tag) ? Decode(proxyFactory, decoder) : null;
+        /// <returns>The decoded proxy (can be null).</returns>
+        public static Proxy? DecodeTaggedProxy(this IceDecoder decoder, int tag) =>
+            decoder.DecodeTaggedProxyHeader(tag) ? decoder.DecodeProxy() : null;
 
-        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxy">The proxy being copied.</param>
-        /// <param name="path">The new path.</param>
-        /// <returns>A proxy with the specified path and type.</returns>
-        public static T WithPath<T>(this IServicePrx proxy, string path) where T : class, IServicePrx
-        {
-            if (path == proxy.Path && proxy is T newProxy)
-            {
-                return newProxy;
-            }
-
-            newProxy = GetFactory<T>().Create(path, proxy.Protocol, setIdentity: true);
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                newProxy.Impl.Facet = proxy.GetFacet();
-                // clear cached connection of well-known proxy
-                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
-            }
-            else
-            {
-                newProxy.Connection = proxy.Connection;
-            }
-
-            newProxy.AltEndpoints = proxy.AltEndpoints;
-            newProxy.Encoding = proxy.Encoding;
-            newProxy.Endpoint = proxy.Endpoint;
-            newProxy.Invoker = proxy.Invoker;
-            return newProxy;
-        }
+        /// <summary>Decodes a tagged typed proxy.</summary>
+        /// <paramtype name="T">The type of the new proxy.</paramtype>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <param name="tag">The tag.</param>
+        /// <returns>The decoded proxy (can be null).</returns>
+        public static T? DecodeTaggedProxy<T>(this IceDecoder decoder, int tag) where T : struct, IPrx =>
+            decoder.DecodeTaggedProxyHeader(tag) ? decoder.DecodeProxy<T>() : null;
     }
 }

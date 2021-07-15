@@ -5,22 +5,20 @@ using System.Text;
 
 namespace IceRpc.Interop
 {
-    /// <summary>Interop.Proxy provides extension methods for IServicePrx for interop with ZeroC Ice.</summary>
-    public static class Proxy
+    /// <summary>Provides extension methods for Proxy.</summary>
+    public static class ProxyExtensions
     {
         /// <summary>Converts a proxy into a string, using the format specified by ToStringMode.</summary>
         /// <param name="proxy">The service proxy.</param>
         /// <param name="mode">Specifies how non-printable ASCII characters are escaped in the resulting string. See
         /// <see cref="ToStringMode"/>.</param>
         /// <returns>The string representation of this proxy.</returns>
-        public static string ToString(this IServicePrx proxy, ToStringMode mode)
+        public static string ToString(this Proxy proxy, ToStringMode mode)
         {
             if (proxy.Protocol != Protocol.Ice1)
             {
                 return proxy.ToString()!;
             }
-
-            ServicePrx impl = proxy.Impl;
 
             var sb = new StringBuilder();
 
@@ -71,9 +69,9 @@ namespace IceRpc.Interop
             sb.Append(" -e ");
             sb.Append(proxy.Encoding.ToString());
 
-            if (impl.IsIndirect)
+            if (proxy.IsIndirect)
             {
-                if (!impl.IsWellKnown)
+                if (!proxy.IsWellKnown)
                 {
                     string adapterId = proxy.Endpoint!.Host;
 
@@ -108,23 +106,6 @@ namespace IceRpc.Interop
                 }
             }
             return sb.ToString();
-        }
-
-        /// <summary>Creates an ice1 proxy with the given identity and facet.</summary>
-        /// <typeparam name="T">The proxy type.</typeparam>
-        /// <param name="proxyFactory">A factory used to create the proxy.</param>
-        /// <param name="identity">The proxy identity.</param>
-        /// <param name="facet">The proxy facet.</param>
-        /// <returns>A proxy with the given identity and facet.</returns>
-        internal static T Create<T>(
-            this ProxyFactory<T> proxyFactory,
-            Identity identity,
-            string facet) where T : class, IServicePrx
-        {
-            T proxy = proxyFactory.Create(identity.ToPath(), Protocol.Ice1);
-            proxy.Impl.Identity = identity;
-            proxy.Impl.Facet = facet;
-            return proxy;
         }
     }
 }

@@ -2171,18 +2171,19 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << eb;
     _out << sp;
 
-    _out << nl << "/// <summary>Typed proxy struct that implements <see cref=\"" << prxInterface << "\"/>";
-    _out << nl << "/// by sending requests to a remote IceRPC service.</summary>";
+    _out << nl << "/// <summary>Typed proxy struct. It implements <see cref=\"" << prxInterface << "\"/>"
+        << " by sending requests to a remote IceRPC service.</summary>";
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public readonly partial struct " << prxImpl << " : global::System.IEquatable<"
-        << prxImpl << ">, IceRpc.IPrx, " << prxInterface;
+    _out << nl << "public readonly partial struct " << prxImpl << " : " << prxInterface;
 
     if (p->scoped() != "::IceRpc::Service")
     {
         _out << ", IceRpc.IServicePrx";
     }
+
+    _out << ", IceRpc.IPrx, global::System.IEquatable<" << prxImpl << ">";
 
     _out << sb;
 
@@ -2268,7 +2269,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateResponseClass)
     {
         _out << sp;
-        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.ResponseDecodeFunc{T}\"/> for each non-void "
+        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for each non-void "
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static class Response";
         _out << sb;
@@ -2279,8 +2280,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << sp;
                 string opName = fixId(operationName(operation));
-                _out << nl << "/// <summary>The <see cref=\"IceRpc.ResponseDecodeFunc{T}\"/> for the return value type "
-                        << "of operation " << operation->name() << ".</summary>";
+                _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
+                        << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
                 _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
@@ -2304,10 +2305,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     // Static properties
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read "
-         << "<see cref=\"" << prxInterface << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxInterface << "> DecodeFunc =";
+         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => decoder.ReadProxy<" << prxImpl << ">();";
+    _out << nl << "decoder => IceRpc.IceDecoderProxyExtensions.DecodeProxy<" << prxImpl << ">(decoder);";
     _out.dec();
     _out << sp;
     _out << nl << "/// <summary>The path for services of <see cref=\"" << name
@@ -2317,9 +2318,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read nullable <see cref=\""
         << prxInterface << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxInterface << "?> NullableDecodeFunc =";
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => decoder.ReadNullableProxy<" << prxImpl << ">();";
+    _out << nl << "decoder => IceRpc.IceDecoderProxyExtensions.DecodeNullableProxy<" << prxImpl << ">(decoder);";
     _out.dec();
 
     // Non-static properties and fields
@@ -2343,7 +2344,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         _out << sp;
         _out << nl << "/// <summary>Implicit conversion to <see cref=\"" << baseImpl << "\"/>.</summary>";
-        _out << nl << "public static implicit operator " << baseImpl << "(" << prxInterface
+        _out << nl << "public static implicit operator " << baseImpl << "(" << prxImpl
             << " prx) => new(prx.Proxy);";
     }
 
@@ -2414,19 +2415,20 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "\"/> equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
-    _out << nl << "/// <param name=\"proxy\">The new proxy.</param>";
+    _out << nl << "/// <param name=\"prx\">The new proxy.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
     _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker? invoker, out "
-        << prxImpl << "? proxy)";
+        << prxImpl << "? prx)";
     _out << sb;
-    _out << nl << "if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy obj))";
+    _out << nl << "if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy? proxy))";
     _out << sb;
-    _out << nl << "proxy = new(obj);";
+    _out << nl << "prx = new(proxy);";
     _out << nl << "return true;";
     _out << eb;
     _out << nl << "else";
     _out << sb;
+    _out << nl << "prx = null;";
     _out << nl << "return false;";
     _out << eb;
     _out << eb;
@@ -2451,7 +2453,34 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     // Base interface methods
     if (p->scoped() != "::IceRpc::Service")
     {
-        // TODO: better way to do this?
+        // TODO: do better with the new parser
+        _out << sp;
+        _out << nl << "/// <inheritdoc/>";
+        _out << nl << "public global::System.Threading.Tasks.Task<string[]> IceIdsAsync(";
+        _out.inc();
+        _out << nl << "IceRpc.Invocation? invocation = null,";
+        _out << nl << "global::System.Threading.CancellationToken cancel = default) =>";
+        _out << nl << "new IceRpc.ServicePrx(Proxy).IceIdsAsync(invocation, cancel);";
+        _out.dec();
+
+        _out << sp;
+        _out << nl << "/// <inheritdoc/>";
+        _out << nl << "public global::System.Threading.Tasks.Task<bool> IceIsAAsync(";
+        _out.inc();
+        _out << nl << "string id,";
+        _out << nl << "IceRpc.Invocation? invocation = null,";
+        _out << nl << "global::System.Threading.CancellationToken cancel = default) =>";
+        _out << nl << "new IceRpc.ServicePrx(Proxy).IceIsAAsync(id, invocation, cancel);";
+        _out.dec();
+
+        _out << sp;
+        _out << nl << "/// <inheritdoc/>";
+        _out << nl << "public global::System.Threading.Tasks.Task IcePingAsync(";
+        _out.inc();
+        _out << nl << "IceRpc.Invocation? invocation = null,";
+        _out << nl << "global::System.Threading.CancellationToken cancel = default) =>";
+        _out << nl << "new IceRpc.ServicePrx(Proxy).IcePingAsync(invocation, cancel);";
+        _out.dec();
     }
 
     return true;
@@ -2499,11 +2528,11 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     bool voidOp = returnType.empty();
 
     _out << sp;
-    _out << nl << returnTaskStr(operation, ns, false) << " " << asyncName << spar
+    _out << nl << "public " << returnTaskStr(operation, ns, false) << " " << asyncName << spar
         << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
-    _out << nl << "IceRpc.ProxyGenExtensions.InvokeAsync(this, \"" << operation->name() << "\", ";
+    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(this, \"" << operation->name() << "\", ";
     if (params.size() == 0)
     {
         _out << "IceRpc.Payload.FromEmptyArgs(this), ";
@@ -2927,11 +2956,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (!streamParam)
     {
-        _out << nl << "IceRpc.IService.IceStreamReadingComplete(dispatch);";
+        _out << nl << "IceRpc.Gen.DispatchExtensions.StreamReadingComplete(dispatch);";
     }
     if (!isIdempotent(operation))
     {
-         _out << nl << "IceRpc.IService.IceCheckNonIdempotent(dispatch);";
+         _out << nl << "IceRpc.Gen.DispatchExtensions.CheckNonIdempotent(dispatch);";
     }
 
     if (opCompressReturn(operation))

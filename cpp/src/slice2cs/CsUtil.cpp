@@ -374,7 +374,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         "float",
         "double",
         "string",
-        "IceRpc.IServicePrx",
+        "IceRpc.ServicePrx",
         "IceRpc.AnyClass"
     };
 
@@ -393,7 +393,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     InterfaceDeclPtr interface = InterfaceDeclPtr::dynamicCast(type);
     if(interface)
     {
-        return getUnqualified(getNamespace(interface) + "." + interfaceName(interface) + "Prx", package);
+        return getUnqualified(getNamespace(interface) + "." + interfaceName(interface).substr(1) + "Prx", package);
     }
 
     if(seq)
@@ -896,9 +896,8 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.ProxyExtensions.DecodeNullable("
-                << typeToString(underlying, scope) << ".Factory, "
-                << "decoder);";
+            out << "IceRpc.IceDecoderProxyExtensions.DecodeNullableProxy<" << typeToString(underlying, scope)
+                << ">(decoder);";
             return;
         }
         else if (underlying->isClassType())
@@ -927,9 +926,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.ProxyExtensions.Decode("
-            << typeToString(underlying, scope) << ".Factory, "
-            << "decoder)";
+        out << "IceRpc.IceDecoderProxyExtensions.DecodeProxy<" << typeToString(underlying, scope) << ">(decoder);";
     }
     else if (underlying->isClassType())
     {
