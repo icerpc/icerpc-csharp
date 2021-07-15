@@ -172,6 +172,114 @@ namespace IceRpc
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
         public static bool operator !=(Proxy? lhs, Proxy? rhs) => !(lhs == rhs);
 
+        /// <summary>Creates a proxy from a connection and a path.</summary>
+        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
+        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
+        /// <param name="path">The path of the proxy.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
+        /// <returns>The new proxy.</returns>
+        public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null)
+        {
+            var proxy = new Proxy(path, connection.Protocol);
+            if (proxy.Protocol == Protocol.Ice1)
+            {
+                proxy.Identity = Identity.FromPath(path);
+            }
+            proxy.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
+            proxy.Connection = connection;
+            proxy.Invoker = invoker;
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a path and protocol. Unlike Proxy's constructor, this method also sets
+        /// Identity from the path when the protocol is ice1.</summary>
+        /// <param name="path">The path.</param>
+        /// <param name="protocol">The protocol.</param>
+        /// <returns>The new proxy.</returns>
+        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2)
+        {
+            var proxy = new Proxy(path, protocol);
+            if (protocol == Protocol.Ice1)
+            {
+                proxy.Identity = Identity.FromPath(path);
+            }
+        }
+
+        /// <summary>Creates a proxy from a server and a path.</summary>
+        /// <param name="server">The server.</param>
+        /// <param name="path">The path.</param>
+        /// <returns>The new proxy.</returns>
+        public static Proxy FromServer(Server server, string path)
+        {
+            if (server.ProxyEndpoint == null)
+            {
+                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
+            }
+
+            var proxy = new Proxy(path, server.Protocol);
+
+            if (server.Protocol == Protocol.Ice1)
+            {
+                proxy.Identity = Identity.FromPath(path);
+            }
+            proxy.Endpoint = server.ProxyEndpoint;
+            return proxy;
+        }
+
+        /// <summary>Creates a proxy from a string and an invoker.</summary>
+        /// <param name="s">The string to parse.</param>
+        /// <param name="invoker">The invoker of the new proxy.</param>
+        /// <returns>The parsed proxy.</returns>
+        public static Proxy Parse(string s, IInvoker? invoker = null)
+        {
+            string proxyString = s.Trim();
+            if (proxyString.Length == 0)
+            {
+                throw new FormatException("an empty string does not represent a proxy");
+            }
+
+            Proxy proxy;
+            Encoding encoding;
+            Endpoint? endpoint;
+            ImmutableList<Endpoint> altEndpoints;
+            if (Internal.UriParser.IsProxyUri(proxyString))
+            {
+                string path;
+                (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
+                proxy = new(path, endpoint?.Protocol ?? Protocol.Ice2);
+            }
+            else
+            {
+                Identity identity;
+                string facet;
+                (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
+                proxy = new(identity, facet);
+            }
+            proxy.Encoding = encoding;
+            proxy.Endpoint = endpoint;
+            proxy.AltEndpoints = altEndpoints;
+            proxy.Invoker = invoker;
+            return proxy;
+        }
+
+        /// <summary>Tries to create a proxy from a string and invoker.</summary>
+        /// <param name="s">The string to parse.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="proxy">The parsed proxy.</param>
+        /// <returns><c>true</c> when the string is parsed successfully; otherwise, <c>false</c>.</returns>
+        public static bool TryParse(string s, IInvoker? invoker, [NotNullWhen(true)] out Proxy? proxy)
+        {
+            try
+            {
+                proxy = Parse(s, invoker);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         /// <summary>Constructs a new proxy.</summary>
         /// <param name="path">The proxy path.</param>
         /// <param name="protocol">The proxy protocol.</param>
@@ -235,9 +343,6 @@ namespace IceRpc
 
             return true;
         }
-
-        /// <inheritdoc/>
-        public bool Equals(Proxy? other) => Equals(other?.Impl);
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => Equals(obj as ServicePrx);
@@ -421,6 +526,13 @@ namespace IceRpc
                 }
             }
         }
+
+        private Proxy(Identity identity, string facet)
+            : this(identity.ToPath(), Protocol.Ice1)
+        {
+            Identity = identity;
+            Facet = facet;
+        }
     }
 
     /// <summary>Proxy provides extension methods for IServicePrx and ProxyFactory.</summary>
@@ -431,137 +543,6 @@ namespace IceRpc
             new InlineInvoker((request, cancel) =>
                 request.Connection?.InvokeAsync(request, cancel) ??
                     throw new ArgumentNullException($"{nameof(request.Connection)} is null", nameof(request)));
-
-        /// <summary>Creates a copy of this proxy with a new proxy type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxy">The proxy being copied.</param>
-        /// <returns>A proxy with the desired type.</returns>
-        public static T As<T>(this IServicePrx proxy) where T : class, IServicePrx
-        {
-            T newProxy = GetFactory<T>().Create(proxy.Path, proxy.Protocol);
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                newProxy.Impl.Identity = proxy.Impl.Identity;
-                newProxy.Impl.Facet = proxy.Impl.Facet;
-            }
-            newProxy.Encoding = proxy.Encoding;
-            newProxy.Endpoint = proxy.Endpoint;
-            newProxy.AltEndpoints = proxy.AltEndpoints;
-            newProxy.Connection = proxy.Connection;
-            newProxy.Invoker = proxy.Invoker;
-            return newProxy;
-        }
-
-        /// <summary>Tests whether a proxy points to a remote service whose associated proxy interface is T or an
-        /// interface type derived from T. If so, returns a proxy of type, otherwise returns null. This is a convenience
-        /// wrapper for <see cref="IServicePrx.IceIsAAsync"/>.
-        /// </summary>
-        /// <paramtype name="T">The type of the desired service proxy.</paramtype>
-        /// <param name="proxy">The source proxy being tested.</param>
-        /// <param name="invocation">The invocation properties.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>A new proxy with the desired type, or null.</returns>
-        public static async Task<T?> CheckedCastAsync<T>(
-            this IServicePrx proxy,
-            Invocation? invocation = null,
-            CancellationToken cancel = default) where T : class, IServicePrx =>
-            await proxy.IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).ConfigureAwait(false) ?
-                (proxy is T t ? t : proxy.As<T>()) : null;
-
-        /// <summary>Creates a clone of this proxy.</summary>
-        /// <param name="proxy">The source proxy.</param>
-        /// <returns>A clone of the source proxy.</returns>
-        public static T Clone<T>(this T proxy) where T : class, IServicePrx => (proxy.Impl.Clone() as T)!;
-
-        /// <summary>Creates a proxy from a connection and a path, like the generated <c>FromConnection</c> static
-        /// methods.</summary>
-        /// <param name="factory">The proxy factory.</param>
-        /// <param name="connection">The connection of the new proxy. If it's a client connection, the endpoint of the
-        /// new proxy is <see cref="Connection.RemoteEndpoint"/>; otherwise, the new proxy has no endpoint.</param>
-        /// <param name="path">The path of the proxy. If null, the path is set to
-        /// <see cref="ProxyFactory{T}.DefaultPath"/>.</param>
-        /// <param name="invoker">The invoker of the new proxy.</param>
-        /// <returns>The new proxy.</returns>
-        public static T Create<T>(
-            this ProxyFactory<T> factory,
-            Connection connection,
-            string? path = null,
-            IInvoker? invoker = null) where T : class, IServicePrx
-        {
-            path ??= factory.DefaultPath;
-
-            T proxy = factory.Create(path, connection.Protocol);
-
-            ServicePrx impl = proxy.Impl;
-            if (connection.Protocol == Protocol.Ice1)
-            {
-                impl.Identity = Identity.FromPath(path);
-            }
-            impl.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
-            impl.Connection = connection;
-            impl.Invoker = invoker;
-            return proxy;
-        }
-
-        /// <summary>Creates a proxy from a path and protocol, like the generated <c>FromPath</c> static methods.
-        /// </summary>
-        /// <param name="factory">The proxy factory.</param>
-        /// <param name="path">The path.</param>
-        /// <param name="protocol">The protocol.</param>
-        /// <param name="setIdentity">When true, sets the identity of a new ice1 proxy.</param>
-        /// <returns>The new proxy.</returns>
-        public static T Create<T>(this ProxyFactory<T> factory, string path, Protocol protocol, bool setIdentity)
-            where T : class, IServicePrx
-        {
-            T proxy = factory.Create(path, protocol);
-            if (setIdentity && protocol == Protocol.Ice1)
-            {
-                proxy.Impl.Identity = Identity.FromPath(path);
-            }
-            return proxy;
-        }
-
-        /// <summary>Creates a proxy from a server and a path, like the generated <c>FromServer</c> static
-        /// methods.</summary>
-        /// <param name="factory">The proxy factory.</param>
-        /// <param name="server">The server.</param>
-        /// <param name="path">The path. Null uses the default path.</param>
-        /// <returns>The new proxy.</returns>
-        public static T Create<T>(this ProxyFactory<T> factory, Server server, string? path = null)
-            where T : class, IServicePrx
-        {
-            path ??= factory.DefaultPath;
-
-            if (server.ProxyEndpoint == null)
-            {
-                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
-            }
-
-            T proxy = factory.Create(path, server.Protocol);
-
-            ServicePrx impl = proxy.Impl;
-            if (server.Protocol == Protocol.Ice1)
-            {
-                impl.Identity = Identity.FromPath(path);
-            }
-            impl.Endpoint = server.ProxyEndpoint;
-            return proxy;
-        }
-
-        /// <summary>Retrieves the proxy factory associated with a generated service proxy using reflection.</summary>
-        /// <returns>The proxy factory.</returns>
-        public static ProxyFactory<T> GetFactory<T>() where T : class, IServicePrx
-        {
-            if (typeof(T).GetField("Factory") is FieldInfo factoryField)
-            {
-                return factoryField.GetValue(null) is ProxyFactory<T> factory ? factory :
-                    throw new InvalidOperationException($"{typeof(T).FullName}.Factory is not a proxy factory");
-            }
-            else
-            {
-                throw new InvalidOperationException($"{typeof(T).FullName} does not have a field named Factory");
-            }
-        }
 
         /// <summary>Sends a request to a service and returns the response.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
@@ -696,44 +677,6 @@ namespace IceRpc
                     timeoutSource?.Dispose();
                 }
             }
-        }
-
-        /// <summary>Creates a proxy from a string and an invoker.</summary>
-        /// <param name="proxyFactory">The proxy factory.</param>
-        /// <param name="s">The string to parse.</param>
-        /// <param name="invoker">The invoker of the new proxy.</param>
-        /// <returns>The parsed proxy.</returns>
-        public static T Parse<T>(this ProxyFactory<T> proxyFactory, string s, IInvoker? invoker = null)
-            where T : class, IServicePrx
-        {
-            string proxyString = s.Trim();
-            if (proxyString.Length == 0)
-            {
-                throw new FormatException("an empty string does not represent a proxy");
-            }
-
-            T proxy;
-            Encoding encoding;
-            Endpoint? endpoint;
-            ImmutableList<Endpoint> altEndpoints;
-            if (Internal.UriParser.IsProxyUri(proxyString))
-            {
-                string path;
-                (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
-                proxy = proxyFactory.Create(path, endpoint?.Protocol ?? Protocol.Ice2);
-            }
-            else
-            {
-                Identity identity;
-                string facet;
-                (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
-                proxy = proxyFactory.Create(identity, facet);
-            }
-            proxy.Encoding = encoding;
-            proxy.Endpoint = endpoint;
-            proxy.AltEndpoints = altEndpoints;
-            proxy.Invoker = invoker;
-            return proxy;
         }
 
         /// <summary>Decodes a proxy from the buffer.</summary>

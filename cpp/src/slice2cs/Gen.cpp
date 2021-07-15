@@ -2116,14 +2116,15 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 {
     string name = p->name();
     string ns = getNamespace(p);
-    string prxName = interfaceName(p) + "Prx";
-    string impl = prxName.substr(1);
+    string prxInterface = interfaceName(p) + "Prx";
+    string prxImpl = prxInterface.substr(1);
 
     _out << sp;
     writeProxyDocComment(p, getDeprecateReason(p));
     emitCommonAttributes();
+    emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public partial interface " << prxName;
+    _out << nl << "public partial interface " << prxInterface;
 
     auto baseList = p->bases();
     if (!baseList.empty())
@@ -2170,12 +2171,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << eb;
     _out << sp;
 
-    _out << nl << "/// <summary>The default implementation for <see cref=\"" << prxName << "\"/>.</summary>";
+    _out << nl << "/// <summary>Typed proxy struct that implements <see cref=\"" << prxInterface << "\"/>";
+    _out << nl << "/// by sending requests to a remote IceRPC service.</summary>";
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public readonly partial struct " << impl << " : global::System.IEquatable<"
-        << impl << ">, " << prxName;
+    _out << nl << "public readonly partial struct " << prxImpl << " : global::System.IEquatable<"
+        << prxImpl << ">, IceRpc.IPrx, " << prxInterface;
 
     if (p->scoped() != "::IceRpc::Service")
     {
@@ -2302,40 +2304,28 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     // Static properties
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read "
-         << "<see cref=\"" << prxName << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxName << "> DecodeFunc =";
+         << "<see cref=\"" << prxInterface << "\"/>.</summary>";
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxInterface << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => IceRpc.ProxyExtensions.Decode(Factory, decoder);";
+    _out << nl << "decoder => decoder.ReadProxy<" << prxImpl << ">();";
     _out.dec();
     _out << sp;
     _out << nl << "/// <summary>The path for services of <see cref=\"" << name
         << "\"/> type when the path is not explicitly specified.</summary>";
-    _out << nl << "public static string DefaultPath => Factory.DefaultPath;";
+    _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
+        << prxInterface << "));";
     _out << sp;
-    _out << nl << "/// <summary>Factory for <see cref=\"" << prxName << "\"/>.</summary>";
-    _out << nl << "public static readonly new IceRpc.PrxFactory<" << prxName << "> Factory =";
+    _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read nullable <see cref=\""
+        << prxInterface << "\"/>.</summary>";
+    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxInterface << "?> NullableDecodeFunc =";
     _out.inc();
-    _out << nl << "new(proxy => new " << impl << "(proxy));";
-    _out.dec();
-    _out << sp;
-    _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read nullable <see cref=\"" << prxName
-         << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxName << "?> NullableDecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => IceRpc.ProxyExtensions.DecodeNullable(Factory, decoder);";
+    _out << nl << "decoder => decoder.ReadNullableProxy<" << prxImpl << ">();";
     _out.dec();
 
     // Non-static properties and fields
     _out << sp;
     _out << nl << "/// <summary>The proxy to the remote service.</summary>";
-    _out << nl << "public IceRpc.Proxy Proxy =>";
-    _out.inc();
-    _out << nl << "_proxy ?? throw new global::System.InvalidOperationException("
-        << "$\"cannot use a default initialized {nameof(" << impl << ")}\");";
-    _out.dec();
-
-    _out << sp;
-    _out << nl << "private readonly IceRpc.Proxy? _proxy;";
+    _out << nl << "public IceRpc.Proxy Proxy { get; init; }";
 
     // Implicit upcast
     vector<string> allBaseImpls =
@@ -2353,13 +2343,16 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     {
         _out << sp;
         _out << nl << "/// <summary>Implicit conversion to <see cref=\"" << baseImpl << "\"/>.</summary>";
-        _out << nl << "public static implicit operator " << baseImpl << "(" << prxName
+        _out << nl << "public static implicit operator " << baseImpl << "(" << prxInterface
             << " prx) => new(prx.Proxy);";
     }
 
+    // Equality operations
+    emitEqualityOperators(prxImpl);
+
     // Static methods
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxName
+    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl
         << "\"/> from the given connection and path.</summary>";
     _out << nl << "/// <param name=\"connection\">The connection. If it's an outgoing connection, the endpoint of the "
         << "new proxy is";
@@ -2371,27 +2364,28 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// the server's invoker.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
 
-    _out << nl << "public static " << prxName << " FromConnection(";
+    _out << nl << "public static " << prxImpl << " FromConnection(";
     _out.inc();
     _out << nl << "IceRpc.Connection connection,";
     _out << nl << "string? path = null,";
     _out << nl << "IceRpc.IInvoker? invoker = null) =>";
-    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, connection, path, invoker);";
+    _out << nl << "new(IceRpc.Proxy.FromConnection(connection, path ?? DefaultPath, invoker));";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxName << "\"/> with the given path and protocol.</summary>";
+    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl
+        << "\"/> with the given path and protocol.</summary>";
     _out << nl << "/// <param name=\"path\">The path for the proxy.</param>";
     _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
-    _out << nl << "public static " << prxName
+    _out << nl << "public static " << prxImpl
         << " FromPath(string path, IceRpc.Protocol protocol = IceRpc.Protocol.Ice2) =>";
     _out.inc();
-    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, path, protocol, setIdentity: true);";
+    _out << nl << "new(IceRpc.Proxy.FromPath(path, protocol));";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxName << "\"/> from the given server and path.</summary>";
+    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl << "\"/> from the given server and path.</summary>";
     _out << nl << "/// <param name=\"server\">The created proxy uses the <see cref=\"Server.ProxyEndpoint\"/> "
          << "as its";
     _out << nl << "/// <see cref=\"Endpoint\"/>.</param>";
@@ -2399,49 +2393,60 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "is used.";
     _out << nl << "/// </param>";
     _out << nl << "/// <returns>The new proxy.</returns>";
-    _out << nl << "public static new " << prxName << " FromServer(IceRpc.Server server, string? path = null) =>";
+    _out << nl << "public static " << prxImpl << " FromServer(IceRpc.Server server, string? path = null) =>";
     _out.inc();
-    _out << nl << "IceRpc.ProxyExtensions.Create(Factory, server, path);";
+    _out << nl << "new(IceRpc.Proxy.FromServer(server, path ?? DefaultPath));";
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxName << "\"/> "
+    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxImpl << "\"/> "
          << "equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
     _out << nl << "/// <returns>The new proxy</returns>";
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
          << "representation of a proxy.</exception>";
-    _out << nl << "public static " << prxName << " Parse(string s, IceRpc.IInvoker? invoker = null) => "
-         << "IceRpc.ProxyExtensions.Parse(Factory, s, invoker);";
+    _out << nl << "public static " << prxImpl << " Parse(string s, IceRpc.IInvoker? invoker = null) => "
+         << "new(IceRpc.Proxy.Parse(s, invoker));";
 
     _out << sp;
-    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxName
+    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxImpl
          << "\"/> equivalent.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
-    _out << nl << "/// <param name=\"proxy\">When this method returns it contains the new proxy, if the conversion "
-         << "succeeded or null if the conversion failed.</param>";
+    _out << nl << "/// <param name=\"proxy\">The new proxy.</param>";
     _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
          << "</returns>";
     _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker? invoker, out "
-        << prxName << "? proxy)";
+        << prxImpl << "? proxy)";
     _out << sb;
-    _out << nl << "try";
+    _out << nl << "if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy obj))";
     _out << sb;
-    _out << nl << "proxy = Parse(s, invoker);";
-    _out << eb;
-    _out << nl << "catch";
-    _out << sb;
-    _out << nl << "proxy = null;";
-    _out << nl << "return false;";
-    _out << eb;
+    _out << nl << "proxy = new(obj);";
     _out << nl << "return true;";
     _out << eb;
+    _out << nl << "else";
+    _out << sb;
+    _out << nl << "return false;";
+    _out << eb;
+    _out << eb;
     _out << sp;
-    _out << nl << "/// <summary>Constructs an instance of <see cref=\"" << impl << "\"/>.</summary>";
+    _out << nl << "/// <summary>Constructs an instance of <see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "/// <param name=\"proxy\">The proxy to the remote service.</param>";
-    _out << nl << "public " << impl << "(IceRpc.Proxy proxy) => _proxy = proxy;";
+    _out << nl << "public " << prxImpl << "(IceRpc.Proxy proxy) => Proxy = proxy;";
+
+    // Equals + GetHashCode
+    _out << sp;
+    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "public bool Equals(" << prxImpl << " other) => Proxy.Equals(other.Proxy);";
+
+    _out << sp;
+    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "public override bool Equals(object? obj) => obj is " << name << " value && Equals(value);";
+
+    _out << sp;
+    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "public override int GetHashCode() => Proxy.GetHashCode();";
 
     // Base interface methods
     if (p->scoped() != "::IceRpc::Service")
@@ -2455,7 +2460,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 void
 Slice::Gen::ProxyVisitor::visitInterfaceDefEnd(const InterfaceDefPtr&)
 {
-    _out << eb; // impl
+    _out << eb; // prxImpl
 }
 
 void
