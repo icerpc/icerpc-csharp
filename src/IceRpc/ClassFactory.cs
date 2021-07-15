@@ -28,16 +28,16 @@ namespace IceRpc
             ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>.Empty;
 
         /// <summary>Constructs a factory for instances of classes with the <see cref="ClassAttribute"/> attribute
-        /// provided in the specified <para>assemblies</para>.</summary>
+        /// provided in the specified <para>assemblies</para>.The types from IceRpc assembly are always implicitly
+        /// added.</summary>
         /// <param name="assemblies">The assemblies containing the types that this factory will create.</param>
         public ClassFactory(IEnumerable<Assembly> assemblies)
         {
-            ImmutableDictionary<string, Lazy<Func<AnyClass>>>.Builder typeIdClassFactoriesBuilder =
-                ImmutableDictionary.CreateBuilder<string, Lazy<Func<AnyClass>>>();
-            ImmutableDictionary<int, Lazy<Func<AnyClass>>>.Builder compactIdClassFactoriesBuilder =
-                ImmutableDictionary.CreateBuilder<int, Lazy<Func<AnyClass>>>();
-            ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>.Builder typeIdExceptionFactoriesBuilder =
-                ImmutableDictionary.CreateBuilder<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
+            var typeIdClassFactoriesBuilder = ImmutableDictionary.CreateBuilder<string, Lazy<Func<AnyClass>>>();
+            var compactIdClassFactoriesBuilder = ImmutableDictionary.CreateBuilder<int, Lazy<Func<AnyClass>>>();
+            var typeIdExceptionFactoriesBuilder =
+                ImmutableDictionary.CreateBuilder<
+                    string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
 
             // An enumerable of distinct assemblies that always implicitly includes IceRpc assembly
             assemblies = assemblies.Concat(new Assembly[] { typeof(ClassFactory).Assembly }).Distinct();
