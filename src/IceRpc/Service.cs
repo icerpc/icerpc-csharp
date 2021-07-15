@@ -31,8 +31,8 @@ namespace IceRpc
 
         // A dictionary of operation name to IceDMethod used by DispatchAsync implementation.
         private readonly ImmutableDictionary<string, IceDMethod> _dispatchMethods;
-        // The service type IDs lazy initialized.
-        private readonly Lazy<ImmutableSortedSet<string>> _typeIds;
+        // The service type IDs.
+        private readonly ImmutableSortedSet<string> _typeIds;
 
         /// <summary>Constructs a new service.</summary>
         public Service()
@@ -46,7 +46,8 @@ namespace IceRpc
                 ParameterExpression payloadParam = Expression.Parameter(typeof(ReadOnlyMemory<byte>));
                 ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
                 ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
-                var newDispatchMethods = new Dictionary<string, IceDMethod>();
+                ImmutableDictionary<string, IceDMethod>.Builder dispatchMethodsBuilder =
+                    ImmutableDictionary.CreateBuilder<string, IceDMethod>();
                 foreach (Type interfaceType in type.GetInterfaces())
                 {
                     MethodInfo[] methods = interfaceType.GetMethods(BindingFlags.Static | BindingFlags.NonPublic);
@@ -55,24 +56,26 @@ namespace IceRpc
                         object[] attributes = method.GetCustomAttributes(typeof(OperationAttribute), false);
                         if (attributes.Length > 0 && attributes[0] is OperationAttribute attribute)
                         {
-                            newDispatchMethods[attribute.Value] = Expression.Lambda<IceDMethod>(
-                                Expression.Call(
-                                    method,
-                                    Expression.Convert(targetParam, type),
+                            dispatchMethodsBuilder.Add(
+                                attribute.Value,
+                                Expression.Lambda<IceDMethod>(
+                                    Expression.Call(
+                                        method,
+                                        Expression.Convert(targetParam, type),
+                                        payloadParam,
+                                        dispatchParam,
+                                        cancelParam),
+                                    targetParam,
                                     payloadParam,
                                     dispatchParam,
-                                    cancelParam),
-                                targetParam,
-                                payloadParam,
-                                dispatchParam,
-                                cancelParam).Compile();
+                                    cancelParam).Compile());
                         }
                     }
                 }
 
                 // There is at least the 3 built-in operations
-                Debug.Assert(newDispatchMethods.Count >= 3);
-                dispatchMethods = newDispatchMethods.ToImmutableDictionary();
+                dispatchMethods = dispatchMethodsBuilder.ToImmutableDictionary();
+                Debug.Assert(dispatchMethods.Count >= 3);
 
                 _dispatchMethodsCache = _dispatchMethodsCache.SetItem(type, dispatchMethods);
             }
@@ -80,32 +83,27 @@ namespace IceRpc
 
 
             // Type ids cache
-            _typeIds = new Lazy<ImmutableSortedSet<string>>(
-                () =>
+            if (!_typeIdsCache.TryGetValue(type, out ImmutableSortedSet<string>? ids))
+            {
+                var newIdsBuilder = ImmutableSortedSet.CreateBuilder<string>();
+                foreach (Type interfaceType in type.GetInterfaces())
                 {
-                    Type type = GetType();
-                    if (!_typeIdsCache.TryGetValue(type, out ImmutableSortedSet<string>? ids))
-                    {
-                        ImmutableArray<string> newIds = ImmutableArray<string>.Empty;
-                        foreach (Type interfaceType in type.GetInterfaces())
-                        {
-                            newIds = newIds.AddRange(TypeExtensions.GetAllIceTypeIds(interfaceType));
-                        }
+                    newIdsBuilder.UnionWith(TypeExtensions.GetAllIceTypeIds(interfaceType));
+                }
 
-                        ids = newIds.ToImmutableSortedSet(StringComparer.Ordinal);
-                        _typeIdsCache = _typeIdsCache.SetItem(type, ids);
-                    }
-                    return ids;
-                });
+                ids = newIdsBuilder.ToImmutableSortedSet(StringComparer.Ordinal);
+                _typeIdsCache = _typeIdsCache.SetItem(type, ids);
+            }
+            _typeIds =  ids;
         }
 
         /// <inheritdoc/>
         public ValueTask<IEnumerable<string>> IceIdsAsync(Dispatch dispatch, CancellationToken cancel) =>
-            new(_typeIds.Value);
+            new(_typeIds);
 
         /// <inheritdoc/>
         public ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel) =>
-            new(_typeIds.Value.Contains(typeId));
+            new(_typeIds.Contains(typeId));
 
         /// <inheritdoc/>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;
