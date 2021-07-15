@@ -13,9 +13,8 @@ namespace IceRpc
     /// <see cref="ClassAttribute"/> attribute.</summary>
     public class ClassFactory : IClassFactory
     {
-        /// <summary>An instance of the class factory that is setup to create instances of types from the IceRPC
-        /// and the entry assemblies, for types using <see cref="ClassAttribute"/> attribute. This instance is used as
-        /// the local default when the application doesn't configured a class factory.</summary>
+        /// <summary>The default class factory instance used when the application doesn't configure one. It looks up
+        /// types using the <see cref="ClassAttribute"/> attribute in the IceRpc and entry assemblies.</summary>
         /// <seealso cref="Assembly.GetEntryAssembly"/>
         public static ClassFactory Default { get; } = new ClassFactory(
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
@@ -39,7 +38,7 @@ namespace IceRpc
                 ImmutableDictionary.CreateBuilder<
                     string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
 
-            // An enumerable of distinct assemblies that always implicitly includes IceRpc assembly
+            // An enumerable of distinct assemblies that always implicitly includes the IceRpc assembly.
             assemblies = assemblies.Concat(new Assembly[] { typeof(ClassFactory).Assembly }).Distinct();
 
             IEnumerable<ClassAttribute> attributes =
@@ -58,9 +57,7 @@ namespace IceRpc
                 else
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
-                    var factory = new Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>(
-                        () => attribute.ExceptionFactory);
-                    typeIdExceptionFactoriesBuilder.Add(attribute.TypeId, factory);
+                    typeIdExceptionFactoriesBuilder.Add(attribute.TypeId, new(() => attribute.ExceptionFactory));
                 }
             }
 

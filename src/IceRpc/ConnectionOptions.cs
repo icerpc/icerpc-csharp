@@ -153,8 +153,8 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>Gets or sets the class factory that is used by incoming request and responses using this
-        /// connection to instantiate classes and exceptions.</summary>
+        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
+        /// </summary>
         public IClassFactory? ClassFactory { get; set; }
 
         /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
