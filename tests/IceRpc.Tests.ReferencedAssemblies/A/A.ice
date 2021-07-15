@@ -2,9 +2,14 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::Internal
+module IceRpc::Tests::Api
 {
     class MyClassA
+    {
+        string aValue;
+    }
+
+    class MyCompactClassA(1)
     {
         string aValue;
     }
