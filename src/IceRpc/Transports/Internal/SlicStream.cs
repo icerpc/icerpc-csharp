@@ -128,13 +128,13 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            if (ReadCompleted)
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
             if (_receivedSize == _receivedOffset)
             {
+                if (ReadCompleted)
+                {
+                    throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                }
+
                 _receivedOffset = 0;
                 _receivedSize = 0;
 
@@ -191,20 +191,21 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // If we've finished consuming the data and we received end of stream, we can complete the reads.
-            if (_receivedOffset == _receivedSize && _receivedEndStream)
-            {
-                TrySetReadCompleted();
-            }
-
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close frame.
-            if (_receiveBuffer == null && _receivedOffset == _receivedSize)
+            if (_receivedOffset == _receivedSize)
             {
                 // If we've consumed the whole Slic frame, notify the connection that it can start receiving
-                // a new frame.
-                _connection.FinishedReceivedStreamData(0);
+                // a new frame if flow control isn't enabled. If flow control is enabled, the data has been
+                // buffered and already received.
+                if (_receiveBuffer == null)
+                {
+                    _connection.FinishedReceivedStreamData(0);
+                }
+
+                // It's the end of the stream, we can complete reads.
+                if (_receivedEndStream)
+                {
+                    TrySetReadCompleted();
+                }
             }
 
             return size;
