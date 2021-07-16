@@ -502,8 +502,6 @@ namespace IceRpc
             }
         }
 
-        /*
-        // TODO: add test. This method conflicts with the new proxy structs.
         /// <summary>Encodes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for the non-null values.</param>
@@ -526,7 +524,6 @@ namespace IceRpc
                 index++;
             }
         }
-        */
 
         /// <summary>Encodes a mapped Slice struct to the buffer.</summary>
         /// <param name="v">The struct instance to encode.</param>
@@ -931,8 +928,6 @@ namespace IceRpc
             }
         }
 
-        /*
-        // TODO: see EncodeSequence
         /// <summary>Encodes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
@@ -944,11 +939,10 @@ namespace IceRpc
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                EncodeSequence(value, withBitSequence: true, encodeAction);
+                EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
-        */
 
         /// <summary>Encodes a tagged fixed-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>

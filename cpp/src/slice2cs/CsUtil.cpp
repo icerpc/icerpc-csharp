@@ -541,12 +541,11 @@ Slice::isValueType(const TypePtr& type)
     assert(!OptionalPtr::dynamicCast(type));
 
     BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-    if(builtin)
+    if (builtin)
     {
-        switch(builtin->kind())
+        switch (builtin->kind())
         {
             case Builtin::KindString:
-            case Builtin::KindObject:
             case Builtin::KindAnyClass:
             {
                 return false;
@@ -558,11 +557,11 @@ Slice::isValueType(const TypePtr& type)
         }
     }
 
-    if(EnumPtr::dynamicCast(type))
+    if (EnumPtr::dynamicCast(type) || StructPtr::dynamicCast(type) || type->isInterfaceType())
     {
         return true;
     }
-    return StructPtr::dynamicCast(type);
+    return false;
 }
 
 bool
