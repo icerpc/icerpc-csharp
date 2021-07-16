@@ -4,6 +4,8 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <IceRpc/Service.ice>
+
 module IceRpc::Slice::Test::Structure
 {
     sequence<string> StringSeq;
@@ -35,7 +37,7 @@ module IceRpc::Slice::Test::Structure
         StringDict sd;
         S1 s;
         C cls;
-        Object? prx;
+        Service? prx;
     }
 
     [cs:custom-equals] struct S3

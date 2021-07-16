@@ -4,7 +4,7 @@
 
 module Test
 {
-
+interface Empty {}
 dictionary<bool, long> d1;              // OK
 dictionary<byte, long> d2;              // OK
 dictionary<short, long> d3;             // OK
@@ -14,8 +14,8 @@ dictionary<string, long> d6;            // OK
 
 dictionary<float, long> b1;             // Bad
 dictionary<double, long> b2;            // Bad
-dictionary<Object, long> b3;            // Bad
-dictionary<Object*, long> b4;           // Bad
+dictionary<AnyClass, long> b3;          // Bad
+dictionary<Empty, long> b4;             // Bad
 
 sequence<byte> s1;
 dictionary<s1, long> d7;                // Deprecated
