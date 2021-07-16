@@ -955,14 +955,7 @@ Slice::CsGenerator::writeUnmarshalCode(
 
     if (optional)
     {
-        if (isReferenceType(underlying))
-        {
-            out << " : null";
-        }
-        else
-        {
-            out << " : (" << typeToString(underlying, scope) << "?)null";
-        }
+        out << " : null";
     }
     out << ";";
 }

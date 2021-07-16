@@ -470,12 +470,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes a sequence to the buffer. The elements of the sequence are reference types.</summary>
+        /// <summary>Encodes a sequence. The elements of the sequence are reference types.</summary>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
         public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
-      //      where T : class
+            where T : class
         {
             if (withBitSequence)
             {
@@ -503,6 +503,7 @@ namespace IceRpc
         }
 
         /*
+        // TODO: add test. This method conflicts with the new proxy structs.
         /// <summary>Encodes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for the non-null values.</param>
@@ -919,7 +920,7 @@ namespace IceRpc
             IEnumerable<T?>? v,
             bool withBitSequence,
             EncodeAction<T> encodeAction)
-  //          where T : class
+            where T : class
         {
             if (v is IEnumerable<T?> value)
             {
@@ -931,6 +932,7 @@ namespace IceRpc
         }
 
         /*
+        // TODO: see EncodeSequence
         /// <summary>Encodes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
