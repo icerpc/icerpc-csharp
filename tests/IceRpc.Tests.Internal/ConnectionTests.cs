@@ -52,15 +52,15 @@ namespace IceRpc.Tests.Internal
 
             public ILogger Logger => _server.Logger;
 
-            public IServicePrx Proxy
+            public IServicePrx ServicePrx
             {
                 get
                 {
-                    var proxy = ServicePrx.FromConnection(Client);
+                    var prx = IceRpc.ServicePrx.FromConnection(Client);
                     var pipeline = new Pipeline();
                     pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory));
-                    proxy.Invoker = pipeline;
-                    return proxy;
+                    prx.Proxy.Invoker = pipeline;
+                    return prx;
                 }
             }
 
@@ -200,7 +200,7 @@ namespace IceRpc.Tests.Internal
                 protocol: protocol);
 
             // Perform an invocation
-            Task pingTask = factory.Proxy.IcePingAsync();
+            Task pingTask = factory.ServicePrx.IcePingAsync();
 
             if (closeClientSide)
             {
@@ -487,7 +487,7 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            Task pingTask = factory.Proxy.IcePingAsync();
+            Task pingTask = factory.ServicePrx.IcePingAsync();
 
             // Make sure we receive few pings while the invocation is pending.
             using var semaphore = new SemaphoreSlim(0);
@@ -521,7 +521,7 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation.
-            Task pingTask = factory.Proxy.IcePingAsync();
+            Task pingTask = factory.ServicePrx.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
             // Shutdown the connection.
@@ -533,7 +533,8 @@ namespace IceRpc.Tests.Internal
             {
                 // With Ice1, when closing the connection with a pending invocation, invocations are aborted
                 // immediately. The Ice1 protocol doesn't support reliably waiting for the response.
-                Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
+                Assert.ThrowsAsync<ConnectionClosedException>(
+                    async () => await factory.ServicePrx.IcePingAsync());
             }
             else
             {
@@ -542,7 +543,8 @@ namespace IceRpc.Tests.Internal
             }
 
             // Next invocation on the connection should throw ConnectionClosedException.
-            Assert.ThrowsAsync<ConnectionClosedException>(async () => await factory.Proxy.IcePingAsync());
+            Assert.ThrowsAsync<ConnectionClosedException>(
+                async () => await factory.ServicePrx.IcePingAsync());
         }
 
         [TestCase(false, Protocol.Ice1)]
@@ -576,7 +578,7 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            Task pingTask = factory.Proxy.IcePingAsync();
+            Task pingTask = factory.ServicePrx.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
             using var cancelSource = new CancellationTokenSource();
@@ -658,7 +660,7 @@ namespace IceRpc.Tests.Internal
                 }));
 
             // Perform an invocation
-            Task pingTask = factory.Proxy.IcePingAsync();
+            Task pingTask = factory.ServicePrx.IcePingAsync();
             await waitForDispatchSemaphore.WaitAsync();
 
             if (closeClientSide)

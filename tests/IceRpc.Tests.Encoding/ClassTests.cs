@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Encoding
     public sealed class ClassTests : IAsyncDisposable
     {
         private readonly Server _server;
-        private readonly ISlicedFormatOperationsPrx _sliced;
-        private readonly ICompactFormatOperationsPrx _compact;
-        private readonly IClassFormatOperationsPrx _classformat;
+        private readonly SlicedFormatOperationsPrx _sliced;
+        private readonly CompactFormatOperationsPrx _compact;
+        private readonly ClassFormatOperationsPrx _classformat;
 
         private readonly Connection _connection;
 
@@ -58,14 +58,14 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public async Task Class_FormatMetadata()
         {
-            ISlicedFormatOperationsPrx prx1 = _sliced.Clone();
+            var prx1 = new SlicedFormatOperationsPrx(_sliced.Proxy.Clone());
             var pipeline1 = new Pipeline();
-            prx1.Invoker = pipeline1;
+            prx1.Proxy.Invoker = pipeline1;
             pipeline1.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
-                var decoder = new IceDecoder(data, prx1.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                var decoder = new IceDecoder(data, prx1.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -77,8 +77,8 @@ namespace IceRpc.Tests.Encoding
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -92,14 +92,14 @@ namespace IceRpc.Tests.Encoding
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            ICompactFormatOperationsPrx prx2 = _compact.Clone();
+            var prx2 = new CompactFormatOperationsPrx(_compact.Proxy.Clone());
             var pipeline2 = new Pipeline();
-            prx2.Invoker = pipeline2;
+            prx2.Proxy.Invoker = pipeline2;
             pipeline2.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
-                var decoder = new IceDecoder(data, prx2.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                var decoder = new IceDecoder(data, prx2.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -110,8 +110,8 @@ namespace IceRpc.Tests.Encoding
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -125,14 +125,14 @@ namespace IceRpc.Tests.Encoding
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
-            IClassFormatOperationsPrx prx3 = _classformat.Clone();
+            var prx3 = new ClassFormatOperationsPrx(_classformat.Proxy.Clone());
             var pipeline3 = new Pipeline();
-            prx3.Invoker = pipeline3;
+            prx3.Proxy.Invoker = pipeline3;
             pipeline3.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
-                var decoder = new IceDecoder(data, prx3.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                var decoder = new IceDecoder(data, prx3.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -143,8 +143,8 @@ namespace IceRpc.Tests.Encoding
                 // The Slice does not include a size when using the compact format
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -159,12 +159,12 @@ namespace IceRpc.Tests.Encoding
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
 
             var pipeline4 = new Pipeline();
-            prx3.Invoker = pipeline4;
+            prx3.Proxy.Invoker = pipeline4;
             pipeline4.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
-                var decoder = new IceDecoder(data, prx3.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                var decoder = new IceDecoder(data, prx3.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -175,8 +175,8 @@ namespace IceRpc.Tests.Encoding
                 // The Slice includes a size for the sliced format
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
-                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Encoding);
-                if (prx1.Encoding == IceRpc.Encoding.V20)
+                decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());

@@ -26,10 +26,10 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
-            var request = new OutgoingRequest(prx,
+            var proxy = Proxy.Parse("ice+tcp://localhost/service");
+            var request = new OutgoingRequest(proxy,
                                               "ice_id",
-                                              Payload.FromEmptyArgs(prx),
+                                              Payload.FromEmptyArgs(proxy),
                                               null,
                                               DateTime.MaxValue);
             _eventSource.RequestStart(request);
@@ -51,10 +51,10 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
-            var request = new OutgoingRequest(prx,
+            var proxy = Proxy.Parse("ice+tcp://localhost/service");
+            var request = new OutgoingRequest(proxy,
                                               "ice_id",
-                                              Payload.FromEmptyArgs(prx),
+                                              Payload.FromEmptyArgs(proxy),
                                               null,
                                               DateTime.MaxValue);
             _eventSource.RequestStop(request);
@@ -76,10 +76,10 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
-            var request = new OutgoingRequest(prx,
+            var proxy = Proxy.Parse("ice+tcp://localhost/service");
+            var request = new OutgoingRequest(proxy,
                                               "ice_id",
-                                              Payload.FromEmptyArgs(prx),
+                                              Payload.FromEmptyArgs(proxy),
                                               null,
                                               DateTime.MaxValue);
             _eventSource.RequestCanceled(request);
@@ -101,10 +101,10 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
-            var request = new OutgoingRequest(prx,
+            var proxy = Proxy.Parse("ice+tcp://localhost/service");
+            var request = new OutgoingRequest(proxy,
                                               "ice_id",
-                                              Payload.FromEmptyArgs(prx),
+                                              Payload.FromEmptyArgs(proxy),
                                               null,
                                               DateTime.MaxValue);
             _eventSource.RequestFailed(request, "IceRpc.RemoteException");
