@@ -360,24 +360,20 @@ namespace IceRpc.Transports.Internal
             // continue receiving frames for other streams.
             if (_receiveBuffer == null)
             {
-                try
+                if (_receivedOffset == _receivedSize)
                 {
-                    if (_receivedOffset == _receivedSize)
+                    ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
+                    Debug.Assert(valueTask.IsCompleted);
+                    if (valueTask.IsCompletedSuccessfully)
                     {
-                        ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
-                        Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _) = valueTask.Result;
                     }
-
-                    if (_receivedSize - _receivedOffset > 0)
-                    {
-                        _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
-                    }
                 }
-                catch
+
+                if (_receivedSize - _receivedOffset > 0)
                 {
-                    // Ignore, there's nothing to consume.
+                    _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                 }
             }
 
