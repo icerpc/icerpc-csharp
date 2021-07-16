@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -19,12 +18,9 @@ namespace IceRpc
         public static ClassFactory Default { get; } = new ClassFactory(
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
 
-        private readonly ImmutableDictionary<int, Lazy<Func<AnyClass>>> _compactTypeIdClassFactoryCache =
-            ImmutableDictionary<int, Lazy<Func<AnyClass>>>.Empty;
-        private readonly ImmutableDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache =
-            ImmutableDictionary<string, Lazy<Func<AnyClass>>>.Empty;
-        private readonly ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache =
-            ImmutableDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>.Empty;
+        private readonly Dictionary<int, Lazy<Func<AnyClass>>> _compactTypeIdClassFactoryCache = new();
+        private readonly Dictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache = new();
+        private readonly Dictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache = new();
 
         /// <summary>Constructs a factory for instances of classes with the <see cref="ClassAttribute"/> attribute
         /// provided in the specified <para>assemblies</para>.The types from IceRpc assembly are always implicitly
@@ -32,12 +28,6 @@ namespace IceRpc
         /// <param name="assemblies">The assemblies containing the types that this factory will create.</param>
         public ClassFactory(IEnumerable<Assembly> assemblies)
         {
-            var typeIdClassFactoriesBuilder = ImmutableDictionary.CreateBuilder<string, Lazy<Func<AnyClass>>>();
-            var compactIdClassFactoriesBuilder = ImmutableDictionary.CreateBuilder<int, Lazy<Func<AnyClass>>>();
-            var typeIdExceptionFactoriesBuilder =
-                ImmutableDictionary.CreateBuilder<
-                    string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
-
             // An enumerable of distinct assemblies that always implicitly includes the IceRpc assembly.
             assemblies = assemblies.Concat(new Assembly[] { typeof(ClassFactory).Assembly }).Distinct();
 
@@ -50,20 +40,16 @@ namespace IceRpc
                     var factory = new Lazy<Func<AnyClass>>(() => attribute.ClassFactory);
                     if (attribute.CompactTypeId is int compactTypeId)
                     {
-                        compactIdClassFactoriesBuilder.Add(compactTypeId, factory);
+                        _compactTypeIdClassFactoryCache.Add(compactTypeId, factory);
                     }
-                    typeIdClassFactoriesBuilder.Add(attribute.TypeId, factory);
+                    _typeIdClassFactoryCache.Add(attribute.TypeId, factory);
                 }
                 else
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
-                    typeIdExceptionFactoriesBuilder.Add(attribute.TypeId, new(() => attribute.ExceptionFactory));
+                    _typeIdExceptionFactoryCache.Add(attribute.TypeId, new(() => attribute.ExceptionFactory));
                 }
             }
-
-            _typeIdClassFactoryCache = typeIdClassFactoriesBuilder.ToImmutableDictionary();
-            _compactTypeIdClassFactoryCache = compactIdClassFactoriesBuilder.ToImmutableDictionary();
-            _typeIdExceptionFactoryCache = typeIdExceptionFactoriesBuilder.ToImmutableDictionary();
         }
 
         /// <inheritdoc/>
