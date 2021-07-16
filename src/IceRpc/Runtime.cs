@@ -23,19 +23,11 @@ namespace IceRpc
         /// <summary>The timeout for invocations that do not specify a timeout or deadline. The default value is 60s.
         /// </summary>
         /// <seealso cref="Invocation"/>
-        public static TimeSpan DefaultInvocationTimeout
-        {
-            get => _defaultInvocationTimeout;
-            set => _defaultInvocationTimeout = value > TimeSpan.Zero || value == Timeout.InfiniteTimeSpan ? value :
-                throw new ArgumentException($"{nameof(DefaultInvocationTimeout)} must be greater than 0",
-                                            nameof(DefaultInvocationTimeout));
-        }
+        public static TimeSpan DefaultInvocationTimeout { get; } = TimeSpan.FromSeconds(60);
 
         /// <summary>Gets or sets the logger factory used by IceRPC classes when no logger factory is explicitly
         /// configured.</summary>
         public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
-
-        private static TimeSpan _defaultInvocationTimeout = TimeSpan.FromSeconds(60);
 
         static Runtime()
         {
