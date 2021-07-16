@@ -566,10 +566,10 @@ namespace IceRpc.Tests.Api
         {
             internal IProxyTestPrx? Proxy { get; set; }
 
-            public ValueTask<IProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
+            public ValueTask<ProxyTestPrx?> ReceiveProxyAsync(Dispatch dispatch, CancellationToken cancel) =>
                 new(Proxy);
 
-            public ValueTask SendProxyAsync(IProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
+            public ValueTask SendProxyAsync(ProxyTestPrx proxy, Dispatch dispatch, CancellationToken cancel)
             {
                 Proxy = proxy;
                 return default;
