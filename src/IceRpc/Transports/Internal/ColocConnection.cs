@@ -256,7 +256,7 @@ namespace IceRpc.Transports.Internal
                 ValueTask task;
                 lock (_mutex)
                 {
-                    // If the stream isn't started, allocate stream ID (according to Quic numbering scheme)
+                    // If the stream isn't started, allocate the stream ID (according to Quic numbering scheme)
                     if (!stream.IsStarted)
                     {
                         if (stream.IsBidirectional)

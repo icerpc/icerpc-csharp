@@ -23,44 +23,6 @@ namespace IceRpc.Transports.Internal
         private SemaphoreSlim? _receiveSemaphore;
         static private readonly object _stopSending = new();
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            // It's important to set the exception before completing the reads because ReceiveAsync expects the
-            // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
-
-            if (TrySetReadCompleted(shutdown: false))
-            {
-                // Notify the peer of the abort of the read side
-                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.SendFrameAsync(
-                        this,
-                        frame: _stopSending,
-                        endStream: false,
-                        CancellationToken.None).AsTask();
-                }
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-            {
-                _ = _connection.SendFrameAsync(
-                    this,
-                    frame: errorCode,
-                    endStream: true,
-                    CancellationToken.None).AsTask();
-            }
-
-            TrySetWriteCompleted();
-        }
-
         public override void EnableReceiveFlowControl()
         {
             // Nothing to do.

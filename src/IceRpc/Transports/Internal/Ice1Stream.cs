@@ -77,7 +77,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // An Ice1 stream can only receive a single frame, except if it's a control stream which can
-            // receive multiple connection validation message since it's used for pings.
+            // receive multiple connection validation messages.
             if (!IsControl)
             {
                 TrySetReadCompleted();
