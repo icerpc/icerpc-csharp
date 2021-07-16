@@ -2213,7 +2213,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
                     ".</summary>";
-                _out << nl << "/// <param name=\"proxy\">Proxy to the target service.</param>";
+                _out << nl << "/// <param name=\"prx\">Typed proxy to the target service.</param>";
                 if (params.size() == 1)
                 {
                     _out << nl << "/// <param name=\"arg\">The request argument.</param>";
@@ -2225,7 +2225,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <returns>The payload.</returns>";
 
                 _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
-                    << fixId(operationName(operation)) << "(IceRpc.IServicePrx proxy, ";
+                    << fixId(operationName(operation)) << "(" << prxImpl << " prx, ";
 
                 if (params.size() == 1)
                 {
@@ -2245,7 +2245,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << nl << "IceRpc.Payload.FromArgs(";
                 }
                 _out.inc();
-                _out << nl << "proxy,";
+                _out << nl << "prx.Proxy,";
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
                 _out << nl;
                 writeOutgoingRequestEncodeAction(operation);
@@ -2304,11 +2304,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "<see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => IceRpc.IceDecoderProxyExtensions.DecodeProxy<" << prxImpl << ">(decoder);";
+    _out << nl << "decoder => new " << prxImpl << "(decoder.DecodeProxy());";
     _out.dec();
     _out << sp;
-    _out << nl << "/// <summary>The path for services of <see cref=\"" << name
-        << "\"/> type when the path is not explicitly specified.</summary>";
+    _out << nl << "/// <summary>The default path for services that implement Slice interface <c>" << name
+        << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
         << prxInterface << "));";
     _out << sp;
@@ -2316,7 +2316,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         << prxInterface << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => IceRpc.IceDecoderProxyExtensions.DecodeNullableProxy<" << prxImpl << ">(decoder);";
+    _out << nl << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << prxImpl << ">(decoder);";
     _out.dec();
 
     // Non-static properties and fields
@@ -2531,7 +2531,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(Proxy, \"" << operation->name() << "\", ";
     if (params.size() == 0)
     {
-        _out << "IceRpc.Payload.FromEmptyArgs(this), ";
+        _out << "IceRpc.Payload.FromEmptyArgs(Proxy), ";
     }
     else
     {

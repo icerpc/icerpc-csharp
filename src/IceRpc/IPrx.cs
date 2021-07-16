@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -7,14 +8,27 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>The common interface of all concrete typed proxies. It gives access to an untyped proxy object that
-    /// can send requests to a remote IceRPC service.</summary>
+    /// <summary>The common interface of all concrete typed proxies. It gives access to an untyped proxy object that can
+    /// send requests to a remote IceRPC service.</summary>
     public interface IPrx
     {
         /// <summary>Gets the proxy object, or sets this proxy object during initialization.</summary>
         Proxy Proxy { get; init; }
     }
 
+    /// <summary>Provides encode actions for typed proxies.</summary>
+    public static class PrxEncodeActions
+    {
+        /// <summary>An <see cref="EncodeAction{T}"/> for <see cref="IPrx"/>.</summary>
+        public static readonly EncodeAction<IPrx> PrxEncodeAction =
+            (encoder, prx) => encoder.EncodeProxy(prx.Proxy);
+
+        /// <summary>An <see cref="EncodeAction{T}"/> for a nullable <see cref="IPrx"/>.</summary>
+        public static readonly EncodeAction<IPrx?> NullablePrxEncodeAction =
+            (encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);
+    }
+
+    /// <summary>Provides extension methods for typed proxies.</summary>
     public static class PrxExtensions
     {
         /// <summary>Creates a new typed proxy from this typed proxy.</summary>
@@ -24,7 +38,7 @@ namespace IceRpc
         public static T As<T>(this IPrx prx) where T : IPrx, new() => new T { Proxy = prx.Proxy };
 
         /// <summary>Tests whether the target service implements the interface implemented by the T typed proxy. This
-        /// method is a wrapper for <see cref="IServicePrx.IceIdAAsync"/>.</summary>
+        /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
         /// <paramtype name="T">The type of the desired typed proxy.</paramtype>
         /// <param name="prx">The source proxy being tested.</param>
         /// <param name="invocation">The invocation properties.</param>
@@ -40,7 +54,7 @@ namespace IceRpc
 
         /// <summary>Creates a copy of this proxy with a new path and type.</summary>
         /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxy">The proxy being copied.</param>
+        /// <param name="prx">The proxy being copied.</param>
         /// <param name="path">The new path.</param>
         /// <returns>A proxy with the specified path and type.</returns>
         public static T WithPath<T>(this IPrx prx, string path) where T : IPrx, new()
@@ -70,5 +84,15 @@ namespace IceRpc
             newProxy.Invoker = source.Invoker;
             return new T { Proxy = newProxy };
         }
+    }
+
+    /// <summary>Provides extension methods for IceDecoder.</summary>
+    public static class IceDecoderPrxExtensions
+    {
+        /// <summary>Decodes a nullable typed proxy.</summary>
+        /// <param name="decoder">The decoder.</param>
+        /// <returns>The decoded proxy, or null.</returns>
+        public static T? DecodeNullablePrx<T>(this IceDecoder decoder) where T : struct, IPrx =>
+            decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
     }
 }

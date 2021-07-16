@@ -665,7 +665,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
         TypePtr underlying = optional->underlying();
         if (underlying->isInterfaceType())
         {
-            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".NullableEncodeAction";
+            out << "IceRpc.PrxEncodeActions.NullablePrxEncodeAction";
         }
         else
         {
@@ -675,7 +675,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else if (type->isInterfaceType())
     {
-        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".EncodeAction";
+        out << "IceRpc.PrxEncodeActions.PrxEncodeAction";
     }
     else if (type->isClassType())
     {
@@ -722,7 +722,7 @@ Slice::CsGenerator::writeMarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << nl << "encoder.EncodeNullableProxy(" << param << ");";
+            out << nl << "encoder.EncodeNullableProxy(" << param << "?.Proxy);";
         }
         else if (underlying->isClassType())
         {
@@ -775,7 +775,7 @@ Slice::CsGenerator::writeMarshalCode(
     {
         if (type->isInterfaceType())
         {
-            out << nl << "encoder.EncodeProxy(" << param << ");";
+            out << nl << "encoder.EncodeProxy(" << param << ".Proxy);";
         }
         else if (type->isClassType())
         {
@@ -896,7 +896,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.IceDecoderProxyExtensions.DecodeNullableProxy<" << typeToString(underlying, scope)
+            out << "IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << typeToString(underlying, scope)
                 << ">(decoder);";
             return;
         }
@@ -926,7 +926,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.IceDecoderProxyExtensions.DecodeProxy<" << typeToString(underlying, scope) << ">(decoder);";
+        out << "new " << typeToString(underlying, scope) << "(decoder.DecodeProxy());";
     }
     else if (underlying->isClassType())
     {

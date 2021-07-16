@@ -42,11 +42,6 @@ namespace IceRpc.Internal
         /// <summary>Constructs a locator invoker.</summary>
         internal LocatorClient(ILocatorPrx locator, Interceptors.LocatorOptions options)
         {
-            if (locator.Endpoint == null || locator.Endpoint.Transport == Transport.Loc)
-            {
-                throw new ArgumentException($"{nameof(locator)} needs a non-loc endpoint", nameof(locator));
-            }
-
             if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
             {
                 throw new ArgumentException(
@@ -301,7 +296,7 @@ namespace IceRpc.Internal
             {
                 try
                 {
-                    IServicePrx? servicePrx = null;
+                    ServicePrx? servicePrx = null;
 
                     if (category == null)
                     {

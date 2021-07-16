@@ -24,6 +24,7 @@ namespace IceRpc.Gen
         Connection connection,
         IInvoker? invoker);
 
+    /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
     {
         /// <summary>Sends a request to a service and decodes the response.</summary>
