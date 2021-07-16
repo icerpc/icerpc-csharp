@@ -995,9 +995,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
-    if (builtin || type->isInterfaceType() || type->isClassType())
+    if (type->isInterfaceType())
     {
-        auto kind = builtin ? builtin->kind() : type->isInterfaceType() ? Builtin::KindObject : Builtin::KindAnyClass;
+        out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
+    }
+    else if (builtin || type->isClassType())
+    {
+        auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
         out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
     }
     else if(st)
@@ -1114,9 +1118,8 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.ProxyExtensions.DecodeTagged("
-            << typeToString(type, scope) << ".Factory, "
-            << "decoder, " << tag << ")";
+        out << "IceRpc.IceDecoderPrxExtensions.DecodeTaggedPrx<"<< typeToString(type, scope) << ">(decoder, "
+            << tag << ");";
     }
     else if (builtin)
     {

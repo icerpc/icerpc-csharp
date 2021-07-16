@@ -2123,6 +2123,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "public partial interface " << prxInterface;
 
     auto baseList = p->bases();
+    bool addServicePrx = none_of(baseList.begin(),
+                                 baseList.end(),
+                                 [](auto b) { return b->scoped() == "::IceRpc::Service"; }) &&
+                         p->scoped() != "::IceRpc::Service";
+
     if (!baseList.empty())
     {
         _out << " : ";
@@ -2174,7 +2179,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     emitCustomAttributes(p);
     _out << nl << "public readonly partial struct " << prxImpl << " : " << prxInterface;
 
-    if (p->scoped() != "::IceRpc::Service")
+    if (addServicePrx)
     {
         _out << ", IceRpc.IServicePrx";
     }
@@ -2331,7 +2336,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                                return getUnqualified(getNamespace(c) + "." +
                                                      interfaceName(c).substr(1) + "Prx", ns);
                            });
-    if (p->scoped() != "::IceRpc::Service")
+
+    if (addServicePrx)
     {
         allBaseImpls.push_back("IceRpc.ServicePrx");
     }
@@ -2447,7 +2453,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "public override int GetHashCode() => Proxy.GetHashCode();";
 
     // Base interface methods
-    if (p->scoped() != "::IceRpc::Service")
+    if (addServicePrx)
     {
         // TODO: do better with the new parser
         _out << sp;
@@ -2476,6 +2482,34 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << nl << "IceRpc.Invocation? invocation = null,";
         _out << nl << "global::System.Threading.CancellationToken cancel = default) =>";
         _out << nl << "new IceRpc.ServicePrx(Proxy).IcePingAsync(invocation, cancel);";
+        _out.dec();
+    }
+
+    for (const auto& operation : p->allBaseOperations())
+    {
+        string opName = fixId(operationName(operation));
+        string asyncName = opName + "Async";
+
+        _out << sp;
+        _out << nl << "/// <inheritdoc/>";
+        _out << nl << "public " << returnTaskStr(operation, ns, false) << " " << asyncName << spar
+            << getInvocationParams(operation, ns, true) << epar << " =>";
+        _out.inc();
+        _out << nl << "new ";
+
+        InterfaceDefPtr baseInterface = InterfaceDefPtr::dynamicCast(operation->container());
+        string basePrxImpl = getUnqualified(getNamespace(baseInterface) + "." +
+                                            interfaceName(baseInterface).substr(1) + "Prx", ns);
+
+        _out << basePrxImpl << "(Proxy)." << asyncName << spar;
+
+        for (const auto& param : operation->params())
+        {
+            _out << paramName(param);
+        }
+        _out << getEscapedParamName(operation, "invocation");
+        _out << getEscapedParamName(operation, "cancel");
+        _out << epar << ";";
         _out.dec();
     }
 

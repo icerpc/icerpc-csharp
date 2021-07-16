@@ -747,6 +747,7 @@ public:
     InterfaceList bases() const;
     InterfaceList allBases() const;
     OperationList operations() const;
+    OperationList allBaseOperations() const; // the operations of the base interfaces, without duplicates
     OperationList allOperations() const;
     bool isA(const std::string&) const;
     bool inheritsMetadata(const std::string&) const;
