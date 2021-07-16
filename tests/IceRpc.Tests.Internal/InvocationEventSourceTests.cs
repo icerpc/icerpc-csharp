@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
+            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
+            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
+            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),
@@ -101,7 +101,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            var prx = IServicePrx.Parse("ice+tcp://localhost/service");
+            var prx = ServicePrx.Parse("ice+tcp://localhost/service");
             var request = new OutgoingRequest(prx,
                                               "ice_id",
                                               Payload.FromEmptyArgs(prx),

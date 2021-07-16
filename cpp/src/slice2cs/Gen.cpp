@@ -2111,7 +2111,7 @@ bool
 Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 {
     string name = p->name();
-    string ns = getNamespace(p);
+    const string ns = getNamespace(p);
     string prxInterface = interfaceName(p) + "Prx";
     string prxImpl = prxInterface.substr(1);
 
@@ -2234,11 +2234,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (params.size() == 1)
                 {
-                    _out << toTupleType(params, true) << " arg) =>";
+                    _out << toTupleType(params, ns, true) << " arg) =>";
                 }
                 else
                 {
-                    _out << "in " << toTupleType(params, true) << " args) =>";
+                    _out << "in " << toTupleType(params, ns, true) << " args) =>";
                 }
                 _out.inc();
                 if (params.size() == 1)
@@ -2283,7 +2283,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 string opName = fixId(operationName(operation));
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
-                _out << nl << "public static " << toTupleType(returns, false) << ' ' << opName;
+                _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
                 _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
@@ -2642,7 +2642,7 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestEncodeAction(const OperationPtr& o
     {
         _out << "(IceRpc.IceEncoder encoder, ";
         string inValue = params.size() > 1 ? "in " : "";
-        _out << inValue << toTupleType(params, true) << " value) =>";
+        _out << inValue << toTupleType(params, ns, true) << " value) =>";
         _out << sb;
         writeMarshal(operation, false);
         _out << eb;
@@ -2753,7 +2753,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>Decodes the argument" << (params.size() > 1 ? "s " : " ")
                      << "of operation " << propertyName << ".</summary>";
 
-                _out << nl << "public static " << toTupleType(params, false) << ' ' << fixId(operationName(operation));
+                _out << nl << "public static " << toTupleType(params, ns, false) << ' ' << fixId(operationName(operation));
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToArgs(";
@@ -2807,11 +2807,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (returns.size() == 1)
                 {
-                    _out << nl << toTupleType(returns, true) << " returnValue) =>";
+                    _out << nl << toTupleType(returns, ns, true) << " returnValue) =>";
                 }
                 else
                 {
-                    _out << nl << "in " << toTupleType(returns, true) << " returnValueTuple) =>";
+                    _out << nl << "in " << toTupleType(returns, ns, true) << " returnValueTuple) =>";
                 }
 
                 _out.inc();
@@ -2876,10 +2876,10 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "/// <summary>Constructs a new <see cref=\"" << name  << "\"/> instance that";
         _out << nl << "/// immediately marshals the return value of operation " << opName << ".</summary>";
         _out << nl << "public " << name << spar
-             << getNames(returnType, [](const auto& p)
-                                    {
-                                        return paramTypeStr(p) + " " + paramName(p);
-                                    })
+             << getNames(returnType, [ns](const auto& p)
+                                     {
+                                         return paramTypeStr(p, ns) + " " + paramName(p);
+                                     })
              << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"))
              << epar;
         _out << sb;
@@ -3136,7 +3136,7 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncodeAction(const Operation
     else
     {
         _out << "(IceRpc.IceEncoder encoder, ";
-        _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, true) << " value";
+        _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, ns, true) << " value";
         _out << ") =>";
         _out << sb;
         writeMarshal(operation, true);

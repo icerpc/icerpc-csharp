@@ -128,9 +128,9 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_SetProperty_ArgumentException()
         {
-            var prxIce1 = IServicePrx.Parse("hello:tcp -h localhost -p 10000");
+            var prxIce1 = ServicePrx.Parse("hello:tcp -h localhost -p 10000");
             Assert.AreEqual(Protocol.Ice1, prxIce1.Protocol);
-            var prxIce2 = IServicePrx.Parse("ice+tcp://host.zeroc.com/hello");
+            var prxIce2 = ServicePrx.Parse("ice+tcp://host.zeroc.com/hello");
             Assert.AreEqual(Protocol.Ice2, prxIce2.Protocol);
 
             // Endpoints protocol must match the proxy protocol
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp:ssl -h localhost -p 10000")]
         public void Proxy_Parse_ValidInputIce1Format(string str)
         {
-            var prx = IServicePrx.Parse(str);
+            var prx = ServicePrx.Parse(str);
             Assert.AreEqual(Protocol.Ice1, prx.Protocol);
             Assert.That(IServicePrx.TryParse(prx.ToString()!, invoker: null, out IServicePrx? prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
@@ -186,21 +186,21 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
-            var prx = IServicePrx.Parse(str);
+            var prx = ServicePrx.Parse(str);
 
             if (path != null)
             {
                 Assert.AreEqual(path, prx.Path);
             }
 
-            var prx2 = IServicePrx.Parse(prx.ToString()!);
+            var prx2 = ServicePrx.Parse(prx.ToString()!);
             Assert.AreEqual(prx, prx2); // round-trip works
 
             // Also try with non-default ToStringMode
-            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.ASCII));
+            prx2 = ServicePrx.Parse(prx.ToString(ToStringMode.ASCII));
             Assert.AreEqual(prx, prx2);
 
-            prx2 = IServicePrx.Parse(prx.ToString(ToStringMode.Compat));
+            prx2 = ServicePrx.Parse(prx.ToString(ToStringMode.Compat));
             Assert.AreEqual(prx, prx2);
         }
 
@@ -243,7 +243,7 @@ namespace IceRpc.Tests.Api
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
         public void Proxy_Parse_InvalidInput(string str)
         {
-            Assert.Throws<FormatException>(() => IServicePrx.Parse(str));
+            Assert.Throws<FormatException>(() => ServicePrx.Parse(str));
             Assert.That(IServicePrx.TryParse(str, invoker: null, out _), Is.False);
         }
 
@@ -271,7 +271,7 @@ namespace IceRpc.Tests.Api
         [TestCase("category/test", "test", "category")]
         public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
         {
-            var prx = IServicePrx.Parse(str);
+            var prx = ServicePrx.Parse(str);
             Assert.AreEqual(name, prx.GetIdentity().Name);
             Assert.AreEqual(category, prx.GetIdentity().Category);
             Assert.AreEqual("", prx.GetFacet());
@@ -281,9 +281,9 @@ namespace IceRpc.Tests.Api
         public void Proxy_Equals()
         {
             Assert.That(IServicePrx.Equals(null, null));
-            var prx = IServicePrx.Parse("ice+tcp://host.zeroc.com/identity");
+            var prx = ServicePrx.Parse("ice+tcp://host.zeroc.com/identity");
             Assert.That(IServicePrx.Equals(prx, prx));
-            Assert.That(IServicePrx.Equals(prx, IServicePrx.Parse("ice+tcp://host.zeroc.com/identity")));
+            Assert.That(IServicePrx.Equals(prx, ServicePrx.Parse("ice+tcp://host.zeroc.com/identity")));
             Assert.That(IServicePrx.Equals(null, prx), Is.False);
             Assert.That(IServicePrx.Equals(prx, null), Is.False);
         }
@@ -295,7 +295,7 @@ namespace IceRpc.Tests.Api
                   ":opaque -e 1.8 -t 100 -v ABCD")]
         public void Proxy_EndpointInformation(string prx)
         {
-            var p1 = IServicePrx.Parse(prx);
+            var p1 = ServicePrx.Parse(prx);
 
             Endpoint? tcpEndpoint = p1.Endpoint;
             Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
@@ -340,9 +340,9 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
         public void Proxy_HashCode(string proxyString)
         {
-            var prx1 = IServicePrx.Parse(proxyString);
+            var prx1 = ServicePrx.Parse(proxyString);
             IServicePrx prx2 = prx1.Clone();
-            var prx3 = IServicePrx.Parse(prx2.ToString()!);
+            var prx3 = ServicePrx.Parse(prx2.ToString()!);
 
             CheckGetHashCode(prx1, prx2);
             CheckGetHashCode(prx1, prx3);
@@ -449,12 +449,12 @@ namespace IceRpc.Tests.Api
         {
             string proxyString = "ice+tcp://localhost:10000/test";
 
-            var prx = IServicePrx.Parse(proxyString);
+            var prx = ServicePrx.Parse(proxyString);
 
             Assert.AreEqual("/test", prx.Path);
 
             string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+tcp://localhost";
-            prx = IServicePrx.Parse(complicated);
+            prx = ServicePrx.Parse(complicated);
 
             Assert.AreEqual(Encoding.V11, prx.Encoding);
             Endpoint altEndpoint = prx.AltEndpoints[0];

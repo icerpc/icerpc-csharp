@@ -46,7 +46,7 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             var encoder = new IceEncoder(encoding, _buffer);
 
-            var prx = IServicePrx.Parse(str);
+            var prx = ServicePrx.Parse(str);
             encoder.EncodeProxy(prx);
             ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 

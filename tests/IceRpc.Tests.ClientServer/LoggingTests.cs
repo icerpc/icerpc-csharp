@@ -44,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
                          Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
+                async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.ClientServer
                          Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
+                async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);

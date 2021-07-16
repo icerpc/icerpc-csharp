@@ -45,10 +45,10 @@ Slice::paramName(const MemberPtr& param, const string& prefix)
 }
 
 std::string
-Slice::paramTypeStr(const MemberPtr& param, bool readOnly)
+Slice::paramTypeStr(const MemberPtr& param, const string& ns, bool readOnly)
 {
     return CsGenerator::typeToString(param->type(),
-                                     getNamespace(InterfaceDefPtr::dynamicCast(param->operation()->container())),
+                                     ns,
                                      readOnly,
                                      true, // isParam
                                      param->stream());
@@ -479,7 +479,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
 }
 
 string
-Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
+Slice::returnTypeStr(const OperationPtr& op, const string& ns, bool dispatch)
 {
     InterfaceDefPtr interface = op->interface();
     auto returnValues = op->returnType();
@@ -491,16 +491,16 @@ Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
     else if (dispatch && op->hasMarshaledResult())
     {
         string name = getNamespace(interface) + "." + interfaceName(interface);
-        return getUnqualified(name, scope) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
+        return getUnqualified(name, ns) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
     }
     else if (returnValues.size() > 1)
     {
         // when dispatch is true, the result-type is read-only
-        return toTupleType(returnValues, dispatch);
+        return toTupleType(returnValues, ns, dispatch);
     }
     else
     {
-        return paramTypeStr(returnValues.front(), dispatch);
+        return paramTypeStr(returnValues.front(), ns, dispatch);
     }
 }
 
@@ -626,11 +626,11 @@ Slice::toTuple(const MemberList& params, const string& prefix)
 }
 
 std::string
-Slice::toTupleType(const MemberList& params, bool readOnly)
+Slice::toTupleType(const MemberList& params, const string& ns, bool readOnly)
 {
     if(params.size() == 1)
     {
-        return paramTypeStr(params.front(), readOnly);
+        return paramTypeStr(params.front(), ns, readOnly);
     }
     else
     {
@@ -648,7 +648,7 @@ Slice::toTupleType(const MemberList& params, bool readOnly)
                 os << ", ";
             }
 
-            os << paramTypeStr(param, readOnly) << " " << fieldName(param);
+            os << paramTypeStr(param, ns, readOnly) << " " << fieldName(param);
         }
         os << ")";
         return os.str();
