@@ -58,10 +58,10 @@ namespace IceRpc.Tests.ClientServer
                     return response;
                 }));
 
-            var greeter = IGreeterPrx.FromServer(server);
-            await using var connection = new Connection { RemoteEndpoint = greeter.Endpoint };
-            greeter.Connection = connection;
-            greeter.Invoker = pipeline;
+            var greeter = GreeterPrx.FromServer(server);
+            await using var connection = new Connection { RemoteEndpoint = greeter.Proxy.Endpoint };
+            greeter.Proxy.Connection = connection;
+            greeter.Proxy.Invoker = pipeline;
 
             var invocation = new Invocation
             {

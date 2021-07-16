@@ -36,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
                     invocationActivity = Activity.Current;
                     return next.InvokeAsync(request, cancel);
                 }));
-                prx.Invoker = pipeline;
+                prx.Proxy.Invoker = pipeline;
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
@@ -53,7 +53,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
                 var pipeline = new Pipeline();
                 var prx = GreeterPrx.FromConnection(connection);
-                prx.Invoker = pipeline;
+                prx.Proxy.Invoker = pipeline;
                 pipeline.Use(Interceptors.Telemetry);
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
@@ -229,7 +229,7 @@ namespace IceRpc.Tests.ClientServer
                 invocationActivity?.AddBaggage("TraceLevel", "Information");
                 return next.InvokeAsync(request, cancel);
             }));
-            prx.Invoker = pipeline;
+            prx.Proxy.Invoker = pipeline;
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();

@@ -24,28 +24,28 @@ namespace IceRpc.Tests.ClientServer
             _pool = new ConnectionPool();
             var pipeline = new Pipeline();
 
-            var indirect = IGreeterPrx.Parse(proxy, pipeline);
-            IGreeterPrx direct = SetupServer(indirect.Protocol, indirect.Path, pipeline);
-            Assert.That(direct.Endpoint, Is.Not.Null);
+            var indirect = GreeterPrx.Parse(proxy, pipeline);
+            GreeterPrx direct = SetupServer(indirect.Proxy.Protocol, indirect.Proxy.Path, pipeline);
+            Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
-            if (indirect.Endpoint is Endpoint locEndpoint)
+            if (indirect.Proxy.Endpoint is Endpoint locEndpoint)
             {
-                pipeline.Use(LocationResolver(indirect.Endpoint.Host, category: null, direct.Endpoint!),
+                pipeline.Use(LocationResolver(indirect.Proxy.Endpoint.Host, category: null, direct.Proxy.Endpoint!),
                              Interceptors.Binder(_pool));
             }
             else
             {
-                var identity = indirect.GetIdentity();
-                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Endpoint!),
+                var identity = indirect.Proxy.GetIdentity();
+                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!),
                                   Interceptors.Binder(_pool));
             }
 
             await indirect.SayHelloAsync();
-            Assert.That(indirect.Connection, Is.Not.Null);
+            Assert.That(indirect.Proxy.Connection, Is.Not.Null);
 
             foreach (string badProxy in badProxies)
             {
-                var badGreeter = IGreeterPrx.Parse(badProxy, pipeline);
+                var badGreeter = GreeterPrx.Parse(badProxy, pipeline);
                 Assert.ThrowsAsync<NoEndpointException>(async () => await badGreeter.SayHelloAsync());
             }
         }
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        private IGreeterPrx SetupServer(Protocol protocol, string path, IInvoker invoker)
+        private GreeterPrx SetupServer(Protocol protocol, string path, IInvoker invoker)
         {
             _server = new Server
             {
@@ -76,9 +76,9 @@ namespace IceRpc.Tests.ClientServer
             _server.Listen();
 
             // Need to create proxy after calling Listen; otherwise, the port number is still 0.
-            var greeter = IGreeterPrx.FromServer(_server, path);
-            greeter.Invoker = invoker;
-            Assert.AreNotEqual(0, greeter.Endpoint!.Port);
+            var greeter = GreeterPrx.FromServer(_server, path);
+            greeter.Proxy.Invoker = invoker;
+            Assert.AreNotEqual(0, greeter.Proxy.Endpoint!.Port);
             return greeter;
         }
 
