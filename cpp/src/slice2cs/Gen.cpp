@@ -2125,7 +2125,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     auto allBases = p->allBases();
     bool addServicePrx = none_of(allBases.begin(),
                                  allBases.end(),
-                                 [](auto b) { return b->scoped() == "::IceRpc::Service"; }) &&
+                                 [](const auto& b) { return b->scoped() == "::IceRpc::Service"; }) &&
                          p->scoped() != "::IceRpc::Service";
 
     auto baseList = p->bases();
@@ -2153,7 +2153,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     auto operationList = p->operations();
 
     // Generate abstract methods and documentation
-    for (auto operation : operationList)
+    for (const auto& operation : operationList)
     {
         string deprecateReason = getDeprecateReason(operation, true);
         string opName = fixId(operationName(operation));
@@ -2206,7 +2206,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             << "payload.</summary>";
         _out << nl << "public static class Request";
         _out << sb;
-        for (auto operation : operationList)
+        for (const auto& operation : operationList)
         {
             auto params = operation->params();
             if (params.size() > 0 && (params.size() > 1 || !params.back()->stream()))
@@ -2275,7 +2275,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static class Response";
         _out << sb;
-        for (auto operation : p->operations())
+        for (const auto& operation : p->operations())
         {
             auto returns = operation->returnType();
             if (returns.size() > 0 && (returns.size() > 1 || !returns.back()->stream()))
