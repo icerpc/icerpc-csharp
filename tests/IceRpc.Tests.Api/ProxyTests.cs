@@ -33,7 +33,7 @@ namespace IceRpc.Tests.Api
 
             string[] ids = new string[]
             {
-                "::Ice::Object",
+                "::IceRpc::Service",
                 "::IceRpc::Tests::Api::Greeter",
             };
             CollectionAssert.AreEqual(ids, await prx.IceIdsAsync());
