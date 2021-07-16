@@ -256,7 +256,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
         for (const auto& member : requiredMembers)
         {
-            _out << nl << paramTypeStr(member, false);
+            _out << nl << paramTypeStr(member, ns, false);
             _out << " ";
             writeUnmarshalCode(_out, member->type(), bitSequenceIndex, ns, paramName(member, "iceP_"));
         }
@@ -267,7 +267,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
         for (const auto &member : taggedMembers)
         {
-            _out << nl << paramTypeStr(member, false) << " ";
+            _out << nl << paramTypeStr(member, ns, false) << " ";
             writeTaggedUnmarshalCode(_out,
                                      OptionalPtr::dynamicCast(member->type()),
                                      ns,
@@ -278,7 +278,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
         if (streamParam)
         {
-            _out << nl << paramTypeStr(streamParam, false) << " " << paramName(streamParam, "iceP_");
+            _out << nl << paramTypeStr(streamParam, ns, false) << " " << paramName(streamParam, "iceP_");
             if (returnType)
             {
                 _out << " = streamReader!.ToByteStream();";
@@ -2938,9 +2938,9 @@ Slice::Gen::DispatcherVisitor::writeMethodDeclaration(const OperationPtr& operat
 
     _out << " " << name << spar;
     _out << getNames(operation->params(),
-                     [](const auto& param)
+                     [ns](const auto& param)
                      {
-                        return paramTypeStr(param, false) + " " + paramName(param);
+                        return paramTypeStr(param, ns, false) + " " + paramName(param);
                      });
     _out << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"));
     _out << ("global::System.Threading.CancellationToken " + getEscapedParamName(operation, "cancel"));
