@@ -23,13 +23,13 @@ namespace IceRpc
             CancellationToken cancel);
 
         // A per type cache of dispatch methods and type IDs.
-        private static ConcurrentDictionary<Type, (Dictionary<string, IceDMethod> Methods, SortedSet<string> TypeIds)> _cache =
+        private static ConcurrentDictionary<Type, (IReadOnlyDictionary<string, IceDMethod> Methods, IReadOnlySet<string> TypeIds)> _cache =
            new();
 
         // A dictionary of operation name to IceDMethod used by DispatchAsync implementation.
-        private readonly Dictionary<string, IceDMethod> _dispatchMethods;
+        private readonly IReadOnlyDictionary<string, IceDMethod> _dispatchMethods;
         // The service type IDs.
-        private readonly SortedSet<string> _typeIds;
+        private readonly IReadOnlySet<string> _typeIds;
 
         /// <summary>Constructs a new service.</summary>
         public Service()
