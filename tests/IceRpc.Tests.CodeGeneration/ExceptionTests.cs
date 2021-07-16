@@ -34,7 +34,7 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx = IExceptionOperationsPrx.FromConnection(_connection);
+            _prx = ExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

@@ -32,9 +32,9 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _basePrx = IMyInterfaceBasePrx.FromConnection(_connection);
-            _derivedPrx = IMyInterfaceDerivedPrx.FromConnection(_connection);
-            _mostDerivedPrx = IMyInterfaceMostDerivedPrx.FromConnection(_connection);
+            _basePrx = MyInterfaceBasePrx.FromConnection(_connection);
+            _derivedPrx = MyInterfaceDerivedPrx.FromConnection(_connection);
+            _mostDerivedPrx = MyInterfaceMostDerivedPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]

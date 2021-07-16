@@ -26,9 +26,9 @@ namespace IceRpc.Tests.Api
                 // HostName can't be empty
                 Assert.Throws<ArgumentException>(() => server.HostName = "");
 
-                Assert.DoesNotThrow(() => IServicePrx.FromServer(server, "/foo"));
+                Assert.DoesNotThrow(() => ServicePrx.FromServer(server, "/foo"));
                 server.Endpoint = null;
-                Assert.Throws<InvalidOperationException>(() => IServicePrx.FromServer(server, "/foo"));
+                Assert.Throws<InvalidOperationException>(() => ServicePrx.FromServer(server, "/foo"));
             }
 
             {
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.Api
                 };
 
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var proxy = IGreeterPrx.FromConnection(connection);
+                var proxy = GreeterPrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
@@ -73,7 +73,7 @@ namespace IceRpc.Tests.Api
                 };
 
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var proxy = IGreeterPrx.FromConnection(connection);
+                var proxy = GreeterPrx.FromConnection(connection);
                 server.Listen();
 
                 Assert.DoesNotThrow(() => router.Use(next => next)); // still fine
@@ -126,7 +126,7 @@ namespace IceRpc.Tests.Api
 
                 await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-                var prx = IServicePrx.FromConnection(connection);
+                var prx = ServicePrx.FromConnection(connection);
 
                 IDispatcher dispatcher = new Greeter();
 
@@ -242,7 +242,7 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var proxy = IGreeterPrx.FromConnection(connection);
+            var proxy = GreeterPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
             Task task = proxy.IcePingAsync(cancel: cancellationSource.Token);
@@ -287,7 +287,7 @@ namespace IceRpc.Tests.Api
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var proxy = IGreeterPrx.FromConnection(connection);
+            var proxy = GreeterPrx.FromConnection(connection);
 
             Task task = proxy.IcePingAsync();
             semaphore.Wait(); // Wait for the dispatch

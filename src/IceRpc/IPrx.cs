@@ -31,12 +31,6 @@ namespace IceRpc
     /// <summary>Provides extension methods for typed proxies.</summary>
     public static class PrxExtensions
     {
-        /// <summary>Creates a new typed proxy from this typed proxy.</summary>
-        /// <paramtype name="T">The type of the new proxy.</paramtype>
-        /// <param name="prx">The source typed proxy.</param>
-        /// <returns>A proxy with the specified type.</returns>
-        public static T As<T>(this IPrx prx) where T : IPrx, new() => new T { Proxy = prx.Proxy };
-
         /// <summary>Tests whether the target service implements the interface implemented by the T typed proxy. This
         /// method is a wrapper for <see cref="IServicePrx.IceIsAAsync"/>.</summary>
         /// <paramtype name="T">The type of the desired typed proxy.</paramtype>
@@ -44,46 +38,13 @@ namespace IceRpc
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A new typed proxy with the desired type, or null.</returns>
-        public static async Task<T?> CheckedCastAsync<T>(
+        public static async Task<T?> AsAsync<T>(
             this IPrx prx,
             Invocation? invocation = null,
             CancellationToken cancel = default) where T : struct, IPrx =>
             await new ServicePrx(prx.Proxy).IceIsAAsync(typeof(T).GetIceTypeId()!, invocation, cancel).
                 ConfigureAwait(false) ?
                 new T { Proxy = prx.Proxy } : null;
-
-        /// <summary>Creates a copy of this proxy with a new path and type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="prx">The proxy being copied.</param>
-        /// <param name="path">The new path.</param>
-        /// <returns>A proxy with the specified path and type.</returns>
-        public static T WithPath<T>(this IPrx prx, string path) where T : IPrx, new()
-        {
-            Proxy source = prx.Proxy;
-
-            if (path == source.Path && prx is T newPrx)
-            {
-                return newPrx;
-            }
-
-            var newProxy = Proxy.FromPath(path, source.Protocol);
-            if (newProxy.Protocol == Protocol.Ice1)
-            {
-                newProxy.Facet = source.GetFacet();
-                // clear cached connection of well-known proxy
-                newProxy.Connection = source.Endpoint == null ? null : source.Connection;
-            }
-            else
-            {
-                newProxy.Connection = source.Connection;
-            }
-
-            newProxy.AltEndpoints = source.AltEndpoints;
-            newProxy.Encoding = source.Encoding;
-            newProxy.Endpoint = source.Endpoint;
-            newProxy.Invoker = source.Invoker;
-            return new T { Proxy = newProxy };
-        }
     }
 
     /// <summary>Provides extension methods for IceDecoder.</summary>

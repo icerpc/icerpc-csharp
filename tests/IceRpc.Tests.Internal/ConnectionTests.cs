@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
             {
                 get
                 {
-                    var proxy = IServicePrx.FromConnection(Client);
+                    var proxy = ServicePrx.FromConnection(Client);
                     var pipeline = new Pipeline();
                     pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory));
                     proxy.Invoker = pipeline;

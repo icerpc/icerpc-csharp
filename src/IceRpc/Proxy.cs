@@ -590,5 +590,30 @@ namespace IceRpc
                 }
             }
         }
+
+        /// <summary>Creates a copy of this proxy with a new path.</summary>
+        /// <param name="proxy">The proxy being copied.</param>
+        /// <param name="path">The new path.</param>
+        /// <returns>A proxy with the specified path.</returns>
+        public static Proxy WithPath(this Proxy proxy, string path)
+        {
+            var newProxy = Proxy.FromPath(path, proxy.Protocol);
+            if (proxy.Protocol == Protocol.Ice1)
+            {
+                newProxy.Facet = proxy.GetFacet();
+                // clear cached connection of well-known proxy
+                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
+            }
+            else
+            {
+                newProxy.Connection = proxy.Connection;
+            }
+
+            newProxy.AltEndpoints = proxy.AltEndpoints;
+            newProxy.Encoding = proxy.Encoding;
+            newProxy.Endpoint = proxy.Endpoint;
+            newProxy.Invoker = proxy.Invoker;
+            return newProxy;
+        }
     }
 }

@@ -75,8 +75,8 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
 
-            _prx = IClassOperationsPrx.FromConnection(_connection);
-            _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromConnection(_connection);
+            _prx = ClassOperationsPrx.FromConnection(_connection);
+            _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]

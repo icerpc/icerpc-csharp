@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Encoding
             // Create an endpointless proxy
             var endpointLess = IServicePrx.FromPath("/foo", _server.Protocol);
 
-            var regular = IServicePrx.FromConnection(_connection, "/bar");
+            var regular = ServicePrx.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
             var encoder = new IceEncoder(encoding, _buffer);

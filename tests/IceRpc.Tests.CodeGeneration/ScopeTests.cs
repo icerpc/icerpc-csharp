@@ -40,10 +40,10 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx1 = Scope.IOperationsPrx.FromConnection(_connection);
-            _prx2 = Scope.Inner.IOperationsPrx.FromConnection(_connection);
-            _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromConnection(_connection);
-            _prx4 = Scope.Inner.Test.Inner2.IOperationsPrx.FromConnection(_connection);
+            _prx1 = Scope.OperationsPrx.FromConnection(_connection);
+            _prx2 = Scope.Inner.OperationsPrx.FromConnection(_connection);
+            _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(_connection);
+            _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]

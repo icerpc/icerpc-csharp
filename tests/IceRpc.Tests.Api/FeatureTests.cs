@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IFeatureTestPrx.FromConnection(connection);
+            var prx = FeatureTestPrx.FromConnection(connection);
 
             Multiplier multiplier = 10;
 
@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Api
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            prx.Invoker = pipeline;
+            prx.Proxy.Invoker = pipeline;
 
             int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);

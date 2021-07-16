@@ -32,7 +32,7 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx = IOptionalOperationsPrx.FromConnection(_connection);
+            _prx = OptionalOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]

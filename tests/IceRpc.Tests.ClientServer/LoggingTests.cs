@@ -137,7 +137,7 @@ namespace IceRpc.Tests.ClientServer
                 RemoteEndpoint = server.ProxyEndpoint,
             };
 
-            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.ClientServer
                 LoggerFactory = loggerFactory,
                 RemoteEndpoint = server.ProxyEndpoint,
             };
-            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();

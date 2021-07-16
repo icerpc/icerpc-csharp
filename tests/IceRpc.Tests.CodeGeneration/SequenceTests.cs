@@ -29,7 +29,7 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = ISequenceOperationsPrx.FromConnection(_connection);
+            _prx = SequenceOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
 

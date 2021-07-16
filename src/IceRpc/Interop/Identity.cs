@@ -185,11 +185,6 @@ namespace IceRpc.Interop
         /// <returns>The identity.</returns>
         public static Identity GetIdentity(this Proxy proxy) => proxy.Identity;
 
-        /// <summary>Returns the identity of this typed proxy.</summary>
-        /// <param name="prx">The proxy.</param>
-        /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this IPrx prx) => prx.Proxy.Identity;
-
         /// <summary>Returns the identity carried by this incoming request.</summary>
         /// <param name="request">The incoming request.</param>
         /// <returns>The identity.</returns>
