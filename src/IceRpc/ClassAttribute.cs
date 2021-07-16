@@ -33,7 +33,7 @@ namespace IceRpc
         public Type Type { get; }
 
         /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
-        internal ClassFactory ClassFactory
+        internal Func<AnyClass> ClassFactory
         {
             get
             {
@@ -51,8 +51,7 @@ namespace IceRpc
                         throw new InvalidOperationException($"cannot get unmarshal constructor for '{Type.FullName}'");
                     }
 
-                    _classFactory = (ClassFactory)Expression.Lambda(
-                        typeof(ClassFactory),
+                    _classFactory = Expression.Lambda<Func<AnyClass>>(
                         Expression.New(constructor, Expression.Constant(null, typeof(IceDecoder)))).Compile();
                 }
                 return _classFactory;
@@ -60,7 +59,7 @@ namespace IceRpc
         }
 
         /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
-        internal RemoteExceptionFactory ExceptionFactory
+        internal Func<string?, RemoteExceptionOrigin, RemoteException> ExceptionFactory
         {
             get
             {
@@ -83,8 +82,7 @@ namespace IceRpc
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
 
-                    _exceptionFactory = (RemoteExceptionFactory)Expression.Lambda(
-                        typeof(RemoteExceptionFactory),
+                    _exceptionFactory = Expression.Lambda<Func<string?, RemoteExceptionOrigin, RemoteException>>(
                         Expression.New(constructor, messageParam, originParam),
                         messageParam,
                         originParam).Compile();
@@ -93,8 +91,8 @@ namespace IceRpc
             }
         }
 
-        private ClassFactory? _classFactory;
-        private RemoteExceptionFactory? _exceptionFactory;
+        private Func<AnyClass>? _classFactory;
+        private Func<string?, RemoteExceptionOrigin, RemoteException>? _exceptionFactory;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
         /// <param name="type">The type of the concrete class to register.</param>

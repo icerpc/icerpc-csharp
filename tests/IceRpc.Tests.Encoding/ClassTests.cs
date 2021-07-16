@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using NUnit.Framework;
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,14 +28,20 @@ namespace IceRpc.Tests.Encoding
             router.Map<ICompactFormatOperations>(new CompactFormatOperations());
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
             _server = new Server()
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.ProxyEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
 
             _sliced = ISlicedFormatOperationsPrx.FromConnection(_connection);
             _compact = ICompactFormatOperationsPrx.FromConnection(_connection);
@@ -190,14 +197,17 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
+
             await using var server = new Server
             {
                 ConnectionOptions = new ServerConnectionOptions()
                 {
+                    ClassFactory = classFactory,
                     ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
                 Dispatcher = new ClassGraphOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
             };
             server.Listen();
 
@@ -206,6 +216,7 @@ namespace IceRpc.Tests.Encoding
                 RemoteEndpoint = server.ProxyEndpoint,
                 Options = new ClientConnectionOptions
                 {
+                    ClassFactory = classFactory,
                     ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }
             };
@@ -233,7 +244,7 @@ namespace IceRpc.Tests.Encoding
             }
         }
 
-        class CompactFormatOperations : ICompactFormatOperations
+        class CompactFormatOperations : Service, ICompactFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -241,7 +252,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class SlicedFormatOperations : ISlicedFormatOperations
+        class SlicedFormatOperations : Service, ISlicedFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -249,7 +260,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class ClassFormatOperations : IClassFormatOperations
+        class ClassFormatOperations : Service, IClassFormatOperations
         {
             public ValueTask<MyClassCustomFormat> OpMyClassAsync(
                 MyClassCustomFormat p1,
@@ -262,7 +273,7 @@ namespace IceRpc.Tests.Encoding
                 CancellationToken cancel) => new(p1);
         }
 
-        class ClassGraphOperations : IClassGraphOperations
+        class ClassGraphOperations : Service, IClassGraphOperations
         {
             public ValueTask<Recursive> ReceiveClassGraphAsync(int size, Dispatch dispatch, CancellationToken cancel) =>
                 new(CreateClassGraph(size));

@@ -70,12 +70,11 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task InterfaceInheritance_IceIdAsync()
+        public void InterfaceInheritance_IceId()
         {
-            Assert.AreEqual("::IceRpc::Tests::CodeGeneration::MyInterfaceBase", await _basePrx.IceIdAsync());
-            Assert.AreEqual("::IceRpc::Tests::CodeGeneration::MyInterfaceDerived", await _derivedPrx.IceIdAsync());
-            Assert.AreEqual("::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived",
-                            await _mostDerivedPrx.IceIdAsync());
+            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _basePrx.IceIdAsync());
+            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _derivedPrx.IceIdAsync());
+            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _mostDerivedPrx.IceIdAsync());
         }
 
         [Test]
@@ -136,7 +135,7 @@ namespace IceRpc.Tests.CodeGeneration
                         Is.True);
         }
 
-        public class Base : IMyInterfaceBase
+        public class Base : Service, IMyInterfaceBase
         {
             public ValueTask OpBaseAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

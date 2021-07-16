@@ -4,6 +4,7 @@ using NUnit.Framework;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,7 +74,14 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             router.Map<ICompressTest>(new CompressTest());
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = server.ProxyEndpoint,
+                Options = new ClientConnectionOptions()
+                {
+                    ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
+                }
+            };
             var prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
@@ -210,7 +218,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(incomingRequest!.StreamDecompressor, Is.Not.Null);
         }
 
-        internal class CompressTest : ICompressTest
+        internal class CompressTest : Service, ICompressTest
         {
             public ValueTask<ReadOnlyMemory<byte>> OpCompressArgsAndReturnAsync(
                 byte[] p1,

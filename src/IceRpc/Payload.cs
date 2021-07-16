@@ -83,19 +83,19 @@ namespace IceRpc
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
         /// method when the operation returns a tuple.</summary>
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
-        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="payloadEncoding">The payload encoding.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
         /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the payload.</param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
-            Dispatch dispatch,
+            Encoding payloadEncoding,
             in T returnValueTuple,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var encoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
-            if (dispatch.Encoding == Encoding.V20)
+            var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
+            if (payloadEncoding == Encoding.V20)
             {
                 encoder.Encode(CompressionFormat.NotCompressed);
             }
@@ -132,20 +132,20 @@ namespace IceRpc
         /// <summary>Creates the payload of a response from the request's dispatch and return value. Use this method
         /// when the operation returns a single value.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="payloadEncoding">The payload encoding.</param>
         /// <param name="returnValue">The return value to write into the payload.</param>
         /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the payload.
         /// </param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
-            Dispatch dispatch,
+            Encoding payloadEncoding,
             T returnValue,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
-            var encoder = new IceEncoder(dispatch.Encoding, classFormat: classFormat);
-            if (dispatch.Encoding == Encoding.V20)
+            var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
+            if (payloadEncoding == Encoding.V20)
             {
                 encoder.Encode(CompressionFormat.NotCompressed);
             }
@@ -191,7 +191,12 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(payload, dispatch.Encoding, dispatch.Connection, dispatch.ProxyInvoker);
+            var decoder = new IceDecoder(
+                payload,
+                dispatch.Encoding,
+                dispatch.Connection,
+                dispatch.ProxyInvoker,
+                dispatch.Connection?.Options?.ClassFactory);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -225,7 +230,12 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            var decoder = new IceDecoder(
+                payload,
+                payloadEncoding,
+                connection,
+                invoker,
+                connection?.Options?.ClassFactory);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -307,7 +317,12 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var decoder = new IceDecoder(payload, payloadEncoding, connection, invoker);
+            var decoder = new IceDecoder(
+                payload,
+                payloadEncoding,
+                connection,
+                invoker,
+                connection?.Options?.ClassFactory);
 
             if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.V11)
             {

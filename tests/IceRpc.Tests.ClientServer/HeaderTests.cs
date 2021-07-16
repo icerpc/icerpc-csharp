@@ -77,7 +77,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        internal class Greeter : IGreeter
+        internal class Greeter : Service, IGreeter
         {
             private readonly string _expectedValue;
 

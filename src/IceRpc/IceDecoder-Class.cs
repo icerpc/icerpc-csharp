@@ -9,14 +9,6 @@ using System.Globalization;
 
 namespace IceRpc
 {
-    /// <summary>A delegate used to create class instances during unmarshaling.</summary>
-    /// <returns>A new class instance.</returns>
-    internal delegate AnyClass ClassFactory();
-
-    /// <summary>A delegate used to create remote exception instances during unmarshaling.</summary>
-    /// <returns>A new remote exception instance.</returns>
-    internal delegate RemoteException RemoteExceptionFactory(string? message, RemoteExceptionOrigin origin);
-
     // This partial class provides the class/exception unmarshaling logic.
     public sealed partial class IceDecoder
     {
@@ -91,13 +83,8 @@ namespace IceRpc
 
                     DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                    if (FindRemoteExceptionFactory(typeId) is RemoteExceptionFactory factory)
-                    {
-                        // The 1.1 encoding does not carry the error message or origin so errorMessage is always null
-                        // and origin is always Unknown.
-                        remoteEx = factory(errorMessage, origin);
-                    }
-                    else if (SkipSlice(typeId)) // Slice off what we don't understand.
+                    remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+                    if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                     {
                         break;
                     }
@@ -124,11 +111,10 @@ namespace IceRpc
                     }
                     DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                    RemoteExceptionFactory? factory = FindRemoteExceptionFactory(typeId);
-                    if (factory != null)
+                    remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+                    if (remoteEx != null)
                     {
-                        remoteEx = factory(errorMessage, origin);
-                        break; // foreach
+                        break; // Break foreach loop
                     }
                     else if (SkipSlice(typeId))
                     {
@@ -166,48 +152,6 @@ namespace IceRpc
                 throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
                     }' but expected instance of type '{typeof(T).FullName}'");
             }
-        }
-
-        // Returns the ClassFactory associated with this Slice type ID, null if not found.
-        private ClassFactory? FindClassFactory(string typeId)
-        {
-            // We delay calling Runtime.TypeIdClassFactoryDictionary until required, this call can trigger
-            // the loading of all class factories.
-            _typeIdClassFactories ??= Runtime.TypeIdClassFactoryDictionary;
-            Debug.Assert(_typeIdClassFactories != null);
-            if (_typeIdClassFactories.TryGetValue(typeId, out Lazy<ClassFactory>? classFactory))
-            {
-                return classFactory.Value;
-            }
-            return null;
-        }
-
-        // Returns the ClassFactory associated with this Slice compact type ID, null if not found.
-        private ClassFactory? FindClassFactory(int compactId)
-        {
-            // We delay calling Runtime.CompactTypeIdClassFactoryDictionary until required, this call can trigger
-            // the loading of all class factories.
-            _compactTypeIdClassFactories ??= Runtime.CompactTypeIdClassFactoryDictionary;
-            if (_compactTypeIdClassFactories.TryGetValue(compactId, out Lazy<ClassFactory>? classFactory))
-            {
-                return classFactory.Value;
-            }
-            return null;
-        }
-
-        // Returns the RemoteExceptionFactory associated with this Slice type ID, null if not found.
-        private RemoteExceptionFactory? FindRemoteExceptionFactory(string typeId)
-        {
-            // We delay calling Runtime.TypeIdRemoteExceptionFactoryDictionary until required, this call can trigger
-            // the loading of all class factories.
-            _typeIdRemoteExceptionFactories ??= Runtime.TypeIdRemoteExceptionFactoryDictionary;
-            if (_typeIdRemoteExceptionFactories.TryGetValue(
-                typeId,
-                out Lazy<RemoteExceptionFactory>? remoteExceptionFactory))
-            {
-                return remoteExceptionFactory.Value;
-            }
-            return null;
         }
 
         /// <summary>Decodes a class instance from the buffer.</summary>
@@ -417,22 +361,16 @@ namespace IceRpc
 
                     // We cannot decode the indirection table at this point as it may reference the new instance that is
                     // not created yet.
-
-                    ClassFactory? factory = null;
                     if (typeId != null)
                     {
-                        factory = FindClassFactory(typeId);
+                        instance = _classFactory.CreateClassInstance(typeId);
                     }
                     else if (compactId is int compactIdValue)
                     {
-                        factory = FindClassFactory(compactIdValue);
+                        instance = _classFactory.CreateClassInstance(compactIdValue);
                     }
 
-                    if (factory != null)
-                    {
-                        instance = factory();
-                    }
-                    else if (SkipSlice(typeId, compactId)) // Slice off what we don't understand.
+                    if (instance == null && SkipSlice(typeId, compactId)) // Slice off what we don't understand.
                     {
                         instance = new UnknownSlicedClass();
                         // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.
@@ -481,9 +419,9 @@ namespace IceRpc
                     int skipCount = 0;
                     foreach (string typeId in allTypeIds)
                     {
-                        if (FindClassFactory(typeId) is ClassFactory factory)
+                        instance = _classFactory.CreateClassInstance(typeId);
+                        if (instance != null)
                         {
-                            instance = factory();
                             break; // foreach
                         }
                         else
@@ -519,9 +457,9 @@ namespace IceRpc
                 else if (formalTypeId != null)
                 {
                     // received null and formalTypeId is not null, apply formal type optimization.
-                    if (FindClassFactory(formalTypeId) is ClassFactory factory)
+                    instance = _classFactory.CreateClassInstance(formalTypeId);
+                    if (instance != null)
                     {
-                        instance = factory();
                         _instanceMap.Add(instance);
                         DecodeIndirectionTableIntoCurrent();
                         // Nothing to skip

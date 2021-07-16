@@ -153,6 +153,10 @@ namespace IceRpc
                     nameof(value));
         }
 
+        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
+        /// </summary>
+        public IClassFactory? ClassFactory { get; set; }
+
         /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
         /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
         /// <value>The maximum depth for a graph of Slice class instances to unmarshal.</value>
@@ -298,7 +302,7 @@ namespace IceRpc
                 throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
         }
 
-        internal static ClientConnectionOptions Default = new();
+        internal static ServerConnectionOptions Default = new();
 
         private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
         private SslServerAuthenticationOptions? _authenticationOptions;

@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -45,16 +46,34 @@ namespace IceRpc.Tests.CodeGeneration
         {
             var router = new Router();
             router.Map<IClassOperations>(new ClassOperations());
-            router.Map<IClassOperationsUnexpectedClass>(new ClassOperationsUnexpectedClass());
+            router.Map<IClassOperationsUnexpectedClass>(
+                new InlineDispatcher(
+                    (request, cancel) =>
+                    {
+                        var response = new OutgoingResponse(
+                            request,
+                            Payload.FromSingleReturnValue(
+                                request.PayloadEncoding,
+                                new MyClassAlsoEmpty(),
+                                (encoder, ae) => encoder.EncodeClass(ae, null)), null);
+                        return new(response);
+                    }));
+
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
 
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.ProxyEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
 
             _prx = IClassOperationsPrx.FromConnection(_connection);
             _prxUnexpectedClass = IClassOperationsUnexpectedClassPrx.FromConnection(_connection);
@@ -254,7 +273,7 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class ClassOperations : IClassOperations
+        public class ClassOperations : Service, IClassOperations
         {
             private readonly MyClassB _b1;
             private readonly MyClassB _b2;
@@ -354,17 +373,6 @@ namespace IceRpc.Tests.CodeGeneration
                                              new MyClassA1("a2"),
                                              new MyClassA1("a3"),
                                              new MyClassA1("a4"));
-        }
-
-        public class ClassOperationsUnexpectedClass : IService
-        {
-            public ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, RpcStreamWriter?)> DispatchAsync(
-                ReadOnlyMemory<byte> payload,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new((IceRpc.Payload.FromSingleReturnValue(dispatch,
-                                                          new MyClassAlsoEmpty(),
-                                                          (encoder, ae) => encoder.EncodeClass(ae, null)), null));
         }
     }
 }

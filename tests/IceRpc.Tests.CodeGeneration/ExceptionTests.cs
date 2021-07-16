@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,13 +20,20 @@ namespace IceRpc.Tests.CodeGeneration
 
         public Exception(Protocol protocol)
         {
+            var classFactory = new ClassFactory(new Assembly[] { typeof(Exception).Assembly });
+
             _server = new Server
             {
                 Dispatcher = new ExceptionOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.ProxyEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
             _prx = IExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Protocol);
         }
@@ -79,7 +87,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(0, b.M1);
         }
 
-        public class ExceptionOperations : IExceptionOperations
+        public class ExceptionOperations : Service, IExceptionOperations
         {
             public ValueTask ThrowAAsync(int a, Dispatch dispatch, CancellationToken cancel) => throw new MyExceptionA(a);
             public ValueTask ThrowAorBAsync(int a, Dispatch dispatch, CancellationToken cancel)

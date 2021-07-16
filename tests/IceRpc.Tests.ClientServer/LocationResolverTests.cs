@@ -109,7 +109,7 @@ namespace IceRpc.Tests.ClientServer
                     return next.InvokeAsync(request, cancel);
                 });
 
-        private class Greeter : IGreeter
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
