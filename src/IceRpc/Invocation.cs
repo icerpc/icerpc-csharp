@@ -42,11 +42,10 @@ namespace IceRpc
         /// <summary>Gets or sets the timeout of this invocation. The conversion of this invocation into an
         /// <see cref="OutgoingRequest"/> creates a deadline from this timeout when <see cref="Deadline"/> is null or
         /// set to <see cref="DateTime.MaxValue"/>.</summary>
-        /// <value>The timeout of this invocation. Its default value is <see cref="Runtime.DefaultInvocationTimeout"/>.
-        /// </value>
-        public TimeSpan Timeout
+        /// <value>The timeout of this invocation.</value>
+        public TimeSpan? Timeout
         {
-            get => _timeout ?? Runtime.DefaultInvocationTimeout;
+            get => _timeout;
             set => _timeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan ? value :
                 throw new ArgumentException($"{nameof(Timeout)} must be greater than 0", nameof(Timeout));
         }

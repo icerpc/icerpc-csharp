@@ -19,7 +19,7 @@ namespace IceRpc
 
             return next => new InlineInvoker(async (request, cancel) =>
                 {
-                    if (timeout == Timeout.InfiniteTimeSpan)
+                    if (request.Deadline == DateTime.MaxValue)
                     {
                         return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
                     }
