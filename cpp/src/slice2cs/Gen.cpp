@@ -2122,12 +2122,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     emitCustomAttributes(p);
     _out << nl << "public partial interface " << prxInterface;
 
-    auto baseList = p->bases();
-    bool addServicePrx = none_of(baseList.begin(),
-                                 baseList.end(),
+    auto allBases = p->allBases();
+    bool addServicePrx = none_of(allBases.begin(),
+                                 allBases.end(),
                                  [](auto b) { return b->scoped() == "::IceRpc::Service"; }) &&
                          p->scoped() != "::IceRpc::Service";
 
+    auto baseList = p->bases();
     if (!baseList.empty())
     {
         _out << " : ";
@@ -2316,7 +2317,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
         << prxImpl << "));";
-    _out << sp;
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode "
          << "<see cref=\"" << prxImpl << "\"/>.</summary>";

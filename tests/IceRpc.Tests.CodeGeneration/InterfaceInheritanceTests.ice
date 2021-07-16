@@ -4,6 +4,8 @@
 
 [[suppress-warning(reserved-identifier)]]
 
+#include <IceRpc/Service.ice>
+
 module IceRpc::Tests::CodeGeneration
 {
     interface MyInterfaceBase
@@ -11,7 +13,7 @@ module IceRpc::Tests::CodeGeneration
         void opBase();
     }
 
-    interface MyInterfaceDerived : MyInterfaceBase
+    interface MyInterfaceDerived : MyInterfaceBase, Service
     {
         void opDerived();
     }
