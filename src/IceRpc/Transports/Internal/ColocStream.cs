@@ -277,6 +277,12 @@ namespace IceRpc.Transports.Internal
                 endStream: frame.StreamWriter == null,
                 cancel).ConfigureAwait(false);
 
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+            _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+            _ = _connection.SendFrameAsync(this, frame: _stopSending, endStream: false, default).AsTask();
+
         private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {
             (object frameObject, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);

@@ -14,15 +14,6 @@ namespace IceRpc.Transports.Internal
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private readonly Ice1Connection _connection;
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            // Abort the receive call waiting on WaitAsync().
-            SetException(new RpcStreamAbortedException(errorCode));
-            TrySetReadCompleted();
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
-
         public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
             throw new NotImplementedException();
@@ -138,5 +129,9 @@ namespace IceRpc.Transports.Internal
 
             TrySetWriteCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
     }
 }

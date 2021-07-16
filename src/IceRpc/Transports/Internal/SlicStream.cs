@@ -44,44 +44,6 @@ namespace IceRpc.Transports.Internal
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            // It's important to set the exception before completing the reads because ReceiveAsync expects the
-            // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
-
-            if (TrySetReadCompleted(shutdown: false))
-            {
-                // Notify the peer of the abort of the read side
-                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.PrepareAndSendFrameAsync(
-                        SlicDefinitions.FrameType.StreamStopSending,
-                        encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
-                        frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
-                        this);
-                }
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-            {
-                _ = _connection.PrepareAndSendFrameAsync(
-                    SlicDefinitions.FrameType.StreamReset,
-                    encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
-                    frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                    this);
-            }
-
-            TrySetWriteCompleted();
-        }
-
         public override void EnableReceiveFlowControl()
         {
             bool signaled;
@@ -516,5 +478,19 @@ namespace IceRpc.Transports.Internal
 
             TrySetReadCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamReset,
+                encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
+                this);
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamStopSending,
+                encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                this);
     }
 }

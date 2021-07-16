@@ -48,6 +48,66 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
 
+        public override void AbortRead(RpcStreamError errorCode)
+        {
+            // It's important to set the exception before completing the reads because ReceiveAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
+            if (TrySetReadCompleted(shutdown: false))
+            {
+                // Notify the peer of the abort of the read side
+                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+                {
+                    _ = SendStopSendingFrameAndShutdownAsync();
+                }
+                else
+                {
+                    // Shutdown the stream if not already done.
+                    TryShutdown();
+                }
+            }
+
+            async Task SendStopSendingFrameAndShutdownAsync()
+            {
+                try
+                {
+                    await SendStopSendingFrameAsync(errorCode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TryShutdown();
+            }
+        }
+
+        public override void AbortWrite(RpcStreamError errorCode)
+        {
+            // Notify the peer of the abort if the stream or connection is not aborted already.
+            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            {
+                _ = SendResetFrameAndCompleteWritesAsync();
+            }
+            else
+            {
+                TrySetWriteCompleted();
+            }
+
+            async Task SendResetFrameAndCompleteWritesAsync()
+            {
+                try
+                {
+                    await SendResetFrameAsync(errorCode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TrySetWriteCompleted();
+            }
+        }
+
         protected SignaledStream(MultiStreamConnection connection, long streamId)
             : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;
 
@@ -205,6 +265,10 @@ namespace IceRpc.Transports.Internal
             }
             return new ValueTask<T>(this, _source.Version);
         }
+
+        private protected abstract Task SendResetFrameAsync(RpcStreamError errorCode);
+
+        private protected abstract Task SendStopSendingFrameAsync(RpcStreamError errorCode);
 
         T IValueTaskSource<T>.GetResult(short token)
         {
