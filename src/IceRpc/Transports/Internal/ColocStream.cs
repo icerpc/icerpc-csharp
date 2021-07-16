@@ -16,6 +16,7 @@ namespace IceRpc.Transports.Internal
     internal class ColocStream : SignaledStream<(object, bool)>
     {
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
+        private bool _receivedEndStream;
         private (int Segment, int Offset) _receivedPos;
         private readonly ColocConnection _connection;
         private SemaphoreSlim? _sendSemaphore;
@@ -83,48 +84,42 @@ namespace IceRpc.Transports.Internal
             {
                 if (ReadCompleted)
                 {
-                    throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                    // Graceful shutdown is supposed to wait for the stream completion.
+                    Debug.Assert(
+                        _receivedEndStream ||
+                        (AbortException is RpcStreamAbortedException ex &&
+                         (ex.ErrorCode != RpcStreamError.ConnectionShutdown ||
+                          ex.ErrorCode != RpcStreamError.ConnectionShutdownByPeer)));
                 }
 
                 (object frame, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
-
                 if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
                 {
                     _receivedBuffers = buffers;
                     _receivedPos = (0, 0);
+                    _receivedEndStream = endStream;
                 }
                 else
                 {
                     Debug.Assert(false, $"unexpected frame {frame}");
                 }
+            }
 
-                if (_receiveSemaphore == null)
+            try
+            {
+                if (_receivedBuffers.Length == 0)
                 {
-                    if (endStream)
-                    {
-                        TrySetReadCompleted();
-                    }
-                    _connection.FinishedReceivedFrame();
+                    return 0;
                 }
-            }
 
-            if (_receivedBuffers.Length == 0)
-            {
-                return 0;
-            }
-
-            Debug.Assert(_receivedPos.Segment < _receivedBuffers.Length);
-            return ReceiveFromBuffer(buffer);
-
-            int ReceiveFromBuffer(Memory<byte> buffer)
-            {
+                Debug.Assert(_receivedPos.Segment < _receivedBuffers.Length);
                 int offset = 0;
                 while (offset < buffer.Length)
                 {
                     Debug.Assert(_receivedPos.Offset <= _receivedBuffers.Span[_receivedPos.Segment].Length);
 
                     ReadOnlyMemory<byte> receiveBuffer =
-                         _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
+                        _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
                     int remaining = buffer.Length - offset;
                     if (remaining < receiveBuffer.Length)
                     {
@@ -144,8 +139,13 @@ namespace IceRpc.Transports.Internal
                         _receivedPos.Offset = 0;
                     }
                 }
-
-                // If all the buffered data has been consumed, release the semaphore to let the sender send more data.
+                return offset;
+            }
+            finally
+            {
+                // If all the buffered data has been consumed, release the semaphore to let the sender send
+                // more data and if the end stream is reached, we complete the reads to eventually shutdown
+                // the stream.
                 if (_receivedPos.Segment == _receivedBuffers.Length)
                 {
                     try
@@ -154,9 +154,14 @@ namespace IceRpc.Transports.Internal
                     }
                     catch (ObjectDisposedException)
                     {
+                        // Ignore, expected if the sender called Disposed on the semaphore.
+                    }
+
+                    if (_receivedEndStream)
+                    {
+                        TrySetReadCompleted();
                     }
                 }
-                return offset;
             }
         }
 
@@ -213,31 +218,21 @@ namespace IceRpc.Transports.Internal
                 CancelDispatchSource?.Cancel();
 
                 TrySetReadCompleted();
-                _connection.FinishedReceivedFrame();
             }
             else if (frame == _stopSending)
             {
-                // Stop sending frame.
+                // Stop sending frame, complete the writes to stop sending data.
                 TrySetWriteCompleted();
-                _connection.FinishedReceivedFrame();
             }
             else if (frame is SemaphoreSlim semaphore)
             {
+                // Flow control semaphore to ensure the sender waits for the data to be received before sending
+                // more data.
                 _receiveSemaphore = semaphore;
-                _connection.FinishedReceivedFrame();
-            }
-            else if (_receiveSemaphore != null && frame is ReadOnlyMemory<ReadOnlyMemory<byte>>)
-            {
-                Debug.Assert(_receivedPos.Segment == _receivedBuffers.Length);
-                if(endStream)
-                {
-                    TrySetReadCompleted();
-                }
-                _connection.FinishedReceivedFrame();
-                QueueResult((frame, endStream));
             }
             else
             {
+                // Stream frame, queue it for ReceiveAsync / ReceivedFrameAsync.
                 Debug.Assert(frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>);
                 QueueResult((frame, endStream));
             }
@@ -295,16 +290,10 @@ namespace IceRpc.Transports.Internal
         private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {
             (object frameObject, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (ReadCompleted || (endStream && !TrySetReadCompleted()))
+            if (endStream)
             {
-                _connection.FinishedReceivedFrame();
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                TrySetReadCompleted();
             }
-
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close connection frame.
-            _connection.FinishedReceivedFrame();
             return (frameObject, endStream);
         }
     }

@@ -28,7 +28,6 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private AsyncSemaphore? _peerUnidirectionalStreamSemaphore;
-        private readonly ManualResetValueTaskCompletionSource<bool> _receiveStreamCompletionTaskSource = new();
         private readonly ChannelReader<(long, object, bool)> _reader;
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
@@ -42,79 +41,64 @@ namespace IceRpc.Transports.Internal
         {
             while (true)
             {
-                // Console.Error.WriteLine($"{IsServer} {this} accept stream async");
-                ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-                if (receiveStreamCompletionTask.IsCompleted)
-                {
-                    await receiveStreamCompletionTask.ConfigureAwait(false);
-                }
-                else
-                {
-                    await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                }
-
+                long streamId;
+                object frame;
+                bool endStream;
                 try
                 {
-                    (long streamId, object frame, bool endStream) =
-                        await _reader.ReadAsync(cancel).ConfigureAwait(false);
-
-                    bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
-                    bool isBidirectional = streamId % 4 < 2;
-
-                    if (streamId == -1)
-                    {
-                        if (frame == _pingFrame)
-                        {
-                            PingReceived?.Invoke();
-                        }
-                        else if (endStream)
-                        {
-                            throw new ConnectionClosedException();
-                        }
-                        else
-                        {
-                            Debug.Assert(false);
-                        }
-                        FinishedReceivedFrame();
-                    }
-                    else if (TryGetStream(streamId, out ColocStream? stream))
-                    {
-                        try
-                        {
-                            stream.ReceivedFrame(frame, endStream);
-                        }
-                        catch
-                        {
-                            // Ignore, the stream got aborted or the socket is being shutdown.
-                            FinishedReceivedFrame();
-                        }
-                    }
-                    else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
-                    {
-                        // If we received an incoming request frame or a frame for the incoming control stream,
-                        // create a new stream and provide it the received frame.
-                        Debug.Assert(frame != null);
-                        try
-                        {
-                            stream = new ColocStream(this, streamId);
-                            stream.ReceivedFrame(frame, endStream);
-                            return stream;
-                        }
-                        catch
-                        {
-                            // Ignore, the stream got aborted or the socket is being shutdown.
-                            FinishedReceivedFrame();
-                        }
-                    }
-                    else
-                    {
-                        // Canceled request, ignore
-                        FinishedReceivedFrame();
-                    }
+                    (streamId, frame, endStream) = await _reader.ReadAsync(cancel).ConfigureAwait(false);
                 }
                 catch (ChannelClosedException exception)
                 {
                     throw new ConnectionLostException(exception);
+                }
+
+                bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
+                bool isBidirectional = streamId % 4 < 2;
+
+                if (streamId == -1)
+                {
+                    if (frame == _pingFrame)
+                    {
+                        PingReceived?.Invoke();
+                    }
+                    else if (endStream)
+                    {
+                        throw new ConnectionClosedException();
+                    }
+                    else
+                    {
+                        Debug.Assert(false);
+                    }
+                }
+                else if (TryGetStream(streamId, out ColocStream? stream))
+                {
+                    try
+                    {
+                        stream.ReceivedFrame(frame, endStream);
+                    }
+                    catch
+                    {
+                        // Ignore, the stream got aborted possibly because the connection is being shutdown.
+                    }
+                }
+                else if (isIncoming && IsIncomingStreamUnknown(streamId, isBidirectional))
+                {
+                    Debug.Assert(frame != null);
+                    try
+                    {
+                        stream = new ColocStream(this, streamId);
+                        stream.ReceivedFrame(frame, endStream);
+                        return stream;
+                    }
+                    catch
+                    {
+                        // Ignore, the stream got aborted possibly because the connection is being shutdown.
+                    }
+                }
+                else
+                {
+                    // Canceled request, ignore
                 }
             }
         }
@@ -203,8 +187,6 @@ namespace IceRpc.Transports.Internal
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;
 
-            _receiveStreamCompletionTaskSource.SetResult(true);
-
             Id = id;
             _writer = writer;
             _reader = reader;
@@ -223,13 +205,6 @@ namespace IceRpc.Transports.Internal
                 _nextBidirectionalId = 0;
                 _nextUnidirectionalId = 2;
             }
-        }
-
-        internal void FinishedReceivedFrame()
-        {
-            // Console.Error.WriteLine($"{IsServer} {this} finished received frame");
-            // Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
-            _receiveStreamCompletionTaskSource.SetResult(true);
         }
 
         internal void ReleaseStream(ColocStream stream)
@@ -281,10 +256,9 @@ namespace IceRpc.Transports.Internal
                 ValueTask task;
                 lock (_mutex)
                 {
-                    // Allocate stream ID if the stream isn't started.
+                    // If the stream isn't started, allocate stream ID (according to Quic numbering scheme)
                     if (!stream.IsStarted)
                     {
-                        // Allocate a new ID according to the Quic numbering scheme.
                         if (stream.IsBidirectional)
                         {
                             stream.Id = _nextBidirectionalId;
