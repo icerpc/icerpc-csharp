@@ -10,7 +10,7 @@ namespace IceRpc
         /// <summary>An interceptor that sets the invocation timeout.</summary>
         /// <param name="timeout">The timeout for the invocation.</param>
         /// <returns>The CustomTiemout interceptor.</returns>
-        public static Func<IInvoker, IInvoker> CustomTiemout(TimeSpan timeout)
+        public static Func<IInvoker, IInvoker> CustomTimeout(TimeSpan timeout)
         {
             if (timeout != Timeout.InfiniteTimeSpan && timeout < TimeSpan.Zero)
             {
