@@ -18,26 +18,6 @@ namespace IceRpc.Transports.Internal
     /// </summary>
     internal abstract class SignaledStream<T> : RpcStream, IValueTaskSource<T>
     {
-        internal Exception? AbortException
-        {
-            get
-            {
-                bool lockTaken = false;
-                try
-                {
-                    _lock.Enter(ref lockTaken);
-                    return _exception;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        _lock.Exit();
-                    }
-                }
-            }
-        }
-
         internal bool IsSignaled
         {
             get
@@ -77,6 +57,10 @@ namespace IceRpc.Transports.Internal
         protected override void Shutdown()
         {
             base.Shutdown();
+
+            // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We
+            // make sure to set the exception in this case to prevent WaitAsync calls to block.
+            SetException(new RpcStreamAbortedException(RpcStreamError.StreamAborted));
 
             // Unregister the cancellation token callback
             _tokenRegistration.Dispose();
@@ -185,6 +169,13 @@ namespace IceRpc.Transports.Internal
         /// <return>The value used to signaled the stream.</return>
         protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
+            if (ReadCompleted && _exception == null)
+            {
+                // If reads are completed and no exception is set, it's probably because ReceiveAsync is called after
+                // receiving the end stream flag.
+                throw new InvalidOperationException("reads are completed");
+            }
+
             if (cancel.CanBeCanceled)
             {
                 Debug.Assert(_tokenRegistration == default);

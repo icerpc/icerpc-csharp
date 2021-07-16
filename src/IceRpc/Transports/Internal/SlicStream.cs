@@ -130,11 +130,6 @@ namespace IceRpc.Transports.Internal
         {
             if (_receivedSize == _receivedOffset)
             {
-                if (ReadCompleted)
-                {
-                    throw AbortException ?? new InvalidOperationException("stream receive is completed");
-                }
-
                 _receivedOffset = 0;
                 _receivedSize = 0;
 
@@ -149,10 +144,7 @@ namespace IceRpc.Transports.Internal
                     {
                         throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
                     }
-                    if (!TrySetReadCompleted())
-                    {
-                        throw AbortException ?? new InvalidOperationException("stream receive is completed");
-                    }
+                    TrySetReadCompleted();
                     return 0;
                 }
             }

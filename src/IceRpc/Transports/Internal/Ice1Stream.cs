@@ -16,11 +16,9 @@ namespace IceRpc.Transports.Internal
 
         public override void AbortRead(RpcStreamError errorCode)
         {
-            if (TrySetReadCompleted())
-            {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
+            // Abort the receive call waiting on WaitAsync().
+            SetException(new RpcStreamAbortedException(errorCode));
+            TrySetReadCompleted();
         }
 
         public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
@@ -46,7 +44,6 @@ namespace IceRpc.Transports.Internal
             // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
             Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
-
             if (endStream)
             {
                 TrySetWriteCompleted();
@@ -88,17 +85,13 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
 
-            if (frameType != Ice1FrameType.ValidateConnection && !TrySetReadCompleted())
+            // An Ice1 stream can only receive a single frame, except if it's a control stream which can
+            // receive multiple connection validation message since it's used for pings.
+            if (!IsControl)
             {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                TrySetReadCompleted();
             }
 
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close connection frame.
-            _connection.FinishedReceivedFrame();
-
-            // No more data will ever be received over this stream unless it's the validation connection frame.
             return frame;
         }
 

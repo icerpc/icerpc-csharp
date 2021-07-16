@@ -82,16 +82,6 @@ namespace IceRpc.Transports.Internal
             // and fill the buffer with the received data.
             if (_receivedPos.Segment == _receivedBuffers.Length)
             {
-                if (ReadCompleted)
-                {
-                    // Graceful shutdown is supposed to wait for the stream completion.
-                    Debug.Assert(
-                        _receivedEndStream ||
-                        (AbortException is RpcStreamAbortedException ex &&
-                         (ex.ErrorCode != RpcStreamError.ConnectionShutdown ||
-                          ex.ErrorCode != RpcStreamError.ConnectionShutdownByPeer)));
-                }
-
                 (object frame, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
                 if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
                 {
