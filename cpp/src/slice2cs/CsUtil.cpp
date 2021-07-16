@@ -663,21 +663,9 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     {
         // Expected for proxy and class types.
         TypePtr underlying = optional->underlying();
-        if (underlying->isInterfaceType())
-        {
-            out << "IceRpc.PrxEncodeActions.NullablePrxEncodeAction";
-        }
-        else
-        {
-            assert(underlying->isClassType());
-            out << typeToString(underlying, scope, readOnly, param) << ".NullableEncodeAction";
-        }
+        out << typeToString(underlying, scope, readOnly, param) << ".NullableEncodeAction";
     }
-    else if (type->isInterfaceType())
-    {
-        out << "IceRpc.PrxEncodeActions.PrxEncodeAction";
-    }
-    else if (type->isClassType())
+    else if (type->isClassType() || type->isInterfaceType())
     {
         out << typeToString(type, scope, readOnly, param) << ".EncodeAction";
     }

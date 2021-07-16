@@ -18,7 +18,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly ISequenceOperationsPrx _prx;
+        private readonly SequenceOperationsPrx _prx;
 
         public SequenceTests(Protocol protocol)
         {
@@ -30,7 +30,7 @@ namespace IceRpc.Tests.CodeGeneration
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
             _prx = SequenceOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]
@@ -404,25 +404,25 @@ namespace IceRpc.Tests.CodeGeneration
 
             await TestLinkedListAsync(
                 (p1, p2) => _prx.OpOperationsLinkedListAsync(p1, p2),
-                new LinkedList<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new LinkedList<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new LinkedList<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new LinkedList<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
 
             await TestQueueAsync(
                 (p1, p2) => _prx.OpOperationsQueueAsync(p1, p2),
-                new Queue<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Queue<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new Queue<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new Queue<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
 
             await TestStackAsync(
                 (p1, p2) => _prx.OpOperationsStackAsync(p1, p2),
-                new Stack<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Stack<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new Stack<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new Stack<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
 
             await TestCustomSeqAsync(
                 (p1, p2) => _prx.OpOperationsCustomSeqAsync(p1, p2),
-                new Custom<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
-                new Custom<IOperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
+                new Custom<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))),
+                new Custom<OperationsPrx>(Enumerable.Range(0, size).Select(i => GetOperationsPrx(i))));
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -553,9 +553,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsSeqAsync(
-                IOperationsPrx[] p1,
-                IOperationsPrx[] p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsSeqAsync(
+                OperationsPrx[] p1,
+                OperationsPrx[] p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -865,33 +865,33 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsListAsync(
-                List<IOperationsPrx> p1,
-                List<IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsListAsync(
+                List<OperationsPrx> p1,
+                List<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsLinkedListAsync(
-                LinkedList<IOperationsPrx> p1,
-                LinkedList<IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsLinkedListAsync(
+                LinkedList<OperationsPrx> p1,
+                LinkedList<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsQueueAsync(
-                Queue<IOperationsPrx> p1,
-                Queue<IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsQueueAsync(
+                Queue<OperationsPrx> p1,
+                Queue<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsStackAsync(
-                Stack<IOperationsPrx> p1,
-                Stack<IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsStackAsync(
+                Stack<OperationsPrx> p1,
+                Stack<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<IOperationsPrx> R1, IEnumerable<IOperationsPrx> R2)> OpOperationsCustomSeqAsync(
-                Custom<IOperationsPrx> p1,
-                Custom<IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<OperationsPrx> R1, IEnumerable<OperationsPrx> R2)> OpOperationsCustomSeqAsync(
+                Custom<OperationsPrx> p1,
+                Custom<OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 

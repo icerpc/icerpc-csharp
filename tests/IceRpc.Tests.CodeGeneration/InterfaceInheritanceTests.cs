@@ -12,9 +12,9 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IMyInterfaceBasePrx _basePrx;
-        private readonly IMyInterfaceDerivedPrx _derivedPrx;
-        private readonly IMyInterfaceMostDerivedPrx _mostDerivedPrx;
+        private readonly MyInterfaceBasePrx _basePrx;
+        private readonly MyInterfaceDerivedPrx _derivedPrx;
+        private readonly MyInterfaceMostDerivedPrx _mostDerivedPrx;
 
         public InterfaceInheritanceTests()
         {
@@ -70,20 +70,12 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public void InterfaceInheritance_IceId()
-        {
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _basePrx.IceIdAsync());
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _derivedPrx.IceIdAsync());
-            Assert.ThrowsAsync<OperationNotFoundException>(async () => await _mostDerivedPrx.IceIdAsync());
-        }
-
-        [Test]
         public async Task InterfaceInheritance_IceIdsAsync()
         {
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::Ice::Object",
+                    "::IceRpc::Service",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceBase"
                 },
                 await _basePrx.IceIdsAsync());
@@ -91,7 +83,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::Ice::Object",
+                    "::IceRpc::Service",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceBase",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceDerived",
                 },
@@ -100,7 +92,7 @@ namespace IceRpc.Tests.CodeGeneration
             CollectionAssert.AreEqual(
                 new string[]
                 {
-                    "::Ice::Object",
+                    "::IceRpc::Service",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceBase",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceDerived",
                     "::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived",

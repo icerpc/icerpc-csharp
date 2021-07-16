@@ -15,7 +15,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly ITaggedOperationsPrx _prx;
+        private readonly TaggedOperationsPrx _prx;
 
         public TaggedTests()
         {
@@ -77,7 +77,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiTagged.MMyEnum = MyEnum.enum1;
             multiTagged.MAnotherStruct = new AnotherStruct(
                 "hello",
-                IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                OperationsPrx.Parse("ice+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -196,7 +196,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
-                _prx,
+                _prx.Proxy,
                 (15, "test"),
                 (IceEncoder encoder, in (int n, string s) value) =>
                 {
@@ -205,7 +205,7 @@ namespace IceRpc.Tests.CodeGeneration
                 });
 
             (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, Connection connection) =
-                await _prx.InvokeAsync("opVoid", requestPayload);
+                await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
 
@@ -340,7 +340,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    OperationsPrx.Parse("ice+tcp://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -564,7 +564,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -582,7 +582,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };

@@ -475,7 +475,7 @@ namespace IceRpc
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
         public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
-            where T : class
+      //      where T : class
         {
             if (withBitSequence)
             {
@@ -502,6 +502,7 @@ namespace IceRpc
             }
         }
 
+        /*
         /// <summary>Encodes a sequence of nullable values to the buffer.</summary>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for the non-null values.</param>
@@ -524,6 +525,7 @@ namespace IceRpc
                 index++;
             }
         }
+        */
 
         /// <summary>Encodes a mapped Slice struct to the buffer.</summary>
         /// <param name="v">The struct instance to encode.</param>
@@ -917,7 +919,7 @@ namespace IceRpc
             IEnumerable<T?>? v,
             bool withBitSequence,
             EncodeAction<T> encodeAction)
-            where T : class
+  //          where T : class
         {
             if (v is IEnumerable<T?> value)
             {
@@ -928,21 +930,23 @@ namespace IceRpc
             }
         }
 
+        /*
         /// <summary>Encodes a tagged sequence of nullable values to the buffer.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggeSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                EncodeSequence(value, encodeAction);
+                EncodeSequence(value, withBitSequence: true, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
+        */
 
         /// <summary>Encodes a tagged fixed-size struct to the buffer.</summary>
         /// <param name="tag">The tag.</param>

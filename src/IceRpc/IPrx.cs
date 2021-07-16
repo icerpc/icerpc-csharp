@@ -16,18 +16,6 @@ namespace IceRpc
         Proxy Proxy { get; init; }
     }
 
-    /// <summary>Provides encode actions for typed proxies.</summary>
-    public static class PrxEncodeActions
-    {
-        /// <summary>An <see cref="EncodeAction{T}"/> for <see cref="IPrx"/>.</summary>
-        public static readonly EncodeAction<IPrx> PrxEncodeAction =
-            (encoder, prx) => encoder.EncodeProxy(prx.Proxy);
-
-        /// <summary>An <see cref="EncodeAction{T}"/> for a nullable <see cref="IPrx"/>.</summary>
-        public static readonly EncodeAction<IPrx?> NullablePrxEncodeAction =
-            (encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);
-    }
-
     /// <summary>Provides extension methods for typed proxies.</summary>
     public static class PrxExtensions
     {

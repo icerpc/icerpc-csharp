@@ -2305,7 +2305,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     // Static properties
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read "
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode "
          << "<see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
     _out.inc();
@@ -2315,13 +2315,28 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>The default path for services that implement Slice interface <c>" << name
         << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
-        << prxInterface << "));";
+        << prxImpl << "));";
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to read nullable <see cref=\""
-        << prxInterface << "\"/>.</summary>";
+    _out << sp;
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode "
+         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
+    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "> EncodeAction =";
+    _out.inc();
+    _out << nl << "(encoder, prx) => encoder.EncodeProxy(prx.Proxy);";
+    _out.dec();
+    _out << sp;
+    _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
+        << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
     _out.inc();
     _out << nl << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << prxImpl << ">(decoder);";
+    _out.dec();
+    _out << sp;
+    _out << nl << "// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode nullable <see cref=\""
+        << prxImpl << "\"/>.</summary>";
+    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "?> NullableEncodeAction =";
+    _out.inc();
+    _out << nl << "(encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);";
     _out.dec();
 
     // Non-static properties and fields
