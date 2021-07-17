@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc.Gen
 {
     /// <summary>Extensions methods called by the generated code.</summary>

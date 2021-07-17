@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+
 namespace IceRpc.Interop
 {
     /// <summary>Extension methods that give access to facets.</summary>
