@@ -2437,7 +2437,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>."
          << "</returns>";
     _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker? invoker, out "
-        << prxImpl << "? prx)";
+        << prxImpl << " prx)";
     _out << sb;
     _out << nl << "if (IceRpc.Proxy.TryParse(s, invoker, out IceRpc.Proxy? proxy))";
     _out << sb;
@@ -2446,7 +2446,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << eb;
     _out << nl << "else";
     _out << sb;
-    _out << nl << "prx = null;";
+    _out << nl << "prx = default;";
     _out << nl << "return false;";
     _out << eb;
     _out << eb;

@@ -16,8 +16,10 @@ namespace IceRpc.Tests.Api
     {
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
-        public async Task Proxy_BuiltinOperationsAsync(Protocol protocol)
+        public async Task Proxy_ServiceAsync(Protocol protocol)
         {
+            // Tests the IceRpc::Service interface implemented by all typed proxies.
+
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),
@@ -41,9 +43,9 @@ namespace IceRpc.Tests.Api
             Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Greeter"), Is.True);
             Assert.That(await prx.IceIsAAsync("::IceRpc::Tests::Api::Foo"), Is.False);
 
-            Assert.That(await prx.AsAsync<GreeterPrx>(), Is.Not.Null);
+            Assert.AreEqual(prx, await prx.AsAsync<GreeterPrx>());
 
-            // Test that builtin operation correctly forward the cancel param
+            // Test that Service operation correctly forward the cancel param
             var canceled = new CancellationToken(canceled: true);
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IcePingAsync(cancel: canceled));
             Assert.ThrowsAsync<OperationCanceledException>(async () => await prx.IceIdsAsync(cancel: canceled));
@@ -52,7 +54,7 @@ namespace IceRpc.Tests.Api
             Assert.ThrowsAsync<OperationCanceledException>(
                 async () => await prx.AsAsync<GreeterPrx>(cancel: canceled));
 
-            // Test that builtin operation correctly forward the context
+            // Test that Service operations correctly forward the context
             var invocation = new Invocation
             {
                 Context = new Dictionary<string, string> { ["foo"] = "bar" }
@@ -76,7 +78,7 @@ namespace IceRpc.Tests.Api
         [TestCase("test:tcp -h localhost -p 10000")]
         public void Proxy_SetProperty(string s)
         {
-            var proxy = GreeterPrx.Parse(s).Proxy;
+            var proxy = Proxy.Parse(s);
 
             proxy.Encoding = Encoding.V11;
             Assert.AreEqual(proxy.Encoding, Encoding.V11);
@@ -85,13 +87,13 @@ namespace IceRpc.Tests.Api
 
             if (proxy.Protocol == Protocol.Ice1)
             {
-                var proxy2 = GreeterPrx.Parse("test:tcp -h localhost -p 10001").Proxy;
+                var proxy2 = Proxy.Parse("test:tcp -h localhost -p 10001");
                 proxy.Endpoint = proxy2.Endpoint;
                 Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
             }
             else
             {
-                var proxy2 = GreeterPrx.Parse("ice+tcp://localhost:10001/test").Proxy;
+                var proxy2 = Proxy.Parse("ice+tcp://localhost:10001/test");
                 proxy.Endpoint = proxy2.Endpoint;
                 Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
             }
@@ -103,7 +105,7 @@ namespace IceRpc.Tests.Api
 
             if (proxy.Protocol == Protocol.Ice1)
             {
-                proxy = GreeterPrx.Parse(s).Proxy;
+                proxy = Proxy.Parse(s);
 
                 Proxy other = proxy.WithPath("/test").WithFacet("facet");
 
@@ -140,12 +142,27 @@ namespace IceRpc.Tests.Api
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice -t:tcp -h localhost -p 10000")]
         [TestCase("ice+tcp:ssl -h localhost -p 10000")]
+        [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
+        [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputIce1Format(string str)
         {
             var proxy = Proxy.Parse(str);
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
-            Assert.That(Proxy.TryParse(proxy.ToString()!, invoker: null, out Proxy? proxy2), Is.True);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, out Proxy? proxy2), Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
+
+            // Also try with non-default ToStringMode
+            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.ASCII));
+            Assert.AreEqual(proxy, proxy2);
+
+            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.Compat));
+            Assert.AreEqual(proxy, proxy2);
+
+            var prx = GreeterPrx.Parse(str);
+            Assert.AreEqual(Protocol.Ice1, prx.Proxy.Protocol);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
+            Assert.AreEqual(prx, prx2); // round-trip works
         }
 
         [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity%23facet")] // C# Uri parser escapes #
@@ -179,9 +196,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
-        [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
-        [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
-        [TestCase("identity:coloc -h *")]
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
         {
             var proxy = Proxy.Parse(str);
@@ -191,15 +205,12 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(path, proxy.Path);
             }
 
-            var proxy2 = Proxy.Parse(proxy.ToString()!);
+            Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, out Proxy? proxy2), Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
 
-            // Also try with non-default ToStringMode
-            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.ASCII));
-            Assert.AreEqual(proxy, proxy2);
-
-            proxy2 = Proxy.Parse(proxy.ToString(ToStringMode.Compat));
-            Assert.AreEqual(proxy, proxy2);
+            var prx = GreeterPrx.Parse(str);
+            Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
+            Assert.AreEqual(prx, prx2); // round-trip works
         }
 
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
@@ -278,10 +289,10 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Proxy_Equals()
         {
-            Assert.That(Proxy.Equals(null, null));
+            Assert.That(Proxy.Equals(null, null), Is.True);
             var prx = Proxy.Parse("ice+tcp://host.zeroc.com/identity");
-            Assert.That(Proxy.Equals(prx, prx));
-            Assert.That(Proxy.Equals(prx, Proxy.Parse("ice+tcp://host.zeroc.com/identity")));
+            Assert.That(Proxy.Equals(prx, prx), Is.True);
+            Assert.That(Proxy.Equals(prx, Proxy.Parse("ice+tcp://host.zeroc.com/identity")), Is.True);
             Assert.That(Proxy.Equals(null, prx), Is.False);
             Assert.That(Proxy.Equals(prx, null), Is.False);
         }
@@ -340,7 +351,7 @@ namespace IceRpc.Tests.Api
         {
             var proxy1 = Proxy.Parse(proxyString);
             var proxy2 = proxy1.Clone();
-            var proxy3 = Proxy.Parse(proxy2.ToString()!);
+            var proxy3 = Proxy.Parse(proxy2.ToString());
 
             CheckGetHashCode(proxy1, proxy2);
             CheckGetHashCode(proxy1, proxy3);
@@ -365,10 +376,10 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = GreeterPrx.FromConnection(connection);
+            var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
             (ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? _, Encoding payloadEncoding, Connection responseConnection) =
-                await prx.Proxy.InvokeAsync("SayHello", Payload.FromEmptyArgs(prx.Proxy));
+                await proxy.InvokeAsync("SayHello", Payload.FromEmptyArgs(proxy));
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
         }
