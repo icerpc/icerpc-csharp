@@ -8,14 +8,16 @@
 
 module IceRpc::Tests::CodeGeneration
 {
+    interface MyInterfaceMostDerived;
+
     interface MyInterfaceBase
     {
-        void opBase();
+        MyInterfaceMostDerived opBase(MyInterfaceBase p);
     }
 
-    interface MyInterfaceDerived : MyInterfaceBase, Service
+    interface MyInterfaceDerived : MyInterfaceBase
     {
-        void opDerived();
+        MyInterfaceBase opDerived(MyInterfaceMostDerived p);
     }
 
     interface MyInterfaceMostDerived : MyInterfaceDerived

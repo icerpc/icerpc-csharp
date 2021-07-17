@@ -103,13 +103,13 @@ namespace IceRpc.Tests.CodeGeneration
         [Test]
         public async Task InterfaceInheritance_OperationsAsync()
         {
-            await _basePrx.OpBaseAsync();
+            MyInterfaceMostDerivedPrx mostDerived = await _basePrx.OpBaseAsync(_basePrx);
 
-            await _derivedPrx.OpBaseAsync();
-            await _derivedPrx.OpDerivedAsync();
+            mostDerived = await _derivedPrx.OpBaseAsync(mostDerived);
+            MyInterfaceBasePrx basePrx = await _derivedPrx.OpDerivedAsync(mostDerived);
 
-            await _mostDerivedPrx.OpBaseAsync();
-            await _mostDerivedPrx.OpDerivedAsync();
+            basePrx = await _mostDerivedPrx.OpBaseAsync(mostDerived);
+            basePrx = await _mostDerivedPrx.OpDerivedAsync(mostDerived);
             await _mostDerivedPrx.OpMostDerivedAsync();
         }
 
@@ -129,12 +129,18 @@ namespace IceRpc.Tests.CodeGeneration
 
         public class Base : Service, IMyInterfaceBase
         {
-            public ValueTask OpBaseAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask<MyInterfaceMostDerivedPrx> OpBaseAsync(
+                MyInterfaceBasePrx p,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new MyInterfaceMostDerivedPrx(new Proxy(p.Proxy.Path)));
         }
 
         public class Derived : Base, IMyInterfaceDerived
         {
-            public ValueTask OpDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask<MyInterfaceBasePrx> OpDerivedAsync(
+                MyInterfaceMostDerivedPrx p,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new MyInterfaceMostDerivedPrx(new Proxy(dispatch.Path)));
         }
 
         public class MostDerived : Derived, IMyInterfaceMostDerived
