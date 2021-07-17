@@ -1024,6 +1024,7 @@ Slice::CsVisitor::openNamespace(const ModulePtr& p, string prefix)
     }
     else
     {
+        _out << sp;
         _out << nl << "namespace " << ns << sb;
         _namespaceStack.push("");
     }
@@ -1073,7 +1074,6 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#nullable enable";
     _out << nl;
     _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
-    _out << nl;
 }
 
 Slice::Gen::~Gen()
@@ -2325,14 +2325,14 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "(encoder, prx) => encoder.EncodeProxy(prx.Proxy);";
     _out.dec();
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
         << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
     _out.inc();
     _out << nl << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << prxImpl << ">(decoder);";
     _out.dec();
     _out << sp;
-    _out << nl << "// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode nullable <see cref=\""
+    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode nullable <see cref=\""
         << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "?> NullableEncodeAction =";
     _out.inc();
@@ -2354,7 +2354,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     if (addServicePrx)
     {
-        allBaseImpls.push_back("IceRpc.ServicePrx");
+        allBaseImpls.push_back(getUnqualified("IceRpc.ServicePrx", ns));
     }
 
     for (auto baseImpl : allBaseImpls)
@@ -2370,7 +2370,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     // Static methods
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl
+    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
         << "\"/> from the given connection and path.</summary>";
     _out << nl << "/// <param name=\"connection\">The connection. If it's an outgoing connection, the endpoint of the "
         << "new proxy is";
@@ -2391,7 +2391,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl
+    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
         << "\"/> with the given path and protocol.</summary>";
     _out << nl << "/// <param name=\"path\">The path for the proxy.</param>";
     _out << nl << "/// <param name=\"protocol\">The proxy protocol.</param>";
@@ -2403,7 +2403,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Creates an <see cref=\"" << prxImpl << "\"/> from the given server and path.</summary>";
+    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
+        << "\"/> from the given server and path.</summary>";
     _out << nl << "/// <param name=\"server\">The created proxy uses the <see cref=\"Server.ProxyEndpoint\"/> "
          << "as its";
     _out << nl << "/// <see cref=\"Endpoint\"/>.</param>";
@@ -2417,9 +2418,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxImpl << "\"/> "
-         << "equivalent.</summary>";
-    _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
+    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
+        << "\"/> from a string and invoker.</summary>";
+    _out << nl << "/// <param name=\"s\">The string representation of the proxy.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
     _out << nl << "/// <returns>The new proxy</returns>";
     _out << nl << "/// <exception cref=\"global::System.FormatException\"><c>s</c> does not contain a valid string "
@@ -2428,12 +2429,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "new(IceRpc.Proxy.Parse(s, invoker));";
 
     _out << sp;
-    _out << nl << "/// <summary>Converts the string representation of a proxy to its <see cref=\"" << prxImpl
-         << "\"/> equivalent.</summary>";
+    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
+        << "\"/> from a string and invoker.</summary>";
     _out << nl << "/// <param name=\"s\">The proxy string representation.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";
     _out << nl << "/// <param name=\"prx\">The new proxy.</param>";
-    _out << nl << "/// <returns><c>true</c> if the s parameter was converted successfully; otherwise, <c>false</c>."
+    _out << nl << "/// <returns><c>true</c> if the s parameter was parsed successfully; otherwise, <c>false</c>."
          << "</returns>";
     _out << nl << "public static bool TryParse(string s, IceRpc.IInvoker? invoker, out "
         << prxImpl << "? prx)";
@@ -2454,7 +2455,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <param name=\"proxy\">The proxy to the remote service.</param>";
     _out << nl << "public " << prxImpl << "(IceRpc.Proxy proxy) => Proxy = proxy;";
 
-    // Equals + GetHashCode
+    // Equals + GetHashCode + ToString
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
     _out << nl << "public bool Equals(" << prxImpl << " other) => Proxy.Equals(other.Proxy);";
@@ -2466,6 +2467,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
     _out << nl << "public override int GetHashCode() => Proxy.GetHashCode();";
+
+    _out << sp;
+    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "public override string ToString() => Proxy.ToString();";
 
     // Base interface methods
     if (addServicePrx)
@@ -2573,55 +2578,60 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     bool voidOp = returnType.empty();
 
     _out << sp;
+    // TODO: it would be nice to output the parameters one per line, but this doesn't work with spar/epar.
     _out << nl << "public " << returnTaskStr(operation, ns, false) << " " << asyncName << spar
         << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
-    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(Proxy, \"" << operation->name() << "\", ";
+    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(";
+    _out.inc();
+    _out << nl << "Proxy,";
+    _out << nl << "\"" << operation->name() << "\",";
     if (params.size() == 0)
     {
-        _out << "IceRpc.Payload.FromEmptyArgs(Proxy), ";
+        _out << nl << "IceRpc.Payload.FromEmptyArgs(Proxy),";
     }
     else
     {
         // can't use 'in' for tuple as it's an expression
-        _out << "Request." << name << "(this, " << toTuple(params) << "), ";
+        _out << nl << "Request." << name << "(this, " << toTuple(params) << "),";
     }
     if (streamParam)
     {
-        _out << "new IceRpc.RpcStreamWriter(" << paramName(streamParam) << "), ";
+        _out << nl << "new IceRpc.RpcStreamWriter(" << paramName(streamParam) << "),";
     }
     else
     {
-        _out << "streamWriter: null, ";
+        _out << nl << "streamWriter: null,";
     }
     if (!voidOp)
     {
-        _out << "Response." << name << ", ";
+        _out << nl << "Response." << name << ",";
     }
     else if (streamReturnParam)
     {
-        _out << "(payload, streamReader, payloadEncoding, connection, invoker) => streamReader!.ToByteStream(), ";
+        _out << nl << "(payload, streamReader, payloadEncoding, connection, invoker) => streamReader!.ToByteStream(),";
     }
 
-    _out << invocation << ", ";
+    _out << nl << invocation << ",";
     if (opCompressArgs(operation))
     {
-        _out << "compress: true, ";
+        _out << nl << "compress: true,";
     }
     if (isIdempotent(operation))
     {
-        _out << "idempotent: true, ";
+        _out << nl << "idempotent: true,";
     }
     if (voidOp && oneway)
     {
-        _out << "oneway: true, ";
+        _out << nl << "oneway: true,";
     }
     if (streamReturnParam)
     {
-        _out << "responseHasStreamValue: true, ";
+        _out << nl << "responseHasStreamValue: true,";
     }
-    _out << "cancel: " << cancel << ");";
+    _out << nl << "cancel: " << cancel << ");";
+    _out.dec();
     _out.dec();
 
     // TODO: move this check to the Slice parser.
@@ -3181,7 +3191,6 @@ Slice::Gen::ClassAttributeVisitor::visitUnitStart(const UnitPtr& p)
 void
 Slice::Gen::ClassAttributeVisitor::visitUnitEnd(const UnitPtr&)
 {
-    _out << sp;
 }
 
 bool
