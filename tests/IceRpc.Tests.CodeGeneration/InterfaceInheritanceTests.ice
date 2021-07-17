@@ -6,22 +6,29 @@
 
 #include <IceRpc/Service.ice>
 
-module IceRpc::Tests::CodeGeneration
+module IceRpc::Tests::CodeGeneration::InterfaceInheritance
 {
-    interface MyInterfaceMostDerived;
+    // Classic diamond-shaped inheritance
 
-    interface MyInterfaceBase
+    interface D;
+
+    interface A
     {
-        MyInterfaceMostDerived opBase(MyInterfaceBase p);
+        D opA(A p);
     }
 
-    interface MyInterfaceDerived : MyInterfaceBase
+    interface B : A
     {
-        MyInterfaceBase opDerived(MyInterfaceMostDerived p);
+        B opB(B p);
     }
 
-    interface MyInterfaceMostDerived : MyInterfaceDerived
+    interface C : A, Service
     {
-        void opMostDerived();
+        C opC(C p);
+    }
+
+    interface D : B, C
+    {
+        A opD(D p);
     }
 }

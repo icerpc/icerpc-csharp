@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Tests.CodeGeneration.InterfaceInheritance;
 using NUnit.Framework;
 using System;
 using System.Threading;
@@ -12,18 +13,20 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly MyInterfaceBasePrx _basePrx;
-        private readonly MyInterfaceDerivedPrx _derivedPrx;
-        private readonly MyInterfaceMostDerivedPrx _mostDerivedPrx;
+        private readonly APrx _aPrx;
+        private readonly BPrx _bPrx;
+        private readonly CPrx _cPrx;
+        private readonly DPrx _dPrx;
 
         public InterfaceInheritanceTests()
         {
             _connection = new Connection();
 
             var router = new Router();
-            router.Map<IMyInterfaceBase>(new Base());
-            router.Map<IMyInterfaceDerived>(new Derived());
-            router.Map<IMyInterfaceMostDerived>(new MostDerived());
+            router.Map<IA>(new A());
+            router.Map<IB>(new B());
+            router.Map<IC>(new C());
+            router.Map<ID>(new D());
 
             _server = new Server
             {
@@ -32,9 +35,10 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _basePrx = MyInterfaceBasePrx.FromConnection(_connection);
-            _derivedPrx = MyInterfaceDerivedPrx.FromConnection(_connection);
-            _mostDerivedPrx = MyInterfaceMostDerivedPrx.FromConnection(_connection);
+            _aPrx = APrx.FromConnection(_connection);
+            _bPrx = BPrx.FromConnection(_connection);
+            _cPrx = CPrx.FromConnection(_connection);
+            _dPrx = DPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -47,25 +51,25 @@ namespace IceRpc.Tests.CodeGeneration
         [Test]
         public async Task InterfaceInheritance_IceIsAAsync()
         {
-            Assert.That(await _basePrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceBase"),
+            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await _basePrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceDerived"),
+            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B"),
                         Is.False);
-            Assert.That(await _basePrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived"),
-                        Is.False);
-
-            Assert.That(await _derivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceBase"),
-                        Is.True);
-            Assert.That(await _derivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceDerived"),
-                        Is.True);
-            Assert.That(await _derivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived"),
+            Assert.That(await _aPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D"),
                         Is.False);
 
-            Assert.That(await _mostDerivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceBase"),
+            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"),
                         Is.True);
-            Assert.That(await _mostDerivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceDerived"),
+            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B"),
                         Is.True);
-            Assert.That(await _mostDerivedPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived"),
+            Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D"),
+                        Is.False);
+
+            Assert.That(await _dPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"),
+                        Is.True);
+            Assert.That(await _dPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B"),
+                        Is.True);
+            Assert.That(await _dPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D"),
                         Is.True);
         }
 
@@ -76,76 +80,101 @@ namespace IceRpc.Tests.CodeGeneration
                 new string[]
                 {
                     "::IceRpc::Service",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceBase"
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"
                 },
-                await _basePrx.IceIdsAsync());
+                await _aPrx.IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]
                 {
                     "::IceRpc::Service",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceBase",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceDerived",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B",
                 },
-                await _derivedPrx.IceIdsAsync());
+                await _bPrx.IceIdsAsync());
 
             CollectionAssert.AreEqual(
                 new string[]
                 {
                     "::IceRpc::Service",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceBase",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceDerived",
-                    "::IceRpc::Tests::CodeGeneration::MyInterfaceMostDerived",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::C",
+                    "::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D",
                 },
-                await _mostDerivedPrx.IceIdsAsync());
+                await _dPrx.IceIdsAsync());
         }
 
         [Test]
         public async Task InterfaceInheritance_OperationsAsync()
         {
-            MyInterfaceMostDerivedPrx mostDerived = await _basePrx.OpBaseAsync(_basePrx);
+            DPrx d = await _aPrx.OpAAsync(_aPrx);
 
-            mostDerived = await _derivedPrx.OpBaseAsync(mostDerived);
-            MyInterfaceBasePrx basePrx = await _derivedPrx.OpDerivedAsync(mostDerived);
+            d = await _bPrx.OpAAsync(d);
+            APrx a = await _bPrx.OpBAsync(d);
 
-            basePrx = await _mostDerivedPrx.OpBaseAsync(mostDerived);
-            basePrx = await _mostDerivedPrx.OpDerivedAsync(mostDerived);
-            await _mostDerivedPrx.OpMostDerivedAsync();
+            a = await _dPrx.OpAAsync(d);
+            a = await _dPrx.OpBAsync(d);
+            a = await _dPrx.OpCAsync(d);
+            a = await _dPrx.OpDAsync(d);
         }
 
         [Test]
         public void InterfaceInheritance_Types()
         {
-            Assert.That(typeof(IMyInterfaceBasePrx).IsAssignableFrom(typeof(IMyInterfaceDerivedPrx)), Is.True);
-            Assert.That(typeof(IMyInterfaceBasePrx).IsAssignableFrom(typeof(IMyInterfaceMostDerivedPrx)), Is.True);
-            Assert.That(typeof(IMyInterfaceDerivedPrx).IsAssignableFrom(typeof(IMyInterfaceMostDerivedPrx)),
-                        Is.True);
+            Assert.That(typeof(IAPrx).IsAssignableFrom(typeof(IBPrx)), Is.True);
+            Assert.That(typeof(IAPrx).IsAssignableFrom(typeof(IDPrx)), Is.True);
+            Assert.That(typeof(IBPrx).IsAssignableFrom(typeof(IDPrx)), Is.True);
+            Assert.That(typeof(ICPrx).IsAssignableFrom(typeof(IDPrx)), Is.True);
 
-            Assert.That(typeof(IMyInterfaceBase).IsAssignableFrom(typeof(IMyInterfaceDerived)), Is.True);
-            Assert.That(typeof(IMyInterfaceBase).IsAssignableFrom(typeof(IMyInterfaceMostDerived)), Is.True);
-            Assert.That(typeof(IMyInterfaceDerived).IsAssignableFrom(typeof(IMyInterfaceMostDerived)),
-                        Is.True);
+            Assert.That(typeof(IServicePrx).IsAssignableFrom(typeof(IBPrx)), Is.False);
+            Assert.That(typeof(IServicePrx).IsAssignableFrom(typeof(ICPrx)), Is.True);
+
+            Assert.That(typeof(IA).IsAssignableFrom(typeof(IB)), Is.True);
+            Assert.That(typeof(IA).IsAssignableFrom(typeof(IC)), Is.True);
+            Assert.That(typeof(IB).IsAssignableFrom(typeof(ID)), Is.True);
+            Assert.That(typeof(IC).IsAssignableFrom(typeof(ID)), Is.True);
+
+            Assert.That(typeof(IService).IsAssignableFrom(typeof(IB)), Is.False);
+            Assert.That(typeof(IService).IsAssignableFrom(typeof(ID)), Is.True);
         }
 
-        public class Base : Service, IMyInterfaceBase
+        public class A : Service, IA
         {
-            public ValueTask<MyInterfaceMostDerivedPrx> OpBaseAsync(
-                MyInterfaceBasePrx p,
+            public ValueTask<DPrx> OpAAsync(
+                APrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new MyInterfaceMostDerivedPrx(new Proxy(p.Proxy.Path)));
+                CancellationToken cancel) => new(new DPrx(new Proxy(p.Proxy.Path)));
         }
 
-        public class Derived : Base, IMyInterfaceDerived
+        public class B : A, IB
         {
-            public ValueTask<MyInterfaceBasePrx> OpDerivedAsync(
-                MyInterfaceMostDerivedPrx p,
+            public ValueTask<BPrx> OpBAsync(
+                BPrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new MyInterfaceMostDerivedPrx(new Proxy(dispatch.Path)));
+                CancellationToken cancel) => new(new BPrx(new Proxy(dispatch.Path)));
         }
 
-        public class MostDerived : Derived, IMyInterfaceMostDerived
+        public class C : A, IC
         {
-            public ValueTask OpMostDerivedAsync(Dispatch dispatch, CancellationToken cancel) => default;
+            public ValueTask<CPrx> OpCAsync(
+                CPrx p,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new CPrx(new Proxy(dispatch.Path)));
+        }
+
+        public class D : B, ID
+        {
+            // Need implementation for C
+            public ValueTask<CPrx> OpCAsync(
+                CPrx p,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new CPrx(new Proxy(dispatch.Path)));
+
+            public ValueTask<APrx> OpDAsync(
+                DPrx p,
+                Dispatch dispatch,
+                CancellationToken cancel) => new(new DPrx(new Proxy(dispatch.Path)));
         }
     }
 }
