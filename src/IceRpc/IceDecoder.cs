@@ -56,7 +56,7 @@ namespace IceRpc
 
         private readonly int _classGraphMaxDepth;
 
-        // Data for the class or exception instance that is currently getting unmarshaled.
+        // Data for the class or exception instance that is currently getting decoded.
         private InstanceData _current;
 
         // The current depth when decoding nested class instances.
@@ -249,7 +249,7 @@ namespace IceRpc
 
         // Decode methods for constructed types except class and exception
 
-        /// <summary>Decodes a sequence of fixed-size numeric values from the buffer and returns an array.</summary>
+        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
         public T[] DecodeArray<T>() where T : struct
         {
@@ -261,7 +261,7 @@ namespace IceRpc
             return value;
         }
 
-        /// <summary>Decodes a sequence of fixed-size numeric values from the buffer and returns an array.</summary>
+        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
         /// <param name="checkElement">A delegate use to checks each element of the array.</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
         public T[] DecodeArray<T>(Action<T> checkElement) where T : struct
@@ -274,14 +274,14 @@ namespace IceRpc
             return value;
         }
 
-        /// <summary>Decodes a sequence from the buffer and returns an array.</summary>
+        /// <summary>Decodes a sequence and returns an array.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
         public T[] DecodeArray<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
             DecodeSequence(minElementSize, decodeFunc).ToArray();
 
-        /// <summary>Decodes a sequence of nullable elements from the buffer and returns an array.</summary>
+        /// <summary>Decodes a sequence of nullable elements and returns an array.</summary>
         /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
         /// </param>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
@@ -289,7 +289,7 @@ namespace IceRpc
         public T?[] DecodeArray<T>(bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
             DecodeSequence(withBitSequence, decodeFunc).ToArray();
 
-        /// <summary>Decodes a sequence of nullable values from the buffer and returns an array.</summary>
+        /// <summary>Decodes a sequence of nullable values and returns an array.</summary>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
         public T?[] DecodeArray<T>(DecodeFunc<T> decodeFunc) where T : struct => DecodeSequence(decodeFunc).ToArray();
@@ -1197,10 +1197,10 @@ namespace IceRpc
             return (key, value);
         }
 
-        /// <summary>Checks if the buffer holds a tagged proxy for the given tag, and when it does, skips the size
+        /// <summary>Checks if the decoder holds a tagged proxy for the given tag, and when it does, skips the size
         /// of this proxy.</summary>
         /// <param name="tag">The tag.</param>
-        /// <returns>True when the next bytes on the buffer correspond to the proxy; otherwise, false.</returns>
+        /// <returns>True when the next bytes correspond to the proxy; otherwise, false.</returns>
         internal bool DecodeTaggedProxyHeader(int tag)
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
@@ -1598,9 +1598,9 @@ namespace IceRpc
             }
         }
 
-        // Collection<T> holds the size of a Slice sequence and decodes the sequence elements from the buffer on-demand.
-        // It does not fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw NotSupportedException)
-        // because it's not resettable: you can't use it to unmarshal the same bytes multiple times.
+        // Collection<T> holds the size of a Slice sequence and decodes the sequence elements on-demand. It does not
+        // fully implement IEnumerable<T> and ICollection<T> (i.e. some methods throw NotSupportedException) because
+        // it's not resettable: you can't use it to decode the same bytes multiple times.
         private sealed class Collection<T> : CollectionBase<T>
         {
             private readonly DecodeFunc<T> _decodeFunc;

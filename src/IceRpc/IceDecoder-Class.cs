@@ -9,7 +9,7 @@ using System.Globalization;
 
 namespace IceRpc
 {
-    // This partial class provides the class/exception unmarshaling logic.
+    // This partial class provides the class/exception decoding logic.
     public sealed partial class IceDecoder
     {
         /// <summary>Tells the decoder the end of a class or exception slice was reached. This is an IceRPC-internal
@@ -47,16 +47,16 @@ namespace IceRpc
             DecodeIndirectionTableIntoCurrent();
         }
 
-        /// <summary>Decodes a class instance from the buffer.</summary>
+        /// <summary>Decodes a class instance.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// It's T.IceTypeId for generated classes. Use null when the type of the parameter/data member is AnyClass.
         /// </param>
-        /// <returns>The class instance decoded from the buffer.</returns>
+        /// <returns>The class instance decoded.</returns>
         public T DecodeClass<T>(string? formalTypeId) where T : AnyClass =>
             DecodeNullableClass<T>(formalTypeId) ??
                 throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
-        /// <summary>Decodes a remote exception from the buffer.</summary>
+        /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
         public RemoteException DecodeException()
         {
@@ -67,7 +67,7 @@ namespace IceRpc
             string? errorMessage = null;
             RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
-            // The unmarshaling of remote exceptions is similar with the 1.1 and 2.0 encodings, in particular we can
+            // The decoding of remote exceptions is similar with the 1.1 and 2.0 encodings, in particular we can
             // decode the indirection table (if there is one) immediately after decoding each slice header because the
             // indirection table cannot reference the exception itself.
             // With the 1.1 encoding, each slice contains its type ID (as a string), while with the 2.0 encoding the
@@ -132,10 +132,10 @@ namespace IceRpc
             return remoteEx;
         }
 
-        /// <summary>Decodes a nullable class instance from the buffer.</summary>
+        /// <summary>Decodes a nullable class instance.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
-        /// <returns>The class instance decoded from the buffer, or null.</returns>
+        /// <returns>The class instance, or null.</returns>
         public T? DecodeNullableClass<T>(string? formalTypeId) where T : AnyClass
         {
             AnyClass? obj = DecodeAnyClass(formalTypeId);
@@ -154,10 +154,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes a class instance from the buffer.</summary>
+        /// <summary>Decodes a class instance.</summary>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// </param>
-        /// <returns>The class instance decoded from the buffer. Can be null.</returns>
+        /// <returns>The class instance. Can be null.</returns>
         private AnyClass? DecodeAnyClass(string? formalTypeId)
         {
             int index = DecodeSize();
@@ -277,7 +277,7 @@ namespace IceRpc
             return (typeIds, errorMessage, origin);
         }
 
-        /// <summary>Decodes an indirection table from the buffer, without updating _current.</summary>
+        /// <summary>Decodes an indirection table without updating _current.</summary>
         /// <returns>The indirection table.</returns>
         private AnyClass[] DecodeIndirectionTable()
         {
@@ -320,9 +320,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes a class instance from the buffer.</summary>
+        /// <summary>Decodes a class instance.</summary>
         /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
-        /// seen class; if 1, the class's bytes are next in the buffer. Cannot be 0 or less.</param>
+        /// seen class; if 1, the class's bytes are next. Cannot be 0 or less.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
         /// </param>
         private AnyClass DecodeInstance(int index, string? formalTypeId)
@@ -618,7 +618,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Skips the indirection table. The caller must save the current buffer position before calling
+        /// <summary>Skips the indirection table. The caller must save the current position before calling
         /// SkipIndirectionTable11 (to decode the indirection table at a later point) except when the caller is
         /// SkipIndirectionTable11 itself.</summary>
         private void SkipIndirectionTable11()

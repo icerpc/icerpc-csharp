@@ -58,7 +58,7 @@ namespace IceRpc
                 foreach (AnyClass v in _current.IndirectionTable)
                 {
                     // We cannot use formal type optimization for instances encoded inline in an indirection table,
-                    // as the slice may not be known/unmarshaled by the recipient - therefore the formal type of the
+                    // as the slice may not be known/decoded by the recipient - therefore the formal type of the
                     // data member is not known.
                     EncodeInstance(v, formalTypeId: null);
                 }
@@ -99,7 +99,7 @@ namespace IceRpc
                 }
                 catch (NotSupportedException)
                 {
-                    // For some reason we could not remarshal the sliced data; firstSliceWritten remains false.
+                    // For some reason we could not re-encode the sliced data; firstSliceWritten remains false.
                 }
                 if (firstSliceWritten)
                 {
@@ -163,7 +163,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes a class instance to the buffer.</summary>
+        /// <summary>Encodes a class instance.</summary>
         /// <param name="v">The class instance to encode. This instance cannot be null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
@@ -190,11 +190,11 @@ namespace IceRpc
             }
             else
             {
-                EncodeInstance(v, formalTypeId); // Encodes the instance or a reference if already marshaled.
+                EncodeInstance(v, formalTypeId); // Encodes the instance or a reference if already encoded.
             }
         }
 
-        /// <summary>Encodes a remote exception to the buffer.</summary>
+        /// <summary>Encodes a remote exception.</summary>
         /// <param name="v">The remote exception to encode.</param>
         public void EncodeException(RemoteException v)
         {
@@ -205,7 +205,7 @@ namespace IceRpc
             _current = default;
         }
 
-        /// <summary>Encodes a class instance to the buffer, or null.</summary>
+        /// <summary>Encodes a class instance, or null.</summary>
         /// <param name="v">The class instance to encode, or null.</param>
         /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
         /// Use null when the type of the parameter/data member is AnyClass.</param>
@@ -221,7 +221,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes sliced-off slices to the buffer.</summary>
+        /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="slicedData">The sliced-off slices to encode.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
         /// <param name="errorMessage">For exceptions, the exception's error message.</param>
@@ -234,7 +234,7 @@ namespace IceRpc
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
-            // We only remarshal preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
+            // We only re-encode preserved slices if we are using the sliced format. Otherwise, we ignore the preserved
             // slices, which essentially "slices" the instance into the most-derived type known by the sender.
             if (_classFormat != FormatType.Sliced)
             {
@@ -313,13 +313,13 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes this class instance inline if not previously marshaled, otherwise just encode its instance
+        /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
-        /// <param name="formalTypeId">The type ID of the formal parameter or data member being marshaled.</param>
+        /// <param name="formalTypeId">The type ID of the formal parameter or data member being encoded.</param>
         private void EncodeInstance(AnyClass v, string? formalTypeId)
         {
-            // If the instance was already marshaled, just encode its instance ID.
+            // If the instance was already encoded, just encode its instance ID.
             if (_instanceMap != null && _instanceMap.TryGetValue(v, out int instanceId))
             {
                 EncodeSize(instanceId);
@@ -329,7 +329,7 @@ namespace IceRpc
                 _instanceMap ??= new Dictionary<AnyClass, int>();
 
                 // We haven't seen this instance previously, so we create a new instance ID and insert the instance
-                // and its ID in the marshaled map, before encoding the instance inline.
+                // and its ID in the encoded map, before encoding the instance inline.
                 // The instance IDs start at 2 (0 means null and 1 means the instance is encoded immediately after).
                 instanceId = _instanceMap.Count + 2;
                 _instanceMap.Add(v, instanceId);
@@ -449,7 +449,7 @@ namespace IceRpc
             // The following fields are used and reused for all the slices of a class or exception instance.
 
             // (Class only) The type ID associated with the formal type of the parameter or data member being encoded.
-            // We use this formalTypeId to skip the marshaling of type IDs when there is a match.
+            // We use this formalTypeId to skip the encoding of type IDs when there is a match.
             internal string? FormalTypeId20;
 
             internal InstanceType InstanceType;
