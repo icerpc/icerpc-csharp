@@ -913,7 +913,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "new " << typeToString(underlying, scope) << "(decoder.DecodeProxy());";
+        out << "new " << typeToString(underlying, scope) << "(IceRpc.IceDecoderProxyExtensions.DecodeProxy(decoder));";
     }
     else if (underlying->isClassType())
     {

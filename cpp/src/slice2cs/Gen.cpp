@@ -2313,7 +2313,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "<see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => new " << prxImpl << "(decoder.DecodeProxy());";
+    _out << nl << "decoder => new " << prxImpl << "(IceRpc.IceDecoderProxyExtensions.DecodeProxy(decoder));";
     _out.dec();
     _out << sp;
     _out << nl << "/// <summary>The default path for services that implement Slice interface <c>" << name
