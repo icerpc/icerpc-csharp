@@ -709,7 +709,7 @@ Slice::CsGenerator::writeMarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << nl << "encoder.EncodeNullableProxy(" << param << "?.Proxy);";
+            out << nl << "IceRpc.IceEncoderProxyExtensions.EncodeNullableProxy(encoder, " << param << "?.Proxy);";
         }
         else if (underlying->isClassType())
         {
@@ -762,7 +762,7 @@ Slice::CsGenerator::writeMarshalCode(
     {
         if (type->isInterfaceType())
         {
-            out << nl << "encoder.EncodeProxy(" << param << ".Proxy);";
+            out << nl << "IceRpc.IceEncoderProxyExtensions.EncodeProxy(encoder, " << param << ".Proxy);";
         }
         else if (type->isClassType())
         {
@@ -977,7 +977,8 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
     if (type->isInterfaceType())
     {
-        out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
+        out << nl << "IceRpc.IceEncoderProxyExtensions.EncodeTaggedProxy(encoder, " << tag << ", "
+            << param << "?.Proxy);";
     }
     else if (builtin || type->isClassType())
     {
