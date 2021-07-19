@@ -4,9 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
 [assembly: InternalsVisibleTo("IceRpc.Tests.Internal")]
@@ -27,8 +25,8 @@ namespace IceRpc
         static Runtime()
         {
             // Register the ice and ice+universal schemes with the system UriParser.
-            Internal.UriParser.RegisterTransport("universal", defaultPort: 0);
-            Internal.UriParser.RegisterIceScheme();
+            UriParser.RegisterTransport("universal", defaultPort: 0);
+            UriParser.RegisterIceScheme();
             TransportRegistry.Add(new LocEndpointFactory());
         }
 
