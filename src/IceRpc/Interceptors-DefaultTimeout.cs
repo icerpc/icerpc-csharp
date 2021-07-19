@@ -14,8 +14,7 @@ namespace IceRpc
         /// the invocation settings prevail and this interceptor does nothing.</summary>
         /// <param name="timeout">The timeout for the invocation.</param>
         /// <returns>The timeout interceptor.</returns>
-        /// <see cref="Invocation.Timeout"/>
-        public static Func<IInvoker, IInvoker> Timeout(TimeSpan timeout)
+        public static Func<IInvoker, IInvoker> DefaultTimeout(TimeSpan timeout)
         {
             if (timeout == System.Threading.Timeout.InfiniteTimeSpan)
             {

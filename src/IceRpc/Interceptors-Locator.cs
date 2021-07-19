@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading;
 
 namespace IceRpc
 {
@@ -35,7 +36,7 @@ namespace IceRpc
 
             /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning
             /// the cache entries never become stale.</summary>
-            public TimeSpan Ttl { get; set; } = System.Threading.Timeout.InfiniteTimeSpan;
+            public TimeSpan Ttl { get; set; } = Timeout.InfiniteTimeSpan;
 
             private int _cacheMaxSize = 100;
         }
