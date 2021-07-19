@@ -199,7 +199,7 @@ namespace IceRpc
                 DateTime deadline = invocation?.Deadline ?? DateTime.MaxValue;
                 if (deadline == DateTime.MaxValue)
                 {
-                    TimeSpan timeout = invocation?.Timeout ?? Runtime.DefaultInvocationTimeout;
+                    TimeSpan timeout = invocation?.Timeout ?? Timeout.InfiniteTimeSpan;
                     if (timeout != Timeout.InfiniteTimeSpan)
                     {
                         deadline = DateTime.UtcNow + timeout;
