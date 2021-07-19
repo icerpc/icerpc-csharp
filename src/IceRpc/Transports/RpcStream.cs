@@ -278,7 +278,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(data, Ice2Definitions.Encoding));
+                var goAwayFrame = new Ice2GoAwayBody { IceDecoder = new IceDecoder(data, Ice2Definitions.Encoding) };
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;

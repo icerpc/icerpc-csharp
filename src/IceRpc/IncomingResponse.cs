@@ -42,7 +42,7 @@ namespace IceRpc
 
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(decoder);
+                    var responseHeader = new Ice1ResponseHeader { IceDecoder = decoder };
                     PayloadEncoding = responseHeader.PayloadEncoding;
                     Payload = data[decoder.Pos..];
 
@@ -68,7 +68,7 @@ namespace IceRpc
                 int startPos = decoder.Pos;
                 Fields = decoder.DecodeFieldDictionary();
                 ResultType = decoder.DecodeResultType();
-                PayloadEncoding = new Encoding(decoder);
+                PayloadEncoding = new Encoding { IceDecoder = decoder };
 
                 int payloadSize = decoder.DecodeSize();
                 if (decoder.Pos - startPos != headerSize)

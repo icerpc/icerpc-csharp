@@ -358,13 +358,13 @@ namespace IceRpc
         {
             if (OldEncoding)
             {
-                var identity = new Identity(this);
+                var identity = new Identity { IceDecoder = this };
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
                 {
                     return null;
                 }
 
-                var proxyData = new ProxyData11(this);
+                var proxyData = new ProxyData11 { IceDecoder = this };
 
                 if ((byte)proxyData.Protocol == 0)
                 {
@@ -467,7 +467,7 @@ namespace IceRpc
             }
             else
             {
-                var proxyData = new ProxyData20(this);
+                var proxyData = new ProxyData20 { IceDecoder = this };
 
                 if (proxyData.Path == null)
                 {
@@ -1132,7 +1132,7 @@ namespace IceRpc
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = new Encoding(this);
+            var encoding = new Encoding { IceDecoder = this };
 
             IIce1EndpointFactory? ice1EndpointFactory = null;
             if (protocol == Protocol.Ice1 &&

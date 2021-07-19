@@ -262,7 +262,7 @@ namespace IceRpc
                         $"the type IDs for an exception cannot be encoded using {typeIdKind}");
                 }
                 errorMessage = DecodeString();
-                origin = new RemoteExceptionOrigin(this);
+                origin = new RemoteExceptionOrigin { IceDecoder = this };
             }
 
             // Decode the slice size if available.

@@ -935,7 +935,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     }
     else if (auto st = StructPtr::dynamicCast(underlying))
     {
-        out << "new " << getUnqualified(st, scope) << "(decoder)";
+        out << "new " << getUnqualified(st, scope) << "{ IceDecoder = decoder }";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(underlying))
     {
