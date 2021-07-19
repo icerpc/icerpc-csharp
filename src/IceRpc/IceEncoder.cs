@@ -319,12 +319,12 @@ namespace IceRpc
             {
                 if (OldEncoding)
                 {
-                    Identity.Empty.IceEncode(this);
+                    Identity.Empty.Encode(this);
                 }
                 else
                 {
                     ProxyData20 nullValue = default;
-                    nullValue.IceEncode(this);
+                    nullValue.Encode(this);
                 }
             }
         }
@@ -343,7 +343,7 @@ namespace IceRpc
                 if (proxy.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(proxy.Identity.Name.Length > 0);
-                    proxy.Identity.IceEncode(this);
+                    proxy.Identity.Encode(this);
                 }
                 else
                 {
@@ -364,7 +364,7 @@ namespace IceRpc
                             $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
                     }
 
-                    identity.IceEncode(this);
+                    identity.Encode(this);
                 }
 
                 var proxyData = new ProxyData11(
@@ -375,7 +375,7 @@ namespace IceRpc
                     proxy.Protocol,
                     protocolMinor: 0,
                     proxy.Encoding);
-                proxyData.IceEncode(this);
+                proxyData.Encode(this);
 
                 if (proxy.IsIndirect)
                 {
@@ -423,7 +423,7 @@ namespace IceRpc
                     altEndpoints: proxy.AltEndpoints.Count == 0 ?
                         null : proxy.AltEndpoints.Select(e => e.Data).ToArray());
 
-                proxyData.IceEncode(this);
+                proxyData.Encode(this);
             }
         }
 
@@ -527,7 +527,7 @@ namespace IceRpc
 
         /// <summary>Encodes a mapped Slice struct.</summary>
         /// <param name="v">The struct instance to encode.</param>
-        public void EncodeStruct<T>(T v) where T : struct, IEncodable => v.IceEncode(this);
+        public void EncodeStruct<T>(T v) where T : struct, IEncodable => v.Encode(this);
 
         // Encode methods for tagged basic types
 
@@ -954,7 +954,7 @@ namespace IceRpc
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 EncodeSize(fixedSize);
-                value.IceEncode(this);
+                value.Encode(this);
             }
         }
 
@@ -967,7 +967,7 @@ namespace IceRpc
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                value.IceEncode(this);
+                value.Encode(this);
                 EndFixedLengthSize(pos);
             }
         }
@@ -1140,12 +1140,12 @@ namespace IceRpc
             EncodeInt(0); // placeholder for future encapsulation size
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                opaqueEndpoint.ValueEncoding.IceEncode(this);
+                opaqueEndpoint.ValueEncoding.Encode(this);
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                Encoding.IceEncode(this);
+                Encoding.Encode(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.EncodeOptions11(this);

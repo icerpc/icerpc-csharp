@@ -1740,7 +1740,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
          << name << "\"/> instances.</summary>";
     _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction =";
     _out.inc();
-    _out << nl << "(encoder, value) => value.IceEncode(encoder);";
+    _out << nl << "(encoder, value) => value.Encode(encoder);";
     _out.dec();
     return true;
 }
@@ -1910,9 +1910,8 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     }
 
     _out << sp;
-    _out << nl << "/// <summary>Encodes the fields of this struct into a buffer.</summary>";
-    _out << nl << "/// <param name=\"encoder\">The buffer encoder.</param>";
-    _out << nl << "public readonly void IceEncode(IceRpc.IceEncoder encoder)";
+    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "public readonly void Encode(IceRpc.IceEncoder encoder)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;

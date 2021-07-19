@@ -388,7 +388,7 @@ namespace IceRpc.Transports
                 IceEncoder.Position sizePos = encoder.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
-                goAwayFrameBody.IceEncode(encoder);
+                goAwayFrameBody.Encode(encoder);
                 encoder.EndFixedLengthSize(sizePos);
 
                 await SendAsync(encoder.Finish(), false, cancel).ConfigureAwait(false);

@@ -782,7 +782,7 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else if (StructPtr::dynamicCast(type))
         {
-            out << nl << param << ".IceEncode(encoder);";
+            out << nl << param << ".Encode(encoder);";
         }
         else if (auto seq = SequencePtr::dynamicCast(type))
         {

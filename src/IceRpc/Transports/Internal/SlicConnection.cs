@@ -286,7 +286,7 @@ namespace IceRpc.Transports.Internal
                     var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        encoder => versionBody.IceEncode(encoder),
+                        encoder => versionBody.Encode(encoder),
                         frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
@@ -344,7 +344,7 @@ namespace IceRpc.Transports.Internal
                     encoder =>
                     {
                         encoder.EncodeVarUInt(version);
-                        initializeBody.IceEncode(encoder);
+                        initializeBody.Encode(encoder);
                         WriteParameters(encoder, parameters);
                     },
                     frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),

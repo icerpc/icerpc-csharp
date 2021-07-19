@@ -5,8 +5,8 @@ namespace IceRpc
     /// <summary>Represents a type that can be encoded using the Ice encoding.</summary>
     public interface IEncodable
     {
-        /// <summary>Encodes this instance to the buffer using the buffer's encoding.</summary>
+        /// <summary>Encodes this instance.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        void IceEncode(IceEncoder encoder);
+        void Encode(IceEncoder encoder);
     }
 }
