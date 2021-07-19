@@ -7,9 +7,14 @@ namespace IceRpc
 {
     public static partial class Interceptors
     {
-        /// <summary>An interceptor that sets the invocation timeout.</summary>
+        /// <summary>An interceptor that sets the invocation timeout, the interceptor sets the
+        /// <see cref="OutgoingRequest.Deadline"/> and creates a cancellation token that enforces it. If
+        /// <see cref="Invocation.Deadline"/> or <see cref="Invocation.Timeout"/> are set to a value other
+        /// than <see cref="DateTime.MaxValue"/> or <see cref="Timeout.InfiniteTimeSpan"/> respectively,
+        /// the invocation settings prevail and this interceptor does nothing.</summary>
         /// <param name="timeout">The timeout for the invocation.</param>
-        /// <returns>The CustomTiemout interceptor.</returns>
+        /// <returns>The timeout interceptor.</returns>
+        /// <see cref="Invocation.Timeout"/>
         public static Func<IInvoker, IInvoker> Timeout(TimeSpan timeout)
         {
             if (timeout == System.Threading.Timeout.InfiniteTimeSpan)
