@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
         private readonly ColocConnection _connection;
         private SemaphoreSlim? _sendSemaphore;
         private SemaphoreSlim? _receiveSemaphore;
-        static private readonly object _stopSending = new();
+        private static readonly object _stopSendingFrame = new();
 
         public override void EnableReceiveFlowControl()
         {
@@ -75,13 +75,13 @@ namespace IceRpc.Transports.Internal
                     int remaining = buffer.Length - offset;
                     if (remaining < receiveBuffer.Length)
                     {
-                        receiveBuffer[0..remaining].CopyTo(buffer);
+                        receiveBuffer[0..remaining].CopyTo(buffer[offset..]);
                         _receivedPos.Offset += remaining;
                         offset += remaining;
                     }
                     else
                     {
-                        receiveBuffer.CopyTo(buffer);
+                        receiveBuffer.CopyTo(buffer[offset..]);
                         offset += receiveBuffer.Length;
                         if (++_receivedPos.Segment == _receivedBuffers.Length)
                         {
@@ -162,16 +162,24 @@ namespace IceRpc.Transports.Internal
             {
                 // An error code indicates a reset frame.
 
-                // It's important to set the exception before completing the reads because ReceiveAsync expects the
-                // exception to be set if reads are completed.
+                // It's important to set the exception before completing the reads because ReceiveAsync
+                // expects the exception to be set if reads are completed.
                 SetException(new RpcStreamAbortedException(errorCode));
 
-                // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
-                CancelDispatchSource?.Cancel();
+                // Cancel the dispatch source before completing reads otherwise the source might be disposed
+                // after and the dispatch won't be canceled.
+                try
+                {
+                    CancelDispatchSource?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Expected if the stream is already shutdown.
+                }
 
                 TrySetReadCompleted();
             }
-            else if (frame == _stopSending)
+            else if (frame == _stopSendingFrame)
             {
                 // Stop sending frame, complete the writes to stop sending data.
                 TrySetWriteCompleted();
@@ -216,6 +224,7 @@ namespace IceRpc.Transports.Internal
                 if (_connection.Protocol == Protocol.Ice1)
                 {
                     Debug.Assert(expectedFrameType == buffer.Span[8]);
+                    // The connection validation or close frames don't carry any data.
                     return Memory<byte>.Empty;
                 }
                 else
@@ -243,7 +252,7 @@ namespace IceRpc.Transports.Internal
             _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
 
         private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
-            _ = _connection.SendFrameAsync(this, frame: _stopSending, endStream: false, default).AsTask();
+            _ = _connection.SendFrameAsync(this, frame: _stopSendingFrame, endStream: false, default).AsTask();
 
         private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {

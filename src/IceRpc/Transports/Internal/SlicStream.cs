@@ -473,8 +473,16 @@ namespace IceRpc.Transports.Internal
             // exception to be set if reads are completed.
             SetException(new RpcStreamAbortedException(errorCode));
 
-            // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
-            CancelDispatchSource?.Cancel();
+            // Cancel the dispatch source before completing reads otherwise the source might be disposed after
+            // and the dispatch won't be canceled.
+            try
+            {
+                CancelDispatchSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream is already shutdown.
+            }
 
             TrySetReadCompleted();
         }

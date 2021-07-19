@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
 
         internal long Id { get; }
 
-        static private readonly object _pingFrame = new();
+        private static readonly object _pingFrame = new();
         private readonly int _bidirectionalStreamMaxCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
         private readonly object _mutex = new();
@@ -56,6 +56,7 @@ namespace IceRpc.Transports.Internal
                 bool isIncoming = streamId % 2 == (IsServer ? 0 : 1);
                 bool isBidirectional = streamId % 4 < 2;
 
+                // The -1 stream ID value indicates a connection frame, not belonging to any stream.
                 if (streamId == -1)
                 {
                     if (frame == _pingFrame)
