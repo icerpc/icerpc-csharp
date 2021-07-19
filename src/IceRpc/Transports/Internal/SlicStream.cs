@@ -44,48 +44,6 @@ namespace IceRpc.Transports.Internal
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            // It's important to set the exception before completing the reads because ReceiveAsync expects the
-            // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
-
-            if (TrySetReadCompleted(shutdown: false))
-            {
-                // Notify the peer of the abort of the read side
-                if (errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.PrepareAndSendFrameAsync(
-                        SlicDefinitions.FrameType.StreamStopSending,
-                        encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
-                        frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
-                        this);
-                }
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            // Notify the peer of the abort if the stream or connection is not aborted already.
-            if (!IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
-            {
-                _ = _connection.PrepareAndSendFrameAsync(
-                    SlicDefinitions.FrameType.StreamReset,
-                    encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
-                    frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                    this);
-            }
-
-            if (TrySetWriteCompleted(shutdown: false))
-            {
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
-
         public override void EnableReceiveFlowControl()
         {
             bool signaled;
@@ -132,11 +90,6 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            if (ReadCompleted)
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
             if (_receivedSize == _receivedOffset)
             {
                 _receivedOffset = 0;
@@ -153,10 +106,7 @@ namespace IceRpc.Transports.Internal
                     {
                         throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
                     }
-                    if (!TrySetReadCompleted())
-                    {
-                        throw AbortException ?? new InvalidOperationException("stream receive is completed");
-                    }
+                    TrySetReadCompleted();
                     return 0;
                 }
             }
@@ -195,20 +145,21 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // If we've finished consuming the data and we received end of stream, we can complete the reads.
-            if (_receivedOffset == _receivedSize && _receivedEndStream)
-            {
-                TrySetReadCompleted();
-            }
-
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close frame.
-            if (_receiveBuffer == null && _receivedOffset == _receivedSize)
+            if (_receivedOffset == _receivedSize)
             {
                 // If we've consumed the whole Slic frame, notify the connection that it can start receiving
-                // a new frame.
-                _connection.FinishedReceivedStreamData(0);
+                // a new frame if flow control isn't enabled. If flow control is enabled, the data has been
+                // buffered and already received.
+                if (_receiveBuffer == null)
+                {
+                    _connection.FinishedReceivedStreamData(0);
+                }
+
+                // It's the end of the stream, we can complete reads.
+                if (_receivedEndStream)
+                {
+                    TrySetReadCompleted();
+                }
             }
 
             return size;
@@ -363,24 +314,20 @@ namespace IceRpc.Transports.Internal
             // continue receiving frames for other streams.
             if (_receiveBuffer == null)
             {
-                try
+                if (_receivedOffset == _receivedSize)
                 {
-                    if (_receivedOffset == _receivedSize)
+                    ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
+                    Debug.Assert(valueTask.IsCompleted);
+                    if (valueTask.IsCompletedSuccessfully)
                     {
-                        ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
-                        Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _) = valueTask.Result;
                     }
-
-                    if (_receivedSize - _receivedOffset > 0)
-                    {
-                        _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
-                    }
                 }
-                catch
+
+                if (_receivedSize - _receivedOffset > 0)
                 {
-                    // Ignore, there's nothing to consume.
+                    _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                 }
             }
 
@@ -526,10 +473,32 @@ namespace IceRpc.Transports.Internal
             // exception to be set if reads are completed.
             SetException(new RpcStreamAbortedException(errorCode));
 
-            // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
-            CancelDispatchSource?.Cancel();
+            // Cancel the dispatch source before completing reads otherwise the source might be disposed after
+            // and the dispatch won't be canceled.
+            try
+            {
+                CancelDispatchSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream is already shutdown.
+            }
 
             TrySetReadCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamReset,
+                encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
+                this);
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamStopSending,
+                encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                this);
     }
 }

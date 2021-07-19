@@ -18,26 +18,6 @@ namespace IceRpc.Transports.Internal
     /// </summary>
     internal abstract class SignaledStream<T> : RpcStream, IValueTaskSource<T>
     {
-        internal Exception? AbortException
-        {
-            get
-            {
-                bool lockTaken = false;
-                try
-                {
-                    _lock.Enter(ref lockTaken);
-                    return _exception;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        _lock.Exit();
-                    }
-                }
-            }
-        }
-
         internal bool IsSignaled
         {
             get
@@ -68,6 +48,66 @@ namespace IceRpc.Transports.Internal
         private ManualResetValueTaskSourceCore<T> _source;
         private CancellationTokenRegistration _tokenRegistration;
 
+        public override void AbortRead(RpcStreamError errorCode)
+        {
+            // It's important to set the exception before completing the reads because WaitAsync expects the
+            // exception to be set if reads are completed.
+            SetException(new RpcStreamAbortedException(errorCode));
+
+            if (TrySetReadCompleted(shutdown: false))
+            {
+                if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+                {
+                    // Notify the peer of the read abort by sending a stop sending frame.
+                    _ = SendStopSendingFrameAndShutdownAsync();
+                }
+                else
+                {
+                    // Shutdown the stream if not already done.
+                    TryShutdown();
+                }
+            }
+
+            async Task SendStopSendingFrameAndShutdownAsync()
+            {
+                try
+                {
+                    await SendStopSendingFrameAsync(errorCode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TryShutdown();
+            }
+        }
+
+        public override void AbortWrite(RpcStreamError errorCode)
+        {
+            if (IsStarted && !IsShutdown && errorCode != RpcStreamError.ConnectionAborted)
+            {
+                // Notify the peer of the write abort by sending a reset frame.
+                _ = SendResetFrameAndCompleteWritesAsync();
+            }
+            else
+            {
+                TrySetWriteCompleted();
+            }
+
+            async Task SendResetFrameAndCompleteWritesAsync()
+            {
+                try
+                {
+                    await SendResetFrameAsync(errorCode).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Ignore.
+                }
+                TrySetWriteCompleted();
+            }
+        }
+
         protected SignaledStream(MultiStreamConnection connection, long streamId)
             : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;
 
@@ -77,6 +117,10 @@ namespace IceRpc.Transports.Internal
         protected override void Shutdown()
         {
             base.Shutdown();
+
+            // The stream might not be signaled if it's shutdown gracefully after receiving endStream. We
+            // make sure to set the exception in this case to prevent WaitAsync calls to block.
+            SetException(new RpcStreamAbortedException(RpcStreamError.StreamAborted));
 
             // Unregister the cancellation token callback
             _tokenRegistration.Dispose();
@@ -185,6 +229,13 @@ namespace IceRpc.Transports.Internal
         /// <return>The value used to signaled the stream.</return>
         protected ValueTask<T> WaitAsync(CancellationToken cancel = default)
         {
+            if (ReadCompleted && _exception == null)
+            {
+                // If reads are completed and no exception is set, it's probably because ReceiveAsync is called after
+                // receiving the end stream flag.
+                throw new InvalidOperationException("reads are completed");
+            }
+
             if (cancel.CanBeCanceled)
             {
                 Debug.Assert(_tokenRegistration == default);
@@ -214,6 +265,10 @@ namespace IceRpc.Transports.Internal
             }
             return new ValueTask<T>(this, _source.Version);
         }
+
+        private protected abstract Task SendResetFrameAsync(RpcStreamError errorCode);
+
+        private protected abstract Task SendStopSendingFrameAsync(RpcStreamError errorCode);
 
         T IValueTaskSource<T>.GetResult(short token)
         {

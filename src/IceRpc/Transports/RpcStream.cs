@@ -14,7 +14,8 @@ namespace IceRpc.Transports
     {
         internal RpcStreamError ErrorCode { get; }
 
-        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) :
+            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
@@ -211,10 +212,14 @@ namespace IceRpc.Transports
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
 
-            // Eventually cancel the dispatch if there's one.
-            CancelDispatchSource?.Cancel();
+            if (CancelDispatchSource is CancellationTokenSource source)
+            {
+                // Cancel the dispatch.
+                source.Cancel();
 
-            CancelDispatchSource?.Dispose();
+                // We're done with the source, dispose it.
+                source.Dispose();
+            }
             _connection.RemoveStream(Id);
         }
 

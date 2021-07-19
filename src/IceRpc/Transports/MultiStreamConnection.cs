@@ -206,7 +206,7 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Returns <c>false</c> if an incoming stream is unknown, <c>true</c> otherwise. An incoming
+        /// <summary>Returns <c>true</c> if an incoming stream is unknown, <c>false</c> otherwise. An incoming
         /// is known if its the ID is inferior or equal to the last allocated incoming stream ID.</summary>
         protected bool IsIncomingStreamUnknown(long streamId, bool bidirectional)
         {

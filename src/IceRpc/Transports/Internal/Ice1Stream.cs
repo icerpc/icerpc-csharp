@@ -14,17 +14,6 @@ namespace IceRpc.Transports.Internal
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private readonly Ice1Connection _connection;
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            if (TrySetReadCompleted())
-            {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
-
         public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
             throw new NotImplementedException();
@@ -46,7 +35,6 @@ namespace IceRpc.Transports.Internal
             // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
             Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
-
             if (endStream)
             {
                 TrySetWriteCompleted();
@@ -88,17 +76,13 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
 
-            if (frameType != Ice1FrameType.ValidateConnection && !TrySetReadCompleted())
+            // An Ice1 stream can only receive a single frame, except if it's a control stream which can
+            // receive multiple connection validation messages.
+            if (!IsControl)
             {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                TrySetReadCompleted();
             }
 
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close connection frame.
-            _connection.FinishedReceivedFrame();
-
-            // No more data will ever be received over this stream unless it's the validation connection frame.
             return frame;
         }
 
@@ -145,5 +129,9 @@ namespace IceRpc.Transports.Internal
 
             TrySetWriteCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
     }
 }
