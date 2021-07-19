@@ -167,7 +167,7 @@ namespace IceRpc
                 IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
                 EncodeFields(encoder);
                 encoder.Encode(ResultType);
-                PayloadEncoding.Encode(encoder);
+                encoder.EncodeStruct(PayloadEncoding);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(startPos, 2);
             }
@@ -179,7 +179,7 @@ namespace IceRpc
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
-                    responseHeader.Encode(encoder);
+                    encoder.EncodeStruct(responseHeader);
                 }
             }
         }

@@ -161,7 +161,7 @@ namespace IceRpc
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-                requestHeaderBody.Encode(encoder);
+                encoder.EncodeStruct(requestHeaderBody);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
@@ -174,7 +174,7 @@ namespace IceRpc
                 // else context remains empty (not set)
 
                 EncodeFields(encoder);
-                PayloadEncoding.Encode(encoder);
+                encoder.EncodeStruct(PayloadEncoding);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(start, 2);
             }
@@ -189,7 +189,7 @@ namespace IceRpc
                     context,
                     encapsulationSize: PayloadSize + 6,
                     PayloadEncoding);
-                requestHeader.Encode(encoder);
+                encoder.EncodeStruct(requestHeader);
             }
         }
 

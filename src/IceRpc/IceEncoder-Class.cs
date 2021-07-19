@@ -438,7 +438,7 @@ namespace IceRpc
                 Debug.Assert(errorMessage != null);
                 EncodeString(errorMessage);
                 Debug.Assert(origin != null);
-                origin.Value.Encode(this);
+                EncodeStruct(origin.Value);
             }
 
             _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;

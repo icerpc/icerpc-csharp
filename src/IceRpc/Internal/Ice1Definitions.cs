@@ -123,7 +123,7 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    var requestFailed = new Ice1RequestFailedExceptionData { IceDecoder = decoder };
+                    var requestFailed = decoder.DecodeStruct<Ice1RequestFailedExceptionData>();
 
                     IList<string> facetPath = requestFailed.FacetPath;
                     if (facetPath.Count > 1)
@@ -191,7 +191,7 @@ namespace IceRpc.Internal
                     var requestFailed =
                         new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
 
-                    requestFailed.Encode(encoder);
+                    encoder.EncodeStruct(requestFailed);
                     break;
 
                 case ReplyStatus.UnknownLocalException:
