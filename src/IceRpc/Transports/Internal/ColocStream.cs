@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
     {
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _receivedBuffers;
         private bool _receivedEndStream;
-        private (int Segment, int Offset) _receivedPos;
+        private (int BufferIndex, int Offset) _receivedPos;
         private readonly ColocConnection _connection;
         private SemaphoreSlim? _sendSemaphore;
         private SemaphoreSlim? _receiveSemaphore;
@@ -42,7 +42,7 @@ namespace IceRpc.Transports.Internal
         {
             // If we couldn't get data from the previously received buffers, wait for additional data to be received
             // and fill the buffer with the received data.
-            if (_receivedPos.Segment == _receivedBuffers.Length)
+            if (_receivedPos.BufferIndex == _receivedBuffers.Length)
             {
                 (object frame, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
                 if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
@@ -64,14 +64,14 @@ namespace IceRpc.Transports.Internal
                     return 0;
                 }
 
-                Debug.Assert(_receivedPos.Segment < _receivedBuffers.Length);
+                Debug.Assert(_receivedPos.BufferIndex < _receivedBuffers.Length);
                 int offset = 0;
                 while (offset < buffer.Length)
                 {
-                    Debug.Assert(_receivedPos.Offset <= _receivedBuffers.Span[_receivedPos.Segment].Length);
+                    Debug.Assert(_receivedPos.Offset <= _receivedBuffers.Span[_receivedPos.BufferIndex].Length);
 
                     ReadOnlyMemory<byte> receiveBuffer =
-                        _receivedBuffers.Span[_receivedPos.Segment][_receivedPos.Offset..];
+                        _receivedBuffers.Span[_receivedPos.BufferIndex][_receivedPos.Offset..];
                     int remaining = buffer.Length - offset;
                     if (remaining < receiveBuffer.Length)
                     {
@@ -83,7 +83,7 @@ namespace IceRpc.Transports.Internal
                     {
                         receiveBuffer.CopyTo(buffer[offset..]);
                         offset += receiveBuffer.Length;
-                        if (++_receivedPos.Segment == _receivedBuffers.Length)
+                        if (++_receivedPos.BufferIndex == _receivedBuffers.Length)
                         {
                             // No more data available from the received buffers.
                             break;
@@ -98,7 +98,7 @@ namespace IceRpc.Transports.Internal
                 // If all the buffered data has been consumed, release the semaphore to let the sender send
                 // more data and if the end stream is reached, we complete the reads to eventually shutdown
                 // the stream.
-                if (_receivedPos.Segment == _receivedBuffers.Length)
+                if (_receivedPos.BufferIndex == _receivedBuffers.Length)
                 {
                     try
                     {
