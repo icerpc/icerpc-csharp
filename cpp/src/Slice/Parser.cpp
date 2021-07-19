@@ -2979,7 +2979,7 @@ Slice::InterfaceDef::operations() const
 }
 
 OperationList
-Slice::InterfaceDef::allOperations() const
+Slice::InterfaceDef::allBaseOperations() const
 {
     OperationList result;
     for (const auto& base : _bases)
@@ -2992,6 +2992,14 @@ Slice::InterfaceDef::allOperations() const
             }
         }
     }
+
+    return result;
+}
+
+OperationList
+Slice::InterfaceDef::allOperations() const
+{
+    OperationList result = allBaseOperations();
 
     for (const auto& operation : _operations)
     {

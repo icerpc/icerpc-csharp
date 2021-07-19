@@ -42,11 +42,6 @@ namespace IceRpc.Internal
         /// <summary>Constructs a locator invoker.</summary>
         internal LocatorClient(ILocatorPrx locator, Interceptors.LocatorOptions options)
         {
-            if (locator.Endpoint == null || locator.Endpoint.Transport == Transport.Loc)
-            {
-                throw new ArgumentException($"{nameof(locator)} needs a non-loc endpoint", nameof(locator));
-            }
-
             if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
             {
                 throw new ArgumentException(
@@ -301,38 +296,38 @@ namespace IceRpc.Internal
             {
                 try
                 {
-                    IServicePrx? proxy = null;
+                    ServicePrx? servicePrx = null;
 
                     if (category == null)
                     {
                         try
                         {
-                            proxy = await _locator.FindAdapterByIdAsync(
+                            servicePrx = await _locator.FindAdapterByIdAsync(
                                 location,
                                 cancel: CancellationToken.None).ConfigureAwait(false);
                         }
                         catch (AdapterNotFoundException)
                         {
                             // We treat AdapterNotFoundException just like a null return value.
-                            proxy = null;
+                            servicePrx = null;
                         }
                     }
                     else
                     {
                         try
                         {
-                            proxy = await _locator.FindObjectByIdAsync(
+                            servicePrx = await _locator.FindObjectByIdAsync(
                                 new Identity(location, category),
                                 cancel: CancellationToken.None).ConfigureAwait(false);
                         }
                         catch (ObjectNotFoundException)
                         {
                             // We treat ObjectNotFoundException just like a null return value.
-                            proxy = null;
+                            servicePrx = null;
                         }
                     }
 
-                    ServicePrx? resolved = proxy?.Impl;
+                    Proxy? resolved = servicePrx?.Proxy;
 
                     if (resolved != null &&
                         ((category == null && resolved.IsIndirect) ||

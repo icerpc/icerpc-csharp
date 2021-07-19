@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = IGreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
             Assert.That(service.Called, Is.False);
@@ -75,7 +75,7 @@ namespace IceRpc.Tests.Api
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
 
-            var prx = IGreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
             await prx.IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);

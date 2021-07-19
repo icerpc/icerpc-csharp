@@ -17,8 +17,8 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IOperationsPrx _prx;
-        private readonly IDerivedOperationsPrx _derivedPrx;
+        private readonly OperationsPrx _prx;
+        private readonly DerivedOperationsPrx _derivedPrx;
 
         public OperationsTests(Protocol protocol)
         {
@@ -36,10 +36,10 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx = IOperationsPrx.FromConnection(_connection);
-            _derivedPrx = _prx.As<IDerivedOperationsPrx>();
+            _prx = OperationsPrx.FromConnection(_connection);
+            _derivedPrx = new DerivedOperationsPrx(_prx.Proxy);
 
-            Assert.AreEqual(protocol, _prx.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]

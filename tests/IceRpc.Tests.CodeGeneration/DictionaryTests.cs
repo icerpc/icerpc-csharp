@@ -18,7 +18,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IDictionaryOperationsPrx _prx;
+        private readonly DictionaryOperationsPrx _prx;
 
         public DictionaryTests(Protocol protocol)
         {
@@ -29,8 +29,8 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IDictionaryOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            _prx = DictionaryOperationsPrx.FromConnection(_connection);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]
@@ -265,7 +265,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -381,9 +381,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, IOperationsPrx>> R1, IEnumerable<KeyValuePair<string, IOperationsPrx>> R2)> OpOperationsDictAsync(
-                Dictionary<string, IOperationsPrx> p1,
-                Dictionary<string, IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, OperationsPrx>> R1, IEnumerable<KeyValuePair<string, OperationsPrx>> R2)> OpOperationsDictAsync(
+                Dictionary<string, OperationsPrx> p1,
+                Dictionary<string, OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 

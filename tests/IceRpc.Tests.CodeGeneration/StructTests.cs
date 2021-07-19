@@ -16,7 +16,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IStructOperationsPrx _prx;
+        private readonly StructOperationsPrx _prx;
 
         public StructTests(Protocol protocol)
         {
@@ -27,8 +27,8 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IStructOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            _prx = StructOperationsPrx.FromConnection(_connection);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]
@@ -45,11 +45,11 @@ namespace IceRpc.Tests.CodeGeneration
             await TestAsync((p1, p2) => _prx.OpMyStructAsync(p1, p2), new MyStruct(1, 2), new MyStruct(3, 4));
             await TestAsync((p1, p2) => _prx.OpAnotherStructAsync(p1, p2),
                             new AnotherStruct("hello",
-                                              IOperationsPrx.Parse("ice+tcp://foo/bar"),
+                                              OperationsPrx.Parse("ice+tcp://foo/bar"),
                                               MyEnum.enum1,
                                               new MyStruct(1, 2)),
                             new AnotherStruct("world",
-                                              IOperationsPrx.Parse("ice+tcp://foo/bar"),
+                                              OperationsPrx.Parse("ice+tcp://foo/bar"),
                                               MyEnum.enum2,
                                               new MyStruct(3, 4)));
 

@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
 
             var pipeline = new Pipeline();
-            var prx = IServicePrx.FromConnection(connection, invoker: pipeline);
+            var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
 
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
@@ -103,7 +103,7 @@ namespace IceRpc.Tests.Api
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);
             }));
-            var prx = IServicePrx.FromConnection(connection, invoker: pipeline);
+            var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
             var expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync());
             Assert.That(dispatchDeadline, Is.Not.Null);
@@ -138,7 +138,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
 
             var pipeline = new Pipeline();
-            var prx = IServicePrx.FromConnection(connection, invoker: pipeline);
+            var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
 
             // Invocation timeout prevails
             pipeline = new Pipeline();
@@ -149,7 +149,7 @@ namespace IceRpc.Tests.Api
                 invocationDeadline = request.Deadline;
                 return next.InvokeAsync(request, cancel);
             }));
-            prx = IServicePrx.FromConnection(connection, invoker: pipeline);
+            prx = ServicePrx.FromConnection(connection, invoker: pipeline);
             var invocation = new Invocation { Timeout = TimeSpan.FromMilliseconds(timeout) };
             var expectedDeadline = DateTime.UtcNow + TimeSpan.FromMilliseconds(timeout);
             Assert.CatchAsync<OperationCanceledException>(async () => await prx.IcePingAsync(invocation));

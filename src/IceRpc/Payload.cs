@@ -59,7 +59,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
-            IServicePrx proxy,
+            Proxy proxy,
             in T args,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -77,7 +77,7 @@ namespace IceRpc
         /// <summary>Creates the payload of a request without parameter.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(IServicePrx proxy) =>
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(Proxy proxy) =>
             new ReadOnlyMemory<byte>[] { proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding) };
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
@@ -114,7 +114,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
-            IServicePrx proxy,
+            Proxy proxy,
             T arg,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)

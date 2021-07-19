@@ -47,7 +47,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IStreamsPrx.FromConnection(_connection);
+            _prx = StreamsPrx.FromConnection(_connection);
         }
 
         [TearDown]

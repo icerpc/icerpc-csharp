@@ -86,8 +86,8 @@ namespace IceRpc
             new(_typeIds);
 
         /// <inheritdoc/>
-        public ValueTask<bool> IceIsAAsync(string typeId, Dispatch dispatch, CancellationToken cancel) =>
-            new(_typeIds.Contains(typeId));
+        public ValueTask<bool> IceIsAAsync(string id, Dispatch dispatch, CancellationToken cancel) =>
+            new(_typeIds.Contains(id));
 
         /// <inheritdoc/>
         public ValueTask IcePingAsync(Dispatch dispatch, CancellationToken cancel) => default;

@@ -112,18 +112,18 @@ public class Client : TestHelper
         Output.Write("testing operation name... ");
         Output.Flush();
 
-        IdecimalPrx p = IdecimalPrx.FromConnection(connection, "/test");
+        IdecimalPrx p = decimalPrx.FromConnection(connection, "/test");
         await p.defaultAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.FromConnection(connection, "/test1");
+            IceRpc.Slice.Test.Escape.@abstract.System.TestPrx.FromConnection(connection, "/test1");
         await t1.opAsync();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            IceRpc.Slice.Test.Escape.System.ITestPrx.FromConnection(connection, "/test2");
+            IceRpc.Slice.Test.Escape.System.TestPrx.FromConnection(connection, "/test2");
         await t2.opAsync();
         Output.WriteLine("ok");
 

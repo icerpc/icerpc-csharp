@@ -131,8 +131,8 @@ namespace IceRpc.Tests.CodeGeneration
             };
             server.Listen();
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            IEnumOperationsPrx prx = IEnumOperationsPrx.FromConnection(connection);
-            Assert.AreEqual(protocol, prx.Protocol);
+            var prx = EnumOperationsPrx.FromConnection(connection);
+            Assert.AreEqual(protocol, prx.Proxy.Protocol);
             await closure(prx);
         }
 

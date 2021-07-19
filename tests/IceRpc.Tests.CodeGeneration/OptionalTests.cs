@@ -15,7 +15,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IOptionalOperationsPrx _prx;
+        private readonly OptionalOperationsPrx _prx;
 
         public OptionalTests()
         {
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx = IOptionalOperationsPrx.FromConnection(_connection);
+            _prx = OptionalOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -80,7 +80,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiOtional.MMyEnum = MyEnum.enum1;
             multiOtional.MAnotherStruct = new AnotherStruct(
                 "hello",
-                IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                OperationsPrx.Parse("ice+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -316,7 +316,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    OperationsPrx.Parse("ice+tcp://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -540,7 +540,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -558,7 +558,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };

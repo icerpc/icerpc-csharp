@@ -16,7 +16,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IExceptionOperationsPrx _prx;
+        private readonly ExceptionOperationsPrx _prx;
 
         public Exception(Protocol protocol)
         {
@@ -34,8 +34,8 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.ProxyEndpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
-            _prx = IExceptionOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            _prx = ExceptionOperationsPrx.FromConnection(_connection);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [OneTimeTearDown]

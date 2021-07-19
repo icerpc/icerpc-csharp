@@ -58,7 +58,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(connection.IsSecure, Is.True);
@@ -104,7 +104,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(connection.IsSecure, Is.True);
@@ -159,7 +159,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
             Assert.That(connection.IsSecure, Is.True);
@@ -200,7 +200,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
         }
@@ -258,7 +258,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync());
         }
@@ -313,7 +313,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             if ((GetOperatingSystem() & mustSucceed) != 0)
             {
@@ -357,14 +357,14 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
 
             SslStream? sslStream =
-                (prx.Connection!.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                (prx.Proxy.Connection!.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
 
-            Assert.That(prx.Connection.IsSecure, Is.True);
+            Assert.That(prx.Proxy.Connection.IsSecure, Is.True);
             Assert.That(sslStream, Is.Not.Null);
             Assert.AreEqual(SslProtocols.Tls12, sslStream.SslProtocol);
         }
@@ -405,7 +405,7 @@ namespace IceRpc.Tests.ClientServer
                 },
                 RemoteEndpoint = server.ProxyEndpoint
             };
-            var prx = IServicePrx.FromConnection(connection);
+            var prx = ServicePrx.FromConnection(connection);
 
             Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
         }

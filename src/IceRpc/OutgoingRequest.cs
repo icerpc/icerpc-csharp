@@ -65,7 +65,7 @@ namespace IceRpc
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The proxy that is sending this request.</summary>
-        public IServicePrx Proxy { get; }
+        public Proxy Proxy { get; }
 
         /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
         /// decompress a stream return value.</summary>
@@ -97,7 +97,7 @@ namespace IceRpc
         /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
         /// fields as defaults for its fields.</param>
         public OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             IncomingRequest request,
             bool forwardFields = true)
             // TODO: support stream param forwarding
@@ -119,7 +119,7 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing request.</summary>
         internal OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
             RpcStreamWriter? streamWriter,
@@ -194,7 +194,7 @@ namespace IceRpc
         }
 
         private OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             string operation,
             FeatureCollection features,
             RpcStreamWriter? streamWriter)
@@ -207,8 +207,8 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                FacetPath = proxy.Impl.FacetPath;
-                Identity = proxy.Impl.Identity;
+                FacetPath = proxy.FacetPath;
+                Identity = proxy.Identity;
             }
 
             Operation = operation;

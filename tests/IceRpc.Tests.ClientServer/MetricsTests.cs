@@ -72,7 +72,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -120,7 +120,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -168,7 +168,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             for (int i = 0; i < 10; ++i)
             {

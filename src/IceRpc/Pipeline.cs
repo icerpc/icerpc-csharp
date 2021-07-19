@@ -49,7 +49,7 @@ namespace IceRpc
         /// <returns>The pipeline of invokers.</returns>
         private IInvoker CreateInvokerPipeline()
         {
-            IInvoker pipeline = Proxy.NullInvoker;
+            IInvoker pipeline = ProxyExtensions.NullInvoker;
 
             IEnumerable<Func<IInvoker, IInvoker>> interceptorEnumerable = _interceptorList;
             foreach (Func<IInvoker, IInvoker> interceptor in interceptorEnumerable.Reverse())

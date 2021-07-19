@@ -180,10 +180,10 @@ namespace IceRpc.Interop
     /// <summary>Extension methods that give access to identity.</summary>
     public static class IdentityExtensions
     {
-        /// <summary>Returns the identity of this service proxy.</summary>
+        /// <summary>Returns the identity of this proxy.</summary>
         /// <param name="proxy">The proxy.</param>
         /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this IServicePrx proxy) => proxy.Impl.Identity;
+        public static Identity GetIdentity(this Proxy proxy) => proxy.Identity;
 
         /// <summary>Returns the identity carried by this incoming request.</summary>
         /// <param name="request">The incoming request.</param>

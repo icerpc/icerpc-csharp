@@ -82,7 +82,7 @@ namespace IceRpc.Tests.ClientServer
                     ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
                 }
             };
-            var prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
+            var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             byte[] data = Enumerable.Range(0, size).Select(i => (byte)i).ToArray();
             await prx.OpCompressArgsAsync(size, data);
@@ -189,7 +189,7 @@ namespace IceRpc.Tests.ClientServer
 
             router.Map<ICompressTest>(new CompressTest());
             await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = ICompressTestPrx.FromConnection(connection, invoker: pipeline);
+            var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             using var sendStream = new MemoryStream(new byte[size]);
             int receivedSize = await prx.OpCompressStreamArgAsync(sendStream);

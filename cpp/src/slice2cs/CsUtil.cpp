@@ -45,10 +45,10 @@ Slice::paramName(const MemberPtr& param, const string& prefix)
 }
 
 std::string
-Slice::paramTypeStr(const MemberPtr& param, bool readOnly)
+Slice::paramTypeStr(const MemberPtr& param, const string& ns, bool readOnly)
 {
     return CsGenerator::typeToString(param->type(),
-                                     getNamespace(InterfaceDefPtr::dynamicCast(param->operation()->container())),
+                                     ns,
                                      readOnly,
                                      true, // isParam
                                      param->stream());
@@ -374,7 +374,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         "float",
         "double",
         "string",
-        "IceRpc.IServicePrx",
+        "IceRpc.ServicePrx",
         "IceRpc.AnyClass"
     };
 
@@ -393,7 +393,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
     InterfaceDeclPtr interface = InterfaceDeclPtr::dynamicCast(type);
     if(interface)
     {
-        return getUnqualified(getNamespace(interface) + "." + interfaceName(interface) + "Prx", package);
+        return getUnqualified(getNamespace(interface) + "." + interfaceName(interface).substr(1) + "Prx", package);
     }
 
     if(seq)
@@ -479,7 +479,7 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
 }
 
 string
-Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
+Slice::returnTypeStr(const OperationPtr& op, const string& ns, bool dispatch)
 {
     InterfaceDefPtr interface = op->interface();
     auto returnValues = op->returnType();
@@ -491,16 +491,16 @@ Slice::returnTypeStr(const OperationPtr& op, const string& scope, bool dispatch)
     else if (dispatch && op->hasMarshaledResult())
     {
         string name = getNamespace(interface) + "." + interfaceName(interface);
-        return getUnqualified(name, scope) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
+        return getUnqualified(name, ns) + "." + pascalCase(op->name()) + "MarshaledReturnValue";
     }
     else if (returnValues.size() > 1)
     {
         // when dispatch is true, the result-type is read-only
-        return toTupleType(returnValues, dispatch);
+        return toTupleType(returnValues, ns, dispatch);
     }
     else
     {
-        return paramTypeStr(returnValues.front(), dispatch);
+        return paramTypeStr(returnValues.front(), ns, dispatch);
     }
 }
 
@@ -541,12 +541,11 @@ Slice::isValueType(const TypePtr& type)
     assert(!OptionalPtr::dynamicCast(type));
 
     BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-    if(builtin)
+    if (builtin)
     {
-        switch(builtin->kind())
+        switch (builtin->kind())
         {
             case Builtin::KindString:
-            case Builtin::KindObject:
             case Builtin::KindAnyClass:
             {
                 return false;
@@ -558,11 +557,11 @@ Slice::isValueType(const TypePtr& type)
         }
     }
 
-    if(EnumPtr::dynamicCast(type))
+    if (EnumPtr::dynamicCast(type) || StructPtr::dynamicCast(type) || type->isInterfaceType())
     {
         return true;
     }
-    return StructPtr::dynamicCast(type);
+    return false;
 }
 
 bool
@@ -626,11 +625,11 @@ Slice::toTuple(const MemberList& params, const string& prefix)
 }
 
 std::string
-Slice::toTupleType(const MemberList& params, bool readOnly)
+Slice::toTupleType(const MemberList& params, const string& ns, bool readOnly)
 {
     if(params.size() == 1)
     {
-        return paramTypeStr(params.front(), readOnly);
+        return paramTypeStr(params.front(), ns, readOnly);
     }
     else
     {
@@ -648,7 +647,7 @@ Slice::toTupleType(const MemberList& params, bool readOnly)
                 os << ", ";
             }
 
-            os << paramTypeStr(param, readOnly) << " " << fieldName(param);
+            os << paramTypeStr(param, ns, readOnly) << " " << fieldName(param);
         }
         os << ")";
         return os.str();
@@ -663,21 +662,9 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     {
         // Expected for proxy and class types.
         TypePtr underlying = optional->underlying();
-        if (underlying->isInterfaceType())
-        {
-            out << typeToString(underlying->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".NullableEncodeAction";
-        }
-        else
-        {
-            assert(underlying->isClassType());
-            out << typeToString(underlying, scope, readOnly, param) << ".NullableEncodeAction";
-        }
+        out << typeToString(underlying, scope, readOnly, param) << ".NullableEncodeAction";
     }
-    else if (type->isInterfaceType())
-    {
-        out << typeToString(type->unit()->builtin(Builtin::KindObject), scope, readOnly, param) << ".EncodeAction";
-    }
-    else if (type->isClassType())
+    else if (type->isClassType() || type->isInterfaceType())
     {
         out << typeToString(type, scope, readOnly, param) << ".EncodeAction";
     }
@@ -722,7 +709,7 @@ Slice::CsGenerator::writeMarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << nl << "encoder.EncodeNullableProxy(" << param << ");";
+            out << nl << "encoder.EncodeNullableProxy(" << param << "?.Proxy);";
         }
         else if (underlying->isClassType())
         {
@@ -775,7 +762,7 @@ Slice::CsGenerator::writeMarshalCode(
     {
         if (type->isInterfaceType())
         {
-            out << nl << "encoder.EncodeProxy(" << param << ");";
+            out << nl << "encoder.EncodeProxy(" << param << ".Proxy);";
         }
         else if (type->isClassType())
         {
@@ -896,9 +883,8 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.Proxy.DecodeNullable("
-                << typeToString(underlying, scope) << ".Factory, "
-                << "decoder);";
+            out << "IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << typeToString(underlying, scope)
+                << ">(decoder);";
             return;
         }
         else if (underlying->isClassType())
@@ -927,9 +913,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     if (underlying->isInterfaceType())
     {
         assert(!optional);
-        out << "IceRpc.Proxy.Decode("
-            << typeToString(underlying, scope) << ".Factory, "
-            << "decoder)";
+        out << "new " << typeToString(underlying, scope) << "(decoder.DecodeProxy());";
     }
     else if (underlying->isClassType())
     {
@@ -970,14 +954,7 @@ Slice::CsGenerator::writeUnmarshalCode(
 
     if (optional)
     {
-        if (isReferenceType(underlying))
-        {
-            out << " : null";
-        }
-        else
-        {
-            out << " : (" << typeToString(underlying, scope) << "?)null";
-        }
+        out << " : null";
     }
     out << ";";
 }
@@ -998,9 +975,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
-    if (builtin || type->isInterfaceType() || type->isClassType())
+    if (type->isInterfaceType())
     {
-        auto kind = builtin ? builtin->kind() : type->isInterfaceType() ? Builtin::KindObject : Builtin::KindAnyClass;
+        out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
+    }
+    else if (builtin || type->isClassType())
+    {
+        auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
         out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
     }
     else if(st)
@@ -1117,9 +1098,8 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.Proxy.DecodeTagged("
-            << typeToString(type, scope) << ".Factory, "
-            << "decoder, " << tag << ")";
+        out << "IceRpc.IceDecoderPrxExtensions.DecodeTaggedPrx<"<< typeToString(type, scope) << ">(decoder, "
+            << tag << ");";
     }
     else if (builtin)
     {

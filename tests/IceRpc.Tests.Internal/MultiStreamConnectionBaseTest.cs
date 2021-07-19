@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
 
         protected MultiStreamConnection ClientConnection => _clientConnection!;
 
-        protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
+        protected Proxy Proxy => Proxy.FromPath("/dummy", ClientEndpoint.Protocol);
         protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _clientConnection;
