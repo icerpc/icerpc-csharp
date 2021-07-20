@@ -935,7 +935,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     }
     else if (auto st = StructPtr::dynamicCast(underlying))
     {
-        out << "new " << getUnqualified(st, scope) << "{ IceDecoder = decoder }";
+        out << "new " << getUnqualified(st, scope) << "(decoder)";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(underlying))
     {
@@ -992,7 +992,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             out << ", fixedSize: " << st->minWireSize();
         }
-        out << ");";
+        out << ", " << encodeAction(st, scope, !isDataMember) << ");";
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {

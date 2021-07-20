@@ -278,7 +278,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new IceDecoder(data, Ice2Definitions.Encoding).DecodeStruct<Ice2GoAwayBody>();
+                var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(data, Ice2Definitions.Encoding));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -388,7 +388,7 @@ namespace IceRpc.Transports
                 IceEncoder.Position sizePos = encoder.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
-                encoder.EncodeStruct(goAwayFrameBody);
+                goAwayFrameBody.Encode(encoder);
                 encoder.EndFixedLengthSize(sizePos);
 
                 await SendAsync(encoder.Finish(), false, cancel).ConfigureAwait(false);

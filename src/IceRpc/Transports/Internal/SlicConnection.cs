@@ -185,7 +185,7 @@ namespace IceRpc.Transports.Internal
                         var decoder = new IceDecoder(
                             _streamConsumedBuffer.Value[0..dataSize],
                             SlicDefinitions.Encoding);
-                        var streamConsumed = decoder.DecodeStruct<StreamConsumedBody>();
+                        var streamConsumed = new StreamConsumedBody(decoder);
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
                             stream.ReceivedConsumed((int)streamConsumed.Size);
@@ -207,7 +207,7 @@ namespace IceRpc.Transports.Internal
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
-                        var streamReset = decoder.DecodeStruct<StreamResetBody>();
+                        var streamReset = new StreamResetBody(decoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicResetFrame(frameSize, errorCode);
@@ -233,7 +233,7 @@ namespace IceRpc.Transports.Internal
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
-                        var streamReset = decoder.DecodeStruct<StreamResetBody>();
+                        var streamReset = new StreamResetBody(decoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
@@ -286,7 +286,7 @@ namespace IceRpc.Transports.Internal
                     var versionBody = new VersionBody(new uint[] { 1 });
                     await PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.Version,
-                        encoder => encoder.EncodeStruct(versionBody),
+                        encoder => versionBody.Encode(encoder),
                         frameSize => Logger.LogSendingSlicVersionFrame(frameSize, versionBody),
                         cancel: cancel).ConfigureAwait(false);
 
@@ -305,7 +305,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Read initialize frame
-                var initializeBody = decoder.DecodeStruct<InitializeHeaderBody>();
+                var initializeBody = new InitializeHeaderBody(decoder);
                 Dictionary<ParameterKey, ulong> parameters = ReadParameters(decoder);
                 Logger.LogReceivingSlicInitializeFrame(data.Length, version, initializeBody, parameters);
 
@@ -344,7 +344,7 @@ namespace IceRpc.Transports.Internal
                     encoder =>
                     {
                         encoder.EncodeVarUInt(version);
-                        encoder.EncodeStruct(initializeBody);
+                        initializeBody.Encode(encoder);
                         WriteParameters(encoder, parameters);
                     },
                     frameSize => Logger.LogSendingSlicInitializeFrame(frameSize, version, initializeBody, parameters),
@@ -361,7 +361,7 @@ namespace IceRpc.Transports.Internal
                 if (type == SlicDefinitions.FrameType.Version)
                 {
                     // Read the version sequence provided by the server.
-                    var versionBody = decoder.DecodeStruct<VersionBody>();
+                    var versionBody = new VersionBody(decoder);
                     Logger.LogReceivingSlicVersionFrame(data.Length, versionBody);
 
                     throw new InvalidDataException(

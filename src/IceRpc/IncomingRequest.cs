@@ -79,7 +79,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                var requestHeader = decoder.DecodeStruct<Ice1RequestHeader>();
+                var requestHeader = new Ice1RequestHeader(decoder);
                 Identity = requestHeader.Identity;
                 Path = Identity.ToPath();
                 FacetPath = requestHeader.FacetPath;
@@ -109,7 +109,7 @@ namespace IceRpc
                 int startPos = decoder.Pos;
 
                 // We use the generated code for the header body and read the rest of the header "by hand".
-                var requestHeaderBody = decoder.DecodeStruct<Ice2RequestHeaderBody>();
+                var requestHeaderBody = new Ice2RequestHeaderBody(decoder);
                 Path = requestHeaderBody.Path;
                 Operation = requestHeaderBody.Operation;
                 IsIdempotent = requestHeaderBody.Idempotent ?? false;
@@ -124,7 +124,7 @@ namespace IceRpc
 
                 Fields = decoder.DecodeFieldDictionary();
 
-                PayloadEncoding = decoder.DecodeStruct<Encoding>();
+                PayloadEncoding = new Encoding(decoder);
                 PayloadSize = decoder.DecodeSize();
 
                 if (decoder.Pos - startPos != headerSize)

@@ -1723,8 +1723,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name
-        << ">, IceRpc.IDecodable, IceRpc.IEncodable";
+    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
 
     _out << sb;
 
@@ -1733,7 +1732,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
          << name << "\"/> instances.</summary>";
     _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
     _out.inc();
-    _out << nl << "decoder => new " << name << "{ IceDecoder = decoder };";
+    _out << nl << "decoder => new " << name << "(decoder);";
     _out.dec();
 
     _out << sp;
@@ -1756,24 +1755,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     bool partialInitialize = !hasDataMemberWithName(dataMembers, "Initialize");
 
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public IceDecoder IceDecoder";
-    _out << sb;
-    _out << nl << "init";
-    _out << sb;
-    // TODO: temporary
-    _out << nl << "var decoder = value;";
-    writeUnmarshalDataMembers(dataMembers, ns, 0);
-
-    if (partialInitialize)
-    {
-        _out << nl << "Initialize();";
-    }
-
-    _out << eb;
-    _out << eb;
-
     emitEqualityOperators(name);
 
     _out << sp;
@@ -1793,13 +1774,24 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
                              })
          << epar;
     _out << sb;
-    for(const auto& i : dataMembers)
+    for (const auto& i : dataMembers)
     {
         string paramName = fixId(i->name());
         string memberName = fixId(fieldName(i), Slice::ObjectType);
         _out << nl << (paramName == memberName ? "this." : "") << memberName  << " = " << paramName << ";";
     }
-    if(partialInitialize)
+    if (partialInitialize)
+    {
+        _out << nl << "Initialize();";
+    }
+    _out << eb;
+
+    _out << sp;
+    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a decoder.</summary>";
+    _out << nl << "public " << name << "(IceRpc.IceDecoder decoder)";
+    _out << sb;
+    writeUnmarshalDataMembers(dataMembers, ns, 0);
+    if (partialInitialize)
     {
         _out << nl << "Initialize();";
     }
@@ -1815,9 +1807,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
         // Default implementation for Equals and GetHashCode
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly bool Equals(" << name << " other)";
-
-        _out << " =>";
+        _out << nl << "public readonly bool Equals(" << name << " other) =>";
         _out.inc();
         _out << nl;
         for (auto q = dataMembers.begin(); q != dataMembers.end();)

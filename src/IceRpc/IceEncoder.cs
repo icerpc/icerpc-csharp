@@ -405,11 +405,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes a value-type instance.</summary>
-        /// <paramtype name="T">The value to encode.</paramtype>
-        /// <param name="v">The value to encode.</param>
-        public void EncodeStruct<T>(in T v) where T : struct, IEncodable => v.Encode(this);
-
         // Encode methods for tagged basic types
 
         /// <summary>Encodes a tagged boolean.</summary>
@@ -815,26 +810,28 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to encode.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodable
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 EncodeSize(fixedSize);
-                EncodeStruct(value);
+                encodeAction(this, value);
             }
         }
 
         /// <summary>Encodes a tagged variable-size struct.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to encode.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v) where T : struct, IEncodable
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                EncodeStruct(value);
+                encodeAction(this, value);;
                 EndFixedLengthSize(pos);
             }
         }
@@ -1007,12 +1004,12 @@ namespace IceRpc
             EncodeInt(0); // placeholder for future encapsulation size
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                EncodeStruct(opaqueEndpoint.ValueEncoding);
+                opaqueEndpoint.ValueEncoding.Encode(this);
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                EncodeStruct(Encoding);
+                Encoding.Encode(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.EncodeOptions11(this);
