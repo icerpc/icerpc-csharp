@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
 
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
-        // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
+        // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
         // frame data has been consumed and additional credit is therefore available for sending.
         private int _receiveCredit;
         private bool _receivedEndStream;
@@ -331,7 +331,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // Release connection stream count or semaphore for this steram.
+            // Release connection stream count or semaphore for this stream.
             _connection.ReleaseStream(this);
 
             // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is received.

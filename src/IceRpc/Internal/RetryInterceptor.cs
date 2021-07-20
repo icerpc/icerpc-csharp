@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -199,7 +200,7 @@ namespace IceRpc.Internal
                     $"Invalid value '{bufferMaxSize}' for '{nameof(bufferMaxSize)}' it must be greater than 0.");
             }
 
-            _logger = (loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
         }
 
         private void DecBufferSize(int size)

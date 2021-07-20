@@ -3,7 +3,6 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
@@ -17,10 +16,6 @@ namespace IceRpc
     {
         /// <summary>The IceRPC version in semver format.</summary>
         public const string StringVersion = "0.0.1-alpha";
-
-        /// <summary>Gets or sets the logger factory used by IceRPC classes when no logger factory is explicitly
-        /// configured.</summary>
-        public static ILoggerFactory DefaultLoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
         static Runtime()
         {
