@@ -50,7 +50,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            public ILogger Logger => _server.Logger;
+            public ILogger Logger { get; } = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
 
             public IServicePrx ServicePrx
             {
@@ -58,7 +58,7 @@ namespace IceRpc.Tests.Internal
                 {
                     var prx = IceRpc.ServicePrx.FromConnection(Client);
                     var pipeline = new Pipeline();
-                    pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory));
+                    pipeline.Use(Interceptors.Logger(LogAttributeLoggerFactory.Instance));
                     prx.Proxy.Invoker = pipeline;
                     return prx;
                 }
@@ -76,15 +76,14 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, _server.Logger),
+                        ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, Logger),
                         _server);
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
-                    using IListener listener = ((IListenerFactory)Endpoint).CreateListener(_server.ConnectionOptions,
-                                                                                           _server.Logger);
+                    using IListener listener = ((IListenerFactory)Endpoint).CreateListener(_server.ConnectionOptions, Logger);
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
@@ -153,7 +152,7 @@ namespace IceRpc.Tests.Internal
 
                 if (dispatcher != null)
                 {
-                    dispatcher = Middleware.Logger(Runtime.DefaultLoggerFactory)(dispatcher);
+                    dispatcher = Middleware.Logger(LogAttributeLoggerFactory.Instance)(dispatcher);
                 }
 
                 _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };

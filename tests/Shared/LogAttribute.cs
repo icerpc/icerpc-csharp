@@ -29,7 +29,7 @@ namespace IceRpc.Tests
     /// is set on the test context. A null logger is return otherwise.</summary>
     public sealed class LogAttributeLoggerFactory : ILoggerFactory
     {
-        public static LogAttributeLoggerFactory Instance = new();
+        public static ILoggerFactory Instance = new LogAttributeLoggerFactory();
 
         private readonly List<ILoggerProvider> _providers = new();
 
