@@ -111,12 +111,12 @@ namespace IceRpc.Tests.CodeGeneration
             DPrx d = await _aPrx.OpAAsync(_aPrx);
 
             d = await _bPrx.OpAAsync(d);
-            APrx a = await _bPrx.OpBAsync(d);
+            _ = await _bPrx.OpBAsync(d);
 
-            a = await _dPrx.OpAAsync(d);
-            a = await _dPrx.OpBAsync(d);
-            a = await _dPrx.OpCAsync(d);
-            a = await _dPrx.OpDAsync(d);
+            _ = await _dPrx.OpAAsync(d);
+            _ = await _dPrx.OpBAsync(d);
+            _ = await _dPrx.OpCAsync(d);
+            _ = await _dPrx.OpDAsync(d);
         }
 
         [Test]

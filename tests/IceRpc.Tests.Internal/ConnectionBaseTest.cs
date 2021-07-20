@@ -121,7 +121,7 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener?.Dispose();
 
-        static protected async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
+        protected static async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
             Task<MultiStreamConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
 
         protected async Task<MultiStreamConnection> AcceptAsync()

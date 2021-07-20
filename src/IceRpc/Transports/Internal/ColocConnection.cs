@@ -115,7 +115,7 @@ namespace IceRpc.Transports.Internal
                 bidirectional,
                 !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
 
-        public async override ValueTask InitializeAsync(CancellationToken cancel)
+        public override async ValueTask InitializeAsync(CancellationToken cancel)
         {
             try
             {
