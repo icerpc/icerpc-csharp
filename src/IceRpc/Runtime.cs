@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes
