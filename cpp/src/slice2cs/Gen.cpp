@@ -1904,7 +1904,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     }
 
     _out << sp;
-    _out << nl << "/// <inheritdoc/>";
+    _out << nl << "/// <summary>Encodes the fields of this struct.</summary>";
     _out << nl << "public readonly void Encode(IceRpc.IceEncoder encoder)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
