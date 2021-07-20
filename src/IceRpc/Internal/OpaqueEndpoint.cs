@@ -10,10 +10,10 @@ using System.Text;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Describes an ice1 endpoint that the associated communicator cannot use, typically because it does not
-    /// implement the endpoint's transport. The communicator can marshal a proxy with such an endpoint and send it to
-    /// another Ice application that may know/decode this endpoint. This class is used only with the ice1 protocol.
-    /// </summary>
+    /// <summary>Describes an endpoint with a transport or protocol that has not been registered with the IceRPC 
+    /// runtime. The IceRPC runtime cannot send a request to this endpoint; it can however marshal this endpoint
+    /// (within a proxy) and send this proxy to another application that may know this transport. This class is used
+    /// only with the ice1 protocol.</summary>
     internal sealed class OpaqueEndpoint : Endpoint
     {
         /// <inherit-doc/>
