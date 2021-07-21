@@ -1723,7 +1723,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">, IceRpc.IEncodable";
+    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
 
     _out << sb;
 
@@ -1740,7 +1740,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
          << name << "\"/> instances.</summary>";
     _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction =";
     _out.inc();
-    _out << nl << "(encoder, value) => value.IceEncode(encoder);";
+    _out << nl << "(encoder, value) => value.Encode(encoder);";
     _out.dec();
     return true;
 }
@@ -1753,9 +1753,9 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     string ns = getNamespace(p);
     MemberList dataMembers = p->dataMembers();
 
-    emitEqualityOperators(name);
-
     bool partialInitialize = !hasDataMemberWithName(dataMembers, "Initialize");
+
+    emitEqualityOperators(name);
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
@@ -1774,31 +1774,27 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
                              })
          << epar;
     _out << sb;
-    for(const auto& i : dataMembers)
+    for (const auto& i : dataMembers)
     {
         string paramName = fixId(i->name());
         string memberName = fixId(fieldName(i), Slice::ObjectType);
         _out << nl << (paramName == memberName ? "this." : "") << memberName  << " = " << paramName << ";";
     }
-    if(partialInitialize)
+    if (partialInitialize)
     {
         _out << nl << "Initialize();";
     }
     _out << eb;
 
     _out << sp;
-    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a buffer.</summary>";
-    _out << nl << "/// <param name=\"decoder\">The buffer decoder.</param>";
+    _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a decoder.</summary>";
     _out << nl << "public " << name << "(IceRpc.IceDecoder decoder)";
     _out << sb;
-
     writeUnmarshalDataMembers(dataMembers, ns, 0);
-
-    if(partialInitialize)
+    if (partialInitialize)
     {
         _out << nl << "Initialize();";
     }
-
     _out << eb;
 
     _out << sp;
@@ -1811,9 +1807,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
         // Default implementation for Equals and GetHashCode
         _out << sp;
         _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly bool Equals(" << name << " other)";
-
-        _out << " =>";
+        _out << nl << "public readonly bool Equals(" << name << " other) =>";
         _out.inc();
         _out << nl;
         for (auto q = dataMembers.begin(); q != dataMembers.end();)
@@ -1910,9 +1904,8 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     }
 
     _out << sp;
-    _out << nl << "/// <summary>Encodes the fields of this struct into a buffer.</summary>";
-    _out << nl << "/// <param name=\"encoder\">The buffer encoder.</param>";
-    _out << nl << "public readonly void IceEncode(IceRpc.IceEncoder encoder)";
+    _out << nl << "/// <summary>Encodes the fields of this struct.</summary>";
+    _out << nl << "public readonly void Encode(IceRpc.IceEncoder encoder)";
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;

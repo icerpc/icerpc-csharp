@@ -191,7 +191,7 @@ namespace IceRpc.Internal
                     var requestFailed =
                         new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
 
-                    requestFailed.IceEncode(encoder);
+                    requestFailed.Encode(encoder);
                     break;
 
                 case ReplyStatus.UnknownLocalException:

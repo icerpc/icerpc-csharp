@@ -440,6 +440,297 @@ namespace IceRpc
             }
         }
 
+        internal static Proxy? Decode(IceDecoder decoder)
+        {
+            if (decoder.Encoding == Encoding.V11)
+            {
+                var identity = new Identity(decoder);
+                if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
+                {
+                    return null;
+                }
+
+                var proxyData = new ProxyData11(decoder);
+
+                if ((byte)proxyData.Protocol == 0)
+                {
+                    throw new InvalidDataException("received proxy with protocol set to 0");
+                }
+                if (proxyData.ProtocolMinor != 0)
+                {
+                    throw new InvalidDataException(
+                        $"received proxy with invalid protocolMinor value: {proxyData.ProtocolMinor}");
+                }
+
+                // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
+                // header (6 bytes), for a total of 8 bytes.
+                Endpoint[] endpointArray =
+                    decoder.DecodeArray(minElementSize: 8, decoder => decoder.DecodeEndpoint11(proxyData.Protocol));
+
+                Endpoint? endpoint = null;
+                IEnumerable<Endpoint> altEndpoints;
+
+                if (endpointArray.Length == 0)
+                {
+                    string adapterId = decoder.DecodeString();
+                    if (adapterId.Length > 0)
+                    {
+                        endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
+                    }
+                    altEndpoints = ImmutableList<Endpoint>.Empty;
+                }
+                else
+                {
+                    endpoint = endpointArray[0];
+                    altEndpoints = endpointArray[1..];
+                }
+
+                if (proxyData.Protocol == Protocol.Ice1)
+                {
+                    if (proxyData.FacetPath.Count > 1)
+                    {
+                        throw new InvalidDataException(
+                            $"received proxy with {proxyData.FacetPath.Count} elements in its facet path");
+                    }
+
+                    try
+                    {
+                        var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
+                        proxy.Identity = identity;
+                        proxy.FacetPath = proxyData.FacetPath;
+                        proxy.Encoding = proxyData.Encoding;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                        proxy.Invoker = decoder.Invoker;
+                        return proxy;
+                    }
+                    catch (InvalidDataException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
+                }
+                else
+                {
+                    if (proxyData.FacetPath.Count > 0)
+                    {
+                        throw new InvalidDataException(
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with facet");
+                    }
+                    if (proxyData.InvocationMode != InvocationMode.Twoway)
+                    {
+                        throw new InvalidDataException(
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with invocation mode set");
+                    }
+
+                    try
+                    {
+                        Proxy proxy;
+
+                        if (endpoint == null && decoder.Connection is Connection connection)
+                        {
+                            proxy = Proxy.FromConnection(connection, identity.ToPath(), decoder.Invoker);
+                        }
+                        else
+                        {
+                            proxy = new Proxy(identity.ToPath(), proxyData.Protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints.ToImmutableList();
+                            proxy.Invoker = decoder.Invoker;
+                        }
+
+                        proxy.Encoding = proxyData.Encoding;
+                        return proxy;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
+                }
+            }
+            else
+            {
+                var proxyData = new ProxyData20(decoder);
+
+                if (proxyData.Path == null)
+                {
+                    return null;
+                }
+
+                Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
+                var endpoint = proxyData.Endpoint?.ToEndpoint(protocol);
+                ImmutableList<Endpoint> altEndpoints =
+                    proxyData.AltEndpoints?.Select(
+                        data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
+
+                if (endpoint == null && altEndpoints.Count > 0)
+                {
+                    throw new InvalidDataException("received proxy with only alt endpoints");
+                }
+
+                if (protocol == Protocol.Ice1)
+                {
+                    ImmutableList<string> facetPath;
+                    string path;
+
+                    int hashIndex = proxyData.Path.IndexOf('#', StringComparison.InvariantCulture);
+                    if (hashIndex == -1)
+                    {
+                        path = proxyData.Path;
+                        facetPath = ImmutableList<string>.Empty;
+                    }
+                    else
+                    {
+                        path = proxyData.Path[0..hashIndex];
+                        facetPath = ImmutableList.Create(proxyData.Path[(hashIndex + 1)..]);
+                    }
+
+                    try
+                    {
+                        var proxy = Proxy.FromPath(path, Protocol.Ice1);
+                        proxy.FacetPath = facetPath;
+                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+                        proxy.Endpoint = endpoint;
+                        proxy.AltEndpoints = altEndpoints;
+                        proxy.Invoker = decoder.Invoker;
+                        return proxy;
+                    }
+                    catch (InvalidDataException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        Proxy proxy;
+
+                        if (endpoint == null && decoder.Connection is Connection connection)
+                        {
+                            proxy = Proxy.FromConnection(connection, proxyData.Path, decoder.Invoker);
+                        }
+                        else
+                        {
+                            proxy = new Proxy(proxyData.Path, protocol);
+                            proxy.Endpoint = endpoint;
+                            proxy.AltEndpoints = altEndpoints;
+                            proxy.Invoker = decoder.Invoker;
+                        }
+
+                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+
+                        return proxy;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidDataException("received invalid proxy", ex);
+                    }
+                }
+            }
+        }
+
+        internal void Encode(IceEncoder encoder)
+        {
+            if (Connection?.IsServer ?? false)
+            {
+                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+            }
+
+            if (encoder.Encoding == Encoding.V11)
+            {
+                if (Protocol == Protocol.Ice1)
+                {
+                    Debug.Assert(Identity.Name.Length > 0);
+                    Identity.Encode(encoder);
+                }
+                else
+                {
+                    Identity identity;
+                    try
+                    {
+                        identity = Identity.FromPath(Path);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot encode proxy with path '{Path}' using encoding 1.1",
+                            ex);
+                    }
+                    if (identity.Name.Length == 0)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot encode proxy with path '{Path}' using encoding 1.1");
+                    }
+
+                    identity.Encode(encoder);
+                }
+
+                var proxyData = new ProxyData11(
+                    FacetPath,
+                    Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false) ?
+                        InvocationMode.Datagram : InvocationMode.Twoway,
+                    secure: false,
+                    Protocol,
+                    protocolMinor: 0,
+                    Encoding);
+                proxyData.Encode(encoder);
+
+                if (IsIndirect)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(IsWellKnown ? "" : Endpoint!.Host); // adapter ID unless well-known
+                }
+                else if (Endpoint == null)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(""); // empty adapter ID
+                }
+                else
+                {
+                    IEnumerable<Endpoint> endpoints = Endpoint.Transport == Transport.Coloc ?
+                        AltEndpoints : Enumerable.Empty<Endpoint>().Append(Endpoint).Concat(AltEndpoints);
+
+                    if (endpoints.Any())
+                    {
+                        encoder.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
+                    }
+                    else // encoded as an endpointless proxy
+                    {
+                        encoder.EncodeSize(0); // 0 endpoints
+                        encoder.EncodeString(""); // empty adapter ID
+                    }
+                }
+            }
+            else
+            {
+                string path = Path;
+
+                // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
+                if (Facet.Length > 0)
+                {
+                    path = $"{path}#{Uri.EscapeDataString(Facet)}";
+                }
+
+                var proxyData = new ProxyData20(
+                    path,
+                    protocol: Protocol != Protocol.Ice2 ? Protocol : null,
+                    encoding: Encoding != Encoding.V20 ? Encoding : null,
+                    endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
+                        endpoint.Data : null,
+                    altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.Data).ToArray());
+
+                proxyData.Encode(encoder);
+            }
+        }
+
         private Proxy(Identity identity, string facet)
             : this(identity.ToPath(), Protocol.Ice1)
         {
