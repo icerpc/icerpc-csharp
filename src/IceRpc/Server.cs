@@ -74,7 +74,7 @@ namespace IceRpc
             set
             {
                 _loggerFactory = value;
-                _logger = (_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
+                _logger = _loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
             }
         }
 
@@ -100,7 +100,7 @@ namespace IceRpc
 
         private IListener? _listener;
 
-        private ILogger _logger;
+        private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory? _loggerFactory;
 
         private bool _listening;
@@ -114,9 +114,6 @@ namespace IceRpc
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private Task? _shutdownTask;
-
-        /// <summary>Constructs a new server.</summary>
-        public Server() => _logger = NullLogger.Instance;
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
