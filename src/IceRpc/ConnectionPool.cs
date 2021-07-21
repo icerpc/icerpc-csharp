@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,17 +20,9 @@ namespace IceRpc
         public ClientConnectionOptions? ConnectionOptions { get; set; }
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
-        /// its logger using <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// its logger using <see cref="NullLoggerFactory.Instance"/>.</summary>
         /// <value>The logger factory of this connection pool.</value>
-        public ILoggerFactory? LoggerFactory
-        {
-            get => _loggerFactory;
-            set
-            {
-                _loggerFactory = value;
-                _logger = null; // clears existing logger, if there is one
-            }
-        }
+        public ILoggerFactory? LoggerFactory { get; init; }
 
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
@@ -39,11 +32,7 @@ namespace IceRpc
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.Equivalent);
-        private ILogger? _logger;
-        private ILoggerFactory? _loggerFactory;
         private readonly object _mutex = new();
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
@@ -208,7 +197,7 @@ namespace IceRpc
                     connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Logger = Logger,
+                        LoggerFactory = LoggerFactory,
                         Options = options
                     };
 #pragma warning restore CA2000

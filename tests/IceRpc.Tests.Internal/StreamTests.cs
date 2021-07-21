@@ -308,7 +308,7 @@ namespace IceRpc.Tests.Internal
             while (offset < sendSize)
             {
                 int received = await receiveStream.ReadAsync(receiveBuffer);
-                Assert.That(receiveBuffer[0..received], Is.EqualTo(sendBuffer[offset..(offset+received)]));
+                Assert.That(receiveBuffer[0..received], Is.EqualTo(sendBuffer[offset..(offset + received)]));
                 offset += received;
             }
 
