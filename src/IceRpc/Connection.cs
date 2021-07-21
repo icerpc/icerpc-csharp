@@ -31,13 +31,6 @@ namespace IceRpc
         Closed
     }
 
-    /// <summary>Error codes for connection errors.</summary>
-    public enum ConnectionErrorCode : byte
-    {
-        /// <summary>The connection has been shutdown.</summary>
-        Shutdown,
-    }
-
     /// <summary>Event arguments for the <see cref="Connection.Closed"/> event.</summary>
     public sealed class ClosedEventArgs : EventArgs
     {
@@ -232,20 +225,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The connection transport.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
-        public Transport Transport =>
-            (_localEndpoint ?? _remoteEndpoint)?.Transport ??
-            throw new InvalidOperationException(
-                $"{nameof(Transport)} is not available because there's no endpoint set");
-
-        /// <summary>The connection transport name.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
-        public string TransportName =>
-            (_localEndpoint ?? _remoteEndpoint)?.TransportName ??
-            throw new InvalidOperationException(
-                $"{nameof(TransportName)} is not available because there's no endpoint set");
-
         /// <summary>The underlying multi-stream connection.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
@@ -433,8 +412,7 @@ namespace IceRpc
                     {
                         if (_state == ConnectionState.Closed)
                         {
-                            // This can occur if the communicator or server is disposed while the connection is being
-                            // initialized.
+                            // This can occur if the connection is disposed while the connection is being initialized.
                             throw new ConnectionClosedException();
                         }
 
@@ -475,8 +453,7 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.Closed)
                     {
-                        // This can occur if the communicator or server is disposed while the connection is being
-                        // initialized.
+                        // This can occur if the connection is disposed while the connection is being initialized.
                         throw new ConnectionClosedException();
                     }
 

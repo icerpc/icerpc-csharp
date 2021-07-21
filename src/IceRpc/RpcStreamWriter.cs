@@ -23,7 +23,7 @@ namespace IceRpc
         public RpcStreamWriter(System.IO.Stream byteStream) =>
             _encoder = (stream, streamCompressor) => SendDataAsync(stream, streamCompressor, byteStream);
 
-        static private async Task SendDataAsync(
+        private static async Task SendDataAsync(
             RpcStream rpcStream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor,
             System.IO.Stream inputStream)

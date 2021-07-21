@@ -131,8 +131,6 @@ namespace IceRpc.Internal
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
-                            // The delay task can be canceled either by the user code using the provided cancellation
-                            // token or if the communicator is destroyed.
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
