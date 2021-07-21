@@ -301,7 +301,7 @@ namespace IceRpc
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection() => _logger = NullLoggerFactory.Instance.CreateLogger("IceRpc");
+        public Connection() => _logger = NullLogger.Instance;
 
         /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for

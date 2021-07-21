@@ -71,7 +71,7 @@ namespace IceRpc
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
-            init
+            set
             {
                 _loggerFactory = value;
                 _logger = (_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
@@ -116,7 +116,7 @@ namespace IceRpc
         private Task? _shutdownTask;
 
         /// <summary>Constructs a new server.</summary>
-        public Server() => _logger = NullLoggerFactory.Instance.CreateLogger("IceRpc");
+        public Server() => _logger = NullLogger.Instance;
 
         /// <summary>Starts listening on the configured endpoint (if any) and serving clients (by dispatching their
         /// requests). If the configured endpoint is an IP endpoint with port 0, this method updates the endpoint to
