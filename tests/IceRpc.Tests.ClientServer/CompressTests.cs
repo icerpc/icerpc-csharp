@@ -261,10 +261,10 @@ namespace IceRpc.Tests.ClientServer
                 CancellationToken cancel) => new(stream);
         }
 
-        static private int ReadStream(Stream stream, byte[]? data = null) =>
+        private static int ReadStream(Stream stream, byte[]? data = null) =>
             ReadStreamAsync(stream, data).AsTask().Result;
 
-        static private async ValueTask<int> ReadStreamAsync(Stream stream, byte[]? data = null)
+        private static async ValueTask<int> ReadStreamAsync(Stream stream, byte[]? data = null)
         {
             int totalSize = 0;
             int received;

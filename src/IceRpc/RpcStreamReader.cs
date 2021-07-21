@@ -17,7 +17,7 @@ namespace IceRpc
 
         /// <summary>Reads the stream data from an incoming request with a <see cref="System.IO.Stream"/>.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
-        static public System.IO.Stream ToByteStream(Dispatch dispatch) =>
+        public static System.IO.Stream ToByteStream(Dispatch dispatch) =>
             new StreamReaderIOStream(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
 
         /// <summary>Reads the stream data from an outgoing request with a <see cref="System.IO.Stream"/>.</summary>

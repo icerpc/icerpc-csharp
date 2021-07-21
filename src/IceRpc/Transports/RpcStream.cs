@@ -226,13 +226,13 @@ namespace IceRpc.Transports
         /// <summary>Mark reads as completed for this stream.</summary>
         /// <returns><c>true</c> if the stream reads were successfully marked as completed, <c>false</c> if the stream
         /// reads were already completed.</returns>
-        internal protected bool TrySetReadCompleted(bool shutdown = true) =>
+        protected internal bool TrySetReadCompleted(bool shutdown = true) =>
             TrySetState(State.ReadCompleted, shutdown);
 
         /// <summary>Mark writes as completed for this stream.</summary>
         /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if the stream
         /// writes were already completed.</returns>
-        internal protected bool TrySetWriteCompleted(bool shutdown = true) =>
+        protected internal bool TrySetWriteCompleted(bool shutdown = true) =>
             TrySetState(State.WriteCompleted, shutdown);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
@@ -350,14 +350,14 @@ namespace IceRpc.Transports
             _connection.Logger.LogReceivedInitializeFrame(_connection);
         }
 
-        internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
+        internal virtual async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
             ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             return new IncomingRequest(_connection.Protocol, data);
         }
 
-        internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
+        internal virtual async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
@@ -673,7 +673,7 @@ namespace IceRpc.Transports
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
                 WriteAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
 
-            public async override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+            public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
             {
                 try
                 {
