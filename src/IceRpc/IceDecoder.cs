@@ -352,6 +352,15 @@ namespace IceRpc
             return DecodeDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyDecodeFunc, valueDecodeFunc);
         }
 
+        /// <summary>Decodes a nullable proxy.</summary>
+        /// <returns>The decoded proxy, or null.</returns>
+        public Proxy? DecodeNullableProxy() => Proxy.Decode(this);
+
+        /// <summary>Decodes a proxy.</summary>
+        /// <returns>The decoded proxy</returns>
+        public Proxy DecodeProxy() =>
+            DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
+
         /// <summary>Decodes a sequence.</summary>
         /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
         /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
@@ -690,6 +699,11 @@ namespace IceRpc
             }
             return null;
         }
+
+        /// <summary>Decodes a tagged proxy.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <returns>The decoded proxy (can be null).</returns>
+        public Proxy? DecodeTaggedProxy(int tag) => DecodeTaggedProxyHeader(tag) ? DecodeProxy() : null;
 
         /// <summary>Decodes a tagged sequence. The element type can be nullable only if it corresponds to
         /// a proxy class or mapped Slice class.</summary>
