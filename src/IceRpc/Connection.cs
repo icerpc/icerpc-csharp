@@ -831,8 +831,9 @@ namespace IceRpc
             OutgoingResponse? response = null;
             try
             {
-                IDispatcher dispatcher = Dispatcher ?? throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
-                response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
+                response = await (Dispatcher ?? NullDispatcher.Instance).DispatchAsync(
+                    request,
+                    cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
