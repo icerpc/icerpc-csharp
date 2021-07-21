@@ -59,10 +59,6 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary>The dispatcher that a connection calls when its dispatcher is null.</summary>
-        internal static IDispatcher NullDispatcher { get; } =
-            new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
-
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For server
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For client connections, set can be called during configuration.</summary>
@@ -835,7 +831,8 @@ namespace IceRpc
             OutgoingResponse? response = null;
             try
             {
-                response = await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
+                IDispatcher dispatcher = Dispatcher ?? throw new ServiceNotFoundException(RetryPolicy.OtherReplica);
+                response = await dispatcher.DispatchAsync(request, cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
