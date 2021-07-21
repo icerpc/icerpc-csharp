@@ -10,7 +10,7 @@ using System.Text;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Describes an endpoint with a transport or protocol that has not been registered with the IceRPC 
+    /// <summary>Describes an endpoint with a transport or protocol that has not been registered with the IceRPC
     /// runtime. The IceRPC runtime cannot send a request to this endpoint; it can however marshal this endpoint
     /// (within a proxy) and send this proxy to another application that may know this transport. This class is used
     /// only with the ice1 protocol.</summary>
