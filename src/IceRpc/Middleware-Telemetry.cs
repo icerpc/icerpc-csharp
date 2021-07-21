@@ -9,7 +9,7 @@ namespace IceRpc
     public static partial class Middleware
     {
         /// <summary>Options class to configure <see cref="Telemetry"/> middleware.</summary>
-        public class TelemetryOptions
+        public sealed class TelemetryOptions
         {
             /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
             /// <see cref="Activity"/>.</summary>

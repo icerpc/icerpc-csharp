@@ -8,7 +8,7 @@ namespace IceRpc
     public static partial class Interceptors
     {
         /// <summary>Options class to configure <see cref="CustomCompressor"/> interceptor.</summary>
-        public class CompressorOptions
+        public sealed class CompressorOptions
         {
             /// <summary>The compression level for the compress operation.</summary>
             public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
