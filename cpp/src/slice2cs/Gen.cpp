@@ -2315,7 +2315,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
          << "<see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "> EncodeAction =";
     _out.inc();
-    _out << nl << "(encoder, prx) => IceRpc.IceEncoderProxyExtensions.EncodeProxy(encoder, prx.Proxy);";
+    _out << nl << "(encoder, prx) => encoder.EncodeProxy(prx.Proxy);";
     _out.dec();
     _out << sp;
     _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
@@ -2329,7 +2329,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         << prxImpl << "\"/>.</summary>";
     _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "?> NullableEncodeAction =";
     _out.inc();
-    _out << nl << "(encoder, prx) => IceRpc.IceEncoderProxyExtensions.EncodeNullableProxy(encoder, prx?.Proxy);";
+    _out << nl << "(encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);";
     _out.dec();
 
     // Non-static properties and fields

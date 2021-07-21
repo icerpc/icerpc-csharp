@@ -712,50 +712,6 @@ namespace IceRpc
         }
     }
 
-    /// <summary>Extension methods for class IceEncoder.</summary>
-    public static class IceEncoderProxyExtensions
-    {
-        /// <summary>Encodes a nullable proxy.</summary>
-        /// <param name="encoder">The encoder.</param>
-        /// <param name="proxy">The proxy to encode, or null.</param>
-        public static void EncodeNullableProxy(this IceEncoder encoder, Proxy? proxy)
-        {
-            if (proxy is Proxy p)
-            {
-                encoder.EncodeProxy(p);
-            }
-            else if (encoder.Encoding == Encoding.V11)
-            {
-                Identity.Empty.Encode(encoder);
-            }
-            else
-            {
-                ProxyData20 proxyData = default;
-                proxyData.Encode(encoder);
-            }
-        }
-
-        /// <summary>Encodes a proxy.</summary>
-        /// <param name="encoder">The encoder.</param>
-        /// <param name="proxy">The proxy to encode.</param>
-        public static void EncodeProxy(this IceEncoder encoder, Proxy proxy) => proxy.Encode(encoder);
-
-        /// <summary>Encodes a tagged proxy.</summary>
-        /// <param name="encoder">The encoder.</param>
-        /// <param name="tag">The tag.</param>
-        /// <param name="proxy">The proxy to encode.</param>
-        public static void EncodeTaggedProxy(this IceEncoder encoder, int tag, Proxy? proxy)
-        {
-            if (proxy != null)
-            {
-                encoder.EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                IceEncoder.Position pos = encoder.StartFixedLengthSize();
-                encoder.EncodeProxy(proxy);
-                encoder.EndFixedLengthSize(pos);
-            }
-        }
-    }
-
     /// <summary>Extension methods for class IceDecoder.</summary>
     public static class IceDecoderProxyExtensions
     {

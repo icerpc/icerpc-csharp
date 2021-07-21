@@ -307,6 +307,29 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Encodes a nullable proxy.</summary>
+        /// <param name="proxy">The proxy to encode, or null.</param>
+        public void EncodeNullableProxy(Proxy? proxy)
+        {
+            if (proxy is Proxy p)
+            {
+                EncodeProxy(p);
+            }
+            else if (OldEncoding)
+            {
+                Identity.Empty.Encode(this);
+            }
+            else
+            {
+                ProxyData20 proxyData = default;
+                proxyData.Encode(this);
+            }
+        }
+
+        /// <summary>Encodes a proxy.</summary>
+        /// <param name="proxy">The proxy to encode.</param>
+        public void EncodeProxy(Proxy proxy) => proxy.Encode(this);
+
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
         // This method works because (as long as) there is no padding in the memory representation of the
@@ -682,6 +705,20 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Encodes a tagged proxy.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="proxy">The proxy to encode.</param>
+        public void EncodeTaggedProxy(int tag, Proxy? proxy)
+        {
+            if (proxy != null)
+            {
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                Position pos = StartFixedLengthSize();
+                EncodeProxy(proxy);
+                EndFixedLengthSize(pos);
+            }
+        }
+
         /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
@@ -831,7 +868,7 @@ namespace IceRpc
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                encodeAction(this, value);;
+                encodeAction(this, value);
                 EndFixedLengthSize(pos);
             }
         }
@@ -1232,7 +1269,7 @@ namespace IceRpc
         /// <summary>Encodes the header for a tagged parameter or data member.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
-        internal void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
+        private void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {
             Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
 
