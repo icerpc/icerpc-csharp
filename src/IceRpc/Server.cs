@@ -158,7 +158,11 @@ namespace IceRpc
                         serverConnectionFactory.Accept(ConnectionOptions, Logger);
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var serverConnection = new Connection(multiStreamConnection, this);
+                    var serverConnection = new Connection(
+                        ConnectionOptions,
+                        multiStreamConnection,
+                        Dispatcher,
+                        Logger);
 #pragma warning restore CA2000
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -284,7 +288,11 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(multiStreamConnection, this);
+                var connection = new Connection(
+                        ConnectionOptions,
+                        multiStreamConnection,
+                        Dispatcher,
+                        Logger);
 #pragma warning restore CA2000
 
                 lock (_mutex)

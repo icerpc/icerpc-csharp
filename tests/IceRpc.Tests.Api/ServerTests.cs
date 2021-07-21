@@ -54,9 +54,20 @@ namespace IceRpc.Tests.Api
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await proxy.IcePingAsync());
+            }
+
+            {
+                await using var server = new Server
+                {
+                    Endpoint = TestHelper.GetUniqueColocEndpoint()
+                };
+
+                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                var proxy = GreeterPrx.FromConnection(connection);
+
+                server.Listen();
 
                 // Throws ServiceNotFoundException when Dispatcher is null
-                server.Dispatcher = null;
                 Assert.ThrowsAsync<ServiceNotFoundException>(async () => await proxy.IcePingAsync());
             }
 

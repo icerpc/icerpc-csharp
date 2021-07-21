@@ -71,17 +71,17 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if the connection is a server connection.</exception>
         public IDispatcher? Dispatcher
         {
-            get => Server?.Dispatcher ?? _dispatcher;
+            get => _dispatcher;
 
             set
             {
-                if (Server == null)
+                if (IsServer)
                 {
-                    _dispatcher = value;
+                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
                 }
                 else
                 {
-                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
+                    _dispatcher = value;
                 }
             }
         }
@@ -199,23 +199,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The server that accepted this connection.</summary>
-        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <see cref="ConnectionState.NotConnected"/>.</exception>
-        public Server? Server
-        {
-            get => _server;
-            set
-            {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
-                }
-                _server = value;
-            }
-        }
-
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
         {
@@ -284,7 +267,6 @@ namespace IceRpc
         private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
-        private Server? _server;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
@@ -641,14 +623,18 @@ namespace IceRpc
         public override string ToString() => UnderlyingConnection?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
-        internal Connection(MultiStreamConnection connection, Server server)
+        internal Connection(
+            ServerConnectionOptions options,
+            MultiStreamConnection connection,
+            IDispatcher? dispatcher,
+            ILogger logger)
         {
             UnderlyingConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
 
-            Options = server.ConnectionOptions;
-            Logger = server.Logger;
-            Server = server;
+            Options = options;
+            Logger = logger;
+            _dispatcher = dispatcher;
         }
 
         internal void Monitor()
