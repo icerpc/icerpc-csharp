@@ -119,7 +119,6 @@ namespace IceRpc
         /// <summary>Unregisters a route previously registered with <see cref="Map{T}(IDispatcher)"/>.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        // TODO missing test
         public bool Unmap<T>() =>
             _exactMatchRoutes.Remove(typeof(T).GetDefaultPath());
 
@@ -127,10 +126,10 @@ namespace IceRpc
         /// <param name="prefix">The prefix of the route.</param>
         /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
         /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
-        // TODO missing test
         public bool Unmount(string prefix)
         {
             Internal.UriParser.CheckPath(prefix, nameof(prefix));
+            prefix = NormalizePrefix(prefix);
             return _prefixMatchRoutes.Remove(prefix);
         }
 
