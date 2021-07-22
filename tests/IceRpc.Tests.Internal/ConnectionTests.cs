@@ -76,9 +76,9 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        _server.ConnectionOptions,
                         ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, _server.Logger),
                         _server.Dispatcher,
+                        _server.ConnectionOptions,
                         _server.Logger);
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
@@ -97,9 +97,9 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
-                    var connection = new Connection(_server.ConnectionOptions,
-                                                    await listener.AcceptAsync(),
+                    var connection = new Connection(await listener.AcceptAsync(),
                                                     _server.Dispatcher,
+                                                    _server.ConnectionOptions,
                                                     _server.Logger);
                     await connection.ConnectAsync(default);
                     return connection;

@@ -624,9 +624,10 @@ namespace IceRpc
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(
-            ServerConnectionOptions options,
             MultiStreamConnection connection,
+            // TODO dispatcher should not be nullable, but the Server class only provides a null one.
             IDispatcher? dispatcher,
+            ServerConnectionOptions options,
             ILogger logger)
         {
             UnderlyingConnection = connection;
