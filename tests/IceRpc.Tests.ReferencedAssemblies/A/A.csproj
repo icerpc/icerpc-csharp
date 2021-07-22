@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="3.0.3">
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -25,8 +25,7 @@
   </ItemGroup>
 
   <Target Name="CopyTestAssemblies" AfterTargets="CopyFilesToOutputDirectory">
-    <Copy SourceFiles="$(OutputPath)/$(TargetName)$(TargetExt)"
-          DestinationFolder="$(MSBuildThisFileDirectory)../../IceRpc.Tests.Internal/$(TargetFramework)"/>
+    <Copy SourceFiles="$(OutputPath)/$(TargetName)$(TargetExt)" DestinationFolder="$(MSBuildThisFileDirectory)../../IceRpc.Tests.Internal/$(TargetFramework)" />
   </Target>
 
 </Project>
