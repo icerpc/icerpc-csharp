@@ -100,23 +100,28 @@ namespace IceRpc
                         {
                             return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
                         }
+                        catch (UnknownTransportException)
+                        {
+                            // ignored, continue for loop
+                        }
                         catch (Exception altEx)
                         {
-                            exceptionList ??= new List<Exception> { ex };
+                            if (exceptionList == null)
+                            {
+                                exceptionList = new List<Exception>();
+                                if (ex is not UnknownTransportException)
+                                {
+                                    exceptionList.Add(ex);
+                                }
+                            }
                             exceptionList.Add(altEx);
                             // and keep trying
                         }
                     }
 
-                    if (exceptionList == null)
-                    {
-                        throw ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex);
-                    }
-                    else
-                    {
-                        throw exceptionList.All(e => e is UnknownTransportException) ? new NoEndpointException() :
-                            new AggregateException(exceptionList);
-                    }
+                    throw exceptionList == null ?
+                        (ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex)) :
+                        new AggregateException(exceptionList);
                 }
             }
 
