@@ -22,7 +22,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                throw new ArgumentException("endpoint is not a TCP endpoint", nameof(endpoint));
+                throw new ArgumentException("endpoint is not a coloc endpoint", nameof(endpoint));
             }
         }
     }

@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
-using System;
 
 namespace IceRpc.Transports
 {
@@ -21,7 +20,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                throw new ArgumentException($"unknown transport {endpoint.Transport}", nameof(endpoint));
+                throw new UnknownTransportException(endpoint.Transport);
             }
         }
     }

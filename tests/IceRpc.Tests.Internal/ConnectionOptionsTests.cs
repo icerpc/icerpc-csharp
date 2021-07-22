@@ -249,7 +249,7 @@ namespace IceRpc.Tests.Internal
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
             endpoint ??= ClientEndpoint;
 
-            return (((IClientConnectionFactory)endpoint).CreateClientConnection(options, Logger) as
+            return (Connection.DefaultClientTransport.CreateConnection(endpoint, options, Logger) as
                 NetworkSocketConnection)!.NetworkSocket;
         }
 

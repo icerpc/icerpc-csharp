@@ -43,6 +43,20 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public sealed class Connection : IAsyncDisposable
     {
+        /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
+        public static IClientTransport DefaultClientTransport { get; } =
+            new CompositeClientTransport
+            {
+                [Transport.TCP] = new TcpClientTransport(),
+                [Transport.SSL] = new TcpClientTransport(),
+                [Transport.Coloc] = new ColocClientTransport(),
+                [Transport.UDP] = new UdpClientTransport()
+            };
+
+        /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
+        /// </summary>
+        public IClientTransport ClientTransport { get; set; } = DefaultClientTransport;
+
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument.</summary>
         /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
@@ -316,15 +330,8 @@ namespace IceRpc
                             throw new InvalidOperationException("client connection has local endpoint set");
                         }
 
-                        if (_remoteEndpoint is IClientConnectionFactory clientConnectionFactory)
-                        {
-                            UnderlyingConnection = clientConnectionFactory.CreateClientConnection(clientOptions, _logger);
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException(
-                                $"cannot create client connection for remote endpoint '{_remoteEndpoint}'");
-                        }
+                        UnderlyingConnection =
+                            ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
                     }
 
                     // If the endpoint is secure, connect with the SSL client authentication options.

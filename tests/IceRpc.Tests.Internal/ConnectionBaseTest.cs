@@ -170,8 +170,8 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamConnection =
-                ((IClientConnectionFactory)ClientEndpoint).CreateClientConnection(
+            MultiStreamConnection multiStreamConnection = Connection.DefaultClientTransport.CreateConnection(
+                    ClientEndpoint,
                     connectionOptions ?? ClientConnectionOptions,
                     Logger);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);

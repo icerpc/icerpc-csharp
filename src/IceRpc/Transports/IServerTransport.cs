@@ -13,6 +13,8 @@ namespace IceRpc.Transports
         /// <param name="logger">The logger.</param>
         /// <returns>Either a new listener or a server connection, depending on the transport of
         /// <paramref name="endpoint"/>.</returns>
+        /// <exception name="UnknownTransportException">Thrown if this server transport does not support the endpoint's
+        /// transport.</exception>
         (IListener? Listener, MultiStreamConnection? Connection) Listen(
             Endpoint endpoint,
             ServerConnectionOptions options,

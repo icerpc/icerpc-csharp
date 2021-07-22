@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
@@ -102,7 +103,16 @@ namespace IceRpc
                             // and keep trying
                         }
                     }
-                    throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+
+                    if (exceptionList == null)
+                    {
+                        throw ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex);
+                    }
+                    else
+                    {
+                        throw exceptionList.All(e => e is UnknownTransportException) ? new NoEndpointException() :
+                            new AggregateException(exceptionList);
+                    }
                 }
             }
 

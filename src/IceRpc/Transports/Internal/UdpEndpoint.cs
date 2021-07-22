@@ -16,7 +16,7 @@ using System.Text;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the UDP transport.</summary>
-    internal sealed class UdpEndpoint : IPEndpoint, IClientConnectionFactory
+    internal sealed class UdpEndpoint : IPEndpoint
     {
         public override bool IsDatagram => true;
         public override bool? IsSecure => false;
