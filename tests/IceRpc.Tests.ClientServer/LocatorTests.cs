@@ -259,7 +259,7 @@ namespace IceRpc.Tests.ClientServer
             string path = $"/{Guid.NewGuid()}";
             (_server.Dispatcher as Router)!.Map(path, new Locator());
 
-            var locator = SimpleLocatorTestPrx.FromPath(path, _server.Endpoint.Protocol);
+            var locator = SimpleLocatorTestPrx.FromPath(path, _server.Protocol);
             locator.Proxy.Endpoint = _server.Endpoint;
             locator.Proxy.Invoker = _pipeline;
             return locator;
