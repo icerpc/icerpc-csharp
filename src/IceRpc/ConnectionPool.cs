@@ -57,27 +57,19 @@ namespace IceRpc
             IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
         {
+            IEnumerable<Endpoint> endpoints = altEndpoints.Prepend(endpoint);
+
             if (PreferExistingConnection)
             {
-                Connection? connection = null;
                 lock (_mutex)
                 {
-                    connection = GetCachedConnection(endpoint);
-                    if (connection == null)
+                    foreach (Endpoint e in endpoints)
                     {
-                        foreach (Endpoint altEndpoint in altEndpoints)
+                        if (GetCachedConnection(e) is Connection connection)
                         {
-                            connection = GetCachedConnection(altEndpoint);
-                            if (connection != null)
-                            {
-                                break; // foreach
-                            }
+                            return new ValueTask<Connection>(connection);
                         }
                     }
-                }
-                if (connection != null)
-                {
-                    return new(connection);
                 }
             }
 
@@ -86,50 +78,37 @@ namespace IceRpc
             async ValueTask<Connection> CreateConnectionAsync()
             {
                 ClientConnectionOptions connectionOptions = ConnectionOptions ?? ClientConnectionOptions.Default;
-                try
-                {
-                    return await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    List<Exception>? exceptionList = null;
+                List<Exception>? exceptionList = null;
 
-                    foreach (Endpoint altEndpoint in altEndpoints)
+                foreach (Endpoint e in endpoints)
+                {
+                    try
                     {
-                        try
-                        {
-                            return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
-                        }
-                        catch (UnknownTransportException)
-                        {
-                            // ignored, continue for loop
-                        }
-                        catch (Exception altEx)
-                        {
-                            if (exceptionList == null)
-                            {
-                                if (ex is UnknownTransportException)
-                                {
-                                    // keep in ex the first exception that is not an UnknownTransportException
-                                    ex = altEx;
-                                }
-                                else
-                                {
-                                    // we have at least 2 exceptions that are not UnknownTransportException
-                                    exceptionList = new List<Exception> { ex, altEx };
-                                }
-                            }
-                            else
-                            {
-                                exceptionList.Add(altEx);
-                            }
-                            // and keep trying
-                        }
+                        return await ConnectAsync(e, connectionOptions, cancel).ConfigureAwait(false);
                     }
+                    catch (UnknownTransportException)
+                    {
+                        // ignored, continue for loop
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptionList ??= new List<Exception>();
+                        exceptionList.Add(ex);
+                        // and keep trying
+                    }
+                }
 
-                    throw exceptionList == null ?
-                        (ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex)) :
-                        new AggregateException(exceptionList);
+                if (exceptionList == null)
+                {
+                    throw new NoEndpointException();
+                }
+                else if (exceptionList.Count == 1)
+                {
+                    throw ExceptionUtil.Throw(exceptionList[0]);
+                }
+                else
+                {
+                    throw new AggregateException(exceptionList);
                 }
             }
 
