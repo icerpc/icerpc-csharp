@@ -56,8 +56,7 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     Dispatcher = new RetryTest(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    HostName = "localhost"
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -73,13 +72,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = new Bidir(),
-                Endpoint = GetTestEndpoint(),
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
+                Endpoint = GetTestEndpoint()
             };
             server.Listen();
 
-            var retryBidir = RetryBidirTestPrx.FromServer(server, "/");
+            var retryBidir = RetryBidirTestPrx.FromPath("/");
+            retryBidir.Proxy.Endpoint = server.Endpoint;
             retryBidir.Proxy.Invoker = pipeline;
             await retryBidir.IcePingAsync();
             retryBidir.Proxy.Connection!.Dispatcher = server.Dispatcher;
@@ -444,7 +442,6 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    HostName = "localhost"
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -485,8 +482,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = router,
-                Endpoint = GetTestEndpoint(protocol: protocol),
-                HostName = "localhost"
+                Endpoint = GetTestEndpoint(protocol: protocol)
             };
             server.Listen();
 

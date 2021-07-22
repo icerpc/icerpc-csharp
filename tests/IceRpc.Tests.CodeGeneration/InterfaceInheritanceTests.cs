@@ -34,7 +34,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
             _aPrx = APrx.FromConnection(_connection);
             _bPrx = BPrx.FromConnection(_connection);
             _cPrx = CPrx.FromConnection(_connection);

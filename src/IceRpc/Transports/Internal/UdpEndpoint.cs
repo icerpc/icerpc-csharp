@@ -220,8 +220,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
-
         protected internal override void EncodeOptions11(IceEncoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice1 && encoder.Encoding == Encoding.V11);

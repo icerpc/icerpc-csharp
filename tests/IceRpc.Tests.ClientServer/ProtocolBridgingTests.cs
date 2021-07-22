@@ -65,7 +65,7 @@ namespace IceRpc.Tests.ClientServer
 
                     // Fix up the "well-known" proxy
                     // TODO: cleaner solution?
-                    newPrx.Proxy.Endpoint = _targetServer.ProxyEndpoint;
+                    newPrx.Proxy.Endpoint = _targetServer.Endpoint;
                 }
             }
             else
@@ -111,14 +111,16 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = ProtocolBridgingTestPrx.FromServer(_targetServer, "/target");
+            var targetService = ProtocolBridgingTestPrx.FromPath("/target");
+            targetService.Proxy.Endpoint = _targetServer.Endpoint;
             targetService.Proxy.Invoker = invoker;
 
             _forwarderServer = CreateServer(forwarderProtocol, port: 1, colocated);
             _router.Map("/forward", new Forwarder(targetService.Proxy));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = ProtocolBridgingTestPrx.FromServer(_forwarderServer, "/forward");
+            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward");
+            forwardService.Proxy.Endpoint = _forwarderServer.Endpoint;
             forwardService.Proxy.Invoker = invoker;
             return forwardService;
 
@@ -127,7 +129,6 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                HostName = "127.0.0.1"
             };
         }
 

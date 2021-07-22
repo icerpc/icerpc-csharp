@@ -31,15 +31,14 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = "tcp -h 127.0.0.1 -p 0",
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
+                Endpoint = "tcp -h 127.0.0.1 -p 0"
             };
 
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = GreeterPrx.FromServer(_server, path);
+            _greeter = GreeterPrx.FromPath(path);
+            _greeter.Proxy.Endpoint = _server.Endpoint;
             _greeter.Proxy.Invoker = _pipeline;
         }
 
@@ -260,7 +259,8 @@ namespace IceRpc.Tests.ClientServer
             string path = $"/{Guid.NewGuid()}";
             (_server.Dispatcher as Router)!.Map(path, new Locator());
 
-            var locator = SimpleLocatorTestPrx.FromServer(_server, path);
+            var locator = SimpleLocatorTestPrx.FromPath(path);
+            locator.Proxy.Endpoint = _server.Endpoint;
             locator.Proxy.Invoker = _pipeline;
             return locator;
         }

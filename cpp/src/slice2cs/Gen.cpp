@@ -2397,21 +2397,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
-        << "\"/> from the given server and path.</summary>";
-    _out << nl << "/// <param name=\"server\">The created proxy uses the <see cref=\"Server.ProxyEndpoint\"/> "
-         << "as its";
-    _out << nl << "/// <see cref=\"Endpoint\"/>.</param>";
-    _out << nl << "/// <param name=\"path\">The optional path for the proxy, if null the <see cref=\"DefaultPath\"/> "
-         << "is used.";
-    _out << nl << "/// </param>";
-    _out << nl << "/// <returns>The new proxy.</returns>";
-    _out << nl << "public static " << prxImpl << " FromServer(IceRpc.Server server, string? path = null) =>";
-    _out.inc();
-    _out << nl << "new(IceRpc.Proxy.FromServer(server, path ?? DefaultPath));";
-    _out.dec();
-
-    _out << sp;
-    _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
         << "\"/> from a string and invoker.</summary>";
     _out << nl << "/// <param name=\"s\">The string representation of the proxy.</param>";
     _out << nl << "/// <param name=\"invoker\">The invoker of the new proxy.</param>";

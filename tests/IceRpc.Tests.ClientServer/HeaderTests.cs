@@ -41,7 +41,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = endpoint,
-                HostName = "127.0.0.1"
             };
             server.Listen();
 
@@ -58,9 +57,8 @@ namespace IceRpc.Tests.ClientServer
                     return response;
                 }));
 
-            var greeter = GreeterPrx.FromServer(server);
-            await using var connection = new Connection { RemoteEndpoint = greeter.Proxy.Endpoint };
-            greeter.Proxy.Connection = connection;
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var greeter = GreeterPrx.FromConnection(connection);
             greeter.Proxy.Invoker = pipeline;
 
             var invocation = new Invocation

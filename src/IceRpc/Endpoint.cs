@@ -181,12 +181,6 @@ namespace IceRpc
         /// <summary>Provides the same hash code for two equivalent endpoints. See <see cref="IsEquivalent"/>.</summary>
         protected internal virtual int GetEquivalentHashCode() => GetHashCode();
 
-        /// <summary>Returns the proxy endpoint for this server endpoint.</summary>
-        /// <param name="hostName">The host portion of the proxy endpoint when the endpoint's type supports DNS
-        /// resolution of its hosts. Otherwise, <c>hostName</c> is not used.</param>
-        /// <returns>The proxy endpoint.</returns>
-        protected internal virtual Endpoint GetProxyEndpoint(string hostName) => this;
-
         /// <summary>Two endpoints are considered equivalent if they are equal or their differences should not trigger
         /// the establishment of separate connections to those endpoints. For example, two tcp endpoints that are
         /// identical except for their ice1 Timeout and HasCompressionFlag properties are equivalent but are not equal.

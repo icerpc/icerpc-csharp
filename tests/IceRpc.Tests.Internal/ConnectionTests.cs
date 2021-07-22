@@ -79,7 +79,7 @@ namespace IceRpc.Tests.Internal
                         ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, Logger),
                         _server.Dispatcher,
                         _server.ConnectionOptions,
-                        Logger);
+                        LogAttributeLoggerFactory.Instance);
 
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection(await listener.AcceptAsync(),
                                                     _server.Dispatcher,
                                                     _server.ConnectionOptions,
-                                                    Logger);
+                                                    LogAttributeLoggerFactory.Instance);
                     await connection.ConnectAsync(default);
                     return connection;
                 }
