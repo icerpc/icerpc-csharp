@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Threading;
@@ -19,6 +20,16 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
+        /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
+        public static IServerTransport DefaultServerTransport { get; } =
+            new CompositeServerTransport
+            {
+                [Transport.TCP] = new TcpServerTransport(),
+                [Transport.SSL] = new TcpServerTransport(),
+                [Transport.Coloc] = new ColocServerTransport(),
+                [Transport.UDP] = new UdpServerTransport()
+            };
+
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
 
@@ -61,6 +72,9 @@ namespace IceRpc
         /// <summary>Gets the Ice protocol used by this server.</summary>
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
+
+        /// <summary>The <see cref="IServerTransport"/> used by this server to accept connections.</summary>
+        public IServerTransport ServerTransport { get; set; } = DefaultServerTransport;
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
@@ -115,18 +129,21 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint is IListenerFactory listenerFactory)
+                MultiStreamConnection? multiStreamConnection;
+                (_listener, multiStreamConnection) = ServerTransport.Listen(_endpoint, ConnectionOptions, _logger);
+
+                if (_listener != null)
                 {
-                    _listener = listenerFactory.CreateListener(ConnectionOptions, _logger);
+                    Debug.Assert(multiStreamConnection == null);
                     _endpoint = _listener.Endpoint;
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
                 }
-                else if (_endpoint is IServerConnectionFactory serverConnectionFactory)
+                else
                 {
-                    MultiStreamConnection multiStreamConnection =
-                        serverConnectionFactory.Accept(ConnectionOptions, _logger);
+                    Debug.Assert(multiStreamConnection != null);
+
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                     var serverConnection = new Connection(
@@ -140,11 +157,6 @@ namespace IceRpc
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
                     _connections.Add(serverConnection);
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"cannot create listener or server connection with endpoint '{_endpoint}'");
                 }
 
                 _listening = true;

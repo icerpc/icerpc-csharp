@@ -14,7 +14,7 @@ using System.Text;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the TCP transport.</summary>
-    internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
+    internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory
     {
         public override bool? IsSecure => _tls;
 

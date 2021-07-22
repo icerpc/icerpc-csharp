@@ -196,9 +196,9 @@ namespace IceRpc.Tests.Internal
         }
 
         protected IListener CreateListener() =>
-            ((IListenerFactory)ServerEndpoint).CreateListener(ServerConnectionOptions, Logger);
+            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Listener!;
 
         protected MultiStreamConnection CreateServerConnection() =>
-            ((IServerConnectionFactory)ServerEndpoint).Accept(ServerConnectionOptions, Logger);
+            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Connection!;
     }
 }
