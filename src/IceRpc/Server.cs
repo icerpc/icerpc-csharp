@@ -161,7 +161,7 @@ namespace IceRpc
                         multiStreamConnection,
                         Dispatcher,
                         ConnectionOptions,
-                        Logger);
+                        LoggerFactory);
 #pragma warning restore CA2000
                     _endpoint = multiStreamConnection.LocalEndpoint!;
                     UpdateProxyEndpoint();
@@ -291,7 +291,7 @@ namespace IceRpc
                         multiStreamConnection,
                         Dispatcher,
                         ConnectionOptions,
-                        Logger);
+                        LoggerFactory);
 #pragma warning restore CA2000
 
                 lock (_mutex)
