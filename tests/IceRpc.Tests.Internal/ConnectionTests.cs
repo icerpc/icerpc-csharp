@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
         /// directly from the transport API rather than going through the Communicator/Server APIs.</summary>
         private class ConnectionFactory : IAsyncDisposable
         {
-            public Connection Client
+            public Connection ClientConnection
             {
                 get
                 {
@@ -38,7 +38,7 @@ namespace IceRpc.Tests.Internal
 
             public Endpoint Endpoint { get; }
 
-            public Connection Server
+            public Connection ServerConnection
             {
                 get
                 {
@@ -56,7 +56,7 @@ namespace IceRpc.Tests.Internal
             {
                 get
                 {
-                    var prx = IceRpc.ServicePrx.FromConnection(Client);
+                    var prx = IceRpc.ServicePrx.FromConnection(ClientConnection);
                     var pipeline = new Pipeline();
                     pipeline.Use(Interceptors.Logger(LogAttributeLoggerFactory.Instance));
                     prx.Proxy.Invoker = pipeline;
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.IsDatagram)
                 {
                     serverConnection = new Connection(
-                        ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, Logger),
+                        Server.DefaultServerTransport.Listen(Endpoint, _server.ConnectionOptions, Logger).Connection!,
                         _server.Dispatcher,
                         _server.ConnectionOptions,
                         LogAttributeLoggerFactory.Instance);
@@ -86,7 +86,8 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using IListener listener = ((IListenerFactory)Endpoint).CreateListener(_server.ConnectionOptions, Logger);
+                    using IListener listener =
+                        Server.DefaultServerTransport.Listen(Endpoint, _server.ConnectionOptions, Logger).Listener!;
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
@@ -209,11 +210,11 @@ namespace IceRpc.Tests.Internal
 
             if (closeClientSide)
             {
-                await factory.Client.AbortAsync();
+                await factory.ClientConnection.AbortAsync();
             }
             else
             {
-                await factory.Server.AbortAsync();
+                await factory.ServerConnection.AbortAsync();
             }
             Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             semaphore.Release();
@@ -234,10 +235,10 @@ namespace IceRpc.Tests.Internal
                 Assert.That(args.Exception, Is.AssignableTo<ConnectionClosedException>());
                 semaphore.Release();
             };
-            factory.Client.Closed += handler;
-            factory.Server.Closed += handler;
+            factory.ClientConnection.Closed += handler;
+            factory.ServerConnection.Closed += handler;
 
-            await (closeClientSide ? factory.Client : factory.Server).ShutdownAsync();
+            await (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync();
 
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();
@@ -262,19 +263,20 @@ namespace IceRpc.Tests.Internal
                 });
 
             using var semaphore = new SemaphoreSlim(0);
-            factory.Client.Closed += (sender, args) => semaphore.Release();
-            factory.Server.Closed += (sender, args) => semaphore.Release();
+            factory.ClientConnection.Closed += (sender, args) => semaphore.Release();
+            factory.ServerConnection.Closed += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();
         }
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
-        public async Task Connection_ConnectTimeoutAsync(Protocol protocol)
+        public async Task Connection_ConnectTimeoutAsyncXXXX(Protocol protocol)
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IListener listener = ((IListenerFactory)factory.Endpoint).CreateListener(
+            using IListener listener = Server.DefaultServerTransport.Listen(
+                factory.Endpoint,
                 new ServerConnectionOptions
                 {
                     TransportOptions = new TcpOptions()
@@ -282,7 +284,7 @@ namespace IceRpc.Tests.Internal
                         ListenerBackLog = 1
                     }
                 },
-                factory.Logger);
+                factory.Logger).Listener!;
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
             // is handled by the client connection factory.
@@ -295,15 +297,15 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory(transport, secure: secure);
 
-            Assert.That(factory.Client.IsSecure, Is.EqualTo(secure));
-            Assert.That(factory.Server.IsSecure, Is.EqualTo(secure));
+            Assert.That(factory.ClientConnection.IsSecure, Is.EqualTo(secure));
+            Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
             Socket? clientSocket =
-                (factory.Client.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
+                (factory.ClientConnection.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
             Assert.That(clientSocket, Is.Not.Null);
 
             Socket? serverSocket =
-                (factory.Server.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
+                (factory.ServerConnection.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
             Assert.That(serverSocket, Is.Not.Null);
 
             Assert.That(clientSocket!.RemoteEndPoint, Is.Not.Null);
@@ -311,32 +313,32 @@ namespace IceRpc.Tests.Internal
 
             Assert.That(serverSocket!.LocalEndPoint, Is.Not.Null);
 
-            Assert.AreEqual("127.0.0.1", factory.Client.LocalEndpoint!.Host);
-            Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint!.Host);
-            Assert.That(factory.Client.RemoteEndpoint!.Port, Is.EqualTo(factory.Server.LocalEndpoint!.Port));
+            Assert.AreEqual("127.0.0.1", factory.ClientConnection.LocalEndpoint!.Host);
+            Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint!.Host);
+            Assert.That(factory.ClientConnection.RemoteEndpoint!.Port, Is.EqualTo(factory.ServerConnection.LocalEndpoint!.Port));
             if (transport == "udp")
             {
                 Assert.That(serverSocket.RemoteEndPoint, Is.Null);
-                Assert.Throws<InvalidOperationException>(() => _ = factory.Server.RemoteEndpoint);
+                Assert.Throws<InvalidOperationException>(() => _ = factory.ServerConnection.RemoteEndpoint);
             }
             else
             {
                 Assert.That(serverSocket.RemoteEndPoint, Is.Not.Null);
-                Assert.That(factory.Client.LocalEndpoint.Port, Is.EqualTo(factory.Server.RemoteEndpoint!.Port));
-                Assert.AreEqual("127.0.0.1", factory.Client.RemoteEndpoint.Host);
+                Assert.That(factory.ClientConnection.LocalEndpoint.Port, Is.EqualTo(factory.ServerConnection.RemoteEndpoint!.Port));
+                Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint.Host);
             }
-            Assert.AreEqual(null, factory.Client.RemoteEndpoint["compress"]);
-            Assert.That(factory.Client.IsServer, Is.False);
-            Assert.That(factory.Server.IsServer, Is.True);
+            Assert.AreEqual(null, factory.ClientConnection.RemoteEndpoint["compress"]);
+            Assert.That(factory.ClientConnection.IsServer, Is.False);
+            Assert.That(factory.ServerConnection.IsServer, Is.True);
 
-            Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
-            Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
+            Assert.AreEqual(factory.ClientConnection.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
+            Assert.AreEqual(factory.ClientConnection.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
 
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
 
-            Assert.That($"{factory.Client}", Does.StartWith(factory.Client.UnderlyingConnection!.GetType().Name));
-            Assert.That($"{factory.Server}", Does.StartWith(factory.Server.UnderlyingConnection!.GetType().Name));
+            Assert.That($"{factory.ClientConnection}", Does.StartWith(factory.ClientConnection.UnderlyingConnection!.GetType().Name));
+            Assert.That($"{factory.ServerConnection}", Does.StartWith(factory.ServerConnection.UnderlyingConnection!.GetType().Name));
 
             if (transport == "udp")
             {
@@ -351,12 +353,12 @@ namespace IceRpc.Tests.Internal
             {
                 Assert.AreEqual("tcp", transport);
                 SslStream? clientSslStream =
-                    (factory.Client.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                    (factory.ClientConnection.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
 
                 Assert.That(clientSslStream, Is.Not.Null);
 
                 SslStream? serverSslStream =
-                    (factory.Server.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                    (factory.ServerConnection.UnderlyingConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
 
                 Assert.That(serverSslStream, Is.Not.Null);
 
@@ -404,15 +406,15 @@ namespace IceRpc.Tests.Internal
                     IdleTimeout = TimeSpan.FromSeconds(3)
                 });
 
-            Assert.That(factory.Client.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
+            Assert.That(factory.ClientConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
 
             if (protocol == Protocol.Ice1)
             {
-                Assert.That(factory.Server.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(3)));
+                Assert.That(factory.ServerConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(3)));
             }
             else
             {
-                Assert.That(factory.Server.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
+                Assert.That(factory.ServerConnection.IdleTimeout, Is.EqualTo(TimeSpan.FromSeconds(2)));
             }
         }
 
@@ -430,8 +432,8 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = true
                 });
-            Assert.That(factory.Client.Options!.KeepAlive, Is.True);
-            Assert.That(factory.Server.Options!.KeepAlive, Is.True);
+            Assert.That(factory.ClientConnection.Options!.KeepAlive, Is.True);
+            Assert.That(factory.ServerConnection.Options!.KeepAlive, Is.True);
         }
 
         [TestCase(Protocol.Ice1, false)]
@@ -457,18 +459,18 @@ namespace IceRpc.Tests.Internal
             using var semaphore = new SemaphoreSlim(0);
             EventHandler handler = (sender, args) =>
             {
-                Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.Server : factory.Client));
+                Assert.That(sender, Is.EqualTo(heartbeatOnClient ? factory.ServerConnection : factory.ClientConnection));
                 semaphore.Release();
             };
             if (heartbeatOnClient)
             {
-                factory.Client.PingReceived += (sender, args) => Assert.Fail();
-                factory.Server.PingReceived += handler;
+                factory.ClientConnection.PingReceived += (sender, args) => Assert.Fail();
+                factory.ServerConnection.PingReceived += handler;
             }
             else
             {
-                factory.Client.PingReceived += handler;
-                factory.Server.PingReceived += (sender, args) => Assert.Fail();
+                factory.ClientConnection.PingReceived += handler;
+                factory.ServerConnection.PingReceived += (sender, args) => Assert.Fail();
             }
 
             await semaphore.WaitAsync();
@@ -495,7 +497,7 @@ namespace IceRpc.Tests.Internal
 
             // Make sure we receive few pings while the invocation is pending.
             using var semaphore = new SemaphoreSlim(0);
-            factory.Client.PingReceived += (sender, args) => semaphore.Release();
+            factory.ClientConnection.PingReceived += (sender, args) => semaphore.Release();
             await semaphore.WaitAsync();
             await semaphore.WaitAsync();
 
@@ -529,7 +531,7 @@ namespace IceRpc.Tests.Internal
             await waitForDispatchSemaphore.WaitAsync();
 
             // Shutdown the connection.
-            Task shutdownTask = (closeClientSide ? factory.Client : factory.Server).ShutdownAsync("message");
+            Task shutdownTask = (closeClientSide ? factory.ClientConnection : factory.ServerConnection).ShutdownAsync("message");
             Assert.That(dispatchSemaphore.Release(), Is.EqualTo(0));
             await shutdownTask;
 
@@ -588,7 +590,7 @@ namespace IceRpc.Tests.Internal
             using var cancelSource = new CancellationTokenSource();
             if (closeClientSide)
             {
-                Task shutdownTask = factory.Client.ShutdownAsync("client message", cancelSource.Token);
+                Task shutdownTask = factory.ClientConnection.ShutdownAsync("client message", cancelSource.Token);
                 cancelSource.Cancel();
 
                 // Ensure that dispatch is canceled (with Ice1 it's canceled on receive of the CloseConnection
@@ -611,7 +613,7 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                Task shutdownTask = factory.Server.ShutdownAsync("server message", cancelSource.Token);
+                Task shutdownTask = factory.ServerConnection.ShutdownAsync("server message", cancelSource.Token);
                 Assert.That(shutdownTask.IsCompleted, Is.False);
                 cancelSource.Cancel();
 
@@ -670,7 +672,7 @@ namespace IceRpc.Tests.Internal
             if (closeClientSide)
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
-                await factory.Client.ShutdownAsync();
+                await factory.ClientConnection.ShutdownAsync();
                 if (protocol == Protocol.Ice1)
                 {
                     // Invocations are canceled immediately on shutdown with Ice1
@@ -684,7 +686,7 @@ namespace IceRpc.Tests.Internal
             else
             {
                 // Shutdown should trigger the abort of the connection after the close timeout
-                await factory.Server.ShutdownAsync();
+                await factory.ServerConnection.ShutdownAsync();
                 Assert.ThrowsAsync<ConnectionLostException>(async () => await pingTask);
             }
 

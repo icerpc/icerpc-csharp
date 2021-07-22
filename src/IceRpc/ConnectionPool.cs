@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
@@ -16,6 +17,10 @@ namespace IceRpc
     /// <see cref="Interceptors.Binder"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
+        /// <summary>The <see cref="IClientTransport"/> used by the connections created by this pool.
+        /// </summary>
+        public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
+
         /// <summary>The connection options.</summary>
         public ClientConnectionOptions? ConnectionOptions { get; set; }
 
@@ -95,14 +100,36 @@ namespace IceRpc
                         {
                             return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
                         }
+                        catch (UnknownTransportException)
+                        {
+                            // ignored, continue for loop
+                        }
                         catch (Exception altEx)
                         {
-                            exceptionList ??= new List<Exception> { ex };
-                            exceptionList.Add(altEx);
+                            if (exceptionList == null)
+                            {
+                                if (ex is UnknownTransportException)
+                                {
+                                    // keep in ex the first exception that is not an UnknownTransportException
+                                    ex = altEx;
+                                }
+                                else
+                                {
+                                    // we have at least 2 exceptions that are not UnknownTransportException
+                                    exceptionList = new List<Exception> { ex, altEx };
+                                }
+                            }
+                            else
+                            {
+                                exceptionList.Add(altEx);
+                            }
                             // and keep trying
                         }
                     }
-                    throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+
+                    throw exceptionList == null ?
+                        (ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex)) :
+                        new AggregateException(exceptionList);
                 }
             }
 
@@ -198,6 +225,7 @@ namespace IceRpc
                     {
                         RemoteEndpoint = endpoint,
                         LoggerFactory = LoggerFactory,
+                        ClientTransport = ClientTransport,
                         Options = options
                     };
 #pragma warning restore CA2000

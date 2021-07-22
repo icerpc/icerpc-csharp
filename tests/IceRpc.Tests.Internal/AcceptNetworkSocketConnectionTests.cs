@@ -137,8 +137,9 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                listener = ((IListenerFactory)serverEndpoint).CreateListener(ServerConnectionOptions,
-                                                                             Logger);
+                listener = Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                ServerConnectionOptions,
+                                                                Logger).Listener!;
             }
             else
             {
@@ -159,14 +160,16 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => ((IListenerFactory)serverEndpoint).CreateListener(ServerConnectionOptions,
-                                                                                Logger).Dispose());
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => ((IListenerFactory)serverEndpoint).CreateListener(ServerConnectionOptions,
-                                                                                Logger));
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
             }
             else
@@ -218,7 +221,8 @@ namespace IceRpc.Tests.Internal
         }
 
         private NetworkSocket CreateClientConnection() =>
-            (((IClientConnectionFactory)ClientEndpoint).CreateClientConnection(
+           (Connection.DefaultClientTransport.CreateConnection(
+                ClientEndpoint,
                 ClientConnectionOptions,
                 Logger) as NetworkSocketConnection)!.NetworkSocket;
 
