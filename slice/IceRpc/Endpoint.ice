@@ -5,48 +5,10 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/TransportCode.ice>
 
 module IceRpc
 {
-    /// Identifies a transport protocol that IceRPC can use to send requests and receive responses. The enumerators of
-    /// Transport correspond to the transports that the IceRPC runtime knows and implements in some programming
-    /// languages and for some version of the Ice protocol.
-    unchecked enum TransportCode : short
-    {
-        /// Loc pseudo-transport.
-        Loc = -1,
-
-        /// Colocated transport.
-        Coloc = 0,
-
-        /// TCP transport.
-        TCP = 1,
-
-        /// SSL transport.
-        SSL = 2,
-
-        /// UDP transport.
-        UDP = 3,
-
-        /// Web Socket transport.
-        WS = 4,
-
-        /// Secure Web Socket transport.
-        WSS = 5,
-
-        /// Bluetooth transport.
-        BT = 6,
-
-        /// Secure Bluetooth transport.
-        BTS = 7,
-
-        /// Apple iAP transport.
-        iAP = 8,
-
-        /// Secure Apple iAP transport.
-        iAPS = 9,
-    }
-
     /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
     struct EndpointData
