@@ -202,6 +202,41 @@ namespace IceRpc.Tests.Api
             Assert.DoesNotThrowAsync(async () => await server.ShutdownAsync());
         }
 
+        [Test]
+        public async Task Server_ShutdownAsync()
+        {
+            using var dispatchStartSemaphore = new SemaphoreSlim(0);
+            using var dispatchContinueSemaphore = new SemaphoreSlim(0);
+            await using var server = new Server
+            {
+                Dispatcher = new InlineDispatcher(async (request, cancel) =>
+                {
+                    dispatchStartSemaphore.Release();
+                    await dispatchContinueSemaphore.WaitAsync(cancel);
+                    return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
+                }),
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+
+            server.Listen();
+
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+
+            var proxy = GreeterPrx.FromConnection(connection);
+
+            Task task = proxy.IcePingAsync();
+            Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
+            dispatchStartSemaphore.Wait(); // Wait for the dispatch
+
+            var shutdownTask = server.ShutdownAsync();
+            Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
+            dispatchContinueSemaphore.Release();
+
+            Assert.DoesNotThrowAsync(async () => await shutdownTask);
+
+            Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
+        }
+
         [TestCase(false, Protocol.Ice1)]
         [TestCase(true, Protocol.Ice1)]
         [TestCase(false, Protocol.Ice2)]
@@ -231,6 +266,7 @@ namespace IceRpc.Tests.Api
             var proxy = GreeterPrx.FromConnection(connection);
 
             Task task = proxy.IcePingAsync();
+            Assert.That(server.ShutdownComplete.IsCompleted, Is.False);
             semaphore.Wait(); // Wait for the dispatch
 
             Task shutdownTask;
@@ -261,6 +297,8 @@ namespace IceRpc.Tests.Api
             }
             // Shutdown shouldn't throw.
             Assert.DoesNotThrowAsync(async () => await shutdownTask);
+
+            Assert.That(server.ShutdownComplete.IsCompleted, Is.True);
         }
 
         private class Greeter : Service, IGreeter
