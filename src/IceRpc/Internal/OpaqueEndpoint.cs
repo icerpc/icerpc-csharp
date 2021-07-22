@@ -20,7 +20,7 @@ namespace IceRpc.Internal
         public override string? this[string option] =>
             option switch
             {
-                "transport" => ((short)Transport).ToString(CultureInfo.InvariantCulture),
+                "transport" => ((short)TransportCode).ToString(CultureInfo.InvariantCulture),
                 "value" => Value.IsEmpty ? null : Convert.ToBase64String(Value.Span),
                 "value-encoding" => ValueEncoding.ToString(),
                 _ => null,
@@ -37,7 +37,7 @@ namespace IceRpc.Internal
         protected internal override void AppendOptions(StringBuilder sb, char optionSeparator)
         {
             sb.Append(" -t ");
-            sb.Append(((short)Transport).ToString(CultureInfo.InvariantCulture));
+            sb.Append(((short)TransportCode).ToString(CultureInfo.InvariantCulture));
 
             sb.Append(" -e ");
             sb.Append(ValueEncoding.ToString());
@@ -67,14 +67,14 @@ namespace IceRpc.Internal
         }
 
         internal static OpaqueEndpoint Create(
-            Transport transport,
+            TransportCode transport,
             Encoding valueEncoding,
             ReadOnlyMemory<byte> value) =>
             new(new EndpointData(transport, host: "", port: 0, ImmutableList<string>.Empty), valueEncoding, value);
 
         internal static OpaqueEndpoint Parse(Dictionary<string, string?> options, string endpointString)
         {
-            Transport transport;
+            TransportCode transport;
 
             if (options.TryGetValue("-t", out string? argument))
             {
@@ -99,7 +99,7 @@ namespace IceRpc.Internal
                         $"transport value '{argument}' out of range in endpoint '{endpointString}'");
                 }
 
-                transport = (Transport)t;
+                transport = (TransportCode)t;
                 options.Remove("-t");
             }
             else

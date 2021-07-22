@@ -64,7 +64,7 @@ namespace IceRpc.Transports.Internal
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, TransportCode, logger);
                 socket.NoDelay = true;
             }
             catch (SocketException ex)
@@ -97,7 +97,7 @@ namespace IceRpc.Transports.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, Transport, logger);
+                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, TransportCode, logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -173,7 +173,7 @@ namespace IceRpc.Transports.Internal
             if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
+                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new TcpEndpoint(data, protocol);
         }
@@ -184,7 +184,7 @@ namespace IceRpc.Transports.Internal
         {
             _timeout = timeout;
             _hasCompressionFlag = compress;
-            _tls = data.Transport == Transport.SSL;
+            _tls = data.TransportCode == TransportCode.SSL;
         }
 
         // Constructor for unmarshaling with the 2.0 encoding.
@@ -193,7 +193,7 @@ namespace IceRpc.Transports.Internal
         {
             if (Protocol == Protocol.Ice1)
             {
-                _tls = data.Transport == Transport.SSL;
+                _tls = data.TransportCode == TransportCode.SSL;
             }
         }
 
@@ -232,18 +232,18 @@ namespace IceRpc.Transports.Internal
     internal abstract class TcpBaseEndpointFactory : IIce1EndpointFactory
     {
         public abstract string Name { get; }
-        public abstract Transport Transport { get; }
+        public abstract TransportCode TransportCode { get; }
 
         public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
             TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
         public Endpoint CreateIce1Endpoint(IceDecoder decoder)
         {
-            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
+            Debug.Assert(TransportCode == TransportCode.TCP || TransportCode == TransportCode.SSL);
 
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
-            return new TcpEndpoint(new EndpointData(Transport,
+            return new TcpEndpoint(new EndpointData(TransportCode,
                                                     host: decoder.DecodeString(),
                                                     port: checked((ushort)decoder.DecodeInt()),
                                                     ImmutableList<string>.Empty),
@@ -253,10 +253,10 @@ namespace IceRpc.Transports.Internal
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
-            Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
+            Debug.Assert(TransportCode == TransportCode.TCP || TransportCode == TransportCode.SSL);
 
             (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(Transport, host, port, ImmutableList<string>.Empty),
+            return new TcpEndpoint(new EndpointData(TransportCode, host, port, ImmutableList<string>.Empty),
                                    Ice1Parser.ParseTimeout(options, TcpEndpoint.DefaultTimeout, endpointString),
                                    Ice1Parser.ParseCompress(options, endpointString));
         }
@@ -268,7 +268,7 @@ namespace IceRpc.Transports.Internal
 
         public override string Name => "tcp";
 
-        public override Transport Transport => Transport.TCP;
+        public override TransportCode TransportCode => TransportCode.TCP;
 
         public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
         {
@@ -278,7 +278,7 @@ namespace IceRpc.Transports.Internal
                 tls = bool.Parse(value);
                 options.Remove("tls");
             }
-            return new TcpEndpoint(new EndpointData(Transport.TCP, host, port, ImmutableList<string>.Empty), tls);
+            return new TcpEndpoint(new EndpointData(TransportCode.TCP, host, port, ImmutableList<string>.Empty), tls);
         }
     }
 
@@ -286,6 +286,6 @@ namespace IceRpc.Transports.Internal
     {
         public override string Name => "ssl";
 
-        public override Transport Transport => Transport.SSL;
+        public override TransportCode TransportCode => TransportCode.SSL;
     }
 }

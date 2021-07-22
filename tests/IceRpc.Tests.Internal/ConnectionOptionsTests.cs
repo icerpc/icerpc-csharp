@@ -153,7 +153,7 @@ namespace IceRpc.Tests.Internal
                 };
 
                 var serverData = new EndpointData(
-                    ServerEndpoint.Transport,
+                    ServerEndpoint.TransportCode,
                     "::0",
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
@@ -167,7 +167,7 @@ namespace IceRpc.Tests.Internal
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
                 var data = new EndpointData(
-                    ClientEndpoint.Transport,
+                    ClientEndpoint.TransportCode,
                     "::FFFF:127.0.0.1",
                     ClientEndpoint.Port,
                     ClientEndpoint.Data.Options);

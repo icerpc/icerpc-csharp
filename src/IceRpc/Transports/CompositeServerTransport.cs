@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> using other server transport implementations.</summary>
-    public class CompositeServerTransport : Dictionary<Transport, IServerTransport>, IServerTransport
+    public class CompositeServerTransport : Dictionary<TransportCode, IServerTransport>, IServerTransport
     {
         /// <inheritdoc/>
         public (IListener?, MultiStreamConnection?) Listen(
@@ -14,13 +14,13 @@ namespace IceRpc.Transports
             ServerConnectionOptions options,
             ILogger logger)
         {
-            if (TryGetValue(endpoint.Transport, out IServerTransport? serverTransport))
+            if (TryGetValue(endpoint.TransportCode, out IServerTransport? serverTransport))
             {
                 return serverTransport.Listen(endpoint, options, logger);
             }
             else
             {
-                throw new UnknownTransportException(endpoint.Transport);
+                throw new UnknownTransportException(endpoint.TransportCode);
             }
         }
     }

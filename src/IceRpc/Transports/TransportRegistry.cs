@@ -14,8 +14,8 @@ namespace IceRpc.Transports
         private static readonly IDictionary<string, IEndpointFactory> _transportNameRegistry =
             new ConcurrentDictionary<string, IEndpointFactory>();
 
-        private static readonly IDictionary<Transport, IEndpointFactory> _transportRegistry =
-            new ConcurrentDictionary<Transport, IEndpointFactory>();
+        private static readonly IDictionary<TransportCode, IEndpointFactory> _transportRegistry =
+            new ConcurrentDictionary<TransportCode, IEndpointFactory>();
 
         /// <summary>Registers a new transport.</summary>
         /// <param name="factory">The endpoint factory.</param>
@@ -26,7 +26,7 @@ namespace IceRpc.Transports
                 throw new ArgumentException($"{nameof(factory.Name)} cannot be empty", nameof(factory));
             }
 
-            _transportRegistry.Add(factory.Transport, factory);
+            _transportRegistry.Add(factory.TransportCode, factory);
             _transportNameRegistry.Add(factory.Name, factory);
 
             if (factory is IIce2EndpointFactory ice2Descriptor)
@@ -36,7 +36,7 @@ namespace IceRpc.Transports
         }
 
         internal static bool TryGetValue(
-            Transport transport,
+            TransportCode transport,
             [NotNullWhen(true)] out IEndpointFactory? factory) =>
             _transportRegistry.TryGetValue(transport, out factory);
 

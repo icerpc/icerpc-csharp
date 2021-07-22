@@ -47,10 +47,10 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new CompositeClientTransport
             {
-                [Transport.TCP] = new TcpClientTransport(),
-                [Transport.SSL] = new TcpClientTransport(),
-                [Transport.Coloc] = new ColocClientTransport(),
-                [Transport.UDP] = new UdpClientTransport()
+                [TransportCode.TCP] = new TcpClientTransport(),
+                [TransportCode.SSL] = new TcpClientTransport(),
+                [TransportCode.Coloc] = new ColocClientTransport(),
+                [TransportCode.UDP] = new UdpClientTransport()
             };
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.

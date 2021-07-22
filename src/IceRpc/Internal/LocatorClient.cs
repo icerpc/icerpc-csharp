@@ -82,7 +82,7 @@ namespace IceRpc.Internal
                     category = cachedResolution.Category;
                     refreshCache = true;
                 }
-                else if (request.Endpoint is Endpoint locEndpoint && locEndpoint.Transport == Transport.Loc)
+                else if (request.Endpoint is Endpoint locEndpoint && locEndpoint.TransportCode == TransportCode.Loc)
                 {
                     // Typically first attempt since a successful resolution replaces this loc endpoint.
                     location = locEndpoint.Host;
@@ -194,7 +194,7 @@ namespace IceRpc.Internal
 
             // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
             // endpoint.
-            if (endpoint?.Transport == Transport.Loc)
+            if (endpoint?.TransportCode == TransportCode.Loc)
             {
                 try
                 {
@@ -210,7 +210,7 @@ namespace IceRpc.Internal
                     // When the second resolution fails, we clear the cache entry for the initial successful
                     // resolution, since the overall resolution is a failure.
                     // endpoint below can hold a loc endpoint only when an exception is thrown.
-                    if (endpoint == null || endpoint.Transport == Transport.Loc)
+                    if (endpoint == null || endpoint.TransportCode == TransportCode.Loc)
                     {
                         ClearCache(location, category);
                     }

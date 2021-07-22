@@ -108,7 +108,7 @@ namespace IceRpc.Internal
                 }
 
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    TransportRegistry.TryGetValue(opaqueEndpoint.Transport, out factory) &&
+                    TransportRegistry.TryGetValue(opaqueEndpoint.TransportCode, out factory) &&
                     factory is IIce1EndpointFactory)
                 {
                     // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
@@ -440,7 +440,7 @@ namespace IceRpc.Internal
                         {
                             endpoint = ParseEndpoint(es);
 
-                            if (endpoint.Transport == Transport.Loc)
+                            if (endpoint.TransportCode == TransportCode.Loc)
                             {
                                 throw new FormatException("use @ adapterId instead of loc in proxy");
                             }

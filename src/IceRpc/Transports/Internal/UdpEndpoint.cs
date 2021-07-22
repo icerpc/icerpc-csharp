@@ -61,7 +61,7 @@ namespace IceRpc.Transports.Internal
 
                 socket.ExclusiveAddressUse = true;
 
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, Transport, logger);
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, TransportCode, logger);
 
                 var addr = new IPEndPoint(Address, Port);
                 if (IsMulticast(Address))
@@ -161,7 +161,7 @@ namespace IceRpc.Transports.Internal
                     socket.Bind(localEndPoint);
                 }
 
-                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, Transport, logger);
+                SetBufferSize(socket, udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, TransportCode, logger);
             }
             catch (SocketException ex)
             {
@@ -396,7 +396,7 @@ namespace IceRpc.Transports.Internal
     {
         public string Name => "udp";
 
-        public Transport Transport => Transport.UDP;
+        public TransportCode TransportCode => TransportCode.UDP;
 
         public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
@@ -409,14 +409,14 @@ namespace IceRpc.Transports.Internal
             if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.Transport, data.Host, data.Port, ImmutableList<string>.Empty);
+                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new UdpEndpoint(data);
         }
 
         public Endpoint CreateIce1Endpoint(IceDecoder decoder) =>
             // This is correct in C# since arguments are evaluated left-to-right.
-            new UdpEndpoint(new EndpointData(Transport,
+            new UdpEndpoint(new EndpointData(TransportCode,
                                              host: decoder.DecodeString(),
                                              port: checked((ushort)decoder.DecodeInt()),
                                              ImmutableList<string>.Empty),
@@ -485,7 +485,7 @@ namespace IceRpc.Transports.Internal
                 options.Remove("--interface");
             }
 
-            return new UdpEndpoint(new EndpointData(Transport.UDP, host, port, ImmutableList<string>.Empty),
+            return new UdpEndpoint(new EndpointData(TransportCode.UDP, host, port, ImmutableList<string>.Empty),
                                    Ice1Parser.ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface);

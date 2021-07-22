@@ -307,7 +307,7 @@ namespace IceRpc.Tests.Api
             var p1 = Proxy.Parse(prx);
 
             Endpoint? tcpEndpoint = p1.Endpoint;
-            Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
+            Assert.AreEqual(TransportCode.TCP, tcpEndpoint!.TransportCode);
             Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
             Assert.AreEqual("tcphost", tcpEndpoint.Host);
             Assert.AreEqual(10000, tcpEndpoint.Port);
@@ -330,7 +330,7 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual(null, udpEndpoint["compress"]);
                 Assert.That(udpEndpoint.IsSecure, Is.False);
                 Assert.That(udpEndpoint.IsDatagram);
-                Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
+                Assert.AreEqual(TransportCode.UDP, udpEndpoint.TransportCode);
 
                 Endpoint opaqueEndpoint = p1.AltEndpoints[1];
                 Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
@@ -339,7 +339,7 @@ namespace IceRpc.Tests.Api
             else
             {
                 Endpoint universalEndpoint = p1.AltEndpoints[0];
-                Assert.AreEqual((Transport)100, universalEndpoint.Transport);
+                Assert.AreEqual((TransportCode)100, universalEndpoint.TransportCode);
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
         }
@@ -476,7 +476,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Encoding.V11, proxy.Encoding);
             Endpoint altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
-            Assert.AreEqual(Transport.TCP, altEndpoint.Transport);
+            Assert.AreEqual(TransportCode.TCP, altEndpoint.TransportCode);
         }
 
         [TestCase("1.3")]

@@ -13,7 +13,7 @@ namespace IceRpc.Transports
         string Name { get; }
 
         /// <summary>The transport enumerator.</summary>
-        Transport Transport { get; }
+        TransportCode TransportCode { get; }
 
         /// <summary>Creates a new endpoint.</summary>
         /// <param name="data">The endpoint data.</param>

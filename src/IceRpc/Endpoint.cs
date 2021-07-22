@@ -89,11 +89,11 @@ namespace IceRpc
         /// ice2, it's ice+transport (ice+tcp, ice+quic etc.) or ice+universal.</summary>
         public virtual string Scheme => Protocol == Protocol.Ice1 ? TransportName : $"ice+{TransportName}";
 
-        /// <summary>The <see cref="IceRpc.Transport"></see> of this endpoint.</summary>
-        public Transport Transport => Data.Transport;
+        /// <summary>The <see cref="IceRpc.TransportCode"></see> of this endpoint.</summary>
+        public TransportCode TransportCode => Data.TransportCode;
 
         /// <summary>The name of the endpoint's transport in lowercase.</summary>
-        public virtual string TransportName => Transport.ToString().ToLowerInvariant();
+        public virtual string TransportName => TransportCode.ToString().ToLowerInvariant();
 
         /// <summary>Indicates whether or not this endpoint has options with non default values that ToString prints.
         /// Always true for ice1 endpoints.</summary>
@@ -214,14 +214,14 @@ namespace IceRpc
         /// ice1.</remarks>
         public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
         {
-            if (TransportRegistry.TryGetValue(data.Transport, out IEndpointFactory? factory))
+            if (TransportRegistry.TryGetValue(data.TransportCode, out IEndpointFactory? factory))
             {
                 return factory.CreateEndpoint(data, protocol);
             }
 
             return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
                 throw new NotSupportedException(
-                    $"cannot create endpoint for ice1 protocol and transport '{data.Transport}'");
+                    $"cannot create endpoint for ice1 protocol and transport '{data.TransportCode}'");
         }
 
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI

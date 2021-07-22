@@ -77,10 +77,10 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.ReceiveBufferSizeAdjusted,
             EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
             Level = LogLevel.Debug,
-            Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+            Message = "{TransportCode} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
         internal static partial void LogReceiveBufferSizeAdjusted(
             this ILogger logger,
-            Transport transport,
+            TransportCode transportCode,
             int requestedSize,
             int adjustedSize);
 
@@ -102,10 +102,10 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.SendBufferSizeAdjusted,
             EventName = nameof(TransportEvent.SendBufferSizeAdjusted),
             Level = LogLevel.Debug,
-            Message = "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+            Message = "{TransportCode} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
         internal static partial void LogSendBufferSizeAdjusted(
             this ILogger logger,
-            Transport transport,
+            TransportCode transportCode,
             int requestedSize,
             int adjustedSize);
 

@@ -43,7 +43,7 @@ namespace IceRpc.Transports.Internal
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)
-            : base(new EndpointData(Transport.Coloc, host, port, ImmutableList<string>.Empty), protocol)
+            : base(new EndpointData(TransportCode.Coloc, host, port, ImmutableList<string>.Empty), protocol)
         {
         }
     }
@@ -54,7 +54,7 @@ namespace IceRpc.Transports.Internal
 
         public string Name => "coloc";
 
-        public Transport Transport => Transport.Coloc;
+        public TransportCode TransportCode => TransportCode.Coloc;
 
         public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
             throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");

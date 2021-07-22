@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> using other client transport implementations.</summary>
-    public class CompositeClientTransport : Dictionary<Transport, IClientTransport>, IClientTransport
+    public class CompositeClientTransport : Dictionary<TransportCode, IClientTransport>, IClientTransport
     {
         /// <inheritdoc/>
         public MultiStreamConnection CreateConnection(
@@ -14,13 +14,13 @@ namespace IceRpc.Transports
             ClientConnectionOptions options,
             ILogger logger)
         {
-            if (TryGetValue(remoteEndpoint.Transport, out IClientTransport? clientTransport))
+            if (TryGetValue(remoteEndpoint.TransportCode, out IClientTransport? clientTransport))
             {
                 return clientTransport.CreateConnection(remoteEndpoint, options, logger);
             }
             else
             {
-                throw new UnknownTransportException(remoteEndpoint.Transport);
+                throw new UnknownTransportException(remoteEndpoint.TransportCode);
             }
         }
     }

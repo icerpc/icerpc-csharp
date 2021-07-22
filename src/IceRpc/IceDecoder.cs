@@ -920,7 +920,7 @@ namespace IceRpc
 
             Endpoint endpoint;
 
-            Transport transport = this.DecodeTransport();
+            TransportCode transportCode = this.DecodeTransportCode();
 
             int size = DecodeInt();
             if (size < 6)
@@ -942,7 +942,7 @@ namespace IceRpc
             IIce1EndpointFactory? ice1EndpointFactory = null;
             if (protocol == Protocol.Ice1 &&
                 encoding.IsSupported &&
-                TransportRegistry.TryGetValue(transport, out IEndpointFactory? factory))
+                TransportRegistry.TryGetValue(transportCode, out IEndpointFactory? factory))
             {
                 ice1EndpointFactory = factory as IIce1EndpointFactory;
             }
@@ -950,7 +950,7 @@ namespace IceRpc
             // We need to decode the encapsulation except for ice1 + null factory.
             if (protocol == Protocol.Ice1 && ice1EndpointFactory == null)
             {
-                endpoint = OpaqueEndpoint.Create(transport,
+                endpoint = OpaqueEndpoint.Create(transportCode,
                                                  encoding,
                                                  _buffer.Slice(Pos, size));
                 Pos += size;
@@ -965,7 +965,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    var data = new EndpointData(transport,
+                    var data = new EndpointData(transportCode,
                                                 host: DecodeString(),
                                                 port: DecodeUShort(),
                                                 options: DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc));
@@ -981,7 +981,7 @@ namespace IceRpc
             }
             else
             {
-                string transportName = transport.ToString().ToLowerInvariant();
+                string transportName = transportCode.ToString().ToLowerInvariant();
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");

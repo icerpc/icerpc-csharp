@@ -55,7 +55,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>The transport of this connection.</summary>
-        public Transport Transport => _endpoint.Transport;
+        public TransportCode TransportCode => _endpoint.TransportCode;
 
         /// <summary>The name of the transport.</summary>
         public string TransportName => _endpoint.TransportName;
@@ -241,7 +241,7 @@ namespace IceRpc.Transports
             return true;
         }
 
-        /// <summary>Traces the given received amount of data. Transport implementations should call this method
+        /// <summary>Traces the given received amount of data. TransportCode implementations should call this method
         /// to trace the received data.</summary>
         /// <param name="buffer">The received data.</param>
         protected void Received(ReadOnlyMemory<byte> buffer)
@@ -266,7 +266,7 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
+        /// <summary>Traces the given sent amount of data. TransportCode implementations should call this method to
         /// trace the data sent.</summary>
         /// <param name="buffers">The buffers sent.</param>
         protected void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
@@ -300,7 +300,7 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Try to get a stream with the given ID. Transport implementations can use this method to lookup
+        /// <summary>Try to get a stream with the given ID. TransportCode implementations can use this method to lookup
         /// an existing stream.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="value">If found, value is assigned to the stream value, null otherwise.</param>

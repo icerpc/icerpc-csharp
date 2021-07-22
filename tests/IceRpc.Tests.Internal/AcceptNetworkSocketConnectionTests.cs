@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Internal
             if (wildcard1)
             {
                 var serverData = new EndpointData(
-                    ServerEndpoint.Transport,
+                    ServerEndpoint.TransportCode,
                     "::0",
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
@@ -147,7 +147,7 @@ namespace IceRpc.Tests.Internal
             if (wildcard2)
             {
                 var serverData = new EndpointData(
-                    ServerEndpoint.Transport,
+                    ServerEndpoint.TransportCode,
                     "::0",
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);

@@ -40,7 +40,7 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (_endpoint.Transport == Transport.Loc || _endpoint.Transport == Transport.Coloc)
+                    if (_endpoint.TransportCode == TransportCode.Loc || _endpoint.TransportCode == TransportCode.Coloc)
                     {
                         throw new ArgumentException(
                             @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)
@@ -48,7 +48,7 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Transport == Transport.Loc || e.Transport == Transport.Coloc))
+                    if (value.Any(e => e.TransportCode == TransportCode.Loc || e.TransportCode == TransportCode.Coloc))
                     {
                         throw new ArgumentException("cannot use loc or coloc transport", nameof(AltEndpoints));
                     }
@@ -94,7 +94,7 @@ namespace IceRpc
                                                     nameof(Endpoint));
                     }
                     if (_altEndpoints.Count > 0 &&
-                        (value.Transport == Transport.Loc || value.Transport == Transport.Coloc))
+                        (value.TransportCode == TransportCode.Loc || value.TransportCode == TransportCode.Coloc))
                     {
                         throw new ArgumentException(
                             "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(Endpoint));
@@ -142,7 +142,7 @@ namespace IceRpc
             }
         }
 
-        internal bool IsIndirect => _endpoint?.Transport == Transport.Loc || IsWellKnown;
+        internal bool IsIndirect => _endpoint?.TransportCode == TransportCode.Loc || IsWellKnown;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
@@ -389,7 +389,7 @@ namespace IceRpc
 
                 if (_altEndpoints.Count > 0)
                 {
-                    Transport mainTransport = _endpoint!.Transport;
+                    TransportCode mainTransport = _endpoint!.TransportCode;
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("alt-endpoint=");
                     for (int i = 0; i < _altEndpoints.Count; ++i)
@@ -398,7 +398,7 @@ namespace IceRpc
                         {
                             sb.Append(',');
                         }
-                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
+                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].TransportCode, '$');
                     }
                 }
 
@@ -674,7 +674,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    IEnumerable<Endpoint> endpoints = Endpoint.Transport == Transport.Coloc ?
+                    IEnumerable<Endpoint> endpoints = Endpoint.TransportCode == TransportCode.Coloc ?
                         AltEndpoints : Enumerable.Empty<Endpoint>().Append(Endpoint).Concat(AltEndpoints);
 
                     if (endpoints.Any())
@@ -702,7 +702,7 @@ namespace IceRpc
                     path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                     encoding: Encoding != Encoding.V20 ? Encoding : null,
-                    endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
+                    endpoint: Endpoint is Endpoint endpoint && endpoint.TransportCode != TransportCode.Coloc ?
                         endpoint.Data : null,
                     altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.Data).ToArray());
 

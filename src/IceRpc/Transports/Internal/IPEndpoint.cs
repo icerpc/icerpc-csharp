@@ -47,7 +47,7 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             int? receiveSize,
             int? sendSize,
-            Transport transport,
+            TransportCode transport,
             ILogger logger)
         {
             if (receiveSize != null)
@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
 
         // Constructor for Clone
         private protected IPEndpoint(Endpoint endpoint, string host, ushort port)
-            : this(new EndpointData(endpoint.Transport, host, port, endpoint.Data.Options), endpoint.Protocol)
+            : this(new EndpointData(endpoint.TransportCode, host, port, endpoint.Data.Options), endpoint.Protocol)
         {
         }
     }

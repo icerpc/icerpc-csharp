@@ -11,7 +11,7 @@ module IceRpc
     /// Identifies a transport protocol that IceRPC can use to send requests and receive responses. The enumerators of
     /// Transport correspond to the transports that the IceRPC runtime knows and implements in some programming
     /// languages and for some version of the Ice protocol.
-    unchecked enum Transport : short
+    unchecked enum TransportCode : short
     {
         /// Loc pseudo-transport.
         Loc = -1,
@@ -52,7 +52,7 @@ module IceRpc
     struct EndpointData
     {
         /// The transport.
-        Transport transport;
+        TransportCode transportCode;
 
         /// The host name or address. Its exact meaning depends on the transport. For IP-based transports, it's a DNS
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.

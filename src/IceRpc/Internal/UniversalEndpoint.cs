@@ -56,11 +56,11 @@ namespace IceRpc.Internal
 
         internal static UniversalEndpoint Parse(string host, ushort port, Dictionary<string, string> options)
         {
-            Transport transport;
+            TransportCode transport;
             if (options.TryGetValue("transport", out string? value))
             {
                 // Enumerator names are only used for "well-known" transports.
-                transport = Enum.Parse<Transport>(value, ignoreCase: true);
+                transport = Enum.Parse<TransportCode>(value, ignoreCase: true);
                 options.Remove("transport");
             }
             else

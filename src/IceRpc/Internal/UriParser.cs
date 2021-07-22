@@ -202,7 +202,7 @@ namespace IceRpc.Internal
             }
 
             IIce2EndpointFactory? ice2EndpointFactory = null;
-            Transport transport = default;
+            TransportCode transport = default;
             Endpoint? endpoint = null;
 
             if (transportName == "universal")
@@ -215,17 +215,17 @@ namespace IceRpc.Internal
                     // the protocol is ice2 (otherwise, we return this UniversalEndpoint).
                     // Since all options have been consumed by Parse above, this works only for endpoints with no
                     // options.
-                    if (TransportRegistry.TryGetValue(endpoint.Transport, out IEndpointFactory? factory))
+                    if (TransportRegistry.TryGetValue(endpoint.TransportCode, out IEndpointFactory? factory))
                     {
                         ice2EndpointFactory = factory as IIce2EndpointFactory;
                     }
-                    transport = endpoint.Transport;
+                    transport = endpoint.TransportCode;
                 }
             }
             else if (TransportRegistry.TryGetValue(transportName, out IEndpointFactory? factory))
             {
                 ice2EndpointFactory = factory as IIce2EndpointFactory;
-                transport = factory.Transport;
+                transport = factory.TransportCode;
             }
             else
             {
