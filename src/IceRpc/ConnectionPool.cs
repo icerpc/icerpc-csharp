@@ -17,6 +17,10 @@ namespace IceRpc
     /// <see cref="Interceptors.Binder"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
+        /// <summary>The <see cref="IClientTransport"/> used by the connections created by this pool.
+        /// </summary>
+        public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
+
         /// <summary>The connection options.</summary>
         public ClientConnectionOptions? ConnectionOptions { get; set; }
 
@@ -208,6 +212,7 @@ namespace IceRpc
                     {
                         RemoteEndpoint = endpoint,
                         LoggerFactory = LoggerFactory,
+                        ClientTransport = ClientTransport,
                         Options = options
                     };
 #pragma warning restore CA2000

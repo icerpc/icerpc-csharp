@@ -55,7 +55,7 @@ namespace IceRpc
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
         /// </summary>
-        public IClientTransport ClientTransport { get; set; } = DefaultClientTransport;
+        public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument.</summary>
