@@ -137,7 +137,9 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint.Port,
                     ServerEndpoint.Data.Options);
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
-                listener = Server.DefaultServerTransport.Listen(serverEndpoint, ServerConnectionOptions, Logger).Listener!;
+                listener = Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                ServerConnectionOptions,
+                                                                Logger).Listener!;
             }
             else
             {
@@ -158,14 +160,16 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => Server.DefaultServerTransport.Listen(serverEndpoint, ServerConnectionOptions,
-                                                                                Logger).Listener!.Dispose());
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => Server.DefaultServerTransport.Listen(serverEndpoint, ServerConnectionOptions,
-                                                                                Logger).Listener!.Dispose());
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
             }
             else
