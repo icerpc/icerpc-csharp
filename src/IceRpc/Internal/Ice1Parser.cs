@@ -107,6 +107,11 @@ namespace IceRpc.Internal
                         $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
                 }
 
+                return opaqueEndpoint;
+
+                // TODO: rework this code
+
+                /*
                 if (opaqueEndpoint.ValueEncoding.IsSupported &&
                     TransportRegistry.TryGetValue(opaqueEndpoint.TransportCode, out factory) &&
                     factory is IIce1EndpointFactory)
@@ -126,6 +131,7 @@ namespace IceRpc.Internal
                 {
                     return opaqueEndpoint;
                 }
+                */
             }
 
             throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");

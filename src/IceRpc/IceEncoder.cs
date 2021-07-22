@@ -1031,7 +1031,10 @@ namespace IceRpc
             }
         }
 
-        internal void EncodeEndpoint11(Endpoint endpoint)
+        public void EncodeEndpoint11(
+            Endpoint endpoint,
+            TransportCode transportCode,
+            EncodeAction<Endpoint> encodeOptions)
         {
             Debug.Assert(OldEncoding);
 
@@ -1039,25 +1042,7 @@ namespace IceRpc
             Position startPos = _tail;
 
             EncodeInt(0); // placeholder for future encapsulation size
-            if (endpoint is OpaqueEndpoint opaqueEndpoint)
-            {
-                opaqueEndpoint.ValueEncoding.Encode(this);
-                WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
-            }
-            else
-            {
-                Encoding.Encode(this);
-                if (endpoint.Protocol == Protocol.Ice1)
-                {
-                    endpoint.EncodeOptions11(this);
-                }
-                else
-                {
-                    EncodeString(endpoint.Data.Host);
-                    EncodeUShort(endpoint.Data.Port);
-                    EncodeSequence(endpoint.Data.Options, BasicEncodeActions.StringEncodeAction);
-                }
-            }
+            encodeOptions(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }
 

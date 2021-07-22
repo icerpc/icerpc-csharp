@@ -23,6 +23,28 @@ namespace IceRpc
     /// <seealso cref="IPrx"/>
     public sealed class Proxy : IEquatable<Proxy>
     {
+        /// <summary>The default value for <see cref="EndpointEncodeAction11"/>.</summary>
+        public static EncodeAction<Endpoint> DefaultEndpointEncodeAction11 { get; } =
+            (encoder, endpoint) =>
+            {
+                switch (endpoint.TransportCode)
+                {
+                    case TransportCode.TCP:
+                    case TransportCode.SSL:
+                        encoder.EncodeTcpEndpoint11(endpoint);
+                        break;
+
+                    case TransportCode.UDP:
+                        encoder.EncodeUdpEndpoint11(endpoint);
+                        break;
+
+                    default:
+                        encoder.EncodeOpaqueEndpoint11(endpoint);
+                        break;
+                        // _ => throw new UnknownTransportException(endpoint.TransportCode),
+                }
+            };
+
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
         public ImmutableList<Endpoint> AltEndpoints
@@ -109,6 +131,9 @@ namespace IceRpc
                 _endpoint = value;
             }
         }
+
+        /// <summary>The delegate used to encode endpoints with the Ice 1.1 encoding.</summary>
+        public EncodeAction<Endpoint> EndpointEncodeAction11 { get; set; } = DefaultEndpointEncodeAction11;
 
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
@@ -679,7 +704,7 @@ namespace IceRpc
 
                     if (endpoints.Any())
                     {
-                        encoder.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
+                        encoder.EncodeSequence(endpoints, EndpointEncodeAction11);
                     }
                     else // encoded as an endpointless proxy
                     {
