@@ -134,7 +134,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 LoggerFactory = loggerFactory,
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
             };
 
             var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
@@ -166,7 +166,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 LoggerFactory = loggerFactory,
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
             };
             var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
@@ -245,8 +245,6 @@ namespace IceRpc.Tests.ClientServer
         {
             Dispatcher = dispatcher,
             Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
-            // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-            HostName = "127.0.0.1"
         };
 
         private static string GetCategory(JsonDocument document) =>

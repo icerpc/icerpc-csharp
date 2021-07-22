@@ -56,7 +56,7 @@ namespace IceRpc.Tests.ClientServer
                                 })
                     }
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
                         }
                     }
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -157,7 +157,7 @@ namespace IceRpc.Tests.ClientServer
                                 }),
                     }
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -198,7 +198,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     AuthenticationOptions = tlsClientOptions
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -256,7 +256,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     AuthenticationOptions = tlsClientOptions
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -355,7 +355,7 @@ namespace IceRpc.Tests.ClientServer
                         EnabledSslProtocols = SslProtocols.Tls12
                     }
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -403,7 +403,7 @@ namespace IceRpc.Tests.ClientServer
                         EnabledSslProtocols = SslProtocols.Tls12
                     }
                 },
-                RemoteEndpoint = server.ProxyEndpoint
+                RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -435,8 +435,7 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new()
                 {
                     AuthenticationOptions = tlsServerOptions
-                },
-                HostName = hostname ?? "::1"
+                }
             };
 
             server.Listen();

@@ -71,7 +71,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.ProxyEndpoint,
+                RemoteEndpoint = _server.Endpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
 

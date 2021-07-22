@@ -92,7 +92,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = FeatureTestPrx.FromConnection(connection);
 
             Multiplier multiplier = 10;

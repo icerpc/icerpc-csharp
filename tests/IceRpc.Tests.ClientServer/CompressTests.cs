@@ -76,7 +76,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map<ICompressTest>(new CompressTest());
             await using var connection = new Connection
             {
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions()
                 {
                     ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
@@ -188,7 +188,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             router.Map<ICompressTest>(new CompressTest());
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
 
             using var sendStream = new MemoryStream(new byte[size]);

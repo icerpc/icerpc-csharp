@@ -22,13 +22,6 @@ namespace IceRpc.Tests.Api
 
                 // A DNS name cannot be used with a server endpoint
                 Assert.Throws<NotSupportedException>(() => server.Listen());
-
-                // HostName can't be empty
-                Assert.Throws<ArgumentException>(() => server.HostName = "");
-
-                Assert.DoesNotThrow(() => ServicePrx.FromServer(server, "/foo"));
-                server.Endpoint = null;
-                Assert.Throws<InvalidOperationException>(() => ServicePrx.FromServer(server, "/foo"));
             }
 
             {
@@ -48,7 +41,7 @@ namespace IceRpc.Tests.Api
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var proxy = GreeterPrx.FromConnection(connection);
 
                 Assert.ThrowsAsync<ConnectionRefusedException>(async () => await proxy.IcePingAsync());
@@ -62,7 +55,7 @@ namespace IceRpc.Tests.Api
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var proxy = GreeterPrx.FromConnection(connection);
 
                 server.Listen();
@@ -83,7 +76,7 @@ namespace IceRpc.Tests.Api
                     Endpoint = TestHelper.GetUniqueColocEndpoint()
                 };
 
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var proxy = GreeterPrx.FromConnection(connection);
                 server.Listen();
 
@@ -135,7 +128,7 @@ namespace IceRpc.Tests.Api
 
                 server.Listen();
 
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
                 var prx = ServicePrx.FromConnection(connection);
 
@@ -145,69 +138,6 @@ namespace IceRpc.Tests.Api
                 Assert.DoesNotThrow(() => connection.Dispatcher = dispatcher);
                 Assert.DoesNotThrow(() => connection.Dispatcher = null);
             }
-        }
-
-        [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
-        [TestCase("tcp -h 127.0.0.1 -p 0 -t 15000")]
-        public async Task Server_EndpointInformation(string endpoint)
-        {
-            await using var server = new Server
-            {
-                Endpoint = endpoint
-            };
-
-            Assert.AreEqual(Dns.GetHostName().ToLowerInvariant(), server.ProxyEndpoint?.Host);
-            server.HostName = "localhost";
-            Assert.AreEqual("localhost", server.ProxyEndpoint?.Host);
-
-            server.Listen();
-
-            Assert.That(server.Endpoint, Is.Not.Null);
-            Assert.AreEqual(Transport.TCP, server.Endpoint.Transport);
-            Assert.AreEqual("127.0.0.1", server.Endpoint.Host);
-            Assert.That(server.Endpoint.Port, Is.GreaterThan(0));
-
-            if (server.Endpoint.Protocol == Protocol.Ice1)
-            {
-                Assert.AreEqual("15000", server.Endpoint["timeout"]);
-            }
-
-            Assert.That(server.ProxyEndpoint, Is.Not.Null);
-            Assert.AreEqual(Transport.TCP, server.ProxyEndpoint!.Transport);
-            Assert.AreEqual("localhost", server.ProxyEndpoint.Host);
-            Assert.AreEqual(server.Endpoint.Port, server.ProxyEndpoint.Port);
-
-            if (server.ProxyEndpoint.Protocol == Protocol.Ice1)
-            {
-                Assert.AreEqual("15000", server.ProxyEndpoint["timeout"]);
-            }
-        }
-
-        [Test]
-        public async Task Server_EndpointAsync()
-        {
-            // Verifies that changing Endpoint or HostName updates ProxyEndpoint.
-
-            await using var server = new Server();
-
-            Assert.That(server.ProxyEndpoint, Is.Null);
-            server.Endpoint = "ice+tcp://127.0.0.1";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1",
-                                                               server.HostName,
-                                                               StringComparison.InvariantCulture),
-                            server.ProxyEndpoint!.ToString());
-            server.HostName = "foobar";
-            Assert.AreEqual(server.Endpoint.ToString().Replace("127.0.0.1",
-                                                               server.HostName,
-                                                               StringComparison.InvariantCulture),
-                            server.ProxyEndpoint.ToString());
-
-            // Verifies that changing Endpoint updates Protocol
-            Assert.AreEqual(Protocol.Ice2, server.Protocol);
-            server.Endpoint = "tcp -h 127.0.0.1 -p 0";
-            Assert.AreEqual(Protocol.Ice1, server.Protocol);
-            server.Endpoint = null;
-            Assert.AreEqual(Protocol.Ice2, server.Protocol);
         }
 
         [TestCase(" :")]
@@ -252,7 +182,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var proxy = GreeterPrx.FromConnection(connection);
 
             using var cancellationSource = new CancellationTokenSource();
@@ -296,7 +226,7 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             var proxy = GreeterPrx.FromConnection(connection);
 

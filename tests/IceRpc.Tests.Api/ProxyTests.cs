@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             await connection.ConnectAsync();
 
             var prx = GreeterPrx.FromConnection(connection);
@@ -375,7 +375,7 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
             (ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? _, Encoding payloadEncoding, Connection responseConnection) =
@@ -396,7 +396,7 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = ProxyTestPrx.FromConnection(connection);
 
             ProxyTestPrx? received = await prx.ReceiveProxyAsync();
@@ -432,7 +432,7 @@ namespace IceRpc.Tests.Api
             };
             server1.Listen();
 
-            await using var connection1 = new Connection { RemoteEndpoint = server1.ProxyEndpoint };
+            await using var connection1 = new Connection { RemoteEndpoint = server1.Endpoint };
             var prx = ProxyTestPrx.FromConnection(connection1);
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);
@@ -452,7 +452,7 @@ namespace IceRpc.Tests.Api
             };
             server2.Listen();
 
-            await using var connection2 = new Connection { RemoteEndpoint = server2.ProxyEndpoint };
+            await using var connection2 = new Connection { RemoteEndpoint = server2.Endpoint };
             prx = ProxyTestPrx.FromConnection(connection2);
 
             service.Prx = null;
@@ -533,12 +533,10 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1",
                 Dispatcher = router
             };
             server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             proxy = Proxy.FromConnection(connection, ServicePrx.DefaultPath);
             Assert.AreEqual(ServicePrx.DefaultPath, proxy.Path);
@@ -549,16 +547,6 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(GreeterPrx.DefaultPath, greeter.Proxy.Path);
             Assert.AreEqual(connection, greeter.Proxy.Connection);
             Assert.AreEqual(connection.RemoteEndpoint, greeter.Proxy.Endpoint);
-
-            proxy = Proxy.FromServer(server, ServicePrx.DefaultPath);
-            Assert.AreEqual(ServicePrx.DefaultPath, proxy.Path);
-            Assert.That(proxy.Connection, Is.Null);
-            Assert.AreEqual(server.ProxyEndpoint, proxy.Endpoint);
-
-            greeter = GreeterPrx.FromServer(server);
-            Assert.AreEqual(GreeterPrx.DefaultPath, greeter.Proxy.Path);
-            Assert.That(greeter.Proxy.Connection, Is.Null);
-            Assert.AreEqual(server.ProxyEndpoint, greeter.Proxy.Endpoint);
 
             await ServicePrx.FromConnection(connection).IcePingAsync();
 

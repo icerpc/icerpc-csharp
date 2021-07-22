@@ -99,7 +99,7 @@ public class Client : TestHelper
         router.Map("/test1", new Test1I());
         router.Map("/test2", new Test2I());
 
-        await using var server = new IceRpc.Server
+        await using var server = new Server
         {
             Dispatcher = router,
             Endpoint = $"ice+coloc://{Guid.NewGuid()}"
@@ -107,7 +107,7 @@ public class Client : TestHelper
 
         server.Listen();
 
-        await using var connection = new IceRpc.Connection { RemoteEndpoint = server.ProxyEndpoint };
+        await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
         Output.Write("testing operation name... ");
         Output.Flush();

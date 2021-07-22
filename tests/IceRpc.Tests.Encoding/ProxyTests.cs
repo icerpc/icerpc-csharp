@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Encoding
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.ProxyEndpoint,
+                RemoteEndpoint = _server.Endpoint,
                 Options = ClientConnectionOptions.Default // TODO: it's required due to a bug in the Connection code
             };
         }

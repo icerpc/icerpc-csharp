@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
 
             var pipeline = new Pipeline();
             var prx = ServicePrx.FromConnection(connection, invoker: pipeline);
@@ -93,7 +93,7 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
 
             // Setting a timeout with an interceptor
             var pipeline = new Pipeline();
@@ -135,7 +135,7 @@ namespace IceRpc.Tests.Api
             _server.Dispatcher = router;
             _server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = _server.Endpoint };
 
             var pipeline = new Pipeline();
             var prx = ServicePrx.FromConnection(connection, invoker: pipeline);

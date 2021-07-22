@@ -153,8 +153,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
-
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
         protected internal override bool IsEquivalent(Endpoint? other) =>
             ReferenceEquals(this, other) ||
@@ -228,7 +226,6 @@ namespace IceRpc.Transports.Internal
             _tls = tls ?? endpoint._tls;
         }
 
-        private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
         private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
     }
 

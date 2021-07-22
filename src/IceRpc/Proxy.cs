@@ -212,27 +212,6 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Creates a proxy from a server and a path.</summary>
-        /// <param name="server">The server.</param>
-        /// <param name="path">The path.</param>
-        /// <returns>The new proxy.</returns>
-        public static Proxy FromServer(Server server, string path)
-        {
-            if (server.ProxyEndpoint == null)
-            {
-                throw new InvalidOperationException("cannot create a proxy using a server with no endpoint");
-            }
-
-            var proxy = new Proxy(path, server.Protocol);
-
-            if (server.Protocol == Protocol.Ice1)
-            {
-                proxy.Identity = Identity.FromPath(path);
-            }
-            proxy.Endpoint = server.ProxyEndpoint;
-            return proxy;
-        }
-
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
         /// <param name="invoker">The invoker of the new proxy.</param>

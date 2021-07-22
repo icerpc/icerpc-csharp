@@ -42,26 +42,6 @@ namespace IceRpc
                 }
 
                 _endpoint = value;
-                UpdateProxyEndpoint();
-            }
-        }
-
-        /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
-        /// address.</summary>
-        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
-        /// <see cref="Dns.GetHostName()"/>.</value>
-        public string HostName
-        {
-            get => _hostName;
-            set
-            {
-                if (value.Length == 0)
-                {
-                    throw new ArgumentException($"{nameof(HostName)} must have at least one character",
-                                                nameof(HostName));
-                }
-                _hostName = value;
-                UpdateProxyEndpoint();
             }
         }
 
@@ -82,11 +62,6 @@ namespace IceRpc
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>Returns the endpoint included in proxies created by using this server. This endpoint is computed
-        /// from the values of <see cref="Endpoint"/> and <see cref="HostName"/>.</summary>
-        /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
-        public Endpoint? ProxyEndpoint { get; private set; }
-
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
         // TODO missing test
@@ -95,8 +70,6 @@ namespace IceRpc
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
-
-        private string _hostName = Dns.GetHostName().ToLowerInvariant();
 
         private IListener? _listener;
 
@@ -146,7 +119,6 @@ namespace IceRpc
                 {
                     _listener = listenerFactory.CreateListener(ConnectionOptions, _logger);
                     _endpoint = _listener.Endpoint;
-                    UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
@@ -164,7 +136,6 @@ namespace IceRpc
                         LoggerFactory);
 #pragma warning restore CA2000
                     _endpoint = multiStreamConnection.LocalEndpoint!;
-                    UpdateProxyEndpoint();
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
@@ -338,7 +309,5 @@ namespace IceRpc
                 }
             }
         }
-
-        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
     }
 }

@@ -31,9 +31,8 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
-                HostName = "127.0.0.1"
             };
-            Connection = new Connection { RemoteEndpoint = Server.ProxyEndpoint };
+            Connection = new Connection { RemoteEndpoint = Server.Endpoint };
             Prx = StressTestPrx.FromConnection(Connection);
             Server.Listen();
         }

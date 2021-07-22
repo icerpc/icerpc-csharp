@@ -130,7 +130,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = EnumOperationsPrx.FromConnection(connection);
             Assert.AreEqual(protocol, prx.Proxy.Protocol);
             await closure(prx);

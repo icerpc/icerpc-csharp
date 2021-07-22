@@ -36,7 +36,7 @@ namespace IceRpc.Tests.Api
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
         }
 
         [Test]

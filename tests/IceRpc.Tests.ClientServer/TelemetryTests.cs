@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             {
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var pipeline = new Pipeline();
                 // The invocation activity is only created if the logger is enabled or Activity.Current is set.
                 var prx = GreeterPrx.FromConnection(connection);
@@ -50,7 +50,7 @@ namespace IceRpc.Tests.ClientServer
                 Assert.That(Activity.Current, Is.Not.Null);
 
                 Activity? invocationActivity = null;
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var pipeline = new Pipeline();
                 var prx = GreeterPrx.FromConnection(connection);
                 prx.Proxy.Invoker = pipeline;
@@ -95,7 +95,7 @@ namespace IceRpc.Tests.ClientServer
 
                 // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
                 // the server has an ActivitySource with listeners.
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var prx = GreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.ClientServer
                     Dispatcher = router,
                 };
                 server.Listen();
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var prx = GreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
@@ -201,14 +201,12 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Endpoint = TestHelper.GetTestEndpoint(),
-                Dispatcher = router,
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
+                Dispatcher = router
             };
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var prx = GreeterPrx.FromConnection(connection);
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will

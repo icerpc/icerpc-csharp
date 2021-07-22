@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Encoding
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.ProxyEndpoint,
+                RemoteEndpoint = _server.Endpoint,
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
 
@@ -213,7 +213,7 @@ namespace IceRpc.Tests.Encoding
 
             await using var connection = new Connection
             {
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions
                 {
                     ClassFactory = classFactory,

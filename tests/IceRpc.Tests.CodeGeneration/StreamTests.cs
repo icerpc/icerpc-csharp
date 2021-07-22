@@ -41,12 +41,11 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 {
                     Dispatcher = new Streams(_sendBuffer),
                     Endpoint = TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
-                    HostName = "127.0.0.1"
                 };
             }
 
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
             _prx = StreamsPrx.FromConnection(_connection);
         }
 
