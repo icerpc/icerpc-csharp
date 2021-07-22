@@ -422,7 +422,7 @@ namespace IceRpc.Tests.ClientServer
         private static Pipeline CreatePipeline(ConnectionPool pool)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Logger(Runtime.DefaultLoggerFactory),
+            pipeline.Use(Interceptors.Logger(LogAttributeLoggerFactory.Instance),
                          Interceptors.Retry(5),
                          Interceptors.Binder(pool));
             return pipeline;
@@ -472,7 +472,7 @@ namespace IceRpc.Tests.ClientServer
 
             var router = new Router();
             var service = new RetryTest();
-            router.Use(Middleware.Logger(Runtime.DefaultLoggerFactory));
+            router.Use(Middleware.Logger(LogAttributeLoggerFactory.Instance));
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {

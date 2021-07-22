@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
                 }
             };
 
-            Logger = Runtime.DefaultLoggerFactory.CreateLogger("IceRpc");
+            Logger = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
 
             if (transport == "coloc")
             {

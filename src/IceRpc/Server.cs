@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,7 +66,7 @@ namespace IceRpc
         }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
-        /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// <see cref="NullLoggerFactory.Instance"/>.</summary>
         /// <value>The logger factory of this server.</value>
         public ILoggerFactory? LoggerFactory
         {
@@ -73,7 +74,7 @@ namespace IceRpc
             set
             {
                 _loggerFactory = value;
-                _logger = null; // clears existing logger, if there is one
+                _logger = _loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
             }
         }
 
@@ -91,8 +92,6 @@ namespace IceRpc
         // TODO missing test
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
 
-        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
@@ -101,7 +100,7 @@ namespace IceRpc
 
         private IListener? _listener;
 
-        private ILogger? _logger;
+        private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory? _loggerFactory;
 
         private bool _listening;
@@ -145,7 +144,7 @@ namespace IceRpc
 
                 if (_endpoint is IListenerFactory listenerFactory)
                 {
-                    _listener = listenerFactory.CreateListener(ConnectionOptions, Logger);
+                    _listener = listenerFactory.CreateListener(ConnectionOptions, _logger);
                     _endpoint = _listener.Endpoint;
                     UpdateProxyEndpoint();
 
@@ -155,7 +154,7 @@ namespace IceRpc
                 else if (_endpoint is IServerConnectionFactory serverConnectionFactory)
                 {
                     MultiStreamConnection multiStreamConnection =
-                        serverConnectionFactory.Accept(ConnectionOptions, Logger);
+                        serverConnectionFactory.Accept(ConnectionOptions, _logger);
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                     var serverConnection = new Connection(
@@ -178,7 +177,7 @@ namespace IceRpc
                 }
 
                 _listening = true;
-                Logger.LogServerListening(this);
+                _logger.LogServerListening(this);
             }
         }
 
@@ -222,7 +221,7 @@ namespace IceRpc
                 CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
-                    Logger.LogServerShuttingDown(this);
+                    _logger.LogServerShuttingDown(this);
 
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
@@ -237,7 +236,7 @@ namespace IceRpc
                 }
                 finally
                 {
-                    Logger.LogServerShutdownComplete(this);
+                    _logger.LogServerShutdownComplete(this);
 
                     _shutdownCancelSource!.Dispose();
 
@@ -258,8 +257,8 @@ namespace IceRpc
 
         private async Task AcceptAsync(IListener listener)
         {
-            using IDisposable? scope = Logger.StartServerScope(listener);
-            Logger.LogStartAcceptingConnections();
+            using IDisposable? scope = _logger.StartServerScope(listener);
+            _logger.LogStartAcceptingConnections();
 
             while (true)
             {
@@ -278,7 +277,7 @@ namespace IceRpc
                         }
                     }
 
-                    Logger.LogAcceptingConnectionFailed(ex);
+                    _logger.LogAcceptingConnectionFailed(ex);
 
                     // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
                     // again. Failures here are unexpected and could be considered fatal.

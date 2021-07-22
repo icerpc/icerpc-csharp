@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
 
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
-        // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
+        // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
         // frame data has been consumed and additional credit is therefore available for sending.
         private int _receiveCredit;
         private bool _receivedEndStream;
@@ -136,7 +136,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        encoder => new StreamConsumedBody((ulong)consumed).IceEncode(encoder),
+                        encoder => new StreamConsumedBody((ulong)consumed).Encode(encoder),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
@@ -331,7 +331,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // Release connection stream count or semaphore for this steram.
+            // Release connection stream count or semaphore for this stream.
             _connection.ReleaseStream(this);
 
             // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is received.
@@ -490,14 +490,14 @@ namespace IceRpc.Transports.Internal
         private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
             _connection.PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.StreamReset,
-                encoder => new StreamResetBody((ulong)errorCode).IceEncode(encoder),
+                encoder => new StreamResetBody((ulong)errorCode).Encode(encoder),
                 frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
                 this);
 
         private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
             _connection.PrepareAndSendFrameAsync(
                 SlicDefinitions.FrameType.StreamStopSending,
-                encoder => new StreamStopSendingBody((ulong)errorCode).IceEncode(encoder),
+                encoder => new StreamStopSendingBody((ulong)errorCode).Encode(encoder),
                 frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
                 this);
     }

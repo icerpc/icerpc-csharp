@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -58,10 +59,6 @@ namespace IceRpc
             }
             remove => _closed -= value;
         }
-
-        /// <summary>The dispatcher that a connection calls when its dispatcher is null.</summary>
-        internal static IDispatcher NullDispatcher { get; } =
-            new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
 
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For server
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
@@ -124,14 +121,10 @@ namespace IceRpc
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
-            set
+            init
             {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
-                }
                 _loggerFactory = value;
+                _logger = (_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
             }
         }
 
@@ -220,12 +213,6 @@ namespace IceRpc
 
         internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
 
-        internal ILogger Logger
-        {
-            get => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-            set => _logger = value;
-        }
-
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
         {
@@ -259,7 +246,7 @@ namespace IceRpc
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
         private Endpoint? _localEndpoint;
-        private ILogger? _logger;
+        private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -271,9 +258,7 @@ namespace IceRpc
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection()
-        {
-        }
+        public Connection() => _logger = NullLogger.Instance;
 
         /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for
@@ -333,7 +318,7 @@ namespace IceRpc
 
                         if (_remoteEndpoint is IClientConnectionFactory clientConnectionFactory)
                         {
-                            UnderlyingConnection = clientConnectionFactory.CreateClientConnection(clientOptions, Logger);
+                            UnderlyingConnection = clientConnectionFactory.CreateClientConnection(clientOptions, _logger);
                         }
                         else
                         {
@@ -415,10 +400,10 @@ namespace IceRpc
 
                         Action logSuccess = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => Logger.LogConnectionEstablished,
-                            (false, true) => Logger.LogStartSendingDatagrams,
-                            (true, false) => Logger.LogConnectionAccepted,
-                            (true, true) => Logger.LogStartReceivingDatagrams
+                            (false, false) => _logger.LogConnectionEstablished,
+                            (false, true) => _logger.LogStartSendingDatagrams,
+                            (true, false) => _logger.LogConnectionAccepted,
+                            (true, true) => _logger.LogStartReceivingDatagrams
                         };
                         logSuccess();
                     }
@@ -460,7 +445,7 @@ namespace IceRpc
                             }
                             catch (Exception ex)
                             {
-                                Logger.LogConnectionEventHandlerException("ping", ex);
+                                _logger.LogConnectionEventHandlerException("ping", ex);
                             }
                         });
                     };
@@ -628,13 +613,12 @@ namespace IceRpc
             // TODO dispatcher should not be nullable, but the Server class only provides a null one.
             IDispatcher? dispatcher,
             ServerConnectionOptions options,
-            ILogger logger)
+            ILoggerFactory? loggerFactory)
         {
             UnderlyingConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
-
             Options = options;
-            Logger = logger;
+            _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
             _dispatcher = dispatcher;
         }
 
@@ -679,7 +663,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => Logger.StartConnectionScope(this);
+        internal IDisposable? StartScope() => _logger.StartConnectionScope(this);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -714,10 +698,10 @@ namespace IceRpc
                         // connection got connected or accepted before printing out the connection closed trace.
                         Action<Exception> logFailure = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => Logger.LogConnectionConnectFailed,
-                            (false, true) => Logger.LogStartSendingDatagramsFailed,
-                            (true, false) => Logger.LogConnectionAcceptFailed,
-                            (true, true) => Logger.LogStartReceivingDatagramsFailed
+                            (false, false) => _logger.LogConnectionConnectFailed,
+                            (false, true) => _logger.LogStartSendingDatagramsFailed,
+                            (true, false) => _logger.LogConnectionAcceptFailed,
+                            (true, true) => _logger.LogStartReceivingDatagramsFailed
                         };
                         logFailure(exception);
                     }
@@ -725,23 +709,23 @@ namespace IceRpc
                     {
                         if (IsDatagram && IsServer)
                         {
-                            Logger.LogStopReceivingDatagrams();
+                            _logger.LogStopReceivingDatagrams();
                         }
                         else if (exception is ConnectionClosedException closedException)
                         {
-                            Logger.LogConnectionClosed(exception.Message);
+                            _logger.LogConnectionClosed(exception.Message);
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            Logger.LogConnectionClosed(exception.Message);
+                            _logger.LogConnectionClosed(exception.Message);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            Logger.LogConnectionClosed("connection lost");
+                            _logger.LogConnectionClosed("connection lost");
                         }
                         else
                         {
-                            Logger.LogConnectionClosed(exception.Message, exception);
+                            _logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
                 }
@@ -756,7 +740,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogConnectionEventHandlerException("close", ex);
+                    _logger.LogConnectionEventHandlerException("close", ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -822,7 +806,9 @@ namespace IceRpc
             OutgoingResponse? response = null;
             try
             {
-                response = await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
+                response = await (Dispatcher ?? NullDispatcher.Instance).DispatchAsync(
+                    request,
+                    cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

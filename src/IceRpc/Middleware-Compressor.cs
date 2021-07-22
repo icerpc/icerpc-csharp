@@ -9,7 +9,7 @@ namespace IceRpc
     public static partial class Middleware
     {
         /// <summary>Options class to configure CustomCompressor middleware.</summary>
-        public class CompressorOptions
+        public sealed class CompressorOptions
         {
             /// <summary>The compression level for the compress operation.</summary>
             public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;

@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Threading;
 
@@ -32,7 +33,7 @@ namespace IceRpc
             public TimeSpan JustRefreshedAge { get; set; } = TimeSpan.FromSeconds(1);
 
             /// <summary>The logger factory used to create the IceRpc logger.</summary>
-            public ILoggerFactory LoggerFactory { get; set; } = Runtime.DefaultLoggerFactory;
+            public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
 
             /// <summary>After ttl, a cache entry is considered stale. The default value is InfiniteTimeSpan, meaning
             /// the cache entries never become stale.</summary>

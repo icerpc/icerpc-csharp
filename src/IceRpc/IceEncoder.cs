@@ -311,121 +311,24 @@ namespace IceRpc
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(Proxy? proxy)
         {
-            if (proxy != null)
+            if (proxy is Proxy p)
             {
-                EncodeProxy(proxy);
+                EncodeProxy(p);
+            }
+            else if (OldEncoding)
+            {
+                Identity.Empty.Encode(this);
             }
             else
             {
-                if (OldEncoding)
-                {
-                    Identity.Empty.IceEncode(this);
-                }
-                else
-                {
-                    ProxyData20 nullValue = default;
-                    nullValue.IceEncode(this);
-                }
+                ProxyData20 proxyData = default;
+                proxyData.Encode(this);
             }
         }
 
         /// <summary>Encodes a proxy.</summary>
         /// <param name="proxy">The proxy to encode.</param>
-        public void EncodeProxy(Proxy proxy)
-        {
-            if (proxy.Connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-            }
-
-            if (OldEncoding)
-            {
-                if (proxy.Protocol == Protocol.Ice1)
-                {
-                    Debug.Assert(proxy.Identity.Name.Length > 0);
-                    proxy.Identity.IceEncode(this);
-                }
-                else
-                {
-                    Identity identity;
-                    try
-                    {
-                        identity = Identity.FromPath(proxy.Path);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                            ex);
-                    }
-                    if (identity.Name.Length == 0)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
-                    }
-
-                    identity.IceEncode(this);
-                }
-
-                var proxyData = new ProxyData11(
-                    proxy.FacetPath,
-                    proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.IsDatagram ?? false) ?
-                        InvocationMode.Datagram : InvocationMode.Twoway,
-                    secure: false,
-                    proxy.Protocol,
-                    protocolMinor: 0,
-                    proxy.Encoding);
-                proxyData.IceEncode(this);
-
-                if (proxy.IsIndirect)
-                {
-                    EncodeSize(0); // 0 endpoints
-                    EncodeString(proxy.IsWellKnown ? "" : proxy.Endpoint!.Host); // adapter ID unless well-known
-                }
-                else if (proxy.Endpoint == null)
-                {
-                    EncodeSize(0); // 0 endpoints
-                    EncodeString(""); // empty adapter ID
-                }
-                else
-                {
-                    IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == Transport.Coloc ?
-                        proxy.AltEndpoints :
-                            Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
-
-                    if (endpoints.Any())
-                    {
-                        EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint11(endpoint));
-                    }
-                    else // encoded as an endpointless proxy
-                    {
-                        EncodeSize(0); // 0 endpoints
-                        EncodeString(""); // empty adapter ID
-                    }
-                }
-            }
-            else
-            {
-                string path = proxy.Path;
-
-                // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
-                if (proxy.Facet.Length > 0)
-                {
-                    path = $"{path}#{Uri.EscapeDataString(proxy.Facet)}";
-                }
-
-                var proxyData = new ProxyData20(
-                    path,
-                    protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
-                    encoding: proxy.Encoding != Encoding.V20 ? proxy.Encoding : null,
-                    endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc ?
-                        endpoint.Data : null,
-                    altEndpoints: proxy.AltEndpoints.Count == 0 ?
-                        null : proxy.AltEndpoints.Select(e => e.Data).ToArray());
-
-                proxyData.IceEncode(this);
-            }
-        }
+        public void EncodeProxy(Proxy proxy) => proxy.Encode(this);
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
@@ -524,10 +427,6 @@ namespace IceRpc
                 index++;
             }
         }
-
-        /// <summary>Encodes a mapped Slice struct.</summary>
-        /// <param name="v">The struct instance to encode.</param>
-        public void EncodeStruct<T>(T v) where T : struct, IEncodable => v.IceEncode(this);
 
         // Encode methods for tagged basic types
 
@@ -948,26 +847,28 @@ namespace IceRpc
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to encode.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodable
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 EncodeSize(fixedSize);
-                value.IceEncode(this);
+                encodeAction(this, value);
             }
         }
 
         /// <summary>Encodes a tagged variable-size struct.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to encode.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v) where T : struct, IEncodable
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                value.IceEncode(this);
+                encodeAction(this, value);
                 EndFixedLengthSize(pos);
             }
         }
@@ -1140,12 +1041,12 @@ namespace IceRpc
             EncodeInt(0); // placeholder for future encapsulation size
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                opaqueEndpoint.ValueEncoding.IceEncode(this);
+                opaqueEndpoint.ValueEncoding.Encode(this);
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                Encoding.IceEncode(this);
+                Encoding.Encode(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
                     endpoint.EncodeOptions11(this);

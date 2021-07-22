@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -181,7 +182,7 @@ namespace IceRpc
                             if (path.Length == AbsolutePrefix.Length)
                             {
                                 // We consume everything so there is nothing left to match.
-                                return Connection.NullDispatcher.DispatchAsync(request, cancel);
+                                return NullDispatcher.Instance.DispatchAsync(request, cancel);
                             }
                             else
                             {
@@ -217,7 +218,7 @@ namespace IceRpc
 
                             if (prefix == "/")
                             {
-                                return Connection.NullDispatcher.DispatchAsync(request, cancel);
+                                return NullDispatcher.Instance.DispatchAsync(request, cancel);
                             }
 
                             // Cut last segment

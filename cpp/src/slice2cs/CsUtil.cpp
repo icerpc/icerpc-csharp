@@ -782,7 +782,7 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else if (StructPtr::dynamicCast(type))
         {
-            out << nl << param << ".IceEncode(encoder);";
+            out << nl << param << ".Encode(encoder);";
         }
         else if (auto seq = SequencePtr::dynamicCast(type))
         {
@@ -991,7 +991,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             out << ", fixedSize: " << st->minWireSize();
         }
-        out << ");";
+        out << ", " << encodeAction(st, scope, !isDataMember) << ");";
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
