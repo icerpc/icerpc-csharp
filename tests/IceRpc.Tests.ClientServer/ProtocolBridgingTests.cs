@@ -101,6 +101,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
+
         private ProtocolBridgingTestPrx SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,
@@ -111,7 +112,7 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/target", new ProtocolBridgingTest());
             _targetServer.Dispatcher = _router;
             _targetServer.Listen();
-            var targetService = ProtocolBridgingTestPrx.FromPath("/target");
+            var targetService = ProtocolBridgingTestPrx.FromPath("/target", targetProtocol);
             targetService.Proxy.Endpoint = _targetServer.Endpoint;
             targetService.Proxy.Invoker = invoker;
 
@@ -119,7 +120,7 @@ namespace IceRpc.Tests.ClientServer
             _router.Map("/forward", new Forwarder(targetService.Proxy));
             _forwarderServer.Dispatcher = _router;
             _forwarderServer.Listen();
-            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward");
+            var forwardService = ProtocolBridgingTestPrx.FromPath("/forward", forwarderProtocol);
             forwardService.Proxy.Endpoint = _forwarderServer.Endpoint;
             forwardService.Proxy.Invoker = invoker;
             return forwardService;
