@@ -425,15 +425,15 @@ namespace IceRpc.Tests.Api
             var service = new ProxyTest();
 
             // First verify that the invoker of a proxy received over an incoming request is by default null.
-            await using var server = new Server
+            await using var server1 = new Server
             {
                 Dispatcher = service,
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
-            server.Listen();
+            server1.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = ProxyTestPrx.FromConnection(connection);
+            await using var connection1 = new Connection { RemoteEndpoint = server1.ProxyEndpoint };
+            var prx = ProxyTestPrx.FromConnection(connection1);
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);
             Assert.That(service.Prx?.Proxy.Invoker, Is.Null);
@@ -442,11 +442,19 @@ namespace IceRpc.Tests.Api
             // service.
             var router = new Router();
             router.Map<IProxyTest>(service);
-
             var pipeline = new Pipeline();
             router.Use(Middleware.ProxyInvoker(pipeline));
 
-            server.Dispatcher = router;
+            await using var server2 = new Server
+            {
+                Dispatcher = router,
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
+            };
+            server2.Listen();
+
+            await using var connection2 = new Connection { RemoteEndpoint = server2.ProxyEndpoint };
+            prx = ProxyTestPrx.FromConnection(connection2);
+
             service.Prx = null;
             await prx.SendProxyAsync(prx);
             Assert.That(service.Prx, Is.Not.Null);

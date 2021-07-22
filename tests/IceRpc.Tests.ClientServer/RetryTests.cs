@@ -264,7 +264,7 @@ namespace IceRpc.Tests.ClientServer
                         routers[i].Use(next => new InlineDispatcher(
                             async (request, cancel) =>
                             {
-                                calls.Add(request.Connection.Server!.ToString());
+                                calls.Add(request.Connection.LocalEndpoint!.ToString());
                                 return await next.DispatchAsync(request, cancel);
                             }));
                         servers[i].Dispatcher = routers[i];
@@ -305,7 +305,7 @@ namespace IceRpc.Tests.ClientServer
                         router.Use(next => new InlineDispatcher(
                             async (request, cancel) =>
                             {
-                                calls.Add(request.Connection.Server!.ToString());
+                                calls.Add(request.Connection.LocalEndpoint!.ToString());
                                 return await next.DispatchAsync(request, cancel);
                             }));
                     }

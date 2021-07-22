@@ -77,7 +77,10 @@ namespace IceRpc.Tests.Internal
                 {
                     serverConnection = new Connection(
                         ((IServerConnectionFactory)Endpoint).Accept(_server.ConnectionOptions, Logger),
-                        _server);
+                        _server.Dispatcher,
+                        _server.ConnectionOptions,
+                        LogAttributeLoggerFactory.Instance);
+
                     _ = serverConnection.ConnectAsync(default);
                     clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
@@ -94,7 +97,10 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
-                    var connection = new Connection(await listener.AcceptAsync(), _server);
+                    var connection = new Connection(await listener.AcceptAsync(),
+                                                    _server.Dispatcher,
+                                                    _server.ConnectionOptions,
+                                                    LogAttributeLoggerFactory.Instance);
                     await connection.ConnectAsync(default);
                     return connection;
                 }
@@ -323,7 +329,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.Client.IsServer, Is.False);
             Assert.That(factory.Server.IsServer, Is.True);
 
-            Assert.AreEqual(null, factory.Client.Server);
             Assert.AreEqual(factory.Client.RemoteEndpoint.Port, ((IPEndPoint)clientSocket.RemoteEndPoint!).Port);
             Assert.AreEqual(factory.Client.LocalEndpoint.Port, ((IPEndPoint)clientSocket.LocalEndPoint!).Port);
 
