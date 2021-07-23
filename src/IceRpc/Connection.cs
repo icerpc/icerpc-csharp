@@ -341,20 +341,14 @@ namespace IceRpc
                 {
                     _options ??= ClientConnectionOptions.Default;
                     var clientOptions =  (ClientConnectionOptions)_options;
-                    if (UnderlyingConnection == null)
-                    {
-                        if (_remoteEndpoint == null)
-                        {
-                            throw new InvalidOperationException("client connection has no remote endpoint set");
-                        }
-                        else if (_localEndpoint != null)
-                        {
-                            throw new InvalidOperationException("client connection has local endpoint set");
-                        }
+                    Debug.Assert(UnderlyingConnection == null);
 
-                        UnderlyingConnection =
-                            ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
+                    if (_remoteEndpoint == null)
+                    {
+                        throw new InvalidOperationException("client connection has no remote endpoint set");
                     }
+                    UnderlyingConnection =
+                        ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
