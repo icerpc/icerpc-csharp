@@ -151,9 +151,18 @@ namespace IceRpc
                     throw new InvalidOperationException(
                         $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
                 }
+
                 if (value == null)
                 {
                     throw new ArgumentException($"{nameof(value)} can't be null");
+                }
+                else if (value is ClientConnectionOptions && IsServer)
+                {
+                    throw new InvalidOperationException("invalid client connection options for server connection");
+                }
+                else if (value is ServerConnectionOptions && !IsServer)
+                {
+                    throw new InvalidOperationException("invalid server connection options for client connection");
                 }
                 _options = value.Clone();
             }
@@ -300,30 +309,37 @@ namespace IceRpc
                 }
                 Debug.Assert(_state == ConnectionState.NotConnected);
 
-                _options ??= IsServer ? ServerConnectionOptions.Default : ClientConnectionOptions.Default;
                 ValueTask connectTask;
-                if (_options is ClientConnectionOptions clientOptions)
+                if (IsServer)
                 {
-                    if (IsServer)
+                    _options ??= ServerConnectionOptions.Default;
+                    var serverOptions = (ServerConnectionOptions)_options;
+                    Debug.Assert(UnderlyingConnection != null);
+
+                    // If the endpoint is secure, accept with the SSL server authentication options.
+                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
+                    if (UnderlyingConnection.LocalEndpoint.IsSecure ?? true)
                     {
-                        throw new InvalidOperationException(
-                            "invalid client connection options for server connection");
+                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
+                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                            new SslApplicationProtocol(Protocol.GetName())
+                        };
                     }
 
-                    if (UnderlyingConnection == null)
-                    {
-                        if (_remoteEndpoint == null)
-                        {
-                            throw new InvalidOperationException("client connection has no remote endpoint set");
-                        }
-                        else if (_localEndpoint != null)
-                        {
-                            throw new InvalidOperationException("client connection has local endpoint set");
-                        }
+                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
+                }
+                else
+                {
+                    _options ??= ClientConnectionOptions.Default;
+                    var clientOptions =  (ClientConnectionOptions)_options;
+                    Debug.Assert(UnderlyingConnection == null);
 
-                        UnderlyingConnection =
-                            ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
+                    if (_remoteEndpoint == null)
+                    {
+                        throw new InvalidOperationException("client connection has no remote endpoint set");
                     }
+                    UnderlyingConnection =
+                        ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
@@ -337,32 +353,6 @@ namespace IceRpc
                     }
 
                     connectTask = UnderlyingConnection.ConnectAsync(clientAuthenticationOptions, cancel);
-                }
-                else
-                {
-                    var serverOptions = (ServerConnectionOptions)_options;
-                    if (!IsServer)
-                    {
-                        throw new InvalidOperationException(
-                            "invalid server connection options for client connection");
-                    }
-                    else if (UnderlyingConnection == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"server connection can only be created by a {nameof(Server)}");
-                    }
-
-                    // If the endpoint is secure, accept with the SSL server authentication options.
-                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
-                    if (UnderlyingConnection.LocalEndpoint.IsSecure ?? true)
-                    {
-                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
-                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
-                    }
-
-                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
                 }
 
                 Debug.Assert(UnderlyingConnection != null);
