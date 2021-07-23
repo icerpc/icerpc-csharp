@@ -31,7 +31,7 @@ namespace IceRpc.Transports
 
             if (factory is IIce2EndpointFactory ice2Descriptor)
             {
-                IceRpc.Internal.UriParser.RegisterTransport(factory.Name, ice2Descriptor.DefaultUriPort);
+                IceRpc.Internal.IceUriParser.RegisterTransport(factory.Name, ice2Descriptor.DefaultUriPort);
             }
         }
 

@@ -17,7 +17,7 @@ namespace IceRpc.Interop
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
-            IceRpc.Internal.UriParser.CheckPath(path, nameof(path));
+            IceRpc.Internal.IceUriParser.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
 
             int firstSlash = workingPath.IndexOf('/', StringComparison.InvariantCulture);
@@ -144,7 +144,7 @@ namespace IceRpc.Interop
                 $"/{Uri.EscapeDataString(Category)}/{Uri.EscapeDataString(Name)}" :
                 $"/{Uri.EscapeDataString(Name)}";
 
-            Debug.Assert(Internal.UriParser.IsValidPath(path));
+            Debug.Assert(Internal.IceUriParser.IsValidPath(path));
             return path;
         }
 

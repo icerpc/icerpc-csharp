@@ -235,10 +235,10 @@ namespace IceRpc
             Encoding encoding;
             Endpoint? endpoint;
             ImmutableList<Endpoint> altEndpoints;
-            if (Internal.UriParser.IsProxyUri(proxyString))
+            if (Internal.IceUriParser.IsProxyUri(proxyString))
             {
                 string path;
-                (path, encoding, endpoint, altEndpoints) = Internal.UriParser.ParseProxy(proxyString);
+                (path, encoding, endpoint, altEndpoints) = Internal.IceUriParser.ParseProxy(proxyString);
                 proxy = new(path, endpoint?.Protocol ?? Protocol.Ice2);
             }
             else
@@ -280,7 +280,7 @@ namespace IceRpc
         public Proxy(string path, Protocol protocol = Protocol.Ice2)
         {
             Protocol = protocol;
-            Internal.UriParser.CheckPath(path, nameof(path));
+            Internal.IceUriParser.CheckPath(path, nameof(path));
             Path = path;
             Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }

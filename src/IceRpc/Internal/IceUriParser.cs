@@ -10,7 +10,7 @@ using System.Linq;
 namespace IceRpc.Internal
 {
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the URI format.</summary>
-    internal static class UriParser
+    internal static class IceUriParser
     {
         // Common options for the generic URI parsers registered for the ice and ice+transport schemes.
         private const GenericUriParserOptions ParserOptions =
@@ -70,6 +70,9 @@ namespace IceRpc.Internal
                     paramName);
             }
         }
+
+
+        internal static EndpointRecord ParseEndpointRecord(string uriString) => null!;
 
         /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>

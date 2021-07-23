@@ -4,12 +4,39 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
 namespace IceRpc
 {
+    /// <summary>An endpoint describes...</summary>
+    public sealed record EndpointRecord(
+        Protocol Protocol,
+        string TransportName,
+        string Host,
+        ushort Port,
+        ImmutableDictionary<string, string> Options,
+        ImmutableDictionary<string, string> LocalOptions
+    )
+    {
+        /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
+        /// <param name="s">The string representation of the endpoint.</param>
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// </exception>
+        public static implicit operator EndpointRecord(string s) => FromString(s);
+
+        /// <summary>Creates an endpoint from its string representation.</summary>
+        /// <param name="s">The string representation of the endpoint.</param>
+        /// <returns>The new endpoint.</returns>
+        /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
+        /// </exception>
+        public static EndpointRecord FromString(string s) =>
+            Internal.IceUriParser.IsEndpointUri(s) ? Internal.IceUriParser.ParseEndpointRecord(s) : Ice1Parser.ParseEndpointRecord(s);
+    }
+
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
     /// and a client establishes a connection to a given endpoint. Its properties are a network transport protocol such
     /// as TCP or Bluetooth RFCOMM, a host or address, a port number, and transport-specific options.</summary>
@@ -28,7 +55,7 @@ namespace IceRpc
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static Endpoint FromString(string s) =>
-            Internal.UriParser.IsEndpointUri(s) ? Internal.UriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
+            Internal.IceUriParser.IsEndpointUri(s) ? Internal.IceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
 
         /// <summary>Gets the external "over the wire" representation of this endpoint. With ice2 (and up) this is the
         /// actual data structure sent and received over the wire for this endpoint. With ice1, it is a subset of this

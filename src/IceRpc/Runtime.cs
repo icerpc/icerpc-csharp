@@ -19,8 +19,8 @@ namespace IceRpc
         static Runtime()
         {
             // Register the ice and ice+universal schemes with the system UriParser.
-            UriParser.RegisterTransport("universal", defaultPort: 0);
-            UriParser.RegisterIceScheme();
+            IceUriParser.RegisterTransport("universal", defaultPort: 0);
+            IceUriParser.RegisterIceScheme();
             TransportRegistry.Add(new LocEndpointFactory());
         }
 

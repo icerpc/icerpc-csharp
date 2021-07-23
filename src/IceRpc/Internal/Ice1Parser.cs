@@ -14,6 +14,100 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
+        internal static EndpointRecord ParseEndpointRecord(string endpointString)
+        {
+            string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
+            if (args == null)
+            {
+                throw new FormatException($"mismatched quote in endpoint '{endpointString}'");
+            }
+
+            if (args.Length == 0)
+            {
+                throw new FormatException("no non-whitespace character in endpoint string");
+            }
+
+            string transportName = args[0];
+            if (transportName == "default")
+            {
+                transportName = "tcp";
+            }
+
+            var options = new Dictionary<string, string>();
+            var localOptions = new Dictionary<string, string>();
+
+            // Parse args into options (and skip transportName at args[0])
+            for (int n = 1; n < args.Length; ++n)
+            {
+                // Any option with < 2 characters or that does not start with - is illegal
+                string option = args[n];
+                if (option.Length < 2 || option[0] != '-')
+                {
+                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
+                }
+
+                // Extract the argument given to the current option, if any
+                string? argument = null;
+                if (n + 1 < args.Length && args[n + 1][0] != '-')
+                {
+                    argument = args[++n];
+                }
+
+                try
+                {
+                    if (option.StartsWith("--", StringComparison.Ordinal))
+                    {
+                        localOptions.Add(option[2..], argument ?? "");
+                    }
+                    else
+                    {
+                        options.Add(option[1..], argument ?? "");
+                    }
+                }
+                catch (ArgumentException)
+                {
+                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
+                }
+            }
+
+            // Extract host and port
+
+            ushort port = 0;
+
+            if (options.TryGetValue("h", out string? host))
+            {
+                if (host == "*")
+                {
+                    host = "::0";
+                }
+                options.Remove("h");
+            }
+            else
+            {
+                host = "";
+            }
+
+            if (options.TryGetValue("p", out string? portString))
+            {
+                try
+                {
+                    port = ushort.Parse(portString, CultureInfo.InvariantCulture);
+                }
+                catch (FormatException ex)
+                {
+                    throw new FormatException($"invalid port value '{portString}' in endpoint '{endpointString}'", ex);
+                }
+                options.Remove("p");
+            }
+
+            return new EndpointRecord(Protocol.Ice1,
+                                      transportName,
+                                      host,
+                                      port,
+                                      options.ToImmutableDictionary(),
+                                      localOptions.ToImmutableDictionary());
+        }
+
         /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>
         internal static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
         {
