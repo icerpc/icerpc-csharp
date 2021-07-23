@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using IceRpc.Transports.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
@@ -225,7 +226,9 @@ namespace IceRpc
             Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
-        internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
+        internal int ClassGraphMaxDepth => _options?.ClassGraphMaxDepth ?? 200; // TODO why is _options ever null?
+
+        internal IEndpointCodex EndpointCodex { get; set; } = _defaultEndpointCodex;
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -247,6 +250,9 @@ namespace IceRpc
                 }
             }
         }
+
+        private static readonly IEndpointCodex _defaultEndpointCodex =
+            new EndpointCodexBuilder().AddTcp().AddSsl().AddUdp().Build();
 
         private readonly TaskCompletionSource _acceptStreamCompletion = new();
         private TaskCompletionSource? _cancelGoAwaySource;

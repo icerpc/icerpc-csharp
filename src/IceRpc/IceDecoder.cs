@@ -916,8 +916,9 @@ namespace IceRpc
         internal Endpoint DecodeEndpoint11(Protocol protocol)
         {
             Debug.Assert(OldEncoding);
+            Debug.Assert(Connection != null);
 
-            Endpoint endpoint;
+            Endpoint? endpoint;
 
             TransportCode transportCode = this.DecodeTransportCode();
 
@@ -938,35 +939,20 @@ namespace IceRpc
 
             var encoding = new Encoding(this);
 
-            if (encoding != Encoding.V11 && encoding != Encoding.V10)
-            {
-                throw new InvalidDataException(
-                    @$"cannot decode endpoint with endpoint encapsulation encoded with encoding '{encoding}'");
-            }
-
-            IIce1EndpointFactory? ice1EndpointFactory = null;
-            if (protocol == Protocol.Ice1 &&
-                encoding.IsSupported &&
-                TransportRegistry.TryGetValue(transportCode, out IEndpointFactory? factory))
-            {
-                ice1EndpointFactory = factory as IIce1EndpointFactory;
-            }
-
-            // We need to decode the encapsulation except for ice1 + null factory.
-            if (protocol == Protocol.Ice1 && ice1EndpointFactory == null)
-            {
-                endpoint = OpaqueEndpoint.Create(transportCode,
-                                                 encoding,
-                                                 _buffer.Slice(Pos, size));
-                Pos += size;
-            }
-            else if (encoding == Encoding.V11) // i.e. all in same encoding
+            if (encoding == Encoding.V11 || encoding == Encoding.V10)
             {
                 int oldPos = Pos;
                 if (protocol == Protocol.Ice1)
                 {
-                    Debug.Assert(ice1EndpointFactory != null); // see if block above with OpaqueEndpoint creation
-                    endpoint = ice1EndpointFactory.CreateIce1Endpoint(this);
+                    endpoint = Connection.EndpointCodex.DecodeEndpoint(transportCode, this);
+
+                    if (endpoint == null)
+                    {
+                        endpoint = OpaqueEndpoint.Create(transportCode,
+                                                         encoding,
+                                                         _buffer.Slice(Pos, size));
+                        Pos += size;
+                    }
                 }
                 else
                 {
@@ -975,7 +961,7 @@ namespace IceRpc
                                                 port: DecodeUShort(),
                                                 options: DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc));
 
-                    endpoint = data.ToEndpoint(protocol);
+                    endpoint = Connection.EndpointCodex.CreateEndpoint(data, protocol);
                 }
 
                 // Make sure we read the full encapsulation.
@@ -986,12 +972,12 @@ namespace IceRpc
             }
             else
             {
+                // TODO
                 string transportName = transportCode.ToString().ToLowerInvariant();
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
             }
-
             return endpoint;
         }
 

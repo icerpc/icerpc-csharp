@@ -4,12 +4,20 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace IceRpc.Transports.Interop
 {
     public interface IEndpointDecoder
     {
-        Endpoint DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
+        Endpoint CreateEndpoint(EndpointData data, Protocol protocol); // temporary
+
+        /// <summary>Decodes an endpoint encoded using the Ice 1.1 encoding.</summary>
+        /// <param name="transportCode">The transport code.</param>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>The decoded endpoint, or null if this endpoint decoder does not handle this transport code.
+        /// </returns>
+        Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
     public interface IEndpointEncoder
@@ -39,7 +47,19 @@ namespace IceRpc.Transports.Interop
                 }
             }
 
-            public Endpoint DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+            public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
+            {
+                if (_endpointDecoders.TryGetValue(data.TransportCode, out IEndpointDecoder? endpointDecoder))
+                {
+                    return endpointDecoder.CreateEndpoint(data, protocol);
+                }
+                else
+                {
+                    throw new UnknownTransportException(data.TransportCode);
+                }
+            }
+
+            public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
             {
                 if (_endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder))
                 {
@@ -48,12 +68,6 @@ namespace IceRpc.Transports.Interop
                 else
                 {
                     return null!;
-                    /*
-                    return OpaqueEndpoint.Create(transportCode,
-                                                 decoder.Encoding,
-                                                 decoder.ReadRemainingBytes());
-                    */
-
                 }
             }
 
@@ -107,9 +121,22 @@ namespace IceRpc.Transports.Interop
 
     public sealed class TcpEndpointCodex : IEndpointCodex
     {
-        public Endpoint DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        public Endpoint CreateEndpoint(EndpointData data, Protocol protocol) =>
+            TcpEndpoint.CreateEndpoint(data, protocol);
+
+        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
-            return null!;
+            // protocol is ice1
+            if (transportCode == TransportCode.TCP || transportCode == TransportCode.SSL)
+            {
+                return new TcpEndpoint(new EndpointData(transportCode,
+                                                        host: decoder.DecodeString(),
+                                                        port: checked((ushort)decoder.DecodeInt()),
+                                                        ImmutableList<string>.Empty),
+                                       timeout: TimeSpan.FromMilliseconds(decoder.DecodeInt()),
+                                       compress: decoder.DecodeBool());
+            }
+            return null;
         }
 
         public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
@@ -144,10 +171,28 @@ namespace IceRpc.Transports.Interop
 
     public sealed class UdpEndpointCodex : IEndpointCodex
     {
-        public Endpoint DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
         {
-            return null!;
+            if (protocol != Protocol.Ice1)
+            {
+                throw new ArgumentException($"cannot create UDP endpoint for protocol {protocol.GetName()}",
+                                            nameof(protocol));
+            }
+
+            if (data.Options.Count > 0)
+            {
+                // Drop all options since we don't understand any.
+                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
+            }
+            return new UdpEndpoint(data);
         }
+
+        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
+            new UdpEndpoint(new EndpointData(transportCode,
+                                             host: decoder.DecodeString(),
+                                             port: checked((ushort)decoder.DecodeInt()),
+                                             ImmutableList<string>.Empty),
+                            compress: decoder.DecodeBool());
 
         public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
