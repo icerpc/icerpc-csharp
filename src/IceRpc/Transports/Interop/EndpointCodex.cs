@@ -36,14 +36,14 @@ namespace IceRpc.Transports.Interop
         private class CompositeEndpointCodex : IEndpointCodex
         {
             private Dictionary<TransportCode, IEndpointDecoder> _endpointDecoders = new();
-            private Dictionary<TransportCode, IEndpointEncoder> _endpointEncoders = new(); // temporary, should use name
+            private Dictionary<string, IEndpointEncoder> _endpointEncoders = new();
 
             internal CompositeEndpointCodex(EndpointCodexBuilder builder)
             {
                 foreach (var entry in builder)
                 {
                     _endpointDecoders.Add(entry.Key.TransportCode, entry.Value);
-                    _endpointEncoders.Add(entry.Key.TransportCode, entry.Value);
+                    _endpointEncoders.Add(entry.Key.TransportName, entry.Value);
                 }
             }
 
@@ -73,7 +73,7 @@ namespace IceRpc.Transports.Interop
 
             public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
             {
-                if (_endpointEncoders.TryGetValue(endpoint.TransportCode, out IEndpointEncoder? endpointEncoder))
+                if (_endpointEncoders.TryGetValue(endpoint.TransportName, out IEndpointEncoder? endpointEncoder))
                 {
                     endpointEncoder.EncodeEndpoint(endpoint, encoder);
                 }
