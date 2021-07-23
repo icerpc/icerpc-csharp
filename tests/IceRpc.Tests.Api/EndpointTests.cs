@@ -43,6 +43,7 @@ namespace IceRpc.Tests.Api
 
         [TestCase("ice+universal://127.0.0.1:4062?transport=tcp", "ice+tcp://127.0.0.1")]
         [TestCase("ice+universal://127.0.0.1:4061?transport=tcp&option=a", "ice+tcp://127.0.0.1:4061")]
+        // TODO: revisit
         // [TestCase("opaque -e 1.1 -t 1 -v CTEyNy4wLjAuMeouAAAQJwAAAA==", "tcp -h 127.0.0.1 -p 12010 -t 10000")]
         // [TestCase("opaque -e 1.1 -t 2 -v CTEyNy4wLjAuMREnAAD/////AA==", "ssl -h 127.0.0.1 -p 10001 -t -1")]
         [TestCase("opaque -t 99 -e 1.1 -v abch", "opaque -t 99 -e 1.1 -v abch")]
