@@ -27,6 +27,24 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(endpoint, endpoint2); // round trip works
         }
 
+        [TestCase("ice+tcp://host:10000")]
+        [TestCase("ice+tcp://host")]
+        [TestCase("ice+tcp://[::0]")]
+        [TestCase("ice+tcp://[::0]?_foo=bar&tls=true&protocol=ice1")]
+        [TestCase("ice+tcp://[::0]?tls=false")]
+        [TestCase("ice+coloc://host:10000")]
+        [TestCase("ice+xyz://host:10000")]
+        [TestCase("tcp -h host -p 10000")]
+        [TestCase("tcp -h \"::0\" -p 10000 --foo bar")]
+        [TestCase("coloc -h host -p 10000")]
+        [TestCase("abc -h x -p 5")]
+        public void EndpointRecord_Parse_ValidInput(string str)
+        {
+            var endpoint = EndpointRecord.FromString(str);
+            var endpoint2 = EndpointRecord.FromString(endpoint.ToString());
+            Assert.AreEqual(endpoint, endpoint2); // round trip works
+        }
+
         [TestCase("ice+tcp://host:10000/category/name")]
         [TestCase("ice+tcp://host:10000?protocol=ice2")]
         [TestCase("ice+tcp://host:10000?encoding=1.1")]

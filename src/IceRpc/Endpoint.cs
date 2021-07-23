@@ -34,7 +34,171 @@ namespace IceRpc
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static EndpointRecord FromString(string s) =>
-            Internal.IceUriParser.IsEndpointUri(s) ? Internal.IceUriParser.ParseEndpointRecord(s) : Ice1Parser.ParseEndpointRecord(s);
+            NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpointRecord(s);
+
+        /// <inheritdoc/>
+        public bool Equals(EndpointRecord? other) =>
+                   other != null &&
+                   Protocol == other.Protocol &&
+                   TransportName == other.TransportName &&
+                   Host == other.Host &&
+                   Port == other.Port &&
+                   Options.DictionaryEqual(other.Options) &&
+                   LocalOptions.DictionaryEqual(other.LocalOptions);
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(Protocol);
+            hash.Add(TransportName);
+            hash.Add(Host);
+            hash.Add(Port);
+            hash.Add(Options.Count);
+            hash.Add(LocalOptions.Count);
+            return hash.ToHashCode();
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            if (Protocol == Protocol.Ice1)
+            {
+                sb.Append(TransportName);
+
+                if (Host.Length > 0)
+                {
+                    sb.Append(" -h ");
+                    bool addQuote = Host.IndexOf(':', StringComparison.Ordinal) != -1;
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                    sb.Append(Host);
+                    if (addQuote)
+                    {
+                        sb.Append('"');
+                    }
+                }
+
+                sb.Append(" -p ");
+                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
+
+                foreach ((string key, string value) in Options)
+                {
+                    sb.Append(" -");
+                    sb.Append(key);
+                    sb.Append(' ');
+                    sb.Append(value);
+                }
+
+                foreach ((string key, string value) in LocalOptions)
+                {
+                    sb.Append(" --");
+                    sb.Append(key);
+                    sb.Append(' ');
+                    sb.Append(value);
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                sb.AppendEndpoint(this);
+                return sb.ToString();
+            }
+        }
+    }
+
+    /// <summary>This class contains <see cref="Endpoint"/> extension methods.</summary>
+    public static class EndpointRecordExtensions
+    {
+        /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
+        /// format.</summary>
+        /// <param name="sb">The string builder.</param>
+        /// <param name="endpoint">The endpoint to append.</param>
+        /// <param name="path">The path of the endpoint URI. Use this parameter to start building a proxy URI.</param>
+        /// <param name="includeScheme">When true, first appends the endpoint's scheme followed by ://.</param>
+        /// <param name="optionSeparator">The character that separates options in the query component of the URI.
+        /// </param>
+        /// <returns>The string builder parameter.</returns>
+        internal static StringBuilder AppendEndpoint(
+            this StringBuilder sb,
+            EndpointRecord endpoint,
+            string path = "",
+            bool includeScheme = true,
+            char optionSeparator = '&')
+        {
+            Debug.Assert(endpoint.Protocol != Protocol.Ice1); // we never generate URIs for the ice1 protocol
+
+            if (includeScheme)
+            {
+                sb.Append("ice+");
+                sb.Append(endpoint.TransportName);
+                sb.Append("://");
+            }
+
+            if (endpoint.Host.Contains(':', StringComparison.Ordinal))
+            {
+                sb.Append('[');
+                sb.Append(endpoint.Host);
+                sb.Append(']');
+            }
+            else
+            {
+                sb.Append(endpoint.Host);
+            }
+
+            if (endpoint.Port != 4062) // TODO constant
+            {
+                sb.Append(':');
+                sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
+            }
+
+            if (path.Length > 0)
+            {
+                sb.Append(path);
+            }
+
+            bool firstOption = true;
+
+            if (endpoint.Protocol != Protocol.Ice2)
+            {
+                AppendQueryOption();
+                sb.Append("protocol=");
+                sb.Append(endpoint.Protocol.GetName());
+            }
+            foreach ((string key, string value) in endpoint.Options)
+            {
+                AppendQueryOption();
+                sb.Append(key);
+                sb.Append('=');
+                sb.Append(value);
+            }
+            foreach ((string key, string value) in endpoint.LocalOptions)
+            {
+                AppendQueryOption();
+                sb.Append(key);
+                sb.Append('=');
+                sb.Append(value);
+            }
+
+            return sb;
+
+            void AppendQueryOption()
+            {
+                if (firstOption)
+                {
+                    sb.Append('?');
+                    firstOption = false;
+                }
+                else
+                {
+                    sb.Append(optionSeparator);
+                }
+            }
+        }
     }
 
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint

@@ -80,6 +80,10 @@ namespace IceRpc.Internal
                 {
                     host = "::0";
                 }
+                else if (host.Length == 0)
+                {
+                    throw new FormatException($"invalid empty host value in endpoint '{endpointString}'");
+                }
                 options.Remove("h");
             }
             else
