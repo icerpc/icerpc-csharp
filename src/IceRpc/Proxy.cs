@@ -4,6 +4,7 @@ using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
+using IceRpc.Transports.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -23,28 +24,6 @@ namespace IceRpc
     /// <seealso cref="IPrx"/>
     public sealed class Proxy : IEquatable<Proxy>
     {
-        /// <summary>The default value for <see cref="EndpointEncodeAction11"/>.</summary>
-        public static EncodeAction<Endpoint> DefaultEndpointEncodeAction11 { get; } =
-            (encoder, endpoint) =>
-            {
-                switch (endpoint.TransportCode)
-                {
-                    case TransportCode.TCP:
-                    case TransportCode.SSL:
-                        encoder.EncodeTcpEndpoint11(endpoint);
-                        break;
-
-                    case TransportCode.UDP:
-                        encoder.EncodeUdpEndpoint11(endpoint);
-                        break;
-
-                    default:
-                        encoder.EncodeOpaqueEndpoint11(endpoint);
-                        break;
-                        // _ => throw new UnknownTransportException(endpoint.TransportCode),
-                }
-            };
-
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
         public ImmutableList<Endpoint> AltEndpoints
@@ -132,9 +111,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The delegate used to encode endpoints with the Ice 1.1 encoding.</summary>
-        public EncodeAction<Endpoint> EndpointEncodeAction11 { get; set; } = DefaultEndpointEncodeAction11;
-
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
 
@@ -143,6 +119,9 @@ namespace IceRpc
 
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }
+
+        /// <summary>Encodes endpoints with the Ice 1.1 encoding.</summary>
+        internal IEndpointEncoder EndpointEncoder { get; set; } = _defaultEndpointEncoder;
 
         /// <summary>The facet of this proxy. Used only with the ice1 protocol.</summary>
         internal string Facet
@@ -173,6 +152,9 @@ namespace IceRpc
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
         /// </summary>
         internal IList<string> FacetPath { get; set; } = ImmutableList<string>.Empty;
+
+        private static readonly IEndpointEncoder _defaultEndpointEncoder =
+            new EndpointCodexBuilder().AddSsl().AddTcp().AddUdp().Build();
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
@@ -704,7 +686,8 @@ namespace IceRpc
 
                     if (endpoints.Any())
                     {
-                        encoder.EncodeSequence(endpoints, EndpointEncodeAction11);
+                        encoder.EncodeSequence(endpoints,
+                                              (encoder, endpoint) => EndpointEncoder.EncodeEndpoint(endpoint, encoder));
                     }
                     else // encoded as an endpointless proxy
                     {

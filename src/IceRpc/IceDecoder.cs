@@ -910,8 +910,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.
-        /// </summary>
+        /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
         internal Endpoint DecodeEndpoint11(Protocol protocol)
@@ -938,6 +937,12 @@ namespace IceRpc
             size -= 6;
 
             var encoding = new Encoding(this);
+
+            if (encoding != Encoding.V11 && encoding != Encoding.V10)
+            {
+                throw new InvalidDataException(
+                    @$"cannot decode endpoint with endpoint encapsulation encoded with encoding '{encoding}'");
+            }
 
             IIce1EndpointFactory? ice1EndpointFactory = null;
             if (protocol == Protocol.Ice1 &&

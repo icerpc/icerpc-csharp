@@ -14,6 +14,9 @@ module IceRpc
     /// correspond to the transports that the IceRPC runtime knows about.
     unchecked enum TransportCode : short
     {
+        /// Universal format, used to encode any transport
+        Universal = -2,
+
         /// Loc pseudo-transport.
         Loc = -1,
 
