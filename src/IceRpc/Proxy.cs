@@ -428,6 +428,8 @@ namespace IceRpc
 
         internal static Proxy? Decode(IceDecoder decoder)
         {
+            Debug.Assert(decoder.Connection != null);
+
             if (decoder.Encoding == Encoding.V11)
             {
                 var identity = new Identity(decoder);
@@ -547,10 +549,15 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                var endpoint = proxyData.Endpoint?.ToEndpoint(protocol);
+                Endpoint? endpoint = null;
+                if (proxyData.Endpoint is EndpointData data)
+                {
+                    endpoint = decoder.Connection.EndpointCodex.CreateEndpoint(data, protocol);
+                }
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(
-                        data => data.ToEndpoint(protocol))?.ToImmutableList() ?? ImmutableList<Endpoint>.Empty;
+                        data => decoder.Connection.EndpointCodex.CreateEndpoint(data, protocol))?.ToImmutableList() ??
+                        ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
                 {

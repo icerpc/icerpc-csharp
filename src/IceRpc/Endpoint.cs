@@ -205,25 +205,6 @@ namespace IceRpc
     /// <summary>This class contains <see cref="Endpoint"/> extension methods.</summary>
     public static class EndpointExtensions
     {
-        /// <summary>Creates an endpoint from an <see cref="EndpointData"/> struct.</summary>
-        /// <param name="data">The endpoint's data.</param>
-        /// <param name="protocol">The endpoint's protocol.</param>
-        /// <returns>A new endpoint.</returns>
-        /// <remarks>If the transport is not registered, this method returns a <see cref="UniversalEndpoint"/> when
-        /// <c>protocol</c> is ice2 or greater, and throws <see cref="NotSupportedException"/> when <c>protocol</c> is
-        /// ice1.</remarks>
-        public static Endpoint ToEndpoint(this EndpointData data, Protocol protocol)
-        {
-            if (TransportRegistry.TryGetValue(data.TransportCode, out IEndpointFactory? factory))
-            {
-                return factory.CreateEndpoint(data, protocol);
-            }
-
-            return protocol != Protocol.Ice1 ? UniversalEndpoint.Create(data, protocol) :
-                throw new NotSupportedException(
-                    $"cannot create endpoint for ice1 protocol and transport '{data.TransportCode}'");
-        }
-
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
         /// format.</summary>
         /// <param name="sb">The string builder.</param>
