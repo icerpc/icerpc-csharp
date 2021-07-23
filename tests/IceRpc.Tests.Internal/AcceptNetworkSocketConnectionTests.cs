@@ -132,6 +132,8 @@ namespace IceRpc.Tests.Internal
             if (wildcard1)
             {
                 var serverData = new EndpointData(
+                    ServerEndpoint.Protocol,
+                    ServerEndpoint.TransportCode.ToString().ToLowerInvariant(),
                     ServerEndpoint.TransportCode,
                     "::0",
                     ServerEndpoint.Port,
@@ -147,6 +149,8 @@ namespace IceRpc.Tests.Internal
             if (wildcard2)
             {
                 var serverData = new EndpointData(
+                    ServerEndpoint.Protocol,
+                    ServerEndpoint.TransportCode.ToString().ToLowerInvariant(),
                     ServerEndpoint.TransportCode,
                     "::0",
                     ServerEndpoint.Port,

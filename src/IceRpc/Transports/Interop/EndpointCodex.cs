@@ -129,7 +129,9 @@ namespace IceRpc.Transports.Interop
             // protocol is ice1
             if (transportCode == TransportCode.TCP || transportCode == TransportCode.SSL)
             {
-                return new TcpEndpoint(new EndpointData(transportCode,
+                return new TcpEndpoint(new EndpointData(Protocol.Ice1,
+                                                        transportCode.ToString().ToLowerInvariant(),
+                                                        transportCode,
                                                         host: decoder.DecodeString(),
                                                         port: checked((ushort)decoder.DecodeInt()),
                                                         ImmutableList<string>.Empty),
@@ -182,13 +184,15 @@ namespace IceRpc.Transports.Interop
             if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
+                data = new EndpointData(Protocol.Ice1, "udp", data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new UdpEndpoint(data);
         }
 
         public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
-            new UdpEndpoint(new EndpointData(transportCode,
+            new UdpEndpoint(new EndpointData(Protocol.Ice1,
+                                             "udp",
+                                             transportCode,
                                              host: decoder.DecodeString(),
                                              port: checked((ushort)decoder.DecodeInt()),
                                              ImmutableList<string>.Empty),

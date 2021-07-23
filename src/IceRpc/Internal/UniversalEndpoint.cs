@@ -87,7 +87,7 @@ namespace IceRpc.Internal
                 options.Remove("option");
             }
 
-            return new UniversalEndpoint(new EndpointData(transport, host, port, endpointDataOptions), protocol);
+            return new UniversalEndpoint(new EndpointData(protocol, "universal", transport, host, port, endpointDataOptions), protocol);
         }
 
         // Constructor

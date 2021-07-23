@@ -409,14 +409,16 @@ namespace IceRpc.Transports.Internal
             if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
+                data = new EndpointData(Protocol.Ice1, "udp", data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new UdpEndpoint(data);
         }
 
         public Endpoint CreateIce1Endpoint(IceDecoder decoder) =>
             // This is correct in C# since arguments are evaluated left-to-right.
-            new UdpEndpoint(new EndpointData(TransportCode,
+            new UdpEndpoint(new EndpointData(Protocol.Ice1,
+                                            "udp",
+                                             TransportCode,
                                              host: decoder.DecodeString(),
                                              port: checked((ushort)decoder.DecodeInt()),
                                              ImmutableList<string>.Empty),
@@ -485,7 +487,7 @@ namespace IceRpc.Transports.Internal
                 options.Remove("--interface");
             }
 
-            return new UdpEndpoint(new EndpointData(TransportCode.UDP, host, port, ImmutableList<string>.Empty),
+            return new UdpEndpoint(new EndpointData(Protocol.Ice1, "udp", TransportCode.UDP, host, port, ImmutableList<string>.Empty),
                                    Ice1Parser.ParseCompress(options, endpointString),
                                    ttl,
                                    multicastInterface);

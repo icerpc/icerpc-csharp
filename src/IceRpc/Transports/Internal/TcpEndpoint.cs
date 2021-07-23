@@ -173,7 +173,7 @@ namespace IceRpc.Transports.Internal
             if (data.Options.Count > 0)
             {
                 // Drop all options since we don't understand any.
-                data = new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
+                data = new EndpointData(data.Protocol, data.TransportName, data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
             }
             return new TcpEndpoint(data, protocol);
         }
@@ -243,7 +243,9 @@ namespace IceRpc.Transports.Internal
 
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
-            return new TcpEndpoint(new EndpointData(TransportCode,
+            return new TcpEndpoint(new EndpointData(Protocol.Ice1,
+                                                    TransportCode.ToString().ToLowerInvariant(),
+                                                    TransportCode,
                                                     host: decoder.DecodeString(),
                                                     port: checked((ushort)decoder.DecodeInt()),
                                                     ImmutableList<string>.Empty),
@@ -256,7 +258,7 @@ namespace IceRpc.Transports.Internal
             Debug.Assert(TransportCode == TransportCode.TCP || TransportCode == TransportCode.SSL);
 
             (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
-            return new TcpEndpoint(new EndpointData(TransportCode, host, port, ImmutableList<string>.Empty),
+            return new TcpEndpoint(new EndpointData(Protocol.Ice1, TransportCode.ToString().ToLowerInvariant(), TransportCode, host, port, ImmutableList<string>.Empty),
                                    Ice1Parser.ParseTimeout(options, TcpEndpoint.DefaultTimeout, endpointString),
                                    Ice1Parser.ParseCompress(options, endpointString));
         }
@@ -278,7 +280,7 @@ namespace IceRpc.Transports.Internal
                 tls = bool.Parse(value);
                 options.Remove("tls");
             }
-            return new TcpEndpoint(new EndpointData(TransportCode.TCP, host, port, ImmutableList<string>.Empty), tls);
+            return new TcpEndpoint(new EndpointData(Protocol.Ice2, "tcp", TransportCode.TCP, host, port, ImmutableList<string>.Empty), tls);
         }
     }
 

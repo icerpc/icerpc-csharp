@@ -19,7 +19,7 @@ namespace IceRpc.Internal
             Debug.Assert(false); // loc endpoints are not marshaled as endpoint with ice1/1.1
 
         internal static LocEndpoint Create(string location, Protocol protocol) =>
-            new(new EndpointData(TransportCode.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
+            new(new EndpointData(protocol, "loc", TransportCode.Loc, location, port: 0, ImmutableList<string>.Empty), protocol);
 
         // Constructor
         internal LocEndpoint(EndpointData data, Protocol protocol)
@@ -38,7 +38,7 @@ namespace IceRpc.Internal
 
         public Endpoint CreateEndpoint(EndpointData data, Protocol protocol) =>
             // Drop all options we don't understand
-            new LocEndpoint(new EndpointData(data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty),
+            new LocEndpoint(new EndpointData(protocol, "loc", data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty),
                             protocol);
 
         public Endpoint CreateIce1Endpoint(IceDecoder decoder) =>
@@ -47,12 +47,12 @@ namespace IceRpc.Internal
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)
         {
             (string host, ushort port) = Ice1Parser.ParseHostAndPort(options, endpointString);
-            return new LocEndpoint(new EndpointData(TransportCode.Loc, host, port, ImmutableList<string>.Empty),
+            return new LocEndpoint(new EndpointData(Protocol.Ice1, "loc", TransportCode.Loc, host, port, ImmutableList<string>.Empty),
                                    Protocol.Ice1);
         }
 
         public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options) =>
-            new LocEndpoint(new EndpointData(TransportCode.Loc, host, port, ImmutableList<string>.Empty),
+            new LocEndpoint(new EndpointData(Protocol.Ice2, "loc", TransportCode.Loc, host, port, ImmutableList<string>.Empty),
                             Protocol.Ice2);
     }
 }

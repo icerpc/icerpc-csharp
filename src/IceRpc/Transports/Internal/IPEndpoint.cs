@@ -85,7 +85,7 @@ namespace IceRpc.Transports.Internal
 
         // Constructor for Clone
         private protected IPEndpoint(Endpoint endpoint, string host, ushort port)
-            : this(new EndpointData(endpoint.TransportCode, host, port, endpoint.Data.Options), endpoint.Protocol)
+            : this(new EndpointData(endpoint.Protocol, endpoint.TransportName, endpoint.TransportCode, host, port, endpoint.Data.Options), endpoint.Protocol)
         {
         }
     }

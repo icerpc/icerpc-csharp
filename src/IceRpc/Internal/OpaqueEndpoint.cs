@@ -70,7 +70,7 @@ namespace IceRpc.Internal
             TransportCode transport,
             Encoding valueEncoding,
             ReadOnlyMemory<byte> value) =>
-            new(new EndpointData(transport, host: "", port: 0, ImmutableList<string>.Empty), valueEncoding, value);
+            new(new EndpointData(Protocol.Ice1, "opaque", transport, host: "", port: 0, ImmutableList<string>.Empty), valueEncoding, value);
 
         internal static OpaqueEndpoint Parse(Dictionary<string, string?> options, string endpointString)
         {
