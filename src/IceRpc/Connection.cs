@@ -123,11 +123,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public Endpoint? LocalEndpoint
-        {
-            get => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
-            internal set => _localEndpoint = value;
-        }
+        public Endpoint? LocalEndpoint => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
@@ -190,18 +186,13 @@ namespace IceRpc
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 
         /// <summary>The connection remote endpoint.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
-        /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available.</exception>
         public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint ?? UnderlyingConnection?.RemoteEndpoint;
-            set
+            init
             {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
-                }
+                Debug.Assert(!IsServer);
                 _remoteEndpoint = value;
             }
         }
