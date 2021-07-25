@@ -24,10 +24,10 @@ namespace IceRpc
         public static IServerTransport DefaultServerTransport { get; } =
             new CompositeServerTransport
             {
-                ["tcp"] = new TcpServerTransport(),
-                ["ssl"] = new TcpServerTransport(),
-                ["coloc"] = new ColocServerTransport(),
-                ["udp"] = new UdpServerTransport()
+                [TransportNames.Tcp] = new TcpServerTransport(),
+                [TransportNames.Ssl] = new TcpServerTransport(),
+                [TransportNames.Coloc] = new ColocServerTransport(),
+                [TransportNames.Udp] = new UdpServerTransport()
             };
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>

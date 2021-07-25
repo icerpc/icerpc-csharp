@@ -28,21 +28,21 @@ namespace IceRpc.Transports.Interop
     {
     }
 
-    public class EndpointCodexBuilder : Dictionary<(string TransportId, TransportCode TransportCode), IEndpointCodex>
+    public class EndpointCodexBuilder : Dictionary<(string TransportName, TransportCode TransportCode), IEndpointCodex>
     {
         public IEndpointCodex Build() => new CompositeEndpointCodex(this);
 
         private class CompositeEndpointCodex : IEndpointCodex
         {
             private Dictionary<TransportCode, IEndpointDecoder> _endpointDecoders = new();
-            private Dictionary<TransportId, IEndpointEncoder> _endpointEncoders = new();
+            private Dictionary<string, IEndpointEncoder> _endpointEncoders = new();
 
             internal CompositeEndpointCodex(EndpointCodexBuilder builder)
             {
                 foreach (var entry in builder)
                 {
                     _endpointDecoders.Add(entry.Key.TransportCode, entry.Value);
-                    _endpointEncoders.Add(entry.Key.TransportId, entry.Value);
+                    _endpointEncoders.Add(entry.Key.TransportName, entry.Value);
                 }
             }
 
@@ -64,7 +64,7 @@ namespace IceRpc.Transports.Interop
                 {
                     endpointEncoder.EncodeEndpoint(endpoint, encoder);
                 }
-                else if (endpoint.Transport == TransportId.Opaque)
+                else if (endpoint.Transport == TransportNames.Opaque)
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) =
                         OpaqueUtils.ParseOpaqueParameters(endpoint);
@@ -85,19 +85,19 @@ namespace IceRpc.Transports.Interop
     {
         public static EndpointCodexBuilder AddSsl(this EndpointCodexBuilder builder)
         {
-            builder.Add(("ssl", TransportCode.SSL), new TcpEndpointCodex());
+            builder.Add((TransportNames.Ssl, TransportCode.SSL), new TcpEndpointCodex());
             return builder;
         }
 
         public static EndpointCodexBuilder AddTcp(this EndpointCodexBuilder builder)
         {
-            builder.Add(("tcp", TransportCode.TCP), new TcpEndpointCodex());
+            builder.Add((TransportNames.Tcp, TransportCode.TCP), new TcpEndpointCodex());
             return builder;
         }
 
         public static EndpointCodexBuilder AddUdp(this EndpointCodexBuilder builder)
         {
-            builder.Add(("udp", TransportCode.UDP), new UdpEndpointCodex());
+            builder.Add((TransportNames.Udp, TransportCode.UDP), new UdpEndpointCodex());
             return builder;
         }
     }
@@ -121,7 +121,7 @@ namespace IceRpc.Transports.Interop
                 }
 
                 return new EndpointRecord(Protocol.Ice1,
-                                          transportCode == TransportCode.SSL ? "ssl" : "tcp",
+                                          transportCode == TransportCode.SSL ? TransportNames.Ssl : TransportNames.Tcp,
                                           host,
                                           port,
                                           parameters,
@@ -133,7 +133,7 @@ namespace IceRpc.Transports.Interop
         public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
         {
             TransportCode transportCode = endpoint.Protocol == Protocol.Ice1 ?
-                (endpoint.Transport == "ssl" ? TransportCode.SSL : TransportCode.TCP) :
+                (endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP) :
                 TransportCode.Any;
 
             encoder.EncodeEndpoint11(endpoint,
@@ -171,7 +171,7 @@ namespace IceRpc.Transports.Interop
                     ImmutableList<EndpointParameter>.Empty;
 
                 return new EndpointRecord(Protocol.Ice1,
-                                          "udp",
+                                          TransportNames.Udp,
                                           host,
                                           port,
                                           parameters,

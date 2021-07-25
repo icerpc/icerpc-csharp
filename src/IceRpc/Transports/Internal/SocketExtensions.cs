@@ -11,7 +11,7 @@ namespace IceRpc.Transports.Internal
             this Socket socket,
             int? receiveSize,
             int? sendSize,
-            TransportId transport,
+            string transportName,
             ILogger logger)
         {
             if (receiveSize != null)
@@ -21,7 +21,7 @@ namespace IceRpc.Transports.Internal
                 socket.ReceiveBufferSize = receiveSize.Value;
                 if (socket.ReceiveBufferSize != receiveSize)
                 {
-                    logger.LogReceiveBufferSizeAdjusted(transport, receiveSize.Value, socket.ReceiveBufferSize);
+                    logger.LogReceiveBufferSizeAdjusted(transportName, receiveSize.Value, socket.ReceiveBufferSize);
                 }
             }
 
@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
                 socket.SendBufferSize = sendSize.Value;
                 if (socket.SendBufferSize != sendSize)
                 {
-                    logger.LogSendBufferSizeAdjusted(transport, sendSize.Value, socket.SendBufferSize);
+                    logger.LogSendBufferSizeAdjusted(transportName, sendSize.Value, socket.SendBufferSize);
                 }
             }
         }

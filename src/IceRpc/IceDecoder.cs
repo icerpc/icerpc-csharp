@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -956,7 +957,7 @@ namespace IceRpc
 
                         endpoint = new EndpointRecord(
                             protocol,
-                            TransportId.Opaque,
+                            TransportNames.Opaque,
                             Host: "",
                             Port: 0,
                             parameters,

@@ -39,7 +39,7 @@ namespace IceRpc
     /// <summary>An endpoint describes...</summary>
     public sealed record EndpointRecord(
         Protocol Protocol,
-        TransportId Transport,
+        string Transport,
         string Host,
         ushort Port,
         ImmutableList<EndpointParameter> Parameters,
@@ -65,14 +65,14 @@ namespace IceRpc
         /// connect to requires application-specific knowledge.</remarks>
         public static EndpointRecord FromEndpointData(EndpointData data) =>
             new EndpointRecord(data.Protocol,
-                               data.TransportName,
+                               string.IsInterned(data.TransportName) ?? data.TransportName,
                                data.Host,
                                data.Port,
                                data.Parameters.ToImmutableList(),
                                ImmutableList<EndpointParameter>.Empty);
 
         public EndpointData ToEndpointData() =>
-            new(Protocol, Transport.Name, Host, Port, Parameters);
+            new(Protocol, Transport, Host, Port, Parameters);
 
         /// <inheritdoc/>
         public bool Equals(EndpointRecord? other) =>

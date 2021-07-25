@@ -91,7 +91,7 @@ namespace IceRpc.Transports.Internal
             Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
         internal static partial void LogReceiveBufferSizeAdjusted(
             this ILogger logger,
-            TransportId transport,
+            string transport,
             int requestedSize,
             int adjustedSize);
 
@@ -127,7 +127,7 @@ namespace IceRpc.Transports.Internal
             Message = "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
         internal static partial void LogSendBufferSizeAdjusted(
             this ILogger logger,
-            TransportId transport,
+            string transport,
             int requestedSize,
             int adjustedSize);
 
