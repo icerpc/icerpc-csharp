@@ -11,6 +11,8 @@ namespace IceRpc.Internal
 {
     internal static class NewIceUriParser // TODO: rename
     {
+        public const ushort DefaultPort = 4062;
+
         private const string IceColon = "ice:";
         private const string IcePlus = "ice+";
 
@@ -91,7 +93,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParameter> parameters, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
+            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
                 uri.Query,
                 uriString);
 
@@ -103,16 +105,16 @@ namespace IceRpc.Internal
             {
                 throw new FormatException($"invalid encoding parameter in endpoint {uriString}");
             }
-            return CreateEndpoint(uri, parameters, protocol, uriString);
+            return CreateEndpoint(uri, parameters, localParameters, protocol, uriString);
         }
 
         internal static Proxy ParseProxy(string uriString)
         {
-            bool iceScheme = uriString.StartsWith("ice:", StringComparison.Ordinal);
+            bool iceScheme = uriString.StartsWith(IceColon, StringComparison.Ordinal);
 
             if (iceScheme)
             {
-                string body = uriString[4..]; // chop-off "ice:"
+                string body = uriString[IceColon.Length..]; // chop-off "ice:"
                 if (body.StartsWith("//", StringComparison.Ordinal))
                 {
                     throw new FormatException("the ice URI scheme does not support a host or port");
@@ -134,28 +136,28 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParameter> parameters, Protocol protocol, string? altEndpointValue, string? encoding) =
+            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
 
             EndpointRecord? endpoint = null;
             ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, parameters, protocol, uriString);
+                endpoint = CreateEndpoint(uri, parameters, localParameters, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
                     // Split and parse recursively each endpoint
                     foreach (string endpointStr in altEndpointValue.Split(','))
                     {
-                        if (endpointStr.StartsWith("ice:", StringComparison.Ordinal))
+                        if (endpointStr.StartsWith(IceColon, StringComparison.Ordinal))
                         {
                             throw new FormatException(
                                 $"invalid URI scheme for endpoint '{endpointStr}': must be empty or ice+transport");
                         }
 
                         string altUriString = endpointStr;
-                        if (!altUriString.StartsWith("ice+", StringComparison.Ordinal))
+                        if (!altUriString.StartsWith(IcePlus, StringComparison.Ordinal))
                         {
                             altUriString = $"{uri.Scheme}://{altUriString}";
                         }
@@ -184,6 +186,7 @@ namespace IceRpc.Internal
         private static EndpointRecord CreateEndpoint(
             Uri uri,
             List<EndpointParameter> parameters,
+            List<EndpointParameter> localParameters,
             Protocol protocol,
             string uriString)
         {
@@ -202,14 +205,16 @@ namespace IceRpc.Internal
                                       uri.Scheme[IcePlus.Length..],
                                       uri.DnsSafeHost,
                                       port,
-                                      parameters.ToImmutableList());
+                                      parameters.ToImmutableList(),
+                                      localParameters.ToImmutableList());
         }
 
-        private static (List<EndpointParameter> Parameters, Protocol Protocol, string? AltEndpoint, string? Endpoint) ParseQuery(
+        private static (List<EndpointParameter> Parameters, List<EndpointParameter> LocalParameters, Protocol Protocol, string? AltEndpoint, string? Endpoint) ParseQuery(
             string query,
             string uriString)
         {
             var parameters = new List<EndpointParameter>();
+            var localParameters = new List<EndpointParameter>();
             Protocol? protocol = null;
             string? altEndpoint = null;
             string? encoding = null;
@@ -247,22 +252,28 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    parameters.Add(new EndpointParameter(name, value));
+                    if (name[0] == '_')
+                    {
+                        localParameters.Add(new EndpointParameter(name, value));
+                    }
+                    else
+                    {
+                        parameters.Add(new EndpointParameter(name, value));
+                    }
                 }
             }
-            return (parameters, protocol ?? Protocol.Ice2, altEndpoint, encoding);
+            return (parameters, localParameters, protocol ?? Protocol.Ice2, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)
         {
-            if (!UriParser.IsKnownScheme(scheme))
+            // We need to create a GenericUriParser instance per scheme (it appears to be a requirement of the
+            // GenericUriParser implementation).
+            lock (_mutex)
             {
-                lock (_mutex)
+                if (!UriParser.IsKnownScheme(scheme))
                 {
-                    if (!UriParser.IsKnownScheme(scheme))
-                    {
-                        UriParser.Register(new GenericUriParser(ParserOptions), scheme, 4062);
-                    }
+                    UriParser.Register(new GenericUriParser(ParserOptions), scheme, DefaultPort);
                 }
             }
         }

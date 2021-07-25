@@ -36,7 +36,8 @@ namespace IceRpc
         TransportId Transport,
         string Host,
         ushort Port,
-        ImmutableList<EndpointParameter> Parameters)
+        ImmutableList<EndpointParameter> Parameters,
+        ImmutableList<EndpointParameter> LocalParameters)
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -53,6 +54,38 @@ namespace IceRpc
         public static EndpointRecord FromString(string s) =>
             NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpointRecord(s);
 
+        public static EndpointRecord FromEndpointData(EndpointData data)
+        {
+            // A remote peer should not send us local parameters. If we allowed it, and an application converts an
+            // endpoint to a string and then parses it back, a remote peer could inject local parameters.
+            foreach (EndpointParameter parameter in data.Parameters)
+            {
+                string name = parameter.Name;
+                if (name.Length == 0 ||
+                    (data.Protocol == Protocol.Ice1 && name.StartsWith("--")) ||
+                    (data.Protocol != Protocol.Ice1 && name[0] == '_'))
+                {
+                    throw new InvalidDataException($"received endpoint with invalid local parameter '{name}'");
+                }
+            }
+
+            return new EndpointRecord(data.Protocol,
+                                      data.TransportName,
+                                      data.Host,
+                                      data.Port,
+                                      data.Parameters.ToImmutableList(),
+                                      ImmutableList<EndpointParameter>.Empty);
+        }
+
+        public static EndpointData ToEndpointData(EndpointRecord endpoint) =>
+            new(endpoint.Protocol,
+                endpoint.Transport.Name,
+                TransportCode.Universal,
+                endpoint.Host,
+                endpoint.Port,
+                ImmutableList<string>.Empty,
+                endpoint.Parameters);
+
         /// <inheritdoc/>
         public bool Equals(EndpointRecord? other) =>
                    other != null &&
@@ -60,7 +93,8 @@ namespace IceRpc
                    Transport == other.Transport &&
                    Host == other.Host &&
                    Port == other.Port &&
-                   Parameters.SequenceEqual(other.Parameters);
+                   Parameters.SequenceEqual(other.Parameters) &&
+                   LocalParameters.SequenceEqual(other.LocalParameters);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -71,6 +105,7 @@ namespace IceRpc
             hash.Add(Host);
             hash.Add(Port);
             hash.Add(Parameters.GetSequenceHashCode());
+            hash.Add(LocalParameters.GetSequenceHashCode());
             return hash.ToHashCode();
         }
 
@@ -101,6 +136,16 @@ namespace IceRpc
                 sb.Append(Port.ToString(CultureInfo.InvariantCulture));
 
                 foreach ((string name, string value) in Parameters)
+                {
+                    sb.Append(' ');
+                    sb.Append(name);
+                    if (value.Length > 0)
+                    {
+                        sb.Append(' ');
+                        sb.Append(value);
+                    }
+                }
+                foreach ((string name, string value) in LocalParameters)
                 {
                     sb.Append(' ');
                     sb.Append(name);
@@ -160,7 +205,7 @@ namespace IceRpc
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != 4062) // TODO constant
+            if (endpoint.Port != NewIceUriParser.DefaultPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));
@@ -180,6 +225,13 @@ namespace IceRpc
                 sb.Append(endpoint.Protocol.GetName());
             }
             foreach ((string name, string value) in endpoint.Parameters)
+            {
+                AppendQueryOption();
+                sb.Append(name);
+                sb.Append('=');
+                sb.Append(value);
+            }
+            foreach ((string name, string value) in endpoint.LocalParameters)
             {
                 AppendQueryOption();
                 sb.Append(name);

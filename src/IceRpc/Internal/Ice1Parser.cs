@@ -36,6 +36,7 @@ namespace IceRpc.Internal
             string? host = null;
             ushort? port = null;
             var parameters = new List<EndpointParameter>();
+            var localParameters = new List<EndpointParameter>();
 
             // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
@@ -86,7 +87,14 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    parameters.Add(new EndpointParameter(name, value));
+                    if (name.StartsWith("--"))
+                    {
+                        localParameters.Add(new EndpointParameter(name, value));
+                    }
+                    else
+                    {
+                        parameters.Add(new EndpointParameter(name, value));
+                    }
                 }
             }
 
@@ -94,7 +102,8 @@ namespace IceRpc.Internal
                                       transportName,
                                       host ?? "",
                                       port ?? 0,
-                                      parameters.ToImmutableList());
+                                      parameters.ToImmutableList(),
+                                      localParameters.ToImmutableList());
         }
 
         /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>

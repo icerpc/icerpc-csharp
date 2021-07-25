@@ -9,7 +9,7 @@ namespace IceRpc
     public sealed class TransportId : IEquatable<TransportId>
     {
         private static readonly IReadOnlyDictionary<string, TransportId> _wellKnownIds =
-            new string[] { "coloc", "quic", "loc", "ssl", "tcp", "udp" }.ToDictionary(
+            new[] { "coloc", "quic", "loc", "ssl", "tcp", "udp" }.ToDictionary(
                 name => name,
                 name => new TransportId(name, wellKnown: true));
 
