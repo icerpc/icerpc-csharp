@@ -10,7 +10,14 @@
 
 module IceRpc
 {
-    // dictionary<string, string> EndpointOptions;
+    [cs:readonly]
+    struct EndpointParameter
+    {
+        string name;
+        string value;
+    }
+
+    sequence<EndpointParameter> EndpointParameterSeq;
 
     /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
@@ -32,8 +39,10 @@ module IceRpc
         /// For Bluetooth RFCOMM, it's always 0.
         ushort port;
 
-        /// The encoded options of this endpoint. Often empty.
         StringSeq options;
+
+        /// The name-value parameters.
+        EndpointParameterSeq parameters;
     }
 
     // Sequence of EndpointData (temporary).

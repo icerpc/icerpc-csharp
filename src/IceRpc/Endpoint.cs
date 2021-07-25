@@ -7,19 +7,36 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace IceRpc
 {
+    // temporary
+    public partial struct EndpointData
+    {
+        public EndpointData(Protocol protocol, string transportName, TransportCode transportCode, string host, ushort port, IList<string> options)
+            : this(protocol, transportName, transportCode, host, port, options, ImmutableList<EndpointParameter>.Empty)
+        {
+        }
+    }
+
+    public partial struct EndpointParameter
+    {
+        public void Deconstruct(out string name, out string value)
+        {
+            name = Name;
+            value = Value;
+        }
+    }
+
     /// <summary>An endpoint describes...</summary>
     public sealed record EndpointRecord(
         Protocol Protocol,
-        string TransportName,
+        TransportId Transport,
         string Host,
         ushort Port,
-        ImmutableDictionary<string, string> Options,
-        ImmutableDictionary<string, string> LocalOptions
-    )
+        ImmutableList<EndpointParameter> Parameters)
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -40,22 +57,20 @@ namespace IceRpc
         public bool Equals(EndpointRecord? other) =>
                    other != null &&
                    Protocol == other.Protocol &&
-                   TransportName == other.TransportName &&
+                   Transport == other.Transport &&
                    Host == other.Host &&
                    Port == other.Port &&
-                   Options.DictionaryEqual(other.Options) &&
-                   LocalOptions.DictionaryEqual(other.LocalOptions);
+                   Parameters.SequenceEqual(other.Parameters);
 
         /// <inheritdoc/>
         public override int GetHashCode()
         {
             var hash = new HashCode();
             hash.Add(Protocol);
-            hash.Add(TransportName);
+            hash.Add(Transport);
             hash.Add(Host);
             hash.Add(Port);
-            hash.Add(Options.Count);
-            hash.Add(LocalOptions.Count);
+            hash.Add(Parameters.GetSequenceHashCode());
             return hash.ToHashCode();
         }
 
@@ -65,7 +80,7 @@ namespace IceRpc
             var sb = new StringBuilder();
             if (Protocol == Protocol.Ice1)
             {
-                sb.Append(TransportName);
+                sb.Append(Transport);
 
                 if (Host.Length > 0)
                 {
@@ -85,20 +100,15 @@ namespace IceRpc
                 sb.Append(" -p ");
                 sb.Append(Port.ToString(CultureInfo.InvariantCulture));
 
-                foreach ((string key, string value) in Options)
+                foreach ((string name, string value) in Parameters)
                 {
-                    sb.Append(" -");
-                    sb.Append(key);
                     sb.Append(' ');
-                    sb.Append(value);
-                }
-
-                foreach ((string key, string value) in LocalOptions)
-                {
-                    sb.Append(" --");
-                    sb.Append(key);
-                    sb.Append(' ');
-                    sb.Append(value);
+                    sb.Append(name);
+                    if (value.Length > 0)
+                    {
+                        sb.Append(' ');
+                        sb.Append(value);
+                    }
                 }
 
                 return sb.ToString();
@@ -135,7 +145,7 @@ namespace IceRpc
             if (includeScheme)
             {
                 sb.Append("ice+");
-                sb.Append(endpoint.TransportName);
+                sb.Append(endpoint.Transport);
                 sb.Append("://");
             }
 
@@ -169,21 +179,13 @@ namespace IceRpc
                 sb.Append("protocol=");
                 sb.Append(endpoint.Protocol.GetName());
             }
-            foreach ((string key, string value) in endpoint.Options)
+            foreach ((string name, string value) in endpoint.Parameters)
             {
                 AppendQueryOption();
-                sb.Append(key);
+                sb.Append(name);
                 sb.Append('=');
                 sb.Append(value);
             }
-            foreach ((string key, string value) in endpoint.LocalOptions)
-            {
-                AppendQueryOption();
-                sb.Append(key);
-                sb.Append('=');
-                sb.Append(value);
-            }
-
             return sb;
 
             void AppendQueryOption()

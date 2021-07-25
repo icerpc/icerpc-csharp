@@ -33,83 +33,68 @@ namespace IceRpc.Internal
                 transportName = "tcp";
             }
 
-            var options = new Dictionary<string, string>();
-            var localOptions = new Dictionary<string, string>();
+            string? host = null;
+            ushort? port = null;
+            var parameters = new List<EndpointParameter>();
 
-            // Parse args into options (and skip transportName at args[0])
+            // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
             {
-                // Any option with < 2 characters or that does not start with - is illegal
-                string option = args[n];
-                if (option.Length < 2 || option[0] != '-')
+                // Any name with < 2 characters or that does not start with - is illegal
+                string name = args[n];
+                if (name.Length < 2 || name[0] != '-')
                 {
-                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
+                    throw new FormatException($"invalid parameter name '{name}' in endpoint '{endpointString}'");
                 }
 
-                // Extract the argument given to the current option, if any
-                string? argument = null;
+                // Extract the value given to the current option, if any
+                string value = "";
                 if (n + 1 < args.Length && args[n + 1][0] != '-')
                 {
-                    argument = args[++n];
+                    value = args[++n];
                 }
 
-                try
+                if (name == "-h")
                 {
-                    if (option.StartsWith("--", StringComparison.Ordinal))
+                    if (host != null)
                     {
-                        localOptions.Add(option[2..], argument ?? "");
+                        throw new FormatException($"too many -h parameters in endpoint '{endpointString}'");
+                    }
+                    else if (value.Length == 0)
+                    {
+                        throw new FormatException($"invalid empty host value in endpoint '{endpointString}'");
+                    }
+                    else if (value == "*")
+                    {
+                        host = "::0";
                     }
                     else
                     {
-                        options.Add(option[1..], argument ?? "");
+                        host = value;
                     }
                 }
-                catch (ArgumentException)
+                else if (name == "-p")
                 {
-                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
+                    if (port != null)
+                    {
+                        throw new FormatException($"too many -h parameters in endpoint '{endpointString}'");
+                    }
+                    else
+                    {
+                        port = ushort.Parse(value, CultureInfo.InvariantCulture);
+                    }
                 }
-            }
-
-            // Extract host and port
-
-            ushort port = 0;
-
-            if (options.TryGetValue("h", out string? host))
-            {
-                if (host == "*")
+                else
                 {
-                    host = "::0";
+                    parameters.Add(new EndpointParameter(name, value));
                 }
-                else if (host.Length == 0)
-                {
-                    throw new FormatException($"invalid empty host value in endpoint '{endpointString}'");
-                }
-                options.Remove("h");
-            }
-            else
-            {
-                host = "";
-            }
-
-            if (options.TryGetValue("p", out string? portString))
-            {
-                try
-                {
-                    port = ushort.Parse(portString, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException ex)
-                {
-                    throw new FormatException($"invalid port value '{portString}' in endpoint '{endpointString}'", ex);
-                }
-                options.Remove("p");
             }
 
             return new EndpointRecord(Protocol.Ice1,
                                       transportName,
-                                      host,
-                                      port,
-                                      options.ToImmutableDictionary(),
-                                      localOptions.ToImmutableDictionary());
+                                      host ?? "",
+                                      port ?? 0,
+                                      parameters.ToImmutableList());
         }
 
         /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>

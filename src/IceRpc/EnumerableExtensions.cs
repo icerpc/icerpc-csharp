@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace IceRpc
 {
@@ -23,15 +24,10 @@ namespace IceRpc
         /// <returns>A hash code computed using the sequence's elements.</returns>
         public static int GetSequenceHashCode<T>(this IEnumerable<T> sequence, IEqualityComparer<T>? comparer)
         {
-            comparer ??= EqualityComparer<T>.Default;
-
             var hash = new HashCode();
             foreach (T element in sequence)
             {
-                if (element != null)
-                {
-                    hash.Add(comparer.GetHashCode(element));
-                }
+                hash.Add(element == null ? 0 : comparer?.GetHashCode(element) ?? element.GetHashCode());
             }
             return hash.ToHashCode();
         }

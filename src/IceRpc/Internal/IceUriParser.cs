@@ -91,10 +91,19 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (Dictionary<string, string> options, Dictionary<string, string> localOptions) =
-                ParseQuery(uri.Query, uriString);
+            (List<EndpointParameter> parameters, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
+                uri.Query,
+                uriString);
 
-            return CreateEndpoint(uri, options, localOptions, uriString);
+            if (altEndpoint != null)
+            {
+                throw new FormatException($"invalid alt-endpoint parameter in endpoint {uriString}");
+            }
+            else if (encoding != null)
+            {
+                throw new FormatException($"invalid encoding parameter in endpoint {uriString}");
+            }
+            return CreateEndpoint(uri, parameters, protocol, uriString);
         }
 
         internal static Proxy ParseProxy(string uriString)
@@ -125,23 +134,14 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (Dictionary<string, string> options, Dictionary<string, string> localOptions) =
+            (List<EndpointParameter> parameters, Protocol protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
-
-            if (options.TryGetValue("alt-endpoint", out string? altEndpointValue))
-            {
-                options.Remove("alt-endpoint");
-            }
-            if (options.TryGetValue("encoding", out string? encodingValue))
-            {
-                options.Remove("encoding");
-            }
 
             EndpointRecord? endpoint = null;
             ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, options, localOptions, uriString);
+                endpoint = CreateEndpoint(uri, parameters, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -183,29 +183,13 @@ namespace IceRpc.Internal
 
         private static EndpointRecord CreateEndpoint(
             Uri uri,
-            Dictionary<string, string> options,
-            Dictionary<string, string> localOptions,
+            List<EndpointParameter> parameters,
+            Protocol protocol,
             string uriString)
         {
             if (uri.AbsolutePath.Length > 1)
             {
                 throw new FormatException($"endpoint '{uriString}' cannot define a path");
-            }
-            if (options.ContainsKey("alt-endpoint"))
-            {
-                throw new FormatException($"invalid alt-endpoint option in endpoint '{uriString}'");
-            }
-            if (options.ContainsKey("encoding"))
-            {
-                throw new FormatException($"invalid encoding option in endpoint '{uriString}'");
-            }
-
-            Protocol protocol = Protocol.Ice2;
-
-            if (options.TryGetValue("protocol", out string? protocolValue))
-            {
-                protocol = ProtocolExtensions.Parse(protocolValue);
-                options.Remove("protocol");
             }
 
             ushort port;
@@ -218,51 +202,55 @@ namespace IceRpc.Internal
                                       uri.Scheme[IcePlus.Length..],
                                       uri.DnsSafeHost,
                                       port,
-                                      options.ToImmutableDictionary(),
-                                      localOptions.ToImmutableDictionary());
+                                      parameters.ToImmutableList());
         }
 
-        private static (Dictionary<string, string> Options, Dictionary<string, string> LocalOptions) ParseQuery(
+        private static (List<EndpointParameter> Parameters, Protocol Protocol, string? AltEndpoint, string? Endpoint) ParseQuery(
             string query,
             string uriString)
         {
-            Dictionary<string, string> options = new();
-            Dictionary<string, string> localOptions = new();
+            var parameters = new List<EndpointParameter>();
+            Protocol? protocol = null;
+            string? altEndpoint = null;
+            string? encoding = null;
 
             string[] nvPairs = query.Length >= 2 ? query.TrimStart('?').Split('&') : Array.Empty<string>();
 
             foreach (string p in nvPairs)
             {
                 int equalPos = p.IndexOf('=', StringComparison.Ordinal);
-                if (equalPos <= 0 || equalPos == p.Length - 1)
+                if (equalPos <= 0)
                 {
-                    throw new FormatException($"invalid option '{p}'");
+                    throw new FormatException($"invalid query parameter '{p}' in URI {uriString}");
                 }
                 string name = p[..equalPos];
                 string value = p[(equalPos + 1)..];
 
-                if (name[0] == '_')
+                if (name == "alt-endpoint")
                 {
-                    Append(name, value, localOptions);
+                    altEndpoint = altEndpoint == null ? value : $"{altEndpoint},{value}";
                 }
-                else
+                else if (name == "encoding")
                 {
-                    Append(name, value, options);
+                    encoding = encoding == null ? value :
+                        throw new FormatException($"too many encoding query parameters in URI {uriString}");
                 }
-            }
-            return (options, localOptions);
+                else if (name == "protocol")
+                {
+                    protocol = protocol == null ? ProtocolExtensions.Parse(value) :
+                        throw new FormatException($"too many protocol query parameters in URI {uriString}");
 
-            static void Append(string name, string value, Dictionary<string, string> options)
-            {
-                if (options.TryGetValue(name, out string? existingValue))
-                {
-                    options[name] = $"{existingValue},{value}";
+                    if (protocol.Value == Protocol.Ice1)
+                    {
+                        throw new FormatException($"invalid protocol value in URI {uriString}");
+                    }
                 }
                 else
                 {
-                    options.Add(name, value);
+                    parameters.Add(new EndpointParameter(name, value));
                 }
             }
+            return (parameters, protocol ?? Protocol.Ice2, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)
