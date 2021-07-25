@@ -87,7 +87,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (name.StartsWith("--"))
+                    if (name.StartsWith("--", StringComparison.Ordinal))
                     {
                         localParameters.Add(new EndpointParameter(name, value));
                     }

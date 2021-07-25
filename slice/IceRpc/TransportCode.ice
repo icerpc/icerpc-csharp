@@ -17,7 +17,7 @@ module IceRpc
         /// with the transport name. TODO: change value to -1?
         Any = -2,
 
-        /// Loc pseudo-transport. TODO: remove & use Any
+        /// Loc pseudo-transport. TODO: remove and use Any
         Loc = -1,
 
         /// Colocated transport. TODO: remove since we should never encode a coloc endpoint.
