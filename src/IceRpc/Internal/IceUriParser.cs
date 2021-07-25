@@ -267,12 +267,11 @@ namespace IceRpc.Internal
 
         private static void TryAddScheme(string scheme)
         {
-            // We need to create a GenericUriParser instance per scheme (it appears to be a requirement of the
-            // GenericUriParser implementation).
             lock (_mutex)
             {
                 if (!UriParser.IsKnownScheme(scheme))
                 {
+                    // UriParser.Register requires a separate UriParser instance per scheme.
                     UriParser.Register(new GenericUriParser(ParserOptions), scheme, DefaultPort);
                 }
             }

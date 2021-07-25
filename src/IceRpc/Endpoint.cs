@@ -19,6 +19,12 @@ namespace IceRpc
             : this(protocol, transportName, transportCode, host, port, options, ImmutableList<EndpointParameter>.Empty)
         {
         }
+
+        // the future generated ctor
+        public EndpointData(Protocol protocol, string transportName, string host, ushort port, IList<EndpointParameter> parameters)
+            : this(protocol, transportName, TransportCode.Any, host, port, ImmutableList<string>.Empty, parameters)
+        {
+        }
     }
 
     public partial struct EndpointParameter
@@ -54,36 +60,22 @@ namespace IceRpc
         public static EndpointRecord FromString(string s) =>
             NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpointRecord(s);
 
-        public static EndpointRecord FromEndpointData(EndpointData data)
-        {
-            // A remote peer should not send us local parameters. If we allowed it, and an application converts an
-            // endpoint to a string and then parses it back, a remote peer could inject local parameters.
-            foreach (EndpointParameter parameter in data.Parameters)
-            {
-                string name = parameter.Name;
-                if (name.Length == 0 ||
-                    (data.Protocol == Protocol.Ice1 && name.StartsWith("--")) ||
-                    (data.Protocol != Protocol.Ice1 && name[0] == '_'))
-                {
-                    throw new InvalidDataException($"received endpoint with invalid local parameter '{name}'");
-                }
-            }
-
-            return new EndpointRecord(data.Protocol,
-                                      data.TransportName,
-                                      data.Host,
-                                      data.Port,
-                                      data.Parameters.ToImmutableList(),
-                                      ImmutableList<EndpointParameter>.Empty);
-        }
+        /// <remarks>We don't validate the data received from a peer because if we establish a connection to this
+        /// endpoint, we necessarily trust the peer who sent us this data; ensuring that an endpoint is safe to
+        /// connect to requires application-specific knowledge.</remarks>
+        public static EndpointRecord FromEndpointData(EndpointData data) =>
+            new EndpointRecord(data.Protocol,
+                               data.TransportName,
+                               data.Host,
+                               data.Port,
+                               data.Parameters.ToImmutableList(),
+                               ImmutableList<EndpointParameter>.Empty);
 
         public static EndpointData ToEndpointData(EndpointRecord endpoint) =>
             new(endpoint.Protocol,
                 endpoint.Transport.Name,
-                TransportCode.Universal,
                 endpoint.Host,
                 endpoint.Port,
-                ImmutableList<string>.Empty,
                 endpoint.Parameters);
 
         /// <inheritdoc/>
