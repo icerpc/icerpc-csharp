@@ -259,6 +259,8 @@ namespace IceRpc
         /// </exception>
         public static implicit operator Endpoint(string s) => FromString(s);
 
+        public static implicit operator Endpoint(EndpointRecord endpointRecord) => FromString(endpointRecord.ToString());
+
         /// <summary>Creates an endpoint from its string representation.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>

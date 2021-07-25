@@ -33,9 +33,6 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public IListener CreateListener(ServerConnectionOptions options, ILogger logger) =>
-            new ColocListener(this, options, logger);
-
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
 

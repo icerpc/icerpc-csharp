@@ -13,5 +13,12 @@ namespace IceRpc.Transports
             : base($"unknown transport {transport}")
         {
         }
+
+        /// <summary>Constructs a new instance of the <see cref="UnknownTransportException"/> class.</summary>
+        /// <param name="transport">The transport.</param>
+        public UnknownTransportException(TransportId transport)
+            : base($"unknown transport {transport}")
+        {
+        }
     }
 }

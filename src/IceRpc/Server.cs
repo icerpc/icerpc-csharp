@@ -24,10 +24,10 @@ namespace IceRpc
         public static IServerTransport DefaultServerTransport { get; } =
             new CompositeServerTransport
             {
-                [TransportCode.TCP] = new TcpServerTransport(),
-                [TransportCode.SSL] = new TcpServerTransport(),
-                [TransportCode.Coloc] = new ColocServerTransport(),
-                [TransportCode.UDP] = new UdpServerTransport()
+                ["tcp"] = new TcpServerTransport(),
+                ["ssl"] = new TcpServerTransport(),
+                ["coloc"] = new ColocServerTransport(),
+                ["udp"] = new UdpServerTransport()
             };
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
@@ -42,7 +42,7 @@ namespace IceRpc
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
-        public Endpoint? Endpoint
+        public EndpointRecord? Endpoint
         {
             get => _endpoint;
             set
@@ -82,7 +82,7 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private Endpoint? _endpoint;
+        private EndpointRecord? _endpoint;
 
         private IListener? _listener;
 
@@ -151,7 +151,7 @@ namespace IceRpc
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = multiStreamConnection.LocalEndpoint!;
+                    _endpoint = EndpointRecord.FromString(multiStreamConnection.LocalEndpoint!.ToString());
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);

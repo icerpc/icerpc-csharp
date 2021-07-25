@@ -3,27 +3,54 @@
 using Microsoft.Extensions.Logging;
 using IceRpc.Transports.Internal;
 using System;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
     public class TcpServerTransport : IServerTransport
     {
-        /// <inheritdoc/>
         public (IListener?, MultiStreamConnection?) Listen(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ServerConnectionOptions options,
             ILogger logger)
         {
-            if (endpoint is TcpEndpoint tcpEndpoint)
+            // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
+            // a tcp or ssl endpoint regardless of its actual transport ID.
+
+            if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {
-                // TODO: temporary
-                return (tcpEndpoint.CreateListener(options, logger), null);
+                throw new NotSupportedException(
+                    $"endpoint '{endpoint}' cannot accept connections because it has a DNS name");
             }
-            else
+
+            var address = new IPEndPoint(ipAddress, endpoint.Port);
+            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            try
             {
-                throw new ArgumentException("endpoint is not a TCP endpoint", nameof(endpoint));
+                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+                if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                socket.ExclusiveAddressUse = true;
+
+                socket.SetBufferSize(tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, endpoint.Transport, logger);
+
+                socket.Bind(address);
+                address = (IPEndPoint)socket.LocalEndPoint!;
+                socket.Listen(tcpOptions.ListenerBackLog);
             }
+            catch (SocketException ex)
+            {
+                socket.Dispose();
+                throw new TransportException(ex);
+            }
+
+            return (new IceRpc.Transports.Internal.TcpListener(socket, endpoint: endpoint with { Port = (ushort)address.Port }, logger, options), null);
         }
     }
 }

@@ -78,9 +78,20 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
             Level = LogLevel.Debug,
             Message = "{TransportCode} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void LogReceiveBufferSizeAdjusted(
+        internal static partial void OldLogReceiveBufferSizeAdjusted(
             this ILogger logger,
             TransportCode transportCode,
+            int requestedSize,
+            int adjustedSize);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.ReceiveBufferSizeAdjusted,
+            EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
+            Level = LogLevel.Debug,
+            Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+        internal static partial void LogReceiveBufferSizeAdjusted(
+            this ILogger logger,
+            TransportId transport,
             int requestedSize,
             int adjustedSize);
 
@@ -103,9 +114,20 @@ namespace IceRpc.Transports.Internal
             EventName = nameof(TransportEvent.SendBufferSizeAdjusted),
             Level = LogLevel.Debug,
             Message = "{TransportCode} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void LogSendBufferSizeAdjusted(
+        internal static partial void OldLogSendBufferSizeAdjusted(
             this ILogger logger,
             TransportCode transportCode,
+            int requestedSize,
+            int adjustedSize);
+
+        [LoggerMessage(
+            EventId = (int)TransportEvent.SendBufferSizeAdjusted,
+            EventName = nameof(TransportEvent.SendBufferSizeAdjusted),
+            Level = LogLevel.Debug,
+            Message = "{Transport} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
+        internal static partial void LogSendBufferSizeAdjusted(
+            this ILogger logger,
+            TransportId transport,
             int requestedSize,
             int adjustedSize);
 

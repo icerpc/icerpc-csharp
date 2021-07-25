@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
                 socket.ReceiveBufferSize = receiveSize.Value;
                 if (socket.ReceiveBufferSize != receiveSize)
                 {
-                    logger.LogReceiveBufferSizeAdjusted(transport, receiveSize.Value, socket.ReceiveBufferSize);
+                    logger.OldLogReceiveBufferSizeAdjusted(transport, receiveSize.Value, socket.ReceiveBufferSize);
                 }
             }
 
@@ -68,7 +68,7 @@ namespace IceRpc.Transports.Internal
                 socket.SendBufferSize = sendSize.Value;
                 if (socket.SendBufferSize != sendSize)
                 {
-                    logger.LogSendBufferSizeAdjusted(transport, sendSize.Value, socket.SendBufferSize);
+                    logger.OldLogSendBufferSizeAdjusted(transport, sendSize.Value, socket.SendBufferSize);
                 }
             }
         }

@@ -77,41 +77,6 @@ namespace IceRpc.Transports.Internal
             return NetworkSocketConnection.FromNetworkSocket(tcpSocket, this, options);
         }
 
-        public IListener CreateListener(ServerConnectionOptions options, ILogger logger)
-        {
-            if (HasDnsHost)
-            {
-                throw new NotSupportedException(
-                    $"endpoint '{this}' cannot accept connections because it has a DNS name");
-            }
-
-            var address = new IPEndPoint(Address, Port);
-            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                socket.ExclusiveAddressUse = true;
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, TransportCode, logger);
-
-                socket.Bind(address);
-                address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(tcpOptions.ListenerBackLog);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-
-            return new TcpListener(socket, endpoint: Clone((ushort)address.Port), logger, options);
-        }
-
         public override bool Equals(Endpoint? other)
         {
             if (ReferenceEquals(this, other))

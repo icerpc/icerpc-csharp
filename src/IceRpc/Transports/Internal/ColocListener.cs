@@ -15,14 +15,14 @@ namespace IceRpc.Transports.Internal
     /// <summary>The IListener implementation for the colocated transport.</summary>
     internal class ColocListener : IListener
     {
-        public Endpoint Endpoint => _endpoint;
+        public EndpointRecord Endpoint => _endpoint;
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
-        private static readonly IDictionary<ColocEndpoint, ColocListener> _colocListenerDictionary =
-            new ConcurrentDictionary<ColocEndpoint, ColocListener>();
+        private static readonly IDictionary<EndpointRecord, ColocListener> _colocListenerDictionary =
+            new ConcurrentDictionary<EndpointRecord, ColocListener>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
-        private readonly ColocEndpoint _endpoint;
+        private readonly EndpointRecord _endpoint;
         private readonly ILogger _logger;
         // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
         private long _nextId;
@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocConnection(_endpoint, id, writer, reader, _options, _logger);
+            return new ColocConnection((ColocEndpoint)IceRpc.Endpoint.FromString(_endpoint.ToString()), id, writer, reader, _options, _logger);
         }
 
         public void Dispose()
@@ -45,11 +45,11 @@ namespace IceRpc.Transports.Internal
         public override string ToString() => $"{base.ToString()} {_endpoint}";
 
         internal static bool TryGetValue(
-            ColocEndpoint endpoint,
+            Endpoint endpoint,
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
-            _colocListenerDictionary.TryGetValue(endpoint, out listener);
+            _colocListenerDictionary.TryGetValue(EndpointRecord.FromString(endpoint.ToString()), out listener);
 
-        internal ColocListener(ColocEndpoint endpoint, ServerConnectionOptions options, ILogger logger)
+        internal ColocListener(EndpointRecord endpoint, ServerConnectionOptions options, ILogger logger)
         {
             _endpoint = endpoint;
             _logger = logger;

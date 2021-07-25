@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace IceRpc.Internal
@@ -31,6 +32,12 @@ namespace IceRpc.Internal
             if (transportName == "default")
             {
                 transportName = "tcp";
+            }
+            else if (transportName.Length == 0 ||
+                    !char.IsLetter(transportName, 0) ||
+                    !transportName.Skip(1).All(c => char.IsLetterOrDigit(c)))
+            {
+                throw new FormatException($"invalid transport name '{transportName}' in endpoint '{endpointString}");
             }
 
             string? host = null;

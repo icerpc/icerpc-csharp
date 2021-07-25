@@ -456,8 +456,17 @@ namespace IceRpc.Internal
         /// <summary>Registers an ice+transport scheme.</summary>
         /// <param name="transportName">The name of the transport (cannot be empty).</param>
         /// <param name="defaultPort">The default port for this transport.</param>
-        internal static void RegisterTransport(string transportName, ushort defaultPort) =>
-            System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
+        internal static void RegisterTransport(string transportName, ushort defaultPort)
+        {
+            try
+            {
+                System.UriParser.Register(new GenericUriParser(ParserOptions), $"ice+{transportName}", defaultPort);
+            }
+            catch
+            {
+                // ignored
+            }
+        }
 
         private static Endpoint CreateEndpoint(Dictionary<string, string> options, Uri uri)
         {
