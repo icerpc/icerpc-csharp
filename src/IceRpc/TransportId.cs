@@ -1,20 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace IceRpc
 {
-    public sealed class TransportId : IEquatable<TransportId>
+    public readonly struct TransportId : IEquatable<TransportId>
     {
-        private static readonly IReadOnlyDictionary<string, TransportId> _wellKnownIds =
-            new[] { "coloc", "quic", "loc", "ssl", "tcp", "udp" }.ToDictionary(
-                name => name,
-                name => new TransportId(name, wellKnown: true));
-
-        public string Name { get; }
-        private readonly bool _isWellKnown;
+        public readonly string Name;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -30,26 +22,20 @@ namespace IceRpc
 
         public static implicit operator TransportId(string s) => FromString(s);
 
-        public static TransportId FromString(string s) =>
-            _wellKnownIds.TryGetValue(s, out TransportId? transportId) ? transportId : new TransportId(s);
+        public static TransportId FromString(string s) => new TransportId(s);
 
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is TransportId value && this.Equals(value);
 
         /// <inheritdoc/>
-        public bool Equals(TransportId? other) => _isWellKnown ? base.Equals(other) : Name == other?.Name;
+        public bool Equals(TransportId other) => Name.Equals(other.Name);
 
         /// <inheritdoc/>
-        public override int GetHashCode() =>
-            _isWellKnown ? base.GetHashCode() : Name.GetHashCode(StringComparison.Ordinal);
+        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
 
         /// <inheritdoc/>
         public override string ToString() => Name;
 
-        private TransportId(string name, bool wellKnown = false)
-        {
-            Name = name;
-            _isWellKnown = wellKnown;
-        }
+        private TransportId(string name) => Name = string.IsInterned(name) ?? name;
     }
 }

@@ -20,7 +20,7 @@ module IceRpc
         /// Loc pseudo-transport. TODO: remove & use Any
         Loc = -1,
 
-        /// Colocated transport. TODO: remove
+        /// Colocated transport. TODO: remove since we should never encode a coloc endpoint.
         Coloc = 0,
 
         /// TCP transport.
