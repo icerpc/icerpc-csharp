@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -913,12 +914,12 @@ namespace IceRpc
         /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
-        internal Endpoint DecodeEndpoint11(Protocol protocol)
+        internal EndpointRecord DecodeEndpoint11(Protocol protocol)
         {
             Debug.Assert(OldEncoding);
             Debug.Assert(Connection != null);
 
-            Endpoint? endpoint;
+            EndpointRecord? endpoint;
 
             TransportCode transportCode = this.DecodeTransportCode();
 
@@ -948,22 +949,33 @@ namespace IceRpc
 
                     if (endpoint == null)
                     {
-                        endpoint = OpaqueEndpoint.Create(transportCode,
-                                                         encoding,
-                                                         _buffer.Slice(Pos, size));
+                        var parameters = ImmutableList.Create(
+                            new EndpointParameter("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                            new EndpointParameter("-e", encoding.ToString()),
+                            new EndpointParameter("-v", Convert.ToBase64String( _buffer.Slice(Pos, size).Span)));
+
+                        endpoint = new EndpointRecord(
+                            protocol,
+                            TransportId.Opaque,
+                            Host: "",
+                            Port: 0,
+                            parameters,
+                            LocalParameters: ImmutableList<EndpointParameter>.Empty);
+
                         Pos += size;
                     }
                 }
+                else if (transportCode == TransportCode.Any)
+                {
+                    // Encoded as an endpoint data
+                    endpoint = EndpointRecord.FromEndpointData(new EndpointData(this));
+                }
                 else
                 {
-                    var data = new EndpointData(protocol,
-                                                transportCode.ToString().ToLowerInvariant(),
-                                                transportCode,
-                                                host: DecodeString(),
-                                                port: DecodeUShort(),
-                                                options: DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc));
-
-                    endpoint = Connection.EndpointCodex.CreateEndpoint(data, protocol);
+                    string transportName = transportCode.ToString().ToLowerInvariant();
+                    throw new InvalidDataException(
+                        @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
+                        }' with endpoint encapsulation encoded with encoding '{encoding}'");
                 }
 
                 // Make sure we read the full encapsulation.
@@ -974,7 +986,6 @@ namespace IceRpc
             }
             else
             {
-                // TODO
                 string transportName = transportCode.ToString().ToLowerInvariant();
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName

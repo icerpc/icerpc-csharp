@@ -29,7 +29,8 @@ namespace IceRpc.Transports
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport ID.
 
-            (int _, string? multicastInterface) = ParseUdpParameters(endpoint); // can throw FormatException
+            _ = ParseUdpParameters(endpoint); // can throw FormatException
+            (int _, string? multicastInterface) = ParseLocalUdpParameters(endpoint);
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

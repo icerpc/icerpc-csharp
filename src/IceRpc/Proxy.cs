@@ -453,7 +453,7 @@ namespace IceRpc
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
                 Endpoint[] endpointArray =
-                    decoder.DecodeArray(minElementSize: 8, decoder => decoder.DecodeEndpoint11(proxyData.Protocol));
+                    decoder.DecodeArray(minElementSize: 8, decoder => Endpoint.FromString(decoder.DecodeEndpoint11(proxyData.Protocol).ToString()));
 
                 Endpoint? endpoint = null;
                 IEnumerable<Endpoint> altEndpoints;
@@ -552,11 +552,11 @@ namespace IceRpc
                 Endpoint? endpoint = null;
                 if (proxyData.Endpoint is EndpointData data)
                 {
-                    endpoint = decoder.Connection.EndpointCodex.CreateEndpoint(data, protocol);
+                    endpoint = Endpoint.FromString(EndpointRecord.FromEndpointData(data).ToString());
                 }
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(
-                        data => decoder.Connection.EndpointCodex.CreateEndpoint(data, protocol))?.ToImmutableList() ??
+                        data => Endpoint.FromString(EndpointRecord.FromEndpointData(data).ToString())).ToImmutableList() ??
                         ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
@@ -694,7 +694,8 @@ namespace IceRpc
                     if (endpoints.Any())
                     {
                         encoder.EncodeSequence(endpoints,
-                                              (encoder, endpoint) => EndpointEncoder.EncodeEndpoint(endpoint, encoder));
+                                              (encoder, endpoint) =>
+                                                    EndpointEncoder.EncodeEndpoint(EndpointRecord.FromString(endpoint.ToString()), encoder));
                     }
                     else // encoded as an endpointless proxy
                     {

@@ -7,6 +7,10 @@ namespace IceRpc
     /// <summary>Provides a typed holder for a transport name.</summary>
     public readonly struct TransportId : IEquatable<TransportId>
     {
+        public static readonly TransportId Coloc = new("coloc");
+        public static readonly TransportId Loc = new("loc");
+        public static readonly TransportId Opaque = new("opaque");
+
         /// <summary>The transport's name, for example "tcp".</summary>
         public readonly string Name;
 

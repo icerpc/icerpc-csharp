@@ -5,61 +5,48 @@ using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace IceRpc.Transports.Interop
 {
     public interface IEndpointDecoder
     {
-        Endpoint CreateEndpoint(EndpointData data, Protocol protocol); // temporary
-
         /// <summary>Decodes an endpoint encoded using the Ice 1.1 encoding.</summary>
         /// <param name="transportCode">The transport code.</param>
         /// <param name="decoder">The Ice decoder.</param>
         /// <returns>The decoded endpoint, or null if this endpoint decoder does not handle this transport code.
         /// </returns>
-        Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
+        EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
     public interface IEndpointEncoder
     {
-        void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder);
+        void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder);
     }
 
     public interface IEndpointCodex : IEndpointDecoder, IEndpointEncoder
     {
     }
 
-    public class EndpointCodexBuilder : Dictionary<(string TransportName, TransportCode TransportCode), IEndpointCodex>
+    public class EndpointCodexBuilder : Dictionary<(string TransportId, TransportCode TransportCode), IEndpointCodex>
     {
         public IEndpointCodex Build() => new CompositeEndpointCodex(this);
 
         private class CompositeEndpointCodex : IEndpointCodex
         {
             private Dictionary<TransportCode, IEndpointDecoder> _endpointDecoders = new();
-            private Dictionary<string, IEndpointEncoder> _endpointEncoders = new();
+            private Dictionary<TransportId, IEndpointEncoder> _endpointEncoders = new();
 
             internal CompositeEndpointCodex(EndpointCodexBuilder builder)
             {
                 foreach (var entry in builder)
                 {
                     _endpointDecoders.Add(entry.Key.TransportCode, entry.Value);
-                    _endpointEncoders.Add(entry.Key.TransportName, entry.Value);
+                    _endpointEncoders.Add(entry.Key.TransportId, entry.Value);
                 }
             }
 
-            public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
-            {
-                if (_endpointDecoders.TryGetValue(data.TransportCode, out IEndpointDecoder? endpointDecoder))
-                {
-                    return endpointDecoder.CreateEndpoint(data, protocol);
-                }
-                else
-                {
-                    throw new UnknownTransportException(data.TransportCode);
-                }
-            }
-
-            public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+            public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
             {
                 if (_endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder))
                 {
@@ -71,28 +58,24 @@ namespace IceRpc.Transports.Interop
                 }
             }
 
-            public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+            public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
             {
-                if (_endpointEncoders.TryGetValue(endpoint.TransportName, out IEndpointEncoder? endpointEncoder))
+                if (_endpointEncoders.TryGetValue(endpoint.Transport, out IEndpointEncoder? endpointEncoder))
                 {
                     endpointEncoder.EncodeEndpoint(endpoint, encoder);
                 }
-                else if (endpoint is OpaqueEndpoint) // will become TransportName == "opaque"
+                else if (endpoint.Transport == TransportId.Opaque)
                 {
-                    encoder.EncodeEndpoint11(endpoint,
-                                             endpoint.TransportCode,
-                                             static (encoder, endpoint) =>
-                                             {
-                                                 var opaqueEndpoint = (OpaqueEndpoint)endpoint;
+                    (TransportCode transportCode, ReadOnlyMemory<byte> bytes) =
+                        OpaqueUtils.ParseOpaqueParameters(endpoint);
 
-                                                 opaqueEndpoint.ValueEncoding.Encode(encoder);
-                                                     // WriteByteSpan is not encoding-sensitive
-                                                     encoder.WriteByteSpan(opaqueEndpoint.Value.Span);
-                                             });
+                    encoder.EncodeEndpoint11(endpoint,
+                                             transportCode,
+                                             (encoder, _) => encoder.WriteByteSpan(bytes.Span));
                 }
                 else
                 {
-                    throw new UnknownTransportException(endpoint.TransportCode);
+                    throw new UnknownTransportException(endpoint.Transport);
                 }
             }
         }
@@ -121,110 +104,93 @@ namespace IceRpc.Transports.Interop
 
     public sealed class TcpEndpointCodex : IEndpointCodex
     {
-        public Endpoint CreateEndpoint(EndpointData data, Protocol protocol) =>
-            TcpEndpoint.CreateEndpoint(data, protocol);
-
-        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
-            // protocol is ice1
             if (transportCode == TransportCode.TCP || transportCode == TransportCode.SSL)
             {
-                return new TcpEndpoint(new EndpointData(Protocol.Ice1,
-                                                        transportCode.ToString().ToLowerInvariant(),
-                                                        transportCode,
-                                                        host: decoder.DecodeString(),
-                                                        port: checked((ushort)decoder.DecodeInt()),
-                                                        ImmutableList<string>.Empty),
-                                       timeout: TimeSpan.FromMilliseconds(decoder.DecodeInt()),
-                                       compress: decoder.DecodeBool());
+                string host = decoder.DecodeString();
+                ushort port = checked((ushort)decoder.DecodeInt());
+                int timeout = decoder.DecodeInt();
+                bool compress = decoder.DecodeBool();
+
+                var parameters =
+                    ImmutableList.Create(new EndpointParameter("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                if (compress)
+                {
+                    parameters = parameters.Add(new EndpointParameter("-z", ""));
+                }
+
+                return new EndpointRecord(Protocol.Ice1,
+                                          transportCode == TransportCode.SSL ? "ssl" : "tcp",
+                                          host,
+                                          port,
+                                          parameters,
+                                          ImmutableList<EndpointParameter>.Empty);
             }
             return null;
         }
 
-        public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
         {
-            if (endpoint is TcpEndpoint)
-            {
-                encoder.EncodeEndpoint11(endpoint,
-                                         endpoint.TransportCode, // tcp or ssl
-                                         static (encoder, endpoint) =>
-                                         {
-                                            encoder.Encoding.Encode(encoder); // encaps header
-                                            if (endpoint.Protocol == Protocol.Ice1)
-                                            {
-                                                endpoint.EncodeOptions11(encoder);
-                                            }
-                                            else
-                                            {
-                                                encoder.EncodeString(endpoint.Data.Host);
-                                                encoder.EncodeUShort(endpoint.Data.Port);
-                                                encoder.EncodeSequence(endpoint.Data.Options,
-                                                                       BasicEncodeActions.StringEncodeAction);
-                                            }
-                                         });
+            TransportCode transportCode = endpoint.Protocol == Protocol.Ice1 ?
+                (endpoint.Transport == "ssl" ? TransportCode.SSL : TransportCode.TCP) :
+                TransportCode.Any;
 
-            }
-            else
-            {
-                throw new ArgumentException("endpoint is not a tcp endpoint", nameof(endpoint));
-            }
-        }
+            encoder.EncodeEndpoint11(endpoint,
+                                     transportCode,
+                                     static (encoder, endpoint) =>
+                                     {
+                                        if (endpoint.Protocol == Protocol.Ice1)
+                                        {
+                                            (bool compress, int timeout) = TcpUtils.ParseTcpParameters(endpoint);
+
+                                            encoder.EncodeString(endpoint.Host);
+                                            encoder.EncodeInt(endpoint.Port);
+                                            encoder.EncodeInt(timeout);
+                                            encoder.EncodeBool(compress);
+                                        }
+                                        else
+                                        {
+                                            endpoint.ToEndpointData().Encode(encoder);
+                                        }
+                                     });
+       }
     }
 
     public sealed class UdpEndpointCodex : IEndpointCodex
     {
-        public Endpoint CreateEndpoint(EndpointData data, Protocol protocol)
+        public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
-            if (protocol != Protocol.Ice1)
+            if (transportCode == TransportCode.UDP)
             {
-                throw new ArgumentException($"cannot create UDP endpoint for protocol {protocol.GetName()}",
-                                            nameof(protocol));
-            }
+                string host = decoder.DecodeString();
+                ushort port = checked((ushort)decoder.DecodeInt());
+                bool compress = decoder.DecodeBool();
 
-            if (data.Options.Count > 0)
-            {
-                // Drop all options since we don't understand any.
-                data = new EndpointData(Protocol.Ice1, "udp", data.TransportCode, data.Host, data.Port, ImmutableList<string>.Empty);
+                var parameters = compress ? ImmutableList.Create(new EndpointParameter("-z", "")) :
+                    ImmutableList<EndpointParameter>.Empty;
+
+                return new EndpointRecord(Protocol.Ice1,
+                                          "udp",
+                                          host,
+                                          port,
+                                          parameters,
+                                          ImmutableList<EndpointParameter>.Empty);
             }
-            return new UdpEndpoint(data);
+            return null;
         }
 
-        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
-            new UdpEndpoint(new EndpointData(Protocol.Ice1,
-                                             "udp",
-                                             transportCode,
-                                             host: decoder.DecodeString(),
-                                             port: checked((ushort)decoder.DecodeInt()),
-                                             ImmutableList<string>.Empty),
-                            compress: decoder.DecodeBool());
-
-        public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
         {
-            if (endpoint is UdpEndpoint)
-            {
-                encoder.EncodeEndpoint11(endpoint,
-                                         TransportCode.UDP,
-                                         static (encoder, endpoint) =>
-                                         {
-                                            encoder.Encoding.Encode(encoder); // encaps header
-                                            if (endpoint.Protocol == Protocol.Ice1)
-                                            {
-                                                endpoint.EncodeOptions11(encoder);
-                                            }
-                                            else
-                                            {
-                                                encoder.EncodeString(endpoint.Data.Host);
-                                                encoder.EncodeUShort(endpoint.Data.Port);
-                                                encoder.EncodeSequence(endpoint.Data.Options,
-                                                                       BasicEncodeActions.StringEncodeAction);
-                                            }
-                                         });
-
-            }
-            else
-            {
-                throw new ArgumentException("endpoint is not a udp endpoint", nameof(endpoint));
-            }
+            encoder.EncodeEndpoint11(endpoint,
+                                     TransportCode.UDP,
+                                     static (encoder, endpoint) =>
+                                     {
+                                        bool compress = UdpUtils.ParseUdpParameters(endpoint);
+                                        encoder.EncodeString(endpoint.Host);
+                                        encoder.EncodeInt(endpoint.Port);
+                                        encoder.EncodeBool(compress);
+                                     });
         }
     }
 }

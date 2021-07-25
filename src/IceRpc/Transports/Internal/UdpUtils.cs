@@ -20,34 +20,11 @@ namespace IceRpc.Transports.Internal
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
 
-        internal static (int Ttl, string? MulticastInterface) ParseUdpParameters(EndpointRecord endpoint)
+        internal static (int Ttl, string? MulticastInterface) ParseLocalUdpParameters(EndpointRecord endpoint)
         {
-            bool compress = false;
-
             if (endpoint.Protocol != Protocol.Ice1)
             {
-                throw new FormatException(
-                    $"UDP endpoints are not compatible with the {endpoint.Protocol.GetName()} protocol");
-            }
-
-            foreach ((string name, string value) in endpoint.Parameters)
-            {
-                if (name == "-z")
-                {
-                    if (compress)
-                    {
-                        throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
-                    }
-                    if (value.Length > 0)
-                    {
-                        throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
-                    }
-                    compress = true;
-                }
-                else
-                {
-                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
             }
 
             int ttl = -1;
@@ -124,6 +101,37 @@ namespace IceRpc.Transports.Internal
             }
 
             return (ttl, multicastInterface);
+        }
+
+        internal static bool ParseUdpParameters(EndpointRecord endpoint)
+        {
+            if (endpoint.Protocol != Protocol.Ice1)
+            {
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+            }
+
+            bool compress = false;
+
+            foreach ((string name, string value) in endpoint.Parameters)
+            {
+                if (name == "-z")
+                {
+                    if (compress)
+                    {
+                        throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                    }
+                    if (value.Length > 0)
+                    {
+                        throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                    }
+                    compress = true;
+                }
+                else
+                {
+                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
+                }
+            }
+            return compress;
         }
 
         internal static void SetMulticastGroup(Socket socket, string? multicastInterface, IPAddress group)

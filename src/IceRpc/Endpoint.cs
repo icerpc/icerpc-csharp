@@ -71,12 +71,8 @@ namespace IceRpc
                                data.Parameters.ToImmutableList(),
                                ImmutableList<EndpointParameter>.Empty);
 
-        public static EndpointData ToEndpointData(EndpointRecord endpoint) =>
-            new(endpoint.Protocol,
-                endpoint.Transport.Name,
-                endpoint.Host,
-                endpoint.Port,
-                endpoint.Parameters);
+        public EndpointData ToEndpointData() =>
+            new(Protocol, Transport.Name, Host, Port, Parameters);
 
         /// <inheritdoc/>
         public bool Equals(EndpointRecord? other) =>
@@ -124,8 +120,11 @@ namespace IceRpc
                     }
                 }
 
-                sb.Append(" -p ");
-                sb.Append(Port.ToString(CultureInfo.InvariantCulture));
+                if (Port != 0) // TODO: use DefaultPort constant
+                {
+                    sb.Append(" -p ");
+                    sb.Append(Port.ToString(CultureInfo.InvariantCulture));
+                }
 
                 foreach ((string name, string value) in Parameters)
                 {

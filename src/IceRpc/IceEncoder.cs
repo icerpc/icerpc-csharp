@@ -1032,17 +1032,18 @@ namespace IceRpc
         }
 
         public void EncodeEndpoint11(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             TransportCode transportCode,
-            EncodeAction<Endpoint> encodeOptions)
+            EncodeAction<EndpointRecord> encodeAction)
         {
             Debug.Assert(OldEncoding);
 
-            this.Encode(endpoint.TransportCode);
+            this.Encode(transportCode);
             Position startPos = _tail;
 
             EncodeInt(0); // placeholder for future encapsulation size
-            encodeOptions(this, endpoint);
+            Encoding.Encode(this);
+            encodeAction(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }
 
