@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -51,6 +52,11 @@ namespace IceRpc.Transports.Internal
 
         internal ColocListener(EndpointRecord endpoint, ServerConnectionOptions options, ILogger logger)
         {
+            if (endpoint.Parameters.Count > 0 || endpoint.LocalParameters.Count > 0)
+            {
+                throw new FormatException($"unknown parameter in endpoint {endpoint}");
+            }
+
             _endpoint = endpoint;
             _logger = logger;
             _options = options;

@@ -16,6 +16,65 @@ namespace IceRpc.Transports.Internal
 {
     internal static class UdpUtils
     {
+        internal static IPAddress GetIPv4InterfaceAddress(string @interface)
+        {
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
+
+            if (IPAddress.TryParse(@interface, out IPAddress? address))
+            {
+                return address;
+            }
+
+            bool isIndex = int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
+                IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
+                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == @interface)
+                {
+                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
+                    {
+                        Debug.Assert(unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork);
+                        return unicastAddress.Address;
+                    }
+                }
+            }
+
+            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
+        }
+
+        internal static int GetIPv6InterfaceIndex(string @interface)
+        {
+            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
+            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
+            // it's a name we search an interface with this name.
+            if (int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
+            {
+                return index;
+            }
+
+            bool isAddress = IPAddress.TryParse(@interface, out IPAddress? address);
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
+                IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
+                if (ipv6Props != null)
+                {
+                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
+                    {
+                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == @interface)
+                        {
+                            return ipv6Props.Index;
+                        }
+                    }
+                }
+            }
+
+            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
+        }
+
         internal static bool IsMulticast(IPAddress addr) =>
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
@@ -192,65 +251,6 @@ namespace IceRpc.Transports.Internal
                         new IPv6MulticastOption(group, GetIPv6InterfaceIndex(multicastInterface)));
                 }
             }
-        }
-
-        private static IPAddress GetIPv4InterfaceAddress(string @interface)
-        {
-            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
-            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
-            // it's a name we search an interface with this name.
-
-            if (IPAddress.TryParse(@interface, out IPAddress? address))
-            {
-                return address;
-            }
-
-            bool isIndex = int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index);
-            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
-                IPv4InterfaceProperties ipv4Props = ipProps.GetIPv4Properties();
-                if (ipv4Props != null && isIndex ? ipv4Props.Index == index : networkInterface.Name == @interface)
-                {
-                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
-                    {
-                        Debug.Assert(unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork);
-                        return unicastAddress.Address;
-                    }
-                }
-            }
-
-            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
-        }
-
-        private static int GetIPv6InterfaceIndex(string @interface)
-        {
-            // The @interface parameter must either be an IP address, an index or the name of an interface. If it's an
-            // index we just return it. If it's an IP address we search for an interface which has this IP address. If
-            // it's a name we search an interface with this name.
-            if (int.TryParse(@interface, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index))
-            {
-                return index;
-            }
-
-            bool isAddress = IPAddress.TryParse(@interface, out IPAddress? address);
-            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                IPInterfaceProperties ipProps = networkInterface.GetIPProperties();
-                IPv6InterfaceProperties ipv6Props = ipProps.GetIPv6Properties();
-                if (ipv6Props != null)
-                {
-                    foreach (UnicastIPAddressInformation unicastAddress in ipProps.UnicastAddresses)
-                    {
-                        if (isAddress ? unicastAddress.Address.Equals(address) : networkInterface.Name == @interface)
-                        {
-                            return ipv6Props.Index;
-                        }
-                    }
-                }
-            }
-
-            throw new ArgumentException($"could not find interface '{@interface}'", nameof(@interface));
         }
     }
 }

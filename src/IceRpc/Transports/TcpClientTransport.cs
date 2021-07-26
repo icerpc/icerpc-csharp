@@ -3,6 +3,10 @@
 using Microsoft.Extensions.Logging;
 using IceRpc.Transports.Internal;
 using System;
+using System.Net;
+using System.Net.Sockets;
+
+using static IceRpc.Transports.Internal.TcpUtils;
 
 namespace IceRpc.Transports
 {
@@ -11,19 +15,52 @@ namespace IceRpc.Transports
     {
         /// <inheritdoc/>
         public MultiStreamConnection CreateConnection(
-            Endpoint remoteEndpoint,
+            EndpointRecord remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger)
         {
-            if (remoteEndpoint is TcpEndpoint tcpEndpoint)
+            _ = ParseTcpParameters(remoteEndpoint);
+            // TODO: use tls value!
+            _ = ParseLocalTcpParameters(remoteEndpoint);
+
+            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
+
+            EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
+                new IPEndPoint(ipAddress, remoteEndpoint.Port) :
+                new DnsEndPoint(remoteEndpoint.Host, remoteEndpoint.Port);
+
+            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
+            // created if the address is an IPv4 address.
+            Socket socket = ipAddress == null ?
+                new Socket(SocketType.Stream, ProtocolType.Tcp) :
+                new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            try
             {
-                // TODO: temporary
-                return tcpEndpoint.CreateClientConnection(options, logger);
+                if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    socket.DualMode = !tcpOptions.IsIPv6Only;
+                }
+
+                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                {
+                    socket.Bind(localEndPoint);
+                }
+
+                socket.SetBufferSize(tcpOptions.ReceiveBufferSize,
+                                     tcpOptions.SendBufferSize,
+                                     remoteEndpoint.Transport,
+                                     logger);
+                socket.NoDelay = true;
             }
-            else
+            catch (SocketException ex)
             {
-                throw new ArgumentException("endpoint is not a TCP endpoint", nameof(remoteEndpoint));
+                socket.Dispose();
+                throw new TransportException(ex);
             }
+
+            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint.ToString(), options);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace IceRpc.Transports
         /// <exception name="UnknownTransportException">Thrown if this client transport does not support the remote
         /// endpoint's transport.</exception>
         MultiStreamConnection CreateConnection(
-            Endpoint remoteEndpoint,
+            EndpointRecord remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger);
     }

@@ -41,42 +41,6 @@ namespace IceRpc.Transports.Internal
         /// to be determined. With ice1, the value is never null.</value>
         private readonly bool? _tls;
 
-        public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
-        {
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            EndPoint netEndPoint = HasDnsHost ? new DnsEndPoint(Host, Port) : new IPEndPoint(Address, Port);
-
-            // We still specify the address family for the socket if an address is set to ensure an IPv4 socket is
-            // created if the address is an IPv4 address.
-            Socket socket = HasDnsHost ?
-                new Socket(SocketType.Stream, ProtocolType.Tcp) :
-                new Socket(Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            try
-            {
-                if (Address.AddressFamily == AddressFamily.InterNetworkV6)
-                {
-                    socket.DualMode = !tcpOptions.IsIPv6Only;
-                }
-
-                if (tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
-                {
-                    socket.Bind(localEndPoint);
-                }
-
-                SetBufferSize(socket, tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, TransportCode, logger);
-                socket.NoDelay = true;
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                throw new TransportException(ex);
-            }
-
-            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, this, options);
-        }
-
         public override bool Equals(Endpoint? other)
         {
             if (ReferenceEquals(this, other))

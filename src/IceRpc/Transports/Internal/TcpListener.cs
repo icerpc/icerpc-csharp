@@ -6,6 +6,8 @@ using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
+using static IceRpc.Transports.Internal.TcpUtils;
+
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The listener implementation for the TCP transport.</summary>
@@ -42,6 +44,10 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
+
+            _ = ParseTcpParameters(endpoint);
+            // TODO: use tls value!
+            _ = ParseLocalTcpParameters(endpoint);
         }
     }
 }

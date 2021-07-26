@@ -48,10 +48,10 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new CompositeClientTransport
             {
-                [TransportCode.TCP] = new TcpClientTransport(),
-                [TransportCode.SSL] = new TcpClientTransport(),
-                [TransportCode.Coloc] = new ColocClientTransport(),
-                [TransportCode.UDP] = new UdpClientTransport()
+                [TransportNames.Tcp] = new TcpClientTransport(),
+                [TransportNames.Ssl] = new TcpClientTransport(),
+                [TransportNames.Coloc] = new ColocClientTransport(),
+                [TransportNames.Udp] = new UdpClientTransport()
             };
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
@@ -337,7 +337,7 @@ namespace IceRpc
                         }
 
                         UnderlyingConnection =
-                            ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
+                            ClientTransport.CreateConnection(EndpointRecord.FromString(_remoteEndpoint.ToString()), clientOptions, _logger);
                     }
 
                     // If the endpoint is secure, connect with the SSL client authentication options.

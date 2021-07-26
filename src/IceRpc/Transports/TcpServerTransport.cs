@@ -50,7 +50,7 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return (new IceRpc.Transports.Internal.TcpListener(socket, endpoint: endpoint with { Port = (ushort)address.Port }, logger, options), null);
+            return (new Internal.TcpListener(socket, endpoint: endpoint with { Port = (ushort)address.Port }, logger, options), null);
         }
     }
 }
