@@ -3,7 +3,7 @@
 namespace IceRpc
 {
     /// <summary>This enumeration describes the possible formats for classes and exceptions. With IceRcp exceptions
-    /// are always marshaled using the Sliced format, but can be received in the Compact for compatibility with
+    /// are always marshaled using the Sliced format, but can be received in the Compact format for compatibility with
     /// ZeroC Ice.</summary>
     public enum FormatType
     {
