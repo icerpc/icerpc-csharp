@@ -34,7 +34,7 @@ namespace IceRpc.Transports.Internal
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocConnection((ColocEndpoint)IceRpc.Endpoint.FromString(_endpoint.ToString()), id, writer, reader, _options, _logger);
+            return new ColocConnection(_endpoint, id, writer, reader, _options, _logger);
         }
 
         public void Dispose()

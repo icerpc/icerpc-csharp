@@ -1,7 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -120,7 +120,8 @@ namespace IceRpc
                     }
                 }
 
-                if (Port != 0) // TODO: use DefaultPort constant
+                // For backwards compatibility, we don't output "-p 0" for opaque endpoints.
+                if (Transport != TransportNames.Opaque || Port != 0)
                 {
                     sb.Append(" -p ");
                     sb.Append(Port.ToString(CultureInfo.InvariantCulture));

@@ -36,8 +36,8 @@ namespace IceRpc.Transports.Internal
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) => new(null as EndpointRecord);
 
-        public override async ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
+        public override async ValueTask<EndpointRecord> ConnectAsync(
+            EndpointRecord endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
@@ -45,7 +45,17 @@ namespace IceRpc.Transports.Internal
             try
             {
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                return ((UdpEndpoint)endpoint).Clone(_socket.LocalEndPoint!);
+
+                if (_socket.LocalEndPoint is IPEndPoint ipEndPoint)
+                {
+                    string host = ipEndPoint.Address.ToString();
+                    ushort port = checked((ushort)ipEndPoint.Port);
+                    return endpoint with { Host = host, Port = port };
+                }
+                else
+                {
+                    throw new NotSupportedException("local endpoint is not an IPEndPoint");
+                }
             }
             catch (Exception ex)
             {

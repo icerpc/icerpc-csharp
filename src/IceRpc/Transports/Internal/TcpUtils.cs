@@ -16,7 +16,7 @@ namespace IceRpc.Transports.Internal
 {
     internal static class TcpUtils
     {
-        private const int DefaultTcpTimeout = 60_000;
+        internal const int DefaultTcpTimeout = 60_000;
 
         internal static bool? ParseLocalTcpParameters(EndpointRecord endpoint)
         {

@@ -23,8 +23,8 @@ namespace IceRpc
         /// <see cref="ConnectFailedException"/> thrown by the attempts to connect to each of the usable endpoints.
         /// </exception>
         ValueTask<Connection> GetConnectionAsync(
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints,
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints,
             CancellationToken cancel);
     }
 }

@@ -203,7 +203,7 @@ namespace IceRpc.Transports.Internal
 
         internal Ice1Connection(
             NetworkSocket networkSocket,
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ConnectionOptions options)
             : base(networkSocket, endpoint, options)
         {

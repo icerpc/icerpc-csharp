@@ -19,8 +19,8 @@ namespace IceRpc.Internal
         internal static partial void LogClearAdapterIdCacheEntry(
             this ILogger logger,
             string adapterId,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ClearWellKnownCacheEntry,
@@ -31,8 +31,8 @@ namespace IceRpc.Internal
         internal static partial void LogClearWellKnownCacheEntry(
             this ILogger logger,
             Identity identity,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.CouldNotResolveAdapterId,
@@ -57,8 +57,8 @@ namespace IceRpc.Internal
         internal static partial void LogFoundAdapterIdEntryInCache(
             this ILogger logger,
             string adapterId,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.FoundWellKnownEntryInCache,
@@ -69,8 +69,8 @@ namespace IceRpc.Internal
         internal static partial void LogFoundWellKnownEntryInCache(
             this ILogger logger,
             Identity identity,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ReceivedInvalidProxyForAdapterId,
@@ -122,8 +122,8 @@ namespace IceRpc.Internal
         internal static partial void LogResolvedAdapterId(
             this ILogger logger,
             string adapterId,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ResolvedWellKnown,
@@ -134,8 +134,8 @@ namespace IceRpc.Internal
         internal static partial void LogResolvedWellKnown(
             this ILogger logger,
             Identity identity,
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints);
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ResolvingAdapterId,

@@ -401,7 +401,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicConnection(NetworkSocket networkSocket, Endpoint endpoint, ConnectionOptions options)
+        internal SlicConnection(NetworkSocket networkSocket, EndpointRecord endpoint, ConnectionOptions options)
             : base(networkSocket, endpoint, options)
         {
             _idleTimeout = options.IdleTimeout;

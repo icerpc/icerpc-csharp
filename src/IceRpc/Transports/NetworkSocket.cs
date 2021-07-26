@@ -52,8 +52,8 @@ namespace IceRpc.Transports
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
-        public abstract ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
+        public abstract ValueTask<EndpointRecord> ConnectAsync(
+            EndpointRecord endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 

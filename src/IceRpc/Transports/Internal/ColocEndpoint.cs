@@ -22,10 +22,10 @@ namespace IceRpc.Transports.Internal
 
         public MultiStreamConnection CreateClientConnection(ClientConnectionOptions options, ILogger logger)
         {
-            if (ColocListener.TryGetValue(this, out ColocListener? listener))
+            if (ColocListener.TryGetValue(this.ToString(), out ColocListener? listener))
             {
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(this, id, writer, reader, options, logger);
+                return new ColocConnection(this.ToString(), id, writer, reader, options, logger);
             }
             else
             {

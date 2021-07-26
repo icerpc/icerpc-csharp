@@ -21,7 +21,6 @@ namespace IceRpc.Transports
         {
             _ = ParseTcpParameters(remoteEndpoint);
 
-            // TODO: rework tls to keep null value
             bool? tls = ParseLocalTcpParameters(remoteEndpoint);
             if (remoteEndpoint.Protocol == Protocol.Ice1)
             {
@@ -29,6 +28,8 @@ namespace IceRpc.Transports
             }
             else if (tls == null)
             {
+                // TODO: add TcpClientTransportOptions to override this default behavior, e.g. for some trusted hosts.
+
                 remoteEndpoint = remoteEndpoint with
                 {
                     LocalParameters = remoteEndpoint.LocalParameters.Add(new EndpointParameter("_tls", "true"))
@@ -73,7 +74,7 @@ namespace IceRpc.Transports
             }
 
             var tcpSocket = new TcpSocket(socket, logger, tls, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint.ToString(), options);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, options);
         }
     }
 }

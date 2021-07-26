@@ -135,8 +135,13 @@ namespace IceRpc.Transports.Interop
                 int timeout = decoder.DecodeInt();
                 bool compress = decoder.DecodeBool();
 
-                var parameters =
-                    ImmutableList.Create(new EndpointParameter("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                var parameters = ImmutableList<EndpointParameter>.Empty;
+
+                if (timeout != TcpUtils.DefaultTcpTimeout)
+                {
+                    parameters =
+                        parameters.Add(new EndpointParameter("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                }
                 if (compress)
                 {
                     parameters = parameters.Add(new EndpointParameter("-z", ""));

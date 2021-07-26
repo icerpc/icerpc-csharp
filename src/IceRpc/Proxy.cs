@@ -27,7 +27,7 @@ namespace IceRpc
     {
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
-        public ImmutableList<Endpoint> AltEndpoints
+        public ImmutableList<EndpointRecord> AltEndpoints
         {
             get => _altEndpoints;
 
@@ -42,7 +42,7 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (_endpoint.TransportCode == TransportCode.Loc || _endpoint.TransportCode == TransportCode.Coloc)
+                    if (_endpoint.Transport == TransportNames.Loc || _endpoint.Transport == TransportNames.Coloc)
                     {
                         throw new ArgumentException(
                             @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)
@@ -50,7 +50,7 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.TransportCode == TransportCode.Loc || e.TransportCode == TransportCode.Coloc))
+                    if (value.Any(e => e.Transport == TransportNames.Loc || e.Transport == TransportNames.Coloc))
                     {
                         throw new ArgumentException("cannot use loc or coloc transport", nameof(AltEndpoints));
                     }
@@ -82,7 +82,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
         /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
-        public Endpoint? Endpoint
+        public EndpointRecord? Endpoint
         {
             get => _endpoint;
 
@@ -96,7 +96,7 @@ namespace IceRpc
                                                     nameof(Endpoint));
                     }
                     if (_altEndpoints.Count > 0 &&
-                        (value.TransportCode == TransportCode.Loc || value.TransportCode == TransportCode.Coloc))
+                        (value.Transport == TransportNames.Loc || value.Transport == TransportNames.Coloc))
                     {
                         throw new ArgumentException(
                             "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(Endpoint));
@@ -147,7 +147,7 @@ namespace IceRpc
             }
         }
 
-        internal bool IsIndirect => _endpoint?.TransportCode == TransportCode.Loc || IsWellKnown;
+        internal bool IsIndirect => _endpoint?.Transport == TransportNames.Loc || IsWellKnown;
         internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
@@ -157,9 +157,9 @@ namespace IceRpc
         private static readonly IEndpointEncoder _defaultEndpointEncoder =
             new EndpointCodexBuilder().AddSsl().AddTcp().AddUdp().Build();
 
-        private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
+        private ImmutableList<EndpointRecord> _altEndpoints = ImmutableList<EndpointRecord>.Empty;
         private volatile Connection? _connection;
-        private Endpoint? _endpoint;
+        private EndpointRecord? _endpoint;
         private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -232,26 +232,9 @@ namespace IceRpc
                 throw new FormatException("an empty string does not represent a proxy");
             }
 
-            Proxy proxy;
-            Encoding encoding;
-            Endpoint? endpoint;
-            ImmutableList<Endpoint> altEndpoints;
-            if (Internal.IceUriParser.IsProxyUri(proxyString))
-            {
-                string path;
-                (path, encoding, endpoint, altEndpoints) = Internal.IceUriParser.ParseProxy(proxyString);
-                proxy = new(path, endpoint?.Protocol ?? Protocol.Ice2);
-            }
-            else
-            {
-                Identity identity;
-                string facet;
-                (identity, facet, encoding, endpoint, altEndpoints) = Ice1Parser.ParseProxy(proxyString);
-                proxy = new(identity, facet);
-            }
-            proxy.Encoding = encoding;
-            proxy.Endpoint = endpoint;
-            proxy.AltEndpoints = altEndpoints;
+            Proxy proxy = NewIceUriParser.IsProxyUri(proxyString) ?
+                NewIceUriParser.ParseProxy(proxyString) : Ice1Parser.ParseProxyString(proxyString);
+
             proxy.Invoker = invoker;
             return proxy;
         }
@@ -380,12 +363,17 @@ namespace IceRpc
                 {
                     // Use ice+transport scheme
                     sb.AppendEndpoint(_endpoint, Path);
-                    firstOption = !_endpoint.HasOptions;
+
+                    firstOption = _endpoint.Protocol == Protocol.Ice2 &&
+                                  _endpoint.Parameters.Count == 0 &&
+                                  _endpoint.LocalParameters.Count == 0;
                 }
                 else
                 {
                     sb.Append("ice:"); // endpointless proxy
                     sb.Append(Path);
+
+                    // TODO: append protocol
                 }
 
                 if (Encoding != Ice2Definitions.Encoding) // possible but quite unlikely
@@ -397,7 +385,7 @@ namespace IceRpc
 
                 if (_altEndpoints.Count > 0)
                 {
-                    TransportCode mainTransport = _endpoint!.TransportCode;
+                    string mainTransport = _endpoint!.Transport;
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("alt-endpoint=");
                     for (int i = 0; i < _altEndpoints.Count; ++i)
@@ -406,7 +394,7 @@ namespace IceRpc
                         {
                             sb.Append(',');
                         }
-                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].TransportCode, '$');
+                        sb.AppendEndpoint(_altEndpoints[i], "", mainTransport != _altEndpoints[i].Transport, '$');
                     }
                 }
 
@@ -453,20 +441,26 @@ namespace IceRpc
 
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
-                Endpoint[] endpointArray =
-                    decoder.DecodeArray(minElementSize: 8, decoder => Endpoint.FromString(decoder.DecodeEndpoint11(proxyData.Protocol).ToString()));
+                EndpointRecord[] endpointArray =
+                    decoder.DecodeArray(minElementSize: 8, decoder => decoder.DecodeEndpoint11(proxyData.Protocol));
 
-                Endpoint? endpoint = null;
-                IEnumerable<Endpoint> altEndpoints;
+                EndpointRecord? endpoint = null;
+                IEnumerable<EndpointRecord> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
                     string adapterId = decoder.DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        endpoint = LocEndpoint.Create(adapterId, proxyData.Protocol);
+                        ushort port = (ushort)(proxyData.Protocol == Protocol.Ice1 ? 0 : 4062); // TODO
+                        endpoint = new EndpointRecord(proxyData.Protocol,
+                                                      TransportNames.Loc,
+                                                      Host: adapterId,
+                                                      Port: port,
+                                                      ImmutableList<EndpointParameter>.Empty,
+                                                      ImmutableList<EndpointParameter>.Empty);
                     }
-                    altEndpoints = ImmutableList<Endpoint>.Empty;
+                    altEndpoints = ImmutableList<EndpointRecord>.Empty;
                 }
                 else
                 {
@@ -550,15 +544,14 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                Endpoint? endpoint = null;
+                EndpointRecord? endpoint = null;
                 if (proxyData.Endpoint is EndpointData data)
                 {
-                    endpoint = Endpoint.FromString(EndpointRecord.FromEndpointData(data).ToString());
+                    endpoint = EndpointRecord.FromEndpointData(data);
                 }
-                ImmutableList<Endpoint> altEndpoints =
-                    proxyData.AltEndpoints?.Select(
-                        data => Endpoint.FromString(EndpointRecord.FromEndpointData(data).ToString())).ToImmutableList() ??
-                        ImmutableList<Endpoint>.Empty;
+                ImmutableList<EndpointRecord> altEndpoints =
+                    proxyData.AltEndpoints?.Select(data => EndpointRecord.FromEndpointData(data)).ToImmutableList() ??
+                        ImmutableList<EndpointRecord>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
                 {
@@ -669,7 +662,7 @@ namespace IceRpc
 
                 var proxyData = new ProxyData11(
                     FacetPath,
-                    Protocol == Protocol.Ice1 && (Endpoint?.TransportName == TransportNames.Udp) ?
+                    Protocol == Protocol.Ice1 && (Endpoint?.Transport == TransportNames.Udp) ?
                         InvocationMode.Datagram : InvocationMode.Twoway,
                     secure: false,
                     Protocol,
@@ -689,8 +682,8 @@ namespace IceRpc
                 }
                 else
                 {
-                    IEnumerable<Endpoint> endpoints = Endpoint.TransportCode == TransportCode.Coloc ?
-                        AltEndpoints : Enumerable.Empty<Endpoint>().Append(Endpoint).Concat(AltEndpoints);
+                    IEnumerable<EndpointRecord> endpoints = Endpoint.Transport == TransportNames.Coloc ?
+                        AltEndpoints : Enumerable.Empty<EndpointRecord>().Append(Endpoint).Concat(AltEndpoints);
 
                     if (endpoints.Any())
                     {
@@ -733,15 +726,15 @@ namespace IceRpc
                     path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                     encoding: Encoding != Encoding.V20 ? Encoding : null,
-                    endpoint: Endpoint is Endpoint endpoint && endpoint.TransportCode != TransportCode.Coloc ?
-                        endpoint.Data : null,
-                    altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.Data).ToArray());
+                    endpoint: Endpoint is EndpointRecord endpoint && endpoint.Transport != TransportNames.Coloc ?
+                        endpoint.ToEndpointData() : null,
+                    altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
 
                 proxyData.Encode(encoder);
             }
         }
 
-        private Proxy(Identity identity, string facet)
+        internal Proxy(Identity identity, string facet)
             : this(identity.ToPath(), Protocol.Ice1)
         {
             Identity = identity;

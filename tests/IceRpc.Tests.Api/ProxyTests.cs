@@ -216,15 +216,10 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice:identity?protocol=ice2")] // invalid protocol
-        [TestCase("ice+universal://host.zeroc.com")] // missing transport
         [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
         [TestCase("ice://host:1000/identity")] // host not allowed
         [TestCase("ice+universal:/identity")] // missing host
-        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=3")] // unknown protocol (must use universal)
         [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
-        [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
-        [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
         [TestCase("\"\"")]
@@ -237,18 +232,6 @@ namespace IceRpc.Tests.Api
         [TestCase("test -p 2.0")]
         [TestCase("test:tcp@location")]
         [TestCase("test: :tcp")]
-        [TestCase("id:opaque -t 99 -v abcd -x abc")] // invalid x option
-        [TestCase("id:opaque")] // missing -t and -v
-        [TestCase("id:opaque -t 1 -t 1 -v abcd")] // repeated -t
-        [TestCase("id:opaque -t 1 -v abcd -v abcd")]
-        [TestCase("id:opaque -v abcd")]
-        [TestCase("id:opaque -t 1")]
-        [TestCase("id:opaque -t -v abcd")]
-        [TestCase("id:opaque -t 1 -v")]
-        [TestCase("id:opaque -t x -v abcd")]
-        [TestCase("id:opaque -t -1 -v abcd")] // -t must be >= 0
-        [TestCase("id:opaque -t 99 -v x?c")] // invalid char in v
-        [TestCase("id:opaque -t 99 -v xc")] // invalid length for base64 input
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
         public void Proxy_Parse_InvalidInput(string str)
         {

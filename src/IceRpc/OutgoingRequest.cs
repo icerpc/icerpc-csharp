@@ -14,14 +14,14 @@ namespace IceRpc
     public sealed class OutgoingRequest : OutgoingFrame
     {
         /// <summary>The alternatives to <see cref="Endpoint"/>. It should be empty when Endpoint is null.</summary>
-        public IEnumerable<Endpoint> AltEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
+        public IEnumerable<EndpointRecord> AltEndpoints { get; set; } = ImmutableList<EndpointRecord>.Empty;
 
         /// <summary>The main target endpoint for this request.</summary>
-        public Endpoint? Endpoint { get; set; }
+        public EndpointRecord? Endpoint { get; set; }
 
         /// <summary>A list of endpoints this request does not want to establish a connection to, typically because a
         /// previous attempt asked the request not to.</summary>
-        public IEnumerable<Endpoint> ExcludedEndpoints { get; set; } = ImmutableList<Endpoint>.Empty;
+        public IEnumerable<EndpointRecord> ExcludedEndpoints { get; set; } = ImmutableList<EndpointRecord>.Empty;
 
         /// <summary>The connection that will be used (or was used ) to send this request.</summary>
         public Connection? Connection { get; set; }

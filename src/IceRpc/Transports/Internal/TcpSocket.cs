@@ -80,20 +80,16 @@ namespace IceRpc.Transports.Internal
                         localParameters.Add(new EndpointParameter("_tls", SslStream == null ? "false" : "true"));
                 }
 
-                string host;
-                ushort port;
-
                 if (_socket.RemoteEndPoint is IPEndPoint ipEndPoint)
                 {
-                    host = ipEndPoint.Address.ToString();
-                    port = checked((ushort)ipEndPoint.Port);
+                    string host = ipEndPoint.Address.ToString();
+                    ushort port = checked((ushort)ipEndPoint.Port);
+                    return endpoint with { Host = host, Port = port, LocalParameters = localParameters };
                 }
                 else
                 {
-                    throw new InvalidOperationException("unsupported address");
+                    throw new NotSupportedException("remote endpoint is not an IPEndPoint");
                 }
-
-                return endpoint with { Host = host, Port = port, LocalParameters = localParameters };
             }
             catch (Exception ex)
             {
@@ -101,12 +97,13 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
+        public override async ValueTask<EndpointRecord> ConnectAsync(
+            EndpointRecord endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
             Debug.Assert(_addr != null);
+            Debug.Assert(_tls != null);
 
             try
             {
@@ -118,7 +115,17 @@ namespace IceRpc.Transports.Internal
                     await AuthenticateAsync(sslStream =>
                         sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
-                return ((TcpEndpoint)endpoint).Clone(_socket.LocalEndPoint!, tls: SslStream != null);
+
+                if (_socket.LocalEndPoint is IPEndPoint ipEndPoint)
+                {
+                    string host = ipEndPoint.Address.ToString();
+                    ushort port = checked((ushort)ipEndPoint.Port);
+                    return endpoint with { Host = host, Port = port };
+                }
+                else
+                {
+                    throw new NotSupportedException("local endpoint is not an IPEndPoint");
+                }
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {

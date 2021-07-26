@@ -32,7 +32,7 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, IceRpc.Endpoint.FromString(Endpoint.ToString()), _options);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, Endpoint, _options);
         }
 
         public void Dispose() => _socket.Dispose();

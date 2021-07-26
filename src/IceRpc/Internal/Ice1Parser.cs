@@ -2,6 +2,7 @@
 
 using IceRpc.Interop;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -285,6 +286,352 @@ namespace IceRpc.Internal
             // else port remains 0
 
             return (host, port);
+        }
+
+        /// <summary>Parses a proxy string in the ice1 format.</summary>
+        /// <param name="s">The string to parse.</param>
+        /// <returns>The arguments to create the proxy.</returns>
+        internal static Proxy ParseProxyString(string s)
+        {
+            // TODO: rework this implementation
+
+            int beg = 0;
+            int end = 0;
+
+            const string delim = " \t\n\r";
+
+            // Extract the identity, which may be enclosed in single or double quotation marks.
+            string identityString;
+            end = StringUtil.CheckQuote(s, beg);
+            if (end == -1)
+            {
+                throw new FormatException($"mismatched quotes around identity in '{s}'");
+            }
+            else if (end == 0)
+            {
+                end = StringUtil.FindFirstOf(s, delim + ":@", beg);
+                if (end == -1)
+                {
+                    end = s.Length;
+                }
+                identityString = s[beg..end];
+            }
+            else
+            {
+                beg++; // Skip leading quote
+                identityString = s[beg..end];
+                end++; // Skip trailing quote
+            }
+
+            if (beg == end)
+            {
+                throw new FormatException($"no identity in '{s}'");
+            }
+
+            // Parsing the identity may throw FormatException.
+            var identity = Identity.Parse(identityString);
+            string facet = "";
+            Encoding encoding = Ice1Definitions.Encoding;
+            EndpointRecord? endpoint = null;
+            var altEndpoints = ImmutableList<EndpointRecord>.Empty;
+
+            while (true)
+            {
+                beg = StringUtil.FindFirstNotOf(s, delim, end);
+                if (beg == -1)
+                {
+                    break;
+                }
+
+                if (s[beg] == ':' || s[beg] == '@')
+                {
+                    break;
+                }
+
+                end = StringUtil.FindFirstOf(s, delim + ":@", beg);
+                if (end == -1)
+                {
+                    end = s.Length;
+                }
+
+                if (beg == end)
+                {
+                    break;
+                }
+
+                string option = s[beg..end];
+                if (option.Length != 2 || option[0] != '-')
+                {
+                    throw new FormatException($"expected a proxy option but found '{option}' in '{s}'");
+                }
+
+                // Check for the presence of an option argument. The argument may be enclosed in single or double
+                // quotation marks.
+                string? argument = null;
+                int argumentBeg = StringUtil.FindFirstNotOf(s, delim, end);
+                if (argumentBeg != -1)
+                {
+                    char ch = s[argumentBeg];
+                    if (ch != '@' && ch != ':' && ch != '-')
+                    {
+                        beg = argumentBeg;
+                        end = StringUtil.CheckQuote(s, beg);
+                        if (end == -1)
+                        {
+                            throw new FormatException($"mismatched quotes around value for {option} option in '{s}'");
+                        }
+                        else if (end == 0)
+                        {
+                            end = StringUtil.FindFirstOf(s, delim + ":@", beg);
+                            if (end == -1)
+                            {
+                                end = s.Length;
+                            }
+                            argument = s[beg..end];
+                        }
+                        else
+                        {
+                            beg++; // Skip leading quote
+                            argument = s[beg..end];
+                            end++; // Skip trailing quote
+                        }
+                    }
+                }
+
+                switch (option[1])
+                {
+                    case 'f':
+                        if (argument == null)
+                        {
+                            throw new FormatException($"no argument provided for -f option in '{s}'");
+                        }
+                        facet = StringUtil.UnescapeString(argument, 0, argument.Length, "");
+                        break;
+
+                    // None of the "invocation mode" option has any effect with IceRPC
+                    case 't':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -t option in '{s}'");
+                        }
+                        break;
+
+                    case 'o':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -o option in '{s}'");
+                        }
+                        break;
+
+                    case 'O':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -O option in '{s}'");
+                        }
+                        break;
+
+                    case 'd':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -d option in '{s}'");
+                        }
+                        break;
+
+                    case 'D':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -D option in '{s}'");
+                        }
+                        break;
+
+                    case 's':
+                        if (argument != null)
+                        {
+                            throw new FormatException(
+                                $"unexpected argument '{argument}' provided for -s option in '{s}'");
+                        }
+                        break;
+
+                    case 'e':
+                        if (argument == null)
+                        {
+                            throw new FormatException($"no argument provided for -e option in '{s}'");
+                        }
+                        encoding = Encoding.Parse(argument);
+                        break;
+
+                    case 'p':
+                        if (argument == null)
+                        {
+                            throw new FormatException($"no argument provided for -p option in '{s}'");
+                        }
+                        if (argument != "1.0")
+                        {
+                            throw new FormatException($"invalid value for -p option in '{s}'");
+                        }
+                        break;
+
+                    default:
+                        throw new FormatException($"unknown option '{option}' in '{s}'");
+                }
+            }
+
+            if (beg == -1)
+            {
+                // Well-known proxy
+                return new Proxy(identity, facet)
+                {
+                    Encoding = encoding
+                };
+            }
+
+            if (s[beg] == ':')
+            {
+                end = beg;
+
+                while (end < s.Length && s[end] == ':')
+                {
+                    beg = end + 1;
+
+                    end = beg;
+                    while (true)
+                    {
+                        end = s.IndexOf(':', end);
+                        if (end == -1)
+                        {
+                            end = s.Length;
+                            break;
+                        }
+                        else
+                        {
+                            bool quoted = false;
+                            int quote = beg;
+                            while (true)
+                            {
+                                quote = s.IndexOf('\"', quote);
+                                if (quote == -1 || end < quote)
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    quote = s.IndexOf('\"', ++quote);
+                                    if (quote == -1)
+                                    {
+                                        break;
+                                    }
+                                    else if (end < quote)
+                                    {
+                                        quoted = true;
+                                        break;
+                                    }
+                                    ++quote;
+                                }
+                            }
+                            if (!quoted)
+                            {
+                                break;
+                            }
+                            ++end;
+                        }
+                    }
+
+                    string es = s[beg..end];
+                    try
+                    {
+                        if (endpoint == null)
+                        {
+                            endpoint = ParseEndpointRecord(es);
+
+                            if (endpoint.Transport == TransportNames.Loc)
+                            {
+                                throw new FormatException("use @ adapterId instead of loc in proxy");
+                            }
+                        }
+                        else
+                        {
+                            altEndpoints = altEndpoints.Add(ParseEndpointRecord(es));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Give context to the exception.
+                        throw new FormatException($"failed to parse endpoint '{es}'", ex);
+                    }
+                }
+
+                Debug.Assert(endpoint != null);
+
+                return new Proxy(identity, facet)
+                {
+                    Endpoint = endpoint,
+                    AltEndpoints = altEndpoints,
+                    Encoding = encoding
+                };
+            }
+            else if (s[beg] == '@')
+            {
+                beg = StringUtil.FindFirstNotOf(s, delim, beg + 1);
+                if (beg == -1)
+                {
+                    throw new FormatException($"missing adapter ID in '{s}'");
+                }
+
+                string adapterIdStr;
+                end = StringUtil.CheckQuote(s, beg);
+                if (end == -1)
+                {
+                    throw new FormatException($"mismatched quotes around adapter ID in '{s}'");
+                }
+                else if (end == 0)
+                {
+                    end = StringUtil.FindFirstOf(s, delim, beg);
+                    if (end == -1)
+                    {
+                        end = s.Length;
+                    }
+                    adapterIdStr = s[beg..end];
+                }
+                else
+                {
+                    beg++; // Skip leading quote
+                    adapterIdStr = s[beg..end];
+                    end++; // Skip trailing quote
+                }
+
+                if (end != s.Length && StringUtil.FindFirstNotOf(s, delim, end) != -1)
+                {
+                    throw new FormatException(
+                        $"invalid trailing characters after '{s.Substring(0, end + 1)}' in '{s}'");
+                }
+
+                string adapterId = StringUtil.UnescapeString(adapterIdStr, 0, adapterIdStr.Length, "");
+
+                if (adapterId.Length == 0)
+                {
+                    throw new FormatException($"empty adapter ID in proxy '{s}'");
+                }
+
+                endpoint = new EndpointRecord(Protocol.Ice1,
+                                              TransportNames.Loc,
+                                              Host: adapterId,
+                                              Port: 0,
+                                              ImmutableList<EndpointParameter>.Empty,
+                                              ImmutableList<EndpointParameter>.Empty);
+
+                return new Proxy(identity, facet)
+                {
+                    Endpoint = endpoint,
+                    Encoding = encoding
+                };
+            }
+
+            throw new FormatException($"malformed proxy '{s}'");
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>

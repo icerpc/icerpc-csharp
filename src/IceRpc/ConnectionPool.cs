@@ -53,8 +53,8 @@ namespace IceRpc
         /// <param name="altEndpoints">The alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
         public ValueTask<Connection> GetConnectionAsync(
-            Endpoint endpoint,
-            IEnumerable<Endpoint> altEndpoints,
+            EndpointRecord endpoint,
+            IEnumerable<EndpointRecord> altEndpoints,
             CancellationToken cancel)
         {
             if (PreferExistingConnection)
@@ -65,7 +65,7 @@ namespace IceRpc
                     connection = GetCachedConnection(endpoint);
                     if (connection == null)
                     {
-                        foreach (Endpoint altEndpoint in altEndpoints)
+                        foreach (EndpointRecord altEndpoint in altEndpoints)
                         {
                             connection = GetCachedConnection(altEndpoint);
                             if (connection != null)
@@ -94,7 +94,7 @@ namespace IceRpc
                 {
                     List<Exception>? exceptionList = null;
 
-                    foreach (Endpoint altEndpoint in altEndpoints)
+                    foreach (EndpointRecord altEndpoint in altEndpoints)
                     {
                         try
                         {
@@ -125,7 +125,7 @@ namespace IceRpc
                 }
             }
 
-            Connection? GetCachedConnection(Endpoint endpoint) =>
+            Connection? GetCachedConnection(EndpointRecord endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
                     connection => connection.State == ConnectionState.Active) is Connection connection ?
@@ -180,7 +180,7 @@ namespace IceRpc
         }
 
         private async ValueTask<Connection> ConnectAsync(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ClientConnectionOptions options,
             CancellationToken cancel)
         {

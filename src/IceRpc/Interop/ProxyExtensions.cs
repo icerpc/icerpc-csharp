@@ -56,7 +56,7 @@ namespace IceRpc.Interop
                 }
             }
 
-            if (proxy.Endpoint?.TransportName == TransportNames.Udp)
+            if (proxy.Endpoint?.Transport == TransportNames.Udp)
             {
                 sb.Append(" -d");
             }

@@ -180,7 +180,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal ColocConnection(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             long id,
             ChannelWriter<(long, object, bool)> writer,
             ChannelReader<(long, object, bool)> reader,

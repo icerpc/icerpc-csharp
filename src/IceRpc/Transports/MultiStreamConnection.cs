@@ -38,7 +38,7 @@ namespace IceRpc.Transports
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
-        public Endpoint LocalEndpoint
+        public EndpointRecord LocalEndpoint
         {
             get => _localEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             protected set => _localEndpoint = value;
@@ -49,17 +49,14 @@ namespace IceRpc.Transports
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
-        public Endpoint RemoteEndpoint
+        public EndpointRecord RemoteEndpoint
         {
             get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             protected set => _remoteEndpoint = value;
         }
 
-        /// <summary>The transport of this connection.</summary>
-        public TransportCode TransportCode => _endpoint.TransportCode;
-
         /// <summary>The name of the transport.</summary>
-        public string TransportName => _endpoint.TransportName;
+        public string TransportName => _endpoint.Transport;
 
         internal int IncomingFrameMaxSize { get; }
 
@@ -97,16 +94,16 @@ namespace IceRpc.Transports
 
         // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
         // the remote endpoint otherwise.
-        private readonly Endpoint _endpoint;
+        private readonly EndpointRecord _endpoint;
         private int _incomingStreamCount;
         private TaskCompletionSource? _incomingStreamsEmptySource;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
-        private Endpoint? _localEndpoint;
+        private EndpointRecord? _localEndpoint;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
         private TaskCompletionSource? _outgoingStreamsEmptySource;
-        private Endpoint? _remoteEndpoint;
+        private EndpointRecord? _remoteEndpoint;
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
@@ -173,7 +170,7 @@ namespace IceRpc.Transports
         /// <param name="options">The connection options.</param>
         /// <param name="logger">The logger.</param>
         protected MultiStreamConnection(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ConnectionOptions options,
             ILogger logger)
         {
@@ -242,7 +239,7 @@ namespace IceRpc.Transports
             return true;
         }
 
-        /// <summary>Traces the given received amount of data. TransportCode implementations should call this method
+        /// <summary>Traces the given received amount of data. Transport implementations should call this method
         /// to trace the received data.</summary>
         /// <param name="buffer">The received data.</param>
         protected void Received(ReadOnlyMemory<byte> buffer)
@@ -267,7 +264,7 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Traces the given sent amount of data. TransportCode implementations should call this method to
+        /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
         /// trace the data sent.</summary>
         /// <param name="buffers">The buffers sent.</param>
         protected void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
@@ -301,7 +298,7 @@ namespace IceRpc.Transports
             }
         }
 
-        /// <summary>Try to get a stream with the given ID. TransportCode implementations can use this method to lookup
+        /// <summary>Try to get a stream with the given ID. Transport implementations can use this method to lookup
         /// an existing stream.</summary>
         /// <param name="streamId">The stream ID.</param>
         /// <param name="value">If found, value is assigned to the stream value, null otherwise.</param>

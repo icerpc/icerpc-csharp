@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ConnectionOptions options) =>
             endpoint.Protocol == Protocol.Ice1 ?
                 new Ice1Connection(networkSocket, endpoint, options) :
@@ -66,7 +66,7 @@ namespace IceRpc.Transports
         /// <param name="options">The connection options.</param>
         protected NetworkSocketConnection(
             NetworkSocket networkSocket,
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
 

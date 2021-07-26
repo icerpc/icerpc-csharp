@@ -119,7 +119,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public Endpoint? LocalEndpoint
+        public EndpointRecord? LocalEndpoint
         {
             get => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
             internal set => _localEndpoint = value;
@@ -188,7 +188,7 @@ namespace IceRpc
         /// <summary>The connection remote endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
         /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
-        public Endpoint? RemoteEndpoint
+        public EndpointRecord? RemoteEndpoint
         {
             get => _remoteEndpoint ?? UnderlyingConnection?.RemoteEndpoint;
             set
@@ -260,14 +260,14 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
-        private Endpoint? _localEndpoint;
+        private EndpointRecord? _localEndpoint;
         private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
         private RpcStream? _peerControlStream;
-        private Endpoint? _remoteEndpoint;
+        private EndpointRecord? _remoteEndpoint;
         private Action<Connection>? _remove;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;

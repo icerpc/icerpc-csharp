@@ -136,8 +136,14 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpointValue, string? encoding) =
+            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpointValue, string? encodingValue) =
                 ParseQuery(uri.Query, uriString);
+
+            Encoding encoding = Encoding.V20;
+            if (encodingValue != null)
+            {
+                encoding = Encoding.Parse(encodingValue);
+            }
 
             EndpointRecord? endpoint = null;
             ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
@@ -180,7 +186,12 @@ namespace IceRpc.Internal
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            return null!;
+            return new Proxy(uri.AbsolutePath, protocol)
+            {
+                Endpoint = endpoint,
+                AltEndpoints = altEndpoints,
+                Encoding = encoding
+            };
         }
 
         private static EndpointRecord CreateEndpoint(
@@ -188,26 +199,12 @@ namespace IceRpc.Internal
             List<EndpointParameter> parameters,
             List<EndpointParameter> localParameters,
             Protocol protocol,
-            string uriString)
-        {
-            if (uri.AbsolutePath.Length > 1)
-            {
-                throw new FormatException($"endpoint '{uriString}' cannot define a path");
-            }
-
-            ushort port;
-            checked
-            {
-                port = (ushort)uri.Port;
-            }
-
-            return new EndpointRecord(protocol,
-                                      uri.Scheme[IcePlus.Length..],
-                                      uri.DnsSafeHost,
-                                      port,
-                                      parameters.ToImmutableList(),
-                                      localParameters.ToImmutableList());
-        }
+            string uriString) => new(protocol,
+                                     uri.Scheme[IcePlus.Length..],
+                                     uri.DnsSafeHost,
+                                     checked((ushort)uri.Port),
+                                     parameters.ToImmutableList(),
+                                     localParameters.ToImmutableList());
 
         private static (List<EndpointParameter> Parameters, List<EndpointParameter> LocalParameters, Protocol Protocol, string? AltEndpoint, string? Endpoint) ParseQuery(
             string query,
