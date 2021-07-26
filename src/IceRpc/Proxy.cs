@@ -693,9 +693,23 @@ namespace IceRpc
 
                     if (endpoints.Any())
                     {
-                        encoder.EncodeSequence(endpoints,
-                                              (encoder, endpoint) =>
-                                                    EndpointEncoder.EncodeEndpoint(EndpointRecord.FromString(endpoint.ToString()), encoder));
+                        if (Protocol == Protocol.Ice1)
+                        {
+                            encoder.EncodeSequence(
+                                endpoints,
+                                (encoder, endpoint) =>
+                                    EndpointEncoder.EncodeEndpoint(EndpointRecord.FromString(endpoint.ToString()), encoder));
+                        }
+                        else
+                        {
+                            encoder.EncodeSequence(
+                                endpoints,
+                                (encoder, endpoint) =>
+                                    encoder.EncodeEndpoint11(
+                                        EndpointRecord.FromString(endpoint.ToString()),
+                                        TransportCode.Any,
+                                        static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));
+                        }
                     }
                     else // encoded as an endpointless proxy
                     {

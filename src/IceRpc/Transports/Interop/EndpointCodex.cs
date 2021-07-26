@@ -5,13 +5,15 @@ using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace IceRpc.Transports.Interop
 {
+    /// <summary>Provides the logic to decode an ice1 endpoint encoded with the Ice 1.1 encoding.</summary>
     public interface IEndpointDecoder
     {
-        /// <summary>Decodes an endpoint encoded using the Ice 1.1 encoding.</summary>
+        /// <summary>Decodes an ice1 endpoint encoded using the Ice 1.1 encoding.</summary>
         /// <param name="transportCode">The transport code.</param>
         /// <param name="decoder">The Ice decoder.</param>
         /// <returns>The decoded endpoint, or null if this endpoint decoder does not handle this transport code.
@@ -19,17 +21,25 @@ namespace IceRpc.Transports.Interop
         EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
+    /// <summary>Provides the logic to encode an ice1 endpoint with the Ice 1.1 encoding.</summary>
     public interface IEndpointEncoder
     {
+        /// <summary>Encodes an ice1 endpoint with the Ice 1.1 encoding.</summary>
+        /// <param name="endpoint">The ice1 endpoint to encode.</param>
+        /// <param name="encoder">The Ice encoder.</param>
         void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder);
     }
 
+    /// <summary>Composes the <see cref="IEndpointEncoder"/> and <see cref="IEndpointDecoder"/> interfaces.</summary>
     public interface IEndpointCodex : IEndpointDecoder, IEndpointEncoder
     {
     }
 
+    /// <summary>Builds a composite endpoint codex out of endpoint codexes for specific transports.</summary>
     public class EndpointCodexBuilder : Dictionary<(string TransportName, TransportCode TransportCode), IEndpointCodex>
     {
+        /// <summary>Builds a new endpoint codex.</summary>
+        /// <returns>The new endpoint codex.</returns>
         public IEndpointCodex Build() => new CompositeEndpointCodex(this);
 
         private class CompositeEndpointCodex : IEndpointCodex
@@ -81,20 +91,30 @@ namespace IceRpc.Transports.Interop
         }
     }
 
+    /// <summary>Extension methods for class <see cref="EndpointCodexBuilder"/>.</summary>
     public static class EndpointCodexBuilderExtensions
     {
+        /// <summary>Adds the ssl endpoint codex to this builder.</summary>
+        /// <param name="builder">The builder being configured.</param>
+        /// <returns>The builder.</returns>
         public static EndpointCodexBuilder AddSsl(this EndpointCodexBuilder builder)
         {
             builder.Add((TransportNames.Ssl, TransportCode.SSL), new TcpEndpointCodex());
             return builder;
         }
 
+        /// <summary>Adds the tcp endpoint codex to this builder.</summary>
+        /// <param name="builder">The builder being configured.</param>
+        /// <returns>The builder.</returns>
         public static EndpointCodexBuilder AddTcp(this EndpointCodexBuilder builder)
         {
             builder.Add((TransportNames.Tcp, TransportCode.TCP), new TcpEndpointCodex());
             return builder;
         }
 
+        /// <summary>Adds the udp endpoint codex to this builder.</summary>
+        /// <param name="builder">The builder being configured.</param>
+        /// <returns>The builder.</returns>
         public static EndpointCodexBuilder AddUdp(this EndpointCodexBuilder builder)
         {
             builder.Add((TransportNames.Udp, TransportCode.UDP), new UdpEndpointCodex());
@@ -102,10 +122,17 @@ namespace IceRpc.Transports.Interop
         }
     }
 
+    /// <summary>Implements <see cref="IEndpointCodex"/> for the tcp transport.</summary>
     public sealed class TcpEndpointCodex : IEndpointCodex
     {
+        /// <inheritdoc/>
         public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
+            if (decoder.Encoding != Encoding.V11)
+            {
+                throw new InvalidOperationException();
+            }
+
             if (transportCode == TransportCode.TCP || transportCode == TransportCode.SSL)
             {
                 string host = decoder.DecodeString();
@@ -130,37 +157,41 @@ namespace IceRpc.Transports.Interop
             return null;
         }
 
+        /// <inheritdoc/>
         public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
         {
-            TransportCode transportCode = endpoint.Protocol == Protocol.Ice1 ?
-                (endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP) :
-                TransportCode.Any;
+            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
+            {
+                throw new InvalidOperationException();
+            }
+
+            TransportCode transportCode =
+                endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP;
 
             encoder.EncodeEndpoint11(endpoint,
                                      transportCode,
                                      static (encoder, endpoint) =>
                                      {
-                                        if (endpoint.Protocol == Protocol.Ice1)
-                                        {
-                                            (bool compress, int timeout) = TcpUtils.ParseTcpParameters(endpoint);
-
-                                            encoder.EncodeString(endpoint.Host);
-                                            encoder.EncodeInt(endpoint.Port);
-                                            encoder.EncodeInt(timeout);
-                                            encoder.EncodeBool(compress);
-                                        }
-                                        else
-                                        {
-                                            endpoint.ToEndpointData().Encode(encoder);
-                                        }
+                                        (bool compress, int timeout) = TcpUtils.ParseTcpParameters(endpoint);
+                                        encoder.EncodeString(endpoint.Host);
+                                        encoder.EncodeInt(endpoint.Port);
+                                        encoder.EncodeInt(timeout);
+                                        encoder.EncodeBool(compress);
                                      });
        }
     }
 
+    /// <summary>Implements <see cref="IEndpointCodex"/> for the udp transport.</summary>
     public sealed class UdpEndpointCodex : IEndpointCodex
     {
+        /// <inheritdoc/>
         public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
+            if (decoder.Encoding != Encoding.V11)
+            {
+                throw new InvalidOperationException();
+            }
+
             if (transportCode == TransportCode.UDP)
             {
                 string host = decoder.DecodeString();
@@ -180,8 +211,14 @@ namespace IceRpc.Transports.Interop
             return null;
         }
 
+        /// <inheritdoc/>
         public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
         {
+            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
+            {
+                throw new InvalidOperationException();
+            }
+
             encoder.EncodeEndpoint11(endpoint,
                                      TransportCode.UDP,
                                      static (encoder, endpoint) =>
