@@ -16,6 +16,11 @@ namespace IceRpc.Transports
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
+        /// <summary><c>true</c> if the socket uses a secure transport, <c>false</c> otherwise.</summary>
+        /// <remarks><c>false</c> can mean the socket is not yet connected and its security will be determined
+        /// during connection establishment.</remarks>
+        public abstract bool IsSecure { get; }
+
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
         /// expose it.</summary>
         public virtual SslStream? SslStream => null;

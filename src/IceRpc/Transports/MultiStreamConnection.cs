@@ -28,7 +28,7 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
-        public bool IsSecure => _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? _endpoint.IsSecure ?? false;
+        public abstract bool IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.

@@ -10,6 +10,9 @@ namespace IceRpc.Transports
     /// <summary>Base class for multi-stream connection implementations that use <see cref="NetworkSocket"/>.</summary>
     public abstract class NetworkSocketConnection : MultiStreamConnection
     {
+        /// <inheritdoc/>
+        public override bool IsSecure => NetworkSocket.IsSecure;
+
         /// <summary>Creates a network socket connection from a network socket.</summary>
         /// <param name="networkSocket">The network socket.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint

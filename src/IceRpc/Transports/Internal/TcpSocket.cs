@@ -18,6 +18,8 @@ namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
+        public override bool IsSecure => _tls ?? (_sslStream != null);
+
         public override SslStream? SslStream => _sslStream;
 
         protected internal override Socket? Socket => _socket;
@@ -70,7 +72,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 ImmutableList<EndpointParameter> localParameters = endpoint.LocalParameters;
-                if (_tls == null && endpoint.Protocol != Protocol.Ice1)
+                if (_tls == null && endpoint.Protocol == Protocol.Ice2)
                 {
                     // the accepted endpoint gets a _tls parameter
                     localParameters =
