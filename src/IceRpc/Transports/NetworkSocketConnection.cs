@@ -11,6 +11,9 @@ namespace IceRpc.Transports
     public abstract class NetworkSocketConnection : MultiStreamConnection
     {
         /// <inheritdoc/>
+        public override bool IsDatagram => NetworkSocket.IsDatagram;
+
+        /// <inheritdoc/>
         public override bool? IsSecure => NetworkSocket.IsSecure;
 
         /// <summary>Creates a network socket connection from a network socket.</summary>

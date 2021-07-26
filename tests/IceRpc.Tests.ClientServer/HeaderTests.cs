@@ -64,7 +64,7 @@ namespace IceRpc.Tests.ClientServer
             var invocation = new Invocation
             {
                 Context = new Dictionary<string, string> { ["foo"] = largeValue },
-                IsOneway = connection.IsDatagram
+                IsOneway = server.Endpoint.Transport == "udp"
             };
 
             await greeter.SayHelloAsync(invocation);

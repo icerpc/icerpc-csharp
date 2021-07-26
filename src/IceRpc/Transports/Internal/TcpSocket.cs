@@ -18,6 +18,7 @@ namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
+        public override bool IsDatagram => false;
         public override bool? IsSecure => _tls;
 
         public override SslStream? SslStream => _sslStream;

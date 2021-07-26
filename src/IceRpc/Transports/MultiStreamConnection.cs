@@ -22,8 +22,8 @@ namespace IceRpc.Transports
         /// <summary>Gets or set the idle timeout.</summary>
         public abstract TimeSpan IdleTimeout { get; internal set; }
 
-        /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
-        public bool IsDatagram => _endpoint.IsDatagram;
+        /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
+        public abstract bool IsDatagram { get; }
 
         /// <summary>Indicates whether or not this connection's transport is secure.</summary>
         /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport

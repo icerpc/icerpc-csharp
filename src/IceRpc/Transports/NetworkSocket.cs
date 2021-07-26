@@ -16,6 +16,9 @@ namespace IceRpc.Transports
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
+        /// <summary><c>true</c> for datagram socket; <c>false</c> otherwise.</summary>
+        public abstract bool IsDatagram { get; }
+
         /// <summary>Indicates whether or not this socket's transport is secure.</summary>
         /// <value><c>true</c> means the socket's transport is secure. <c>false</c> means the socket's transport
         /// is not secure. And null means whether or not the transport is secure is not determined yet. This value

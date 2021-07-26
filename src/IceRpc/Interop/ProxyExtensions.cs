@@ -55,15 +55,6 @@ namespace IceRpc.Interop
                 }
             }
 
-            if (proxy.Endpoint?.IsDatagram ?? false)
-            {
-                sb.Append(" -d");
-            }
-            else
-            {
-                sb.Append(" -t");
-            }
-
             // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
             // same encoding with StringToProxy. (Only needed for backwards compatibility).
             sb.Append(" -e ");

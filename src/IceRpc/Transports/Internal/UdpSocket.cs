@@ -17,6 +17,7 @@ namespace IceRpc.Transports.Internal
     internal sealed class UdpSocket : NetworkSocket
     {
         public override int DatagramMaxReceiveSize { get; }
+        public override bool IsDatagram => true;
         public override bool? IsSecure => false;
         protected internal override Socket? Socket => _socket;
 
