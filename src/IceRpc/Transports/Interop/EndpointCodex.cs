@@ -11,7 +11,8 @@ using System.Linq;
 
 namespace IceRpc.Transports.Interop
 {
-    /// <summary>Provides the logic to decode an ice1 endpoint encoded with the Ice 1.1 encoding.</summary>
+    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// an abstraction to plug-in decoders for such endpoints.</summary>
     public interface IEndpointDecoder
     {
         /// <summary>Decodes an ice1 endpoint encoded using the Ice 1.1 encoding.</summary>
@@ -22,7 +23,8 @@ namespace IceRpc.Transports.Interop
         EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
-    /// <summary>Provides the logic to encode an ice1 endpoint with the Ice 1.1 encoding.</summary>
+    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// an abstraction to plug-in encoders for such endpoints.</summary>
     public interface IEndpointEncoder
     {
         /// <summary>Encodes an ice1 endpoint with the Ice 1.1 encoding.</summary>
@@ -57,17 +59,9 @@ namespace IceRpc.Transports.Interop
                     builder.ToDictionary(entry => entry.Key.TransportName, entry => entry.Value as IEndpointEncoder);
             }
 
-            public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
-            {
-                if (_endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder))
-                {
-                    return endpointDecoder.DecodeEndpoint(transportCode, decoder);
-                }
-                else
-                {
-                    return null!;
-                }
-            }
+            public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
+                _endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder) ?
+                    endpointDecoder.DecodeEndpoint(transportCode, decoder) : null;
 
             public void EncodeEndpoint(EndpointRecord endpoint, IceEncoder encoder)
             {
