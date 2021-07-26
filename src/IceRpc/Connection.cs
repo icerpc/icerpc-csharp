@@ -115,8 +115,7 @@ namespace IceRpc
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
         public bool IsSecure =>
-            UnderlyingConnection is MultiStreamConnection connection ?
-                connection.IsSecure : _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? false;
+            UnderlyingConnection is MultiStreamConnection connection ? connection.IsSecure ?? false : false;
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>

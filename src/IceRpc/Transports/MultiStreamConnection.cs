@@ -25,10 +25,11 @@ namespace IceRpc.Transports
         /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
         public bool IsDatagram => _endpoint.IsDatagram;
 
-        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
-        /// during connection establishment.</remarks>
-        public abstract bool IsSecure { get; }
+        /// <summary>Indicates whether or not this connection's transport is secure.</summary>
+        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport
+        /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
+        /// is never null once the connection is established.</value>
+        public abstract bool? IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.

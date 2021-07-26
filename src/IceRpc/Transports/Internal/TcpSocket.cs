@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
 {
     internal class TcpSocket : NetworkSocket
     {
-        public override bool IsSecure => _tls ?? (_sslStream != null);
+        public override bool? IsSecure => _tls;
 
         public override SslStream? SslStream => _sslStream;
 
@@ -33,7 +33,7 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private readonly Socket _socket;
         private SslStream? _sslStream;
-        private readonly bool? _tls;
+        private bool? _tls;
 
         public override async ValueTask<EndpointRecord?> AcceptAsync(
             EndpointRecord endpoint,
@@ -302,6 +302,8 @@ namespace IceRpc.Transports.Internal
         {
             // This can only be created with a connected socket.
             _sslStream = new SslStream(new NetworkStream(_socket, false), false);
+            _tls = true;
+
             try
             {
                 await authenticate(_sslStream).ConfigureAwait(false);

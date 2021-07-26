@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
-        public override bool IsSecure => true;
+        public override bool? IsSecure => true;
 
         internal long Id { get; }
 
