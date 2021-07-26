@@ -30,7 +30,14 @@ namespace IceRpc.Transports.Internal
                     {
                         throw new FormatException($"multiple _tls parameters in endpoint '{endpoint}'");
                     }
-                    tls = bool.Parse(value);
+                    try
+                    {
+                        tls = bool.Parse(value);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new FormatException($"invalid value for _tls parameter in endpoint '{endpoint}'", ex);
+                    }
                 }
                 else
                 {
@@ -48,39 +55,46 @@ namespace IceRpc.Transports.Internal
 
             foreach ((string name, string value) in endpoint.Parameters)
             {
-                if (endpoint.Protocol == Protocol.Ice1 && name == "-t")
+                if (endpoint.Protocol == Protocol.Ice1)
                 {
-                    if (timeout != null)
+                    switch (name)
                     {
-                        throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
+                        case "-t":
+                            if (timeout != null)
+                            {
+                                throw new FormatException($"multiple -t parameters in endpoint '{endpoint}'");
+                            }
+                            if (value == "infinite")
+                            {
+                                timeout = -1;
+                            }
+                            else
+                            {
+                                timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
+                                if (timeout == 0 || timeout < -1)
+                                {
+                                    throw new FormatException(
+                                        $"invalid value for -t parameter in endpoint '{endpoint}'");
+                                }
+                            }
+                            continue; // loop back
+
+                        case "-z":
+                            if (compress)
+                            {
+                                throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                            }
+                            if (value.Length > 0)
+                            {
+                                throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                            }
+                            compress = true;
+                            continue; // loop back
+
+                        default:
+                            break;
                     }
-                    if (value == "infinite")
-                    {
-                        timeout = -1;
-                    }
-                    else
-                    {
-                        timeout = int.Parse(value, CultureInfo.InvariantCulture); // timeout in ms, or -1
-                        if (timeout == 0 || timeout < -1)
-                        {
-                            throw new FormatException($"invalid value for -t parameter in endpoint '{endpoint}'");
-                        }
-                    }
-                }
-                else if (endpoint.Protocol == Protocol.Ice1 && name == "-z")
-                {
-                    if (compress)
-                    {
-                        throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
-                    }
-                    if (value.Length > 0)
-                    {
-                        throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
-                    }
-                    compress = true;
-                }
-                else
-                {
+
                     throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                 }
             }
