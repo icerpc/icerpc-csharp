@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 
 namespace IceRpc.Transports.Interop
 {
@@ -44,16 +45,16 @@ namespace IceRpc.Transports.Interop
 
         private class CompositeEndpointCodex : IEndpointCodex
         {
-            private Dictionary<TransportCode, IEndpointDecoder> _endpointDecoders = new();
-            private Dictionary<string, IEndpointEncoder> _endpointEncoders = new();
+            private IReadOnlyDictionary<TransportCode, IEndpointDecoder> _endpointDecoders;
+            private IReadOnlyDictionary<string, IEndpointEncoder> _endpointEncoders;
 
             internal CompositeEndpointCodex(EndpointCodexBuilder builder)
             {
-                foreach (var entry in builder)
-                {
-                    _endpointDecoders.Add(entry.Key.TransportCode, entry.Value);
-                    _endpointEncoders.Add(entry.Key.TransportName, entry.Value);
-                }
+                _endpointDecoders =
+                    builder.ToDictionary(entry => entry.Key.TransportCode, entry => entry.Value as IEndpointDecoder);
+
+                _endpointEncoders =
+                    builder.ToDictionary(entry => entry.Key.TransportName, entry => entry.Value as IEndpointEncoder);
             }
 
             public EndpointRecord? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
