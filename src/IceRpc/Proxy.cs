@@ -4,6 +4,7 @@ using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using IceRpc.Transports.Interop;
 using System;
 using System.Collections.Generic;
@@ -668,7 +669,7 @@ namespace IceRpc
 
                 var proxyData = new ProxyData11(
                     FacetPath,
-                    Protocol == Protocol.Ice1 && (Endpoint?.IsDatagram ?? false) ?
+                    Protocol == Protocol.Ice1 && (Endpoint?.TransportName == TransportNames.Udp) ?
                         InvocationMode.Datagram : InvocationMode.Twoway,
                     secure: false,
                     Protocol,

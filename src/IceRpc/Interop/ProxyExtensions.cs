@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using System.Text;
 
 namespace IceRpc.Interop
@@ -53,6 +54,15 @@ namespace IceRpc.Interop
                 {
                     sb.Append(fs);
                 }
+            }
+
+            if (proxy.Endpoint?.TransportName == TransportNames.Udp)
+            {
+                sb.Append(" -d");
+            }
+            else
+            {
+                sb.Append(" -t");
             }
 
             // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
