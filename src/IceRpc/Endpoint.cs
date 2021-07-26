@@ -50,7 +50,7 @@ namespace IceRpc
         public virtual bool IsDatagram => false;
 
         /// <summary>Indicates whether or not this endpoint's transport is secure.</summary>
-        /// <value>True means the endpoint's transport is secure. False means the endpoint's tranport is not secure. And
+        /// <value>True means the endpoint's transport is secure. False means the endpoint's transport is not secure. And
         /// null means whether or not the transport is secure is not determined yet. The endpoint of an established
         /// connection never returns this null value.</value>
         public virtual bool? IsSecure => null;

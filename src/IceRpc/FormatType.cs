@@ -2,9 +2,9 @@
 
 namespace IceRpc
 {
-    /// <summary>This enumeration describes the possible formats for classes and exceptions. As of Ice 4.0,
-    /// exceptions are always marshaled in the Sliced format, but can be received in the Compact format from
-    /// applications using earlier versions of Ice.</summary>
+    /// <summary>This enumeration describes the possible formats for classes and exceptions. With IceRcp exceptions
+    /// are always marshaled using the Sliced format, but can be received in the Compact for compatibility with
+    /// ZeroC Ice.</summary>
     public enum FormatType
     {
         /// <summary>The Compact format assumes the sender and receiver have the same Slice definitions for classes
