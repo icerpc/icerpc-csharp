@@ -29,10 +29,10 @@ namespace IceRpc.Transports.Internal
         private readonly IPEndPoint? _multicastEndpoint;
         private readonly Socket _socket;
 
-        public override ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
+        public override ValueTask<EndpointRecord?> AcceptAsync(
+            EndpointRecord endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new(null as Endpoint);
+            CancellationToken cancel) => new(null as EndpointRecord);
 
         public override async ValueTask<Endpoint> ConnectAsync(
             Endpoint endpoint,

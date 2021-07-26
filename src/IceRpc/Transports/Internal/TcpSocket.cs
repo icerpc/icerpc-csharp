@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Buffers;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
@@ -30,9 +31,10 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private readonly Socket _socket;
         private SslStream? _sslStream;
+        private readonly bool? _tls;
 
-        public override async ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
+        public override async ValueTask<EndpointRecord?> AcceptAsync(
+            EndpointRecord endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
@@ -56,7 +58,7 @@ namespace IceRpc.Transports.Internal
 
                 // If a secure connection is needed, a new SslConnection is created and returned from this method.
                 // The caller is responsible for using the returned SslConnection in place of this TcpConnection.
-                if (endpoint.IsSecure ?? secure)
+                if (_tls ?? secure)
                 {
                     if (authenticationOptions == null)
                     {
@@ -66,7 +68,29 @@ namespace IceRpc.Transports.Internal
                     await AuthenticateAsync(sslStream =>
                         sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
-                return ((TcpEndpoint)endpoint).Clone(_socket.RemoteEndPoint!, tls: SslStream != null);
+
+                ImmutableList<EndpointParameter> localParameters = endpoint.LocalParameters;
+                if (_tls == null && endpoint.Protocol != Protocol.Ice1)
+                {
+                    // the accepted endpoint gets a _tls parameter
+                    localParameters =
+                        localParameters.Add(new EndpointParameter("_tls", SslStream == null ? "false" : "true"));
+                }
+
+                string host;
+                ushort port;
+
+                if (_socket.RemoteEndPoint is IPEndPoint ipEndPoint)
+                {
+                    host = ipEndPoint.Address.ToString();
+                    port = checked((ushort)ipEndPoint.Port);
+                }
+                else
+                {
+                    throw new InvalidOperationException("unsupported address");
+                }
+
+                return endpoint with { Host = host, Port = port, LocalParameters = localParameters };
             }
             catch (Exception ex)
             {
@@ -262,13 +286,14 @@ namespace IceRpc.Transports.Internal
             return true;
         }
 
-        internal TcpSocket(Socket fd, ILogger logger, EndPoint? addr = null)
+        internal TcpSocket(Socket fd, ILogger logger, bool? tls, EndPoint? addr = null)
             : base(logger)
         {
             _addr = addr;
 
             // The socket is not connected if a client socket, it's connected otherwise.
             _socket = fd;
+            _tls = tls;
         }
 
         private async Task AuthenticateAsync(Func<SslStream, Task> authenticate)

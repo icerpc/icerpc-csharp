@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
                 "compress" => _hasCompressionFlag ? "true" : null,
                 "timeout" => _timeout != DefaultTimeout ?
                              _timeout.TotalMilliseconds.ToString(CultureInfo.InvariantCulture) : null,
-                "tls" => Protocol == Protocol.Ice1 ? null : _tls?.ToString().ToLowerInvariant(),
+                "_tls" => Protocol == Protocol.Ice1 ? null : _tls?.ToString().ToLowerInvariant(),
                 _ => base[option],
             };
 
@@ -78,7 +78,7 @@ namespace IceRpc.Transports.Internal
             }
             else if (_tls is bool tls)
             {
-                sb.Append($"tls={tls.ToString().ToLowerInvariant()}");
+                sb.Append($"_tls={tls.ToString().ToLowerInvariant()}");
             }
         }
 
@@ -204,10 +204,10 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateIce2Endpoint(string host, ushort port, Dictionary<string, string> options)
         {
             bool? tls = null;
-            if (options.TryGetValue("tls", out string? value))
+            if (options.TryGetValue("_tls", out string? value))
             {
                 tls = bool.Parse(value);
-                options.Remove("tls");
+                options.Remove("_tls");
             }
             return new TcpEndpoint(new EndpointData(Protocol.Ice2, "tcp", TransportCode.TCP, host, port, ImmutableList<string>.Empty), tls);
         }

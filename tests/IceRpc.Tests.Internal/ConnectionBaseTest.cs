@@ -97,7 +97,7 @@ namespace IceRpc.Tests.Internal
                     string tlsOption = "";
                     if (transport == "tcp" && !IsSecure)
                     {
-                        tlsOption = "?tls=false";
+                        tlsOption = "?_tls=false";
                     }
 
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";

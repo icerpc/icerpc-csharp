@@ -32,14 +32,14 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            Endpoint? remoteEndpoint = await NetworkSocket.AcceptAsync(
-                LocalEndpoint!,
+            EndpointRecord? remoteEndpoint = await NetworkSocket.AcceptAsync(
+                LocalEndpoint!.ToString(),
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
 
             if (remoteEndpoint != null)
             {
-                RemoteEndpoint = remoteEndpoint;
+                RemoteEndpoint = remoteEndpoint.ToString();
             }
         }
 

@@ -18,13 +18,14 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         private readonly ServerConnectionOptions _options;
         private readonly Socket _socket;
+        private readonly bool? _tls;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
             TcpSocket tcpSocket;
             try
             {
-                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger);
+                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger, _tls);
             }
             catch (Exception ex)
             {
@@ -44,10 +45,14 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
+            _tls = ParseLocalTcpParameters(endpoint);
+
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                _tls = endpoint.Transport == TransportNames.Ssl;
+            }
 
             _ = ParseTcpParameters(endpoint);
-            // TODO: use tls value!
-            _ = ParseLocalTcpParameters(endpoint);
         }
     }
 }

@@ -23,8 +23,8 @@ namespace IceRpc.Transports.Internal
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
+        public override ValueTask<EndpointRecord?> AcceptAsync(
+            EndpointRecord endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) =>
             Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);

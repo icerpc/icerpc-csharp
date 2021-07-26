@@ -182,7 +182,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
+                    Endpoint = $"ice+{transport}://127.0.0.1:0?_tls={(secure ? "true" : "false")}";
                 }
             }
         }

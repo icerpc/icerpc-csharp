@@ -20,8 +20,21 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             _ = ParseTcpParameters(remoteEndpoint);
-            // TODO: use tls value!
-            _ = ParseLocalTcpParameters(remoteEndpoint);
+
+            // TODO: rework tls to keep null value
+            bool? tls = ParseLocalTcpParameters(remoteEndpoint);
+            if (remoteEndpoint.Protocol == Protocol.Ice1)
+            {
+                tls = remoteEndpoint.Transport == TransportNames.Ssl;
+            }
+            else if (tls == null)
+            {
+                remoteEndpoint = remoteEndpoint with
+                {
+                    LocalParameters = remoteEndpoint.LocalParameters.Add(new EndpointParameter("_tls", "true"))
+                };
+                tls = true;
+            }
 
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
 
@@ -59,7 +72,7 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpSocket(socket, logger, netEndPoint);
+            var tcpSocket = new TcpSocket(socket, logger, tls, netEndPoint);
             return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint.ToString(), options);
         }
     }
