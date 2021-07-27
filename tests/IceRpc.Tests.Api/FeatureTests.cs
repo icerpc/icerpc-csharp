@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Api
                 {
                     if (request.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
-                        Multiplier multiplier = value.DecodeFieldValue(BasicDecodeFuncs.IntDecodeFunc);
+                        Multiplier multiplier = value.DecodeFieldValue(decoder => decoder.DecodeInt());
                         if (request.Features.IsReadOnly)
                         {
                             request.Features = new FeatureCollection(request.Features);

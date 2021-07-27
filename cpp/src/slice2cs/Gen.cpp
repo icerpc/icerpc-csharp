@@ -1202,35 +1202,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => decoder.DecodeClass<" << name << ">(IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "?> NullableDecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => decoder.DecodeNullableClass<" << name << ">(IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
     _out << nl << "public static " << (hasBaseClass ? "new " : "") << "string IceTypeId => _iceAllTypeIds[0];";
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => encoder.EncodeClass(value, IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "?> NullableEncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => encoder.EncodeNullableClass(value, IceTypeId);";
-    _out.dec();
 
     if (p->compactId() >= 0)
     {
@@ -1724,24 +1696,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     }
 
     _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
-
     _out << sb;
-
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> for <see cref=\""
-         << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => new " << name << "(decoder);";
-    _out.dec();
-
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> for <see cref=\""
-         << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => value.Encode(encoder);";
-    _out.dec();
     return true;
 }
 
@@ -1994,13 +1949,6 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
         _out << " };";
         _out.dec();
     }
-
-    _out << sp;
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc = Decode" << p->name()
-        << ";";
-
-    _out << sp;
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction = Encode;";
 
     _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";
@@ -2299,38 +2247,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     // Static properties
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode "
-         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => new " << prxImpl << "(decoder.DecodeProxy());";
-    _out.dec();
-    _out << sp;
     _out << nl << "/// <summary>The default path for services that implement Slice interface <c>" << name
         << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
         << prxImpl << "));";
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode "
-         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, prx) => encoder.EncodeProxy(prx.Proxy);";
-    _out.dec();
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
-        << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << prxImpl << ">(decoder);";
-    _out.dec();
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode nullable <see cref=\""
-        << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "?> NullableEncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);";
-    _out.dec();
 
     // Non-static properties and fields
     _out << sp;

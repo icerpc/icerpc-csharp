@@ -1055,7 +1055,7 @@ namespace IceRpc
                 {
                     EncodeString(endpoint.Data.Host);
                     EncodeUShort(endpoint.Data.Port);
-                    EncodeSequence(endpoint.Data.Options, BasicEncodeActions.StringEncodeAction);
+                    EncodeSequence(endpoint.Data.Options, (encoder, value) => encoder.EncodeString(value));
                 }
             }
             EncodeFixedLengthSize11(Distance(startPos), startPos);
