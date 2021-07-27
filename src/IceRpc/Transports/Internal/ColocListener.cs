@@ -46,9 +46,9 @@ namespace IceRpc.Transports.Internal
         public override string ToString() => $"{base.ToString()} {_endpoint}";
 
         internal static bool TryGetValue(
-            Endpoint endpoint,
+            EndpointRecord endpoint,
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
-            _colocListenerDictionary.TryGetValue(EndpointRecord.FromString(endpoint.ToString()), out listener);
+            _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
         internal ColocListener(EndpointRecord endpoint, ServerConnectionOptions options, ILogger logger)
         {
