@@ -12,21 +12,6 @@ using System.Text;
 
 namespace IceRpc
 {
-    // temporary
-    public partial struct EndpointData
-    {
-        public EndpointData(Protocol protocol, string transportName, TransportCode transportCode, string host, ushort port, IList<string> options)
-            : this(protocol, transportName, transportCode, host, port, options, ImmutableList<EndpointParam>.Empty)
-        {
-        }
-
-        // the future generated ctor
-        public EndpointData(Protocol protocol, string transportName, string host, ushort port, IList<EndpointParam> parameters)
-            : this(protocol, transportName, TransportCode.Any, host, port, ImmutableList<string>.Empty, parameters)
-        {
-        }
-    }
-
     public partial struct EndpointParam
     {
         public void Deconstruct(out string name, out string value)

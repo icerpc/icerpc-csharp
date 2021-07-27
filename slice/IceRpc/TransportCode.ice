@@ -13,15 +13,8 @@ module IceRpc
     /// TransportCode is used by the Ice 1.1 encoding to encode a transport name (such as "tcp") as a short value.
     unchecked enum TransportCode : short
     {
-        /// This special code means the Ice 1.1 endpoint encapsulation contains an EndpointData, and EndpoinData starts
-        /// with the transport name. TODO: change value to -1?
-        Any = -2,
-
-        /// Loc pseudo-transport. TODO: remove and use Any
-        Loc = -1,
-
-        /// Colocated transport. TODO: remove since we should never encode a coloc endpoint.
-        Coloc = 0,
+        /// This special code means the Ice 1.1 endpoint encapsulation contains an EndpointData.
+        Any = 0,
 
         /// TCP transport.
         TCP = 1,

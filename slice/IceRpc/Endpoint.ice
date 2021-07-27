@@ -6,17 +6,21 @@
 
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Protocol.ice>
-#include <IceRpc/TransportCode.ice>
 
 module IceRpc
 {
+    /// An endpoint parameter.
     [cs:readonly]
     struct EndpointParam
     {
+        /// The parameter name.
         string name;
+
+        /// The parameter value.
         string value;
     }
 
+    // temporary
     sequence<EndpointParam> EndpointParamSeq;
 
     /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
@@ -29,8 +33,6 @@ module IceRpc
         /// The name of the transport, for example tcp.
         string transportName;
 
-        TransportCode transportCode; // temporary
-
         /// The host name or address. Its exact meaning depends on the transport. For IP-based transports, it's a DNS
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.
         string host;
@@ -39,9 +41,7 @@ module IceRpc
         /// For Bluetooth RFCOMM, it's always 0.
         ushort port;
 
-        StringSeq options;
-
-        /// The name-value parameters.
+        /// The endpoint parameters.
         EndpointParamSeq params;
     }
 
