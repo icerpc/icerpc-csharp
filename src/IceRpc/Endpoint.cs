@@ -247,6 +247,35 @@ namespace IceRpc
         }
     }
 
+    /// <summary>Equality comparer for <see cref="Endpoint"/>.</summary>
+    public abstract class EndpointRecordComparer : EqualityComparer<EndpointRecord>
+    {
+        /// <summary>An endpoint comparer that compares all endpoint properties except the parameters and local
+        /// parameters.</summary>
+        public static EndpointRecordComparer ParameterLess { get; } = new ParameterLessEndpointRecordComparer();
+
+        private class ParameterLessEndpointRecordComparer : EndpointRecordComparer
+        {
+            public override bool Equals(EndpointRecord? lhs, EndpointRecord? rhs) =>
+                ReferenceEquals(lhs, rhs) ||
+                (lhs != null && rhs != null &&
+                 lhs.Protocol == rhs.Protocol &&
+                 lhs.Transport == rhs.Transport &&
+                 lhs.Host == rhs.Host &&
+                 lhs.Port == rhs.Port);
+
+            public override int GetHashCode(EndpointRecord endpoint)
+            {
+                var hash = new HashCode();
+                hash.Add(endpoint.Protocol);
+                hash.Add(endpoint.Transport);
+                hash.Add(endpoint.Host);
+                hash.Add(endpoint.Port);
+                return hash.ToHashCode();
+            }
+        }
+    }
+
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
     /// and a client establishes a connection to a given endpoint. Its properties are a network transport protocol such
     /// as TCP or Bluetooth RFCOMM, a host or address, a port number, and transport-specific options.</summary>

@@ -145,6 +145,16 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override bool IsCompatible(EndpointRecord remoteEndpoint)
+        {
+            _ = TcpUtils.ParseTcpParameters(remoteEndpoint);
+            bool? tls = TcpUtils.ParseLocalTcpParameters(remoteEndpoint);
+
+            // A remote endpoint with no _tls parameter is compatible with an established connection no matter its tls
+            // disposition.
+            return tls == null || tls == _tls;
+        }
+
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)

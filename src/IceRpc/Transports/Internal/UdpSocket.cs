@@ -29,7 +29,9 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
+        private readonly string? _multicastInterface;
         private readonly Socket _socket;
+        private readonly int _ttl;
 
         public override ValueTask<EndpointRecord?> AcceptAsync(
             EndpointRecord endpoint,
@@ -61,6 +63,14 @@ namespace IceRpc.Transports.Internal
             {
                 throw new ConnectFailedException(ex);
             }
+        }
+
+        public override bool IsCompatible(EndpointRecord remoteEndpoint)
+        {
+            _ = UdpUtils.ParseUdpParameters(remoteEndpoint); // can throw FormatException
+            (int ttl, string? multicastInterface) = UdpUtils.ParseLocalUdpParameters(remoteEndpoint);
+
+            return (ttl == _ttl && multicastInterface == _multicastInterface);
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -143,11 +153,20 @@ namespace IceRpc.Transports.Internal
         }
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(Socket socket, ILogger logger, bool isServer, EndPoint? addr)
+        internal UdpSocket(
+            Socket socket,
+            ILogger logger,
+            bool isServer,
+            EndPoint? addr,
+            int ttl = -1,
+            string? multicastInterface = null)
             : base(logger)
         {
             _socket = socket;
             _isServer = isServer;
+            _ttl = ttl;
+            _multicastInterface = multicastInterface;
+
             DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
 
             if (isServer)

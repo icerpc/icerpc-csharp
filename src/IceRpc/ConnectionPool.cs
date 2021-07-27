@@ -32,12 +32,12 @@ namespace IceRpc
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
         /// <value>When <c>true</c>, GetConnectionAsync first iterates over all endpoints (in order) to look for an
-        /// existing active connection; if it cannot find such a connection, it creates one by iterating again over
+        /// existing compatible active connection; if it cannot find such a connection, it creates one by iterating again over
         /// the endpoints. When <c>false</c>, GetConnectionAsync iterates over the endpoints only once to retrieve or
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.Equivalent);
+        private readonly Dictionary<EndpointRecord, List<Connection>> _connections = new(EndpointRecordComparer.ParameterLess);
         private readonly object _mutex = new();
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
@@ -128,7 +128,7 @@ namespace IceRpc
             Connection? GetCachedConnection(EndpointRecord endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
-                    connection => connection.State == ConnectionState.Active) is Connection connection ?
+                    connection => connection.IsCompatible(endpoint)) is Connection connection ?
                         connection : null;
         }
 

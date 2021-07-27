@@ -152,6 +152,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override bool IsCompatible(EndpointRecord remoteEndpoint) =>
+            !IsServer && remoteEndpoint == RemoteEndpoint;
+
         public override async Task PingAsync(CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();

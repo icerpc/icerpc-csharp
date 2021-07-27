@@ -590,6 +590,16 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Checks if a client could use this connection instead of establishing a separate connection to the
+        /// provided endpoint.</summary>
+        /// <param name="remoteEndpoint">An endpoint to a remote peer.</param>
+        /// <returns><c>true</c> when this connection is an active client connection that is compatible with the
+        /// provided endpoint; otherwise, <c>false</c>.</returns>
+        public bool IsCompatible(EndpointRecord remoteEndpoint) =>
+            IsServer == false &&
+            State == ConnectionState.Active &&
+            UnderlyingConnection!.IsCompatible(remoteEndpoint);
+
         /// <summary>Sends an asynchronous ping frame.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public async Task PingAsync(CancellationToken cancel = default)

@@ -20,8 +20,8 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             _ = ParseTcpParameters(remoteEndpoint);
-
             bool? tls = ParseLocalTcpParameters(remoteEndpoint);
+
             if (remoteEndpoint.Protocol == Protocol.Ice1)
             {
                 tls = remoteEndpoint.Transport == TransportNames.Ssl;

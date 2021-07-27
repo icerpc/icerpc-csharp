@@ -58,6 +58,14 @@ namespace IceRpc.Transports
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
 
+        /// <inheritdoc/>
+        // TODO: the full check should be performed by NetworkSocket.IsCompatible but the NetworkSocket implementations
+        // currently don't keep any endpoint.
+        public override bool IsCompatible(EndpointRecord remoteEndpoint) =>
+            !IsServer &&
+            EndpointRecordComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
+            NetworkSocket.IsCompatible(remoteEndpoint);
+
         /// <summary>Constructs a connection.</summary>
         /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and the
         /// resulting connection will be likewise a client or server connection.</param>

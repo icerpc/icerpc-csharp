@@ -92,7 +92,7 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint);
+            var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
             return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint.ToString(), options);
         }
     }

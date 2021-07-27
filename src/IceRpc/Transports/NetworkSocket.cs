@@ -64,6 +64,8 @@ namespace IceRpc.Transports
             GC.SuppressFinalize(this);
         }
 
+        public abstract bool IsCompatible(EndpointRecord remoteEndpoint);
+
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

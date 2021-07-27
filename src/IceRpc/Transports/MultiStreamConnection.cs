@@ -147,6 +147,13 @@ namespace IceRpc.Transports
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask InitializeAsync(CancellationToken cancel);
 
+        /// <summary>Checks if a client could use this connection instead of establishing a separate connection to the
+        /// provided endpoint.</summary>
+        /// <param name="remoteEndpoint">An endpoint to a server.</param>
+        /// <returns><c>true</c> when this connection is an active client connection that is compatible with the
+        /// provided endpoint; otherwise, <c>false</c>.</returns>
+        public abstract bool IsCompatible(EndpointRecord remoteEndpoint);
+
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract Task PingAsync(CancellationToken cancel);
