@@ -691,8 +691,7 @@ namespace IceRpc
                         {
                             encoder.EncodeSequence(
                                 endpoints,
-                                (encoder, endpoint) =>
-                                    EndpointEncoder.EncodeEndpoint(Endpoint.FromString(endpoint.ToString()), encoder));
+                                (encoder, endpoint) => EndpointEncoder.EncodeEndpoint(endpoint, encoder));
                         }
                         else
                         {
@@ -700,7 +699,7 @@ namespace IceRpc
                                 endpoints,
                                 (encoder, endpoint) =>
                                     encoder.EncodeEndpoint11(
-                                        Endpoint.FromString(endpoint.ToString()),
+                                        endpoint,
                                         TransportCode.Any,
                                         static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));
                         }

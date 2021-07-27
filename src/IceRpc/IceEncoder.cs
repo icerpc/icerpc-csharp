@@ -1031,6 +1031,11 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
+        /// <param name="endpoint">The endpoint to encode.</param>
+        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
+        /// the nested encapsulation.</param>
+        /// <param name="encodeAction">An encode action that encodes the body of this endpoint.</param>
         public void EncodeEndpoint11(
             Endpoint endpoint,
             TransportCode transportCode,
