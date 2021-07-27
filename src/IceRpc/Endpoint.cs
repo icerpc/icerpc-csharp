@@ -6,10 +6,33 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace IceRpc
 {
+    // TODO temporary
+    public readonly partial struct EndpointData
+    {
+        /// <inheritdoc/>
+        public readonly bool Equals(EndpointData other) =>
+            Transport == other.Transport &&
+            Host == other.Host &&
+            Port == other.Port &&
+            Options.SequenceEqual(other.Options);
+
+        /// <inheritdoc/>
+        public readonly override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(Transport);
+            hash.Add(Host);
+            hash.Add(Port);
+            hash.Add(Options.GetSequenceHashCode());
+            return hash.ToHashCode();
+        }
+    }
+
     /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
     /// and a client establishes a connection to a given endpoint. Its properties are a network transport protocol such
     /// as TCP or Bluetooth RFCOMM, a host or address, a port number, and transport-specific options.</summary>

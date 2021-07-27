@@ -1818,47 +1818,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
             TypePtr mType = unwrapIfOptional((*q)->type());
 
-            if (SequencePtr::dynamicCast(mType))
-            {
-                // We always check for null values because a default-initialized struct will have null fields even for
-                // non nullable fields.
-
-                if (dataMembers.size() > 1)
-                {
-                    _out << "(";
-                }
-                _out << lhs << " == " << rhs << " ||";
-                _out.inc();
-                _out << nl << "(" << lhs << " != null && " << rhs << " != null && ";
-                _out << "global::System.Linq.Enumerable.SequenceEqual(" << lhs << ", " << rhs << ")";
-                _out << ")";
-                if (dataMembers.size() > 1)
-                {
-                    _out << ")";
-                }
-                _out.dec();
-            }
-            else if (DictionaryPtr::dynamicCast(mType))
-            {
-                if (dataMembers.size() > 1)
-                {
-                    _out << "(";
-                }
-                _out << lhs << " == " << rhs << " ||";
-                _out.inc();
-                _out << nl << "(" << lhs << " != null && " << rhs << " != null && ";
-                _out << "IceRpc.DictionaryExtensions.DictionaryEqual(" << lhs << ", " << rhs << ")";
-                _out << ")";
-                if (dataMembers.size() > 1)
-                {
-                    _out << ")";
-                }
-                _out.dec();
-            }
-            else
-            {
-                _out << lhs << " == " << rhs;
-            }
+            _out << lhs << " == " << rhs;
 
             if (++q != dataMembers.end())
             {
@@ -1880,24 +1840,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
         {
             string obj = "this." + fixId(fieldName(dataMember), Slice::ObjectType);
             TypePtr mType = unwrapIfOptional(dataMember->type());
-            if (SequencePtr::dynamicCast(mType))
-            {
-                _out << nl << "if (" << obj << " != null)";
-                _out << sb;
-                _out << nl << "hash.Add(IceRpc.EnumerableExtensions.GetSequenceHashCode(" << obj << "));";
-                _out << eb;
-            }
-            else if (DictionaryPtr::dynamicCast(mType))
-            {
-                _out << nl << "if (" << obj << " != null)";
-                _out << sb;
-                _out << nl << "hash.Add(IceRpc.DictionaryExtensions.GetDictionaryHashCode(" << obj << "));";
-                _out << eb;
-            }
-            else
-            {
-                _out << nl << "hash.Add(" << obj << ");";
-            }
+            _out << nl << "hash.Add(" << obj << ");";
         }
         _out << nl << "return hash.ToHashCode();";
         _out << eb;
