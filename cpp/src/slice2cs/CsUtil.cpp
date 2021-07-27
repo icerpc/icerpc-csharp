@@ -701,7 +701,8 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << "(encoder, value) => " << helperName(type, scope) << ".Encode(encoder, value)";
+        auto contained = EnumPtr::dynamicCast(type);
+        out << "(encoder, value) => " << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, value)";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(type))
     {
@@ -822,7 +823,8 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else
         {
-            out << nl << helperName(type, scope) << ".Encode(encoder, " << param << ");";
+            auto contained = ContainedPtr::dynamicCast(type);
+            out << nl << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, " << param << ");";
         }
     }
 }

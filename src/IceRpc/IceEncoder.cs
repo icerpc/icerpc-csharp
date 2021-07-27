@@ -1035,7 +1035,7 @@ namespace IceRpc
         {
             Debug.Assert(OldEncoding);
 
-            this.Encode(endpoint.Transport);
+            this.EncodeTransport(endpoint.Transport);
             Position startPos = _tail;
 
             EncodeInt(0); // placeholder for future encapsulation size

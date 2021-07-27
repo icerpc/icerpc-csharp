@@ -145,7 +145,7 @@ namespace IceRpc
                     (int)Ice2FieldKey.RetryPolicy,
                     encoder =>
                     {
-                        encoder.Encode(retryPolicy.Retryable);
+                        encoder.EncodeRetryable(retryPolicy.Retryable);
                         if (retryPolicy.Retryable == Retryable.AfterDelay)
                         {
                             encoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
@@ -166,7 +166,7 @@ namespace IceRpc
             {
                 IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
                 EncodeFields(encoder);
-                encoder.Encode(ResultType);
+                encoder.EncodeResultType(ResultType);
                 PayloadEncoding.Encode(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(startPos, 2);
@@ -175,7 +175,7 @@ namespace IceRpc
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
 
-                encoder.Encode(ReplyStatus);
+                encoder.EncodeReplyStatus(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);

@@ -1989,7 +1989,8 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "public static void Encode(this IceRpc.IceEncoder encoder, " << name << " value) =>";
+    _out << nl << "public static void Encode" << p->name() << "(this IceRpc.IceEncoder encoder, "
+         << name << " value) =>";
     _out.inc();
     if (p->underlying())
     {

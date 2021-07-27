@@ -95,7 +95,7 @@ namespace IceRpc.Transports.Internal
 
             var encoder = new IceEncoder(Encoding.V11);
             encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
-            encoder.Encode(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            encoder.EncodeIce1FrameType(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             encoder.EncodeByte(0); // compression status
             IceEncoder.Position start = encoder.StartFixedLengthSize();
 
