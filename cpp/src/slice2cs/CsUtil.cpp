@@ -662,19 +662,47 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     {
         // Expected for proxy and class types.
         TypePtr underlying = optional->underlying();
-        out << typeToString(underlying, scope, readOnly, param) << ".NullableEncodeAction";
+        if (underlying->isClassType())
+        {
+            out << "(encoder, value) => encoder.EncodeNullableClass(value, ";
+            if (BuiltinPtr::dynamicCast(underlying))
+            {
+                out << "formalTypeId: null)";
+            }
+            else
+            {
+                out << typeToString(underlying, scope) << ".IceTypeId)";
+            }
+        }
+        else
+        {
+            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)";
+        }
     }
-    else if (type->isClassType() || type->isInterfaceType())
+    else if (type->isClassType())
     {
-        out << typeToString(type, scope, readOnly, param) << ".EncodeAction";
+        out << "(encoder, value) => encoder.EncodeClass(value, ";
+        if (BuiltinPtr::dynamicCast(type))
+        {
+            out << "formalTypeId: null)";
+        }
+        else
+        {
+            out << typeToString(type, scope) << ".IceTypeId)";
+        }
+    }
+    else if (type->isInterfaceType())
+    {
+        out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type))
     {
-        out << "IceRpc.BasicEncodeActions." << builtinSuffixTable[builtin->kind()] << "EncodeAction";
+        out << "(encoder, value) => encoder.Encode" << builtinSuffixTable[builtin->kind()] << "(value)";
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".EncodeAction";
+        auto contained = EnumPtr::dynamicCast(type);
+        out << "(encoder, value) => " << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, value)";
     }
     else if (auto dict = DictionaryPtr::dynamicCast(type))
     {
@@ -688,7 +716,8 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else
     {
-        out << typeToString(type, scope, readOnly, param) << ".EncodeAction";
+        assert(StructPtr::dynamicCast(type));
+        out << "(encoder, value) => value.Encode(encoder)";
     }
     return out.str();
 }
@@ -794,7 +823,8 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else
         {
-            out << nl << helperName(type, scope) << ".Encode(encoder, " << param << ");";
+            auto contained = ContainedPtr::dynamicCast(type);
+            out << nl << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, " << param << ");";
         }
     }
 }
@@ -808,12 +838,45 @@ Slice::CsGenerator::decodeFunc(const TypePtr& type, const string& scope)
         TypePtr underlying = optional->underlying();
         // Expected for classes and proxies
         assert(underlying->isClassType() || underlying->isInterfaceType());
-        out << typeToString(underlying, scope) << ".NullableDecodeFunc";
+        string name = typeToString(underlying, scope);
+        if (underlying->isClassType())
+        {
+            out << "decoder => decoder.DecodeNullableClass<" << name << ">(";
+            if (BuiltinPtr::dynamicCast(underlying))
+            {
+                out << "formalTypeId: null)";
+            }
+            else
+            {
+                out << name << ".IceTypeId)";
+            }
+        }
+        else
+        {
+            out << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << name << ">(decoder)";
+        }
+    }
+    else if (type->isClassType())
+    {
+        string name = typeToString(type, scope);
+        out << "decoder => decoder.DecodeClass<" << name << ">(";
+        if (BuiltinPtr::dynamicCast(type))
+        {
+            out << "formalTypeId: null)";
+        }
+        else
+        {
+            out << name << ".IceTypeId)";
+        }
+    }
+    else if (type->isInterfaceType())
+    {
+        out << "decoder => new " << typeToString(type, scope) << "(decoder.DecodeProxy())";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(type); builtin && !builtin->usesClasses() &&
-                builtin->kind() != Builtin::KindObject)
+             builtin->kind() != Builtin::KindObject)
     {
-        out << "IceRpc.BasicDecodeFuncs." << builtinSuffixTable[builtin->kind()] << "DecodeFunc";
+        out << "decoder => decoder.Decode" << builtinSuffixTable[builtin->kind()] << "()";
     }
     else if (auto seq = SequencePtr::dynamicCast(type))
     {
@@ -825,11 +888,13 @@ Slice::CsGenerator::decodeFunc(const TypePtr& type, const string& scope)
     }
     else if (EnumPtr::dynamicCast(type))
     {
-        out << helperName(type, scope) << ".DecodeFunc";
+        auto contained = ContainedPtr::dynamicCast(type);
+        out << "decoder => " << helperName(type, scope) << ".Decode" << contained->name() << "(decoder)";
     }
     else
     {
-        out << typeToString(type, scope) << ".DecodeFunc";
+        assert(StructPtr::dynamicCast(type));
+        out << "decoder => new " << typeToString(type, scope) << "(decoder)";
     }
     return out.str();
 }

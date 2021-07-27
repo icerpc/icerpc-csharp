@@ -3140,18 +3140,7 @@ Slice::Optional::isInterfaceType() const
 size_t
 Slice::Optional::minWireSize() const
 {
-    if (isClassType())
-    {
-        return 1;
-    }
-    else if (isInterfaceType())
-    {
-        return 2;
-    }
-    else
-    {
-        return 0;
-    }
+    return isClassType() || isInterfaceType() ? 1 : 0;
 }
 
 string

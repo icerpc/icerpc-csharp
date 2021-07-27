@@ -414,7 +414,7 @@ namespace IceRpc
                         if (_classFormat == FormatType.Sliced)
                         {
                             typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                            EncodeSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
+                            EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
                         }
                         else
                         {
@@ -433,7 +433,7 @@ namespace IceRpc
             else
             {
                 typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                EncodeSequence(allTypeIds, BasicEncodeActions.StringEncodeAction);
+                EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
 
                 Debug.Assert(errorMessage != null);
                 EncodeString(errorMessage);

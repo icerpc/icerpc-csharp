@@ -101,7 +101,6 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-
         private ProtocolBridgingTestPrx SetupForwarderServer(
             Protocol forwarderProtocol,
             Protocol targetProtocol,

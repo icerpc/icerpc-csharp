@@ -37,8 +37,7 @@ module IceRpc
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.
         string host;
 
-        /// The port number. Its exact meaning depends on the transport. For IP-based transports, it's a port number.
-        /// For Bluetooth RFCOMM, it's always 0.
+        /// The port number. Its exact meaning depends on the transport.
         ushort port;
 
         /// The endpoint parameters.

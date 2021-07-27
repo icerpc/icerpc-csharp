@@ -67,7 +67,7 @@ namespace IceRpc
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                encoder.Encode(CompressionFormat.NotCompressed);
+                encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
 
             encodeAction(encoder, in args);
@@ -97,7 +97,7 @@ namespace IceRpc
             var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
             if (payloadEncoding == Encoding.V20)
             {
-                encoder.Encode(CompressionFormat.NotCompressed);
+                encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
 
             encodeAction(encoder, in returnValueTuple);
@@ -122,7 +122,7 @@ namespace IceRpc
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (proxy.Encoding == Encoding.V20)
             {
-                encoder.Encode(CompressionFormat.NotCompressed);
+                encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
 
             encodeAction(encoder, arg);
@@ -147,7 +147,7 @@ namespace IceRpc
             var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
             if (payloadEncoding == Encoding.V20)
             {
-                encoder.Encode(CompressionFormat.NotCompressed);
+                encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
 
             encodeAction(encoder, returnValue);
@@ -271,7 +271,7 @@ namespace IceRpc
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
-                    encoder.Encode(replyStatus);
+                    encoder.EncodeReplyStatus(replyStatus);
 
                     if (replyStatus == ReplyStatus.UserException)
                     {

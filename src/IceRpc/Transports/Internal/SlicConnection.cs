@@ -655,7 +655,7 @@ namespace IceRpc.Transports.Internal
             encoder.EncodeSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)
             {
-                encoder.EncodeField((int)key, value, BasicEncodeActions.VarULongEncodeAction);
+                encoder.EncodeField((int)key, value, (encoder, value) => encoder.EncodeVarULong(value));
             }
         }
 

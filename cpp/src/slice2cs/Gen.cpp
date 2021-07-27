@@ -1202,35 +1202,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => decoder.DecodeClass<" << name << ">(IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.DecodeFunc<" << name << "?> NullableDecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => decoder.DecodeNullableClass<" << name << ">(IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
     _out << nl << "public static " << (hasBaseClass ? "new " : "") << "string IceTypeId => _iceAllTypeIds[0];";
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => encoder.EncodeClass(value, IceTypeId);";
-    _out.dec();
-
-    _out << sp;
-    emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static readonly new IceRpc.EncodeAction<" << name << "?> NullableEncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => encoder.EncodeNullableClass(value, IceTypeId);";
-    _out.dec();
 
     if (p->compactId() >= 0)
     {
@@ -1724,24 +1696,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
     }
 
     _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
-
     _out << sb;
-
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> for <see cref=\""
-         << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => new " << name << "(decoder);";
-    _out.dec();
-
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> for <see cref=\""
-         << name << "\"/> instances.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, value) => value.Encode(encoder);";
-    _out.dec();
     return true;
 }
 
@@ -1818,47 +1773,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
             TypePtr mType = unwrapIfOptional((*q)->type());
 
-            if (SequencePtr::dynamicCast(mType))
-            {
-                // We always check for null values because a default-initialized struct will have null fields even for
-                // non nullable fields.
-
-                if (dataMembers.size() > 1)
-                {
-                    _out << "(";
-                }
-                _out << lhs << " == " << rhs << " ||";
-                _out.inc();
-                _out << nl << "(" << lhs << " != null && " << rhs << " != null && ";
-                _out << "global::System.Linq.Enumerable.SequenceEqual(" << lhs << ", " << rhs << ")";
-                _out << ")";
-                if (dataMembers.size() > 1)
-                {
-                    _out << ")";
-                }
-                _out.dec();
-            }
-            else if (DictionaryPtr::dynamicCast(mType))
-            {
-                if (dataMembers.size() > 1)
-                {
-                    _out << "(";
-                }
-                _out << lhs << " == " << rhs << " ||";
-                _out.inc();
-                _out << nl << "(" << lhs << " != null && " << rhs << " != null && ";
-                _out << "IceRpc.DictionaryExtensions.DictionaryEqual(" << lhs << ", " << rhs << ")";
-                _out << ")";
-                if (dataMembers.size() > 1)
-                {
-                    _out << ")";
-                }
-                _out.dec();
-            }
-            else
-            {
-                _out << lhs << " == " << rhs;
-            }
+            _out << lhs << " == " << rhs;
 
             if (++q != dataMembers.end())
             {
@@ -1880,24 +1795,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
         {
             string obj = "this." + fixId(fieldName(dataMember), Slice::ObjectType);
             TypePtr mType = unwrapIfOptional(dataMember->type());
-            if (SequencePtr::dynamicCast(mType))
-            {
-                _out << nl << "if (" << obj << " != null)";
-                _out << sb;
-                _out << nl << "hash.Add(IceRpc.EnumerableExtensions.GetSequenceHashCode(" << obj << "));";
-                _out << eb;
-            }
-            else if (DictionaryPtr::dynamicCast(mType))
-            {
-                _out << nl << "if (" << obj << " != null)";
-                _out << sb;
-                _out << nl << "hash.Add(IceRpc.DictionaryExtensions.GetDictionaryHashCode(" << obj << "));";
-                _out << eb;
-            }
-            else
-            {
-                _out << nl << "hash.Add(" << obj << ");";
-            }
+            _out << nl << "hash.Add(" << obj << ");";
         }
         _out << nl << "return hash.ToHashCode();";
         _out << eb;
@@ -1996,13 +1894,6 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     }
 
     _out << sp;
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << name << "> DecodeFunc = Decode" << p->name()
-        << ";";
-
-    _out << sp;
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << name << "> EncodeAction = Encode;";
-
-    _out << sp;
     _out << nl << "public static " << name << " As" << p->name() << "(this " << underlying << " value) =>";
     if (p->isUnchecked())
     {
@@ -2041,7 +1932,8 @@ Slice::Gen::TypesVisitor::visitEnum(const EnumPtr& p)
     _out.dec();
 
     _out << sp;
-    _out << nl << "public static void Encode(this IceRpc.IceEncoder encoder, " << name << " value) =>";
+    _out << nl << "public static void Encode" << p->name() << "(this IceRpc.IceEncoder encoder, "
+         << name << " value) =>";
     _out.inc();
     if (p->underlying())
     {
@@ -2299,38 +2191,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
     // Static properties
     _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode "
-         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "> DecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => new " << prxImpl << "(decoder.DecodeProxy());";
-    _out.dec();
-    _out << sp;
     _out << nl << "/// <summary>The default path for services that implement Slice interface <c>" << name
         << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
         << prxImpl << "));";
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode "
-         << "<see cref=\"" << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "> EncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, prx) => encoder.EncodeProxy(prx.Proxy);";
-    _out.dec();
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.DecodeFunc{T}\"/> used to decode nullable <see cref=\""
-        << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.DecodeFunc<" << prxImpl << "?> NullableDecodeFunc =";
-    _out.inc();
-    _out << nl << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << prxImpl << ">(decoder);";
-    _out.dec();
-    _out << sp;
-    _out << nl << "/// <summary>An <see cref=\"IceRpc.EncodeAction{T}\"/> used to encode nullable <see cref=\""
-        << prxImpl << "\"/>.</summary>";
-    _out << nl << "public static readonly IceRpc.EncodeAction<" << prxImpl << "?> NullableEncodeAction =";
-    _out.inc();
-    _out << nl << "(encoder, prx) => encoder.EncodeNullableProxy(prx?.Proxy);";
-    _out.dec();
 
     // Non-static properties and fields
     _out << sp;
