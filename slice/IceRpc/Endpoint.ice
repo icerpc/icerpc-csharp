@@ -31,7 +31,7 @@ module IceRpc
         Protocol protocol;
 
         /// The name of the transport, for example tcp.
-        string transportName;
+        string transport;
 
         /// The host name or address. Its exact meaning depends on the transport. For IP-based transports, it's a DNS
         /// name or IP address. For Bluetooth RFCOMM, it's a Bluetooth Device Address.

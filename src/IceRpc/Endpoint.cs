@@ -50,7 +50,7 @@ namespace IceRpc
         /// connect to requires application-specific knowledge.</remarks>
         public static Endpoint FromEndpointData(EndpointData data) =>
             new Endpoint(data.Protocol,
-                               string.IsInterned(data.TransportName) ?? data.TransportName,
+                               string.IsInterned(data.Transport) ?? data.Transport,
                                data.Host,
                                data.Port,
                                data.Params.ToImmutableList(),
