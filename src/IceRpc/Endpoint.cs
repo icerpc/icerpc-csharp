@@ -58,7 +58,7 @@ namespace IceRpc
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
         public static Endpoint FromString(string s) =>
-            NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
+            IceUriParser.IsEndpointUri(s) ? IceUriParser.ParseEndpointUri(s) : Ice1Parser.ParseEndpointString(s);
 
         /// <remarks>We don't validate the data received from a peer because if we establish a connection to this
         /// endpoint, we necessarily trust the peer who sent us this data; ensuring that an endpoint is safe to
@@ -197,7 +197,7 @@ namespace IceRpc
                 sb.Append(endpoint.Host);
             }
 
-            if (endpoint.Port != NewIceUriParser.DefaultPort)
+            if (endpoint.Port != IceUriParser.DefaultPort)
             {
                 sb.Append(':');
                 sb.Append(endpoint.Port.ToString(CultureInfo.InvariantCulture));

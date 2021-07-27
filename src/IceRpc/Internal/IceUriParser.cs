@@ -10,7 +10,7 @@ using System.Linq;
 namespace IceRpc.Internal
 {
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the URI format.</summary>
-    internal static class NewIceUriParser // TODO: rename
+    internal static class IceUriParser
     {
         public const ushort DefaultPort = 4062;
 
@@ -80,7 +80,7 @@ namespace IceRpc.Internal
         /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static Endpoint ParseEndpoint(string uriString)
+        internal static Endpoint ParseEndpointUri(string uriString)
         {
             Debug.Assert(uriString.StartsWith(IcePlus, StringComparison.Ordinal));
 
@@ -109,7 +109,7 @@ namespace IceRpc.Internal
             return CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
         }
 
-        internal static Proxy ParseProxy(string uriString)
+        internal static Proxy ParseProxyUri(string uriString)
         {
             bool iceScheme = uriString.StartsWith(IceColon, StringComparison.Ordinal);
 
@@ -173,7 +173,7 @@ namespace IceRpc.Internal
                         // before sending the string to ParseEndpoint which uses & as separator.
                         altUriString = altUriString.Replace('$', '&');
 
-                        Endpoint parsedEndpoint = ParseEndpoint(altUriString);
+                        Endpoint parsedEndpoint = ParseEndpointUri(altUriString);
 
                         if (parsedEndpoint.Protocol != endpoint.Protocol)
                         {

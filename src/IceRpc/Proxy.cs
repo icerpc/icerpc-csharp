@@ -232,8 +232,8 @@ namespace IceRpc
                 throw new FormatException("an empty string does not represent a proxy");
             }
 
-            Proxy proxy = NewIceUriParser.IsProxyUri(proxyString) ?
-                NewIceUriParser.ParseProxy(proxyString) : Ice1Parser.ParseProxyString(proxyString);
+            Proxy proxy = IceUriParser.IsProxyUri(proxyString) ?
+                IceUriParser.ParseProxyUri(proxyString) : Ice1Parser.ParseProxyString(proxyString);
 
             proxy.Invoker = invoker;
             return proxy;
@@ -264,7 +264,7 @@ namespace IceRpc
         public Proxy(string path, Protocol protocol = Protocol.Ice2)
         {
             Protocol = protocol;
-            NewIceUriParser.CheckPath(path, nameof(path));
+            IceUriParser.CheckPath(path, nameof(path));
             Path = path;
             Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }

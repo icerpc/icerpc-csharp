@@ -16,7 +16,7 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
-        internal static Endpoint ParseEndpoint(string endpointString)
+        internal static Endpoint ParseEndpointString(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -372,7 +372,7 @@ namespace IceRpc.Internal
                     {
                         if (endpoint == null)
                         {
-                            endpoint = ParseEndpoint(es);
+                            endpoint = ParseEndpointString(es);
 
                             if (endpoint.Transport == TransportNames.Loc)
                             {
@@ -381,7 +381,7 @@ namespace IceRpc.Internal
                         }
                         else
                         {
-                            altEndpoints = altEndpoints.Add(ParseEndpoint(es));
+                            altEndpoints = altEndpoints.Add(ParseEndpointString(es));
                         }
                     }
                     catch (Exception ex)
