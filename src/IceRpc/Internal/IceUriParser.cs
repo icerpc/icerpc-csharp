@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Provides helper methods to parse proxy and endpoint strings in the URI format.</summary>
+    /// <summary>Provides helper methods to parse ice and ice+transport URIs.</summary>
     internal static class IceUriParser
     {
         public const ushort DefaultPort = 4062;
@@ -72,8 +72,9 @@ namespace IceRpc.Internal
 
         /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
+        /// <param name="defaultProtocol">The default Ice protocol.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static Endpoint ParseEndpointUri(string uriString)
+        internal static Endpoint ParseEndpointUri(string uriString, Protocol defaultProtocol = Protocol.Ice2)
         {
             Debug.Assert(uriString.StartsWith(IcePlus, StringComparison.Ordinal));
 
@@ -87,19 +88,23 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
+            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
                 uri.Query,
                 uriString);
 
+            if (uri.AbsolutePath.Length > 1)
+            {
+                throw new FormatException($"invalid path in endpoint '{uriString}'");
+            }
             if (altEndpoint != null)
             {
-                throw new FormatException($"invalid alt-endpoint parameter in endpoint {uriString}");
+                throw new FormatException($"invalid alt-endpoint parameter in endpoint '{uriString}'");
             }
-            else if (encoding != null)
+            if (encoding != null)
             {
-                throw new FormatException($"invalid encoding parameter in endpoint {uriString}");
+                throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
+            return CreateEndpoint(uri, externalParams, localParams, protocol ?? defaultProtocol, uriString);
         }
 
         internal static Proxy ParseProxyUri(string uriString)
@@ -114,7 +119,7 @@ namespace IceRpc.Internal
                     throw new FormatException("the ice URI scheme does not support a host or port");
                 }
                 // Add empty authority for Uri's constructor.
-                uriString = body.StartsWith('/') ? $"ice://{body}" : $"ice:///{body}";
+                uriString = body.StartsWith('/') ? $"{IceColon}//{body}" : $"{IceColon}///{body}";
 
                 TryAddScheme("ice");
             }
@@ -130,7 +135,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol protocol, string? altEndpointValue, string? encodingValue) =
+            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
                 ParseQuery(uri.Query, uriString);
 
             Encoding encoding = Encoding.V20;
@@ -139,11 +144,13 @@ namespace IceRpc.Internal
                 encoding = Encoding.Parse(encodingValue);
             }
 
+            protocol ??= Protocol.Ice2;
+
             Endpoint? endpoint = null;
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
+                endpoint = CreateEndpoint(uri, externalParams, localParams, protocol.Value, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -163,10 +170,10 @@ namespace IceRpc.Internal
                         }
 
                         // The separator for endpoint options in alt-endpoint is $, and we replace these $ by &
-                        // before sending the string to ParseEndpoint which uses & as separator.
+                        // before sending the string to ParseEndpointUri which uses & as separator.
                         altUriString = altUriString.Replace('$', '&');
 
-                        Endpoint parsedEndpoint = ParseEndpointUri(altUriString);
+                        Endpoint parsedEndpoint = ParseEndpointUri(altUriString, endpoint.Protocol);
 
                         if (parsedEndpoint.Protocol != endpoint.Protocol)
                         {
@@ -180,7 +187,7 @@ namespace IceRpc.Internal
 
             Debug.Assert(uri.AbsolutePath.Length > 0 && uri.AbsolutePath[0] == '/' && IsValidPath(uri.AbsolutePath));
 
-            return new Proxy(uri.AbsolutePath, protocol)
+            return new Proxy(uri.AbsolutePath, protocol.Value)
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,

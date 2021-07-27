@@ -281,55 +281,6 @@ namespace IceRpc.Tests.Api
             Assert.That(Proxy.Equals(prx, null), Is.False);
         }
 
-        /*
-        [TestCase("ice+tcp://tcphost:10000/test?" +
-                  "alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
-        [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
-                  ": udp -h 239.255.1.1 -p 10001 --interface eth0 --ttl 5 " +
-                  ":opaque -e 1.8 -t 100 -v ABCD")]
-        public void Proxy_EndpointInformation(string prx)
-        {
-            var p1 = Proxy.Parse(prx);
-
-            Endpoint? tcpEndpoint = p1.Endpoint;
-            Assert.AreEqual(TransportCode.TCP, tcpEndpoint!.TransportCode);
-            Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
-            Assert.AreEqual("tcphost", tcpEndpoint.Host);
-            Assert.AreEqual(10000, tcpEndpoint.Port);
-
-            if (p1.Protocol == Protocol.Ice1)
-            {
-                Assert.AreEqual("1200", tcpEndpoint["timeout"]);
-                Assert.AreEqual("true", tcpEndpoint["compress"]);
-            }
-            Assert.That(tcpEndpoint.IsDatagram, Is.False);
-
-            if (p1.Protocol == Protocol.Ice1)
-            {
-                Endpoint udpEndpoint = p1.AltEndpoints[0];
-                Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
-                Assert.AreEqual(10001, udpEndpoint.Port);
-                Assert.AreEqual("eth0", udpEndpoint["interface"]);
-                Assert.AreEqual("5", udpEndpoint["ttl"]);
-                Assert.AreEqual(null, udpEndpoint["timeout"]);
-                Assert.AreEqual(null, udpEndpoint["compress"]);
-                Assert.That(udpEndpoint.IsSecure, Is.False);
-                Assert.That(udpEndpoint.IsDatagram);
-                Assert.AreEqual(TransportCode.UDP, udpEndpoint.TransportCode);
-
-                Endpoint opaqueEndpoint = p1.AltEndpoints[1];
-                Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
-                Assert.AreEqual("1.8", opaqueEndpoint["value-encoding"]);
-            }
-            else
-            {
-                Endpoint universalEndpoint = p1.AltEndpoints[0];
-                Assert.AreEqual((TransportCode)100, universalEndpoint.TransportCode);
-                Assert.AreEqual("ABCD", universalEndpoint["option"]);
-            }
-        }
-        */
-
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
         [TestCase("ice+tcp://localhost/path?alt-endpoint=ice+tcp://[::1]")]
