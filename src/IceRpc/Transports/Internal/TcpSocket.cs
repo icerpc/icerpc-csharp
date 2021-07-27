@@ -79,16 +79,13 @@ namespace IceRpc.Transports.Internal
                     localParams = localParams.Add(new EndpointParam("_tls", SslStream == null ? "false" : "true"));
                 }
 
-                if (_socket.RemoteEndPoint is IPEndPoint ipEndPoint)
+                var ipEndPoint = (IPEndPoint)_socket.RemoteEndPoint!;
+                return endpoint with
                 {
-                    string host = ipEndPoint.Address.ToString();
-                    ushort port = checked((ushort)ipEndPoint.Port);
-                    return endpoint with { Host = host, Port = port, LocalParams = localParams };
-                }
-                else
-                {
-                    throw new NotSupportedException("remote endpoint is not an IPEndPoint");
-                }
+                    Host = ipEndPoint.Address.ToString(),
+                    Port = checked((ushort)ipEndPoint.Port),
+                    LocalParams = localParams
+                };
             }
             catch (Exception ex)
             {
@@ -115,16 +112,8 @@ namespace IceRpc.Transports.Internal
                         sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
 
-                if (_socket.LocalEndPoint is IPEndPoint ipEndPoint)
-                {
-                    string host = ipEndPoint.Address.ToString();
-                    ushort port = checked((ushort)ipEndPoint.Port);
-                    return endpoint with { Host = host, Port = port };
-                }
-                else
-                {
-                    throw new NotSupportedException("local endpoint is not an IPEndPoint");
-                }
+                var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
+                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
             }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {

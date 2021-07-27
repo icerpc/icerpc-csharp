@@ -48,16 +48,8 @@ namespace IceRpc.Transports.Internal
             {
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
-                if (_socket.LocalEndPoint is IPEndPoint ipEndPoint)
-                {
-                    string host = ipEndPoint.Address.ToString();
-                    ushort port = checked((ushort)ipEndPoint.Port);
-                    return endpoint with { Host = host, Port = port };
-                }
-                else
-                {
-                    throw new NotSupportedException("local endpoint is not an IPEndPoint");
-                }
+                var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
+                return endpoint with { Host = ipEndPoint.Address.ToString(), Port =  checked((ushort)ipEndPoint.Port) };
             }
             catch (Exception ex)
             {

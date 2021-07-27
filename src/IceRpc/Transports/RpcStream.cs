@@ -96,7 +96,7 @@ namespace IceRpc.Transports
         /// </summary>
         public bool WriteCompleted => (Thread.VolatileRead(ref _state) & (int)State.WriteCompleted) > 0;
 
-        /// <summary>The transport header sentinel. TransportCode implementations that need to add an additional header
+        /// <summary>The transport header sentinel. Transport implementations that need to add an additional header
         /// to transmit data over the stream can provide the header data here. This can improve performance by reducing
         /// the number of allocations as Ice will allocate buffer space for both the transport header and the Ice
         /// protocol header. If a header is returned here, the implementation of the SendAsync method should expect
