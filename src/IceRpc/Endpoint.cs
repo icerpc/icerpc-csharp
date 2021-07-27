@@ -11,7 +11,16 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>An endpoint describes...</summary>
+    /// <summary>An endpoint describes a server-side network sink for IceRPC requests: a server listens on an endpoint
+    /// and a client establishes a connection to a given endpoint.</summary>
+    /// <param name="Protocol">The Ice protocol of this endpoint.</param>
+    /// <param name="Transport">The transport of this endpoint, for example "tcp" or "quic".</param>
+    /// <param name="Host">The host name or address.</param>
+    /// <param name="Port">The port number.</param>
+    /// <param name="ExternalParams">Transport-specific parameters that are encoded when this endpoint is encoded.
+    /// </param>
+    /// <param name="LocalParams">Transport-specific parameters that are not encoded when this endpoint is encoded.
+    /// </param>
     public sealed record Endpoint(
         Protocol Protocol,
         string Transport,
@@ -35,7 +44,10 @@ namespace IceRpc
         public static Endpoint FromString(string s) =>
             IceUriParser.IsEndpointUri(s) ? IceUriParser.ParseEndpointUri(s) : Ice1Parser.ParseEndpointString(s);
 
-        /// <inheritdoc/>
+        /// <summary>Checks if this endpoint is equal to another endpoint.</summary>
+        /// <param name="other">The other endpoint.</param>
+        /// <returns><c>true</c>when the two endpoints have the same properties. The external and local parameters are
+        /// compared in order; otherwise, <c>false</c>.</returns>
         public bool Equals(Endpoint? other) =>
                    other != null &&
                    Protocol == other.Protocol &&
@@ -45,7 +57,8 @@ namespace IceRpc
                    ExternalParams.SequenceEqual(other.ExternalParams) &&
                    LocalParams.SequenceEqual(other.LocalParams);
 
-        /// <inheritdoc/>
+        /// <summary>Computes the hash code for this endpoint.</summary>
+        /// <returns>The hash code.</returns>
         public override int GetHashCode()
         {
             var hash = new HashCode();
@@ -58,7 +71,9 @@ namespace IceRpc
             return hash.ToHashCode();
         }
 
-        /// <inheritdoc/>
+        /// <summary>Converts this endpoint into a string.</summary>
+        /// <returns>The string representation of this endpoint. It's an ice+transport URI when <see cref="Protocol"/>
+        /// is ice2, and an ice1 string when the Protocol is ice1.</returns>
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -160,5 +175,4 @@ namespace IceRpc
             value = Value;
         }
     }
-
 }
