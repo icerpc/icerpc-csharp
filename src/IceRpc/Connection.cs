@@ -119,7 +119,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public EndpointRecord? LocalEndpoint
+        public Endpoint? LocalEndpoint
         {
             get => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
             internal set => _localEndpoint = value;
@@ -188,7 +188,7 @@ namespace IceRpc
         /// <summary>The connection remote endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
         /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
-        public EndpointRecord? RemoteEndpoint
+        public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint ?? UnderlyingConnection?.RemoteEndpoint;
             set
@@ -260,14 +260,14 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
-        private EndpointRecord? _localEndpoint;
+        private Endpoint? _localEndpoint;
         private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
         private ConnectionOptions? _options;
         private RpcStream? _peerControlStream;
-        private EndpointRecord? _remoteEndpoint;
+        private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
@@ -332,7 +332,7 @@ namespace IceRpc
                         }
 
                         UnderlyingConnection =
-                            ClientTransport.CreateConnection(EndpointRecord.FromString(_remoteEndpoint.ToString()), clientOptions, _logger);
+                            ClientTransport.CreateConnection(Endpoint.FromString(_remoteEndpoint.ToString()), clientOptions, _logger);
                     }
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
@@ -504,7 +504,7 @@ namespace IceRpc
         /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
         /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
         /// </remarks>
-        public bool HasCompatibleParams(EndpointRecord remoteEndpoint) =>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             IsServer == false &&
             State == ConnectionState.Active &&
             UnderlyingConnection!.HasCompatibleParams(remoteEndpoint);

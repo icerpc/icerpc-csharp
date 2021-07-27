@@ -915,12 +915,12 @@ namespace IceRpc
         /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
-        internal EndpointRecord DecodeEndpoint11(Protocol protocol)
+        internal Endpoint DecodeEndpoint11(Protocol protocol)
         {
             Debug.Assert(OldEncoding);
             Debug.Assert(Connection != null);
 
-            EndpointRecord? endpoint;
+            Endpoint? endpoint;
 
             TransportCode transportCode = this.DecodeTransportCode();
 
@@ -955,7 +955,7 @@ namespace IceRpc
                             new EndpointParam("-e", encoding.ToString()),
                             new EndpointParam("-v", Convert.ToBase64String( _buffer.Slice(Pos, size).Span)));
 
-                        endpoint = new EndpointRecord(
+                        endpoint = new Endpoint(
                             protocol,
                             TransportNames.Opaque,
                             Host: "",
@@ -969,7 +969,7 @@ namespace IceRpc
                 else if (transportCode == TransportCode.Any)
                 {
                     // Encoded as an endpoint data
-                    endpoint = EndpointRecord.FromEndpointData(new EndpointData(this));
+                    endpoint = Endpoint.FromEndpointData(new EndpointData(this));
                 }
                 else
                 {

@@ -42,7 +42,7 @@ namespace IceRpc
         /// <summary>Gets or sets the endpoint of this server.</summary>
         /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
-        public EndpointRecord? Endpoint
+        public Endpoint? Endpoint
         {
             get => _endpoint;
             set
@@ -82,7 +82,7 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private EndpointRecord? _endpoint;
+        private Endpoint? _endpoint;
 
         private IListener? _listener;
 
@@ -151,7 +151,7 @@ namespace IceRpc
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = EndpointRecord.FromString(multiStreamConnection.LocalEndpoint!.ToString());
+                    _endpoint = Endpoint.FromString(multiStreamConnection.LocalEndpoint!.ToString());
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);

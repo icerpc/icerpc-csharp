@@ -37,7 +37,7 @@ namespace IceRpc
     }
 
     /// <summary>An endpoint describes...</summary>
-    public sealed record EndpointRecord(
+    public sealed record Endpoint(
         Protocol Protocol,
         string Transport,
         string Host,
@@ -50,21 +50,21 @@ namespace IceRpc
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static implicit operator EndpointRecord(string s) => FromString(s);
+        public static implicit operator Endpoint(string s) => FromString(s);
 
         /// <summary>Creates an endpoint from its string representation.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
         /// <returns>The new endpoint.</returns>
         /// <exception cref="FormatException"><c>s</c> does not contain a valid string representation of an endpoint.
         /// </exception>
-        public static EndpointRecord FromString(string s) =>
-            NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpointRecord(s);
+        public static Endpoint FromString(string s) =>
+            NewIceUriParser.IsEndpointUri(s) ? NewIceUriParser.ParseEndpoint(s) : Ice1Parser.ParseEndpoint(s);
 
         /// <remarks>We don't validate the data received from a peer because if we establish a connection to this
         /// endpoint, we necessarily trust the peer who sent us this data; ensuring that an endpoint is safe to
         /// connect to requires application-specific knowledge.</remarks>
-        public static EndpointRecord FromEndpointData(EndpointData data) =>
-            new EndpointRecord(data.Protocol,
+        public static Endpoint FromEndpointData(EndpointData data) =>
+            new Endpoint(data.Protocol,
                                string.IsInterned(data.TransportName) ?? data.TransportName,
                                data.Host,
                                data.Port,
@@ -75,7 +75,7 @@ namespace IceRpc
             new(Protocol, Transport, Host, Port, ExternalParams);
 
         /// <inheritdoc/>
-        public bool Equals(EndpointRecord? other) =>
+        public bool Equals(Endpoint? other) =>
                    other != null &&
                    Protocol == other.Protocol &&
                    Transport == other.Transport &&
@@ -159,7 +159,7 @@ namespace IceRpc
     }
 
     /// <summary>This class contains <see cref="Endpoint"/> extension methods.</summary>
-    public static class EndpointRecordExtensions
+    public static class EndpointExtensions
     {
         /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
         /// format.</summary>
@@ -172,7 +172,7 @@ namespace IceRpc
         /// <returns>The string builder parameter.</returns>
         internal static StringBuilder AppendEndpoint(
             this StringBuilder sb,
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             string path = "",
             bool includeScheme = true,
             char optionSeparator = '&')
@@ -248,15 +248,15 @@ namespace IceRpc
     }
 
     /// <summary>Equality comparer for <see cref="Endpoint"/>.</summary>
-    public abstract class EndpointRecordComparer : EqualityComparer<EndpointRecord>
+    public abstract class EndpointComparer : EqualityComparer<Endpoint>
     {
         /// <summary>An endpoint comparer that compares all endpoint properties except the parameters and local
         /// parameters.</summary>
-        public static EndpointRecordComparer ParameterLess { get; } = new ParameterLessEndpointRecordComparer();
+        public static EndpointComparer ParameterLess { get; } = new ParameterLessEndpointComparer();
 
-        private class ParameterLessEndpointRecordComparer : EndpointRecordComparer
+        private class ParameterLessEndpointComparer : EndpointComparer
         {
-            public override bool Equals(EndpointRecord? lhs, EndpointRecord? rhs) =>
+            public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
                 ReferenceEquals(lhs, rhs) ||
                 (lhs != null && rhs != null &&
                  lhs.Protocol == rhs.Protocol &&
@@ -264,7 +264,7 @@ namespace IceRpc
                  lhs.Host == rhs.Host &&
                  lhs.Port == rhs.Port);
 
-            public override int GetHashCode(EndpointRecord endpoint)
+            public override int GetHashCode(Endpoint endpoint)
             {
                 var hash = new HashCode();
                 hash.Add(endpoint.Protocol);

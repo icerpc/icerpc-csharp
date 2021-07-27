@@ -36,8 +36,8 @@ namespace IceRpc.Transports.Internal
         private SslStream? _sslStream;
         private bool? _tls;
 
-        public override async ValueTask<EndpointRecord?> AcceptAsync(
-            EndpointRecord endpoint,
+        public override async ValueTask<Endpoint?> AcceptAsync(
+            Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
@@ -96,8 +96,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override async ValueTask<EndpointRecord> ConnectAsync(
-            EndpointRecord endpoint,
+        public override async ValueTask<Endpoint> ConnectAsync(
+            Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
@@ -144,7 +144,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint)
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             bool? tls = TcpUtils.ParseTcpParams(remoteEndpoint).Tls;
 

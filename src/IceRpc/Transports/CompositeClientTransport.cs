@@ -10,7 +10,7 @@ namespace IceRpc.Transports
     {
         /// <inheritdoc/>
         public MultiStreamConnection CreateConnection(
-            EndpointRecord remoteEndpoint,
+            Endpoint remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger)
         {

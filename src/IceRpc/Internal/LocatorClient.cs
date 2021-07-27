@@ -19,7 +19,7 @@ namespace IceRpc.Internal
     {
         private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;
         private readonly bool _background;
-        private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, EndpointRecord Endpoint, ImmutableList<EndpointRecord> AltEndpoints, LinkedListNode<(string Location, string? Category)> Node)> _cache;
+        private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string Location, string? Category)> Node)> _cache;
 
         // The keys in _cache. The first entries correspond to the most recently added cache entries.
         private readonly LinkedList<(string Location, string? Category)> _cacheKeys = new();
@@ -35,7 +35,7 @@ namespace IceRpc.Internal
         // _mutex protects _cacheKeys, _requests and updates to _cache
         private readonly object _mutex = new();
 
-        private readonly Dictionary<(string Location, string? Category), Task<(EndpointRecord?, ImmutableList<EndpointRecord>)>> _requests =
+        private readonly Dictionary<(string Location, string? Category), Task<(Endpoint?, ImmutableList<Endpoint>)>> _requests =
             new();
 
         private readonly TimeSpan _ttl;
@@ -83,7 +83,7 @@ namespace IceRpc.Internal
                     category = cachedResolution.Category;
                     refreshCache = true;
                 }
-                else if (request.Endpoint is EndpointRecord locEndpoint && locEndpoint.Transport == TransportNames.Loc)
+                else if (request.Endpoint is Endpoint locEndpoint && locEndpoint.Transport == TransportNames.Loc)
                 {
                     // Typically first attempt since a successful resolution replaces this loc endpoint.
                     location = locEndpoint.Host;
@@ -97,7 +97,7 @@ namespace IceRpc.Internal
 
                 if (location != null)
                 {
-                    (EndpointRecord? endpoint, IEnumerable<EndpointRecord> altEndpoints, bool fromCache) =
+                    (Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints, bool fromCache) =
                         await ResolveAsync(location, category, refreshCache, cancel).ConfigureAwait(false);
 
                     if (refreshCache)
@@ -140,7 +140,7 @@ namespace IceRpc.Internal
                 {
                     if (_cache.TryRemove(
                         (location, category),
-                        out (TimeSpan _, EndpointRecord Endpoint, ImmutableList<EndpointRecord> AltEndpoints, LinkedListNode<(string, string?)> Node) entry))
+                        out (TimeSpan _, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> Node) entry))
                     {
                         _cacheKeys.Remove(entry.Node);
                         if (category == null)
@@ -158,21 +158,21 @@ namespace IceRpc.Internal
             }
         }
 
-        private async ValueTask<(EndpointRecord?, ImmutableList<EndpointRecord>, bool FromCache)> ResolveAsync(
+        private async ValueTask<(Endpoint?, ImmutableList<Endpoint>, bool FromCache)> ResolveAsync(
             string location,
             string? category,
             bool refreshCache,
             CancellationToken cancel)
         {
-            EndpointRecord? endpoint = null;
-            ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
+            Endpoint? endpoint = null;
+            ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             bool expired = false;
             bool justRefreshed = false;
             bool resolved = false;
 
             if (HasCache && _cache.TryGetValue(
                 (location, category),
-                out (TimeSpan InsertionTime, EndpointRecord Endpoint, ImmutableList<EndpointRecord> AltEndpoints, LinkedListNode<(string, string?)> _) entry))
+                out (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> _) entry))
             {
                 endpoint = entry.Endpoint;
                 altEndpoints = entry.AltEndpoints;
@@ -258,7 +258,7 @@ namespace IceRpc.Internal
             return (endpoint, altEndpoints, endpoint != null && !resolved);
         }
 
-        private async Task<(EndpointRecord?, ImmutableList<EndpointRecord>)> ResolveWithLocatorAsync(
+        private async Task<(Endpoint?, ImmutableList<Endpoint>)> ResolveWithLocatorAsync(
             string location,
             string? category,
             CancellationToken cancel)
@@ -272,7 +272,7 @@ namespace IceRpc.Internal
                 _logger.LogResolvingWellKnown(new Identity(location, category));
             }
 
-            Task<(EndpointRecord?, ImmutableList<EndpointRecord>)>? task;
+            Task<(Endpoint?, ImmutableList<Endpoint>)>? task;
             lock (_mutex)
             {
                 if (!_requests.TryGetValue((location, category), out task))
@@ -293,7 +293,7 @@ namespace IceRpc.Internal
 
             return await task.WaitAsync(cancel).ConfigureAwait(false);
 
-            async Task<(EndpointRecord?, ImmutableList<EndpointRecord>)> PerformResolveWithLocatorAsync()
+            async Task<(Endpoint?, ImmutableList<Endpoint>)> PerformResolveWithLocatorAsync()
             {
                 try
                 {
@@ -373,7 +373,7 @@ namespace IceRpc.Internal
                             }
                         }
                     }
-                    return (resolved?.Endpoint, resolved?.AltEndpoints ?? ImmutableList<EndpointRecord>.Empty);
+                    return (resolved?.Endpoint, resolved?.AltEndpoints ?? ImmutableList<Endpoint>.Empty);
                 }
                 catch (Exception exception)
                 {

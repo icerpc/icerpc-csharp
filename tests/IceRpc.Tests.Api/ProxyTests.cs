@@ -459,7 +459,7 @@ namespace IceRpc.Tests.Api
             proxy = Proxy.Parse(complicated);
 
             Assert.AreEqual(Encoding.V11, proxy.Encoding);
-            EndpointRecord altEndpoint = proxy.AltEndpoints[0];
+            Endpoint altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
             Assert.AreEqual("tcp", altEndpoint.Transport);
         }

@@ -28,7 +28,7 @@ namespace IceRpc.Tests.ClientServer
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
-            if (indirect.Proxy.Endpoint is EndpointRecord locEndpoint)
+            if (indirect.Proxy.Endpoint is Endpoint locEndpoint)
             {
                 pipeline.Use(LocationResolver(indirect.Proxy.Endpoint.Host, category: null, direct.Proxy.Endpoint!),
                              Interceptors.Binder(_pool));
@@ -86,12 +86,12 @@ namespace IceRpc.Tests.ClientServer
         private static Func<IInvoker, IInvoker> LocationResolver(
             string location,
             string? category,
-            EndpointRecord resolvedEndpoint) =>
+            Endpoint resolvedEndpoint) =>
             next => new InlineInvoker(
                 (request, cancel) =>
                 {
                     if ((request.Protocol == resolvedEndpoint.Protocol) &&
-                        ((request.Endpoint is EndpointRecord locEndpoint &&
+                        ((request.Endpoint is Endpoint locEndpoint &&
                           locEndpoint.Transport == "loc" &&
                           locEndpoint.Host == location &&
                            category == null) ||

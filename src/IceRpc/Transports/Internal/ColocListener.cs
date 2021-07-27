@@ -16,14 +16,14 @@ namespace IceRpc.Transports.Internal
     /// <summary>The IListener implementation for the colocated transport.</summary>
     internal class ColocListener : IListener
     {
-        public EndpointRecord Endpoint => _endpoint;
+        public Endpoint Endpoint => _endpoint;
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
-        private static readonly IDictionary<EndpointRecord, ColocListener> _colocListenerDictionary =
-            new ConcurrentDictionary<EndpointRecord, ColocListener>();
+        private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
+            new ConcurrentDictionary<Endpoint, ColocListener>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
-        private readonly EndpointRecord _endpoint;
+        private readonly Endpoint _endpoint;
         private readonly ILogger _logger;
         // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
         private long _nextId;
@@ -46,11 +46,11 @@ namespace IceRpc.Transports.Internal
         public override string ToString() => $"{base.ToString()} {_endpoint}";
 
         internal static bool TryGetValue(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             [NotNullWhen(returnValue: true)] out ColocListener? listener) =>
             _colocListenerDictionary.TryGetValue(endpoint, out listener);
 
-        internal ColocListener(EndpointRecord endpoint, ServerConnectionOptions options, ILogger logger)
+        internal ColocListener(Endpoint endpoint, ServerConnectionOptions options, ILogger logger)
         {
             if (endpoint.ExternalParams.Count > 0 || endpoint.LocalParams.Count > 0)
             {

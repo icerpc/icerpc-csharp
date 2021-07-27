@@ -38,7 +38,7 @@ namespace IceRpc.Transports
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
-        public EndpointRecord LocalEndpoint
+        public Endpoint LocalEndpoint
         {
             get => _localEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             protected set => _localEndpoint = value;
@@ -49,7 +49,7 @@ namespace IceRpc.Transports
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
-        public EndpointRecord RemoteEndpoint
+        public Endpoint RemoteEndpoint
         {
             get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
             protected set => _remoteEndpoint = value;
@@ -94,16 +94,16 @@ namespace IceRpc.Transports
 
         // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
         // the remote endpoint otherwise.
-        private readonly EndpointRecord _endpoint;
+        private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
         private TaskCompletionSource? _incomingStreamsEmptySource;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
-        private EndpointRecord? _localEndpoint;
+        private Endpoint? _localEndpoint;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
         private TaskCompletionSource? _outgoingStreamsEmptySource;
-        private EndpointRecord? _remoteEndpoint;
+        private Endpoint? _remoteEndpoint;
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
@@ -148,7 +148,7 @@ namespace IceRpc.Transports
         /// <param name="remoteEndpoint">The endpoint to check.</param>
         /// <returns><c>true</c> when this connection is a client connection whose parameters are compatible with the
         /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
-        public abstract bool HasCompatibleParams(EndpointRecord remoteEndpoint);
+        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Initializes the transport.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -177,7 +177,7 @@ namespace IceRpc.Transports
         /// <param name="options">The connection options.</param>
         /// <param name="logger">The logger.</param>
         protected MultiStreamConnection(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ConnectionOptions options,
             ILogger logger)
         {

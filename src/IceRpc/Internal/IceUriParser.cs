@@ -80,7 +80,7 @@ namespace IceRpc.Internal
         /// <summary>Parses an ice+transport URI string that represents a single endpoint.</summary>
         /// <param name="uriString">The URI string to parse.</param>
         /// <returns>The parsed endpoint.</returns>
-        internal static EndpointRecord ParseEndpoint(string uriString)
+        internal static Endpoint ParseEndpoint(string uriString)
         {
             Debug.Assert(uriString.StartsWith(IcePlus, StringComparison.Ordinal));
 
@@ -146,8 +146,8 @@ namespace IceRpc.Internal
                 encoding = Encoding.Parse(encodingValue);
             }
 
-            EndpointRecord? endpoint = null;
-            ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
+            Endpoint? endpoint = null;
+            ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
                 endpoint = CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
@@ -173,7 +173,7 @@ namespace IceRpc.Internal
                         // before sending the string to ParseEndpoint which uses & as separator.
                         altUriString = altUriString.Replace('$', '&');
 
-                        EndpointRecord parsedEndpoint = ParseEndpoint(altUriString);
+                        Endpoint parsedEndpoint = ParseEndpoint(altUriString);
 
                         if (parsedEndpoint.Protocol != endpoint.Protocol)
                         {
@@ -195,7 +195,7 @@ namespace IceRpc.Internal
             };
         }
 
-        private static EndpointRecord CreateEndpoint(
+        private static Endpoint CreateEndpoint(
             Uri uri,
             List<EndpointParam> externalParams,
             List<EndpointParam> localParams,

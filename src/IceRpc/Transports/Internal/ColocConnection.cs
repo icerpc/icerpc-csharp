@@ -153,7 +153,7 @@ namespace IceRpc.Transports.Internal
         }
 
         // There are no coloc parameters so the parameters are always compatible.
-        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint) => !IsServer;
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) => !IsServer;
 
         public override async Task PingAsync(CancellationToken cancel)
         {
@@ -183,7 +183,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal ColocConnection(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             long id,
             ChannelWriter<(long, object, bool)> writer,
             ChannelReader<(long, object, bool)> reader,

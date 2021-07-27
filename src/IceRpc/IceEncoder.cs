@@ -1032,9 +1032,9 @@ namespace IceRpc
         }
 
         public void EncodeEndpoint11(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             TransportCode transportCode,
-            EncodeAction<EndpointRecord> encodeAction)
+            EncodeAction<Endpoint> encodeAction)
         {
             Debug.Assert(OldEncoding);
 

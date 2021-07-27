@@ -33,13 +33,13 @@ namespace IceRpc.Transports.Internal
         private readonly Socket _socket;
         private readonly int _ttl;
 
-        public override ValueTask<EndpointRecord?> AcceptAsync(
-            EndpointRecord endpoint,
+        public override ValueTask<Endpoint?> AcceptAsync(
+            Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new(null as EndpointRecord);
+            CancellationToken cancel) => new(null as Endpoint);
 
-        public override async ValueTask<EndpointRecord> ConnectAsync(
-            EndpointRecord endpoint,
+        public override async ValueTask<Endpoint> ConnectAsync(
+            Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
@@ -65,7 +65,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint)
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = UdpUtils.ParseUdpParams(remoteEndpoint);
             return (ttl == _ttl && multicastInterface == _multicastInterface);

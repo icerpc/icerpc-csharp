@@ -13,7 +13,7 @@ namespace IceRpc.Transports
     public class TcpServerTransport : IServerTransport
     {
         public (IListener?, MultiStreamConnection?) Listen(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ServerConnectionOptions options,
             ILogger logger)
         {

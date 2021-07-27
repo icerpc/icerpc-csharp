@@ -24,7 +24,7 @@ namespace IceRpc.Transports
         /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ConnectionOptions options) =>
             endpoint.Protocol == Protocol.Ice1 ?
                 new Ice1Connection(networkSocket, endpoint, options) :
@@ -38,7 +38,7 @@ namespace IceRpc.Transports
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel)
         {
-            EndpointRecord? remoteEndpoint = await NetworkSocket.AcceptAsync(
+            Endpoint? remoteEndpoint = await NetworkSocket.AcceptAsync(
                 LocalEndpoint!.ToString(),
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
@@ -59,9 +59,9 @@ namespace IceRpc.Transports
                 cancel).ConfigureAwait(false);
 
         /// <inheritdoc/>
-        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint) =>
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
-            EndpointRecordComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
+            EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <summary>Constructs a connection.</summary>
@@ -72,7 +72,7 @@ namespace IceRpc.Transports
         /// <param name="options">The connection options.</param>
         protected NetworkSocketConnection(
             NetworkSocket networkSocket,
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ConnectionOptions options)
             : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
 

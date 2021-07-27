@@ -79,7 +79,7 @@ namespace IceRpc.Transports.Internal
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
 
-        internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(EndpointRecord endpoint)
+        internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(Endpoint endpoint)
         {
             int ttl = -1;
             string? multicastInterface = null;
@@ -159,7 +159,7 @@ namespace IceRpc.Transports.Internal
         }
 
         /// <summary>Parses the non-local parameters of endpoint.</summary>
-        internal static bool ParseExternalUdpParams(EndpointRecord endpoint)
+        internal static bool ParseExternalUdpParams(Endpoint endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {

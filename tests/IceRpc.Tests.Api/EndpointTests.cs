@@ -21,10 +21,10 @@ namespace IceRpc.Tests.Api
         [TestCase("tcp -h \"::0\" -p 10000 --foo bar")]
         [TestCase("coloc -h host -p 10000")]
         [TestCase("abc -h x -p 5")]
-        public void EndpointRecord_Parse_ValidInput(string str)
+        public void Endpoint_Parse_ValidInput(string str)
         {
-            var endpoint = EndpointRecord.FromString(str);
-            var endpoint2 = EndpointRecord.FromString(endpoint.ToString());
+            var endpoint = Endpoint.FromString(str);
+            var endpoint2 = Endpoint.FromString(endpoint.ToString());
             Assert.AreEqual(endpoint, endpoint2); // round trip works
         }
 
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Api
         [TestCase("tcp -h host -p 10000 -e 1.1")]
         [TestCase("ice+udp://localhost")]
         public void Endpoint_Parse_InvalidInput(string str) =>
-            Assert.Throws<FormatException>(() => EndpointRecord.FromString(str));
+            Assert.Throws<FormatException>(() => Endpoint.FromString(str));
 
         [TestCase("ice+universal://127.0.0.1:4062?transport=tcp", "ice+tcp://127.0.0.1")]
         [TestCase("ice+universal://127.0.0.1:4061?transport=tcp&option=a", "ice+tcp://127.0.0.1:4061")]

@@ -18,7 +18,7 @@ namespace IceRpc.Transports.Internal
     {
         internal const int DefaultTcpTimeout = 60_000;
 
-        internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(EndpointRecord endpoint)
+        internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(Endpoint endpoint)
         {
             bool? tls = null;
 
@@ -49,7 +49,7 @@ namespace IceRpc.Transports.Internal
             return (compress, timeout, tls);
         }
 
-        internal static (bool Compress, int Timeout) ParseExternalTcpParams(EndpointRecord endpoint)
+        internal static (bool Compress, int Timeout) ParseExternalTcpParams(Endpoint endpoint)
         {
             bool compress = false;
             int? timeout = null;

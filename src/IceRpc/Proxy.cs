@@ -27,7 +27,7 @@ namespace IceRpc
     {
         /// <summary>Gets or sets the secondary endpoints of this proxy.</summary>
         /// <value>The secondary endpoints of this proxy.</value>
-        public ImmutableList<EndpointRecord> AltEndpoints
+        public ImmutableList<Endpoint> AltEndpoints
         {
             get => _altEndpoints;
 
@@ -82,7 +82,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
         /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
-        public EndpointRecord? Endpoint
+        public Endpoint? Endpoint
         {
             get => _endpoint;
 
@@ -157,9 +157,9 @@ namespace IceRpc
         private static readonly IEndpointEncoder _defaultEndpointEncoder =
             new EndpointCodexBuilder().AddSsl().AddTcp().AddUdp().Build();
 
-        private ImmutableList<EndpointRecord> _altEndpoints = ImmutableList<EndpointRecord>.Empty;
+        private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
-        private EndpointRecord? _endpoint;
+        private Endpoint? _endpoint;
         private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -441,11 +441,11 @@ namespace IceRpc
 
                 // The min size for an Endpoint with the 1.1 encoding is: transport (short = 2 bytes) + encapsulation
                 // header (6 bytes), for a total of 8 bytes.
-                EndpointRecord[] endpointArray =
+                Endpoint[] endpointArray =
                     decoder.DecodeArray(minElementSize: 8, decoder => decoder.DecodeEndpoint11(proxyData.Protocol));
 
-                EndpointRecord? endpoint = null;
-                IEnumerable<EndpointRecord> altEndpoints;
+                Endpoint? endpoint = null;
+                IEnumerable<Endpoint> altEndpoints;
 
                 if (endpointArray.Length == 0)
                 {
@@ -453,14 +453,14 @@ namespace IceRpc
                     if (adapterId.Length > 0)
                     {
                         ushort port = (ushort)(proxyData.Protocol == Protocol.Ice1 ? 0 : 4062); // TODO
-                        endpoint = new EndpointRecord(proxyData.Protocol,
+                        endpoint = new Endpoint(proxyData.Protocol,
                                                       TransportNames.Loc,
                                                       Host: adapterId,
                                                       Port: port,
                                                       ImmutableList<EndpointParam>.Empty,
                                                       ImmutableList<EndpointParam>.Empty);
                     }
-                    altEndpoints = ImmutableList<EndpointRecord>.Empty;
+                    altEndpoints = ImmutableList<Endpoint>.Empty;
                 }
                 else
                 {
@@ -544,14 +544,14 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                EndpointRecord? endpoint = null;
+                Endpoint? endpoint = null;
                 if (proxyData.Endpoint is EndpointData data)
                 {
-                    endpoint = EndpointRecord.FromEndpointData(data);
+                    endpoint = Endpoint.FromEndpointData(data);
                 }
-                ImmutableList<EndpointRecord> altEndpoints =
-                    proxyData.AltEndpoints?.Select(data => EndpointRecord.FromEndpointData(data)).ToImmutableList() ??
-                        ImmutableList<EndpointRecord>.Empty;
+                ImmutableList<Endpoint> altEndpoints =
+                    proxyData.AltEndpoints?.Select(data => Endpoint.FromEndpointData(data)).ToImmutableList() ??
+                        ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
                 {
@@ -682,8 +682,8 @@ namespace IceRpc
                 }
                 else
                 {
-                    IEnumerable<EndpointRecord> endpoints = Endpoint.Transport == TransportNames.Coloc ?
-                        AltEndpoints : Enumerable.Empty<EndpointRecord>().Append(Endpoint).Concat(AltEndpoints);
+                    IEnumerable<Endpoint> endpoints = Endpoint.Transport == TransportNames.Coloc ?
+                        AltEndpoints : Enumerable.Empty<Endpoint>().Append(Endpoint).Concat(AltEndpoints);
 
                     if (endpoints.Any())
                     {
@@ -692,7 +692,7 @@ namespace IceRpc
                             encoder.EncodeSequence(
                                 endpoints,
                                 (encoder, endpoint) =>
-                                    EndpointEncoder.EncodeEndpoint(EndpointRecord.FromString(endpoint.ToString()), encoder));
+                                    EndpointEncoder.EncodeEndpoint(Endpoint.FromString(endpoint.ToString()), encoder));
                         }
                         else
                         {
@@ -700,7 +700,7 @@ namespace IceRpc
                                 endpoints,
                                 (encoder, endpoint) =>
                                     encoder.EncodeEndpoint11(
-                                        EndpointRecord.FromString(endpoint.ToString()),
+                                        Endpoint.FromString(endpoint.ToString()),
                                         TransportCode.Any,
                                         static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));
                         }
@@ -726,7 +726,7 @@ namespace IceRpc
                     path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                     encoding: Encoding != Encoding.V20 ? Encoding : null,
-                    endpoint: Endpoint is EndpointRecord endpoint && endpoint.Transport != TransportNames.Coloc ?
+                    endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
                     altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
 

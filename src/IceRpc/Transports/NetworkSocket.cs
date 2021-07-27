@@ -41,8 +41,8 @@ namespace IceRpc.Transports
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
-        public abstract ValueTask<EndpointRecord?> AcceptAsync(
-            EndpointRecord endpoint,
+        public abstract ValueTask<Endpoint?> AcceptAsync(
+            Endpoint endpoint,
             SslServerAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
@@ -52,8 +52,8 @@ namespace IceRpc.Transports
         /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
-        public abstract ValueTask<EndpointRecord> ConnectAsync(
-            EndpointRecord endpoint,
+        public abstract ValueTask<Endpoint> ConnectAsync(
+            Endpoint endpoint,
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel);
 
@@ -69,7 +69,7 @@ namespace IceRpc.Transports
         /// <param name="remoteEndpoint">The endpoint to check.</param>
         /// <returns><c>true</c> when this socket is compatible with the parameters of the provided endpoint;
         /// otherwise, <c>false</c>.</returns>
-        public abstract bool HasCompatibleParams(EndpointRecord remoteEndpoint);
+        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>

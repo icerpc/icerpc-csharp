@@ -16,7 +16,7 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
-        internal static EndpointRecord ParseEndpointRecord(string endpointString)
+        internal static Endpoint ParseEndpoint(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -106,7 +106,7 @@ namespace IceRpc.Internal
                 }
             }
 
-            return new EndpointRecord(Protocol.Ice1,
+            return new Endpoint(Protocol.Ice1,
                                       transportName,
                                       host ?? "",
                                       port ?? 0,
@@ -158,8 +158,8 @@ namespace IceRpc.Internal
             var identity = Identity.Parse(identityString);
             string facet = "";
             Encoding encoding = Ice1Definitions.Encoding;
-            EndpointRecord? endpoint = null;
-            var altEndpoints = ImmutableList<EndpointRecord>.Empty;
+            Endpoint? endpoint = null;
+            var altEndpoints = ImmutableList<Endpoint>.Empty;
 
             while (true)
             {
@@ -372,7 +372,7 @@ namespace IceRpc.Internal
                     {
                         if (endpoint == null)
                         {
-                            endpoint = ParseEndpointRecord(es);
+                            endpoint = ParseEndpoint(es);
 
                             if (endpoint.Transport == TransportNames.Loc)
                             {
@@ -381,7 +381,7 @@ namespace IceRpc.Internal
                         }
                         else
                         {
-                            altEndpoints = altEndpoints.Add(ParseEndpointRecord(es));
+                            altEndpoints = altEndpoints.Add(ParseEndpoint(es));
                         }
                     }
                     catch (Exception ex)
@@ -443,7 +443,7 @@ namespace IceRpc.Internal
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = new EndpointRecord(Protocol.Ice1,
+                endpoint = new Endpoint(Protocol.Ice1,
                                               TransportNames.Loc,
                                               Host: adapterId,
                                               Port: 0,

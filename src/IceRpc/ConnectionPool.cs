@@ -37,7 +37,7 @@ namespace IceRpc
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        private readonly Dictionary<EndpointRecord, List<Connection>> _connections = new(EndpointRecordComparer.ParameterLess);
+        private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.ParameterLess);
         private readonly object _mutex = new();
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
@@ -53,8 +53,8 @@ namespace IceRpc
         /// <param name="altEndpoints">The alternative endpoints.</param>
         /// <param name="cancel">The cancellation token.</param>
         public ValueTask<Connection> GetConnectionAsync(
-            EndpointRecord endpoint,
-            IEnumerable<EndpointRecord> altEndpoints,
+            Endpoint endpoint,
+            IEnumerable<Endpoint> altEndpoints,
             CancellationToken cancel)
         {
             if (PreferExistingConnection)
@@ -65,7 +65,7 @@ namespace IceRpc
                     connection = GetCachedConnection(endpoint);
                     if (connection == null)
                     {
-                        foreach (EndpointRecord altEndpoint in altEndpoints)
+                        foreach (Endpoint altEndpoint in altEndpoints)
                         {
                             connection = GetCachedConnection(altEndpoint);
                             if (connection != null)
@@ -94,7 +94,7 @@ namespace IceRpc
                 {
                     List<Exception>? exceptionList = null;
 
-                    foreach (EndpointRecord altEndpoint in altEndpoints)
+                    foreach (Endpoint altEndpoint in altEndpoints)
                     {
                         try
                         {
@@ -125,7 +125,7 @@ namespace IceRpc
                 }
             }
 
-            Connection? GetCachedConnection(EndpointRecord endpoint) =>
+            Connection? GetCachedConnection(Endpoint endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
                     connection => connection.HasCompatibleParams(endpoint)) is Connection connection ?
@@ -180,7 +180,7 @@ namespace IceRpc
         }
 
         private async ValueTask<Connection> ConnectAsync(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ClientConnectionOptions options,
             CancellationToken cancel)
         {

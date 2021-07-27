@@ -8,7 +8,7 @@ namespace IceRpc.Transports.Internal
     internal static class OpaqueUtils
     {
         internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseExternalOpaqueParams(
-            EndpointRecord endpoint)
+            Endpoint endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)
             {

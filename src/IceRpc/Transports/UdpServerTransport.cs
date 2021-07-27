@@ -22,7 +22,7 @@ namespace IceRpc.Transports
     {
         /// <inheritdoc/>
         public (IListener?, MultiStreamConnection?) Listen(
-            EndpointRecord endpoint,
+            Endpoint endpoint,
             ServerConnectionOptions options,
             ILogger logger)
         {
