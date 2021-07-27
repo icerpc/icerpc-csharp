@@ -264,7 +264,7 @@ namespace IceRpc
         public Proxy(string path, Protocol protocol = Protocol.Ice2)
         {
             Protocol = protocol;
-            Internal.IceUriParser.CheckPath(path, nameof(path));
+            NewIceUriParser.CheckPath(path, nameof(path));
             Path = path;
             Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }

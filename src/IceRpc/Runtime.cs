@@ -15,17 +15,5 @@ namespace IceRpc
     {
         /// <summary>The IceRPC version in semver format.</summary>
         public const string StringVersion = "0.0.1-alpha";
-
-        static Runtime()
-        {
-            // Register the ice and ice+universal schemes with the system UriParser.
-            IceUriParser.RegisterTransport("universal", defaultPort: 0);
-            IceUriParser.RegisterIceScheme();
-            TransportRegistry.Add(new LocEndpointFactory());
-        }
-
-        // Must be called before parsing a Uri to make sure the static constructors of Runtime and TransportRegistry
-        // executed and registered the URI schemes for the built-in transports.
-        internal static void UriInitialize() => TransportRegistry.UriInitialize();
     }
 }

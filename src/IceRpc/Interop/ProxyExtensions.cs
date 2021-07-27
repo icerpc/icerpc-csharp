@@ -100,7 +100,7 @@ namespace IceRpc.Interop
                     sb.Append(':');
                     sb.Append(proxy.Endpoint);
                 }
-                foreach (Endpoint e in proxy.AltEndpoints)
+                foreach (EndpointRecord e in proxy.AltEndpoints)
                 {
                     sb.Append(':');
                     sb.Append(e);
