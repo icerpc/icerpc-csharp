@@ -49,6 +49,7 @@ module IceRpc
 
     /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
+    [cs:custom-equals] // TODO temporary
     struct EndpointData
     {
         /// The transport.
