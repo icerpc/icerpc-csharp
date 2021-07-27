@@ -280,6 +280,7 @@ namespace IceRpc.Tests.Api
             Assert.That(Proxy.Equals(prx, null), Is.False);
         }
 
+        /*
         [TestCase("ice+tcp://tcphost:10000/test?" +
                   "alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
         [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
@@ -326,6 +327,7 @@ namespace IceRpc.Tests.Api
                 Assert.AreEqual("ABCD", universalEndpoint["option"]);
             }
         }
+        */
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
         [TestCase("hello:tcp -h localhost")]
@@ -457,9 +459,9 @@ namespace IceRpc.Tests.Api
             proxy = Proxy.Parse(complicated);
 
             Assert.AreEqual(Encoding.V11, proxy.Encoding);
-            Endpoint altEndpoint = proxy.AltEndpoints[0];
+            EndpointRecord altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
-            Assert.AreEqual(TransportCode.TCP, altEndpoint.TransportCode);
+            Assert.AreEqual("tcp", altEndpoint.Transport);
         }
 
         [TestCase("1.3")]

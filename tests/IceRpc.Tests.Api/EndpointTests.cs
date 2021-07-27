@@ -12,24 +12,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host:10000")]
         [TestCase("ice+tcp://host")]
         [TestCase("ice+tcp://[::0]")]
-        [TestCase("ice+tcp://[::0]?_tls=true")]
-        [TestCase("ice+tcp://[::0]?_tls=false")]
-        [TestCase("ice+universal://host:10000?transport=tcp&protocol=ice2")]
-        [TestCase("ice+universal://host:10000?transport=tcp&protocol=3")]
-        [TestCase("ice+coloc://host:10000")]
-        [TestCase("tcp -h host -p 10000")]
-        [TestCase("tcp -h \"::0\" -p 10000")]
-        [TestCase("coloc -h host -p 10000")]
-        public void Endpoint_Parse_ValidInput(string str)
-        {
-            var endpoint = Endpoint.FromString(str);
-            var endpoint2 = Endpoint.FromString(endpoint.ToString());
-            Assert.AreEqual(endpoint, endpoint2); // round trip works
-        }
-
-        [TestCase("ice+tcp://host:10000")]
-        [TestCase("ice+tcp://host")]
-        [TestCase("ice+tcp://[::0]")]
         [TestCase("ice+tcp://[::0]?_foo=bar&tls=true&protocol=5")]
         [TestCase("ice+tcp://[::0]?_tls=false&tls=true&foo=&b=")]
         [TestCase("ice+coloc://host:10000")]
@@ -59,6 +41,7 @@ namespace IceRpc.Tests.Api
         public void Endpoint_Parse_InvalidInput(string str) =>
             Assert.Throws<FormatException>(() => Endpoint.FromString(str));
 
+        /*
         [TestCase("ice+universal://127.0.0.1:4062?transport=tcp", "ice+tcp://127.0.0.1")]
         [TestCase("ice+universal://127.0.0.1:4061?transport=tcp&option=a", "ice+tcp://127.0.0.1:4061")]
         // TODO: revisit
@@ -70,5 +53,6 @@ namespace IceRpc.Tests.Api
             var endpoint = Endpoint.FromString(original);
             Assert.AreEqual(actual, endpoint.ToString());
         }
+        */
     }
 }
