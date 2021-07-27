@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,18 +26,24 @@ namespace IceRpc.Tests.CodeGeneration
             router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
             router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
 
+            var classFactory = new ClassFactory(new Assembly[] { typeof(ScopeTests).Assembly });
             _server = new Server()
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx1 = Scope.IOperationsPrx.FromConnection(_connection);
-            _prx2 = Scope.Inner.IOperationsPrx.FromConnection(_connection);
-            _prx3 = Scope.Inner.Inner2.IOperationsPrx.FromConnection(_connection);
-            _prx4 = Scope.Inner.Test.Inner2.IOperationsPrx.FromConnection(_connection);
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.Endpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
+            _prx1 = Scope.OperationsPrx.FromConnection(_connection);
+            _prx2 = Scope.Inner.OperationsPrx.FromConnection(_connection);
+            _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(_connection);
+            _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -161,7 +168,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope
     {
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             public ValueTask<C1> OpC1Async(C1 c1, Dispatch dispatch, CancellationToken cancel) => new(c1);
 
@@ -196,7 +203,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner
     {
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             public ValueTask<Inner2.C> OpCAsync(Inner2.C p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
 
@@ -226,7 +233,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner.Inner2
     {
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             public ValueTask<C> OpCAsync(C c1, Dispatch dispatch, CancellationToken cancel) => new(c1);
 
@@ -256,7 +263,7 @@ namespace IceRpc.Tests.CodeGeneration
 
     namespace Scope.Inner.Test.Inner2
     {
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             public ValueTask<Scope.C> OpCAsync(
                 Scope.C p1,

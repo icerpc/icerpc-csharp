@@ -106,13 +106,13 @@ namespace IceRpc.Internal
             return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
-        /// <summary>Reads an ice1 system exception.</summary>
-        /// <param name="reader">The buffer reader.</param>
+        /// <summary>Decodes an ice1 system exception.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <returns>The exception read from the buffer.</returns>
-        internal static RemoteException ReadIce1SystemException(this BufferReader reader, ReplyStatus replyStatus)
+        internal static RemoteException DecodeIce1SystemException(this IceDecoder decoder, ReplyStatus replyStatus)
         {
-            Debug.Assert(reader.Encoding == Encoding.V11);
+            Debug.Assert(decoder.Encoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -123,7 +123,7 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    var requestFailed = new Ice1RequestFailedExceptionData(reader);
+                    var requestFailed = new Ice1RequestFailedExceptionData(decoder);
 
                     IList<string> facetPath = requestFailed.FacetPath;
                     if (facetPath.Count > 1)
@@ -149,7 +149,7 @@ namespace IceRpc.Internal
                     break;
 
                 default:
-                    systemException = new UnhandledException(reader.ReadString());
+                    systemException = new UnhandledException(decoder.DecodeString());
                     break;
             }
 
@@ -157,19 +157,19 @@ namespace IceRpc.Internal
             return systemException;
         }
 
-        /// <summary>Writes an ice1 system exception.</summary>
-        /// <param name="writer">This buffer writer.</param>
+        /// <summary>Encodes an ice1 system exception.</summary>
+        /// <param name="encoder">This Ice encoder.</param>
         /// <param name="replyStatus">The reply status.</param>
         /// <param name="request">The request for which we write the exception.</param>
         /// <param name="message">The message carried by the exception.</param>
         /// <remarks>The reply status itself is part of the response header and is not written by this method.</remarks>
-        internal static void WriteIce1SystemException(
-            this BufferWriter writer,
+        internal static void EncodeIce1SystemException(
+            this IceEncoder encoder,
             ReplyStatus replyStatus,
             IncomingRequest request,
             string message)
         {
-            Debug.Assert(writer.Encoding == Encoding.V11);
+            Debug.Assert(encoder.Encoding == Encoding.V11);
 
             switch (replyStatus)
             {
@@ -191,11 +191,11 @@ namespace IceRpc.Internal
                     var requestFailed =
                         new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
 
-                    requestFailed.IceWrite(writer);
+                    requestFailed.Encode(encoder);
                     break;
 
                 case ReplyStatus.UnknownLocalException:
-                    writer.WriteString(message);
+                    encoder.EncodeString(message);
                     break;
 
                 default:

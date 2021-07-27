@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Api
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
             var service = new Greeter();
 
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            var prx = IGreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
 
             Assert.ThrowsAsync<UnhandledException>(() => prx.SayHelloAsync());
             Assert.That(service.Called, Is.False);
@@ -73,9 +73,9 @@ namespace IceRpc.Tests.Api
             server.Dispatcher = router;
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
-            var prx = IGreeterPrx.FromConnection(connection);
+            var prx = GreeterPrx.FromConnection(connection);
             await prx.IcePingAsync();
 
             Assert.AreEqual("Middlewares -> 0", middlewareCalls[0]);
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(4, middlewareCalls.Count);
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public bool Called { get; private set; }
 

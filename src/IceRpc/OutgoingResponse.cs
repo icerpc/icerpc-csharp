@@ -143,12 +143,12 @@ namespace IceRpc
 
                 Fields.Add(
                     (int)Ice2FieldKey.RetryPolicy,
-                    writer =>
+                    encoder =>
                     {
-                        writer.Write(retryPolicy.Retryable);
+                        encoder.EncodeRetryable(retryPolicy.Retryable);
                         if (retryPolicy.Retryable == Retryable.AfterDelay)
                         {
-                            writer.WriteVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
+                            encoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
                         }
                     });
             }
@@ -158,28 +158,28 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(BufferWriter writer)
+        internal override void EncodeHeader(IceEncoder encoder)
         {
-            Debug.Assert(writer.Encoding == Protocol.GetEncoding());
+            Debug.Assert(encoder.Encoding == Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice2)
             {
-                BufferWriter.Position startPos = writer.StartFixedLengthSize(2);
-                WriteFields(writer);
-                writer.Write(ResultType);
-                PayloadEncoding.IceWrite(writer);
-                writer.WriteSize(PayloadSize);
-                writer.EndFixedLengthSize(startPos, 2);
+                IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
+                EncodeFields(encoder);
+                encoder.EncodeResultType(ResultType);
+                PayloadEncoding.Encode(encoder);
+                encoder.EncodeSize(PayloadSize);
+                encoder.EndFixedLengthSize(startPos, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
 
-                writer.Write(ReplyStatus);
+                encoder.EncodeReplyStatus(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
-                    responseHeader.IceWrite(writer);
+                    responseHeader.Encode(encoder);
                 }
             }
         }

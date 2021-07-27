@@ -12,8 +12,8 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc
 {
-    /// <summary>Writes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed partial class BufferWriter
+    /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
+    public sealed partial class IceEncoder
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
         /// buffer in the vector and the offset into that buffer.</summary>
@@ -43,8 +43,8 @@ namespace IceRpc
         /// </summary>
         internal int Capacity { get; private set; }
 
-        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already written
-        /// using this writer.</summary>
+        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
+        /// using this encoder.</summary>
         /// <value>The current size.</value>
         internal int Size { get; private set; }
 
@@ -63,7 +63,7 @@ namespace IceRpc
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
 
-        // Data for the class or exception instance that is currently getting marshaled.
+        // Data for the class or exception instance that is currently getting encoded.
         private InstanceData _current;
 
         // The buffer currently used by write operations. The tail Position always points to this buffer, and the tail
@@ -86,15 +86,15 @@ namespace IceRpc
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
-        // Write methods for basic types
+        // Encode methods for basic types
 
-        /// <summary>Writes a boolean to the buffer.</summary>
-        /// <param name="v">The boolean to write to the buffer.</param>
-        public void WriteBool(bool v) => WriteByte(v ? (byte)1 : (byte)0);
+        /// <summary>Encodes a boolean.</summary>
+        /// <param name="v">The boolean to encode.</param>
+        public void EncodeBool(bool v) => EncodeByte(v ? (byte)1 : (byte)0);
 
-        /// <summary>Writes a byte to the buffer.</summary>
-        /// <param name="v">The byte to write.</param>
-        public void WriteByte(byte v)
+        /// <summary>Encodes a byte.</summary>
+        /// <param name="v">The byte to encode.</param>
+        public void EncodeByte(byte v)
         {
             Expand(1);
             _currentBuffer.Span[_tail.Offset] = v;
@@ -102,91 +102,91 @@ namespace IceRpc
             Size++;
         }
 
-        /// <summary>Writes a double to the buffer.</summary>
-        /// <param name="v">The double to write to the buffer.</param>
-        public void WriteDouble(double v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a double.</summary>
+        /// <param name="v">The double to encode.</param>
+        public void EncodeDouble(double v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a float to the buffer.</summary>
-        /// <param name="v">The float to write to the buffer.</param>
-        public void WriteFloat(float v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a float.</summary>
+        /// <param name="v">The float to encode.</param>
+        public void EncodeFloat(float v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes an int to the buffer.</summary>
-        /// <param name="v">The int to write to the buffer.</param>
-        public void WriteInt(int v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes an int.</summary>
+        /// <param name="v">The int to encode.</param>
+        public void EncodeInt(int v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a long to the buffer.</summary>
-        /// <param name="v">The long to write to the buffer.</param>
-        public void WriteLong(long v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a long.</summary>
+        /// <param name="v">The long to encode.</param>
+        public void EncodeLong(long v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a short to the buffer.</summary>
-        /// <param name="v">The short to write to the buffer.</param>
-        public void WriteShort(short v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a short.</summary>
+        /// <param name="v">The short to encode.</param>
+        public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a size to the buffer.</summary>
+        /// <summary>Encodes a size.</summary>
         /// <param name="v">The size.</param>
-        public void WriteSize(int v)
+        public void EncodeSize(int v)
         {
             if (OldEncoding)
             {
                 if (v < 255)
                 {
-                    WriteByte((byte)v);
+                    EncodeByte((byte)v);
                 }
                 else
                 {
-                    WriteByte(255);
-                    WriteInt(v);
+                    EncodeByte(255);
+                    EncodeInt(v);
                 }
             }
             else
             {
-                WriteVarULong((ulong)v);
+                EncodeVarULong((ulong)v);
             }
         }
 
-        /// <summary>Writes a string to the buffer.</summary>
-        /// <param name="v">The string to write to the buffer.</param>
-        public void WriteString(string v)
+        /// <summary>Encodes a string.</summary>
+        /// <param name="v">The string to encode.</param>
+        public void EncodeString(string v)
         {
             if (v.Length == 0)
             {
-                WriteSize(0);
+                EncodeSize(0);
             }
             else if (v.Length <= 100)
             {
                 Span<byte> data = stackalloc byte[_utf8.GetMaxByteCount(v.Length)];
-                int written = _utf8.GetBytes(v, data);
-                WriteSize(written);
-                WriteByteSpan(data.Slice(0, written));
+                int encoded = _utf8.GetBytes(v, data);
+                EncodeSize(encoded);
+                WriteByteSpan(data.Slice(0, encoded));
             }
             else
             {
                 byte[] data = _utf8.GetBytes(v);
-                WriteSize(data.Length);
+                EncodeSize(data.Length);
                 WriteByteSpan(data.AsSpan());
             }
         }
 
-        /// <summary>Writes a uint to the buffer.</summary>
-        /// <param name="v">The uint to write to the buffer.</param>
-        public void WriteUInt(uint v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a uint.</summary>
+        /// <param name="v">The uint to encode.</param>
+        public void EncodeUInt(uint v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a ulong to the buffer.</summary>
-        /// <param name="v">The ulong to write to the buffer.</param>
-        public void WriteULong(ulong v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a ulong.</summary>
+        /// <param name="v">The ulong to encode.</param>
+        public void EncodeULong(ulong v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes a ushort to the buffer.</summary>
-        /// <param name="v">The ushort to write to the buffer.</param>
-        public void WriteUShort(ushort v) => WriteFixedSizeNumeric(v);
+        /// <summary>Encodes a ushort.</summary>
+        /// <param name="v">The ushort to encode.</param>
+        public void EncodeUShort(ushort v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Writes an int to the buffer, using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="v">The int to write to the buffer.</param>
-        public void WriteVarInt(int v) => WriteVarLong(v);
+        /// <summary>Encodes an int using IceRPC's variable-size integer encoding.</summary>
+        /// <param name="v">The int to encode.</param>
+        public void EncodeVarInt(int v) => EncodeVarLong(v);
 
-        /// <summary>Writes a long to the buffer, using IceRPC's variable-size integer encoding, with the minimum number
+        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number
         /// of bytes required by the encoding.</summary>
-        /// <param name="v">The long to write to the buffer. It must be in the range [-2^61..2^61 - 1].</param>
-        public void WriteVarLong(long v)
+        /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
+        public void EncodeVarLong(long v)
         {
             int encodedSizeExponent = GetVarLongEncodedSizeExponent(v);
             v <<= 2;
@@ -196,14 +196,14 @@ namespace IceRpc
             WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        /// <summary>Writes a uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="v">The uint to write to the buffer.</param>
-        public void WriteVarUInt(uint v) => WriteVarULong(v);
+        /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
+        /// <param name="v">The uint to encode.</param>
+        public void EncodeVarUInt(uint v) => EncodeVarULong(v);
 
-        /// <summary>Writes a ulong to the buffer, using IceRPC's variable-size integer encoding, with the minimum
+        /// <summary>Encodes a ulong using IceRPC's variable-size integer encoding, with the minimum
         /// number of bytes required by the encoding.</summary>
-        /// <param name="v">The ulong to write to the buffer. It must be in the range [0..2^62 - 1].</param>
-        public void WriteVarULong(ulong v)
+        /// <param name="v">The ulong to encode. It must be in the range [0..2^62 - 1].</param>
+        public void EncodeVarULong(ulong v)
         {
             int encodedSizeExponent = GetVarULongEncodedSizeExponent(v);
             v <<= 2;
@@ -213,56 +213,56 @@ namespace IceRpc
             WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        // Write methods for constructed types except class and exception
+        // Encode methods for constructed types except class and exception
 
-        /// <summary>Writes an array of fixed-size numeric values, such as int and long, to the buffer.</summary>
+        /// <summary>Encodes an array of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The array of numeric values.</param>
-        public void WriteArray<T>(T[] v) where T : struct => WriteSequence(new ReadOnlySpan<T>(v));
+        public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
 
-        /// <summary>Writes a dictionary to the buffer.</summary>
-        /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the values.</param>
-        public void WriteDictionary<TKey, TValue>(
+        /// <summary>Encodes a dictionary.</summary>
+        /// <param name="v">The dictionary to encode.</param>
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the values.</param>
+        public void EncodeDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue>> v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
-            WriteSize(v.Count());
+            EncodeSize(v.Count());
             foreach ((TKey key, TValue value) in v)
             {
-                keyEncoder(this, key);
-                valueEncoder(this, value);
+                keyEncodeAction(this, key);
+                valueEncodeAction(this, value);
             }
         }
 
-        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is reference type.</summary>
-        /// <param name="v">The dictionary to write.</param>
+        /// <summary>Encodes a dictionary. The dictionary's value type is reference type.</summary>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the non-null values.</param>
-        public void WriteDictionary<TKey, TValue>(
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
+        public void EncodeDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
             bool withBitSequence,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : class
         {
             if (withBitSequence)
             {
                 int count = v.Count();
-                WriteSize(count);
-                BitSequence bitSequence = WriteBitSequence(count);
+                EncodeSize(count);
+                BitSequence bitSequence = EncodeBitSequence(count);
                 int index = 0;
                 foreach ((TKey key, TValue? value) in v)
                 {
-                    keyEncoder(this, key);
+                    keyEncodeAction(this, key);
                     if (value != null)
                     {
-                        valueEncoder(this, value);
+                        valueEncodeAction(this, value);
                     }
                     else
                     {
@@ -273,31 +273,31 @@ namespace IceRpc
             }
             else
             {
-                WriteDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)v, keyEncoder, valueEncoder);
+                EncodeDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)v, keyEncodeAction, valueEncodeAction);
             }
         }
 
-        /// <summary>Writes a dictionary to the buffer. The dictionary's value type is a nullable value type.</summary>
-        /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the non-null values.</param>
-        public void WriteDictionary<TKey, TValue>(
+        /// <summary>Encodes a dictionary. The dictionary's value type is a nullable value type.</summary>
+        /// <param name="v">The dictionary to encode.</param>
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
+        public void EncodeDictionary<TKey, TValue>(
             IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : struct
         {
             int count = v.Count();
-            WriteSize(count);
-            BitSequence bitSequence = WriteBitSequence(count);
+            EncodeSize(count);
+            BitSequence bitSequence = EncodeBitSequence(count);
             int index = 0;
             foreach ((TKey key, TValue? value) in v)
             {
-                keyEncoder(this, key);
+                keyEncodeAction(this, key);
                 if (value is TValue actualValue)
                 {
-                    valueEncoder(this, actualValue);
+                    valueEncodeAction(this, actualValue);
                 }
                 else
                 {
@@ -307,93 +307,90 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a nullable proxy to the buffer.</summary>
-        /// <param name="v">The proxy to write, or null.</param>
-        public void WriteNullableProxy(IServicePrx? v)
+        /// <summary>Encodes a nullable proxy.</summary>
+        /// <param name="proxy">The proxy to encode, or null.</param>
+        public void EncodeNullableProxy(Proxy? proxy)
         {
-            if (v != null)
+            if (proxy is Proxy p)
             {
-                v.IceWrite(this);
+                EncodeProxy(p);
+            }
+            else if (OldEncoding)
+            {
+                Identity.Empty.Encode(this);
             }
             else
             {
-                if (OldEncoding)
-                {
-                    Identity.Empty.IceWrite(this);
-                }
-                else
-                {
-                    ProxyData20 nullValue = default;
-                    nullValue.IceWrite(this);
-                }
+                ProxyData20 proxyData = default;
+                proxyData.Encode(this);
             }
         }
 
-        /// <summary>Writes a proxy to the buffer.</summary>
-        /// <param name="v">The proxy to write. This proxy cannot be null.</param>
-        public void WriteProxy(IServicePrx v) => v.IceWrite(this);
+        /// <summary>Encodes a proxy.</summary>
+        /// <param name="proxy">The proxy to encode.</param>
+        public void EncodeProxy(Proxy proxy) => proxy.Encode(this);
 
-        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
+        /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
         // This method works because (as long as) there is no padding in the memory representation of the
         // ReadOnlySpan.
-        public void WriteSequence<T>(ReadOnlySpan<T> v) where T : struct
+        public void EncodeSequence<T>(ReadOnlySpan<T> v) where T : struct
         {
-            WriteSize(v.Length);
+            EncodeSize(v.Length);
             if (!v.IsEmpty)
             {
                 WriteByteSpan(MemoryMarshal.AsBytes(v));
             }
         }
 
-        /// <summary>Writes a sequence of fixed-size numeric values, such as int and long, to the buffer.</summary>
+        /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values.</param>
-        public void WriteSequence<T>(IEnumerable<T> v) where T : struct
+        public void EncodeSequence<T>(IEnumerable<T> v) where T : struct
         {
             if (v is T[] vArray)
             {
-                WriteArray(vArray);
+                EncodeArray(vArray);
             }
             else if (v is ImmutableArray<T> vImmutableArray)
             {
-                WriteSequence(vImmutableArray.AsSpan());
+                EncodeSequence(vImmutableArray.AsSpan());
             }
             else
             {
-                WriteSequence(v, (writer, element) => writer.WriteFixedSizeNumeric(element));
+                EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
             }
         }
 
-        /// <summary>Writes a sequence to the buffer.</summary>
-        /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The encoder for an element.</param>
-        public void WriteSequence<T>(IEnumerable<T> v, Encoder<T> encoder)
+        /// <summary>Encodes a sequence.</summary>
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for an element.</param>
+        public void EncodeSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
         {
-            WriteSize(v.Count()); // potentially slow Linq Count()
+            EncodeSize(v.Count()); // potentially slow Linq Count()
             foreach (T item in v)
             {
-                encoder(this, item);
+                encodeAction(this, item);
             }
         }
 
-        /// <summary>Writes a sequence to the buffer. The elements of the sequence are reference types.</summary>
-        /// <param name="v">The sequence to write.</param>
+        /// <summary>Encodes a sequence. The elements of the sequence are reference types.</summary>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encoder">The encoder for a non-null element.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, bool withBitSequence, Encoder<T> encoder)
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
             where T : class
         {
             if (withBitSequence)
             {
                 int count = v.Count(); // potentially slow Linq Count()
-                WriteSize(count);
-                BitSequence bitSequence = WriteBitSequence(count);
+                EncodeSize(count);
+                BitSequence bitSequence = EncodeBitSequence(count);
                 int index = 0;
                 foreach (T? item in v)
                 {
                     if (item is T value)
                     {
-                        encoder(this, value);
+                        encodeAction(this, value);
                     }
                     else
                     {
@@ -404,24 +401,24 @@ namespace IceRpc
             }
             else
             {
-                WriteSequence((IEnumerable<T>)v, encoder);
+                EncodeSequence((IEnumerable<T>)v, encodeAction);
             }
         }
 
-        /// <summary>Writes a sequence of nullable values to the buffer.</summary>
-        /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The encoder for the non-null values.</param>
-        public void WriteSequence<T>(IEnumerable<T?> v, Encoder<T> encoder) where T : struct
+        /// <summary>Encodes a sequence of nullable values.</summary>
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for the non-null values.</param>
+        public void EncodeSequence<T>(IEnumerable<T?> v, EncodeAction<T> encodeAction) where T : struct
         {
             int count = v.Count(); // potentially slow Linq Count()
-            WriteSize(count);
-            BitSequence bitSequence = WriteBitSequence(count);
+            EncodeSize(count);
+            BitSequence bitSequence = EncodeBitSequence(count);
             int index = 0;
             foreach (T? item in v)
             {
                 if (item is T value)
                 {
-                    encoder(this, value);
+                    encodeAction(this, value);
                 }
                 else
                 {
@@ -431,330 +428,326 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a mapped Slice struct to the buffer.</summary>
-        /// <param name="v">The struct instance to write.</param>
-        public void WriteStruct<T>(T v) where T : struct, IEncodable => v.IceWrite(this);
+        // Encode methods for tagged basic types
 
-        // Write methods for tagged basic types
-
-        /// <summary>Writes a tagged boolean to the buffer.</summary>
+        /// <summary>Encodes a tagged boolean.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The boolean to write to the buffer.</param>
-        public void WriteTaggedBool(int tag, bool? v)
+        /// <param name="v">The boolean to encode.</param>
+        public void EncodeTaggedBool(int tag, bool? v)
         {
             if (v is bool value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
-                WriteBool(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
+                EncodeBool(value);
             }
         }
 
-        /// <summary>Writes a tagged byte to the buffer.</summary>
+        /// <summary>Encodes a tagged byte.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The byte to write to the buffer.</param>
-        public void WriteTaggedByte(int tag, byte? v)
+        /// <param name="v">The byte to encode.</param>
+        public void EncodeTaggedByte(int tag, byte? v)
         {
             if (v is byte value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
-                WriteByte(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
+                EncodeByte(value);
             }
         }
 
-        /// <summary>Writes a tagged double to the buffer.</summary>
+        /// <summary>Encodes a tagged double.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The double to write to the buffer.</param>
-        public void WriteTaggedDouble(int tag, double? v)
+        /// <param name="v">The double to encode.</param>
+        public void EncodeTaggedDouble(int tag, double? v)
         {
             if (v is double value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                WriteDouble(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeDouble(value);
             }
         }
 
-        /// <summary>Writes a tagged float to the buffer.</summary>
+        /// <summary>Encodes a tagged float.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The float to write to the buffer.</param>
-        public void WriteTaggedFloat(int tag, float? v)
+        /// <param name="v">The float to encode.</param>
+        public void EncodeTaggedFloat(int tag, float? v)
         {
             if (v is float value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                WriteFloat(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeFloat(value);
             }
         }
 
-        /// <summary>Writes a tagged int to the buffer.</summary>
+        /// <summary>Encodes a tagged int.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the buffer.</param>
-        public void WriteTaggedInt(int tag, int? v)
+        /// <param name="v">The int to encode.</param>
+        public void EncodeTaggedInt(int tag, int? v)
         {
             if (v is int value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                WriteInt(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeInt(value);
             }
         }
 
-        /// <summary>Writes a tagged long to the buffer.</summary>
+        /// <summary>Encodes a tagged long.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the buffer.</param>
-        public void WriteTaggedLong(int tag, long? v)
+        /// <param name="v">The long to encode.</param>
+        public void EncodeTaggedLong(int tag, long? v)
         {
             if (v is long value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                WriteLong(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeLong(value);
             }
         }
 
-        /// <summary>Writes a tagged size to the buffer.</summary>
+        /// <summary>Encodes a tagged size.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The size.</param>
-        public void WriteTaggedSize(int tag, int? v)
+        public void EncodeTaggedSize(int tag, int? v)
         {
             if (v is int value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size);
-                WriteSize(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size);
+                EncodeSize(value);
             }
         }
 
-        /// <summary>Writes a tagged short to the buffer.</summary>
+        /// <summary>Encodes a tagged short.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The short to write to the buffer.</param>
-        public void WriteTaggedShort(int tag, short? v)
+        /// <param name="v">The short to encode.</param>
+        public void EncodeTaggedShort(int tag, short? v)
         {
             if (v is short value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
-                WriteShort(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
+                EncodeShort(value);
             }
         }
 
-        /// <summary>Writes a tagged string to the buffer.</summary>
+        /// <summary>Encodes a tagged string.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The string to write to the buffer.</param>
-        public void WriteTaggedString(int tag, string? v)
+        /// <param name="v">The string to encode.</param>
+        public void EncodeTaggedString(int tag, string? v)
         {
             if (v is string value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                WriteString(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeString(value);
             }
         }
 
-        /// <summary>Writes a tagged uint to the buffer.</summary>
+        /// <summary>Encodes a tagged uint.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the buffer.</param>
-        public void WriteTaggedUInt(int tag, uint? v)
+        /// <param name="v">The uint to encode.</param>
+        public void EncodeTaggedUInt(int tag, uint? v)
         {
             if (v is uint value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                WriteUInt(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeUInt(value);
             }
         }
 
-        /// <summary>Writes a tagged ulong to the buffer.</summary>
+        /// <summary>Encodes a tagged ulong.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the buffer.</param>
-        public void WriteTaggedULong(int tag, ulong? v)
+        /// <param name="v">The ulong to encode.</param>
+        public void EncodeTaggedULong(int tag, ulong? v)
         {
             if (v is ulong value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                WriteULong(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeULong(value);
             }
         }
 
-        /// <summary>Writes a tagged ushort to the buffer.</summary>
+        /// <summary>Encodes a tagged ushort.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ushort to write to the buffer.</param>
-        public void WriteTaggedUShort(int tag, ushort? v)
+        /// <param name="v">The ushort to encode.</param>
+        public void EncodeTaggedUShort(int tag, ushort? v)
         {
             if (v is ushort value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
-                WriteUShort(value);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
+                EncodeUShort(value);
             }
         }
 
-        /// <summary>Writes a tagged int to the buffer, using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes a tagged int using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to write to the buffer.</param>
-        public void WriteTaggedVarInt(int tag, int? v) => WriteTaggedVarLong(tag, v);
+        /// <param name="v">The int to encode.</param>
+        public void EncodeTaggedVarInt(int tag, int? v) => EncodeTaggedVarLong(tag, v);
 
-        /// <summary>Writes a tagged long to the buffer, using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes a tagged long using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to write to the buffer.</param>
-        public void WriteTaggedVarLong(int tag, long? v)
+        /// <param name="v">The long to encode.</param>
+        public void EncodeTaggedVarLong(int tag, long? v)
         {
             if (v is long value)
             {
                 var format = (EncodingDefinitions.TagFormat)GetVarLongEncodedSizeExponent(value);
-                WriteTaggedParamHeader(tag, format);
-                WriteVarLong(value);
+                EncodeTaggedParamHeader(tag, format);
+                EncodeVarLong(value);
             }
         }
 
-        /// <summary>Writes a tagged uint to the buffer, using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes a tagged uint using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to write to the buffer.</param>
-        public void WriteTaggedVarUInt(int tag, uint? v) => WriteTaggedVarULong(tag, v);
+        /// <param name="v">The uint to encode.</param>
+        public void EncodeTaggedVarUInt(int tag, uint? v) => EncodeTaggedVarULong(tag, v);
 
-        /// <summary>Writes a tagged ulong to the buffer, using IceRPC's variable-size integer encoding.</summary>
+        /// <summary>Encodes a tagged ulong using IceRPC's variable-size integer encoding.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to write to the buffer.</param>
-        public void WriteTaggedVarULong(int tag, ulong? v)
+        /// <param name="v">The ulong to encode.</param>
+        public void EncodeTaggedVarULong(int tag, ulong? v)
         {
             if (v is ulong value)
             {
                 var format = (EncodingDefinitions.TagFormat)GetVarULongEncodedSizeExponent(value);
-                WriteTaggedParamHeader(tag, format);
-                WriteVarULong(value);
+                EncodeTaggedParamHeader(tag, format);
+                EncodeVarULong(value);
             }
         }
 
-        // Write methods for tagged constructed types except class
+        // Encode methods for tagged constructed types except class
 
-        /// <summary>Writes a tagged dictionary with fixed-size entries to the buffer.</summary>
+        /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="entrySize">The size of each entry (key + value), in bytes.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the values.</param>
-        public void WriteTaggedDictionary<TKey, TValue>(
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the values.</param>
+        public void EncodeTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 int count = dict.Count();
-                WriteSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
-                WriteDictionary(dict, keyEncoder, valueEncoder);
+                EncodeSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
+                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
             }
         }
 
-        /// <summary>Writes a tagged dictionary with variable-size elements to the buffer.</summary>
+        /// <summary>Encodes a tagged dictionary with variable-size elements.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the values.</param>
-        public void WriteTaggedDictionary<TKey, TValue>(
+        /// <param name="v">The dictionary to encode.</param>
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the values.</param>
+        public void EncodeTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteDictionary(dict, keyEncoder, valueEncoder);
+                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged dictionary to the buffer.</summary>
+        /// <summary>Encodes a tagged dictionary.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
+        /// <param name="v">The dictionary to encode.</param>
         /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
         /// false.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the values.</param>
-        public void WriteTaggedDictionary<TKey, TValue>(
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the values.</param>
+        public void EncodeTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
             bool withBitSequence,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : class
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteDictionary(dict, withBitSequence, keyEncoder, valueEncoder);
+                EncodeDictionary(dict, withBitSequence, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged dictionary to the buffer. The dictionary's value type is a nullable value type.
+        /// <summary>Encodes a tagged dictionary. The dictionary's value type is a nullable value type.
         /// </summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to write.</param>
-        /// <param name="keyEncoder">The encoder for the keys.</param>
-        /// <param name="valueEncoder">The encoder for the non-null values.</param>
-        public void WriteTaggedDictionary<TKey, TValue>(
+        /// <param name="v">The dictionary to encode.</param>
+        /// <param name="keyEncodeAction">The encode action for the keys.</param>
+        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
+        public void EncodeTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            Encoder<TKey> keyEncoder,
-            Encoder<TValue> valueEncoder)
+            EncodeAction<TKey> keyEncodeAction,
+            EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
             where TValue : struct
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteDictionary(dict, keyEncoder, valueEncoder);
+                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged proxy to the buffer.</summary>
+        /// <summary>Encodes a tagged proxy.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The proxy to write.</param>
-        public void WriteTaggedProxy(int tag, IServicePrx? v)
+        /// <param name="proxy">The proxy to encode.</param>
+        public void EncodeTaggedProxy(int tag, Proxy? proxy)
         {
-            if (v != null)
+            if (proxy != null)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteProxy(v);
+                EncodeProxy(proxy);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size numeric values to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
-        public void WriteTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
+        /// <param name="v">The sequence to encode.</param>
+        public void EncodeTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
         {
             // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
             // ReadOnlySpan<T>. Furthermore, the span of a default ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which
             // is distinct from the span of an empty sequence. This is why the "v != null" below works correctly.
             if (v != null)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 int elementSize = Unsafe.SizeOf<T>();
                 if (elementSize > 1)
                 {
                     // This size is redundant and optimized out by the encoding when elementSize is 1.
-                    WriteSize(v.IsEmpty ? 1 : (v.Length * elementSize) + GetSizeLength(v.Length));
+                    EncodeSize(v.IsEmpty ? 1 : (v.Length * elementSize) + GetSizeLength(v.Length));
                 }
-                WriteSequence(v);
+                EncodeSequence(v);
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size numeric values to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
+        /// <param name="v">The sequence to encode.</param>
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
         {
             if (v is IEnumerable<T> value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
 
                 int elementSize = Unsafe.SizeOf<T>();
                 if (elementSize > 1)
@@ -763,39 +756,39 @@ namespace IceRpc
 
                     // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
                     // when elementSize is 1.
-                    WriteSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
+                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
                 }
-                WriteSequence(value);
+                EncodeSequence(value);
             }
         }
 
-        /// <summary>Writes a tagged sequence of variable-size elements to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of variable-size elements.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The encoder for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, Encoder<T> encoder)
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for an element.</param>
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
         {
             if (v is IEnumerable<T> value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, encoder);
+                EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged sequence of fixed-size values to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of fixed-size values.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="encoder">The encoder for an element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, Encoder<T> encoder)
+        /// <param name="encodeAction">The encode action for an element.</param>
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<T> encodeAction)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
             if (v is IEnumerable<T> value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
 
                 int count = value.Count(); // potentially slow Linq Count()
 
@@ -803,88 +796,90 @@ namespace IceRpc
                 {
                     // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
                     // when elementSize is 1.
-                    WriteSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
+                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
                 }
-                WriteSize(count);
+                EncodeSize(count);
                 foreach (T item in value)
                 {
-                    encoder(this, item);
+                    encodeAction(this, item);
                 }
             }
         }
 
-        /// <summary>Writes a tagged sequence of nullable elements to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of nullable elements.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
+        /// <param name="v">The sequence to encode.</param>
         /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encoder">The encoder for a non-null element.</param>
-        public void WriteTaggedSequence<T>(
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedSequence<T>(
             int tag,
             IEnumerable<T?>? v,
             bool withBitSequence,
-            Encoder<T> encoder)
+            EncodeAction<T> encodeAction)
             where T : class
         {
             if (v is IEnumerable<T?> value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, withBitSequence, encoder);
+                EncodeSequence(value, withBitSequence, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged sequence of nullable values to the buffer.</summary>
+        /// <summary>Encodes a tagged sequence of nullable values.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to write.</param>
-        /// <param name="encoder">The encoder for a non-null element.</param>
-        public void WriteTaggedSequence<T>(int tag, IEnumerable<T?>? v, Encoder<T> encoder)
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
             where T : struct
         {
             if (v is IEnumerable<T?> value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                WriteSequence(value, encoder);
+                EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
 
-        /// <summary>Writes a tagged fixed-size struct to the buffer.</summary>
+        /// <summary>Encodes a tagged fixed-size struct.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to write.</param>
+        /// <param name="v">The struct to encode.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v, int fixedSize) where T : struct, IEncodable
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                WriteSize(fixedSize);
-                value.IceWrite(this);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeSize(fixedSize);
+                encodeAction(this, value);
             }
         }
 
-        /// <summary>Writes a tagged variable-size struct to the buffer.</summary>
+        /// <summary>Encodes a tagged variable-size struct.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to write.</param>
-        public void WriteTaggedStruct<T>(int tag, T? v) where T : struct, IEncodable
+        /// <param name="v">The struct to encode.</param>
+        /// <param name="encodeAction">The encode action for a non-null element.</param>
+        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<T> encodeAction) where T : struct
         {
             if (v is T value)
             {
-                WriteTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 Position pos = StartFixedLengthSize();
-                value.IceWrite(this);
+                encodeAction(this, value);
                 EndFixedLengthSize(pos);
             }
         }
 
         // Other methods
 
-        /// <summary>Writes a sequence of bits to the buffer, and returns this sequence backed by the buffer.</summary>
+        /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
         /// </returns>
-        public BitSequence WriteBitSequence(int bitSize)
+        public BitSequence EncodeBitSequence(int bitSize)
         {
             Debug.Assert(bitSize > 0);
             int size = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0);
@@ -914,7 +909,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Computes the minimum number of bytes needed to write a variable-length size with the 2.0 encoding.
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
         /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
@@ -925,8 +920,8 @@ namespace IceRpc
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
-        // Constructs a buffer writer
-        internal BufferWriter(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
+        // Constructs a Ice encoder
+        internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             Encoding = encoding;
             Encoding.CheckSupported();
@@ -942,26 +937,26 @@ namespace IceRpc
             Capacity = _currentBuffer.Length;
         }
 
-        /// <summary>Computes the amount of data written from the start position to the current position and writes that
+        /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>
         /// <param name="start">The start position.</param>
-        /// <param name="sizeLength">The number of bytes used to marshal the size 1, 2 or 4.</param>
+        /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
         internal void EndFixedLengthSize(Position start, int sizeLength = DefaultSizeLength)
         {
             Debug.Assert(start.Offset >= 0);
             if (OldEncoding)
             {
-                RewriteFixedLengthSize11(Distance(start) - 4, start);
+                EncodeFixedLengthSize11(Distance(start) - 4, start);
             }
             else
             {
-                RewriteFixedLengthSize20(Distance(start) - sizeLength, start, sizeLength);
+                EncodeFixedLengthSize20(Distance(start) - sizeLength, start, sizeLength);
             }
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer writer after calling Finish, however rewriting previous data (with for example
+        /// this Ice encoder after calling Finish, however rewriting previous data (with for example
         /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
@@ -970,23 +965,23 @@ namespace IceRpc
             return _bufferVector;
         }
 
-        /// <summary>Writes a size on a fixed number of bytes at the given position.</summary>
-        /// <param name="size">The size to write.</param>
-        /// <param name="pos">The position to write to.</param>
+        /// <summary>Encodes a size on a fixed number of bytes at the given position.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="pos">The position to encode to.</param>
         /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
-        internal void RewriteFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
+        internal void EncodeFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
         {
             Debug.Assert(pos.Buffer < _bufferVector.Length);
             Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
 
             Span<byte> data = stackalloc byte[sizeLength];
-            data.WriteFixedLengthSize20(size);
+            data.EncodeFixedLengthSize20(size);
             RewriteByteSpan(data, pos);
         }
 
         /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
         /// position must be used to rewrite the size later.</summary>
-        /// <param name="sizeLength">The number of bytes reserved to write the fixed-length size.</param>
+        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
         /// <returns>The position before writing the size.</returns>
         internal Position StartFixedLengthSize(int sizeLength = DefaultSizeLength)
         {
@@ -995,7 +990,7 @@ namespace IceRpc
             return pos;
         }
 
-        /// <summary>Writes a span of bytes. The writer capacity is expanded if required, the size and tail position are
+        /// <summary>Writes a span of bytes. The encoder capacity is expanded if required, the size and tail position are
         /// increased according to the span length.</summary>
         /// <param name="span">The data to write as a span of bytes.</param>
         internal void WriteByteSpan(ReadOnlySpan<byte> span)
@@ -1036,48 +1031,48 @@ namespace IceRpc
             }
         }
 
-        internal void WriteEndpoint11(Endpoint endpoint)
+        internal void EncodeEndpoint11(Endpoint endpoint)
         {
             Debug.Assert(OldEncoding);
 
-            this.Write(endpoint.Transport);
+            this.EncodeTransport(endpoint.Transport);
             Position startPos = _tail;
 
-            WriteInt(0); // placeholder for future encapsulation size
+            EncodeInt(0); // placeholder for future encapsulation size
             if (endpoint is OpaqueEndpoint opaqueEndpoint)
             {
-                opaqueEndpoint.ValueEncoding.IceWrite(this);
+                opaqueEndpoint.ValueEncoding.Encode(this);
                 WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
             }
             else
             {
-                Encoding.IceWrite(this);
+                Encoding.Encode(this);
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
-                    endpoint.WriteOptions11(this);
+                    endpoint.EncodeOptions11(this);
                 }
                 else
                 {
-                    WriteString(endpoint.Data.Host);
-                    WriteUShort(endpoint.Data.Port);
-                    WriteSequence(endpoint.Data.Options, BasicEncoders.StringEncoder);
+                    EncodeString(endpoint.Data.Host);
+                    EncodeUShort(endpoint.Data.Port);
+                    EncodeSequence(endpoint.Data.Options, (encoder, value) => encoder.EncodeString(value));
                 }
             }
-            RewriteFixedLengthSize11(Distance(startPos), startPos);
+            EncodeFixedLengthSize11(Distance(startPos), startPos);
         }
 
-        internal void WriteField(int key, ReadOnlySpan<byte> value)
+        internal void EncodeField(int key, ReadOnlySpan<byte> value)
         {
-            WriteVarInt(key);
-            WriteSize(value.Length);
+            EncodeVarInt(key);
+            EncodeSize(value.Length);
             WriteByteSpan(value);
         }
 
-        internal void WriteField<T>(int key, T value, Encoder<T> encoder)
+        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
         {
-            WriteVarInt(key);
+            EncodeVarInt(key);
             Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            encoder(this, value);
+            encodeAction(this, value);
             EndFixedLengthSize(pos, 2);
         }
 
@@ -1159,7 +1154,7 @@ namespace IceRpc
             return Distance(_bufferVector, start, _tail);
         }
 
-        /// <summary>Expands the writer's buffer to make room for more data. If the bytes remaining in the buffer are
+        /// <summary>Expands the encoder's buffer to make room for more data. If the bytes remaining in the buffer are
         /// not enough to hold the given number of bytes, allocates a new byte array. The caller should then consume the
         /// new bytes immediately; calling Expand repeatedly is not supported.</summary>
         /// <param name="n">The number of bytes to accommodate in the buffer.</param>
@@ -1175,7 +1170,7 @@ namespace IceRpc
 
                 if (_bufferVector.Length == 0)
                 {
-                    // First Expand for a new buffer writer constructed with no buffer.
+                    // First Expand for a new Ice encoder constructed with no buffer.
                     Debug.Assert(_currentBuffer.Length == 0);
                     _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
                     _currentBuffer = buffer;
@@ -1206,7 +1201,7 @@ namespace IceRpc
         /// <summary>Returns the buffer at the given index.</summary>
         private Memory<byte> GetBuffer(int index) => MemoryMarshal.AsMemory(_bufferVector.Span[index]);
 
-        /// <summary>Computes the minimum number of bytes needed to write a variable-length size with the current
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the current
         /// encoding.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
@@ -1232,10 +1227,10 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a size on 4 bytes at the given position.</summary>
-        /// <param name="size">The size to write.</param>
-        /// <param name="pos">The position to write to.</param>
-        internal void RewriteFixedLengthSize11(int size, Position pos)
+        /// <summary>Encodes a size on 4 bytes at the given position.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="pos">The position to encode to.</param>
+        internal void EncodeFixedLengthSize11(int size, Position pos)
         {
             Debug.Assert(pos.Buffer < _bufferVector.Length);
 
@@ -1261,9 +1256,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Writes a fixed-size numeric value to the buffer.</summary>
-        /// <param name="v">The numeric value to write to the buffer.</param>
-        private void WriteFixedSizeNumeric<T>(T v) where T : struct
+        /// <summary>Encodes a fixed-size numeric value.</summary>
+        /// <param name="v">The numeric value to encode.</param>
+        private void EncodeFixedSizeNumeric<T>(T v) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
             Span<byte> data = stackalloc byte[elementSize];
@@ -1271,24 +1266,24 @@ namespace IceRpc
             WriteByteSpan(data);
         }
 
-        /// <summary>Writes the header for a tagged parameter or data member.</summary>
+        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
-        private void WriteTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
+        private void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {
-            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be marshaled
+            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
 
             int v = (int)format;
             if (tag < 30)
             {
                 v |= tag << 3;
-                WriteByte((byte)v);
+                EncodeByte((byte)v);
             }
             else
             {
                 v |= 0x0F0; // tag = 30
-                WriteByte((byte)v);
-                WriteSize(tag);
+                EncodeByte((byte)v);
+                EncodeSize(tag);
             }
             if (_current.InstanceType != InstanceType.None)
             {

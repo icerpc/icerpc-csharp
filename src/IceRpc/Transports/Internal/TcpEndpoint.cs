@@ -14,7 +14,7 @@ using System.Text;
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the TCP transport.</summary>
-    internal class TcpEndpoint : IPEndpoint, IClientConnectionFactory, IListenerFactory
+    internal class TcpEndpoint : IPEndpoint
     {
         public override bool? IsSecure => _tls;
 
@@ -153,20 +153,18 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        protected internal override Endpoint GetProxyEndpoint(string hostName) => Clone(hostName);
-
         // We ignore the Timeout and HasCompressionFlag properties when checking if two TCP endpoints are equivalent.
         protected internal override bool IsEquivalent(Endpoint? other) =>
             ReferenceEquals(this, other) ||
             (other is TcpEndpoint otherTcpEndpoint &&
                 (_tls == otherTcpEndpoint._tls || _tls == null || otherTcpEndpoint._tls == null) && base.Equals(other));
 
-        protected internal override void WriteOptions11(BufferWriter writer)
+        protected internal override void EncodeOptions11(IceEncoder encoder)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
-            base.WriteOptions11(writer);
-            writer.WriteInt((int)_timeout.TotalMilliseconds);
-            writer.WriteBool(_hasCompressionFlag);
+            Debug.Assert(Protocol == Protocol.Ice1 && encoder.Encoding == Encoding.V11);
+            base.EncodeOptions11(encoder);
+            encoder.EncodeInt((int)_timeout.TotalMilliseconds);
+            encoder.EncodeBool(_hasCompressionFlag);
         }
 
         // internal because it's used by some tests
@@ -228,7 +226,6 @@ namespace IceRpc.Transports.Internal
             _tls = tls ?? endpoint._tls;
         }
 
-        private TcpEndpoint Clone(string hostName) => hostName == Host ? this : new(this, hostName, Port);
         private TcpEndpoint Clone(ushort port) => port == Port ? this : new(this, Host, port);
     }
 
@@ -240,18 +237,18 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData endpointData, Protocol protocol) =>
             TcpEndpoint.CreateEndpoint(endpointData, protocol);
 
-        public Endpoint CreateIce1Endpoint(BufferReader reader)
+        public Endpoint CreateIce1Endpoint(IceDecoder decoder)
         {
             Debug.Assert(Transport == Transport.TCP || Transport == Transport.SSL);
 
             // This is correct in C# since arguments are evaluated left-to-right. This would not be correct in C++
             // where the order of evaluation of function arguments is undefined.
             return new TcpEndpoint(new EndpointData(Transport,
-                                                    host: reader.ReadString(),
-                                                    port: checked((ushort)reader.ReadInt()),
+                                                    host: decoder.DecodeString(),
+                                                    port: checked((ushort)decoder.DecodeInt()),
                                                     ImmutableList<string>.Empty),
-                                   timeout: TimeSpan.FromMilliseconds(reader.ReadInt()),
-                                   compress: reader.ReadBool());
+                                   timeout: TimeSpan.FromMilliseconds(decoder.DecodeInt()),
+                                   compress: decoder.DecodeBool());
         }
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

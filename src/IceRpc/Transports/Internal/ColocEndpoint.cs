@@ -12,7 +12,7 @@ using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamI
 namespace IceRpc.Transports.Internal
 {
     /// <summary>The Endpoint class for the colocated transport.</summary>
-    internal class ColocEndpoint : Endpoint, IClientConnectionFactory, IListenerFactory
+    internal class ColocEndpoint : Endpoint
     {
         public override ushort DefaultPort => Protocol == Protocol.Ice1 ? (ushort)0 : DefaultUriPort;
 
@@ -24,8 +24,8 @@ namespace IceRpc.Transports.Internal
         {
             if (ColocListener.TryGetValue(this, out ColocListener? listener))
             {
-                (ColocChannelReader decoder, ColocChannelWriter encoder, long id) = listener.NewClientConnection();
-                return new ColocConnection(this, id, encoder, decoder, options, logger);
+                (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
+                return new ColocConnection(this, id, writer, reader, options, logger);
             }
             else
             {
@@ -39,7 +39,7 @@ namespace IceRpc.Transports.Internal
         public override bool Equals(Endpoint? other) =>
             other is ColocEndpoint colocEndpoint && base.Equals(colocEndpoint);
 
-        protected internal override void WriteOptions11(BufferWriter writer) =>
+        protected internal override void EncodeOptions11(IceEncoder encoder) =>
             throw new NotSupportedException("colocated endpoint can't be marshaled");
 
         internal ColocEndpoint(string host, ushort port, Protocol protocol)
@@ -59,7 +59,7 @@ namespace IceRpc.Transports.Internal
         public Endpoint CreateEndpoint(EndpointData _, Protocol protocol) =>
             throw new InvalidDataException($"received {protocol.GetName()} endpoint for coloc transport");
 
-        public Endpoint CreateIce1Endpoint(BufferReader _) =>
+        public Endpoint CreateIce1Endpoint(IceDecoder _) =>
             throw new InvalidDataException($"received ice1 endpoint for coloc transport");
 
         public Endpoint CreateIce1Endpoint(Dictionary<string, string?> options, string endpointString)

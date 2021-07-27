@@ -4,6 +4,7 @@ using IceRpc.Transports;
 using NUnit.Framework;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,7 +15,6 @@ namespace IceRpc.Tests.Internal
     [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
     [TestFixture(MultiStreamConnectionType.Ice1)]
-    [Log(LogAttributeLevel.Debug)]
     public class StreamTests : MultiStreamConnectionBaseTest
     {
         public StreamTests(MultiStreamConnectionType connectionType)
@@ -28,6 +28,147 @@ namespace IceRpc.Tests.Internal
         [TearDown]
         public void TearDown() => TearDownConnections();
 
+        [TestCase(RpcStreamError.DispatchCanceled)]
+        [TestCase(RpcStreamError.InvocationCanceled)]
+        [TestCase((RpcStreamError)10)]
+        public async Task Stream_Abort(RpcStreamError errorCode)
+        {
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
+            {
+                // Not supported with Ice1
+                return;
+            }
+
+            Task<(int, RpcStream)> serverTask = ReceiveAsync();
+
+            // Create client stream and send one byte.
+            RpcStream clientStream = ClientConnection.CreateStream(true);
+            await clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default);
+
+            (int received, RpcStream serverStream) = await serverTask;
+
+            Assert.That(received, Is.EqualTo(1));
+            var dispatchCanceled = new TaskCompletionSource();
+            serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
+
+            // Abort the stream
+            clientStream.Abort(errorCode);
+
+            // Ensure that receive on the server connection raises RpcStreamAbortedException
+            RpcStreamAbortedException? ex = Assert.CatchAsync<RpcStreamAbortedException>(
+                async () => await serverStream.ReceiveAsync(new byte[1], default));
+            Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
+            await dispatchCanceled.Task;
+
+            // Ensure we can still create a new stream after the cancellation
+            RpcStream clientStream2 = ClientConnection.CreateStream(true);
+            await clientStream2.SendAsync(CreateSendBuffer(clientStream2, 1), true, default);
+
+            async Task<(int, RpcStream)> ReceiveAsync()
+            {
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+
+                // Continue reading from the server connection and receive the byte sent over the client stream.
+                _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+                return (await serverStream.ReceiveAsync(new byte[256], default), serverStream);
+            }
+        }
+
+        [TestCase(false, 1, 256, 256)]
+        [TestCase(false, 1, 1024, 256)]
+        [TestCase(false, 1, 256, 1024)]
+        [TestCase(false, 1, 1024 * 1024, 1024)]
+        [TestCase(false, 1, 1024, 1024 * 1024)]
+        [TestCase(false, 2, 1024 * 1024, 1024)]
+        [TestCase(false, 2, 1024, 1024 * 1024)]
+        [TestCase(false, 3, 1024 * 1024, 1024)]
+        [TestCase(false, 3, 1024, 1024 * 1024)]
+        public async Task Stream_StreamSendReceiveAsync(bool flowControl, int bufferCount, int sendSize, int recvSize)
+        {
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
+            {
+                // Not supported with Ice1
+                return;
+            }
+
+            RpcStream clientStream = ClientConnection.CreateStream(true);
+            Memory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[bufferCount];
+            byte[] buffer;
+            if (bufferCount == 1)
+            {
+                var sendBuffer = new ArraySegment<byte>(new byte[clientStream.TransportHeader.Length + sendSize]);
+                clientStream.TransportHeader.CopyTo(sendBuffer);
+                new Random().NextBytes(sendBuffer[clientStream.TransportHeader.Length..]);
+                sendBuffers.Span[0] = sendBuffer;
+            }
+            else
+            {
+                sendBuffers.Span[0] = clientStream.TransportHeader.ToArray();
+                for (int i = 1; i < bufferCount; ++i)
+                {
+                    buffer = new byte[sendSize / bufferCount];
+                    new Random().NextBytes(buffer);
+                    sendBuffers.Span[i] = buffer;
+                }
+            }
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
+            _ = clientStream.SendAsync(sendBuffers, false, default).AsTask();
+
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+            int segment = 0;
+            int offset = 0;
+            buffer = new byte[recvSize];
+            ReadOnlyMemory<byte> receiveBuffer = ReadOnlyMemory<byte>.Empty;
+            while (segment < bufferCount)
+            {
+                ReadOnlyMemory<byte> sendBuffer = sendBuffers.Span[segment];
+                if (clientStream.TransportHeader.Length > 0 && segment == 0 && offset == 0)
+                {
+                    // Don't compare the transport header from the buffer since it's never returned by ReceiveAsync
+                    if (sendBuffer.Length == clientStream.TransportHeader.Length)
+                    {
+                        sendBuffer = sendBuffers.Span[++segment];
+                    }
+                    else
+                    {
+                        offset = clientStream.TransportHeader.Length;
+                    }
+                }
+
+                if (receiveBuffer.Length == 0)
+                {
+                    int count = await serverStream.ReceiveAsync(buffer, default);
+                    receiveBuffer = buffer.AsMemory()[0..count];
+                }
+
+                if (receiveBuffer.Length < (sendBuffer.Length - offset))
+                {
+                    // Received buffer is smaller than the data from the send buffer segment
+                    Assert.That(receiveBuffer.ToArray(),
+                                Is.EqualTo(sendBuffer[offset..(offset + receiveBuffer.Length)].ToArray()));
+                    offset += receiveBuffer.Length;
+                    if (offset == sendBuffer.Length)
+                    {
+                        offset = 0;
+                        ++segment;
+                    }
+                    receiveBuffer = Memory<byte>.Empty;
+                }
+                else
+                {
+                    // Received buffer is larger or equal than from the send buffer segment
+                    int length = sendBuffer.Length - offset;
+                    Assert.That(receiveBuffer[0..length].ToArray(), Is.EqualTo(sendBuffer[offset..].ToArray()));
+                    ++segment;
+                    offset = 0;
+                    receiveBuffer = receiveBuffer[length..];
+                }
+            }
+        }
+
         [TestCase(64)]
         [TestCase(1024)]
         [TestCase(32 * 1024)]
@@ -38,7 +179,7 @@ namespace IceRpc.Tests.Internal
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromSingleArg(
                 Proxy,
                 new byte[size],
-                (BufferWriter writer, ReadOnlyMemory<byte> value) => writer.WriteSequence(value.Span));
+                (IceEncoder encoder, ReadOnlyMemory<byte> value) => encoder.EncodeSequence(value.Span));
 
             var request = new OutgoingRequest(Proxy, "op", requestPayload, null, DateTime.MaxValue);
             ValueTask receiveTask = PerformReceiveAsync();
@@ -65,46 +206,6 @@ namespace IceRpc.Tests.Internal
 
             Assert.CatchAsync<OperationCanceledException>(
                 async () => await stream.SendRequestFrameAsync(DummyRequest, source.Token));
-        }
-
-        [TestCase(RpcStreamError.DispatchCanceled)]
-        [TestCase(RpcStreamError.InvocationCanceled)]
-        [TestCase((RpcStreamError)10)]
-        public async Task Stream_Abort(RpcStreamError errorCode)
-        {
-            // SendAsync/ReceiveAsync is only supported with Slic
-            if (ConnectionType != MultiStreamConnectionType.Slic)
-            {
-                return;
-            }
-
-            RpcStream clientStream = ClientConnection.CreateStream(true);
-            // Send one byte.
-            await clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default);
-
-            // Accept the new stream on the server connection
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-
-            // Continue reading from on the server connection and receive the byte sent over the client stream.
-            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
-
-            int received = await serverStream.ReceiveAsync(new byte[256], default);
-            Assert.That(received, Is.EqualTo(1));
-            var dispatchCanceled = new TaskCompletionSource();
-            serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
-
-            // Abort the stream
-            clientStream.Abort(errorCode);
-
-            // Ensure that receive on the server connection raises RpcStreamAbortedException
-            RpcStreamAbortedException? ex = Assert.CatchAsync<RpcStreamAbortedException>(
-                async () => await serverStream.ReceiveAsync(new byte[1], default));
-            Assert.That(ex!.ErrorCode, Is.EqualTo(errorCode));
-            await dispatchCanceled.Task;
-
-            // Ensure we can still create a new stream after the cancellation
-            RpcStream clientStream2 = ClientConnection.CreateStream(true);
-            await clientStream2.SendAsync(CreateSendBuffer(clientStream2, 1), true, default);
         }
 
         [Test]
@@ -172,32 +273,85 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public async Task Stream_StreamReaderWriterAsync(bool cancelClientSide)
+        [TestCase(256, 256)]
+        [TestCase(1024, 256)]
+        [TestCase(256, 1024)]
+        [TestCase(64 * 1024, 384)]
+        [TestCase(384, 64 * 1024)]
+        [TestCase(1024 * 1024, 1024)]
+        [TestCase(1024, 1024 * 1024)]
+        public async Task Stream_StreamReaderWriterAsync(int sendSize, int recvSize)
         {
-            if (ConnectionType != MultiStreamConnectionType.Slic)
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
             {
-                // TODO: add support for coloc once coloc streaming is simplified
+                // Not supported with Ice1
                 return;
             }
+
+            Task<RpcStream> serverAcceptStream = AcceptServerStreamAsync();
 
             RpcStream stream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
             _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
 
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
-            await serverStream.ReceiveAsync(new byte[1], default);
+            RpcStream serverStream = await serverAcceptStream;
+
+            byte[] sendBuffer = new byte[sendSize];
+            new Random().NextBytes(sendBuffer);
+
+            new RpcStreamWriter(new MemoryStream(sendBuffer)).Send(stream, null);
+
+            byte[] receiveBuffer = new byte[recvSize];
+            Stream receiveStream = new RpcStreamReader(serverStream, null).ToByteStream();
+
+            int offset = 0;
+            while (offset < sendSize)
+            {
+                int received = await receiveStream.ReadAsync(receiveBuffer);
+                Assert.That(receiveBuffer[0..received], Is.EqualTo(sendBuffer[offset..(offset + received)]));
+                offset += received;
+            }
+
+            async Task<RpcStream> AcceptServerStreamAsync()
+            {
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+
+                // Continue reading from the server connection and receive the byte sent over the client stream.
+                _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+                int received = await serverStream.ReceiveAsync(new byte[256], default);
+                Assert.That(received, Is.EqualTo(1));
+                return serverStream;
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Stream_StreamReaderWriterCancelationAsync(bool cancelClientSide)
+        {
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
+            {
+                // Not supported with Ice1
+                return;
+            }
+
+            Task<RpcStream> serverAcceptStream = AcceptServerStreamAsync();
+
+            RpcStream stream = ClientConnection.CreateStream(true);
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
+            _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
+
+            RpcStream serverStream = await serverAcceptStream;
 
             var sendStream = new TestMemoryStream(new byte[100]);
-            new RpcStreamWriter(sendStream).Send(stream);
+
+            new RpcStreamWriter(sendStream).Send(stream, null);
 
             byte[] readBuffer = new byte[100];
-            Stream receiveStream = new RpcStreamReader(serverStream).ToByteStream();
+            Stream receiveStream = new RpcStreamReader(serverStream, null).ToByteStream();
 
             ValueTask<int> readTask = receiveStream.ReadAsync(readBuffer);
-            await Task.Delay(100);
+
             Assert.That(readTask.IsCompleted, Is.False);
             sendStream.Semaphore.Release();
             Assert.That(await readTask, Is.EqualTo(100));
@@ -235,6 +389,73 @@ namespace IceRpc.Tests.Internal
             // the server.
             await serverStream.SendAsync(CreateSendBuffer(serverStream, 1), false, default);
             await stream.ReceiveAsync(new byte[1], default);
+
+            async Task<RpcStream> AcceptServerStreamAsync()
+            {
+                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+
+                // Continue reading from the server connection and receive the byte sent over the client stream.
+                _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+
+                int received = await serverStream.ReceiveAsync(new byte[256], default);
+                Assert.That(received, Is.EqualTo(1));
+                return serverStream;
+            }
+        }
+
+        [Test]
+        public async Task Stream_StreamReaderWriterCompressorAsync()
+        {
+            if (ConnectionType == MultiStreamConnectionType.Ice1)
+            {
+                // Not supported with Ice1
+                return;
+            }
+
+            RpcStream clientStream = ClientConnection.CreateStream(true);
+            _ = ClientConnection.AcceptStreamAsync(default).AsTask();
+            _ = clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default).AsTask();
+
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
+            _ = ServerConnection.AcceptStreamAsync(default).AsTask();
+            await serverStream.ReceiveAsync(new byte[1], default);
+
+            byte[] buffer = new byte[10000];
+            var sendStream = new MemoryStream(buffer);
+
+            bool compressorCalled = false;
+            bool decompressorCalled = false;
+
+            new RpcStreamWriter(sendStream).Send(
+                clientStream,
+                outputStream =>
+                {
+                    compressorCalled = true;
+                    return (CompressionFormat.Deflate,
+                            new DeflateStream(outputStream, System.IO.Compression.CompressionLevel.SmallestSize));
+                });
+
+            Stream receiveStream = new RpcStreamReader(
+                serverStream,
+                (compressionFormat, inputStream) =>
+                {
+                    decompressorCalled = true;
+                    return new DeflateStream(inputStream, CompressionMode.Decompress);
+                }
+                ).ToByteStream();
+
+            byte[] readBuffer = new byte[10000];
+            int offset = 0;
+            int received;
+            while ((received = await receiveStream.ReadAsync(readBuffer)) != 0)
+            {
+                offset += received;
+            }
+
+            Assert.That(compressorCalled, Is.True);
+            Assert.That(decompressorCalled, Is.True);
+            Assert.That(offset, Is.EqualTo(buffer.Length));
+            Assert.That(readBuffer, Is.EqualTo(buffer));
         }
 
         private static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendBuffer(RpcStream stream, int length)
@@ -250,6 +471,8 @@ namespace IceRpc.Tests.Internal
             public TaskCompletionSource Completed = new();
             public SemaphoreSlim Semaphore { get; } = new SemaphoreSlim(0);
 
+            private int _received = 100;
+
             public TestMemoryStream(byte[] buffer)
                 : base(buffer)
             {
@@ -257,13 +480,19 @@ namespace IceRpc.Tests.Internal
 
             public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
             {
-                await Semaphore.WaitAsync(cancel);
-                if (Exception != null)
+                if (_received == 100)
                 {
-                    throw Exception;
+                    await Semaphore.WaitAsync(cancel);
+                    if (Exception != null)
+                    {
+                        throw Exception;
+                    }
+                    Seek(0, SeekOrigin.Begin);
+                    _received = 0;
                 }
-                Seek(0, SeekOrigin.Begin);
-                return await base.ReadAsync(buffer, cancel);
+                int received = await base.ReadAsync(buffer, cancel);
+                _received += received;
+                return received;
             }
 
             protected override void Dispose(bool disposing)

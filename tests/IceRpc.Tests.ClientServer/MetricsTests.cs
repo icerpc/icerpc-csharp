@@ -71,8 +71,8 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -119,8 +119,8 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             var tasks = new List<Task>();
             for (int i = 0; i < 10; ++i)
@@ -167,8 +167,8 @@ namespace IceRpc.Tests.ClientServer
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var greeter = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var greeter = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             for (int i = 0; i < 10; ++i)
             {
@@ -179,18 +179,18 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await invocationEventListener.WaitForCounterEventsAsync());
         }
 
-        private class Greeter1 : IGreeter
+        private class Greeter1 : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }
 
-        private class Greeter2 : IGreeter
+        private class Greeter2 : Service, IGreeter
         {
             public async ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 await Task.Delay(TimeSpan.FromSeconds(10), cancel);
         }
 
-        private class Greeter3 : IGreeter
+        private class Greeter3 : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new DispatchException("failed");

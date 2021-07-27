@@ -18,7 +18,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IDictionaryOperationsPrx _prx;
+        private readonly DictionaryOperationsPrx _prx;
 
         public DictionaryTests(Protocol protocol)
         {
@@ -28,9 +28,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IDictionaryOperationsPrx.FromConnection(_connection);
-            Assert.AreEqual(protocol, _prx.Protocol);
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _prx = DictionaryOperationsPrx.FromConnection(_connection);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]
@@ -199,17 +199,140 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
+        public async Task Dictionary_OptionalBuiltinTypesAsync()
+        {
+            int size = 100;
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalByteDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(
+                    key => key,
+                    value => value % 2== 0? (byte?)value : null),
+                Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (byte?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalBoolDictAsync(p1, p2),
+                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(
+                    key => key,
+                    value => value ? (bool?)true : null),
+                Enumerable.Range(0, 2).Select(i => i % 2 == 0).ToDictionary(
+                    key => key,
+                    value => value ? (bool?)true : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalShortDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (short?)value : null),
+                Enumerable.Range(0, size).Select(i => (short)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (short?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalUShortDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ushort?)value : null),
+                Enumerable.Range(0, size).Select(i => (ushort)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ushort?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (int?)value : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (int?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalVarIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (int?)value : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (int?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalUIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (uint?)value : null),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (uint?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalVarUIntDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (uint?)value : null),
+                Enumerable.Range(0, size).Select(i => (uint)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (uint?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalLongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (long?)value : null),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (long?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalVarLongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (long?)value : null),
+                Enumerable.Range(0, size).Select(i => (long)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (long?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalULongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ulong?)value : null),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ulong?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalVarULongDictAsync(p1, p2),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ulong?)value : null),
+                Enumerable.Range(0, size).Select(i => (ulong)i).ToDictionary(
+                    key => key,
+                    value => value % 2 == 0 ? (ulong?)value : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalStringDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => $"hello-{key}",
+                    value => value % 2 == 0 ? (string?)$"hell-{value}" : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    key => $"hello-{key}",
+                    value => value % 2 == 0 ? (string?)$"hell-{value}" : null));
+        }
+
+        [Test]
         public async Task Dictionary_ConstructedTypesAsync()
         {
             int size = 100;
             Array myEnumValues = Enum.GetValues(typeof(MyEnum));
-            await TestDictAsync((p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
-                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
-                                i => GetEnum<MyEnum>(myEnumValues, i),
-                                i => GetEnum<MyEnum>(myEnumValues, i)),
-                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
-                                i => GetEnum<MyEnum>(myEnumValues, i),
-                                i => GetEnum<MyEnum>(myEnumValues, i)));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => GetEnum<MyEnum>(myEnumValues, i)),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => GetEnum<MyEnum>(myEnumValues, i)));
 
             Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
             await TestDictAsync(
@@ -236,14 +359,20 @@ namespace IceRpc.Tests.CodeGeneration
                 Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)),
                 Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetAnotherStruct(i)));
 
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOperationsDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetOperationsPrx(i)),
+                Enumerable.Range(0, size).ToDictionary(i => $"key-{i}", i => GetOperationsPrx(i)));
+
             // repeat with sorted dictionaries
-            await TestDictAsync((p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
-                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
-                                i => GetEnum<MyEnum>(myEnumValues, i),
-                                i => GetEnum<MyEnum>(myEnumValues, i)),
-                            Enumerable.Range(0, myEnumValues.Length).ToDictionary(
-                                i => GetEnum<MyEnum>(myEnumValues, i),
-                                i => GetEnum<MyEnum>(myEnumValues, i)));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpMyEnumDictAsync(p1, p2),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => GetEnum<MyEnum>(myEnumValues, i)),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => GetEnum<MyEnum>(myEnumValues, i)));
 
             await TestSortedDictAsync(
                 (p1, p2) => _prx.OpMyFixedLengthEnumSortedDictAsync(p1, p2),
@@ -265,7 +394,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
 
-            IOperationsPrx GetOperationsPrx(int i) => IOperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
 
             AnotherStruct GetAnotherStruct(int i)
             {
@@ -276,7 +405,80 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        public class DictionaryOperations : IDictionaryOperations
+        [Test]
+        public async Task Dictionary_OptionalConstructedTypesAsync()
+        {
+            int size = 100;
+            Array myEnumValues = Enum.GetValues(typeof(MyEnum));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalMyEnumDictAsync(p1, p2),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => i % 2 == 0 ? (MyEnum?)GetEnum<MyEnum>(myEnumValues, i) : null),
+                Enumerable.Range(0, myEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyEnum>(myEnumValues, i),
+                    i => i % 2 == 0 ? (MyEnum?)GetEnum<MyEnum>(myEnumValues, i) : null));
+
+            Array myFixedLengthEnumValues = Enum.GetValues(typeof(MyFixedLengthEnum));
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalMyFixedLengthEnumDictAsync(p1, p2),
+                Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                    i => i % 2 == 0 ? (MyFixedLengthEnum?)GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i) : null),
+                Enumerable.Range(0, myFixedLengthEnumValues.Length).ToDictionary(
+                    i => GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i),
+                    i => i % 2 == 0 ? (MyFixedLengthEnum?)GetEnum<MyFixedLengthEnum>(myFixedLengthEnumValues, i) : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalMyUncheckedEnumDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => (MyUncheckedEnum)i,
+                    i => i % 2 == 0 ? (MyUncheckedEnum?)i : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => (MyUncheckedEnum)i,
+                    i => i % 2 == 0 ? (MyUncheckedEnum?)i : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalMyStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => new MyStruct(i, i + 1),
+                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => new MyStruct(i, i + 1),
+                    i => i % 2 == 0 ? (MyStruct?)new MyStruct(i, i + 1) : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalAnotherStructDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => $"key-{i}",
+                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(i) : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => $"key-{i}",
+                    i => i % 2 == 0 ? (AnotherStruct?)GetAnotherStruct(i) : null));
+
+            await TestDictAsync(
+                (p1, p2) => _prx.OpOptionalOperationsDictAsync(p1, p2),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => $"key-{i}",
+                    i => i % 2 == 0 ? (OperationsPrx?)GetOperationsPrx(i) : null),
+                Enumerable.Range(0, size).ToDictionary(
+                    i => $"key-{i}",
+                    i => i % 2 == 0 ? (OperationsPrx?)GetOperationsPrx(i) : null));
+
+            static T GetEnum<T>(Array values, int i) => (T)values.GetValue(i % values.Length)!;
+
+            OperationsPrx GetOperationsPrx(int i) => OperationsPrx.Parse($"ice+tcp://host/foo-{i}");
+
+            AnotherStruct GetAnotherStruct(int i)
+            {
+                return new AnotherStruct($"hello-{i}",
+                                         GetOperationsPrx(i),
+                                         (MyEnum)myEnumValues.GetValue(i % myEnumValues.Length)!,
+                                         new MyStruct(i, i + 1));
+            }
+        }
+
+        public class DictionaryOperations : Service, IDictionaryOperations
         {
             // Builtin types dictionaries
             public ValueTask<(IEnumerable<KeyValuePair<byte, byte>> R1, IEnumerable<KeyValuePair<byte, byte>> R2)> OpByteDictAsync(
@@ -357,6 +559,86 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
+            // Optional builtin types dictionaries
+            public ValueTask<(IEnumerable<KeyValuePair<byte, byte?>> R1, IEnumerable<KeyValuePair<byte, byte?>> R2)> OpOptionalByteDictAsync(
+                Dictionary<byte, byte?> p1,
+                Dictionary<byte, byte?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<bool, bool?>> R1, IEnumerable<KeyValuePair<bool, bool?>> R2)> OpOptionalBoolDictAsync(
+                Dictionary<bool, bool?> p1,
+                Dictionary<bool, bool?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<short, short?>> R1, IEnumerable<KeyValuePair<short, short?>> R2)> OpOptionalShortDictAsync(
+                Dictionary<short, short?> p1,
+                Dictionary<short, short?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<ushort, ushort?>> R1, IEnumerable<KeyValuePair<ushort, ushort?>> R2)> OpOptionalUShortDictAsync(
+                Dictionary<ushort, ushort?> p1,
+                Dictionary<ushort, ushort?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalIntDictAsync(
+                Dictionary<int, int?> p1,
+                Dictionary<int, int?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalVarIntDictAsync(
+                Dictionary<int, int?> p1,
+                Dictionary<int, int?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalUIntDictAsync(
+                Dictionary<uint, uint?> p1,
+                Dictionary<uint, uint?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<uint, uint?>> R1, IEnumerable<KeyValuePair<uint, uint?>> R2)> OpOptionalVarUIntDictAsync(
+                Dictionary<uint, uint?> p1,
+                Dictionary<uint, uint?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalLongDictAsync(
+                Dictionary<long, long?> p1,
+                Dictionary<long, long?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<long, long?>> R1, IEnumerable<KeyValuePair<long, long?>> R2)> OpOptionalVarLongDictAsync(
+                Dictionary<long, long?> p1,
+                Dictionary<long, long?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalULongDictAsync(
+                Dictionary<ulong, ulong?> p1,
+                Dictionary<ulong, ulong?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<ulong, ulong?>> R1, IEnumerable<KeyValuePair<ulong, ulong?>> R2)> OpOptionalVarULongDictAsync(
+                Dictionary<ulong, ulong?> p1,
+                Dictionary<ulong, ulong?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<string, string?>> R1, IEnumerable<KeyValuePair<string, string?>> R2)> OpOptionalStringDictAsync(
+                Dictionary<string, string?> p1,
+                Dictionary<string, string?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            // Dictionaries with constructed types
             public ValueTask<(IEnumerable<KeyValuePair<MyEnum, MyEnum>> R1, IEnumerable<KeyValuePair<MyEnum, MyEnum>> R2)> OpMyEnumDictAsync(
                 Dictionary<MyEnum, MyEnum> p1,
                 Dictionary<MyEnum, MyEnum> p2,
@@ -381,9 +663,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
-            public ValueTask<(IEnumerable<KeyValuePair<string, IOperationsPrx>> R1, IEnumerable<KeyValuePair<string, IOperationsPrx>> R2)> OpOperationsDictAsync(
-                Dictionary<string, IOperationsPrx> p1,
-                Dictionary<string, IOperationsPrx> p2,
+            public ValueTask<(IEnumerable<KeyValuePair<string, OperationsPrx>> R1, IEnumerable<KeyValuePair<string, OperationsPrx>> R2)> OpOperationsDictAsync(
+                Dictionary<string, OperationsPrx> p1,
+                Dictionary<string, OperationsPrx> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
@@ -421,6 +703,13 @@ namespace IceRpc.Tests.CodeGeneration
                 SortedDictionary<int, int> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<int, int?>> R1, IEnumerable<KeyValuePair<int, int?>> R2)> OpOptionalIntSortedDictAsync(
+                SortedDictionary<int, int?> p1,
+                SortedDictionary<int, int?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
             public ValueTask<(IEnumerable<KeyValuePair<int, int>> R1, IEnumerable<KeyValuePair<int, int>> R2)> OpVarIntSortedDictAsync(
                 SortedDictionary<int, int> p1,
                 SortedDictionary<int, int> p2,
@@ -468,6 +757,12 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
 
+            public ValueTask<(IEnumerable<KeyValuePair<string, string?>> R1, IEnumerable<KeyValuePair<string, string?>> R2)> OpOptionalStringSortedDictAsync(
+                SortedDictionary<string, string?> p1,
+                SortedDictionary<string, string?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
             public ValueTask<(IEnumerable<KeyValuePair<MyEnum, MyEnum>> R1, IEnumerable<KeyValuePair<MyEnum, MyEnum>> R2)> OpMyEnumSortedDictAsync(
                 SortedDictionary<MyEnum, MyEnum> p1,
                 SortedDictionary<MyEnum, MyEnum> p2,
@@ -483,6 +778,43 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<(IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R1, IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum>> R2)> OpMyUncheckedEnumSortedDictAsync(
                 SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p1,
                 SortedDictionary<MyUncheckedEnum, MyUncheckedEnum> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            // Dictionaries with optional constructed types
+            public ValueTask<(IEnumerable<KeyValuePair<MyEnum, MyEnum?>> R1, IEnumerable<KeyValuePair<MyEnum, MyEnum?>> R2)> OpOptionalMyEnumDictAsync(
+                Dictionary<MyEnum, MyEnum?> p1,
+                Dictionary<MyEnum, MyEnum?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum?>> R1, IEnumerable<KeyValuePair<MyFixedLengthEnum, MyFixedLengthEnum?>> R2)> OpOptionalMyFixedLengthEnumDictAsync(
+                Dictionary<MyFixedLengthEnum, MyFixedLengthEnum?> p1,
+                Dictionary<MyFixedLengthEnum, MyFixedLengthEnum?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum?>> R1, IEnumerable<KeyValuePair<MyUncheckedEnum, MyUncheckedEnum?>> R2)> OpOptionalMyUncheckedEnumDictAsync(
+                Dictionary<MyUncheckedEnum, MyUncheckedEnum?> p1,
+                Dictionary<MyUncheckedEnum, MyUncheckedEnum?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<MyStruct, MyStruct?>> R1, IEnumerable<KeyValuePair<MyStruct, MyStruct?>> R2)> OpOptionalMyStructDictAsync(
+                Dictionary<MyStruct, MyStruct?> p1,
+                Dictionary<MyStruct, MyStruct?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<string, OperationsPrx?>> R1, IEnumerable<KeyValuePair<string, OperationsPrx?>> R2)> OpOptionalOperationsDictAsync(
+                Dictionary<string, OperationsPrx?> p1,
+                Dictionary<string, OperationsPrx?> p2,
+                Dispatch dispatch,
+                CancellationToken cancel) => new((p1, p2));
+
+            public ValueTask<(IEnumerable<KeyValuePair<string, AnotherStruct?>> R1, IEnumerable<KeyValuePair<string, AnotherStruct?>> R2)> OpOptionalAnotherStructDictAsync(
+                Dictionary<string, AnotherStruct?> p1,
+                Dictionary<string, AnotherStruct?> p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }

@@ -28,10 +28,10 @@ namespace IceRpc.Tests.Api
             };
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
-            var prx = IGreeterPrx.FromConnection(connection);
-            prx.Invoker = pipeline;
+            var prx = GreeterPrx.FromConnection(connection);
+            prx.Proxy.Invoker = pipeline;
 
             Assert.AreEqual(0, value);
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
@@ -41,8 +41,8 @@ namespace IceRpc.Tests.Api
             Assert.Throws<InvalidOperationException>(() => pipeline.Use(next => next));
 
             // Add more interceptors with With
-            var prx2 = prx.Clone();
-            prx2.Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5));
+            var prx2 = new GreeterPrx(prx.Proxy.Clone());
+            prx2.Proxy.Invoker = pipeline.With(CheckValue(nextValue, 4), CheckValue(nextValue, 5));
 
             value = 0;
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Api
             });
 
         // TODO: move to shared location?
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new NotImplementedException();

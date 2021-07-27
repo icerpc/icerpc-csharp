@@ -52,8 +52,8 @@ namespace IceRpc.Internal
             // Set the compression status byte to Deflate compressed
             compressedData[offset++] = (byte)CompressionFormat.Deflate;
             // Write the size of the uncompressed data
-            int sizeLength = BufferWriter.GetSizeLength20(payloadSize);
-            compressedData.AsSpan(offset, sizeLength).WriteFixedLengthSize20(payloadSize);
+            int sizeLength = IceEncoder.GetSizeLength20(payloadSize);
+            compressedData.AsSpan(offset, sizeLength).EncodeFixedLengthSize20(payloadSize);
             offset += sizeLength;
 
             using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
@@ -88,6 +88,15 @@ namespace IceRpc.Internal
             return (CompressionResult.Success, compressedPayload);
         }
 
+        internal static (CompressionFormat, Stream) CompressStream(
+            this Stream stream,
+            CompressionLevel compressionLevel) =>
+            (CompressionFormat.Deflate, new DeflateStream(
+                    stream,
+                    compressionLevel == CompressionLevel.Fastest ?
+                        System.IO.Compression.CompressionLevel.Fastest :
+                        System.IO.Compression.CompressionLevel.Optimal));
+
         /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
         /// encoding.</summary>
         internal static ReadOnlyMemory<byte> Decompress(this ReadOnlyMemory<byte> payload, int maxSize)
@@ -107,7 +116,7 @@ namespace IceRpc.Internal
 
             // Read the decompressed size that is written after the compression format byte when the payload is
             // compressed
-            (int decompressedSize, int decompressedSizeLength) = buffer[1..].ReadSize20();
+            (int decompressedSize, int decompressedSizeLength) = buffer[1..].DecodeSize20();
 
             if (decompressedSize > maxSize)
             {
@@ -157,6 +166,16 @@ namespace IceRpc.Internal
             }
 
             return decompressedPayload;
+        }
+
+        internal static Stream DecompressStream(this Stream stream, CompressionFormat compressionFormat)
+        {
+            if (compressionFormat != CompressionFormat.Deflate)
+            {
+                throw new NotSupportedException($"cannot decompress compression format '{compressionFormat}'");
+            }
+
+            return new DeflateStream(stream, CompressionMode.Decompress);
         }
     }
 }

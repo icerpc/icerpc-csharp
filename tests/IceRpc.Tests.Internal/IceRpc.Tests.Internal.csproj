@@ -13,12 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="3.0.3">
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.5.21301.5" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0-preview.5.21301.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.6.21352.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0-preview.6.21352.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0-release-20210626-04" />
     <PackageReference Include="NUnit.Analyzers" Version="3.1.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
@@ -27,12 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
-    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />
-    <!-- Do not refercence the assemblies below, this ensures that factories are not automatically registered
-         see AssemblyLoadTests -->
-    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\B\B.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\C\C.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\D\D.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

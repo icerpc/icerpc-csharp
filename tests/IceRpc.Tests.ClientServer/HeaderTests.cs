@@ -32,7 +32,7 @@ namespace IceRpc.Tests.ClientServer
                     OutgoingResponse response = await next.DispatchAsync(request, cancel);
                     if (response.Protocol == Protocol.Ice2 && response.Features.Get<string>() is string value)
                     {
-                        response.Fields[1] = writer => writer.WriteString(value);
+                        response.Fields[1] = encoder => encoder.EncodeString(value);
                     }
                     return response;
                 }));
@@ -41,7 +41,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = endpoint,
-                HostName = "127.0.0.1"
             };
             server.Listen();
 
@@ -53,15 +52,14 @@ namespace IceRpc.Tests.ClientServer
                     if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> buffer))
                     {
                         response.Features = new FeatureCollection();
-                        response.Features.Set<string>(buffer.ReadFieldValue(reader => reader.ReadString()));
+                        response.Features.Set<string>(buffer.DecodeFieldValue(decoder => decoder.DecodeString()));
                     }
                     return response;
                 }));
 
-            var greeter = IGreeterPrx.FromServer(server);
-            await using var connection = new Connection { RemoteEndpoint = greeter.Endpoint };
-            greeter.Connection = connection;
-            greeter.Invoker = pipeline;
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var greeter = GreeterPrx.FromConnection(connection);
+            greeter.Proxy.Invoker = pipeline;
 
             var invocation = new Invocation
             {
@@ -77,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
             }
         }
 
-        internal class Greeter : IGreeter
+        internal class Greeter : Service, IGreeter
         {
             private readonly string _expectedValue;
 

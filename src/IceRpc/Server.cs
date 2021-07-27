@@ -4,12 +4,11 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,9 +19,15 @@ namespace IceRpc
     /// <see cref="Listen"/> and finally shut down with <see cref="ShutdownAsync"/>.</summary>
     public sealed class Server : IAsyncDisposable
     {
-        /// <summary>When set to a non null value it is used as the source to create <see cref="Activity"/>
-        /// instances for dispatches.</summary>
-        public ActivitySource? ActivitySource { get; set; }
+        /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
+        public static IServerTransport DefaultServerTransport { get; } =
+            new CompositeServerTransport
+            {
+                [Transport.TCP] = new TcpServerTransport(),
+                [Transport.SSL] = new TcpServerTransport(),
+                [Transport.Coloc] = new ColocServerTransport(),
+                [Transport.UDP] = new UdpServerTransport()
+            };
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
@@ -47,38 +52,11 @@ namespace IceRpc
                 }
 
                 _endpoint = value;
-                UpdateProxyEndpoint();
-            }
-        }
-
-        /// <summary>Gets or sets whether this server listens on an endpoint for the coloc transport in addition to its
-        /// regular endpoint. This property has no effect when <see cref="Endpoint"/>'s transport is coloc. Changing
-        /// this value after calling <see cref="Listen"/> has no effect as well.</summary>
-        /// <value>True when the server listens on an endpoint for the coloc transport; otherwise, false. The default
-        /// value is true.</value>
-        public bool HasColocEndpoint { get; set; } = true;
-
-        /// <summary>Gets or sets the host of <see cref="ProxyEndpoint"/> when <see cref="Endpoint"/> uses an IP
-        /// address.</summary>
-        /// <value>The host or IP address of <see cref="ProxyEndpoint"/>. Its default value is
-        /// <see cref="Dns.GetHostName()"/>.</value>
-        public string HostName
-        {
-            get => _hostName;
-            set
-            {
-                if (value.Length == 0)
-                {
-                    throw new ArgumentException($"{nameof(HostName)} must have at least one character",
-                                                nameof(HostName));
-                }
-                _hostName = value;
-                UpdateProxyEndpoint();
             }
         }
 
         /// <summary>Gets or sets the logger factory of this server. When null, the server creates its logger using
-        /// <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// <see cref="NullLoggerFactory.Instance"/>.</summary>
         /// <value>The logger factory of this server.</value>
         public ILoggerFactory? LoggerFactory
         {
@@ -86,7 +64,7 @@ namespace IceRpc
             set
             {
                 _loggerFactory = value;
-                _logger = null; // clears existing logger, if there is one
+                _logger = _loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
             }
         }
 
@@ -94,34 +72,20 @@ namespace IceRpc
         /// <value>The Ice protocol of this server.</value>
         public Protocol Protocol => _endpoint?.Protocol ?? Protocol.Ice2;
 
-        /// <summary>Returns the endpoint included in proxies created by
-        /// <see cref="IServicePrx.FromServer(Server, string?)"/>. This endpoint is computed from the values of
-        /// <see cref="Endpoint"/> and <see cref="HostName"/>.</summary>
-        /// <value>An endpoint when <see cref="Endpoint"/> is not null; otherwise, null.</value>
-        public Endpoint? ProxyEndpoint { get; private set; }
+        /// <summary>The <see cref="IServerTransport"/> used by this server to accept connections.</summary>
+        public IServerTransport ServerTransport { get; set; } = DefaultServerTransport;
 
         /// <summary>Returns a task that completes when the server's shutdown is complete: see
         /// <see cref="ShutdownAsync"/>. This property can be retrieved before shutdown is initiated.</summary>
-        // TODO missing test
         public Task ShutdownComplete => _shutdownCompleteSource.Task;
-
-        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-
-        /// <summary>Dictionary of non-coloc endpoint to coloc endpoint used by GetColocCounterPart.</summary>
-        private static readonly IDictionary<Endpoint, ColocEndpoint> _colocRegistry =
-            new ConcurrentDictionary<Endpoint, ColocEndpoint>(EndpointComparer.Equivalent);
-
-        private IListener? _colocListener;
 
         private readonly HashSet<Connection> _connections = new();
 
         private Endpoint? _endpoint;
 
-        private string _hostName = Dns.GetHostName().ToLowerInvariant();
-
         private IListener? _listener;
 
-        private ILogger? _logger;
+        private ILogger _logger = NullLogger.Instance;
         private ILoggerFactory? _loggerFactory;
 
         private bool _listening;
@@ -163,55 +127,38 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                if (_endpoint is IListenerFactory listenerFactory)
+                MultiStreamConnection? multiStreamConnection;
+                (_listener, multiStreamConnection) = ServerTransport.Listen(_endpoint, ConnectionOptions, _logger);
+
+                if (_listener != null)
                 {
-                    _listener = listenerFactory.CreateListener(ConnectionOptions, Logger);
+                    Debug.Assert(multiStreamConnection == null);
                     _endpoint = _listener.Endpoint;
-                    UpdateProxyEndpoint();
 
                     // Run task to start accepting new connections.
                     Task.Run(() => AcceptAsync(_listener));
                 }
-                else if (_endpoint is IServerConnectionFactory serverConnectionFactory)
+                else
                 {
-                    MultiStreamConnection multiStreamConnection =
-                        serverConnectionFactory.Accept(ConnectionOptions, Logger);
+                    Debug.Assert(multiStreamConnection != null);
+
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    var serverConnection = new Connection(multiStreamConnection, this);
+                    var serverConnection = new Connection(
+                        multiStreamConnection,
+                        Dispatcher,
+                        ConnectionOptions,
+                        LoggerFactory);
 #pragma warning restore CA2000
                     _endpoint = multiStreamConnection.LocalEndpoint!;
-                    UpdateProxyEndpoint();
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
                     _connections.Add(serverConnection);
                 }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"cannot create listener or server connection with endpoint '{_endpoint}'");
-                }
 
                 _listening = true;
-
-                if (HasColocEndpoint && _endpoint.Transport != Transport.Coloc && !_endpoint.IsDatagram)
-                {
-                    var colocEndpoint = new ColocEndpoint(host: $"{_endpoint.Host}.{_endpoint.TransportName}",
-                                                          port: _endpoint.Port,
-                                                          protocol: _endpoint.Protocol);
-
-                    _colocListener = colocEndpoint.CreateListener(ConnectionOptions, Logger);
-                    Task.Run(() => AcceptAsync(_colocListener));
-
-                    _colocRegistry.Add(_endpoint, colocEndpoint);
-                    if (ProxyEndpoint != _endpoint)
-                    {
-                        _colocRegistry.Add(ProxyEndpoint!, colocEndpoint);
-                    }
-                }
-
-                Logger.LogServerListening(this);
+                _logger.LogServerListening(this);
             }
         }
 
@@ -255,21 +202,10 @@ namespace IceRpc
                 CancellationToken cancel = _shutdownCancelSource!.Token;
                 try
                 {
-                    Logger.LogServerShuttingDown(this);
-
-                    // No longer available for coloc connections (may not be registered at all)
-                    if (_endpoint is Endpoint endpoint && endpoint.Transport != Transport.Coloc)
-                    {
-                        _colocRegistry.Remove(endpoint);
-                        if (ProxyEndpoint != _endpoint)
-                        {
-                            _colocRegistry.Remove(ProxyEndpoint!);
-                        }
-                    }
+                    _logger.LogServerShuttingDown(this);
 
                     // Stop accepting new connections by disposing of the listeners.
                     _listener?.Dispose();
-                    _colocListener?.Dispose();
 
                     // Shuts down the connections to stop accepting new incoming requests. This ensures that
                     // once ShutdownAsync returns, no new requests will be dispatched. ShutdownAsync on each
@@ -281,7 +217,7 @@ namespace IceRpc
                 }
                 finally
                 {
-                    Logger.LogServerShutdownComplete(this);
+                    _logger.LogServerShutdownComplete(this);
 
                     _shutdownCancelSource!.Dispose();
 
@@ -300,17 +236,10 @@ namespace IceRpc
         public async ValueTask DisposeAsync() =>
             await ShutdownAsync(new CancellationToken(canceled: true)).ConfigureAwait(false);
 
-        /// <summary>Returns the corresponding endpoint for the coloc transport, if there is one.</summary>
-        /// <param name="endpoint">The endpoint to check.</param>
-        /// <returns>The corresponding endpoint for the coloc transport, or null if there is no such endpoint</returns>
-        internal static Endpoint? GetColocEndpoint(Endpoint endpoint) =>
-            endpoint.Transport == Transport.Coloc ? endpoint :
-                (_colocRegistry.TryGetValue(endpoint, out ColocEndpoint? colocEndpoint) ? colocEndpoint : null);
-
         private async Task AcceptAsync(IListener listener)
         {
-            using IDisposable? scope = Logger.StartServerScope(listener);
-            Logger.LogStartAcceptingConnections();
+            using IDisposable? scope = _logger.StartServerScope(listener);
+            _logger.LogStartAcceptingConnections();
 
             while (true)
             {
@@ -329,7 +258,7 @@ namespace IceRpc
                         }
                     }
 
-                    Logger.LogAcceptingConnectionFailed(ex);
+                    _logger.LogAcceptingConnectionFailed(ex);
 
                     // We wait for one second to avoid running in a tight loop in case the failures occurs immediately
                     // again. Failures here are unexpected and could be considered fatal.
@@ -339,7 +268,11 @@ namespace IceRpc
 
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                var connection = new Connection(multiStreamConnection, this);
+                var connection = new Connection(
+                        multiStreamConnection,
+                        Dispatcher,
+                        ConnectionOptions,
+                        LoggerFactory);
 #pragma warning restore CA2000
 
                 lock (_mutex)
@@ -386,7 +319,5 @@ namespace IceRpc
                 }
             }
         }
-
-        private void UpdateProxyEndpoint() => ProxyEndpoint = _endpoint?.GetProxyEndpoint(HostName);
     }
 }

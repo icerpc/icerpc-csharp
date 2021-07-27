@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>The implementation of <see cref="Interceptors.CustomTelemetry(Interceptors.TelemetryOptions)"/>.</summary>
+    /// <summary>The implementation of <see cref="Middleware.CustomTelemetry(Middleware.TelemetryOptions)"/>.</summary>
     internal sealed class TelemetryDispatcher : IDispatcher
     {
         private readonly ILogger _logger;
@@ -21,7 +21,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            if (request.Protocol == Protocol.Ice2)
+            if (request.Protocol != Protocol.Ice1)
             {
                 Activity? activity = _options.ActivitySource?.CreateActivity(
                     $"{request.Path}/{request.Operation}",
@@ -67,7 +67,7 @@ namespace IceRpc.Internal
 
         private static void RestoreActivityContext(IncomingRequest request, Activity activity)
         {
-            Debug.Assert(request.Protocol == Protocol.Ice2);
+            Debug.Assert(request.Protocol != Protocol.Ice1);
             if (request.Fields.TryGetValue((int)Ice2FieldKey.TraceContext, out ReadOnlyMemory<byte> buffer))
             {
                 // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
@@ -83,16 +83,16 @@ namespace IceRpc.Internal
                 activity.SetParentId(traceId, spanId, traceFlags);
 
                 // Read tracestate encoded as a string
-                var reader = new BufferReader(buffer[i..], Encoding.V20);
-                activity.TraceStateString = reader.ReadString();
+                var decoder = new IceDecoder(buffer[i..], Encoding.V20);
+                activity.TraceStateString = decoder.DecodeString();
 
                 // The min element size is 2 bytes for a struct with two empty strings.
-                IEnumerable<(string key, string value)> baggage = reader.ReadSequence(
+                IEnumerable<(string key, string value)> baggage = decoder.DecodeSequence(
                     minElementSize: 2,
-                    reader =>
+                    decoder =>
                     {
-                        string key = reader.ReadString();
-                        string value = reader.ReadString();
+                        string key = decoder.DecodeString();
+                        string value = decoder.DecodeString();
                         return (key, value);
                     });
 

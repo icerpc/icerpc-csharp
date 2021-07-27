@@ -29,13 +29,11 @@ namespace IceRpc.Tests.ClientServer
             Servant = new StressTest();
             Server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = Servant,
                 Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
-                HostName = "127.0.0.1"
             };
-            Connection = new Connection { RemoteEndpoint = Server.ProxyEndpoint };
-            Prx = IStressTestPrx.FromConnection(Connection);
+            Connection = new Connection { RemoteEndpoint = Server.Endpoint };
+            Prx = StressTestPrx.FromConnection(Connection);
             Server.Listen();
         }
 
@@ -61,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(Servant.OpReceiveByteSeqData, data);
         }
 
-        public class StressTest : IStressTest
+        public class StressTest : Service, IStressTest
         {
             public StressTest()
             {

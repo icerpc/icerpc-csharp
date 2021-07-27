@@ -130,13 +130,13 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
             };
             server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            IEnumOperationsPrx prx = IEnumOperationsPrx.FromConnection(connection);
-            Assert.AreEqual(protocol, prx.Protocol);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var prx = EnumOperationsPrx.FromConnection(connection);
+            Assert.AreEqual(protocol, prx.Proxy.Protocol);
             await closure(prx);
         }
 
-        public class EnumOperations : IEnumOperations
+        public class EnumOperations : Service, IEnumOperations
         {
             public ValueTask<(MyEnum R1, MyEnum R2)> OpMyEnumAsync(
                 MyEnum p1,

@@ -14,17 +14,6 @@ namespace IceRpc.Transports.Internal
         internal int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
         private readonly Ice1Connection _connection;
 
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            if (TrySetReadCompleted())
-            {
-                // Abort the receive call waiting on WaitAsync().
-                SetException(new RpcStreamAbortedException(errorCode));
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode) => TrySetWriteCompleted();
-
         public override void EnableReceiveFlowControl() =>
             // This is never called because streaming isn't supported with Ice1.
             throw new NotImplementedException();
@@ -37,7 +26,7 @@ namespace IceRpc.Transports.Internal
             // This is never called because we override the default ReceiveFrameAsync implementation.
             throw new NotImplementedException();
 
-        public async override ValueTask SendAsync(
+        public override async ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
             CancellationToken cancel)
@@ -46,7 +35,6 @@ namespace IceRpc.Transports.Internal
             // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
             Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
-
             if (endStream)
             {
                 TrySetWriteCompleted();
@@ -88,17 +76,13 @@ namespace IceRpc.Transports.Internal
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
 
-            if (frameType != Ice1FrameType.ValidateConnection && !TrySetReadCompleted())
+            // An Ice1 stream can only receive a single frame, except if it's a control stream which can
+            // receive multiple connection validation messages.
+            if (!IsControl)
             {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
+                TrySetReadCompleted();
             }
 
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close connection frame.
-            _connection.FinishedReceivedFrame();
-
-            // No more data will ever be received over this stream unless it's the validation connection frame.
             return frame;
         }
 
@@ -109,28 +93,28 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var writer = new BufferWriter(Encoding.V11);
-            writer.WriteByteSpan(Ice1Definitions.FramePrologue);
-            writer.Write(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            writer.WriteByte(0); // compression status
-            BufferWriter.Position start = writer.StartFixedLengthSize();
+            var encoder = new IceEncoder(Encoding.V11);
+            encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+            encoder.EncodeIce1FrameType(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
+            encoder.EncodeByte(0); // compression status
+            IceEncoder.Position start = encoder.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
-            writer.WriteInt(IsStarted ? RequestId : 0);
-            frame.WriteHeader(writer);
+            encoder.EncodeInt(IsStarted ? RequestId : 0);
+            frame.EncodeHeader(encoder);
 
-            writer.RewriteFixedLengthSize11(writer.Size + frame.PayloadSize, start); // frame size
+            encoder.EncodeFixedLengthSize11(encoder.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= writer.Capacity - writer.Size)
+                   frame.Payload.Span[payloadIndex].Length <= encoder.Capacity - encoder.Size)
             {
-                writer.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                encoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {
@@ -145,5 +129,9 @@ namespace IceRpc.Transports.Internal
 
             TrySetWriteCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;
     }
 }

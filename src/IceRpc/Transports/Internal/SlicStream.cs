@@ -27,7 +27,7 @@ namespace IceRpc.Transports.Internal
 
         private volatile CircularBuffer? _receiveBuffer;
         // The receive credit. This is the amount of data received from the peer that we didn't acknowledge as
-        // received yet. Once the credit reach a given threeshold, we'll notify the peer with a StreamConsumed
+        // received yet. Once the credit reach a given threshold, we'll notify the peer with a StreamConsumed
         // frame data has been consumed and additional credit is therefore available for sending.
         private int _receiveCredit;
         private bool _receivedEndStream;
@@ -43,48 +43,6 @@ namespace IceRpc.Transports.Internal
         private readonly SlicConnection _connection;
         // A lock to ensure ReceivedFrame and EnableReceiveFlowControl are thread-safe.
         private SpinLock _lock;
-
-        public override void AbortRead(RpcStreamError errorCode)
-        {
-            // It's important to set the exception before completing the reads because ReceiveAsync expects the
-            // exception to be set if reads are completed.
-            SetException(new RpcStreamAbortedException(errorCode));
-
-            if (TrySetReadCompleted(shutdown: false))
-            {
-                // Notify the peer of the abort of the read side
-                if (errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.PrepareAndSendFrameAsync(
-                    SlicDefinitions.FrameType.StreamStopSending,
-                    ostr => new StreamStopSendingBody((ulong)errorCode).IceWrite(ostr),
-                    frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
-                    this);
-                }
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
-
-        public override void AbortWrite(RpcStreamError errorCode)
-        {
-            if (TrySetWriteCompleted(shutdown: false))
-            {
-                // Notify the peer of the abort if the stream or connection is not aborted already.
-                if (errorCode != RpcStreamError.ConnectionAborted)
-                {
-                    _ = _connection.PrepareAndSendFrameAsync(
-                        SlicDefinitions.FrameType.StreamReset,
-                        writer => new StreamResetBody((ulong)errorCode).IceWrite(writer),
-                        frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
-                        this);
-                }
-
-                // Shutdown the stream if not already done.
-                TryShutdown();
-            }
-        }
 
         public override void EnableReceiveFlowControl()
         {
@@ -132,11 +90,6 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            if (ReadCompleted)
-            {
-                throw AbortException ?? new InvalidOperationException("stream receive is completed");
-            }
-
             if (_receivedSize == _receivedOffset)
             {
                 _receivedOffset = 0;
@@ -153,10 +106,7 @@ namespace IceRpc.Transports.Internal
                     {
                         throw new InvalidDataException("invalid stream frame, received 0 bytes without end of stream");
                     }
-                    if (!TrySetReadCompleted())
-                    {
-                        throw AbortException ?? new InvalidOperationException("stream receive is completed");
-                    }
+                    TrySetReadCompleted();
                     return 0;
                 }
             }
@@ -186,7 +136,7 @@ namespace IceRpc.Transports.Internal
                     // Notify the peer that it can send additional data.
                     await _connection.PrepareAndSendFrameAsync(
                         SlicDefinitions.FrameType.StreamConsumed,
-                        writer => new StreamConsumedBody((ulong)consumed).IceWrite(writer),
+                        encoder => new StreamConsumedBody((ulong)consumed).Encode(encoder),
                         frameSize => _connection.Logger.LogSendingSlicFrame(
                             SlicDefinitions.FrameType.StreamConsumed,
                             frameSize),
@@ -195,20 +145,21 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            // If we've finished consuming the data and we received end of stream, we can complete the reads.
-            if (_receivedOffset == _receivedSize && _receivedEndStream)
-            {
-                TrySetReadCompleted();
-            }
-
-            // Notify the connection that the frame has been processed. This must be done after completing reads
-            // to ensure the stream is shutdown before. It's important to ensure the stream is removed from the
-            // connection before the connection is shutdown if the next frame is a close frame.
-            if (_receiveBuffer == null && _receivedOffset == _receivedSize)
+            if (_receivedOffset == _receivedSize)
             {
                 // If we've consumed the whole Slic frame, notify the connection that it can start receiving
-                // a new frame.
-                _connection.FinishedReceivedStreamData(0);
+                // a new frame if flow control isn't enabled. If flow control is enabled, the data has been
+                // buffered and already received.
+                if (_receiveBuffer == null)
+                {
+                    _connection.FinishedReceivedStreamData(0);
+                }
+
+                // It's the end of the stream, we can complete reads.
+                if (_receivedEndStream)
+                {
+                    TrySetReadCompleted();
+                }
             }
 
             return size;
@@ -219,9 +170,6 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            // Ensure the caller reserved space for the Slic header by checking for the sentinel header.
-            Debug.Assert(TransportHeader.Span.SequenceEqual(buffers.Span[0].Slice(0, TransportHeader.Length).Span));
-
             int size = buffers.GetByteCount() - TransportHeader.Length;
             if (size == 0)
             {
@@ -239,7 +187,7 @@ namespace IceRpc.Transports.Internal
             int offset = 0;
 
             // The position of the data to send next.
-            var start = new BufferWriter.Position();
+            var start = new IceEncoder.Position();
 
             while (offset < size)
             {
@@ -297,7 +245,7 @@ namespace IceRpc.Transports.Internal
                         if (buffers.Span[i][bufferOffset..].Length > maxPacketSize - sendSize)
                         {
                             sendBuffer.Add(buffers.Span[i][bufferOffset..(bufferOffset + maxPacketSize - sendSize)]);
-                            start = new BufferWriter.Position(i, bufferOffset + sendBuffer[^1].Length);
+                            start = new IceEncoder.Position(i, bufferOffset + sendBuffer[^1].Length);
                             Debug.Assert(start.Offset < buffers.Span[i].Length);
                             sendSize = maxPacketSize;
                             break;
@@ -366,28 +314,24 @@ namespace IceRpc.Transports.Internal
             // continue receiving frames for other streams.
             if (_receiveBuffer == null)
             {
-                try
+                if (_receivedOffset == _receivedSize)
                 {
-                    if (_receivedOffset == _receivedSize)
+                    ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
+                    Debug.Assert(valueTask.IsCompleted);
+                    if (valueTask.IsCompletedSuccessfully)
                     {
-                        ValueTask<(int, bool)> valueTask = WaitAsync(CancellationToken.None);
-                        Debug.Assert(valueTask.IsCompleted);
                         _receivedOffset = 0;
                         (_receivedSize, _) = valueTask.Result;
                     }
-
-                    if (_receivedSize - _receivedOffset > 0)
-                    {
-                        _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
-                    }
                 }
-                catch
+
+                if (_receivedSize - _receivedOffset > 0)
                 {
-                    // Ignore, there's nothing to consume.
+                    _connection.FinishedReceivedStreamData(_receivedSize - _receivedOffset);
                 }
             }
 
-            // Release connection stream count or semaphore for this steram.
+            // Release connection stream count or semaphore for this stream.
             _connection.ReleaseStream(this);
 
             // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is received.
@@ -427,7 +371,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal void ReceivedFrame(int size, bool fin)
+        internal void ReceivedFrame(int size, bool endStream)
         {
             if (!IsBidirectional && !IsIncoming)
             {
@@ -446,7 +390,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        SetResult((size, fin));
+                        SetResult((size, endStream));
                     }
                     catch
                     {
@@ -464,8 +408,8 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException("flow control violation, peer sent too much data");
                     }
 
-                    // Receive the data asynchronously. The task will notify the connection when the Slic frame is fully
-                    // received to allow the connection to process the next Slic frame.
+                    // Receive the data asynchronously. The task will notify the connection when the Slic
+                    // frame is fully received to allow the connection to process the next Slic frame.
                     _ = PerformReceiveInBufferAsync();
                 }
             }
@@ -504,7 +448,7 @@ namespace IceRpc.Transports.Internal
                 // to ensure the received frames are queued in order.
                 try
                 {
-                    QueueResult((size, fin));
+                    QueueResult((size, endStream));
                 }
                 catch
                 {
@@ -529,10 +473,32 @@ namespace IceRpc.Transports.Internal
             // exception to be set if reads are completed.
             SetException(new RpcStreamAbortedException(errorCode));
 
-            // Cancel the dispatch source before completing reads otherwise the source might be disposed after.
-            CancelDispatchSource?.Cancel();
+            // Cancel the dispatch source before completing reads otherwise the source might be disposed after
+            // and the dispatch won't be canceled.
+            try
+            {
+                CancelDispatchSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Expected if the stream is already shutdown.
+            }
 
             TrySetReadCompleted();
         }
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamReset,
+                encoder => new StreamResetBody((ulong)errorCode).Encode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicResetFrame(frameSize, errorCode),
+                this);
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+            _connection.PrepareAndSendFrameAsync(
+                SlicDefinitions.FrameType.StreamStopSending,
+                encoder => new StreamStopSendingBody((ulong)errorCode).Encode(encoder),
+                frameSize => _connection.Logger.LogSendingSlicStopSendingFrame(frameSize, errorCode),
+                this);
     }
 }

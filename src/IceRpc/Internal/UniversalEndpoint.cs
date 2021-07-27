@@ -9,10 +9,10 @@ using System.Text;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Describes an endpoint with a transport or protocol that the associated communicator does not implement.
-    /// The communicator cannot send a request to this endpoint; it can however marshal this endpoint (within a proxy)
-    /// and send this proxy to another application that may know this transport. This class is used only for protocol
-    /// ice2 or greater.</summary>
+    /// <summary>Describes an endpoint with a transport or protocol that has not been registered with the IceRPC
+    /// runtime. The IceRPC runtime cannot send a request to this endpoint; it can however marshal this endpoint
+    /// (within a proxy) and send this proxy to another application that may know this transport. This class is used
+    /// only for protocol ice2 or greater.</summary>
     internal sealed class UniversalEndpoint : Endpoint
     {
         /// <inherit-doc/>
@@ -49,7 +49,7 @@ namespace IceRpc.Internal
             }
         }
 
-        protected internal override void WriteOptions11(BufferWriter writer) =>
+        protected internal override void EncodeOptions11(IceEncoder encoder) =>
             Debug.Assert(false); // WriteOptions is only for ice1.
 
         internal static UniversalEndpoint Create(EndpointData data, Protocol protocol) => new(data, protocol);

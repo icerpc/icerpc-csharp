@@ -5,7 +5,6 @@ using IceRpc.Slice.Test.Escape.@abstract;
 using IceRpc.Test;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,7 +16,7 @@ public class Client : TestHelper
             new(0);
     }
 
-    public sealed class Decimal : Idecimal
+    public sealed class Decimal : Service, Idecimal
     {
         public ValueTask defaultAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
@@ -34,12 +33,12 @@ public class Client : TestHelper
         }
     }
 
-    public sealed class Test1I : IceRpc.Slice.Test.Escape.@abstract.System.ITest
+    public sealed class Test1I : Service, IceRpc.Slice.Test.Escape.@abstract.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
 
-    public sealed class Test2I : IceRpc.Slice.Test.Escape.System.ITest
+    public sealed class Test2I : Service, IceRpc.Slice.Test.Escape.System.ITest
     {
         public ValueTask opAsync(IceRpc.Dispatch dispatch, CancellationToken cancel) => default;
     }
@@ -100,7 +99,7 @@ public class Client : TestHelper
         router.Map("/test1", new Test1I());
         router.Map("/test2", new Test2I());
 
-        await using var server = new IceRpc.Server
+        await using var server = new Server
         {
             Dispatcher = router,
             Endpoint = $"ice+coloc://{Guid.NewGuid()}"
@@ -108,23 +107,23 @@ public class Client : TestHelper
 
         server.Listen();
 
-        await using var connection = new IceRpc.Connection { RemoteEndpoint = server.ProxyEndpoint };
+        await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
 
         Output.Write("testing operation name... ");
         Output.Flush();
 
-        IdecimalPrx p = IdecimalPrx.FromConnection(connection, "/test");
+        IdecimalPrx p = decimalPrx.FromConnection(connection, "/test");
         await p.defaultAsync();
         Output.WriteLine("ok");
 
         Output.Write("testing System as module name... ");
         Output.Flush();
         IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx t1 =
-            IceRpc.Slice.Test.Escape.@abstract.System.ITestPrx.FromConnection(connection, "/test1");
+            IceRpc.Slice.Test.Escape.@abstract.System.TestPrx.FromConnection(connection, "/test1");
         await t1.opAsync();
 
         IceRpc.Slice.Test.Escape.System.ITestPrx t2 =
-            IceRpc.Slice.Test.Escape.System.ITestPrx.FromConnection(connection, "/test2");
+            IceRpc.Slice.Test.Escape.System.TestPrx.FromConnection(connection, "/test2");
         await t2.opAsync();
         Output.WriteLine("ok");
 

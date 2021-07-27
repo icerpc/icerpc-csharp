@@ -3,16 +3,16 @@
 using System;
 using System.Collections.Generic;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>This class contains extensions methods to compute sequences hash code.</summary>
-    public static class EnumerableExtensions
+    internal static class EnumerableExtensions
     {
         /// <summary>Computes the hash code for a sequence, using each element's default comparer.</summary>
         /// <param name="sequence">The sequence.</param>
         /// <typeparam name="T">The type of sequence's element.</typeparam>
         /// <returns>A hash code computed using the sequence's elements.</returns>
-        public static int GetSequenceHashCode<T>(this IEnumerable<T> sequence) =>
+        internal static int GetSequenceHashCode<T>(this IEnumerable<T> sequence) =>
             GetSequenceHashCode(sequence, comparer: null);
 
         /// <summary>Computes the hash code for a sequence.</summary>
@@ -21,7 +21,7 @@ namespace IceRpc
         /// <param name="comparer">The comparer used to get each element's hash code. When null, this method uses the
         /// default comparer.</param>
         /// <returns>A hash code computed using the sequence's elements.</returns>
-        public static int GetSequenceHashCode<T>(this IEnumerable<T> sequence, IEqualityComparer<T>? comparer)
+        internal static int GetSequenceHashCode<T>(this IEnumerable<T> sequence, IEqualityComparer<T>? comparer)
         {
             comparer ??= EqualityComparer<T>.Default;
 

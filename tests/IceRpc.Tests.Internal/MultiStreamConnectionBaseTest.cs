@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Internal
 
         protected MultiStreamConnection ClientConnection => _clientConnection!;
 
-        protected IServicePrx Proxy => IServicePrx.FromPath("/dummy", ClientEndpoint.Protocol);
+        protected Proxy Proxy => Proxy.FromPath("/dummy", ClientEndpoint.Protocol);
         protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _clientConnection;
@@ -57,7 +57,7 @@ namespace IceRpc.Tests.Internal
             _serverConnection?.Dispose();
         }
 
-        static protected OutgoingResponse GetResponseFrame(IncomingRequest request) =>
+        protected static OutgoingResponse GetResponseFrame(IncomingRequest request) =>
             // TODO: Fix once OutgoingRespongFrame construction is simplified to not depend on Current
             new(request, new UnhandledException(new InvalidOperationException()));
     }

@@ -65,7 +65,11 @@ namespace IceRpc
         public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The proxy that is sending this request.</summary>
-        public IServicePrx Proxy { get; }
+        public Proxy Proxy { get; }
+
+        /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
+        /// decompress a stream return value.</summary>
+        public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
         /// <summary>The facet path of the target service. ice1 only.</summary>
         internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
@@ -93,7 +97,7 @@ namespace IceRpc
         /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
         /// fields as defaults for its fields.</param>
         public OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             IncomingRequest request,
             bool forwardFields = true)
             // TODO: support stream param forwarding
@@ -115,7 +119,7 @@ namespace IceRpc
 
         /// <summary>Constructs an outgoing request.</summary>
         internal OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
             RpcStreamWriter? streamWriter,
@@ -138,15 +142,15 @@ namespace IceRpc
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
 
         /// <inheritdoc/>
-        internal override void WriteHeader(BufferWriter writer)
+        internal override void EncodeHeader(IceEncoder encoder)
         {
-            Debug.Assert(writer.Encoding == Protocol.GetEncoding());
+            Debug.Assert(encoder.Encoding == Protocol.GetEncoding());
 
             IDictionary<string, string> context = Features.GetContext();
 
             if (Protocol == Protocol.Ice2)
             {
-                BufferWriter.Position start = writer.StartFixedLengthSize(2);
+                IceEncoder.Position start = encoder.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(
@@ -157,22 +161,22 @@ namespace IceRpc
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
 
-                requestHeaderBody.IceWrite(writer);
+                requestHeaderBody.Encode(encoder);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
-                    // Writes or overrides context
+                    // Encodes context
                     Fields[(int)Ice2FieldKey.Context] =
-                        writer => writer.WriteDictionary(context,
-                                                         BasicEncoders.StringEncoder,
-                                                         BasicEncoders.StringEncoder);
+                        encoder => encoder.EncodeDictionary(context,
+                                                            (encoder, value) => encoder.EncodeString(value),
+                                                            (encoder, value) => encoder.EncodeString(value));
                 }
                 // else context remains empty (not set)
 
-                WriteFields(writer);
-                PayloadEncoding.IceWrite(writer);
-                writer.WriteSize(PayloadSize);
-                writer.EndFixedLengthSize(start, 2);
+                EncodeFields(encoder);
+                PayloadEncoding.Encode(encoder);
+                encoder.EncodeSize(PayloadSize);
+                encoder.EndFixedLengthSize(start, 2);
             }
             else
             {
@@ -185,12 +189,12 @@ namespace IceRpc
                     context,
                     encapsulationSize: PayloadSize + 6,
                     PayloadEncoding);
-                requestHeader.IceWrite(writer);
+                requestHeader.Encode(encoder);
             }
         }
 
         private OutgoingRequest(
-            IServicePrx proxy,
+            Proxy proxy,
             string operation,
             FeatureCollection features,
             RpcStreamWriter? streamWriter)
@@ -203,8 +207,8 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice1)
             {
-                FacetPath = proxy.Impl.FacetPath;
-                Identity = proxy.Impl.Identity;
+                FacetPath = proxy.FacetPath;
+                Identity = proxy.Identity;
             }
 
             Operation = operation;

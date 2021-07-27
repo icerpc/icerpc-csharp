@@ -1,15 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
+
 namespace IceRpc.Interop
 {
     /// <summary>Extension methods that give access to facets.</summary>
     public static class Facet
     {
-        /// <summary>Returns the facet of this service proxy.</summary>
+        /// <summary>Returns the facet of this proxy.</summary>
         /// <param name="proxy">The proxy.</param>
         /// <returns>The facet.</returns>
-        public static string GetFacet(this IServicePrx proxy) => proxy.Impl.Facet;
+        public static string GetFacet(this Proxy proxy) => proxy.Facet;
 
         /// <summary>Returns the facet carried by this incoming request frame.</summary>
         /// <param name="request">The incoming request frame.</param>
@@ -33,21 +34,16 @@ namespace IceRpc.Interop
         /// <returns>The facet.</returns>
         public static string GetFacet(this ServiceNotFoundException exception) => exception.Facet;
 
-        /// <summary>Creates a copy of this proxy with a new facet and type.</summary>
-        /// <paramtype name="T">The type of the new service proxy.</paramtype>
-        /// <param name="proxy">The proxy being copied.</param>
+        /// <summary>Creates a copy of this proxy with a new facet.</summary>
+        /// <param name="proxy">The source proxy.</param>
         /// <param name="facet">The new facet.</param>
-        /// <returns>A proxy with the specified facet and type.</returns>
-        public static T WithFacet<T>(this IServicePrx proxy, string facet) where T : class, IServicePrx
+        /// <returns>A new proxy with the specified facet.</returns>
+        public static Proxy WithFacet(this Proxy proxy, string facet)
         {
-            if (facet == proxy.Impl.Facet && proxy is T t)
+            if (proxy.Protocol == Protocol.Ice1)
             {
-                return t;
-            }
-            else if (proxy.Protocol == Protocol.Ice1)
-            {
-                T newProxy = proxy.As<T>();
-                newProxy.Impl.Facet = facet;
+                var newProxy = proxy.Clone();
+                newProxy.Facet = facet;
                 // keeps endpoint, connection, invoker etc.
                 return newProxy;
             }

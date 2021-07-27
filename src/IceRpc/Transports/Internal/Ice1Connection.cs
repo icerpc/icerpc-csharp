@@ -25,22 +25,11 @@ namespace IceRpc.Transports.Internal
         private long _nextBidirectionalId;
         private long _nextUnidirectionalId;
         private long _nextPeerUnidirectionalId;
-        private readonly ManualResetValueTaskCompletionSource<bool> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
         private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
-            ValueTask<bool> receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-            if (receiveStreamCompletionTask.IsCompleted)
-            {
-                await receiveStreamCompletionTask.ConfigureAwait(false);
-            }
-            else
-            {
-                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-            }
-
             while (true)
             {
                 // Receive the Ice1 frame header.
@@ -66,7 +55,7 @@ namespace IceRpc.Transports.Internal
 
                 // Check the header
                 Ice1Definitions.CheckHeader(buffer.Span.Slice(0, Ice1Definitions.HeaderSize));
-                int frameSize = buffer.AsReadOnlySpan().Slice(10, 4).ReadInt();
+                int frameSize = buffer.AsReadOnlySpan().Slice(10, 4).DecodeInt();
                 if (frameSize < Ice1Definitions.HeaderSize)
                 {
                     if (IsDatagram)
@@ -150,16 +139,6 @@ namespace IceRpc.Transports.Internal
                         try
                         {
                             stream.ReceivedFrame(frameType, frame);
-                            // Wait for the stream to process the frame before continuing receiving additional data.
-                            receiveStreamCompletionTask = _receiveStreamCompletionTaskSource.ValueTask;
-                            if (receiveStreamCompletionTask.IsCompleted)
-                            {
-                                await receiveStreamCompletionTask.ConfigureAwait(false);
-                            }
-                            else
-                            {
-                                await receiveStreamCompletionTask.AsTask().WaitAsync(cancel).ConfigureAwait(false);
-                            }
                         }
                         catch
                         {
@@ -230,8 +209,6 @@ namespace IceRpc.Transports.Internal
         {
             IdleTimeout = options.IdleTimeout;
 
-            _receiveStreamCompletionTaskSource.SetResult(true);
-
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
             _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
             _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);
@@ -249,12 +226,6 @@ namespace IceRpc.Transports.Internal
                 _nextUnidirectionalId = 2;
                 _nextPeerUnidirectionalId = 3;
             }
-        }
-
-        internal void FinishedReceivedFrame()
-        {
-            Debug.Assert(!_receiveStreamCompletionTaskSource.IsCompleted);
-            _receiveStreamCompletionTaskSource.SetResult(true);
         }
 
         internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
@@ -315,7 +286,7 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> requestIdBuffer =
                             MemoryMarshal.AsMemory(buffers.Span[0][Ice1Definitions.HeaderSize..]);
 
-                        requestIdBuffer.Span.WriteInt(stream.RequestId);
+                        requestIdBuffer.Span.EncodeInt(stream.RequestId);
                     }
                 }
 
@@ -386,7 +357,7 @@ namespace IceRpc.Transports.Internal
 
                 case Ice1FrameType.Request:
                 {
-                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).DecodeInt();
 
                     // Compute the stream ID out of the request ID. For one-way requests which use a null request ID,
                     // we generate a new stream ID using the _nextPeerUnidirectionalId counter.
@@ -404,7 +375,7 @@ namespace IceRpc.Transports.Internal
 
                 case Ice1FrameType.RequestBatch:
                 {
-                    int invokeNum = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int invokeNum = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).DecodeInt();
                     Logger.LogReceivedIce1RequestBatchFrame(invokeNum);
 
                     if (invokeNum < 0)
@@ -417,7 +388,7 @@ namespace IceRpc.Transports.Internal
 
                 case Ice1FrameType.Reply:
                 {
-                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).ReadInt();
+                    int requestId = readBuffer.Span.Slice(Ice1Definitions.HeaderSize, 4).DecodeInt();
                     long streamId = ((requestId - 1) << 2) + (IsServer ? 1 : 0);
                     return (streamId, frameType, readBuffer[(Ice1Definitions.HeaderSize + 4)..]);
                 }

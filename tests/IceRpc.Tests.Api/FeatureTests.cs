@@ -62,7 +62,7 @@ namespace IceRpc.Tests.Api
                 {
                     if (request.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
-                        Multiplier multiplier = value.ReadFieldValue(reader => BasicDecoders.IntDecoder(reader));
+                        Multiplier multiplier = value.DecodeFieldValue(decoder => decoder.DecodeInt());
                         if (request.Features.IsReadOnly)
                         {
                             request.Features = new FeatureCollection(request.Features);
@@ -92,8 +92,8 @@ namespace IceRpc.Tests.Api
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IFeatureTestPrx.FromConnection(connection);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var prx = FeatureTestPrx.FromConnection(connection);
 
             Multiplier multiplier = 10;
 
@@ -101,11 +101,11 @@ namespace IceRpc.Tests.Api
             // This interceptor stores the multiplier into a header field (key = 1) to be read by the middleware.
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
-                request.Fields.Add(1, writer => writer.WriteInt(multiplier));
+                request.Fields.Add(1, encoder => encoder.EncodeInt(multiplier));
                 return await next.InvokeAsync(request, cancel);
             }));
 
-            prx.Invoker = pipeline;
+            prx.Proxy.Invoker = pipeline;
 
             int ret = await prx.ComputeAsync(2);
             Assert.AreEqual(2 * multiplier, ret);
@@ -124,7 +124,7 @@ namespace IceRpc.Tests.Api
         }
     }
 
-    public class FeatureTest : IFeatureTest
+    public class FeatureTest : Service, IFeatureTest
     {
         public ValueTask<int> ComputeAsync(int value, Dispatch dispatch, CancellationToken cancel)
         {

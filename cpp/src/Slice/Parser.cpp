@@ -2979,7 +2979,7 @@ Slice::InterfaceDef::operations() const
 }
 
 OperationList
-Slice::InterfaceDef::allOperations() const
+Slice::InterfaceDef::allBaseOperations() const
 {
     OperationList result;
     for (const auto& base : _bases)
@@ -2992,6 +2992,14 @@ Slice::InterfaceDef::allOperations() const
             }
         }
     }
+
+    return result;
+}
+
+OperationList
+Slice::InterfaceDef::allOperations() const
+{
+    OperationList result = allBaseOperations();
 
     for (const auto& operation : _operations)
     {
@@ -3132,18 +3140,7 @@ Slice::Optional::isInterfaceType() const
 size_t
 Slice::Optional::minWireSize() const
 {
-    if (isClassType())
-    {
-        return 1;
-    }
-    else if (isInterfaceType())
-    {
-        return 2;
-    }
-    else
-    {
-        return 0;
-    }
+    return isClassType() || isInterfaceType() ? 1 : 0;
 }
 
 string

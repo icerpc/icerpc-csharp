@@ -44,7 +44,7 @@ namespace IceRpc.Tests.ClientServer
                          Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
+                async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(10, logEntries.Count);
@@ -100,7 +100,7 @@ namespace IceRpc.Tests.ClientServer
                          Interceptors.Logger(loggerFactory));
 
             Assert.CatchAsync<ConnectFailedException>(
-                async () => await IServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
+                async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
             Assert.AreEqual(1, logEntries.Count);
@@ -134,10 +134,10 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 LoggerFactory = loggerFactory,
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
             };
 
-            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
 
@@ -166,9 +166,9 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 LoggerFactory = loggerFactory,
-                RemoteEndpoint = server.ProxyEndpoint,
+                RemoteEndpoint = server.Endpoint,
             };
-            var service = IGreeterPrx.FromConnection(connection, invoker: pipeline);
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
 
             Assert.DoesNotThrowAsync(async () => await service.IcePingAsync());
             writer.Flush();
@@ -243,11 +243,8 @@ namespace IceRpc.Tests.ClientServer
 
         private Server CreateServer(bool colocated, int portNumber, IDispatcher dispatcher) => new()
         {
-            HasColocEndpoint = false,
             Dispatcher = dispatcher,
             Endpoint = colocated ? TestHelper.GetUniqueColocEndpoint() : GetTestEndpoint(port: portNumber),
-            // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-            HostName = "127.0.0.1"
         };
 
         private static string GetCategory(JsonDocument document) =>
@@ -275,7 +272,7 @@ namespace IceRpc.Tests.ClientServer
             data.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries).Select(
                 line => JsonDocument.Parse(line)).ToList();
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

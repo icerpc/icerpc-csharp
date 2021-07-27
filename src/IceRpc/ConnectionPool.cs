@@ -1,7 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -15,21 +17,17 @@ namespace IceRpc
     /// <see cref="Interceptors.Binder"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
+        /// <summary>The <see cref="IClientTransport"/> used by the connections created by this pool.
+        /// </summary>
+        public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
+
         /// <summary>The connection options.</summary>
         public ClientConnectionOptions? ConnectionOptions { get; set; }
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
-        /// its logger using <see cref="Runtime.DefaultLoggerFactory"/>.</summary>
+        /// its logger using <see cref="NullLoggerFactory.Instance"/>.</summary>
         /// <value>The logger factory of this connection pool.</value>
-        public ILoggerFactory? LoggerFactory
-        {
-            get => _loggerFactory;
-            set
-            {
-                _loggerFactory = value;
-                _logger = null; // clears existing logger, if there is one
-            }
-        }
+        public ILoggerFactory? LoggerFactory { get; init; }
 
         /// <summary>Indicates whether or not <see cref="GetConnectionAsync"/> prefers returning an existing connection
         /// over creating a new one.</summary>
@@ -39,11 +37,7 @@ namespace IceRpc
         /// create an active connection. The default value is <c>true</c>.</value>
         public bool PreferExistingConnection { get; set; } = true;
 
-        internal ILogger Logger => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-
         private readonly Dictionary<Endpoint, List<Connection>> _connections = new(EndpointComparer.Equivalent);
-        private ILogger? _logger;
-        private ILoggerFactory? _loggerFactory;
         private readonly object _mutex = new();
         private CancellationTokenSource? _shutdownCancelSource;
         private Task? _shutdownTask;
@@ -106,21 +100,43 @@ namespace IceRpc
                         {
                             return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
                         }
+                        catch (UnknownTransportException)
+                        {
+                            // ignored, continue for loop
+                        }
                         catch (Exception altEx)
                         {
-                            exceptionList ??= new List<Exception> { ex };
-                            exceptionList.Add(altEx);
+                            if (exceptionList == null)
+                            {
+                                if (ex is UnknownTransportException)
+                                {
+                                    // keep in ex the first exception that is not an UnknownTransportException
+                                    ex = altEx;
+                                }
+                                else
+                                {
+                                    // we have at least 2 exceptions that are not UnknownTransportException
+                                    exceptionList = new List<Exception> { ex, altEx };
+                                }
+                            }
+                            else
+                            {
+                                exceptionList.Add(altEx);
+                            }
                             // and keep trying
                         }
                     }
-                    throw exceptionList == null ? ExceptionUtil.Throw(ex) : new AggregateException(exceptionList);
+
+                    throw exceptionList == null ?
+                        (ex is UnknownTransportException ? new NoEndpointException() : ExceptionUtil.Throw(ex)) :
+                        new AggregateException(exceptionList);
                 }
             }
 
             Connection? GetCachedConnection(Endpoint endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
-                    connection => connection.State == ConnectionState.Active) is Connection connection ? 
+                    connection => connection.State == ConnectionState.Active) is Connection connection ?
                         connection : null;
         }
 
@@ -208,7 +224,8 @@ namespace IceRpc
                     connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Logger = Logger,
+                        LoggerFactory = LoggerFactory,
+                        ClientTransport = ClientTransport,
                         Options = options
                     };
 #pragma warning restore CA2000

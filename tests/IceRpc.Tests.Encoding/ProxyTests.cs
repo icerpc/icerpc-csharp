@@ -25,7 +25,7 @@ namespace IceRpc.Tests.Encoding
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.ProxyEndpoint,
+                RemoteEndpoint = _server.Endpoint,
                 Options = ClientConnectionOptions.Default // TODO: it's required due to a bug in the Connection code
             };
         }
@@ -44,16 +44,16 @@ namespace IceRpc.Tests.Encoding
         public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
-            var writer = new BufferWriter(encoding, _buffer);
+            var encoder = new IceEncoder(encoding, _buffer);
 
-            var prx = IServicePrx.Parse(str);
-            writer.WriteProxy(prx);
-            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
+            var proxy = Proxy.Parse(str);
+            encoder.EncodeProxy(proxy);
+            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
-            var reader = new BufferReader(data, encoding, connection: null, prx.Invoker);
-            var prx2 = IServicePrx.Decoder(reader);
-            reader.CheckEndOfBuffer(skipTaggedParams: false);
-            Assert.AreEqual(prx, prx2);
+            var decoder = new IceDecoder(data, encoding, connection: null, invoker: null);
+            var proxy2 = decoder.DecodeProxy();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            Assert.AreEqual(proxy, proxy2);
         }
 
         [TestCase(2, 0)]
@@ -63,22 +63,22 @@ namespace IceRpc.Tests.Encoding
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
 
             // Create an endpointless proxy
-            var endpointLess = IServicePrx.FromPath("/foo", _server.Protocol);
+            var endpointLess = Proxy.FromPath("/foo", _server.Protocol);
 
-            var regular = IServicePrx.FromConnection(_connection, "/bar");
+            var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var writer = new BufferWriter(encoding, _buffer);
-            writer.WriteProxy(endpointLess);
-            ReadOnlyMemory<byte> data = writer.Finish().Span[0];
+            var encoder = new IceEncoder(encoding, _buffer);
+            encoder.EncodeProxy(endpointLess);
+            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            var reader = new BufferReader(data, encoding, _connection);
-            var prx1 = IServicePrx.Decoder(reader);
-            reader.CheckEndOfBuffer(skipTaggedParams: false);
+            var decoder = new IceDecoder(data, encoding, _connection);
+            var proxy1 = decoder.DecodeProxy();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
-            Assert.AreEqual(regular.Connection, prx1.Connection);
-            Assert.AreEqual(prx1.Endpoint, regular.Connection!.RemoteEndpoint);
+            Assert.AreEqual(regular.Connection, proxy1.Connection);
+            Assert.AreEqual(proxy1.Endpoint, regular.Connection!.RemoteEndpoint);
         }
     }
 }

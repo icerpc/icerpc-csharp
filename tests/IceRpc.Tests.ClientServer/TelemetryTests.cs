@@ -23,10 +23,10 @@ namespace IceRpc.Tests.ClientServer
             server.Listen();
 
             {
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var pipeline = new Pipeline();
                 // The invocation activity is only created if the logger is enabled or Activity.Current is set.
-                var prx = IGreeterPrx.FromConnection(connection);
+                var prx = GreeterPrx.FromConnection(connection);
                 Activity? invocationActivity = null;
                 bool called = false;
                 pipeline.Use(Interceptors.Telemetry);
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
                     invocationActivity = Activity.Current;
                     return next.InvokeAsync(request, cancel);
                 }));
-                prx.Invoker = pipeline;
+                prx.Proxy.Invoker = pipeline;
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(invocationActivity, Is.Null);
@@ -50,10 +50,10 @@ namespace IceRpc.Tests.ClientServer
                 Assert.That(Activity.Current, Is.Not.Null);
 
                 Activity? invocationActivity = null;
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
                 var pipeline = new Pipeline();
-                var prx = IGreeterPrx.FromConnection(connection);
-                prx.Invoker = pipeline;
+                var prx = GreeterPrx.FromConnection(connection);
+                prx.Proxy.Invoker = pipeline;
                 pipeline.Use(Interceptors.Telemetry);
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
@@ -95,8 +95,8 @@ namespace IceRpc.Tests.ClientServer
 
                 // The dispatch activity is only created if the logger is enabled, Activity.Current is set or
                 // the server has an ActivitySource with listeners.
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var prx = IGreeterPrx.FromConnection(connection);
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+                var prx = GreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 Assert.That(called, Is.True);
                 Assert.That(dispatchActivity, Is.Null);
@@ -142,11 +142,10 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Endpoint = TestHelper.GetUniqueColocEndpoint(),
                     Dispatcher = router,
-                    ActivitySource = activitySource,
                 };
                 server.Listen();
-                await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-                var prx = IGreeterPrx.FromConnection(connection);
+                await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+                var prx = GreeterPrx.FromConnection(connection);
                 await prx.IcePingAsync();
                 // Await the server shutdown to ensure the dispatch has finish
                 await server.ShutdownAsync();
@@ -202,16 +201,13 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Endpoint = TestHelper.GetTestEndpoint(),
-                Dispatcher = router,
-                ActivitySource = activitySource,
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
+                Dispatcher = router
             };
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.ProxyEndpoint };
-            var prx = IGreeterPrx.FromConnection(connection);
+            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            var prx = GreeterPrx.FromConnection(connection);
 
             // Starting the test activity ensures that Activity.Current is not null which in turn will
             // trigger the creation of the Invocation activity.
@@ -231,7 +227,7 @@ namespace IceRpc.Tests.ClientServer
                 invocationActivity?.AddBaggage("TraceLevel", "Information");
                 return next.InvokeAsync(request, cancel);
             }));
-            prx.Invoker = pipeline;
+            prx.Proxy.Invoker = pipeline;
             await prx.IcePingAsync();
             // Await the server shutdown to ensure the dispatch has finish
             await server.ShutdownAsync();
@@ -251,7 +247,7 @@ namespace IceRpc.Tests.ClientServer
             CollectionAssert.AreEqual(dispatchStartedActivities, dispatchStoppedActivities);
         }
 
-        public class Greeter : IGreeter
+        public class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel) => default;
         }

@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,18 +15,24 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IOptionalOperationsPrx _prx;
+        private readonly OptionalOperationsPrx _prx;
 
         public OptionalTests()
         {
+            var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
             _server = new Server()
             {
                 Dispatcher = new OptionalOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IOptionalOperationsPrx.FromConnection(_connection);
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.Endpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
+            _prx = OptionalOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -73,7 +80,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiOtional.MMyEnum = MyEnum.enum1;
             multiOtional.MAnotherStruct = new AnotherStruct(
                 "hello",
-                IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                OperationsPrx.Parse("ice+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -309,7 +316,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    OperationsPrx.Parse("ice+tcp://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -533,7 +540,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -551,7 +558,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -620,7 +627,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(multiOtional.MAnotherStructDict, Is.Null);
         }
 
-        class OptionalOperations : IOptionalOperations
+        class OptionalOperations : Service, IOptionalOperations
         {
             public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
                 AnotherStruct? p1,

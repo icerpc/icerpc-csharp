@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private bool _called;
         private readonly ConnectionPool _pool = new();
-        private readonly IGreeterPrx _greeter;
+        private readonly GreeterPrx _greeter;
 
         private readonly Pipeline _pipeline = new();
         private readonly Server _server;
@@ -30,18 +30,16 @@ namespace IceRpc.Tests.ClientServer
             router.Map(path, new Greeter());
             _server = new Server
             {
-                HasColocEndpoint = false,
                 Dispatcher = router,
-                Endpoint = "tcp -h 127.0.0.1 -p 0",
-                // TODO use localhost see https://github.com/dotnet/runtime/issues/53447
-                HostName = "127.0.0.1"
+                Endpoint = "tcp -h 127.0.0.1 -p 0"
             };
 
             _server.Listen();
 
             // Must be created after Listen to get the port number.
-            _greeter = IGreeterPrx.FromServer(_server, path);
-            _greeter.Invoker = _pipeline;
+            _greeter = GreeterPrx.FromPath(path, Protocol.Ice1);
+            _greeter.Proxy.Endpoint = _server.Endpoint;
+            _greeter.Proxy.Invoker = _pipeline;
         }
 
         [TestCase("adapt1", "foo:tcp -h host1 -p 10000")]
@@ -51,17 +49,17 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_AdapterResolveAsync(string adapter, string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = IGreeterPrx.Parse(proxy, _pipeline);
-            var indirectGreeter = IGreeterPrx.Parse($"{greeter.GetIdentity()} @ {adapter}", _pipeline);
+            var greeter = GreeterPrx.Parse(proxy, _pipeline);
+            var indirectGreeter = GreeterPrx.Parse($"{greeter.Proxy.GetIdentity()} @ {adapter}", _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
             _pipeline.Use(Interceptors.Locator(locator));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if (request.Proxy == indirectGreeter)
+                    if (request.Proxy == indirectGreeter.Proxy)
                     {
-                        Assert.AreEqual(greeter.Endpoint, request.Endpoint);
+                        Assert.AreEqual(greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -70,12 +68,12 @@ namespace IceRpc.Tests.ClientServer
 
             await locator.RegisterAdapterAsync(adapter, greeter);
 
-            CollectionAssert.IsEmpty(indirectGreeter.AltEndpoints);
-            Assert.AreEqual(Transport.Loc, indirectGreeter.Endpoint!.Transport);
+            CollectionAssert.IsEmpty(indirectGreeter.Proxy.AltEndpoints);
+            Assert.AreEqual(Transport.Loc, indirectGreeter.Proxy.Endpoint!.Transport);
 
-            IServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
+            ServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
+            Assert.AreEqual(found?.Proxy.Endpoint, greeter.Proxy.Endpoint);
 
             Assert.That(_called, Is.False);
             try
@@ -94,8 +92,8 @@ namespace IceRpc.Tests.ClientServer
         /// <summary>Makes sure a locator interceptor caches resolutions.</summary>
         public async Task Locator_Cache(int cacheMaxSize)
         {
-            var indirectGreeter = IGreeterPrx.Parse($"{_greeter.GetIdentity()} @ adapt", _pipeline);
-            var wellKnownGreeter = IGreeterPrx.Parse(_greeter.GetIdentity().ToString(), _pipeline);
+            var indirectGreeter = GreeterPrx.Parse($"{_greeter.Proxy.GetIdentity()} @ adapt", _pipeline);
+            var wellKnownGreeter = GreeterPrx.Parse(_greeter.Proxy.GetIdentity().ToString(), _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
             _pipeline.Use(Interceptors.Retry(2));
@@ -109,14 +107,14 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     // Only test if the resolution was successful
-                    if (request.Proxy == indirectGreeter && request.Endpoint?.Transport != Transport.Loc)
+                    if (request.Proxy == indirectGreeter.Proxy && request.Endpoint?.Transport != Transport.Loc)
                     {
-                        Assert.AreEqual(_greeter.Endpoint, request.Endpoint);
+                        Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;
                     }
-                    else if (request.Proxy == wellKnownGreeter && request.Endpoint != null)
+                    else if (request.Proxy == wellKnownGreeter.Proxy && request.Endpoint != null)
                     {
-                        Assert.AreEqual(_greeter.Endpoint, request.Endpoint);
+                        Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -151,13 +149,13 @@ namespace IceRpc.Tests.ClientServer
             // Same with well-known greeter
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await wellKnownGreeter.SayHelloAsync());
-            await locator.RegisterWellKnownProxyAsync(_greeter.GetIdentity(), indirectGreeter);
+            await locator.RegisterWellKnownProxyAsync(_greeter.Proxy.GetIdentity(), indirectGreeter);
             await locator.RegisterAdapterAsync("adapt", _greeter);
             _called = false;
             Assert.DoesNotThrowAsync(async () => await wellKnownGreeter.SayHelloAsync());
             Assert.That(_called, Is.True);
 
-            Assert.That(await locator.UnregisterWellKnownProxyAsync(_greeter.GetIdentity()), Is.True);
+            Assert.That(await locator.UnregisterWellKnownProxyAsync(_greeter.Proxy.GetIdentity()), Is.True);
 
             if (cacheMaxSize > 1)
             {
@@ -185,11 +183,11 @@ namespace IceRpc.Tests.ClientServer
         public async Task Locator_WellKnownProxyResolveAsync(string proxy)
         {
             // There is no corresponding service, we're just testing the endpoints.
-            var greeter = IGreeterPrx.Parse(proxy, _pipeline);
-            Identity identity = greeter.GetIdentity();
+            var greeter = GreeterPrx.Parse(proxy, _pipeline);
+            Identity identity = greeter.Proxy.GetIdentity();
 
-            var wellKnownGreeter = IGreeterPrx.Parse(identity.ToString(), _pipeline);
-            Assert.That(wellKnownGreeter.Endpoint, Is.Null);
+            var wellKnownGreeter = GreeterPrx.Parse(identity.ToString(), _pipeline);
+            Assert.That(wellKnownGreeter.Proxy.Endpoint, Is.Null);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
             _pipeline.Use(Interceptors.Locator(locator));
@@ -198,7 +196,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (request.Proxy.Endpoint == null && request.GetIdentity() == identity)
                     {
-                        Assert.AreEqual(greeter.Endpoint, request.Endpoint);
+                        Assert.AreEqual(greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;
                     }
                     return next.InvokeAsync(request, cancel);
@@ -207,9 +205,9 @@ namespace IceRpc.Tests.ClientServer
 
             // Test with direct endpoints
             await locator.RegisterWellKnownProxyAsync(identity, greeter);
-            IServicePrx? found = await locator.FindObjectByIdAsync(identity);
+            ServicePrx? found = await locator.FindObjectByIdAsync(identity);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(found!.Endpoint, greeter.Endpoint);
+            Assert.AreEqual(found?.Proxy.Endpoint, greeter.Proxy.Endpoint);
 
             Assert.That(_called, Is.False);
             try
@@ -225,8 +223,8 @@ namespace IceRpc.Tests.ClientServer
 
             // Test with indirect endpoints
             string adapter = $"adapter/{identity.Category}/{identity.Name}";
-            var indirectGreeter = IGreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline);
-            Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Endpoint?.ToString());
+            var indirectGreeter = GreeterPrx.Parse($"{identity} @ '{adapter}'", _pipeline);
+            Assert.AreEqual($"loc -h {adapter} -p 0", indirectGreeter.Proxy.Endpoint?.ToString());
 
             await locator.RegisterAdapterAsync(adapter, greeter);
 
@@ -235,7 +233,7 @@ namespace IceRpc.Tests.ClientServer
 
             found = await locator.FindObjectByIdAsync(identity);
             Assert.That(found, Is.Not.Null);
-            Assert.AreEqual(indirectGreeter.Endpoint, found!.Endpoint); // partial resolution
+            Assert.AreEqual(indirectGreeter.Proxy.Endpoint, found?.Proxy.Endpoint); // partial resolution
 
             Assert.That(_called, Is.False);
             try
@@ -261,36 +259,37 @@ namespace IceRpc.Tests.ClientServer
             string path = $"/{Guid.NewGuid()}";
             (_server.Dispatcher as Router)!.Map(path, new Locator());
 
-            var locator = ISimpleLocatorTestPrx.FromServer(_server, path);
-            locator.Invoker = _pipeline;
+            var locator = SimpleLocatorTestPrx.FromPath(path, _server.Protocol);
+            locator.Proxy.Endpoint = _server.Endpoint;
+            locator.Proxy.Invoker = _pipeline;
             return locator;
         }
 
-        private class Locator : ISimpleLocatorTest
+        private class Locator : Service, ISimpleLocatorTest
         {
-            private readonly IDictionary<string, IServicePrx> _adapterMap =
-                new ConcurrentDictionary<string, IServicePrx>();
-            private readonly IDictionary<Identity, IServicePrx> _identityMap =
-                new ConcurrentDictionary<Identity, IServicePrx>();
+            private readonly IDictionary<string, ServicePrx> _adapterMap =
+                new ConcurrentDictionary<string, ServicePrx>();
+            private readonly IDictionary<Identity, ServicePrx> _identityMap =
+                new ConcurrentDictionary<Identity, ServicePrx>();
 
-            public ValueTask<IServicePrx?> FindObjectByIdAsync(
+            public ValueTask<ServicePrx?> FindObjectByIdAsync(
                 Identity id,
                 Dispatch dispatch,
                 CancellationToken cancel) =>
-                new(_identityMap.TryGetValue(id, out IServicePrx? value) ? value : null);
+                new(_identityMap.TryGetValue(id, out ServicePrx value) ? value : null);
 
-            public ValueTask<IServicePrx?> FindAdapterByIdAsync(string id, Dispatch dispatch, CancellationToken cancel) =>
-                new(_adapterMap.TryGetValue(id, out IServicePrx? value) ? value : null);
+            public ValueTask<ServicePrx?> FindAdapterByIdAsync(string id, Dispatch dispatch, CancellationToken cancel) =>
+                new(_adapterMap.TryGetValue(id, out ServicePrx value) ? value : null);
 
-            public ValueTask<ILocatorRegistryPrx?> GetRegistryAsync(Dispatch dispatch, CancellationToken cancel)
+            public ValueTask<LocatorRegistryPrx?> GetRegistryAsync(Dispatch dispatch, CancellationToken cancel)
             {
                 Assert.Fail("unexpected call to GetRegistryAsync");
-                return new(null as ILocatorRegistryPrx);
+                return new(null as LocatorRegistryPrx?);
             }
 
             public ValueTask RegisterAdapterAsync(
                 string adapter,
-                IServicePrx dummy,
+                ServicePrx dummy,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
@@ -300,7 +299,7 @@ namespace IceRpc.Tests.ClientServer
 
             public ValueTask RegisterWellKnownProxyAsync(
                 Identity identity,
-                IServicePrx dummy,
+                ServicePrx dummy,
                 Dispatch dispatch,
                 CancellationToken cancel)
             {
@@ -318,7 +317,7 @@ namespace IceRpc.Tests.ClientServer
                 new(_identityMap.Remove(identity));
         }
 
-        private class Greeter : IGreeter
+        private class Greeter : Service, IGreeter
         {
             public ValueTask SayHelloAsync(Dispatch dispatch, CancellationToken cancel)
             {

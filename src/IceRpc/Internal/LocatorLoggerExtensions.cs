@@ -80,7 +80,7 @@ namespace IceRpc.Internal
         internal static partial void LogReceivedInvalidProxyForAdapterId(
             this ILogger logger,
             string adapterId,
-            ServicePrx proxy);
+            Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ReceivedInvalidProxyForWellKnown,
@@ -91,7 +91,7 @@ namespace IceRpc.Internal
         internal static partial void LogReceivedInvalidProxyForWellKnown(
             this ILogger logger,
             Identity identity,
-            ServicePrx proxy);
+            Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ResolveAdapterIdFailure,

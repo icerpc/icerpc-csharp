@@ -36,11 +36,11 @@ namespace IceRpc.Transports.Internal
 
         private IPAddress? _address;
 
-        protected internal override void WriteOptions11(BufferWriter writer)
+        protected internal override void EncodeOptions11(IceEncoder encoder)
         {
-            Debug.Assert(Protocol == Protocol.Ice1 && writer.Encoding == Encoding.V11);
-            writer.WriteString(Host);
-            writer.WriteInt(Port);
+            Debug.Assert(Protocol == Protocol.Ice1 && encoder.Encoding == Encoding.V11);
+            encoder.EncodeString(Host);
+            encoder.EncodeInt(Port);
         }
 
         private protected static void SetBufferSize(

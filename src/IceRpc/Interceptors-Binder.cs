@@ -24,13 +24,6 @@ namespace IceRpc
                 {
                     if (request.Connection == null)
                     {
-                        // Filter out endpoint we cannot connect to.
-                        if (request.Endpoint != null && request.Endpoint is not IClientConnectionFactory)
-                        {
-                            request.Endpoint = null;
-                        }
-                        request.AltEndpoints = request.AltEndpoints.Where(e => e is IClientConnectionFactory);
-
                         if (!request.IsOneway)
                         {
                             // Filter-out datagram endpoints

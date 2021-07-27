@@ -105,26 +105,26 @@ namespace IceRpc.Internal
 
                 request.Fields.Add(
                     (int)Ice2FieldKey.TraceContext,
-                    writer =>
+                    encoder =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                         // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values
-                        writer.WriteByte(0);
+                        encoder.EncodeByte(0);
                         Span<byte> buffer = stackalloc byte[16];
                         activity.TraceId.CopyTo(buffer);
-                        writer.WriteByteSpan(buffer);
+                        encoder.WriteByteSpan(buffer);
                         activity.SpanId.CopyTo(buffer[0..8]);
-                        writer.WriteByteSpan(buffer[0..8]);
-                        writer.WriteByte((byte)activity.ActivityTraceFlags);
+                        encoder.WriteByteSpan(buffer[0..8]);
+                        encoder.EncodeByte((byte)activity.ActivityTraceFlags);
 
                         // Tracestate encoded as an string
-                        writer.WriteString(activity.TraceStateString ?? "");
+                        encoder.EncodeString(activity.TraceStateString ?? "");
 
                         // Baggage encoded as a sequence<BaggageEntry>
-                        writer.WriteSequence(activity.Baggage, (writer, entry) =>
+                        encoder.EncodeSequence(activity.Baggage, (encoder, entry) =>
                         {
-                            writer.WriteString(entry.Key);
-                            writer.WriteString(entry.Value ?? "");
+                            encoder.EncodeString(entry.Key);
+                            encoder.EncodeString(entry.Value ?? "");
                         });
                     });
             }

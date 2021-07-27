@@ -26,6 +26,22 @@ module IceRpc::Tests::CodeGeneration
     sequence<double> DoubleSeq;
     sequence<string> StringSeq;
 
+    sequence<byte?> OptionalByteSeq;
+    sequence<bool?> OptionalBoolSeq;
+    sequence<short?> OptionalShortSeq;
+    sequence<ushort?> OptionalUShortSeq;
+    sequence<int?> OptionalIntSeq;
+    sequence<varint?> OptionalVarIntSeq;
+    sequence<uint?> OptionalUIntSeq;
+    sequence<varuint?> OptionalVarUIntSeq;
+    sequence<long?> OptionalLongSeq;
+    sequence<varlong?> OptionalVarLongSeq;
+    sequence<ulong?> OptionalULongSeq;
+    sequence<varulong?> OptionalVarULongSeq;
+    sequence<float?> OptionalFloatSeq;
+    sequence<double?> OptionalDoubleSeq;
+    sequence<string?> OptionalStringSeq;
+
     sequence<MyEnum> MyEnumSeq;
     sequence<MyFixedLengthEnum> MyFixedLengthEnumSeq;
     sequence<MyUncheckedEnum> MyUncheckedEnumSeq;
@@ -33,6 +49,14 @@ module IceRpc::Tests::CodeGeneration
     sequence<MyStruct> MyStructSeq;
     sequence<Operations> OperationsSeq;
     sequence<AnotherStruct> AnotherStructSeq;
+
+    sequence<MyEnum?> OptionalMyEnumSeq;
+    sequence<MyFixedLengthEnum?> OptionalMyFixedLengthEnumSeq;
+    sequence<MyUncheckedEnum?> OptionalMyUncheckedEnumSeq;
+
+    sequence<MyStruct?> OptionalMyStructSeq;
+    sequence<Operations?> OptionalOperationsSeq;
+    sequence<AnotherStruct?> OptionalAnotherStructSeq;
 
     // Sequence mapping
     [cs:generic(List)] sequence<byte> ByteList;
@@ -138,6 +162,31 @@ module IceRpc::Tests::CodeGeneration
         (DoubleSeq r1, DoubleSeq r2) opDoubleSeq(DoubleSeq p1, DoubleSeq p2);
         (StringSeq r1, StringSeq r2) opStringSeq(StringSeq p1, StringSeq p2);
 
+        // Optional builtin types sequences
+        (OptionalByteSeq r1, OptionalByteSeq r2) opOptionalByteSeq(OptionalByteSeq p1, OptionalByteSeq p2);
+        (OptionalBoolSeq r1, OptionalBoolSeq r2) opOptionalBoolSeq(OptionalBoolSeq p1, OptionalBoolSeq p2);
+        (OptionalShortSeq r1, OptionalShortSeq r2) opOptionalShortSeq(OptionalShortSeq p1, OptionalShortSeq p2);
+        (OptionalUShortSeq r1, OptionalUShortSeq r2) opOptionalUShortSeq(OptionalUShortSeq p1, OptionalUShortSeq p2);
+        (OptionalIntSeq r1, OptionalIntSeq r2) opOptionalIntSeq(OptionalIntSeq p1, OptionalIntSeq p2);
+        (OptionalVarIntSeq r1, OptionalVarIntSeq r2) opOptionalVarIntSeq(OptionalVarIntSeq p1, OptionalVarIntSeq p2);
+        (OptionalUIntSeq r1, OptionalUIntSeq r2) opOptionalUIntSeq(OptionalUIntSeq p1, OptionalUIntSeq p2);
+        (OptionalVarUIntSeq r1, OptionalVarUIntSeq r2) opOptionalVarUIntSeq(
+            OptionalVarUIntSeq p1,
+            OptionalVarUIntSeq p2);
+        (OptionalLongSeq r1, OptionalLongSeq r2) opOptionalLongSeq(OptionalLongSeq p1, OptionalLongSeq p2);
+        (OptionalVarLongSeq r1, OptionalVarLongSeq r2) opOptionalVarLongSeq(
+            OptionalVarLongSeq p1,
+            OptionalVarLongSeq p2);
+        (OptionalULongSeq r1, OptionalULongSeq r2) opOptionalULongSeq(
+            OptionalULongSeq p1,
+            OptionalULongSeq p2);
+        (OptionalVarULongSeq r1, OptionalVarULongSeq r2) opOptionalVarULongSeq(
+            OptionalVarULongSeq p1,
+            OptionalVarULongSeq p2);
+        (OptionalFloatSeq r1, OptionalFloatSeq r2) opOptionalFloatSeq(OptionalFloatSeq p1, OptionalFloatSeq p2);
+        (OptionalDoubleSeq r1, OptionalDoubleSeq r2) opOptionalDoubleSeq(OptionalDoubleSeq p1, OptionalDoubleSeq p2);
+        (OptionalStringSeq r1, OptionalStringSeq r2) opOptionalStringSeq(OptionalStringSeq p1, OptionalStringSeq p2);
+
         // Defined types sequences
         (MyEnumSeq r1, MyEnumSeq r2) opMyEnumSeq(MyEnumSeq p1, MyEnumSeq p2);
         (MyFixedLengthEnumSeq r1, MyFixedLengthEnumSeq r2) opMyFixedLengthEnumSeq(
@@ -149,6 +198,24 @@ module IceRpc::Tests::CodeGeneration
         (MyStructSeq r1, MyStructSeq r2) opMyStructSeq(MyStructSeq p1, MyStructSeq p2);
         (OperationsSeq r1, OperationsSeq r2) opOperationsSeq(OperationsSeq p1, OperationsSeq p2);
         (AnotherStructSeq r1, AnotherStructSeq r2) opAnotherStructSeq(AnotherStructSeq p1, AnotherStructSeq p2);
+
+        // Optional defined types sequences
+        (OptionalMyEnumSeq r1, OptionalMyEnumSeq r2) opOptionalMyEnumSeq(OptionalMyEnumSeq p1, OptionalMyEnumSeq p2);
+        (OptionalMyFixedLengthEnumSeq r1, OptionalMyFixedLengthEnumSeq r2) opOptionalMyFixedLengthEnumSeq(
+            OptionalMyFixedLengthEnumSeq p1,
+            OptionalMyFixedLengthEnumSeq p2);
+        (OptionalMyUncheckedEnumSeq r1, OptionalMyUncheckedEnumSeq r2) opOptionalMyUncheckedEnumSeq(
+            OptionalMyUncheckedEnumSeq p1,
+            OptionalMyUncheckedEnumSeq p2);
+        (OptionalMyStructSeq r1, OptionalMyStructSeq r2) opOptionalMyStructSeq(
+            OptionalMyStructSeq p1,
+            OptionalMyStructSeq p2);
+        (OptionalOperationsSeq r1, OptionalOperationsSeq r2) opOptionalOperationsSeq(
+            OptionalOperationsSeq p1,
+            OptionalOperationsSeq p2);
+        (OptionalAnotherStructSeq r1, OptionalAnotherStructSeq r2) opOptionalAnotherStructSeq(
+            OptionalAnotherStructSeq p1,
+            OptionalAnotherStructSeq p2);
 
         // Sequence mapping
         (ByteList r1, ByteList r2) opByteList(ByteList p1, ByteList p2);

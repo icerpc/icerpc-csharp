@@ -161,7 +161,7 @@ namespace IceRpc.Tests.Internal
                 var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
 
                 using IListener listener =
-                    ((IListenerFactory)serverEndpoint).CreateListener(connectionOptions, Logger);
+                    Server.DefaultServerTransport.Listen(serverEndpoint, connectionOptions, Logger).Listener!;
 
                 ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
@@ -240,7 +240,7 @@ namespace IceRpc.Tests.Internal
         {
             ServerConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
             connectionOptions.TransportOptions = options;
-            return ((IListenerFactory)ServerEndpoint).CreateListener(connectionOptions, Logger);
+            return Server.DefaultServerTransport.Listen(ServerEndpoint, connectionOptions, Logger).Listener!;
         }
 
         private NetworkSocket CreateClientConnection(TcpOptions? tcpOptions = null, Endpoint? endpoint = null)
@@ -249,7 +249,7 @@ namespace IceRpc.Tests.Internal
             options.TransportOptions = tcpOptions ?? options.TransportOptions;
             endpoint ??= ClientEndpoint;
 
-            return (((IClientConnectionFactory)endpoint).CreateClientConnection(options, Logger) as
+            return (Connection.DefaultClientTransport.CreateConnection(endpoint, options, Logger) as
                 NetworkSocketConnection)!.NetworkSocket;
         }
 

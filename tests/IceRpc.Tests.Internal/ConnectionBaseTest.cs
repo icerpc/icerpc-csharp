@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
                 }
             };
 
-            Logger = Runtime.DefaultLoggerFactory.CreateLogger("IceRpc");
+            Logger = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
 
             if (transport == "coloc")
             {
@@ -121,7 +121,7 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener?.Dispose();
 
-        static protected async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
+        protected static async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
             Task<MultiStreamConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
 
         protected async Task<MultiStreamConnection> AcceptAsync()
@@ -170,8 +170,8 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamConnection =
-                ((IClientConnectionFactory)ClientEndpoint).CreateClientConnection(
+            MultiStreamConnection multiStreamConnection = Connection.DefaultClientTransport.CreateConnection(
+                    ClientEndpoint,
                     connectionOptions ?? ClientConnectionOptions,
                     Logger);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
@@ -196,9 +196,9 @@ namespace IceRpc.Tests.Internal
         }
 
         protected IListener CreateListener() =>
-            ((IListenerFactory)ServerEndpoint).CreateListener(ServerConnectionOptions, Logger);
+            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Listener!;
 
         protected MultiStreamConnection CreateServerConnection() =>
-            ((IServerConnectionFactory)ServerEndpoint).Accept(ServerConnectionOptions, Logger);
+            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Connection!;
     }
 }

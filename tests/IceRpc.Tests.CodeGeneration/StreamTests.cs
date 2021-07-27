@@ -41,13 +41,12 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 {
                     Dispatcher = new Streams(_sendBuffer),
                     Endpoint = TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
-                    HostName = "127.0.0.1"
                 };
             }
 
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IStreamsPrx.FromConnection(_connection);
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _prx = StreamsPrx.FromConnection(_connection);
         }
 
         [TearDown]
@@ -68,17 +67,21 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             stream = await _prx.OpStreamByteReceive0Async();
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(0));
+            stream.Dispose();
 
             (r1, stream) = await _prx.OpStreamByteReceive1Async();
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
+            stream.Dispose();
 
             (r1, r2, stream) = await _prx.OpStreamByteReceive2Async();
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x05));
             Assert.That(r2, Is.EqualTo(6));
+            stream.Dispose();
 
             await _prx.OpStreamByteSend0Async(new MemoryStream(_sendBuffer));
             await _prx.OpStreamByteSend1Async(0x08, new MemoryStream(_sendBuffer));
@@ -87,11 +90,14 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             stream = await _prx.OpStreamByteSendReceive0Async(new MemoryStream(_sendBuffer));
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+            Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(0));
+            stream.Dispose();
 
             (r1, stream) = await _prx.OpStreamByteSendReceive1Async(0x08, new MemoryStream(_sendBuffer));
             Assert.That(stream.Read(buffer, 0, 512), Is.EqualTo(256));
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));
+            stream.Dispose();
 
             (r1, r2, stream) = await _prx.OpStreamByteSendReceive2Async(
                 0x08,
@@ -101,9 +107,10 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
             Assert.That(r1, Is.EqualTo(0x08));
             Assert.That(r2, Is.EqualTo(10));
+            stream.Dispose();
         }
 
-        public class Streams : IStreams
+        public class Streams : Service, IStreams
         {
             private readonly byte[] _sendBuffer;
 

@@ -4,20 +4,31 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::CodeGeneration
+#include <IceRpc/Service.ice>
+
+module IceRpc::Tests::CodeGeneration::InterfaceInheritance
 {
-    interface MyInterfaceBase
+    // Classic diamond-shaped inheritance
+
+    interface D;
+
+    interface A
     {
-        void opBase();
+        D opA(A p);
     }
 
-    interface MyInterfaceDerived : MyInterfaceBase
+    interface B : A
     {
-        void opDerived();
+        B opB(B p);
     }
 
-    interface MyInterfaceMostDerived : MyInterfaceDerived
+    interface C : A, Service
     {
-        void opMostDerived();
+        C opC(C p);
+    }
+
+    interface D : B, C
+    {
+        A opD(D p);
     }
 }

@@ -14,7 +14,7 @@ namespace IceRpc.Tests.Api
     public sealed class InterceptorTests : IAsyncDisposable
     {
         private readonly Connection _connection;
-        private readonly IInterceptorTestPrx _prx;
+        private readonly InterceptorTestPrx _prx;
         private readonly Server _server;
 
         public InterceptorTests()
@@ -26,8 +26,8 @@ namespace IceRpc.Tests.Api
             };
             _server.Listen();
 
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IInterceptorTestPrx.FromConnection(_connection);
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _prx = InterceptorTestPrx.FromConnection(_connection);
         }
 
         /// <summary>Throwing an exception from an invocation interceptor aborts the invocation, and the caller
@@ -35,9 +35,10 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Throws_ArgumentException()
         {
-            IInterceptorTestPrx prx = _prx.Clone();
+            var proxy = _prx.Proxy.Clone();
+            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker((request, cancel) => throw new ArgumentException("message")));
             Assert.ThrowsAsync<ArgumentException>(async () => await prx.IcePingAsync());
         }
@@ -46,9 +47,10 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Interceptor_Timeout_OperationCanceledException()
         {
-            IInterceptorTestPrx prx = _prx.Clone();
+            var proxy = _prx.Proxy.Clone();
+            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 await Task.Delay(100, default);
@@ -64,9 +66,10 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_CallOrder()
         {
             var interceptorCalls = new List<string>();
-            IInterceptorTestPrx prx = _prx.Clone();
+            var proxy = _prx.Proxy.Clone();
+            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            proxy.Invoker = pipeline;
             pipeline.Use(
                 next => new InlineInvoker(async (request, cancel) =>
                 {
@@ -98,9 +101,10 @@ namespace IceRpc.Tests.Api
         public async Task Interceptor_Bypass_RemoteCall(int p1, int p2)
         {
             IncomingResponse? response = null;
-            IInterceptorTestPrx prx = _prx.Clone();
+            var proxy = _prx.Proxy.Clone();
+            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            proxy.Invoker = pipeline;
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
                 if (response == null)
@@ -121,9 +125,10 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Interceptor_Overwrite_RequestContext()
         {
-            IInterceptorTestPrx? prx = _prx.Clone();
+            var proxy = _prx.Proxy.Clone();
+            var prx = new InterceptorTestPrx(proxy);
             var pipeline = new Pipeline();
-            prx.Invoker = pipeline;
+            proxy.Invoker = pipeline;
 
             pipeline.Use(next => new InlineInvoker(async (request, cancel) =>
             {
@@ -146,7 +151,7 @@ namespace IceRpc.Tests.Api
             await _connection.DisposeAsync();
         }
 
-        internal class InterceptorTest : IInterceptorTest
+        internal class InterceptorTest : Service, IInterceptorTest
         {
             public ValueTask<IEnumerable<KeyValuePair<string, string>>> OpContextAsync(
                 Dispatch dispatch,

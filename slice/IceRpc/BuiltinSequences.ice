@@ -32,7 +32,4 @@ module IceRpc
 
     /// A sequence of classes.
     sequence<AnyClass> ClassSeq;
-
-    /// A sequence of proxies.
-    sequence<Object?> ProxySeq;
 }

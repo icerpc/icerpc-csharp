@@ -2,6 +2,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,22 +17,29 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IOperationsPrx _prx;
-        private readonly IDerivedOperationsPrx _derivedPrx;
+        private readonly OperationsPrx _prx;
+        private readonly DerivedOperationsPrx _derivedPrx;
 
         public OperationsTests(Protocol protocol)
         {
+            var classFactory = new ClassFactory(new Assembly[] { typeof(OperationsTests).Assembly });
+
             _server = new Server
             {
                 Dispatcher = new Operations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = IOperationsPrx.FromConnection(_connection);
-            _derivedPrx = _prx.As<IDerivedOperationsPrx>();
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.Endpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
+            _prx = OperationsPrx.FromConnection(_connection);
+            _derivedPrx = new DerivedOperationsPrx(_prx.Proxy);
 
-            Assert.AreEqual(protocol, _prx.Protocol);
+            Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }
 
         [TearDown]
@@ -83,7 +91,7 @@ namespace IceRpc.Tests.CodeGeneration
             await _prx.IcePingAsync();
         }
 
-        public class Operations : IOperations
+        public class Operations : Service, IOperations
         {
             // Builtin types
             public ValueTask<(byte, byte)> OpByteAsync(

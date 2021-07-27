@@ -14,7 +14,8 @@ namespace IceRpc.Transports
     {
         internal RpcStreamError ErrorCode { get; }
 
-        internal RpcStreamAbortedException(RpcStreamError errorCode) => ErrorCode = errorCode;
+        internal RpcStreamAbortedException(RpcStreamError errorCode) :
+            base($"stream aborted with error code {errorCode}") => ErrorCode = errorCode;
     }
 
     /// <summary>Error codes for stream errors.</summary>
@@ -127,6 +128,10 @@ namespace IceRpc.Transports
         /// <param name="errorCode">The reason of the abort.</param>
         public abstract void AbortWrite(RpcStreamError errorCode);
 
+        /// <summary>Get a <see cref="System.IO.Stream"/> to allow using this stream using the C# stream API.</summary>
+        /// <returns>The <see cref="System.IO.Stream"/> object.</returns>
+        public virtual System.IO.Stream AsByteStream() => new ByteStream(this);
+
         /// <summary>Enable flow control for receiving data from the peer over the stream. This is called after
         /// receiving a request or response frame to receive data for a stream parameter. Flow control isn't
         /// enabled for receiving the request or response frame whose size is limited with IncomingFrameSizeMax.
@@ -207,23 +212,27 @@ namespace IceRpc.Transports
         {
             Debug.Assert(_state == (int)(State.ReadCompleted | State.WriteCompleted | State.Shutdown));
 
-            // Eventually cancel the dispatch if there's one.
-            CancelDispatchSource?.Cancel();
+            if (CancelDispatchSource is CancellationTokenSource source)
+            {
+                // Cancel the dispatch.
+                source.Cancel();
 
-            CancelDispatchSource?.Dispose();
+                // We're done with the source, dispose it.
+                source.Dispose();
+            }
             _connection.RemoveStream(Id);
         }
 
         /// <summary>Mark reads as completed for this stream.</summary>
         /// <returns><c>true</c> if the stream reads were successfully marked as completed, <c>false</c> if the stream
         /// reads were already completed.</returns>
-        internal protected bool TrySetReadCompleted(bool shutdown = true) =>
+        protected internal bool TrySetReadCompleted(bool shutdown = true) =>
             TrySetState(State.ReadCompleted, shutdown);
 
         /// <summary>Mark writes as completed for this stream.</summary>
         /// <returns><c>true</c> if the stream writes were successfully marked as completed, <c>false</c> if the stream
         /// writes were already completed.</returns>
-        internal protected bool TrySetWriteCompleted(bool shutdown = true) =>
+        protected internal bool TrySetWriteCompleted(bool shutdown = true) =>
             TrySetState(State.WriteCompleted, shutdown);
 
         /// <summary>Shutdown the stream if it's not already shutdown.</summary>
@@ -269,7 +278,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new BufferReader(data, Ice2Definitions.Encoding));
+                var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(data, Ice2Definitions.Encoding));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -308,16 +317,16 @@ namespace IceRpc.Transports
             else
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var reader = new BufferReader(data, Ice2Definitions.Encoding);
-                int dictionarySize = reader.ReadSize();
+                var decoder = new IceDecoder(data, Ice2Definitions.Encoding);
+                int dictionarySize = decoder.DecodeSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
-                    (int key, ReadOnlyMemory<byte> value) = reader.ReadField();
+                    (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
                     if (key == (int)Ice2ParameterKey.IncomingFrameMaxSize)
                     {
                         checked
                         {
-                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.ReadVarULong().Value;
+                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.DecodeVarULong().Value;
                         }
 
                         if (_connection.PeerIncomingFrameMaxSize < 1024)
@@ -341,14 +350,14 @@ namespace IceRpc.Transports
             _connection.Logger.LogReceivedInitializeFrame(_connection);
         }
 
-        internal async virtual ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
+        internal virtual async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
             ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
             return new IncomingRequest(_connection.Protocol, data);
         }
 
-        internal async virtual ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
+        internal virtual async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
@@ -370,19 +379,19 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+                var encoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
-                    writer.WriteByteSpan(TransportHeader.Span);
+                    encoder.WriteByteSpan(TransportHeader.Span);
                 }
-                writer.WriteByte((byte)Ice2FrameType.GoAway);
-                BufferWriter.Position sizePos = writer.StartFixedLengthSize();
+                encoder.EncodeByte((byte)Ice2FrameType.GoAway);
+                IceEncoder.Position sizePos = encoder.StartFixedLengthSize();
 
                 var goAwayFrameBody = new Ice2GoAwayBody(streamIds.Bidirectional, streamIds.Unidirectional, reason);
-                goAwayFrameBody.IceWrite(writer);
-                writer.EndFixedLengthSize(sizePos);
+                goAwayFrameBody.Encode(encoder);
+                encoder.EndFixedLengthSize(sizePos);
 
-                await SendAsync(writer.Finish(), false, cancel).ConfigureAwait(false);
+                await SendAsync(encoder.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentGoAwayFrame(_connection, streamIds.Bidirectional, streamIds.Unidirectional, reason);
@@ -393,14 +402,14 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
 
             byte[] buffer = new byte[1024];
-            var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+            var encoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
             if (!TransportHeader.IsEmpty)
             {
-                writer.WriteByteSpan(TransportHeader.Span);
+                encoder.WriteByteSpan(TransportHeader.Span);
             }
-            writer.WriteByte((byte)Ice2FrameType.GoAwayCanceled);
-            writer.EndFixedLengthSize(writer.StartFixedLengthSize());
-            await SendAsync(writer.Finish(), true, CancellationToken.None).ConfigureAwait(false);
+            encoder.EncodeByte((byte)Ice2FrameType.GoAwayCanceled);
+            encoder.EndFixedLengthSize(encoder.StartFixedLengthSize());
+            await SendAsync(encoder.Finish(), false, CancellationToken.None).ConfigureAwait(false);
 
             _connection.Logger.LogSentGoAwayCanceledFrame();
         }
@@ -414,27 +423,27 @@ namespace IceRpc.Transports
             else
             {
                 byte[] buffer = new byte[1024];
-                var writer = new BufferWriter(Ice2Definitions.Encoding, buffer);
+                var encoder = new IceEncoder(Ice2Definitions.Encoding, buffer);
                 if (!TransportHeader.IsEmpty)
                 {
-                    writer.WriteByteSpan(TransportHeader.Span);
+                    encoder.WriteByteSpan(TransportHeader.Span);
                 }
-                writer.WriteByte((byte)Ice2FrameType.Initialize);
-                BufferWriter.Position sizePos = writer.StartFixedLengthSize();
-                BufferWriter.Position pos = writer.Tail;
+                encoder.EncodeByte((byte)Ice2FrameType.Initialize);
+                IceEncoder.Position sizePos = encoder.StartFixedLengthSize();
+                IceEncoder.Position pos = encoder.Tail;
 
                 // Encode the transport parameters as Fields
-                writer.WriteSize(1);
+                encoder.EncodeSize(1);
 
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
-                writer.WriteField((int)Ice2ParameterKey.IncomingFrameMaxSize,
+                encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
-                                BasicEncoders.VarULongEncoder);
+                                (encoder, value) => encoder.EncodeVarULong(value));
 
-                writer.EndFixedLengthSize(sizePos);
+                encoder.EndFixedLengthSize(sizePos);
 
-                await SendAsync(writer.Finish(), false, cancel).ConfigureAwait(false);
+                await SendAsync(encoder.Finish(), false, cancel).ConfigureAwait(false);
             }
 
             _connection.Logger.LogSentInitializeFrame(_connection, _connection.IncomingFrameMaxSize);
@@ -446,7 +455,7 @@ namespace IceRpc.Transports
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            request.StreamWriter?.Send(this);
+            request.StreamWriter?.Send(this, request.StreamCompressor);
         }
 
         internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
@@ -455,7 +464,7 @@ namespace IceRpc.Transports
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            response.StreamWriter?.Send(this);
+            response.StreamWriter?.Send(this, response.StreamCompressor);
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
@@ -477,12 +486,12 @@ namespace IceRpc.Transports
             }
 
             // Read the remainder of the size if needed.
-            int sizeLength = buffer.Span[1].ReadSizeLength20();
+            int sizeLength = buffer.Span[1].DecodeSizeLength20();
             if (sizeLength > 1)
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = buffer[1..].AsReadOnlySpan().ReadSize20().Size;
+            int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
 
             // Read the frame data
             if (size > 0)
@@ -506,14 +515,14 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var writer = new BufferWriter(Encoding.V20);
-            writer.WriteByteSpan(TransportHeader.Span);
+            var encoder = new IceEncoder(Encoding.V20);
+            encoder.WriteByteSpan(TransportHeader.Span);
 
-            writer.Write(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            BufferWriter.Position start = writer.StartFixedLengthSize(4);
-            frame.WriteHeader(writer);
+            encoder.EncodeIce2FrameType(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
+            IceEncoder.Position start = encoder.StartFixedLengthSize(4);
+            frame.EncodeHeader(encoder);
 
-            int frameSize = writer.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
+            int frameSize = encoder.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
             {
@@ -534,17 +543,17 @@ namespace IceRpc.Transports
                 }
             }
 
-            writer.RewriteFixedLengthSize20(frameSize, start, 4);
+            encoder.EncodeFixedLengthSize20(frameSize, start, 4);
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= writer.Capacity - writer.Size)
+                   frame.Payload.Span[payloadIndex].Length <= encoder.Capacity - encoder.Size)
             {
-                writer.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                encoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = writer.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {
@@ -598,6 +607,110 @@ namespace IceRpc.Transports
             ReadCompleted = 1,
             WriteCompleted = 2,
             Shutdown = 4
+        }
+
+        // A System.IO.Stream class to wrap SendAsync/ReceiveAsync functionality of the RpcStream. For Quic,
+        // this won't be needed since the QuicStream is a System.IO.Stream.
+        private class ByteStream : System.IO.Stream
+        {
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => throw new NotImplementedException();
+
+            public override long Position
+            {
+                get => throw new NotImplementedException();
+                set => throw new NotImplementedException();
+            }
+
+            private readonly ReadOnlyMemory<byte>[] _buffers;
+            private readonly RpcStream _stream;
+
+            public override void Flush()
+            {
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotImplementedException();
+
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
+                ReadAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancel)
+            {
+                try
+                {
+                    if (_stream.ReadCompleted)
+                    {
+                        return 0;
+                    }
+                    return await _stream.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                {
+                    throw new System.IO.IOException("streaming canceled by the writer", ex);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                {
+                    throw new System.IO.IOException("streaming canceled by the reader", ex);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new System.IO.IOException($"unexpected exception", ex);
+                }
+            }
+
+            public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotImplementedException();
+
+            public override void SetLength(long value) => throw new NotImplementedException();
+
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
+
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancel) =>
+                WriteAsync(new Memory<byte>(buffer, offset, count), cancel).AsTask();
+
+            public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancel)
+            {
+                try
+                {
+                    _buffers[^1] = buffer;
+                    await _stream.SendAsync(_buffers, buffer.Length == 0, cancel).ConfigureAwait(false);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByWriter)
+                {
+                    throw new System.IO.IOException("streaming canceled by the writer", ex);
+                }
+                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.StreamingCanceledByReader)
+                {
+                    throw new System.IO.IOException("streaming canceled by the reader", ex);
+                }
+                catch (RpcStreamAbortedException ex)
+                {
+                    throw new System.IO.IOException($"unexpected streaming error {ex.ErrorCode}", ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new System.IO.IOException($"unexpected exception", ex);
+                }
+            }
+
+            internal ByteStream(RpcStream stream)
+            {
+                _stream = stream;
+                if (_stream.TransportHeader.Length > 0)
+                {
+                    _buffers = new ReadOnlyMemory<byte>[2];
+                    _buffers[0] = _stream.TransportHeader.ToArray();
+                }
+                else
+                {
+                    _buffers = new ReadOnlyMemory<byte>[1];
+                }
+            }
         }
     }
 }

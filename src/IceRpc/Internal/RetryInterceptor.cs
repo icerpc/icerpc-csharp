@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -55,7 +56,7 @@ namespace IceRpc.Internal
                             return response;
                         }
 
-                        retryPolicy = response.GetRetryPolicy(request.Proxy.Impl);
+                        retryPolicy = response.GetRetryPolicy(request.Proxy);
                     }
                     catch (OperationCanceledException)
                     {
@@ -130,8 +131,6 @@ namespace IceRpc.Internal
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
-                            // The delay task can be canceled either by the user code using the provided cancellation
-                            // token or if the communicator is destroyed.
                             await Task.Delay(retryPolicy.Delay, cancel).ConfigureAwait(false);
                         }
 
@@ -199,7 +198,7 @@ namespace IceRpc.Internal
                     $"Invalid value '{bufferMaxSize}' for '{nameof(bufferMaxSize)}' it must be greater than 0.");
             }
 
-            _logger = (loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
         }
 
         private void DecBufferSize(int size)

@@ -3,6 +3,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,18 +15,24 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly ITaggedOperationsPrx _prx;
+        private readonly TaggedOperationsPrx _prx;
 
         public TaggedTests()
         {
+            var classFactory = new ClassFactory(new Assembly[] { typeof(TaggedTests).Assembly });
             _server = new Server
             {
                 Dispatcher = new TaggedOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint()
+                Endpoint = TestHelper.GetUniqueColocEndpoint(),
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.ProxyEndpoint };
-            _prx = ITaggedOperationsPrx.FromConnection(_connection);
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.Endpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+            };
+            _prx = TaggedOperationsPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -70,7 +77,7 @@ namespace IceRpc.Tests.CodeGeneration
             multiTagged.MMyEnum = MyEnum.enum1;
             multiTagged.MAnotherStruct = new AnotherStruct(
                 "hello",
-                IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                OperationsPrx.Parse("ice+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
@@ -189,16 +196,16 @@ namespace IceRpc.Tests.CodeGeneration
 
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
-                _prx,
+                _prx.Proxy,
                 (15, "test"),
-                (BufferWriter writer, in (int n, string s) value) =>
+                (IceEncoder encoder, in (int n, string s) value) =>
                 {
-                    writer.WriteTaggedInt(1, value.n);
-                    writer.WriteTaggedString(1, value.s); // duplicate tag ignored by the server
+                    encoder.EncodeTaggedInt(1, value.n);
+                    encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
             (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, Connection connection) =
-                await _prx.InvokeAsync("opVoid", requestPayload);
+                await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
 
             Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
 
@@ -333,7 +340,7 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new AnotherStruct(
                     "hello",
-                    IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                    OperationsPrx.Parse("ice+tcp://localhost/hello"),
                     MyEnum.enum1,
                     new MyStruct(1, 1));
                 (r1, r2) = await _prx.OpAnotherStructAsync(p1);
@@ -364,6 +371,17 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (byte?[]? r1, byte?[]? r2) = await _prx.OpOptionalByteSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                byte?[] p1 = new byte?[] { 42, null, 43 };
+                (r1, r2) = await _prx.OpOptionalByteSeqAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 (bool[]? r1, bool[]? r2) = await _prx.OpBoolSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
@@ -381,6 +399,17 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new List<bool> { true };
                 (r1, r2) = await _prx.OpBoolListAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (bool?[]? r1, bool?[]? r2) = await _prx.OpOptionalBoolSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                bool?[] p1 = new bool?[] { true, null, false };
+                (r1, r2) = await _prx.OpOptionalBoolSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -408,6 +437,17 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (short?[]? r1, short?[]? r2) = await _prx.OpOptionalShortSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                short?[] p1 = new short?[] { 42, null, 34 };
+                (r1, r2) = await _prx.OpOptionalShortSeqAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 (int[]? r1, int[]? r2) = await _prx.OpIntSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
@@ -425,6 +465,17 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new List<int> { 42 };
                 (r1, r2) = await _prx.OpIntListAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (int?[]? r1, int?[]? r2) = await _prx.OpOptionalIntSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                int?[]? p1 = new int?[] { 42, null, 43 };
+                (r1, r2) = await _prx.OpOptionalIntSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -452,6 +503,17 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (long?[]? r1, long?[]? r2) = await _prx.OpOptionalLongSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                long?[] p1 = new long?[] { 42, null, 43 };
+                (r1, r2) = await _prx.OpOptionalLongSeqAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 (float[]? r1, float[]? r2) = await _prx.OpFloatSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
@@ -469,6 +531,17 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new List<float> { 42 };
                 (r1, r2) = await _prx.OpFloatListAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (float?[]? r1, float?[]? r2) = await _prx.OpOptionalFloatSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                float?[] p1 = new float?[] { 42, null, 43 };
+                (r1, r2) = await _prx.OpOptionalFloatSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -496,6 +569,17 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (double?[]? r1, double?[]? r2) = await _prx.OpOptionalDoubleSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                double?[] p1 = new double?[] { 42 };
+                (r1, r2) = await _prx.OpOptionalDoubleSeqAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 (string[]? r1, string[]? r2) = await _prx.OpStringSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
@@ -513,6 +597,17 @@ namespace IceRpc.Tests.CodeGeneration
 
                 var p1 = new List<string> { "hello" };
                 (r1, r2) = await _prx.OpStringListAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (string?[]? r1, string?[]? r2) = await _prx.OpOptionalStringSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                string?[] p1 = new string?[] { "hello" };
+                (r1, r2) = await _prx.OpOptionalStringSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -549,6 +644,17 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (MyStruct?[]? r1, MyStruct?[]? r2) = await _prx.OpOptionalMyStructSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new MyStruct?[] { new MyStruct(1, 1), null, new MyStruct(1, 1) };
+                (r1, r2) = await _prx.OpOptionalMyStructSeqAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 (AnotherStruct[]? r1, AnotherStruct[]? r2) = await _prx.OpAnotherStructSeqAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
@@ -557,7 +663,7 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
@@ -575,11 +681,36 @@ namespace IceRpc.Tests.CodeGeneration
                 {
                     new AnotherStruct(
                         "hello",
-                        IOperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
                         MyEnum.enum1,
                         new MyStruct(1, 1))
                 };
                 (r1, r2) = await _prx.OpAnotherStructListAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (AnotherStruct?[]? r1, AnotherStruct?[]? r2) = await _prx.OpOptionalAnotherStructSeqAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new AnotherStruct?[]
+                {
+                    new AnotherStruct(
+                        "hello",
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        MyEnum.enum1,
+                        new MyStruct(1, 1)),
+                    null,
+                    new AnotherStruct(
+                        "hello",
+                        OperationsPrx.Parse("ice+tcp://localhost/hello"),
+                        MyEnum.enum1,
+                        new MyStruct(1, 1)),
+
+                };
+                (r1, r2) = await _prx.OpOptionalAnotherStructSeqAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
                 CollectionAssert.AreEqual(p1, r2);
             }
@@ -596,12 +727,90 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
+                (SortedDictionary<int, int>? r1, SortedDictionary<int, int>? r2) = await _prx.OpIntSortedDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new SortedDictionary<int, int> { { 1, 1 } };
+                (r1, r2) = await _prx.OpIntSortedDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (Dictionary<int, int?>? r1, Dictionary<int, int?>? r2) = await _prx.OpOptionalIntDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new Dictionary<int, int?> { { 1, 1 } };
+                (r1, r2) = await _prx.OpOptionalIntDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (SortedDictionary<int, int?>? r1, SortedDictionary<int, int?>? r2) = await _prx.OpOptionalIntSortedDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new SortedDictionary<int, int?> { { 1, 1 } };
+                (r1, r2) = await _prx.OpOptionalIntSortedDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
                 Dictionary<int, int>? r1 = await _prx.OpIntDictMarshaledResultAsync(null);
                 Assert.That(r1, Is.Null);
 
                 var p1 = new Dictionary<int, int> { { 1, 1 } };
                 r1 = await _prx.OpIntDictMarshaledResultAsync(p1);
                 CollectionAssert.AreEqual(p1, r1);
+            }
+
+            {
+                (Dictionary<string, string>? r1, Dictionary<string, string>? r2) = await _prx.OpStringDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new Dictionary<string, string> { { "a", "b" } };
+                (r1, r2) = await _prx.OpStringDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (SortedDictionary<string, string>? r1, SortedDictionary<string, string>? r2) =
+                    await _prx.OpStringSortedDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new SortedDictionary<string, string> { { "a", "b" } };
+                (r1, r2) = await _prx.OpStringSortedDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (Dictionary<string, string?>? r1, Dictionary<string, string?>? r2) = await _prx.OpOptionalStringDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new Dictionary<string, string?> { { "a", "b" } };
+                (r1, r2) = await _prx.OpOptionalStringDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
+            }
+
+            {
+                (SortedDictionary<string, string?>? r1, SortedDictionary<string, string?>? r2) = await _prx.OpOptionalStringSortedDictAsync(null);
+                Assert.That(r1, Is.Null);
+                Assert.That(r2, Is.Null);
+
+                var p1 = new SortedDictionary<string, string?> { { "a", "b" } };
+                (r1, r2) = await _prx.OpOptionalStringSortedDictAsync(p1);
+                CollectionAssert.AreEqual(p1, r1);
+                CollectionAssert.AreEqual(p1, r2);
             }
         }
 
@@ -645,7 +854,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
     }
 
-    public class TaggedOperations : ITaggedOperations
+    public class TaggedOperations : Service, ITaggedOperations
     {
         public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
             AnotherStruct? p1,
@@ -659,6 +868,11 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ValueTask<(IEnumerable<AnotherStruct>? R1, IEnumerable<AnotherStruct>? R2)> OpAnotherStructSeqAsync(
             AnotherStruct[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<AnotherStruct?>? R1, IEnumerable<AnotherStruct?>? R2)> OpOptionalAnotherStructSeqAsync(
+            AnotherStruct?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -677,6 +891,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<bool?>? R1, IEnumerable<bool?>? R2)> OpOptionalBoolSeqAsync(
+            bool?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<(byte? R1, byte? R2)> OpByteAsync(
             byte? p1,
             Dispatch dispatch,
@@ -689,6 +908,11 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ValueTask<(ReadOnlyMemory<byte> R1, ReadOnlyMemory<byte> R2)> OpByteSeqAsync(
             byte[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<byte?>? R1, IEnumerable<byte?>? R2)> OpOptionalByteSeqAsync(
+            byte?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -714,6 +938,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<double?>? R1, IEnumerable<double?>? R2)> OpOptionalDoubleSeqAsync(
+            double?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<(float? R1, float? R2)> OpFloatAsync(
             float? p1,
             Dispatch dispatch,
@@ -729,6 +958,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<float?>? R1, IEnumerable<float?>? R2)> OpOptionalFloatSeqAsync(
+            float?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<(int? R1, int? R2)> OpIntAsync(
             int? p1,
             Dispatch dispatch,
@@ -736,6 +970,21 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntDictAsync(
             Dictionary<int, int>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<int, int>>? R1, IEnumerable<KeyValuePair<int, int>>? R2)> OpIntSortedDictAsync(
+            SortedDictionary<int, int>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<int, int?>>? R1, IEnumerable<KeyValuePair<int, int?>>? R2)> OpOptionalIntDictAsync(
+            Dictionary<int, int?>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<int, int?>>? R1, IEnumerable<KeyValuePair<int, int?>>? R2)> OpOptionalIntSortedDictAsync(
+            SortedDictionary<int, int?>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -754,6 +1003,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<int?>? R1, IEnumerable<int?>? R2)> OpOptionalIntSeqAsync(
+            int?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<(long? R1, long? R2)> OpLongAsync(
             long? p1,
             Dispatch dispatch,
@@ -766,6 +1020,11 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ValueTask<(ReadOnlyMemory<long> R1, ReadOnlyMemory<long> R2)> OpLongSeqAsync(
             long[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<long?>? R1, IEnumerable<long?>? R2)> OpOptionalLongSeqAsync(
+            long?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -795,6 +1054,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<MyStruct?>? R1, IEnumerable<MyStruct?>? R2)> OpOptionalMyStructSeqAsync(
+            MyStruct?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask OpRequiredExceptionAsync(
             int? p1,
             string? p2,
@@ -818,6 +1082,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<short?>? R1, IEnumerable<short?>? R2)> OpOptionalShortSeqAsync(
+            short?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<(string? R1, string? R2)> OpStringAsync(
             string? p1,
             Dispatch dispatch,
@@ -825,6 +1094,21 @@ namespace IceRpc.Tests.CodeGeneration
 
         public ValueTask<(IEnumerable<KeyValuePair<string, string>>? R1, IEnumerable<KeyValuePair<string, string>>? R2)> OpStringDictAsync(
             Dictionary<string, string>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<string, string>>? R1, IEnumerable<KeyValuePair<string, string>>? R2)> OpStringSortedDictAsync(
+            SortedDictionary<string, string>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<string, string?>>? R1, IEnumerable<KeyValuePair<string, string?>>? R2)> OpOptionalStringDictAsync(
+            Dictionary<string, string?>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<KeyValuePair<string, string?>>? R1, IEnumerable<KeyValuePair<string, string?>>? R2)> OpOptionalStringSortedDictAsync(
+            SortedDictionary<string, string?>? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
@@ -838,10 +1122,45 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
+        public ValueTask<(IEnumerable<string?>? R1, IEnumerable<string?>? R2)> OpOptionalStringSeqAsync(
+            string?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
         public ValueTask<ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
             string[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new(new ITaggedOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
+
+        public ValueTask<(IEnumerable<MyEnum>? R1, IEnumerable<MyEnum>? R2)> OpMyEnumSeqAsync(
+            MyEnum[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<MyEnum?>? R1, IEnumerable<MyEnum?>? R2)> OpOptionalMyEnumSeqAsync(
+            MyEnum?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<MyEnum>? R1, IEnumerable<MyEnum>? R2)> OpMyEnumListAsync(
+            List<MyEnum>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(ReadOnlyMemory<MyFixedLengthEnum> R1, ReadOnlyMemory<MyFixedLengthEnum> R2)> OpMyFixedLengthEnumSeqAsync(
+            MyFixedLengthEnum[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<MyFixedLengthEnum>? R1, IEnumerable<MyFixedLengthEnum>? R2)> OpMyFixedLengthEnumListAsync(
+            List<MyFixedLengthEnum>? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
+
+        public ValueTask<(IEnumerable<MyFixedLengthEnum?>? R1, IEnumerable<MyFixedLengthEnum?>? R2)> OpOptionalMyFixedLengthEnumSeqAsync(
+            MyFixedLengthEnum?[]? p1,
+            Dispatch dispatch,
+            CancellationToken cancel) => new((p1, p1));
 
         public ValueTask OpTaggedExceptionAsync(
             int? p1,

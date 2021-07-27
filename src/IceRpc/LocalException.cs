@@ -14,7 +14,7 @@ namespace IceRpc
 
         /// <summary>Constructs a new instance of the <see cref="NoEndpointException"/> class.</summary>
         /// <param name="proxy">The proxy with no endpoint or no usable endpoint.</param>
-        public NoEndpointException(IServicePrx proxy)
+        public NoEndpointException(Proxy proxy)
             : base($"proxy '{proxy}' has no usable endpoint")
         {
         }

@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,13 +31,6 @@ namespace IceRpc
         Closed
     }
 
-    /// <summary>Error codes for connection errors.</summary>
-    public enum ConnectionErrorCode : byte
-    {
-        /// <summary>The connection has been shutdown.</summary>
-        Shutdown,
-    }
-
     /// <summary>Event arguments for the <see cref="Connection.Closed"/> event.</summary>
     public sealed class ClosedEventArgs : EventArgs
     {
@@ -49,6 +43,20 @@ namespace IceRpc
     /// <summary>Represents a connection used to send and receive Ice frames.</summary>
     public sealed class Connection : IAsyncDisposable
     {
+        /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
+        public static IClientTransport DefaultClientTransport { get; } =
+            new CompositeClientTransport
+            {
+                [Transport.TCP] = new TcpClientTransport(),
+                [Transport.SSL] = new TcpClientTransport(),
+                [Transport.Coloc] = new ColocClientTransport(),
+                [Transport.UDP] = new UdpClientTransport()
+            };
+
+        /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
+        /// </summary>
+        public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
+
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
         /// event sender argument.</summary>
         /// <exception cref="InvalidOperationException">Thrown on event addition if the connection is closed.
@@ -66,10 +74,6 @@ namespace IceRpc
             remove => _closed -= value;
         }
 
-        /// <summary>The dispatcher that a connection calls when its dispatcher is null.</summary>
-        internal static IDispatcher NullDispatcher { get; } =
-            new InlineDispatcher((request, cancel) => throw new ServiceNotFoundException(RetryPolicy.OtherReplica));
-
         /// <summary>Gets or sets the dispatcher that dispatches requests received by this connection. For server
         /// connections, set is an invalid operation and get returns the dispatcher of the server that created this
         /// connection. For client connections, set can be called during configuration.</summary>
@@ -78,17 +82,17 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if the connection is a server connection.</exception>
         public IDispatcher? Dispatcher
         {
-            get => Server?.Dispatcher ?? _dispatcher;
+            get => _dispatcher;
 
             set
             {
-                if (Server == null)
+                if (IsServer)
                 {
-                    _dispatcher = value;
+                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
                 }
                 else
                 {
-                    throw new InvalidOperationException("cannot change the dispatcher of a server connection");
+                    _dispatcher = value;
                 }
             }
         }
@@ -119,11 +123,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public Endpoint? LocalEndpoint
-        {
-            get => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
-            internal set => _localEndpoint = value;
-        }
+        public Endpoint? LocalEndpoint => _localEndpoint ?? UnderlyingConnection?.LocalEndpoint;
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
@@ -131,14 +131,10 @@ namespace IceRpc
         public ILoggerFactory? LoggerFactory
         {
             get => _loggerFactory;
-            set
+            init
             {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's logger factory after calling {nameof(ConnectAsync)}");
-                }
                 _loggerFactory = value;
+                _logger = (_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
             }
         }
 
@@ -155,9 +151,18 @@ namespace IceRpc
                     throw new InvalidOperationException(
                         $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
                 }
+
                 if (value == null)
                 {
                     throw new ArgumentException($"{nameof(value)} can't be null");
+                }
+                else if (value is ClientConnectionOptions && IsServer)
+                {
+                    throw new InvalidOperationException("invalid client connection options for server connection");
+                }
+                else if (value is ServerConnectionOptions && !IsServer)
+                {
+                    throw new InvalidOperationException("invalid server connection options for client connection");
                 }
                 _options = value.Clone();
             }
@@ -190,36 +195,14 @@ namespace IceRpc
         public Protocol Protocol => (_localEndpoint ?? _remoteEndpoint)?.Protocol ?? Protocol.Ice2;
 
         /// <summary>The connection remote endpoint.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available or if setting
-        /// the remote endpoint is not allowed (the connection is connected or it's a server connection).</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available.</exception>
         public Endpoint? RemoteEndpoint
         {
             get => _remoteEndpoint ?? UnderlyingConnection?.RemoteEndpoint;
-            set
+            init
             {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's remote endpoint after calling {nameof(ConnectAsync)}");
-                }
+                Debug.Assert(!IsServer);
                 _remoteEndpoint = value;
-            }
-        }
-
-        /// <summary>The server that accepted this connection.</summary>
-        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <see cref="ConnectionState.NotConnected"/>.</exception>
-        public Server? Server
-        {
-            get => _server;
-            set
-            {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's server after calling {nameof(ConnectAsync)}");
-                }
-                _server = value;
             }
         }
 
@@ -235,20 +218,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The connection transport.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
-        public Transport Transport =>
-            (_localEndpoint ?? _remoteEndpoint)?.Transport ??
-            throw new InvalidOperationException(
-                $"{nameof(Transport)} is not available because there's no endpoint set");
-
-        /// <summary>The connection transport name.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if there's no endpoint set.</exception>
-        public string TransportName =>
-            (_localEndpoint ?? _remoteEndpoint)?.TransportName ??
-            throw new InvalidOperationException(
-                $"{nameof(TransportName)} is not available because there's no endpoint set");
-
         /// <summary>The underlying multi-stream connection.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
@@ -257,12 +226,6 @@ namespace IceRpc
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
         internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
-
-        internal ILogger Logger
-        {
-            get => _logger ??= (_loggerFactory ?? Runtime.DefaultLoggerFactory).CreateLogger("IceRpc");
-            set => _logger = value;
-        }
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -297,7 +260,7 @@ namespace IceRpc
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
         private Endpoint? _localEndpoint;
-        private ILogger? _logger;
+        private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
@@ -305,16 +268,13 @@ namespace IceRpc
         private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
-        private Server? _server;
         private ConnectionState _state = ConnectionState.NotConnected;
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection()
-        {
-        }
+        public Connection() => _logger = NullLogger.Instance;
 
-        /// <summary>Aborts the connection. This methods switches the connection state to 
+        /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for
         /// the events to be executed.</summary>
         /// <param name="message">A description of the connection abortion reason.</param>
@@ -349,37 +309,37 @@ namespace IceRpc
                 }
                 Debug.Assert(_state == ConnectionState.NotConnected);
 
-                _options ??= IsServer ? ServerConnectionOptions.Default : ClientConnectionOptions.Default;
                 ValueTask connectTask;
-                if (_options is ClientConnectionOptions clientOptions)
+                if (IsServer)
                 {
-                    if (IsServer)
+                    _options ??= ServerConnectionOptions.Default;
+                    var serverOptions = (ServerConnectionOptions)_options;
+                    Debug.Assert(UnderlyingConnection != null);
+
+                    // If the endpoint is secure, accept with the SSL server authentication options.
+                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
+                    if (UnderlyingConnection.LocalEndpoint.IsSecure ?? true)
                     {
-                        throw new InvalidOperationException(
-                            "invalid client connection options for server connection");
+                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
+                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                            new SslApplicationProtocol(Protocol.GetName())
+                        };
                     }
 
-                    if (UnderlyingConnection == null)
-                    {
-                        if (_remoteEndpoint == null)
-                        {
-                            throw new InvalidOperationException("client connection has no remote endpoint set");
-                        }
-                        else if (_localEndpoint != null)
-                        {
-                            throw new InvalidOperationException("client connection has local endpoint set");
-                        }
+                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
+                }
+                else
+                {
+                    _options ??= ClientConnectionOptions.Default;
+                    var clientOptions =  (ClientConnectionOptions)_options;
+                    Debug.Assert(UnderlyingConnection == null);
 
-                        if (_remoteEndpoint is IClientConnectionFactory clientConnectionFactory)
-                        {
-                            UnderlyingConnection = clientConnectionFactory.CreateClientConnection(clientOptions, Logger);
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException(
-                                $"cannot create client connection for remote endpoint '{_remoteEndpoint}'");
-                        }
+                    if (_remoteEndpoint == null)
+                    {
+                        throw new InvalidOperationException("client connection has no remote endpoint set");
                     }
+                    UnderlyingConnection =
+                        ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
@@ -393,32 +353,6 @@ namespace IceRpc
                     }
 
                     connectTask = UnderlyingConnection.ConnectAsync(clientAuthenticationOptions, cancel);
-                }
-                else
-                {
-                    var serverOptions = (ServerConnectionOptions)_options;
-                    if (!IsServer)
-                    {
-                        throw new InvalidOperationException(
-                            "invalid server connection options for client connection");
-                    }
-                    else if (UnderlyingConnection == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"server connection can only be created by a {nameof(Server)}");
-                    }
-
-                    // If the endpoint is secure, accept with the SSL server authentication options.
-                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
-                    if (UnderlyingConnection.LocalEndpoint.IsSecure ?? true)
-                    {
-                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
-                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
-                    }
-
-                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
                 }
 
                 Debug.Assert(UnderlyingConnection != null);
@@ -444,8 +378,7 @@ namespace IceRpc
                     {
                         if (_state == ConnectionState.Closed)
                         {
-                            // This can occur if the communicator or server is disposed while the connection is being
-                            // initialized.
+                            // This can occur if the connection is disposed while the connection is being initialized.
                             throw new ConnectionClosedException();
                         }
 
@@ -455,10 +388,10 @@ namespace IceRpc
 
                         Action logSuccess = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => Logger.LogConnectionEstablished,
-                            (false, true) => Logger.LogStartSendingDatagrams,
-                            (true, false) => Logger.LogConnectionAccepted,
-                            (true, true) => Logger.LogStartReceivingDatagrams
+                            (false, false) => _logger.LogConnectionEstablished,
+                            (false, true) => _logger.LogStartSendingDatagrams,
+                            (true, false) => _logger.LogConnectionAccepted,
+                            (true, true) => _logger.LogStartReceivingDatagrams
                         };
                         logSuccess();
                     }
@@ -486,8 +419,7 @@ namespace IceRpc
                 {
                     if (_state == ConnectionState.Closed)
                     {
-                        // This can occur if the communicator or server is disposed while the connection is being
-                        // initialized.
+                        // This can occur if the connection is disposed while the connection is being initialized.
                         throw new ConnectionClosedException();
                     }
 
@@ -501,7 +433,7 @@ namespace IceRpc
                             }
                             catch (Exception ex)
                             {
-                                Logger.LogConnectionEventHandlerException("ping", ex);
+                                _logger.LogConnectionEventHandlerException("ping", ex);
                             }
                         });
                     };
@@ -664,14 +596,18 @@ namespace IceRpc
         public override string ToString() => UnderlyingConnection?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
-        internal Connection(MultiStreamConnection connection, Server server)
+        internal Connection(
+            MultiStreamConnection connection,
+            // TODO dispatcher should not be nullable, but the Server class only provides a null one.
+            IDispatcher? dispatcher,
+            ServerConnectionOptions options,
+            ILoggerFactory? loggerFactory)
         {
             UnderlyingConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
-
-            Options = server.ConnectionOptions;
-            Logger = server.Logger;
-            Server = server;
+            Options = options;
+            _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
+            _dispatcher = dispatcher;
         }
 
         internal void Monitor()
@@ -715,7 +651,7 @@ namespace IceRpc
             }
         }
 
-        internal IDisposable? StartScope() => Logger.StartConnectionScope(this);
+        internal IDisposable? StartScope() => _logger.StartConnectionScope(this);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -750,10 +686,10 @@ namespace IceRpc
                         // connection got connected or accepted before printing out the connection closed trace.
                         Action<Exception> logFailure = (IsServer, IsDatagram) switch
                         {
-                            (false, false) => Logger.LogConnectionConnectFailed,
-                            (false, true) => Logger.LogStartSendingDatagramsFailed,
-                            (true, false) => Logger.LogConnectionAcceptFailed,
-                            (true, true) => Logger.LogStartReceivingDatagramsFailed
+                            (false, false) => _logger.LogConnectionConnectFailed,
+                            (false, true) => _logger.LogStartSendingDatagramsFailed,
+                            (true, false) => _logger.LogConnectionAcceptFailed,
+                            (true, true) => _logger.LogStartReceivingDatagramsFailed
                         };
                         logFailure(exception);
                     }
@@ -761,23 +697,23 @@ namespace IceRpc
                     {
                         if (IsDatagram && IsServer)
                         {
-                            Logger.LogStopReceivingDatagrams();
+                            _logger.LogStopReceivingDatagrams();
                         }
                         else if (exception is ConnectionClosedException closedException)
                         {
-                            Logger.LogConnectionClosed(exception.Message);
+                            _logger.LogConnectionClosed(exception.Message);
                         }
                         else if (_state == ConnectionState.Closing)
                         {
-                            Logger.LogConnectionClosed(exception.Message);
+                            _logger.LogConnectionClosed(exception.Message);
                         }
                         else if (exception.IsConnectionLost())
                         {
-                            Logger.LogConnectionClosed("connection lost");
+                            _logger.LogConnectionClosed("connection lost");
                         }
                         else
                         {
-                            Logger.LogConnectionClosed(exception.Message, exception);
+                            _logger.LogConnectionClosed(exception.Message, exception);
                         }
                     }
                 }
@@ -792,7 +728,7 @@ namespace IceRpc
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogConnectionEventHandlerException("close", ex);
+                    _logger.LogConnectionEventHandlerException("close", ex);
                 }
 
                 // Remove the connection from its factory. This must be called without the connection's mutex locked
@@ -858,7 +794,9 @@ namespace IceRpc
             OutgoingResponse? response = null;
             try
             {
-                response = await (Dispatcher ?? NullDispatcher).DispatchAsync(request, cancel).ConfigureAwait(false);
+                response = await (Dispatcher ?? NullDispatcher.Instance).DispatchAsync(
+                    request,
+                    cancel).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -1142,7 +1080,7 @@ namespace IceRpc
                         }
 
                         // Wait for the GoAwayCanceled frame from the peer or the closure of the peer control stream.
-                        Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(exception, cancel);
+                        Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(cancel);
 
                         // Wait for all the streams to complete.
                         await WaitForEmptyStreamsAsync(cancel).ConfigureAwait(false);
@@ -1150,7 +1088,8 @@ namespace IceRpc
                         // Wait for the closure of the peer control stream.
                         await waitForGoAwayCanceledTask.ConfigureAwait(false);
 
-                        Debug.Assert(State == ConnectionState.Closed);
+                        // Abort the connection.
+                        await AbortAsync(exception).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -1165,7 +1104,7 @@ namespace IceRpc
                 }
             }
 
-            async Task WaitForGoAwayCanceledOrCloseAsync(Exception exception, CancellationToken cancel)
+            async Task WaitForGoAwayCanceledOrCloseAsync(CancellationToken cancel)
             {
                 try
                 {
@@ -1177,7 +1116,7 @@ namespace IceRpc
                 }
                 catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
                 {
-                    await AbortAsync(exception).ConfigureAwait(false);
+                    // Expected if the connection is shutdown.
                 }
             }
         }
