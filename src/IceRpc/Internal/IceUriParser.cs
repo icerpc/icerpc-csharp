@@ -17,13 +17,6 @@ namespace IceRpc.Internal
         private const string IceColon = "ice:";
         private const string IcePlus = "ice+";
 
-        private const GenericUriParserOptions ParserOptions =
-            GenericUriParserOptions.DontUnescapePathDotsAndSlashes |
-            GenericUriParserOptions.Idn |
-            GenericUriParserOptions.IriParsing |
-            GenericUriParserOptions.NoFragment |
-            GenericUriParserOptions.NoUserInfo;
-
         private static readonly object _mutex = new();
 
         /// <summary>Checks if a string is an ice+transport URI, and not an endpoint string using the ice1 string
@@ -269,8 +262,23 @@ namespace IceRpc.Internal
             {
                 if (!UriParser.IsKnownScheme(scheme))
                 {
+                    GenericUriParserOptions parserOptions =
+                        GenericUriParserOptions.DontUnescapePathDotsAndSlashes |
+                        GenericUriParserOptions.Idn |
+                        GenericUriParserOptions.IriParsing |
+                        GenericUriParserOptions.NoFragment |
+                        GenericUriParserOptions.NoUserInfo;
+
+                    int defaultPort = DefaultPort;
+
+                    if (scheme == "ice")
+                    {
+                        parserOptions |= GenericUriParserOptions.AllowEmptyAuthority | GenericUriParserOptions.NoPort;
+                        defaultPort = -1;
+                    }
+
                     // UriParser.Register requires a separate UriParser instance per scheme.
-                    UriParser.Register(new GenericUriParser(ParserOptions), scheme, DefaultPort);
+                    UriParser.Register(new GenericUriParser(parserOptions), scheme, defaultPort);
                 }
             }
         }

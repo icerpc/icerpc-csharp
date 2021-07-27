@@ -175,7 +175,7 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+tcp://host.zeroc.com//identity?alt-endpoint=host2.zeroc.com:10000")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000,host2,host3,host4")]
         [TestCase("ice+tcp://[::1]:10000/identity?alt-endpoint=host1:10000&alt-endpoint=host2,host3&alt-endpoint=[::2]")]
-        // TODO [TestCase("ice:location//identity#facet", "/location//identity%23facet")]
+        [TestCase("ice:location//identity#facet", "/location//identity%23facet")]
         [TestCase("ice+tcp://host.zeroc.com//identity")]
         [TestCase("ice+tcp://host.zeroc.com/\x7f€$%/!#$'()*+,:;=@[] %2F",
                   "/%7F%E2%82%AC$%25/!%23$'()*+,:;=@[]%20%2F")] // Only remarkable char is # converted into %23
@@ -191,7 +191,8 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("ice+coloc://host:10000")]
         // a valid URI
-        // TODO [TestCase("ice:tcp -p 10000")]
+
+        [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
         [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
