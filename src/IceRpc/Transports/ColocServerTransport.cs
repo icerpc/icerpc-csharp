@@ -8,7 +8,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the coloc transport.</summary>
     public class ColocServerTransport : IServerTransport
     {
-        public (IListener?, MultiStreamConnection?) Listen(
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,
             ServerConnectionOptions options,
             ILogger logger) => (new ColocListener(endpoint, options, logger), null);

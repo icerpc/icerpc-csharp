@@ -12,7 +12,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
     public class TcpServerTransport : IServerTransport
     {
-        public (IListener?, MultiStreamConnection?) Listen(
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,
             ServerConnectionOptions options,
             ILogger logger)
@@ -38,7 +38,10 @@ namespace IceRpc.Transports
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(tcpOptions.ReceiveBufferSize, tcpOptions.SendBufferSize, endpoint.Transport, logger);
+                socket.SetBufferSize(tcpOptions.ReceiveBufferSize,
+                                     tcpOptions.SendBufferSize,
+                                     endpoint.Transport,
+                                     logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
@@ -50,7 +53,10 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            return (new Internal.TcpListener(socket, endpoint: endpoint with { Port = (ushort)address.Port }, logger, options), null);
+            return (new Internal.TcpListener(socket,
+                                             endpoint: endpoint with { Port = (ushort)address.Port },
+                                             logger, options),
+                    null);
         }
     }
 }

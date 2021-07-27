@@ -14,7 +14,7 @@ namespace IceRpc.Transports
     public class UdpServerTransport : IServerTransport
     {
         /// <inheritdoc/>
-        public (IListener?, MultiStreamConnection?) Listen(
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,
             ServerConnectionOptions options,
             ILogger logger)
@@ -46,7 +46,10 @@ namespace IceRpc.Transports
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(udpOptions.ReceiveBufferSize, udpOptions.SendBufferSize, endpoint.Transport, logger);
+                socket.SetBufferSize(udpOptions.ReceiveBufferSize,
+                                     udpOptions.SendBufferSize,
+                                     endpoint.Transport,
+                                     logger);
 
                 var addr = new IPEndPoint(ipAddress, endpoint.Port);
                 if (IsMulticast(ipAddress))

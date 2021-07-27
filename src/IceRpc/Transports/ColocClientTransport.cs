@@ -12,8 +12,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : IClientTransport
     {
-        /// <inheritdoc/>
-        public MultiStreamConnection CreateConnection(
+        MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger)

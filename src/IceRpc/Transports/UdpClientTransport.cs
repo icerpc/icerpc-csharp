@@ -15,7 +15,7 @@ namespace IceRpc.Transports
     public class UdpClientTransport : IClientTransport
     {
         /// <inheritdoc/>
-        public MultiStreamConnection CreateConnection(
+        MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger)

@@ -11,8 +11,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
     public class TcpClientTransport : IClientTransport
     {
-        /// <inheritdoc/>
-        public MultiStreamConnection CreateConnection(
+       MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
             ClientConnectionOptions options,
             ILogger logger)
