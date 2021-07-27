@@ -18,11 +18,11 @@ namespace IceRpc.Transports.Internal
     {
         internal const int DefaultTcpTimeout = 60_000;
 
-        internal static (bool Compress, int Timeout, bool? Tls) ParseAllTcpParameters(EndpointRecord endpoint)
+        internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(EndpointRecord endpoint)
         {
             bool? tls = null;
 
-            foreach ((string name, string value) in endpoint.LocalParameters)
+            foreach ((string name, string value) in endpoint.LocalParams)
             {
                 if (endpoint.Protocol != Protocol.Ice1 && name == "_tls")
                 {
@@ -45,16 +45,16 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            (bool compress, int timeout) = ParseTcpParameters(endpoint);
+            (bool compress, int timeout) = ParseExternalTcpParams(endpoint);
             return (compress, timeout, tls);
         }
 
-        internal static (bool Compress, int Timeout) ParseTcpParameters(EndpointRecord endpoint)
+        internal static (bool Compress, int Timeout) ParseExternalTcpParams(EndpointRecord endpoint)
         {
             bool compress = false;
             int? timeout = null;
 
-            foreach ((string name, string value) in endpoint.Parameters)
+            foreach ((string name, string value) in endpoint.ExternalParams)
             {
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
@@ -87,7 +87,8 @@ namespace IceRpc.Transports.Internal
                             }
                             if (value.Length > 0)
                             {
-                                throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                                throw new FormatException(
+                                    $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
                             }
                             compress = true;
                             continue; // loop back

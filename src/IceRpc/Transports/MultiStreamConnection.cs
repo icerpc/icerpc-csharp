@@ -143,16 +143,16 @@ namespace IceRpc.Transports
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
+        /// means a client could reuse this connection instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this connection is a client connection whose parameters are compatible with the
+        /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        public abstract bool HasCompatibleParams(EndpointRecord remoteEndpoint);
+
         /// <summary>Initializes the transport.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         public abstract ValueTask InitializeAsync(CancellationToken cancel);
-
-        /// <summary>Checks if a client could use this connection instead of establishing a separate connection to the
-        /// provided endpoint.</summary>
-        /// <param name="remoteEndpoint">An endpoint to a server.</param>
-        /// <returns><c>true</c> when this connection is an active client connection that is compatible with the
-        /// provided endpoint; otherwise, <c>false</c>.</returns>
-        public abstract bool IsCompatible(EndpointRecord remoteEndpoint);
 
         /// <summary>Sends a ping frame to defer the idle timeout.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

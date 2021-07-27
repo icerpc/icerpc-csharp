@@ -497,6 +497,18 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
+        /// means a client could reuse this connection instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this connection is an active client connection whose parameters are compatible
+        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
+        /// </remarks>
+        public bool HasCompatibleParams(EndpointRecord remoteEndpoint) =>
+            IsServer == false &&
+            State == ConnectionState.Active &&
+            UnderlyingConnection!.HasCompatibleParams(remoteEndpoint);
+
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
@@ -589,16 +601,6 @@ namespace IceRpc
                 throw;
             }
         }
-
-        /// <summary>Checks if a client could use this connection instead of establishing a separate connection to the
-        /// provided endpoint.</summary>
-        /// <param name="remoteEndpoint">An endpoint to a remote peer.</param>
-        /// <returns><c>true</c> when this connection is an active client connection that is compatible with the
-        /// provided endpoint; otherwise, <c>false</c>.</returns>
-        public bool IsCompatible(EndpointRecord remoteEndpoint) =>
-            IsServer == false &&
-            State == ConnectionState.Active &&
-            UnderlyingConnection!.IsCompatible(remoteEndpoint);
 
         /// <summary>Sends an asynchronous ping frame.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

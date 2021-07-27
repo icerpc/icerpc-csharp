@@ -16,18 +16,18 @@ namespace IceRpc
     public partial struct EndpointData
     {
         public EndpointData(Protocol protocol, string transportName, TransportCode transportCode, string host, ushort port, IList<string> options)
-            : this(protocol, transportName, transportCode, host, port, options, ImmutableList<EndpointParameter>.Empty)
+            : this(protocol, transportName, transportCode, host, port, options, ImmutableList<EndpointParam>.Empty)
         {
         }
 
         // the future generated ctor
-        public EndpointData(Protocol protocol, string transportName, string host, ushort port, IList<EndpointParameter> parameters)
+        public EndpointData(Protocol protocol, string transportName, string host, ushort port, IList<EndpointParam> parameters)
             : this(protocol, transportName, TransportCode.Any, host, port, ImmutableList<string>.Empty, parameters)
         {
         }
     }
 
-    public partial struct EndpointParameter
+    public partial struct EndpointParam
     {
         public void Deconstruct(out string name, out string value)
         {
@@ -42,8 +42,8 @@ namespace IceRpc
         string Transport,
         string Host,
         ushort Port,
-        ImmutableList<EndpointParameter> Parameters,
-        ImmutableList<EndpointParameter> LocalParameters)
+        ImmutableList<EndpointParam> ExternalParams,
+        ImmutableList<EndpointParam> LocalParams)
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -68,11 +68,11 @@ namespace IceRpc
                                string.IsInterned(data.TransportName) ?? data.TransportName,
                                data.Host,
                                data.Port,
-                               data.Parameters.ToImmutableList(),
-                               ImmutableList<EndpointParameter>.Empty);
+                               data.Params.ToImmutableList(),
+                               ImmutableList<EndpointParam>.Empty);
 
         public EndpointData ToEndpointData() =>
-            new(Protocol, Transport, Host, Port, Parameters);
+            new(Protocol, Transport, Host, Port, ExternalParams);
 
         /// <inheritdoc/>
         public bool Equals(EndpointRecord? other) =>
@@ -81,8 +81,8 @@ namespace IceRpc
                    Transport == other.Transport &&
                    Host == other.Host &&
                    Port == other.Port &&
-                   Parameters.SequenceEqual(other.Parameters) &&
-                   LocalParameters.SequenceEqual(other.LocalParameters);
+                   ExternalParams.SequenceEqual(other.ExternalParams) &&
+                   LocalParams.SequenceEqual(other.LocalParams);
 
         /// <inheritdoc/>
         public override int GetHashCode()
@@ -92,8 +92,8 @@ namespace IceRpc
             hash.Add(Transport);
             hash.Add(Host);
             hash.Add(Port);
-            hash.Add(Parameters.GetSequenceHashCode());
-            hash.Add(LocalParameters.GetSequenceHashCode());
+            hash.Add(ExternalParams.GetSequenceHashCode());
+            hash.Add(LocalParams.GetSequenceHashCode());
             return hash.ToHashCode();
         }
 
@@ -127,7 +127,7 @@ namespace IceRpc
                     sb.Append(Port.ToString(CultureInfo.InvariantCulture));
                 }
 
-                foreach ((string name, string value) in Parameters)
+                foreach ((string name, string value) in ExternalParams)
                 {
                     sb.Append(' ');
                     sb.Append(name);
@@ -137,7 +137,7 @@ namespace IceRpc
                         sb.Append(value);
                     }
                 }
-                foreach ((string name, string value) in LocalParameters)
+                foreach ((string name, string value) in LocalParams)
                 {
                     sb.Append(' ');
                     sb.Append(name);
@@ -216,14 +216,14 @@ namespace IceRpc
                 sb.Append("protocol=");
                 sb.Append(endpoint.Protocol.GetName());
             }
-            foreach ((string name, string value) in endpoint.Parameters)
+            foreach ((string name, string value) in endpoint.ExternalParams)
             {
                 AppendQueryOption();
                 sb.Append(name);
                 sb.Append('=');
                 sb.Append(value);
             }
-            foreach ((string name, string value) in endpoint.LocalParameters)
+            foreach ((string name, string value) in endpoint.LocalParams)
             {
                 AppendQueryOption();
                 sb.Append(name);

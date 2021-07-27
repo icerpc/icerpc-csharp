@@ -7,7 +7,7 @@ namespace IceRpc.Transports.Internal
 {
     internal static class OpaqueUtils
     {
-        internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseOpaqueParameters(
+        internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseExternalOpaqueParams(
             EndpointRecord endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)
@@ -19,7 +19,7 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<byte> bytes = default;
             bool encodingFound = false;
 
-            foreach ((string name, string value) in endpoint.Parameters)
+            foreach ((string name, string value) in endpoint.ExternalParams)
             {
                 switch (name)
                 {

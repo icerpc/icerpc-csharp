@@ -72,19 +72,18 @@ namespace IceRpc.Transports.Internal
                         sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
 
-                ImmutableList<EndpointParameter> localParameters = endpoint.LocalParameters;
+                ImmutableList<EndpointParam> localParams = endpoint.LocalParams;
                 if (_tls == null && endpoint.Protocol == Protocol.Ice2)
                 {
                     // the accepted endpoint gets a _tls parameter
-                    localParameters =
-                        localParameters.Add(new EndpointParameter("_tls", SslStream == null ? "false" : "true"));
+                    localParams = localParams.Add(new EndpointParam("_tls", SslStream == null ? "false" : "true"));
                 }
 
                 if (_socket.RemoteEndPoint is IPEndPoint ipEndPoint)
                 {
                     string host = ipEndPoint.Address.ToString();
                     ushort port = checked((ushort)ipEndPoint.Port);
-                    return endpoint with { Host = host, Port = port, LocalParameters = localParameters };
+                    return endpoint with { Host = host, Port = port, LocalParams = localParams };
                 }
                 else
                 {
@@ -145,9 +144,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool IsCompatible(EndpointRecord remoteEndpoint)
+        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint)
         {
-            bool? tls = TcpUtils.ParseAllTcpParameters(remoteEndpoint).Tls;
+            bool? tls = TcpUtils.ParseTcpParams(remoteEndpoint).Tls;
 
             // A remote endpoint with no _tls parameter is compatible with an established connection no matter its tls
             // disposition.

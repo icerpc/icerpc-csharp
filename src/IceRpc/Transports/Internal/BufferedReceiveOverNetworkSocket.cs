@@ -38,8 +38,8 @@ namespace IceRpc.Transports.Internal
             CancellationToken cancel) =>
             Underlying.ConnectAsync(endpoint, authenticationOptions, cancel);
 
-        public override bool IsCompatible(EndpointRecord remoteEndpoint) =>
-            Underlying.IsCompatible(remoteEndpoint);
+        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint) =>
+            Underlying.HasCompatibleParams(remoteEndpoint);
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {

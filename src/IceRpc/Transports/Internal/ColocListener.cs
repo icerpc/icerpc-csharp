@@ -52,9 +52,9 @@ namespace IceRpc.Transports.Internal
 
         internal ColocListener(EndpointRecord endpoint, ServerConnectionOptions options, ILogger logger)
         {
-            if (endpoint.Parameters.Count > 0 || endpoint.LocalParameters.Count > 0)
+            if (endpoint.ExternalParams.Count > 0 || endpoint.LocalParams.Count > 0)
             {
-                throw new FormatException($"unknown parameter in endpoint {endpoint}");
+                throw new FormatException($"unknown parameter in endpoint '{endpoint}'");
             }
 
             _endpoint = endpoint;

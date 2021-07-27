@@ -20,7 +20,7 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             // First verify all parameters:
-            bool? tls = ParseAllTcpParameters(remoteEndpoint).Tls;
+            bool? tls = ParseTcpParams(remoteEndpoint).Tls;
 
             if (remoteEndpoint.Protocol == Protocol.Ice1)
             {
@@ -32,7 +32,7 @@ namespace IceRpc.Transports
                 tls = true;
                 remoteEndpoint = remoteEndpoint with
                 {
-                    LocalParameters = remoteEndpoint.LocalParameters.Add(new EndpointParameter("_tls", "true"))
+                    LocalParams = remoteEndpoint.LocalParams.Add(new EndpointParam("_tls", "true"))
                 };
             }
 

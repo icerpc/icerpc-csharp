@@ -72,7 +72,7 @@ namespace IceRpc.Transports.Interop
                 else if (endpoint.Transport == TransportNames.Opaque)
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) =
-                        OpaqueUtils.ParseOpaqueParameters(endpoint);
+                        OpaqueUtils.ParseExternalOpaqueParams(endpoint);
 
                     encoder.EncodeEndpoint11(endpoint,
                                              transportCode,
@@ -135,16 +135,16 @@ namespace IceRpc.Transports.Interop
                 int timeout = decoder.DecodeInt();
                 bool compress = decoder.DecodeBool();
 
-                var parameters = ImmutableList<EndpointParameter>.Empty;
+                var parameters = ImmutableList<EndpointParam>.Empty;
 
                 if (timeout != TcpUtils.DefaultTcpTimeout)
                 {
                     parameters =
-                        parameters.Add(new EndpointParameter("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                        parameters.Add(new EndpointParam("-t", timeout.ToString(CultureInfo.InvariantCulture)));
                 }
                 if (compress)
                 {
-                    parameters = parameters.Add(new EndpointParameter("-z", ""));
+                    parameters = parameters.Add(new EndpointParam("-z", ""));
                 }
 
                 return new EndpointRecord(Protocol.Ice1,
@@ -152,7 +152,7 @@ namespace IceRpc.Transports.Interop
                                           host,
                                           port,
                                           parameters,
-                                          ImmutableList<EndpointParameter>.Empty);
+                                          ImmutableList<EndpointParam>.Empty);
             }
             return null;
         }
@@ -172,7 +172,7 @@ namespace IceRpc.Transports.Interop
                                      transportCode,
                                      static (encoder, endpoint) =>
                                      {
-                                        (bool compress, int timeout) = TcpUtils.ParseTcpParameters(endpoint);
+                                        (bool compress, int timeout) = TcpUtils.ParseExternalTcpParams(endpoint);
                                         encoder.EncodeString(endpoint.Host);
                                         encoder.EncodeInt(endpoint.Port);
                                         encoder.EncodeInt(timeout);
@@ -198,15 +198,15 @@ namespace IceRpc.Transports.Interop
                 ushort port = checked((ushort)decoder.DecodeInt());
                 bool compress = decoder.DecodeBool();
 
-                var parameters = compress ? ImmutableList.Create(new EndpointParameter("-z", "")) :
-                    ImmutableList<EndpointParameter>.Empty;
+                var parameters = compress ? ImmutableList.Create(new EndpointParam("-z", "")) :
+                    ImmutableList<EndpointParam>.Empty;
 
                 return new EndpointRecord(Protocol.Ice1,
                                           TransportNames.Udp,
                                           host,
                                           port,
                                           parameters,
-                                          ImmutableList<EndpointParameter>.Empty);
+                                          ImmutableList<EndpointParam>.Empty);
             }
             return null;
         }
@@ -223,7 +223,7 @@ namespace IceRpc.Transports.Interop
                                      TransportCode.UDP,
                                      static (encoder, endpoint) =>
                                      {
-                                        bool compress = UdpUtils.ParseUdpParameters(endpoint);
+                                        bool compress = UdpUtils.ParseExternalUdpParams(endpoint);
                                         encoder.EncodeString(endpoint.Host);
                                         encoder.EncodeInt(endpoint.Port);
                                         encoder.EncodeBool(compress);

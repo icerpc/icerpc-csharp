@@ -18,7 +18,7 @@ namespace IceRpc.Transports
             ClientConnectionOptions options,
             ILogger logger)
         {
-            if (remoteEndpoint.Parameters.Count > 0 || remoteEndpoint.LocalParameters.Count > 0)
+            if (remoteEndpoint.ExternalParams.Count > 0 || remoteEndpoint.LocalParams.Count > 0)
             {
                 throw new FormatException($"unknown parameter in endpoint {remoteEndpoint}");
             }

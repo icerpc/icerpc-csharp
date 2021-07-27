@@ -93,7 +93,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
+            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol protocol, string? altEndpoint, string? encoding) = ParseQuery(
                 uri.Query,
                 uriString);
 
@@ -105,7 +105,7 @@ namespace IceRpc.Internal
             {
                 throw new FormatException($"invalid encoding parameter in endpoint {uriString}");
             }
-            return CreateEndpoint(uri, parameters, localParameters, protocol, uriString);
+            return CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
         }
 
         internal static Proxy ParseProxy(string uriString)
@@ -136,7 +136,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParameter> parameters, List<EndpointParameter> localParameters, Protocol protocol, string? altEndpointValue, string? encodingValue) =
+            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol protocol, string? altEndpointValue, string? encodingValue) =
                 ParseQuery(uri.Query, uriString);
 
             Encoding encoding = Encoding.V20;
@@ -149,7 +149,7 @@ namespace IceRpc.Internal
             ImmutableList<EndpointRecord> altEndpoints = ImmutableList<EndpointRecord>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, parameters, localParameters, protocol, uriString);
+                endpoint = CreateEndpoint(uri, externalParams, localParams, protocol, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -196,22 +196,22 @@ namespace IceRpc.Internal
 
         private static EndpointRecord CreateEndpoint(
             Uri uri,
-            List<EndpointParameter> parameters,
-            List<EndpointParameter> localParameters,
+            List<EndpointParam> externalParams,
+            List<EndpointParam> localParams,
             Protocol protocol,
             string uriString) => new(protocol,
                                      uri.Scheme[IcePlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
-                                     parameters.ToImmutableList(),
-                                     localParameters.ToImmutableList());
+                                     externalParams.ToImmutableList(),
+                                     localParams.ToImmutableList());
 
-        private static (List<EndpointParameter> Parameters, List<EndpointParameter> LocalParameters, Protocol Protocol, string? AltEndpoint, string? Endpoint) ParseQuery(
+        private static (List<EndpointParam> ExternalParams, List<EndpointParam> LocalParams, Protocol Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
-            var parameters = new List<EndpointParameter>();
-            var localParameters = new List<EndpointParameter>();
+            var externalParams = new List<EndpointParam>();
+            var localParams = new List<EndpointParam>();
             Protocol? protocol = null;
             string? altEndpoint = null;
             string? encoding = null;
@@ -251,15 +251,15 @@ namespace IceRpc.Internal
                 {
                     if (name[0] == '_')
                     {
-                        localParameters.Add(new EndpointParameter(name, value));
+                        localParams.Add(new EndpointParam(name, value));
                     }
                     else
                     {
-                        parameters.Add(new EndpointParameter(name, value));
+                        externalParams.Add(new EndpointParam(name, value));
                     }
                 }
             }
-            return (parameters, localParameters, protocol ?? Protocol.Ice2, altEndpoint, encoding);
+            return (externalParams, localParams, protocol ?? Protocol.Ice2, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)

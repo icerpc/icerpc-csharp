@@ -128,7 +128,7 @@ namespace IceRpc
             Connection? GetCachedConnection(EndpointRecord endpoint) =>
                 _connections.TryGetValue(endpoint, out List<Connection>? connections) &&
                 connections.FirstOrDefault(
-                    connection => connection.IsCompatible(endpoint)) is Connection connection ?
+                    connection => connection.HasCompatibleParams(endpoint)) is Connection connection ?
                         connection : null;
         }
 

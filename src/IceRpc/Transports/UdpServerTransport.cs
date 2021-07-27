@@ -29,7 +29,7 @@ namespace IceRpc.Transports
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
 
-            string? multicastInterface = ParseAllUdpParameters(endpoint).MulticastInterface;
+            string? multicastInterface = ParseUdpParams(endpoint).MulticastInterface;
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

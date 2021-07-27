@@ -43,8 +43,8 @@ namespace IceRpc.Internal
 
             string? host = null;
             ushort? port = null;
-            var parameters = new List<EndpointParameter>();
-            var localParameters = new List<EndpointParameter>();
+            var externalParams = new List<EndpointParam>();
+            var localParams = new List<EndpointParam>();
 
             // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
@@ -97,11 +97,11 @@ namespace IceRpc.Internal
                 {
                     if (name.StartsWith("--", StringComparison.Ordinal))
                     {
-                        localParameters.Add(new EndpointParameter(name, value));
+                        localParams.Add(new EndpointParam(name, value));
                     }
                     else
                     {
-                        parameters.Add(new EndpointParameter(name, value));
+                        externalParams.Add(new EndpointParam(name, value));
                     }
                 }
             }
@@ -110,8 +110,8 @@ namespace IceRpc.Internal
                                       transportName,
                                       host ?? "",
                                       port ?? 0,
-                                      parameters.ToImmutableList(),
-                                      localParameters.ToImmutableList());
+                                      externalParams.ToImmutableList(),
+                                      localParams.ToImmutableList());
         }
 
         /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>
@@ -621,8 +621,8 @@ namespace IceRpc.Internal
                                               TransportNames.Loc,
                                               Host: adapterId,
                                               Port: 0,
-                                              ImmutableList<EndpointParameter>.Empty,
-                                              ImmutableList<EndpointParameter>.Empty);
+                                              ImmutableList<EndpointParam>.Empty,
+                                              ImmutableList<EndpointParam>.Empty);
 
                 return new Proxy(identity, facet)
                 {

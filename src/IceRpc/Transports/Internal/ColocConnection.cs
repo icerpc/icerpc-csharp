@@ -152,8 +152,8 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override bool IsCompatible(EndpointRecord remoteEndpoint) =>
-            !IsServer && remoteEndpoint == RemoteEndpoint;
+        // There are no coloc parameters so the parameters are always compatible.
+        public override bool HasCompatibleParams(EndpointRecord remoteEndpoint) => !IsServer;
 
         public override async Task PingAsync(CancellationToken cancel)
         {

@@ -365,8 +365,8 @@ namespace IceRpc
                     sb.AppendEndpoint(_endpoint, Path);
 
                     firstOption = _endpoint.Protocol == Protocol.Ice2 &&
-                                  _endpoint.Parameters.Count == 0 &&
-                                  _endpoint.LocalParameters.Count == 0;
+                                  _endpoint.ExternalParams.Count == 0 &&
+                                  _endpoint.LocalParams.Count == 0;
                 }
                 else
                 {
@@ -457,8 +457,8 @@ namespace IceRpc
                                                       TransportNames.Loc,
                                                       Host: adapterId,
                                                       Port: port,
-                                                      ImmutableList<EndpointParameter>.Empty,
-                                                      ImmutableList<EndpointParameter>.Empty);
+                                                      ImmutableList<EndpointParam>.Empty,
+                                                      ImmutableList<EndpointParam>.Empty);
                     }
                     altEndpoints = ImmutableList<EndpointRecord>.Empty;
                 }

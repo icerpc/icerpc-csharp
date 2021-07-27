@@ -45,7 +45,7 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
-            _tls = ParseAllTcpParameters(endpoint).Tls;
+            _tls = ParseTcpParams(endpoint).Tls;
 
             if (endpoint.Protocol == Protocol.Ice1)
             {

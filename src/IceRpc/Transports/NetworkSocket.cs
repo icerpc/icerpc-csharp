@@ -64,7 +64,12 @@ namespace IceRpc.Transports
             GC.SuppressFinalize(this);
         }
 
-        public abstract bool IsCompatible(EndpointRecord remoteEndpoint);
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this socket. Compatible
+        /// means a client could reuse this socket (connection) instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this socket is compatible with the parameters of the provided endpoint;
+        /// otherwise, <c>false</c>.</returns>
+        public abstract bool HasCompatibleParams(EndpointRecord remoteEndpoint);
 
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>

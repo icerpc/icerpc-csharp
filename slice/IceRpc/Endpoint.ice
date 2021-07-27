@@ -11,13 +11,13 @@
 module IceRpc
 {
     [cs:readonly]
-    struct EndpointParameter
+    struct EndpointParam
     {
         string name;
         string value;
     }
 
-    sequence<EndpointParameter> EndpointParameterSeq;
+    sequence<EndpointParam> EndpointParamSeq;
 
     /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
     [cs:readonly]
@@ -42,7 +42,7 @@ module IceRpc
         StringSeq options;
 
         /// The name-value parameters.
-        EndpointParameterSeq parameters;
+        EndpointParamSeq params;
     }
 
     // Sequence of EndpointData (temporary).

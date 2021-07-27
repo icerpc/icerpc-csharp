@@ -951,9 +951,9 @@ namespace IceRpc
                     if (endpoint == null)
                     {
                         var parameters = ImmutableList.Create(
-                            new EndpointParameter("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                            new EndpointParameter("-e", encoding.ToString()),
-                            new EndpointParameter("-v", Convert.ToBase64String( _buffer.Slice(Pos, size).Span)));
+                            new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                            new EndpointParam("-e", encoding.ToString()),
+                            new EndpointParam("-v", Convert.ToBase64String( _buffer.Slice(Pos, size).Span)));
 
                         endpoint = new EndpointRecord(
                             protocol,
@@ -961,7 +961,7 @@ namespace IceRpc
                             Host: "",
                             Port: 0,
                             parameters,
-                            LocalParameters: ImmutableList<EndpointParameter>.Empty);
+                            LocalParams: ImmutableList<EndpointParam>.Empty);
 
                         Pos += size;
                     }
