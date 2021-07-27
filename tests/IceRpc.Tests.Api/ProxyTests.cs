@@ -182,19 +182,19 @@ namespace IceRpc.Tests.Api
         [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
         // another syntax for empty port
         [TestCase("ice+tcp://host.zeroc.com:/identity", "/identity")]
-        [TestCase("ice+universal://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=100")]
+        [TestCase("ice+foo://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
-        [TestCase("ice+universal://[::ab:cd:ef:00]/identity?transport=bt")]
-        [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
+        [TestCase("ice+foo://[::ab:cd:ef:00]/identity?transport=bt")]
+        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("ice+coloc://host:10000")]
         // a valid URI
 
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
@@ -217,11 +217,11 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
+        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
         [TestCase("ice://host:1000/identity")] // host not allowed
-        [TestCase("ice+universal:/identity")] // missing host
+        [TestCase("ice+foo:/identity")] // missing host
         [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
@@ -432,7 +432,7 @@ namespace IceRpc.Tests.Api
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = $"ice+universal://localhost?transport=tcp&protocol={protocol}"
+                RemoteEndpoint = $"ice+tcp://localhost?transport=tcp&protocol={protocol}"
             };
 
             var prx = GreeterPrx.FromConnection(connection);
