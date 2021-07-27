@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
 using System;
 using System.Globalization;
 using System.Net;

@@ -4,11 +4,8 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/BuiltinSequences.ice>
-
-// TODO: move to Interop
-
-module IceRpc
+[cs:namespace(IceRpc.Interop)]
+module Ice
 {
     /// TransportCode is used by the Ice 1.1 encoding to encode a transport name (such as "tcp") as a short value.
     unchecked enum TransportCode : short
