@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +8,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
@@ -78,118 +75,6 @@ namespace IceRpc.Transports.Internal
         internal static bool IsMulticast(IPAddress addr) =>
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
-
-        internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(Endpoint endpoint)
-        {
-            int ttl = -1;
-            string? multicastInterface = null;
-
-            foreach ((string name, string value) in endpoint.LocalParams)
-            {
-                switch (name)
-                {
-                    case "--ttl":
-                        if (ttl >= 0)
-                        {
-                            throw new FormatException($"multiple --ttl parameters in endpoint '{endpoint}'");
-                        }
-
-                        if (value.Length == 0)
-                        {
-                            throw new FormatException(
-                                $"no value provided for --ttl parameter in endpoint '{endpoint}'");
-                        }
-                        try
-                        {
-                            ttl = int.Parse(value, CultureInfo.InvariantCulture);
-                        }
-                        catch (FormatException ex)
-                        {
-                            throw new FormatException($"invalid TTL value '{value}' in endpoint '{endpoint}'", ex);
-                        }
-
-                        if (ttl < 0)
-                        {
-                            throw new FormatException(
-                                $"TTL value '{value}' out of range in endpoint '{endpoint}'");
-                        }
-                        break;
-
-                    case "--interface":
-                        if (multicastInterface != null)
-                        {
-                            throw new FormatException($"multiple --interface parameters in endpoint '{endpoint}'");
-                        }
-                        if (value.Length == 0)
-                        {
-                            throw new FormatException(
-                                $"no value provided for --interface parameter in endpoint '{endpoint}'");
-                        }
-                        if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress) || !IsMulticast(ipAddress))
-                        {
-                            throw new FormatException(@$"--interface parameter in endpoint '{endpoint
-                                }' must be for a host with a multicast address");
-                        }
-                        multicastInterface = value;
-
-                        if (multicastInterface != "*" &&
-                            IPAddress.TryParse(multicastInterface, out IPAddress? multicastInterfaceAddr))
-                        {
-                            if (ipAddress?.AddressFamily != multicastInterfaceAddr.AddressFamily)
-                            {
-                                throw new FormatException(
-                                    $@"the address family of the interface in '{endpoint
-                                    }' is not the multicast address family");
-                            }
-
-                            if (multicastInterfaceAddr == IPAddress.Any || multicastInterfaceAddr == IPAddress.IPv6Any)
-                            {
-                                multicastInterface = "*";
-                            }
-                        }
-                        // else keep value such as eth0
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown local parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-
-            return (ParseExternalUdpParams(endpoint), ttl, multicastInterface);
-        }
-
-        /// <summary>Parses the non-local parameters of endpoint.</summary>
-        internal static bool ParseExternalUdpParams(Endpoint endpoint)
-        {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
-            }
-
-            bool compress = false;
-
-            foreach ((string name, string value) in endpoint.ExternalParams)
-            {
-                switch (name)
-                {
-                    case "-z":
-                        if (compress)
-                        {
-                            throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
-                        }
-                        if (value.Length > 0)
-                        {
-                            throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
-                        }
-                        compress = true;
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-            return compress;
-        }
 
         internal static void SetMulticastGroup(Socket socket, string? multicastInterface, IPAddress group)
         {

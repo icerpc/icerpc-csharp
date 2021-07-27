@@ -148,14 +148,16 @@ namespace IceRpc.Tests.Internal
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => Server.DefaultServerTransport.Listen(serverEndpoint, ServerConnectionOptions,
-                                                                                Logger).Listener!.Dispose());
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => Server.DefaultServerTransport.Listen(serverEndpoint, ServerConnectionOptions,
-                                                                                Logger).Listener!.Dispose());
+                        () => Server.DefaultServerTransport.Listen(serverEndpoint,
+                                                                   ServerConnectionOptions,
+                                                                   Logger).Listener!.Dispose());
                 }
             }
             else

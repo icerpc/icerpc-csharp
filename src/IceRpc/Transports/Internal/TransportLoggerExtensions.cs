@@ -77,17 +77,6 @@ namespace IceRpc.Transports.Internal
             EventId = (int)TransportEvent.ReceiveBufferSizeAdjusted,
             EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
             Level = LogLevel.Debug,
-            Message = "{TransportCode} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void OldLogReceiveBufferSizeAdjusted(
-            this ILogger logger,
-            TransportCode transportCode,
-            int requestedSize,
-            int adjustedSize);
-
-        [LoggerMessage(
-            EventId = (int)TransportEvent.ReceiveBufferSizeAdjusted,
-            EventName = nameof(TransportEvent.ReceiveBufferSizeAdjusted),
-            Level = LogLevel.Debug,
             Message = "{Transport} receive buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
         internal static partial void LogReceiveBufferSizeAdjusted(
             this ILogger logger,
@@ -108,17 +97,6 @@ namespace IceRpc.Transports.Internal
             Level = LogLevel.Debug,
             Message = "received invalid {Bytes} bytes datagram")]
         internal static partial void LogReceivedInvalidDatagram(this ILogger logger, int bytes);
-
-        [LoggerMessage(
-            EventId = (int)TransportEvent.SendBufferSizeAdjusted,
-            EventName = nameof(TransportEvent.SendBufferSizeAdjusted),
-            Level = LogLevel.Debug,
-            Message = "{TransportCode} send buffer size: requested size of {RequestedSize} adjusted to {AdjustedSize}")]
-        internal static partial void OldLogSendBufferSizeAdjusted(
-            this ILogger logger,
-            TransportCode transportCode,
-            int requestedSize,
-            int adjustedSize);
 
         [LoggerMessage(
             EventId = (int)TransportEvent.SendBufferSizeAdjusted,

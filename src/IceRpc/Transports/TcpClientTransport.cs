@@ -6,8 +6,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-using static IceRpc.Transports.Internal.TcpUtils;
-
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
@@ -20,7 +18,7 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             // First verify all parameters:
-            bool? tls = ParseTcpParams(remoteEndpoint).Tls;
+            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
             if (remoteEndpoint.Protocol == Protocol.Ice1)
             {

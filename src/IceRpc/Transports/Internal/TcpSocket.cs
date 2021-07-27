@@ -146,7 +146,7 @@ namespace IceRpc.Transports.Internal
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
-            bool? tls = TcpUtils.ParseTcpParams(remoteEndpoint).Tls;
+            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
             // A remote endpoint with no _tls parameter is compatible with an established connection no matter its tls
             // disposition.

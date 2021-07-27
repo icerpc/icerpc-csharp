@@ -71,8 +71,7 @@ namespace IceRpc.Transports.Interop
                 }
                 else if (endpoint.Transport == TransportNames.Opaque)
                 {
-                    (TransportCode transportCode, ReadOnlyMemory<byte> bytes) =
-                        OpaqueUtils.ParseExternalOpaqueParams(endpoint);
+                    (TransportCode transportCode, ReadOnlyMemory<byte> bytes) = endpoint.ParseExternalOpaqueParams();
 
                     encoder.EncodeEndpoint11(endpoint,
                                              transportCode,
@@ -137,7 +136,7 @@ namespace IceRpc.Transports.Interop
 
                 var parameters = ImmutableList<EndpointParam>.Empty;
 
-                if (timeout != TcpUtils.DefaultTcpTimeout)
+                if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
                 {
                     parameters =
                         parameters.Add(new EndpointParam("-t", timeout.ToString(CultureInfo.InvariantCulture)));
@@ -172,7 +171,7 @@ namespace IceRpc.Transports.Interop
                                      transportCode,
                                      static (encoder, endpoint) =>
                                      {
-                                        (bool compress, int timeout) = TcpUtils.ParseExternalTcpParams(endpoint);
+                                        (bool compress, int timeout) = endpoint.ParseExternalTcpParams();
                                         encoder.EncodeString(endpoint.Host);
                                         encoder.EncodeInt(endpoint.Port);
                                         encoder.EncodeInt(timeout);
@@ -223,7 +222,7 @@ namespace IceRpc.Transports.Interop
                                      TransportCode.UDP,
                                      static (encoder, endpoint) =>
                                      {
-                                        bool compress = UdpUtils.ParseExternalUdpParams(endpoint);
+                                        bool compress = endpoint.ParseExternalUdpParams();
                                         encoder.EncodeString(endpoint.Host);
                                         encoder.EncodeInt(endpoint.Port);
                                         encoder.EncodeBool(compress);
