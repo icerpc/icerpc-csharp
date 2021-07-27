@@ -25,7 +25,7 @@ namespace IceRpc.Transports
             if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(remoteEndpoint.ToString(), id, writer, reader, options, logger);
+                return new ColocConnection(remoteEndpoint, id, writer, reader, options, logger);
             }
             else
             {

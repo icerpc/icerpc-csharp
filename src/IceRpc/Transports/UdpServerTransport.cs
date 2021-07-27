@@ -13,7 +13,6 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the udp transport.</summary>
     public class UdpServerTransport : IServerTransport
     {
-        /// <inheritdoc/>
         (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,
             ServerConnectionOptions options,

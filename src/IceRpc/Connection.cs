@@ -332,7 +332,7 @@ namespace IceRpc
                         }
 
                         UnderlyingConnection =
-                            ClientTransport.CreateConnection(Endpoint.FromString(_remoteEndpoint.ToString()), clientOptions, _logger);
+                            ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
                     }
 
                     // If the endpoint is secure, connect with the SSL client authentication options.

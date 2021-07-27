@@ -39,13 +39,13 @@ namespace IceRpc.Transports
             CancellationToken cancel)
         {
             Endpoint? remoteEndpoint = await NetworkSocket.AcceptAsync(
-                LocalEndpoint!.ToString(),
+                LocalEndpoint!,
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
 
             if (remoteEndpoint != null)
             {
-                RemoteEndpoint = remoteEndpoint.ToString();
+                RemoteEndpoint = remoteEndpoint;
             }
         }
 

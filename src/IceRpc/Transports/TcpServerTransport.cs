@@ -55,7 +55,8 @@ namespace IceRpc.Transports
 
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
-                                             logger, options),
+                                             logger,
+                                             options),
                     null);
         }
     }

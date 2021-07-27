@@ -14,7 +14,6 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport
     {
-        /// <inheritdoc/>
         MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
             ClientConnectionOptions options,
@@ -92,7 +91,7 @@ namespace IceRpc.Transports
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
-            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint.ToString(), options);
+            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, options);
         }
     }
 }

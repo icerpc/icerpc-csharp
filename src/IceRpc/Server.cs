@@ -151,7 +151,7 @@ namespace IceRpc
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = Endpoint.FromString(multiStreamConnection.LocalEndpoint!.ToString());
+                    _endpoint = multiStreamConnection.LocalEndpoint;
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
