@@ -28,10 +28,7 @@ namespace IceRpc
             hash.Add(Transport);
             hash.Add(Host);
             hash.Add(Port);
-            foreach (string option in Options)
-            {
-                hash.Add(option);
-            }
+            hash.Add(Options.GetSequenceHashCode());
             return hash.ToHashCode();
         }
     }
