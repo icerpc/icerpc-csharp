@@ -5,6 +5,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Security;
@@ -87,7 +88,12 @@ namespace IceRpc.Tests.Internal
 
             if (transport == "coloc")
             {
-                ClientEndpoint = new ColocEndpoint(Guid.NewGuid().ToString(), 4062, protocol);
+                ClientEndpoint = new Endpoint(Protocol.Ice2,
+                                              transport,
+                                              Host: Guid.NewGuid().ToString(),
+                                              Port: 4062,
+                                              ImmutableList<EndpointParam>.Empty,
+                                              ImmutableList<EndpointParam>.Empty);
                 ServerEndpoint = ClientEndpoint;
             }
             else
@@ -137,7 +143,7 @@ namespace IceRpc.Tests.Internal
                 MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
                 Debug.Assert(multiStreamConnection.TransportName == TransportName);
                 await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure)
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure!.Value)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
@@ -162,7 +168,7 @@ namespace IceRpc.Tests.Internal
 
         protected async Task<MultiStreamConnection> ConnectAsync(ClientConnectionOptions? connectionOptions = null)
         {
-            if (!ClientEndpoint.IsDatagram)
+            if (ClientEndpoint.Transport != "udp")
             {
                 lock (_mutex)
                 {

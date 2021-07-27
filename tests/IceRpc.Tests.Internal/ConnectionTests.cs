@@ -5,6 +5,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -73,7 +74,7 @@ namespace IceRpc.Tests.Internal
                 Connection clientConnection;
                 Connection serverConnection;
 
-                if (Endpoint.IsDatagram)
+                if (Endpoint.Transport == "udp")
                 {
                     serverConnection = new Connection(
                         Server.DefaultServerTransport.Listen(Endpoint, _server.ConnectionOptions, Logger).Connection!,
@@ -167,7 +168,12 @@ namespace IceRpc.Tests.Internal
 
                 if (transport == "coloc")
                 {
-                    Endpoint = new ColocEndpoint(Guid.NewGuid().ToString(), 4062, protocol);
+                    Endpoint = new Endpoint(Protocol.Ice2,
+                                            transport,
+                                            Host: Guid.NewGuid().ToString(),
+                                            Port: 4062,
+                                            ImmutableList<EndpointParam>.Empty,
+                                            ImmutableList<EndpointParam>.Empty);
                 }
                 else if (transport == "udp" || protocol == Protocol.Ice1)
                 {
@@ -327,7 +333,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(factory.ClientConnection.LocalEndpoint.Port, Is.EqualTo(factory.ServerConnection.RemoteEndpoint!.Port));
                 Assert.AreEqual("127.0.0.1", factory.ClientConnection.RemoteEndpoint.Host);
             }
-            Assert.AreEqual(null, factory.ClientConnection.RemoteEndpoint["compress"]);
             Assert.That(factory.ClientConnection.IsServer, Is.False);
             Assert.That(factory.ServerConnection.IsServer, Is.True);
 

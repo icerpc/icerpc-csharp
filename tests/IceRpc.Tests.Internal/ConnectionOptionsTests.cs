@@ -152,15 +152,7 @@ namespace IceRpc.Tests.Internal
                     IsIPv6Only = ipv6Only
                 };
 
-                var serverData = new EndpointData(
-                    ServerEndpoint.Protocol,
-                    ServerEndpoint.TransportCode.ToString().ToLowerInvariant(),
-                    ServerEndpoint.TransportCode,
-                    "::0",
-                    ServerEndpoint.Port,
-                    ServerEndpoint.Data.Options);
-
-                var serverEndpoint = TcpEndpoint.CreateEndpoint(serverData, ServerEndpoint.Protocol);
+                Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
 
                 using IListener listener =
                     Server.DefaultServerTransport.Listen(serverEndpoint, connectionOptions, Logger).Listener!;
@@ -168,15 +160,7 @@ namespace IceRpc.Tests.Internal
                 ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
                 // Create a client endpoints that uses the 127.0.0.1 IPv4-mapped address
-                var data = new EndpointData(
-                    ClientEndpoint.Protocol,
-                    ClientEndpoint.TransportCode.ToString().ToLowerInvariant(),
-                    ClientEndpoint.TransportCode,
-                    "::FFFF:127.0.0.1",
-                    ClientEndpoint.Port,
-                    ClientEndpoint.Data.Options);
-
-                var clientEndpoint = TcpEndpoint.CreateEndpoint(data, ClientEndpoint.Protocol);
+                Endpoint clientEndpoint = ClientEndpoint with { Host = "::FFFF:127.0.0.1" };
 
                 using NetworkSocket clientConnection = CreateClientConnection(endpoint: clientEndpoint);
 

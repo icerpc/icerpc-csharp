@@ -18,19 +18,19 @@ namespace IceRpc.Tests.ClientServer
         private Connection Connection { get; }
         private Server Server { get; }
         private Protocol Protocol { get; }
-        private string TransportCode { get; }
+        private string Transport { get; }
         private IStressTestPrx Prx { get; }
         private StressTest Servant { get; }
 
         public StressTests(Protocol protocol, string transport)
         {
             Protocol = protocol;
-            TransportCode = transport;
+            Transport = transport;
             Servant = new StressTest();
             Server = new Server
             {
                 Dispatcher = Servant,
-                Endpoint = GetTestEndpoint(protocol: Protocol, transport: TransportCode),
+                Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
             };
             Connection = new Connection { RemoteEndpoint = Server.Endpoint };
             Prx = StressTestPrx.FromConnection(Connection);
