@@ -439,7 +439,7 @@ namespace IceRpc.Transports
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
                                 (ulong)_connection.IncomingFrameMaxSize,
-                                BasicEncodeActions.VarULongEncodeAction);
+                                (encoder, value) => encoder.EncodeVarULong(value));
 
                 encoder.EndFixedLengthSize(sizePos);
 
@@ -518,7 +518,7 @@ namespace IceRpc.Transports
             var encoder = new IceEncoder(Encoding.V20);
             encoder.WriteByteSpan(TransportHeader.Span);
 
-            encoder.Encode(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
+            encoder.EncodeIce2FrameType(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
             IceEncoder.Position start = encoder.StartFixedLengthSize(4);
             frame.EncodeHeader(encoder);
 

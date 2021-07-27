@@ -143,8 +143,8 @@ namespace IceRpc
                         Value = value.DecodeFieldValue(decoder => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
-                            keyDecodeFunc: BasicDecodeFuncs.StringDecodeFunc,
-                            valueDecodeFunc: BasicDecodeFuncs.StringDecodeFunc))
+                            keyDecodeFunc: decoder => decoder.DecodeString(),
+                            valueDecodeFunc: decoder => decoder.DecodeString()))
                     });
                 }
             }

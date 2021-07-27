@@ -966,7 +966,7 @@ namespace IceRpc
                     var data = new EndpointData(transport,
                                                 host: DecodeString(),
                                                 port: DecodeUShort(),
-                                                options: DecodeArray(1, BasicDecodeFuncs.StringDecodeFunc));
+                                                options: DecodeArray(1, decoder => decoder.DecodeString()));
 
                     endpoint = data.ToEndpoint(protocol);
                 }

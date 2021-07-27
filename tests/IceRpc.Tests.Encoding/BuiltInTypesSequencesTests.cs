@@ -115,8 +115,8 @@ namespace IceRpc.Tests.Encoding
         public void BuiltInTypesSequences_String(int size)
         {
             IEnumerable<string> p1 = Enumerable.Range(0, size).Select(i => $"string-{i}");
-            _encoder.EncodeSequence(p1, BasicEncodeActions.StringEncodeAction);
-            IEnumerable<string> r1 = _decoder.DecodeSequence(1, BasicDecodeFuncs.StringDecodeFunc);
+            _encoder.EncodeSequence(p1, (encoder, value) => encoder.EncodeString(value));
+            IEnumerable<string> r1 = _decoder.DecodeSequence(1, decoder => decoder.DecodeString());
 
             CollectionAssert.AreEqual(p1, r1);
             Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
