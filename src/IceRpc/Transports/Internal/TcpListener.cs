@@ -45,14 +45,12 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
-            _tls = ParseLocalTcpParameters(endpoint);
+            _tls = ParseAllTcpParameters(endpoint).Tls;
 
             if (endpoint.Protocol == Protocol.Ice1)
             {
                 _tls = endpoint.Transport == TransportNames.Ssl;
             }
-
-            _ = ParseTcpParameters(endpoint);
         }
     }
 }

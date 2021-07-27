@@ -67,9 +67,7 @@ namespace IceRpc.Transports.Internal
 
         public override bool IsCompatible(EndpointRecord remoteEndpoint)
         {
-            _ = UdpUtils.ParseUdpParameters(remoteEndpoint); // can throw FormatException
-            (int ttl, string? multicastInterface) = UdpUtils.ParseLocalUdpParameters(remoteEndpoint);
-
+            (_, int ttl, string? multicastInterface) = UdpUtils.ParseAllUdpParameters(remoteEndpoint);
             return (ttl == _ttl && multicastInterface == _multicastInterface);
         }
 

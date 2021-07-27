@@ -59,7 +59,7 @@ namespace IceRpc.Transports
                 cancel).ConfigureAwait(false);
 
         /// <inheritdoc/>
-        // TODO: the full check should be performed by NetworkSocket.IsCompatible but the NetworkSocket implementations
+        // TODO: the check should be performed by NetworkSocket.IsCompatible but the NetworkSocket implementations
         // currently don't keep any endpoint.
         public override bool IsCompatible(EndpointRecord remoteEndpoint) =>
             !IsServer &&

@@ -18,7 +18,7 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a tcp or ssl endpoint regardless of its actual transport ID.
+            // a tcp or ssl endpoint regardless of its actual transport name.
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

@@ -27,10 +27,9 @@ namespace IceRpc.Transports
             ILogger logger)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
-            // a udp endpoint regardless of its actual transport ID.
+            // a udp endpoint regardless of its actual transport name.
 
-            _ = ParseUdpParameters(endpoint); // can throw FormatException
-            (int _, string? multicastInterface) = ParseLocalUdpParameters(endpoint);
+            string? multicastInterface = ParseAllUdpParameters(endpoint).MulticastInterface;
 
             if (!IPAddress.TryParse(endpoint.Host, out IPAddress? ipAddress))
             {

@@ -79,13 +79,9 @@ namespace IceRpc.Transports.Internal
             addr.AddressFamily == AddressFamily.InterNetwork ?
                 (addr.GetAddressBytes()[0] & 0xF0) == 0xE0 : addr.IsIPv6Multicast;
 
-        internal static (int Ttl, string? MulticastInterface) ParseLocalUdpParameters(EndpointRecord endpoint)
+        internal static (bool Compress, int Ttl, string? MulticastInterface) ParseAllUdpParameters(
+            EndpointRecord endpoint)
         {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
-            }
-
             int ttl = -1;
             string? multicastInterface = null;
 
@@ -160,9 +156,10 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return (ttl, multicastInterface);
+            return (ParseUdpParameters(endpoint), ttl, multicastInterface);
         }
 
+        /// <summary>Parses the non-local parameters of endpoint.</summary>
         internal static bool ParseUdpParameters(EndpointRecord endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)

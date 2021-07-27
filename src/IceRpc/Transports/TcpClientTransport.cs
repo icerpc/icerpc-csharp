@@ -19,8 +19,8 @@ namespace IceRpc.Transports
             ClientConnectionOptions options,
             ILogger logger)
         {
-            _ = ParseTcpParameters(remoteEndpoint);
-            bool? tls = ParseLocalTcpParameters(remoteEndpoint);
+            // First verify all parameters:
+            bool? tls = ParseAllTcpParameters(remoteEndpoint).Tls;
 
             if (remoteEndpoint.Protocol == Protocol.Ice1)
             {
@@ -28,13 +28,12 @@ namespace IceRpc.Transports
             }
             else if (tls == null)
             {
-                // TODO: add TcpClientTransportOptions to override this default behavior, e.g. for some trusted hosts.
-
+                // TODO: add ability to override this default tls=true through some options
+                tls = true;
                 remoteEndpoint = remoteEndpoint with
                 {
                     LocalParameters = remoteEndpoint.LocalParameters.Add(new EndpointParameter("_tls", "true"))
                 };
-                tls = true;
             }
 
             TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
