@@ -113,15 +113,6 @@ getEscapedParamName(const ExceptionPtr& p, const string& name)
     return name;
 }
 
-bool
-hasDataMemberWithName(const MemberList& dataMembers, const string& name)
-{
-    return find_if(dataMembers.begin(), dataMembers.end(), [name](const auto& m)
-                                                           {
-                                                               return m->name() == name;
-                                                           }) != dataMembers.end();
-}
-
 }
 
 Slice::CsVisitor::CsVisitor(Output& out) :
@@ -1243,22 +1234,14 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     _out << nl << "private static readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
          << name << "));";
 
-    bool partialInitialize = !hasDataMemberWithName(allDataMembers, "Initialize");
-    if(partialInitialize)
-    {
-        _out << sp << nl << "partial void Initialize();";
-    }
-
     if (allDataMembers.empty())
     {
         // There is always at least another constructor, so we need to generate the parameterless constructor.
         _out << sp;
         _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
         _out << nl << "public " << name << spar << epar;
-        if (partialInitialize)
-        {
-            _out << " => Initialize();";
-        }
+        _out << sb;
+        _out << eb;
     }
     else
     {
@@ -1296,10 +1279,6 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         {
             _out << nl << "this." << fixId(fieldName(d), Slice::ObjectType) << " = "
                  << fixId(d->name(), Slice::ObjectType) << ";";
-        }
-        if (partialInitialize)
-        {
-            _out << nl << "Initialize();";
         }
         _out << eb;
 
@@ -1355,11 +1334,6 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
                     _out << nl << "this." << fixId(fieldName(d), Slice::ObjectType) << " = "
                          << fixId(d->name(), Slice::ObjectType) << ";";
                 }
-            }
-
-            if (partialInitialize)
-            {
-                _out << nl << "Initialize();";
             }
             _out << eb;
         }
@@ -1483,11 +1457,6 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     if (base)
     {
         _out << nl << "base.IceRead(reader, false);";
-    }
-    // This slice and its base slices (if any) are now fully initialized.
-    if (!hasDataMemberWithName(p->allDataMembers(), "Initialize"))
-    {
-        _out << nl << "Initialize();";
     }
     _out << eb;
 }
@@ -1755,8 +1724,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     emitEqualityOperators(name);
 
-    bool partialInitialize = !hasDataMemberWithName(dataMembers, "Initialize");
-
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
     for (const auto& member : dataMembers)
@@ -1780,10 +1747,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
         string memberName = fixId(fieldName(i), Slice::ObjectType);
         _out << nl << (paramName == memberName ? "this." : "") << memberName  << " = " << paramName << ";";
     }
-    if(partialInitialize)
-    {
-        _out << nl << "Initialize();";
-    }
+
     _out << eb;
 
     _out << sp;
@@ -1793,11 +1757,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sb;
 
     writeUnmarshalDataMembers(dataMembers, ns, 0);
-
-    if(partialInitialize)
-    {
-        _out << nl << "Initialize();";
-    }
 
     _out << eb;
 
@@ -1920,14 +1879,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
-
-    if (partialInitialize)
-    {
-        _out << sp;
-        _out << nl << "/// <summary>The constructor calls the Initialize partial method after initializing "
-             << "the fields.</summary>";
-        _out << nl << "partial void Initialize();";
-    }
 
     _out << eb;
 }
