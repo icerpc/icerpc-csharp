@@ -920,8 +920,7 @@ namespace IceRpc
             Debug.Assert(OldEncoding);
             Debug.Assert(Connection != null);
 
-            Endpoint? endpoint;
-
+            Endpoint? endpoint = null;
             TransportCode transportCode = this.DecodeTransportCode();
 
             int size = DecodeInt();
@@ -944,7 +943,13 @@ namespace IceRpc
             if (encoding == Encoding.V11 || encoding == Encoding.V10)
             {
                 int oldPos = Pos;
-                if (protocol == Protocol.Ice1)
+
+                if (transportCode == TransportCode.Any)
+                {
+                    // Encoded as an endpoint data
+                    endpoint = new EndpointData(this).ToEndpoint();
+                }
+                else if (protocol == Protocol.Ice1)
                 {
                     endpoint = Connection.EndpointCodex.DecodeEndpoint(transportCode, this);
 
@@ -953,7 +958,7 @@ namespace IceRpc
                         var parameters = ImmutableList.Create(
                             new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
                             new EndpointParam("-e", encoding.ToString()),
-                            new EndpointParam("-v", Convert.ToBase64String( _buffer.Slice(Pos, size).Span)));
+                            new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
 
                         endpoint = new Endpoint(
                             protocol,
@@ -966,33 +971,23 @@ namespace IceRpc
                         Pos += size;
                     }
                 }
-                else if (transportCode == TransportCode.Any)
-                {
-                    // Encoded as an endpoint data
-                    endpoint = new EndpointData(this).ToEndpoint();
-                }
-                else
-                {
-                    string transportName = transportCode.ToString().ToLowerInvariant();
-                    throw new InvalidDataException(
-                        @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
-                        }' with endpoint encapsulation encoded with encoding '{encoding}'");
-                }
 
-                // Make sure we read the full encapsulation.
-                if (Pos != oldPos + size)
+                if (endpoint != null)
                 {
-                    throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
+                    // Make sure we read the full encapsulation.
+                    if (Pos != oldPos + size)
+                    {
+                        throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
+                    }
                 }
             }
-            else
-            {
-                string transportName = transportCode.ToString().ToLowerInvariant();
+
+            string transportName = endpoint?.Transport ?? transportCode.ToString().ToLowerInvariant();
+
+            return endpoint ??
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
-            }
-            return endpoint;
         }
 
         /// <summary>Decodes a field.</summary>
