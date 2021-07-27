@@ -969,7 +969,7 @@ namespace IceRpc
                 else if (transportCode == TransportCode.Any)
                 {
                     // Encoded as an endpoint data
-                    endpoint = Endpoint.FromEndpointData(new EndpointData(this));
+                    endpoint = new EndpointData(this).ToEndpoint();
                 }
                 else
                 {

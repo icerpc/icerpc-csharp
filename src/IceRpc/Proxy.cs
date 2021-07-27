@@ -547,10 +547,10 @@ namespace IceRpc
                 Endpoint? endpoint = null;
                 if (proxyData.Endpoint is EndpointData data)
                 {
-                    endpoint = Endpoint.FromEndpointData(data);
+                    endpoint = data.ToEndpoint();
                 }
                 ImmutableList<Endpoint> altEndpoints =
-                    proxyData.AltEndpoints?.Select(data => Endpoint.FromEndpointData(data)).ToImmutableList() ??
+                    proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
                         ImmutableList<Endpoint>.Empty;
 
                 if (endpoint == null && altEndpoints.Count > 0)
