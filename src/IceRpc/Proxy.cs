@@ -589,7 +589,8 @@ namespace IceRpc
                     {
                         var proxy = Proxy.FromPath(path, Protocol.Ice1);
                         proxy.FacetPath = facetPath;
-                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+                        proxy.Encoding =
+                            proxyData.Encoding is string encoding ? Encoding.Parse(encoding) : Encoding.V20;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
                         proxy.Invoker = decoder.Invoker;
@@ -622,7 +623,8 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding = proxyData.Encoding ?? Encoding.V20;
+                        proxy.Encoding =
+                            proxyData.Encoding is string encoding ? Encoding.Parse(encoding) : Encoding.V20;
 
                         return proxy;
                     }
@@ -745,7 +747,7 @@ namespace IceRpc
                 var proxyData = new ProxyData20(
                     path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
-                    encoding: Encoding != Encoding.V20 ? Encoding : null,
+                    encoding: Encoding != Encoding.V20 ? Encoding.ToString() : null,
                     endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
                     altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
