@@ -124,7 +124,7 @@ namespace IceRpc
         /// <summary>The endpoint encoder is used when encoding ice1 endpoint (typically inside a proxy)
         /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
         /// transport-dependent.</summary>
-        /// <seealso cref="Connection.EndpointCodex"/>.</seealso>
+        /// <seealso cref="Connection.EndpointCodex"/>
         // TODO: provide public API to get/set this encoder.
         internal IEndpointEncoder EndpointEncoder { get; set; } = _defaultEndpointEncoder;
 
@@ -460,13 +460,14 @@ namespace IceRpc
                     string adapterId = decoder.DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        ushort port = (ushort)(proxyData.Protocol == Protocol.Ice1 ? 0 : 4062); // TODO
                         endpoint = new Endpoint(proxyData.Protocol,
-                                                      TransportNames.Loc,
-                                                      Host: adapterId,
-                                                      Port: port,
-                                                      ImmutableList<EndpointParam>.Empty,
-                                                      ImmutableList<EndpointParam>.Empty);
+                                                TransportNames.Loc,
+                                                Host: adapterId,
+                                                Port: proxyData.Protocol == Protocol.Ice1 ?
+                                                    Ice1Parser.DefaultPort :
+                                                    IceUriParser.DefaultUriPort,
+                                                ImmutableList<EndpointParam>.Empty,
+                                                ImmutableList<EndpointParam>.Empty);
                     }
                     altEndpoints = ImmutableList<Endpoint>.Empty;
                 }

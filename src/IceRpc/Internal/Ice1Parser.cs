@@ -16,6 +16,8 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
+        internal const ushort DefaultPort = 0;
+
         internal static Endpoint ParseEndpointString(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");

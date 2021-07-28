@@ -12,7 +12,7 @@ namespace IceRpc.Internal
     /// <summary>Provides helper methods to parse ice and ice+transport URIs.</summary>
     internal static class IceUriParser
     {
-        public const ushort DefaultPort = 4062;
+        internal const ushort DefaultUriPort = 4062;
 
         private const string IceColon = "ice:";
         private const string IcePlus = "ice+";
@@ -276,7 +276,7 @@ namespace IceRpc.Internal
                         GenericUriParserOptions.NoFragment |
                         GenericUriParserOptions.NoUserInfo;
 
-                    int defaultPort = DefaultPort;
+                    int defaultPort = DefaultUriPort;
 
                     if (scheme == "ice")
                     {
