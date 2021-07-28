@@ -66,9 +66,12 @@ namespace IceRpc
                 Debug.Assert(Protocol == Protocol.Ice2);
                 int headerSize = decoder.DecodeSize();
                 int startPos = decoder.Pos;
+                var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
+                ResultType = responseHeaderBody.ResultType;
+                PayloadEncoding = responseHeaderBody.PayloadEncoding is string payloadEncoding ?
+                    Encoding.Parse(payloadEncoding) : Encoding.V20;
+
                 Fields = decoder.DecodeFieldDictionary();
-                ResultType = decoder.DecodeResultType();
-                PayloadEncoding = new Encoding(decoder);
 
                 int payloadSize = decoder.DecodeSize();
                 if (decoder.Pos - startPos != headerSize)

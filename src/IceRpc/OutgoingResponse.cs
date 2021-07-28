@@ -165,9 +165,10 @@ namespace IceRpc
             if (Protocol == Protocol.Ice2)
             {
                 IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
+                new Ice2ResponseHeaderBody(
+                    ResultType,
+                    PayloadEncoding == Encoding.V20 ? null : PayloadEncoding.ToString()).Encode(encoder);
                 EncodeFields(encoder);
-                encoder.EncodeResultType(ResultType);
-                PayloadEncoding.Encode(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(startPos, 2);
             }

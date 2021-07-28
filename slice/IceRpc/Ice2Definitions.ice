@@ -66,7 +66,7 @@ module IceRpc
     /// - a frame prologue, with the frame type and (for now) the overall frame size
     /// - a request header (below)
     /// - a request payload
-    /// We put various members of the header in the Ice2RequestHeaderBody struct because the marshaling and unmarshaling
+    /// We put various members of the header in the Ice2RequestHeaderBody struct because the encoding and decoding of
     /// of Fields is often custom.
     [cs:readonly]
     struct Ice2RequestHeader
@@ -87,17 +87,26 @@ module IceRpc
         Failure = 1
     }
 
+    // See Ice2ResponseHeader below.
+    [cs:readonly]
+    struct Ice2ResponseHeaderBody
+    {
+        ResultType resultType;
+        string? payloadEncoding;
+    }
+
     /// Each ice2 response frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a response header (below)
     /// - a response payload
+    /// We put various members of the header in the Ice2ResponseHeaderBody struct because the encoding and decoding of
+    /// of Fields is often custom.
     [cs:readonly]
     struct Ice2ResponseHeader
     {
         varulong headerSize;
+        Ice2ResponseHeaderBody body;
         Fields fields;
-        ResultType resultType;
-        Encoding payloadEncoding;
         varulong payloadSize;
     }
 
