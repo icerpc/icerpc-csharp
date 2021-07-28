@@ -116,7 +116,8 @@ namespace IceRpc
         public IInvoker? Invoker { get; set; }
 
         /// <summary>Gets the path of this proxy. This path is a percent-escaped URI path.</summary>
-        public string Path { get; }
+        // private set only used in WithPath
+        public string Path { get; private set; }
 
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }
@@ -206,8 +207,8 @@ namespace IceRpc
             return proxy;
         }
 
-        /// <summary>Creates a proxy from a path and protocol. Unlike Proxy's constructor, this method also sets
-        /// Identity from the path when the protocol is ice1.</summary>
+        /// <summary>Creates a proxy from a path and protocol. This method sets Identity from the path when the
+        /// protocol is ice1.</summary>
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
@@ -257,17 +258,6 @@ namespace IceRpc
                 proxy = null;
                 return false;
             }
-        }
-
-        /// <summary>Constructs a new proxy.</summary>
-        /// <param name="path">The proxy path.</param>
-        /// <param name="protocol">The proxy protocol.</param>
-        public Proxy(string path, Protocol protocol = Protocol.Ice2)
-        {
-            Protocol = protocol;
-            IceUriParser.CheckPath(path, nameof(path));
-            Path = path;
-            Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }
 
         /// <summary>Creates a shallow copy of this proxy. It's a safe copy since the only container property
@@ -416,6 +406,27 @@ namespace IceRpc
                     sb.Append('&');
                 }
             }
+        }
+
+        /// <summary>Creates a copy of this proxy with a new path.</summary>
+        /// <param name="path">The new path.</param>
+        /// <returns>A new proxy with the specified path.</returns>
+        public Proxy WithPath(string path)
+        {
+            Proxy proxy = Clone();
+            proxy.Path = path;
+
+            if (Protocol == Protocol.Ice1)
+            {
+                proxy.Identity = Identity.FromPath(path);
+
+                // clear cached connection of well-known proxy
+                if (proxy.Endpoint == null)
+                {
+                    proxy.Connection = null;
+                }
+            }
+            return proxy;
         }
 
         internal static Proxy? Decode(IceDecoder decoder)
@@ -621,6 +632,17 @@ namespace IceRpc
                     }
                 }
             }
+        }
+
+        /// <summary>Constructs a new proxy.</summary>
+        /// <param name="path">The proxy path.</param>
+        /// <param name="protocol">The proxy protocol.</param>
+        internal Proxy(string path, Protocol protocol = Protocol.Ice2)
+        {
+            Protocol = protocol;
+            IceUriParser.CheckPath(path, nameof(path));
+            Path = path;
+            Encoding = protocol.IsSupported() ? protocol.GetEncoding() : Encoding.V20;
         }
 
         internal void Encode(IceEncoder encoder)
@@ -882,32 +904,6 @@ namespace IceRpc
                     timeoutSource?.Dispose();
                 }
             }
-        }
-
-        /// <summary>Creates a copy of this proxy with a new path.</summary>
-        /// <param name="proxy">The proxy being copied.</param>
-        /// <param name="path">The new path.</param>
-        /// <returns>A proxy with the specified path.</returns>
-        public static Proxy WithPath(this Proxy proxy, string path)
-        {
-            var newProxy = Proxy.FromPath(path, proxy.Protocol);
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                newProxy.Facet = proxy.GetFacet();
-                // clear cached connection of well-known proxy
-                newProxy.Connection = proxy.Endpoint == null ? null : proxy.Connection;
-            }
-            else
-            {
-                newProxy.Connection = proxy.Connection;
-            }
-
-            newProxy.AltEndpoints = proxy.AltEndpoints;
-            newProxy.Encoding = proxy.Encoding;
-            newProxy.Endpoint = proxy.Endpoint;
-            newProxy.EndpointEncoder = proxy.EndpointEncoder;
-            newProxy.Invoker = proxy.Invoker;
-            return newProxy;
         }
     }
 }
