@@ -159,7 +159,8 @@ namespace IceRpc
                     idempotent: IsIdempotent ? true : null,
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
+                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
+                    payloadEncoding: PayloadEncoding == Encoding.V20 ? null : PayloadEncoding.ToString());
 
                 requestHeaderBody.Encode(encoder);
 
@@ -174,7 +175,6 @@ namespace IceRpc
                 // else context remains empty (not set)
 
                 EncodeFields(encoder);
-                PayloadEncoding.Encode(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(start, 2);
             }

@@ -59,6 +59,7 @@ module IceRpc
         bool? \idempotent;       // null equivalent to false
         Priority? priority;      // null equivalent to 0
         varlong deadline;
+        string? payloadEncoding;
     }
 
     /// Each ice2 request frame has:
@@ -73,7 +74,6 @@ module IceRpc
         varulong headerSize;
         Ice2RequestHeaderBody body;
         Fields fields;
-        Encoding payloadEncoding;
         varulong payloadSize;
     }
 

@@ -122,9 +122,10 @@ namespace IceRpc
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
 
-                Fields = decoder.DecodeFieldDictionary();
+                PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
+                    Encoding.Parse(payloadEncoding) : Encoding.V20;
 
-                PayloadEncoding = new Encoding(decoder);
+                Fields = decoder.DecodeFieldDictionary();
                 PayloadSize = decoder.DecodeSize();
 
                 if (decoder.Pos - startPos != headerSize)
