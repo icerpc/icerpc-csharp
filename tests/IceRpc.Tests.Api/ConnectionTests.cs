@@ -29,13 +29,11 @@ namespace IceRpc.Tests.Api
         {
             var options = new ClientConnectionOptions
             {
-                TransportOptions = new TcpOptions(),
                 AuthenticationOptions = new System.Net.Security.SslClientAuthenticationOptions()
             };
 
             ClientConnectionOptions clonedOptions = options.Clone();
             Assert.AreNotSame(clonedOptions, options);
-            Assert.AreNotSame(clonedOptions.TransportOptions, options.TransportOptions);
             Assert.AreNotSame(clonedOptions.AuthenticationOptions, options.AuthenticationOptions);
 
             var incoming = new ServerConnectionOptions()
@@ -48,9 +46,9 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Connection_TcpOptions_ArgumentException()
+        public void Connection_TcpTransportOptions_ArgumentException()
         {
-            var options = new TcpOptions();
+            var options = new Transports.TcpTransportOptions();
             Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
@@ -59,9 +57,9 @@ namespace IceRpc.Tests.Api
         }
 
         [Test]
-        public void Connection_UdpOptions_ArgumentException()
+        public void Connection_UdpTransportOptions_ArgumentException()
         {
-            var options = new UdpOptions();
+            var options = new Transports.UdpTransportOptions();
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
         }

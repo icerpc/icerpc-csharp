@@ -401,15 +401,18 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal SlicConnection(NetworkSocket networkSocket, Endpoint endpoint, ConnectionOptions options)
-            : base(networkSocket, endpoint, options)
+        internal SlicConnection(
+            NetworkSocket networkSocket,
+            Endpoint endpoint,
+            ConnectionOptions connectionOptions,
+            TcpTransportOptions tcpTransportOptions)
+            : base(networkSocket, endpoint, connectionOptions)
         {
-            _idleTimeout = options.IdleTimeout;
+            _idleTimeout = connectionOptions.IdleTimeout;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            TcpOptions tcpOptions = options.TransportOptions as TcpOptions ?? TcpOptions.Default;
-            PacketMaxSize = tcpOptions.SlicPacketMaxSize;
-            StreamBufferMaxSize = tcpOptions.SlicStreamBufferMaxSize;
+            PacketMaxSize = tcpTransportOptions.SlicPacketMaxSize;
+            StreamBufferMaxSize = tcpTransportOptions.SlicStreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
@@ -417,8 +420,8 @@ namespace IceRpc.Transports.Internal
             PeerStreamBufferMaxSize = StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
+            _bidirectionalMaxStreams = connectionOptions.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = connectionOptions.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsServer)

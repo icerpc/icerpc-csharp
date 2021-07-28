@@ -11,12 +11,12 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public (IListener?, MultiStreamConnection?) Listen(
             Endpoint endpoint,
-            ServerConnectionOptions options,
-            ILogger logger)
+            ServerConnectionOptions connectionOptions,
+            ILoggerFactory loggerFactory)
         {
             if (TryGetValue(endpoint.Transport, out IServerTransport? serverTransport))
             {
-                return serverTransport.Listen(endpoint, options, logger);
+                return serverTransport.Listen(endpoint, connectionOptions, loggerFactory);
             }
             else
             {

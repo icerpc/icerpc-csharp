@@ -179,7 +179,7 @@ namespace IceRpc.Tests.Internal
             MultiStreamConnection multiStreamConnection = Connection.DefaultClientTransport.CreateConnection(
                     ClientEndpoint,
                     connectionOptions ?? ClientConnectionOptions,
-                    Logger);
+                    LogAttributeLoggerFactory.Instance);
             await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
@@ -201,10 +201,19 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IListener CreateListener() =>
-            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Listener!;
+        protected IListener CreateListener(TcpTransportOptions? options = null, Endpoint? serverEndpoint = null)
+        {
+            IServerTransport transport =
+                options == null ? Server.DefaultServerTransport : new TcpServerTransport(options);
+            return transport.Listen(
+                serverEndpoint ?? ServerEndpoint,
+                ServerConnectionOptions,
+                LogAttributeLoggerFactory.Instance).Listener!;
+        }
 
         protected MultiStreamConnection CreateServerConnection() =>
-            Server.DefaultServerTransport.Listen(ServerEndpoint, ServerConnectionOptions, Logger).Connection!;
+            Server.DefaultServerTransport.Listen(ServerEndpoint,
+                ServerConnectionOptions,
+                LogAttributeLoggerFactory.Instance).Connection!;
     }
 }

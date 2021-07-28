@@ -11,12 +11,12 @@ namespace IceRpc.Transports
         /// <inheritdoc/>
         public MultiStreamConnection CreateConnection(
             Endpoint remoteEndpoint,
-            ClientConnectionOptions options,
-            ILogger logger)
+            ClientConnectionOptions connectionOptions,
+            ILoggerFactory loggerFactory)
         {
             if (TryGetValue(remoteEndpoint.Transport, out IClientTransport? clientTransport))
             {
-                return clientTransport.CreateConnection(remoteEndpoint, options, logger);
+                return clientTransport.CreateConnection(remoteEndpoint, connectionOptions, loggerFactory);
             }
             else
             {

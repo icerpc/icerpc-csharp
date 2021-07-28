@@ -128,7 +128,10 @@ namespace IceRpc
                 }
 
                 MultiStreamConnection? multiStreamConnection;
-                (_listener, multiStreamConnection) = ServerTransport.Listen(_endpoint, ConnectionOptions, _logger);
+                (_listener, multiStreamConnection) = ServerTransport.Listen(
+                    _endpoint,
+                    ConnectionOptions,
+                    _loggerFactory ?? NullLoggerFactory.Instance);
 
                 if (_listener != null)
                 {
