@@ -1,11 +1,14 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports;
+using IceRpc.Interop;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -908,17 +911,16 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.
-        /// </summary>
+        /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.</summary>
         /// <param name="protocol">The Ice protocol of this endpoint.</param>
         /// <returns>The endpoint decoded by this decoder.</returns>
         internal Endpoint DecodeEndpoint11(Protocol protocol)
         {
             Debug.Assert(OldEncoding);
+            Debug.Assert(Connection != null);
 
-            Endpoint endpoint;
-
-            Transport transport = this.DecodeTransport();
+            Endpoint? endpoint = null;
+            TransportCode transportCode = this.DecodeTransportCode();
 
             int size = DecodeInt();
             if (size < 6)
@@ -937,55 +939,54 @@ namespace IceRpc
 
             var encoding = new Encoding(this);
 
-            IIce1EndpointFactory? ice1EndpointFactory = null;
-            if (protocol == Protocol.Ice1 &&
-                encoding.IsSupported &&
-                TransportRegistry.TryGetValue(transport, out IEndpointFactory? factory))
-            {
-                ice1EndpointFactory = factory as IIce1EndpointFactory;
-            }
-
-            // We need to decode the encapsulation except for ice1 + null factory.
-            if (protocol == Protocol.Ice1 && ice1EndpointFactory == null)
-            {
-                endpoint = OpaqueEndpoint.Create(transport,
-                                                 encoding,
-                                                 _buffer.Slice(Pos, size));
-                Pos += size;
-            }
-            else if (encoding == Encoding.V11) // i.e. all in same encoding
+            if (encoding == Encoding.V11 || encoding == Encoding.V10)
             {
                 int oldPos = Pos;
-                if (protocol == Protocol.Ice1)
-                {
-                    Debug.Assert(ice1EndpointFactory != null); // see if block above with OpaqueEndpoint creation
-                    endpoint = ice1EndpointFactory.CreateIce1Endpoint(this);
-                }
-                else
-                {
-                    var data = new EndpointData(transport,
-                                                host: DecodeString(),
-                                                port: DecodeUShort(),
-                                                options: DecodeArray(1, decoder => decoder.DecodeString()));
 
-                    endpoint = data.ToEndpoint(protocol);
+                if (transportCode == TransportCode.Any)
+                {
+                    // Encoded as an endpoint data
+                    endpoint = new EndpointData(this).ToEndpoint();
+                }
+                else if (protocol == Protocol.Ice1)
+                {
+                    endpoint = Connection.EndpointCodex.DecodeEndpoint(transportCode, this);
+
+                    if (endpoint == null)
+                    {
+                        var parameters = ImmutableList.Create(
+                            new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
+                            new EndpointParam("-e", encoding.ToString()),
+                            new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
+
+                        endpoint = new Endpoint(
+                            protocol,
+                            TransportNames.Opaque,
+                            Host: "",
+                            Port: 0,
+                            parameters,
+                            LocalParams: ImmutableList<EndpointParam>.Empty);
+
+                        Pos += size;
+                    }
                 }
 
-                // Make sure we read the full encapsulation.
-                if (Pos != oldPos + size)
+                if (endpoint != null)
                 {
-                    throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
+                    // Make sure we read the full encapsulation.
+                    if (Pos != oldPos + size)
+                    {
+                        throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
+                    }
                 }
             }
-            else
-            {
-                string transportName = transport.ToString().ToLowerInvariant();
+
+            string transportName = endpoint?.Transport ?? transportCode.ToString().ToLowerInvariant();
+
+            return endpoint ??
                 throw new InvalidDataException(
                     @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
                     }' with endpoint encapsulation encoded with encoding '{encoding}'");
-            }
-
-            return endpoint;
         }
 
         /// <summary>Decodes a field.</summary>

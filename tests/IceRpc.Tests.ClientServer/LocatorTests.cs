@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
             await locator.RegisterAdapterAsync(adapter, greeter);
 
             CollectionAssert.IsEmpty(indirectGreeter.Proxy.AltEndpoints);
-            Assert.AreEqual(Transport.Loc, indirectGreeter.Proxy.Endpoint!.Transport);
+            Assert.AreEqual("loc", indirectGreeter.Proxy.Endpoint!.Transport);
 
             ServicePrx? found = await locator.FindAdapterByIdAsync(adapter);
             Assert.That(found, Is.Not.Null);
@@ -107,7 +107,7 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     // Only test if the resolution was successful
-                    if (request.Proxy == indirectGreeter.Proxy && request.Endpoint?.Transport != Transport.Loc)
+                    if (request.Proxy == indirectGreeter.Proxy && request.Endpoint?.Transport != "loc")
                     {
                         Assert.AreEqual(_greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;

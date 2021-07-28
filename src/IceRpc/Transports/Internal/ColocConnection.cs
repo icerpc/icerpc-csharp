@@ -19,6 +19,9 @@ namespace IceRpc.Transports.Internal
             internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
+        public override bool IsDatagram => false;
+        public override bool? IsSecure => true;
+
         internal long Id { get; }
 
         private static readonly object _pingFrame = new();
@@ -149,6 +152,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        // There are no coloc parameters so the parameters are always compatible.
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) => !IsServer;
+
         public override async Task PingAsync(CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();
@@ -177,7 +183,7 @@ namespace IceRpc.Transports.Internal
         }
 
         internal ColocConnection(
-            ColocEndpoint endpoint,
+            Endpoint endpoint,
             long id,
             ChannelWriter<(long, object, bool)> writer,
             ChannelReader<(long, object, bool)> reader,

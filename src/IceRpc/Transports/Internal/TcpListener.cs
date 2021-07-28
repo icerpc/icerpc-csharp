@@ -16,13 +16,14 @@ namespace IceRpc.Transports.Internal
         private readonly ILogger _logger;
         private readonly ServerConnectionOptions _options;
         private readonly Socket _socket;
+        private readonly bool? _tls;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
             TcpSocket tcpSocket;
             try
             {
-                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger);
+                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger, _tls);
             }
             catch (Exception ex)
             {
@@ -42,6 +43,15 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
+
+            // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
+
+            _tls = endpoint.ParseTcpParams().Tls;
+
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                _tls = endpoint.Transport == TransportNames.Ssl;
+            }
         }
     }
 }

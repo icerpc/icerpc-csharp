@@ -16,6 +16,15 @@ namespace IceRpc.Transports
         /// </summary>
         public virtual int DatagramMaxReceiveSize => throw new InvalidOperationException();
 
+        /// <summary><c>true</c> for a datagram socket; <c>false</c> otherwise.</summary>
+        public abstract bool IsDatagram { get; }
+
+        /// <summary>Indicates whether or not this socket's transport is secure.</summary>
+        /// <value><c>true</c> means the socket's transport is secure. <c>false</c> means the socket's transport
+        /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
+        /// is never null once the connection is fully established.</value>
+        public abstract bool? IsSecure { get; }
+
         /// <summary>The underlying <see cref="SslStream"/>, if the implementation uses a ssl stream and chooses to
         /// expose it.</summary>
         public virtual SslStream? SslStream => null;
@@ -54,6 +63,13 @@ namespace IceRpc.Transports
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this socket. Compatible
+        /// means a client could reuse this socket (connection) instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this socket is compatible with the parameters of the provided endpoint;
+        /// otherwise, <c>false</c>.</returns>
+        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Receives data from the connection.</summary>
         /// <param name="buffer">The buffer that holds the received data.</param>

@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
         [SetUp]
         public async Task SetupAsync()
         {
-            if (ClientEndpoint.IsDatagram)
+            if (ClientEndpoint.Transport == "udp")
             {
                 _serverConnection = ((NetworkSocketConnection)CreateServerConnection()).NetworkSocket;
                 ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());

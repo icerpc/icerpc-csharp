@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using IceRpc.Transports.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
@@ -47,10 +48,10 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new CompositeClientTransport
             {
-                [Transport.TCP] = new TcpClientTransport(),
-                [Transport.SSL] = new TcpClientTransport(),
-                [Transport.Coloc] = new ColocClientTransport(),
-                [Transport.UDP] = new UdpClientTransport()
+                [TransportNames.Tcp] = new TcpClientTransport(),
+                [TransportNames.Ssl] = new TcpClientTransport(),
+                [TransportNames.Coloc] = new ColocClientTransport(),
+                [TransportNames.Udp] = new UdpClientTransport()
             };
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
@@ -107,15 +108,10 @@ namespace IceRpc
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
         public TimeSpan IdleTimeout => UnderlyingConnection?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
 
-        /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
-        public bool IsDatagram => (_localEndpoint ?? _remoteEndpoint)?.IsDatagram ?? false;
-
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
-        public bool IsSecure =>
-            UnderlyingConnection is MultiStreamConnection connection ?
-                connection.IsSecure : _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? false;
+        public bool IsSecure => UnderlyingConnection?.IsSecure ?? false;
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
@@ -218,6 +214,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The default value for <see cref="EndpointCodex"/>.</summary>
+        internal static IEndpointCodex DefaultEndpointCodex { get; } =
+            new EndpointCodexBuilder().AddTcp().AddSsl().AddUdp().Build();
+
         /// <summary>The underlying multi-stream connection.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
@@ -225,7 +225,13 @@ namespace IceRpc
             Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
-        internal int ClassGraphMaxDepth => _options!.ClassGraphMaxDepth;
+        internal int ClassGraphMaxDepth => _options?.ClassGraphMaxDepth ?? 200; // TODO why is _options ever null?
+
+        /// <summary>The endpoint codex is used when encoding or decoding an ice1 endpoint (typically inside a proxy)
+        /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
+        /// transport-dependent.</summary>
+        // TODO: provide public API to get/set this codex.
+        internal IEndpointCodex EndpointCodex { get; set; } = DefaultEndpointCodex;
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -316,12 +322,13 @@ namespace IceRpc
                     var serverOptions = (ServerConnectionOptions)_options;
                     Debug.Assert(UnderlyingConnection != null);
 
-                    // If the endpoint is secure, accept with the SSL server authentication options.
+                    // If the underlying connection is secure, accept with the SSL server authentication options.
                     SslServerAuthenticationOptions? serverAuthenticationOptions = null;
-                    if (UnderlyingConnection.LocalEndpoint.IsSecure ?? true)
+                    if (UnderlyingConnection.IsSecure ?? true)
                     {
                         serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
-                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                        {
                             new SslApplicationProtocol(Protocol.GetName())
                         };
                     }
@@ -331,7 +338,7 @@ namespace IceRpc
                 else
                 {
                     _options ??= ClientConnectionOptions.Default;
-                    var clientOptions =  (ClientConnectionOptions)_options;
+                    var clientOptions = (ClientConnectionOptions)_options;
                     Debug.Assert(UnderlyingConnection == null);
 
                     if (_remoteEndpoint == null)
@@ -343,7 +350,7 @@ namespace IceRpc
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
-                    if (UnderlyingConnection.RemoteEndpoint.IsSecure ?? true)
+                    if (UnderlyingConnection.IsSecure ?? true)
                     {
                         clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
                         clientAuthenticationOptions.TargetHost ??= UnderlyingConnection.RemoteEndpoint.Host;
@@ -386,7 +393,7 @@ namespace IceRpc
                         // trace the correct message.
                         _connected = true;
 
-                        Action logSuccess = (IsServer, IsDatagram) switch
+                        Action logSuccess = (IsServer, connection.IsDatagram) switch
                         {
                             (false, false) => _logger.LogConnectionEstablished,
                             (false, true) => _logger.LogStartSendingDatagrams,
@@ -399,7 +406,7 @@ namespace IceRpc
                     // Initialize the transport.
                     await connection.InitializeAsync(cancel).ConfigureAwait(false);
 
-                    if (!IsDatagram)
+                    if (!connection.IsDatagram)
                     {
                         // Create the control stream and send the protocol initialize frame
                         _controlStream = await connection.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
@@ -452,7 +459,7 @@ namespace IceRpc
                     using IDisposable? scope = StartScope();
 
                     // Start a task to wait for the GoAway frame on the peer's control stream.
-                    if (!IsDatagram)
+                    if (!connection.IsDatagram)
                     {
                         _ = Task.Run(async () => await WaitForShutdownAsync().ConfigureAwait(false), default);
                     }
@@ -477,14 +484,21 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
+        /// means a client could reuse this connection instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this connection is an active client connection whose parameters are compatible
+        /// with the parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        /// <remarks>This method checks only the parameters of the endpoint; it does not check other properties.
+        /// </remarks>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            IsServer == false &&
+            State == ConnectionState.Active &&
+            UnderlyingConnection!.HasCompatibleParams(remoteEndpoint);
+
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (IsDatagram && !request.IsOneway)
-            {
-                throw new InvalidOperationException("cannot send twoway request over datagram connection");
-            }
-
             // Make sure the connection is connected.
             try
             {
@@ -494,6 +508,11 @@ namespace IceRpc
             {
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw;
+            }
+
+            if (UnderlyingConnection!.IsDatagram && !request.IsOneway)
+            {
+                throw new InvalidOperationException("cannot send twoway request over datagram connection");
             }
 
             try
@@ -677,6 +696,7 @@ namespace IceRpc
 
                 if (UnderlyingConnection != null)
                 {
+                    bool isDatagram = UnderlyingConnection.IsDatagram;
                     UnderlyingConnection.Dispose();
 
                     // Log the connection closure
@@ -684,7 +704,7 @@ namespace IceRpc
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that the
                         // connection got connected or accepted before printing out the connection closed trace.
-                        Action<Exception> logFailure = (IsServer, IsDatagram) switch
+                        Action<Exception> logFailure = (IsServer, isDatagram) switch
                         {
                             (false, false) => _logger.LogConnectionConnectFailed,
                             (false, true) => _logger.LogStartSendingDatagramsFailed,
@@ -695,7 +715,7 @@ namespace IceRpc
                     }
                     else
                     {
-                        if (IsDatagram && IsServer)
+                        if (isDatagram && IsServer)
                         {
                             _logger.LogStopReceivingDatagrams();
                         }
@@ -860,7 +880,7 @@ namespace IceRpc
             Task shutdownTask;
             lock (_mutex)
             {
-                if (_state == ConnectionState.Active && !IsDatagram)
+                if (_state == ConnectionState.Active && !UnderlyingConnection!.IsDatagram)
                 {
                     _state = ConnectionState.Closing;
                     if (Protocol == Protocol.Ice2)

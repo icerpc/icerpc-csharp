@@ -17,6 +17,8 @@ namespace IceRpc.Transports.Internal
     internal sealed class UdpSocket : NetworkSocket
     {
         public override int DatagramMaxReceiveSize { get; }
+        public override bool IsDatagram => true;
+        public override bool? IsSecure => false;
         protected internal override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
@@ -27,7 +29,9 @@ namespace IceRpc.Transports.Internal
         private readonly EndPoint? _addr;
         private readonly bool _isServer;
         private readonly IPEndPoint? _multicastEndpoint;
+        private readonly string? _multicastInterface;
         private readonly Socket _socket;
+        private readonly int _ttl;
 
         public override ValueTask<Endpoint?> AcceptAsync(
             Endpoint endpoint,
@@ -43,12 +47,20 @@ namespace IceRpc.Transports.Internal
             try
             {
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-                return ((UdpEndpoint)endpoint).Clone(_socket.LocalEndPoint!);
+
+                var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
+                return endpoint with { Host = ipEndPoint.Address.ToString(), Port =  checked((ushort)ipEndPoint.Port) };
             }
             catch (Exception ex)
             {
                 throw new ConnectFailedException(ex);
             }
+        }
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        {
+            (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
+            return (ttl == _ttl && multicastInterface == _multicastInterface);
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -131,11 +143,20 @@ namespace IceRpc.Transports.Internal
         }
 
         // Only for use by UdpEndpoint.
-        internal UdpSocket(Socket socket, ILogger logger, bool isServer, EndPoint? addr)
+        internal UdpSocket(
+            Socket socket,
+            ILogger logger,
+            bool isServer,
+            EndPoint? addr,
+            int ttl = -1,
+            string? multicastInterface = null)
             : base(logger)
         {
             _socket = socket;
             _isServer = isServer;
+            _ttl = ttl;
+            _multicastInterface = multicastInterface;
+
             DatagramMaxReceiveSize = Math.Min(MaxPacketSize, _socket.ReceiveBufferSize - UdpOverhead);
 
             if (isServer)

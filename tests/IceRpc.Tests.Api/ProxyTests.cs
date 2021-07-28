@@ -182,18 +182,19 @@ namespace IceRpc.Tests.Api
         [TestCase(@"ice+tcp://host.zeroc.com/foo\bar\n\t!", "/foo/bar/n/t!")] // Parser converts \ to /
         // another syntax for empty port
         [TestCase("ice+tcp://host.zeroc.com:/identity", "/identity")]
-        [TestCase("ice+universal://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=100")]
+        [TestCase("ice+foo://com.zeroc.ice/identity?transport=iaps&option=a,b%2Cb,c&option=d")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=100")]
         // leading :: to make the address IPv6-like
-        [TestCase("ice+universal://[::ab:cd:ef:00]/identity?transport=bt")]
-        [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp")]
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
+        [TestCase("ice+foo://[::ab:cd:ef:00]/identity?transport=bt")]
+        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("ice+coloc://host:10000")]
         // a valid URI
+
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
         [TestCase("ice+tcp://0.0.0.0/identity#facet")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("ice+tcp://[::0]/identity#facet")] // Any IPv6 in proxy endpoint (unusable but parses ok)
         public void Proxy_Parse_ValidInputUriFormat(string str, string? path = null)
@@ -216,16 +217,11 @@ namespace IceRpc.Tests.Api
         /// <summary>Tests that parsing an invalid proxies fails with <see cref="FormatException"/>.</summary>
         /// <param name="str">The string to parse as a proxy.</param>
         [TestCase("ice + tcp://host.zeroc.com:foo")] // missing host
-        [TestCase("ice:identity?protocol=ice2")] // invalid protocol
-        [TestCase("ice+universal://host.zeroc.com")] // missing transport
-        [TestCase("ice+universal://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
+        [TestCase("ice+foo://host.zeroc.com:10000/identity?transport=tcp&protocol=ice1")] // invalid protocol
         [TestCase("ice://host:1000/identity")] // host not allowed
-        [TestCase("ice+universal:/identity")] // missing host
-        [TestCase("ice+tcp://host.zeroc.com/identity?protocol=3")] // unknown protocol (must use universal)
+        [TestCase("ice+foo:/identity")] // missing host
         [TestCase("ice+tcp://host.zeroc.com//identity?protocol=ice1")] // invalid protocol
-        [TestCase("ice+tcp://host.zeroc.com/identity?alt-endpoint=host2?protocol=ice2")] // protocol option in alt-endpoint
-        [TestCase("ice+tcp://host.zeroc.com/identity?foo=bar")] // unknown option
-        [TestCase("ice+universal://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
+        [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&alt-endpoint=host2?transport=tcp$protocol=3")]
         [TestCase("")]
         [TestCase("\"\"")]
         [TestCase("\"\" test")] // invalid trailing characters
@@ -237,18 +233,6 @@ namespace IceRpc.Tests.Api
         [TestCase("test -p 2.0")]
         [TestCase("test:tcp@location")]
         [TestCase("test: :tcp")]
-        [TestCase("id:opaque -t 99 -v abcd -x abc")] // invalid x option
-        [TestCase("id:opaque")] // missing -t and -v
-        [TestCase("id:opaque -t 1 -t 1 -v abcd")] // repeated -t
-        [TestCase("id:opaque -t 1 -v abcd -v abcd")]
-        [TestCase("id:opaque -v abcd")]
-        [TestCase("id:opaque -t 1")]
-        [TestCase("id:opaque -t -v abcd")]
-        [TestCase("id:opaque -t 1 -v")]
-        [TestCase("id:opaque -t x -v abcd")]
-        [TestCase("id:opaque -t -1 -v abcd")] // -t must be >= 0
-        [TestCase("id:opaque -t 99 -v x?c")] // invalid char in v
-        [TestCase("id:opaque -t 99 -v xc")] // invalid length for base64 input
         [TestCase("id:loc -h foobar")] // cannot parse loc as a transport with ice1
         public void Proxy_Parse_InvalidInput(string str)
         {
@@ -295,53 +279,6 @@ namespace IceRpc.Tests.Api
             Assert.That(Proxy.Equals(prx, Proxy.Parse("ice+tcp://host.zeroc.com/identity")), Is.True);
             Assert.That(Proxy.Equals(null, prx), Is.False);
             Assert.That(Proxy.Equals(prx, null), Is.False);
-        }
-
-        [TestCase("ice+tcp://tcphost:10000/test?" +
-                  "alt-endpoint=ice+universal://unihost:10000?transport=100$option=ABCD")]
-        [TestCase("test -t:tcp -h tcphost -p 10000 -t 1200 -z " +
-                  ": udp -h 239.255.1.1 -p 10001 --interface eth0 --ttl 5 " +
-                  ":opaque -e 1.8 -t 100 -v ABCD")]
-        public void Proxy_EndpointInformation(string prx)
-        {
-            var p1 = Proxy.Parse(prx);
-
-            Endpoint? tcpEndpoint = p1.Endpoint;
-            Assert.AreEqual(Transport.TCP, tcpEndpoint!.Transport);
-            Assert.AreEqual(tcpEndpoint.Protocol == Protocol.Ice1 ? false : null, tcpEndpoint.IsSecure);
-            Assert.AreEqual("tcphost", tcpEndpoint.Host);
-            Assert.AreEqual(10000, tcpEndpoint.Port);
-
-            if (p1.Protocol == Protocol.Ice1)
-            {
-                Assert.AreEqual("1200", tcpEndpoint["timeout"]);
-                Assert.AreEqual("true", tcpEndpoint["compress"]);
-            }
-            Assert.That(tcpEndpoint.IsDatagram, Is.False);
-
-            if (p1.Protocol == Protocol.Ice1)
-            {
-                Endpoint udpEndpoint = p1.AltEndpoints[0];
-                Assert.AreEqual("239.255.1.1", udpEndpoint.Host);
-                Assert.AreEqual(10001, udpEndpoint.Port);
-                Assert.AreEqual("eth0", udpEndpoint["interface"]);
-                Assert.AreEqual("5", udpEndpoint["ttl"]);
-                Assert.AreEqual(null, udpEndpoint["timeout"]);
-                Assert.AreEqual(null, udpEndpoint["compress"]);
-                Assert.That(udpEndpoint.IsSecure, Is.False);
-                Assert.That(udpEndpoint.IsDatagram);
-                Assert.AreEqual(Transport.UDP, udpEndpoint.Transport);
-
-                Endpoint opaqueEndpoint = p1.AltEndpoints[1];
-                Assert.AreEqual("ABCD", opaqueEndpoint["value"]);
-                Assert.AreEqual("1.8", opaqueEndpoint["value-encoding"]);
-            }
-            else
-            {
-                Endpoint universalEndpoint = p1.AltEndpoints[0];
-                Assert.AreEqual((Transport)100, universalEndpoint.Transport);
-                Assert.AreEqual("ABCD", universalEndpoint["option"]);
-            }
         }
 
         /// <summary>Test that proxies that are equal produce the same hash code.</summary>
@@ -476,7 +413,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Encoding.V11, proxy.Encoding);
             Endpoint altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
-            Assert.AreEqual(Transport.TCP, altEndpoint.Transport);
+            Assert.AreEqual("tcp", altEndpoint.Transport);
         }
 
         [TestCase("1.3")]
@@ -495,7 +432,7 @@ namespace IceRpc.Tests.Api
         {
             await using var connection = new Connection
             {
-                RemoteEndpoint = $"ice+universal://localhost?transport=tcp&protocol={protocol}"
+                RemoteEndpoint = $"ice+tcp://localhost?transport=tcp&protocol={protocol}"
             };
 
             var prx = GreeterPrx.FromConnection(connection);
@@ -532,7 +469,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
+                Endpoint = "ice+tcp://127.0.0.1:0?_tls=false",
                 Dispatcher = router
             };
             server.Listen();

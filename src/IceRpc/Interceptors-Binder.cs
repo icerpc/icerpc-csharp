@@ -24,16 +24,6 @@ namespace IceRpc
                 {
                     if (request.Connection == null)
                     {
-                        if (!request.IsOneway)
-                        {
-                            // Filter-out datagram endpoints
-                            if (request.Endpoint != null && request.Endpoint.IsDatagram)
-                            {
-                                request.Endpoint = null;
-                            }
-                            request.AltEndpoints = request.AltEndpoints.Where(e => !e.IsDatagram);
-                        }
-
                         // Filter-out excluded endpoints
                         if (request.ExcludedEndpoints.Any())
                         {

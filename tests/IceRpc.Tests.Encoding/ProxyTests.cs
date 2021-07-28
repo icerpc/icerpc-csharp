@@ -41,7 +41,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
         [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public void Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
+        public async Task Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
         {
             var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
             var encoder = new IceEncoder(encoding, _buffer);
@@ -50,7 +50,9 @@ namespace IceRpc.Tests.Encoding
             encoder.EncodeProxy(proxy);
             ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
 
-            var decoder = new IceDecoder(data, encoding, connection: null, invoker: null);
+            await using var connection = new Connection();
+
+            var decoder = new IceDecoder(data, encoding, connection, invoker: null);
             var proxy2 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(proxy, proxy2);

@@ -10,6 +10,12 @@ namespace IceRpc.Transports
     /// <summary>Base class for multi-stream connection implementations that use <see cref="NetworkSocket"/>.</summary>
     public abstract class NetworkSocketConnection : MultiStreamConnection
     {
+        /// <inheritdoc/>
+        public override bool IsDatagram => NetworkSocket.IsDatagram;
+
+        /// <inheritdoc/>
+        public override bool? IsSecure => NetworkSocket.IsSecure;
+
         /// <summary>Creates a network socket connection from a network socket.</summary>
         /// <param name="networkSocket">The network socket.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
@@ -51,6 +57,12 @@ namespace IceRpc.Transports
                 RemoteEndpoint!,
                 authenticationOptions,
                 cancel).ConfigureAwait(false);
+
+        /// <inheritdoc/>
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            !IsServer &&
+            EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
+            NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <summary>Constructs a connection.</summary>
         /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and the

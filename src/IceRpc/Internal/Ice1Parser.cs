@@ -1,42 +1,22 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
-using IceRpc.Transports;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
+using System.Linq;
 
 namespace IceRpc.Internal
 {
     /// <summary>Provides helper methods to parse proxy and endpoint strings in the ice1 format.</summary>
     internal static class Ice1Parser
     {
-        /// <summary>Parses compress (-z) from an ice1 options dictionary.</summary>
-        internal static bool ParseCompress(Dictionary<string, string?> options, string endpointString)
-        {
-            bool compress = false;
+        internal const ushort DefaultPort = 0;
 
-            if (options.TryGetValue("-z", out string? argument))
-            {
-                if (argument != null)
-                {
-                    throw new FormatException(
-                        $"unexpected argument '{argument}' provided for -z option in '{endpointString}'");
-                }
-                compress = true;
-                options.Remove("-z");
-            }
-            return compress;
-        }
-
-        /// <summary>Creates an endpoint from a string in the ice1 format.</summary>
-        /// <param name="endpointString">The string parsed by this method.</param>
-        /// <returns>The new endpoint.</returns>
-        /// <exception cref="FormatException">Thrown when endpointString cannot be parsed.</exception>
-        internal static Endpoint ParseEndpoint(string endpointString)
+        internal static Endpoint ParseEndpointString(string endpointString)
         {
             string[]? args = StringUtil.SplitString(endpointString, " \t\r\n");
             if (args == null)
@@ -54,139 +34,99 @@ namespace IceRpc.Internal
             {
                 transportName = "tcp";
             }
+            else if (transportName.Length == 0 ||
+                    !char.IsLetter(transportName, 0) ||
+                    !transportName.Skip(1).All(c => char.IsLetterOrDigit(c)))
+            {
+                throw new FormatException($"invalid transport name '{transportName}' in endpoint '{endpointString}");
+            }
 
-            var options = new Dictionary<string, string?>();
+            string? host = null;
+            ushort? port = null;
+            var externalParams = new List<EndpointParam>();
+            var localParams = new List<EndpointParam>();
 
-            // Parse args into options (and skip transportName at args[0])
+            // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
             {
-                // Any option with < 2 characters or that does not start with - is illegal
-                string option = args[n];
-                if (option.Length < 2 || option[0] != '-')
+                // Any name with < 2 characters or that does not start with - is illegal
+                string name = args[n];
+                if (name.Length < 2 || name[0] != '-')
                 {
-                    throw new FormatException($"invalid option '{option}' in endpoint '{endpointString}'");
+                    throw new FormatException($"invalid parameter name '{name}' in endpoint '{endpointString}'");
                 }
 
-                // Extract the argument given to the current option, if any
-                string? argument = null;
+                // Extract the value given to the current parameter, if any
+                string value = "";
                 if (n + 1 < args.Length && args[n + 1][0] != '-')
                 {
-                    argument = args[++n];
+                    value = args[++n];
                 }
 
-                try
+                if (name == "-h")
                 {
-                    options.Add(option, argument);
+                    if (host != null)
+                    {
+                        throw new FormatException($"too many -h parameters in endpoint '{endpointString}'");
+                    }
+                    else if (value.Length == 0)
+                    {
+                        throw new FormatException($"invalid empty host value in endpoint '{endpointString}'");
+                    }
+                    else if (value == "*")
+                    {
+                        host = "::0";
+                    }
+                    else
+                    {
+                        host = value;
+                    }
                 }
-                catch (ArgumentException)
+                else if (name == "-p")
                 {
-                    throw new FormatException($"duplicate option '{option}' in endpoint '{endpointString}'");
-                }
-            }
-
-            if (TransportRegistry.TryGetValue(transportName, out IEndpointFactory? factory) &&
-                factory is IIce1EndpointFactory ice1EndpointFactory)
-            {
-                Endpoint endpoint = ice1EndpointFactory.CreateIce1Endpoint(options, endpointString);
-                if (options.Count > 0)
-                {
-                    throw new FormatException(
-                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
-                }
-                return endpoint;
-            }
-
-            // If the stringified endpoint is opaque, create an unknown endpoint, then see whether the type matches one
-            // of the known endpoints.
-            if (transportName == "opaque")
-            {
-                var opaqueEndpoint = OpaqueEndpoint.Parse(options, endpointString);
-                if (options.Count > 0)
-                {
-                    throw new FormatException(
-                        $"unrecognized option(s) '{ToString(options)}' in endpoint '{endpointString}'");
-                }
-
-                if (opaqueEndpoint.ValueEncoding.IsSupported &&
-                    TransportRegistry.TryGetValue(opaqueEndpoint.Transport, out factory) &&
-                    factory is IIce1EndpointFactory)
-                {
-                    // We may be able to unmarshal this endpoint, so we first marshal it into a byte buffer and then
-                    // unmarshal it from this buffer.
-                    // 8 = size of short + size of 1.1 encapsulation header
-                    var buffer = new byte[8 + opaqueEndpoint.Value.Length];
-                    var encoder = new IceEncoder(Ice1Definitions.Encoding, buffer);
-                    encoder.EncodeEndpoint11(opaqueEndpoint);
-                    ReadOnlyMemory<byte> readBuffer = encoder.Finish().ToSingleBuffer();
-                    Debug.Assert(encoder.Tail.Buffer == 0 && encoder.Tail.Offset == 8 + opaqueEndpoint.Value.Length);
-
-                    return new IceDecoder(readBuffer, Ice1Definitions.Encoding).DecodeEndpoint11(Protocol.Ice1);
+                    if (port != null)
+                    {
+                        throw new FormatException($"too many -h parameters in endpoint '{endpointString}'");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            port = ushort.Parse(value, CultureInfo.InvariantCulture);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new FormatException(
+                                $"invalid value for -p parameter in '{endpointString}', must be between 0 and 65535",
+                                ex);
+                        }
+                    }
                 }
                 else
                 {
-                    return opaqueEndpoint;
+                    if (name.StartsWith("--", StringComparison.Ordinal))
+                    {
+                        localParams.Add(new EndpointParam(name, value));
+                    }
+                    else
+                    {
+                        externalParams.Add(new EndpointParam(name, value));
+                    }
                 }
             }
 
-            throw new FormatException($"unknown transport '{transportName}' in endpoint '{endpointString}'");
-        }
-
-        /// <summary>Parses host (-h) and port (-p) from an ice1 options dictionary.</summary>
-        /// <param name="options">The options parsed from the endpoint string.</param>
-        /// <param name="endpointString">The source endpoint string.</param>
-        /// <returns>The host and port extracted from <paramref name="options"/>.</returns>
-        internal static (string Host, ushort Port) ParseHostAndPort(
-            Dictionary<string, string?> options,
-            string endpointString)
-        {
-            string host;
-            ushort port = 0;
-
-            if (options.TryGetValue("-h", out string? argument))
-            {
-                host = argument ??
-                    throw new FormatException($"no argument provided for -h option in endpoint '{endpointString}'");
-
-                if (host == "*")
-                {
-                    // TODO: Should we check that IPv6 is enabled first and use 0.0.0.0 otherwise, or will
-                    // ::0 just bind to the IPv4 addresses in this case?
-                    host = "::0";
-                }
-                options.Remove("-h");
-            }
-            else
-            {
-                throw new FormatException($"no -h option in endpoint '{endpointString}'");
-            }
-
-            if (options.TryGetValue("-p", out argument))
-            {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -p option in endpoint '{endpointString}'");
-                }
-
-                try
-                {
-                    port = ushort.Parse(argument, CultureInfo.InvariantCulture);
-                }
-                catch (FormatException ex)
-                {
-                    throw new FormatException($"invalid port value '{argument}' in endpoint '{endpointString}'", ex);
-                }
-                options.Remove("-p");
-            }
-            // else port remains 0
-
-            return (host, port);
+            return new Endpoint(Protocol.Ice1,
+                                transportName,
+                                host ?? "",
+                                port ?? 0,
+                                externalParams.ToImmutableList(),
+                                localParams.ToImmutableList());
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
         /// <param name="s">The string to parse.</param>
         /// <returns>The arguments to create the proxy.</returns>
-        internal static (Identity Identity, string Facet, Encoding Encoding, Endpoint? Endpoint, ImmutableList<Endpoint> AltEndpoints) ParseProxy(
-            string s)
+        internal static Proxy ParseProxyString(string s)
         {
             // TODO: rework this implementation
 
@@ -379,7 +319,7 @@ namespace IceRpc.Internal
             if (beg == -1)
             {
                 // Well-known proxy
-                return (identity, facet, encoding, endpoint, altEndpoints);
+                return new Proxy(identity, facet) { Encoding = encoding };
             }
 
             if (s[beg] == ':')
@@ -438,16 +378,16 @@ namespace IceRpc.Internal
                     {
                         if (endpoint == null)
                         {
-                            endpoint = ParseEndpoint(es);
+                            endpoint = ParseEndpointString(es);
 
-                            if (endpoint.Transport == Transport.Loc)
+                            if (endpoint.Transport == TransportNames.Loc)
                             {
                                 throw new FormatException("use @ adapterId instead of loc in proxy");
                             }
                         }
                         else
                         {
-                            altEndpoints = altEndpoints.Add(ParseEndpoint(es));
+                            altEndpoints = altEndpoints.Add(ParseEndpointString(es));
                         }
                     }
                     catch (Exception ex)
@@ -459,7 +399,12 @@ namespace IceRpc.Internal
 
                 Debug.Assert(endpoint != null);
 
-                return (identity, facet, encoding, endpoint, altEndpoints);
+                return new Proxy(identity, facet)
+                {
+                    Endpoint = endpoint,
+                    AltEndpoints = altEndpoints,
+                    Encoding = encoding
+                };
             }
             else if (s[beg] == '@')
             {
@@ -504,72 +449,21 @@ namespace IceRpc.Internal
                     throw new FormatException($"empty adapter ID in proxy '{s}'");
                 }
 
-                endpoint = LocEndpoint.Create(adapterId, Protocol.Ice1);
-                return (identity, facet, encoding, endpoint, altEndpoints);
+                endpoint = new Endpoint(Protocol.Ice1,
+                                        TransportNames.Loc,
+                                        Host: adapterId,
+                                        Port: 0,
+                                        ImmutableList<EndpointParam>.Empty,
+                                        ImmutableList<EndpointParam>.Empty);
+
+                return new Proxy(identity, facet)
+                {
+                    Endpoint = endpoint,
+                    Encoding = encoding
+                };
             }
 
             throw new FormatException($"malformed proxy '{s}'");
-        }
-
-        /// <summary>Parses a timeout from an options dictionary.</summary>
-        internal static TimeSpan ParseTimeout(
-            Dictionary<string, string?> options,
-            TimeSpan defaultTimeout,
-            string endpointString)
-        {
-            TimeSpan timeout = defaultTimeout;
-
-            if (options.TryGetValue("-t", out string? argument))
-            {
-                if (argument == null)
-                {
-                    throw new FormatException($"no argument provided for -t option in endpoint '{endpointString}'");
-                }
-                if (argument == "infinite")
-                {
-                    timeout = System.Threading.Timeout.InfiniteTimeSpan;
-                }
-                else
-                {
-                    try
-                    {
-                        timeout = TimeSpan.FromMilliseconds(int.Parse(argument, CultureInfo.InvariantCulture));
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException(
-                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'",
-                            ex);
-                    }
-                    if (timeout <= TimeSpan.Zero)
-                    {
-                        throw new FormatException(
-                            $"invalid timeout value '{argument}' in endpoint '{endpointString}'");
-                    }
-                }
-                options.Remove("-t");
-            }
-            return timeout;
-        }
-
-        // Stringify the options of an endpoint
-        private static string ToString(Dictionary<string, string?> options)
-        {
-            var sb = new StringBuilder();
-            foreach ((string option, string? argument) in options)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Append(' ');
-                }
-                sb.Append(option);
-                if (argument != null)
-                {
-                    sb.Append(' ');
-                    sb.Append(argument);
-                }
-            }
-            return sb.ToString();
         }
     }
 }

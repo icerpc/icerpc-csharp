@@ -14,6 +14,9 @@ namespace IceRpc.Transports.Internal
     /// similar to the C# System.IO.BufferedStream class. It's used by <see cref="SlicConnection"/>.</summary>
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
+        public override bool IsDatagram => Underlying.IsDatagram;
+        public override bool? IsSecure => Underlying.IsSecure;
+
         public override SslStream? SslStream => Underlying.SslStream;
 
         protected internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
@@ -34,6 +37,9 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions,
             CancellationToken cancel) =>
             Underlying.ConnectAsync(endpoint, authenticationOptions, cancel);
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            Underlying.HasCompatibleParams(remoteEndpoint);
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel = default)
         {

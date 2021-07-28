@@ -1031,33 +1031,24 @@ namespace IceRpc
             }
         }
 
-        internal void EncodeEndpoint11(Endpoint endpoint)
+        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
+        /// <param name="endpoint">The endpoint to encode.</param>
+        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
+        /// the nested encapsulation.</param>
+        /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
+        internal void EncodeEndpoint11(
+            Endpoint endpoint,
+            TransportCode transportCode,
+            EncodeAction<Endpoint> encodeAction)
         {
             Debug.Assert(OldEncoding);
 
-            this.EncodeTransport(endpoint.Transport);
+            this.EncodeTransportCode(transportCode);
             Position startPos = _tail;
 
             EncodeInt(0); // placeholder for future encapsulation size
-            if (endpoint is OpaqueEndpoint opaqueEndpoint)
-            {
-                opaqueEndpoint.ValueEncoding.Encode(this);
-                WriteByteSpan(opaqueEndpoint.Value.Span); // WriteByteSpan is not encoding-sensitive
-            }
-            else
-            {
-                Encoding.Encode(this);
-                if (endpoint.Protocol == Protocol.Ice1)
-                {
-                    endpoint.EncodeOptions11(this);
-                }
-                else
-                {
-                    EncodeString(endpoint.Data.Host);
-                    EncodeUShort(endpoint.Data.Port);
-                    EncodeSequence(endpoint.Data.Options, (encoder, value) => encoder.EncodeString(value));
-                }
-            }
+            Encoding.Encode(this);
+            encodeAction(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }
 

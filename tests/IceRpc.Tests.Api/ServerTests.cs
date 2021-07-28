@@ -141,6 +141,7 @@ namespace IceRpc.Tests.Api
         }
 
         [TestCase(" :")]
+        [TestCase("t:")]
         [TestCase("tcp: ")]
         [TestCase(":tcp")]
         public void Server_InvalidEndpoints(string endpoint) =>

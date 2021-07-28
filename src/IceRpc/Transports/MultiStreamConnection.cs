@@ -22,13 +22,14 @@ namespace IceRpc.Transports
         /// <summary>Gets or set the idle timeout.</summary>
         public abstract TimeSpan IdleTimeout { get; internal set; }
 
-        /// <summary><c>true</c> for datagram connections <c>false</c> otherwise.</summary>
-        public bool IsDatagram => _endpoint.IsDatagram;
+        /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
+        public abstract bool IsDatagram { get; }
 
-        /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
-        /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
-        /// during connection establishment.</remarks>
-        public bool IsSecure => _localEndpoint?.IsSecure ?? _remoteEndpoint?.IsSecure ?? _endpoint.IsSecure ?? false;
+        /// <summary>Indicates whether or not this connection's transport is secure.</summary>
+        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport
+        /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
+        /// is never null once the connection is established.</value>
+        public abstract bool? IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
@@ -54,11 +55,8 @@ namespace IceRpc.Transports
             protected set => _remoteEndpoint = value;
         }
 
-        /// <summary>The transport of this connection.</summary>
-        public Transport Transport => _endpoint.Transport;
-
         /// <summary>The name of the transport.</summary>
-        public string TransportName => _endpoint.TransportName;
+        public string Transport => _endpoint.Transport;
 
         internal int IncomingFrameMaxSize { get; }
 
@@ -144,6 +142,13 @@ namespace IceRpc.Transports
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        /// <summary>Checks if the parameters of the provided endpoint are compatible with this connection. Compatible
+        /// means a client could reuse this connection instead of establishing a new connection.</summary>
+        /// <param name="remoteEndpoint">The endpoint to check.</param>
+        /// <returns><c>true</c> when this connection is a client connection whose parameters are compatible with the
+        /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
+        public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
         /// <summary>Initializes the transport.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

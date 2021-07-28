@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using System.Text;
 
 namespace IceRpc.Interop
@@ -55,7 +56,7 @@ namespace IceRpc.Interop
                 }
             }
 
-            if (proxy.Endpoint?.IsDatagram ?? false)
+            if (proxy.Endpoint?.Transport == TransportNames.Udp)
             {
                 sb.Append(" -d");
             }

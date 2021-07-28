@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> using other server transport implementations.</summary>
-    public class CompositeServerTransport : Dictionary<Transport, IServerTransport>, IServerTransport
+    public class CompositeServerTransport : Dictionary<string, IServerTransport>, IServerTransport
     {
         /// <inheritdoc/>
         public (IListener?, MultiStreamConnection?) Listen(

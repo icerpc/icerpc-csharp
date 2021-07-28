@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> using other client transport implementations.</summary>
-    public class CompositeClientTransport : Dictionary<Transport, IClientTransport>, IClientTransport
+    public class CompositeClientTransport : Dictionary<string, IClientTransport>, IClientTransport
     {
         /// <inheritdoc/>
         public MultiStreamConnection CreateConnection(

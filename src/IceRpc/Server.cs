@@ -23,10 +23,10 @@ namespace IceRpc
         public static IServerTransport DefaultServerTransport { get; } =
             new CompositeServerTransport
             {
-                [Transport.TCP] = new TcpServerTransport(),
-                [Transport.SSL] = new TcpServerTransport(),
-                [Transport.Coloc] = new ColocServerTransport(),
-                [Transport.UDP] = new UdpServerTransport()
+                [TransportNames.Tcp] = new TcpServerTransport(),
+                [TransportNames.Ssl] = new TcpServerTransport(),
+                [TransportNames.Coloc] = new ColocServerTransport(),
+                [TransportNames.Udp] = new UdpServerTransport()
             };
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
@@ -150,7 +150,7 @@ namespace IceRpc
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = multiStreamConnection.LocalEndpoint!;
+                    _endpoint = multiStreamConnection.LocalEndpoint;
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
