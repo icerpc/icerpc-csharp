@@ -43,8 +43,7 @@ namespace IceRpc.Internal
 
             string? host = null;
             ushort? port = null;
-            var externalParams = new List<EndpointParam>();
-            var localParams = new List<EndpointParam>();
+            var endpointParams = new List<EndpointParam>();
 
             // Parse args into name/value pairs (and skip transportName at args[0])
             for (int n = 1; n < args.Length; ++n)
@@ -104,14 +103,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (name.StartsWith("--", StringComparison.Ordinal))
-                    {
-                        localParams.Add(new EndpointParam(name, value));
-                    }
-                    else
-                    {
-                        externalParams.Add(new EndpointParam(name, value));
-                    }
+                    endpointParams.Add(new EndpointParam(name, value));
                 }
             }
 
@@ -119,8 +111,7 @@ namespace IceRpc.Internal
                                 transportName,
                                 host ?? "",
                                 port ?? 0,
-                                externalParams.ToImmutableList(),
-                                localParams.ToImmutableList());
+                                endpointParams.ToImmutableList());
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
@@ -453,7 +444,6 @@ namespace IceRpc.Internal
                                         TransportNames.Loc,
                                         Host: adapterId,
                                         Port: 0,
-                                        ImmutableList<EndpointParam>.Empty,
                                         ImmutableList<EndpointParam>.Empty);
 
                 return new Proxy(identity, facet)

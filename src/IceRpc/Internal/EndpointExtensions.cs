@@ -66,14 +66,7 @@ namespace IceRpc.Internal
                 sb.Append("protocol=");
                 sb.Append(endpoint.Protocol.GetName());
             }
-            foreach ((string name, string value) in endpoint.ExternalParams)
-            {
-                AppendQueryOption();
-                sb.Append(name);
-                sb.Append('=');
-                sb.Append(value);
-            }
-            foreach ((string name, string value) in endpoint.LocalParams)
+            foreach ((string name, string value) in endpoint.Params)
             {
                 AppendQueryOption();
                 sb.Append(name);
@@ -99,10 +92,9 @@ namespace IceRpc.Internal
         /// <summary>Converts this endpoint into an endpoint data. This method is called when encoding an endpoint.
         /// </summary>
         /// <param name="endpoint">The endpoint.</param>
-        /// <returns>An endpoint data with all the properties of this endpoint except
-        /// <see cref="Endpoint.LocalParams"/>.</returns>
+        /// <returns>An endpoint data with all the properties of this endpoint.</returns>
         internal static EndpointData ToEndpointData(this Endpoint endpoint) =>
-            new(endpoint.Protocol, endpoint.Transport, endpoint.Host, endpoint.Port, endpoint.ExternalParams);
+            new(endpoint.Protocol, endpoint.Transport, endpoint.Host, endpoint.Port, endpoint.Params);
     }
 
     /// <summary>This class provides extension methods for <see cref="EndpointData"/>.</summary>
@@ -117,7 +109,6 @@ namespace IceRpc.Internal
                 string.IsInterned(endpointData.Transport) ?? endpointData.Transport,
                 endpointData.Host,
                 endpointData.Port,
-                endpointData.Params.ToImmutableList(),
-                ImmutableList<EndpointParam>.Empty);
+                endpointData.Params.ToImmutableList());
     }
 }

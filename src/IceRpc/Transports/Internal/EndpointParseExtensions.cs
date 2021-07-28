@@ -12,7 +12,7 @@ namespace IceRpc.Transports.Internal
     {
         internal const int DefaultTcpTimeout = 60_000; // 60s
 
-        internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseExternalOpaqueParams(
+        internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseOpaqueParams(
            this Endpoint endpoint)
         {
             if (endpoint.Protocol != Protocol.Ice1)
@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
             ReadOnlyMemory<byte> bytes = default;
             bool encodingFound = false;
 
-            foreach ((string name, string value) in endpoint.ExternalParams)
+            foreach ((string name, string value) in endpoint.Params)
             {
                 switch (name)
                 {
@@ -105,40 +105,10 @@ namespace IceRpc.Transports.Internal
         internal static (bool Compress, int Timeout, bool? Tls) ParseTcpParams(this Endpoint endpoint)
         {
             bool? tls = null;
-
-            foreach ((string name, string value) in endpoint.LocalParams)
-            {
-                if (endpoint.Protocol != Protocol.Ice1 && name == "_tls")
-                {
-                    if (tls != null)
-                    {
-                        throw new FormatException($"multiple _tls parameters in endpoint '{endpoint}'");
-                    }
-                    try
-                    {
-                        tls = bool.Parse(value);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new FormatException($"invalid value for _tls parameter in endpoint '{endpoint}'", ex);
-                    }
-                }
-                else
-                {
-                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-
-            (bool compress, int timeout) = endpoint.ParseExternalTcpParams();
-            return (compress, timeout, tls);
-        }
-
-        internal static (bool Compress, int Timeout) ParseExternalTcpParams(this Endpoint endpoint)
-        {
             bool compress = false;
             int? timeout = null;
 
-            foreach ((string name, string value) in endpoint.ExternalParams)
+            foreach ((string name, string value) in endpoint.Params)
             {
                 if (endpoint.Protocol == Protocol.Ice1)
                 {
@@ -178,23 +148,61 @@ namespace IceRpc.Transports.Internal
                             continue; // loop back
 
                         default:
-                            break; // and throw after the if block
+                            throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                     }
                 }
-                throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
+                else if (name == "tls")
+                {
+                    if (tls != null)
+                    {
+                        throw new FormatException($"multiple tls parameters in endpoint '{endpoint}'");
+                    }
+                    try
+                    {
+                        tls = bool.Parse(value);
+                    }
+                    catch (FormatException ex)
+                    {
+                        throw new FormatException($"invalid value for tls parameter in endpoint '{endpoint}'", ex);
+                    }
+                }
+                else
+                {
+                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
+                }
             }
-            return (compress, timeout ?? DefaultTcpTimeout);
+
+            return (compress, timeout ?? DefaultTcpTimeout, tls);
         }
 
         internal static (bool Compress, int Ttl, string? MulticastInterface) ParseUdpParams(this Endpoint endpoint)
         {
+            if (endpoint.Protocol != Protocol.Ice1)
+            {
+                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
+            }
+
+            bool compress = false;
             int ttl = -1;
             string? multicastInterface = null;
 
-            foreach ((string name, string value) in endpoint.LocalParams)
+            foreach ((string name, string value) in endpoint.Params)
             {
                 switch (name)
                 {
+                    case "-z":
+                        if (compress)
+                        {
+                            throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
+                        }
+                        if (value.Length > 0)
+                        {
+                            throw new FormatException(
+                                $"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
+                        }
+                        compress = true;
+                        break;
+
                     case "--ttl":
                         if (ttl >= 0)
                         {
@@ -263,40 +271,7 @@ namespace IceRpc.Transports.Internal
                 }
             }
 
-            return (endpoint.ParseExternalUdpParams(), ttl, multicastInterface);
-        }
-
-        /// <summary>Parses the non-local parameters of endpoint.</summary>
-        internal static bool ParseExternalUdpParams(this Endpoint endpoint)
-        {
-            if (endpoint.Protocol != Protocol.Ice1)
-            {
-                throw new FormatException($"endpoint '{endpoint}': protocol/transport mistmatch");
-            }
-
-            bool compress = false;
-
-            foreach ((string name, string value) in endpoint.ExternalParams)
-            {
-                switch (name)
-                {
-                    case "-z":
-                        if (compress)
-                        {
-                            throw new FormatException($"multiple -z parameters in endpoint '{endpoint}'");
-                        }
-                        if (value.Length > 0)
-                        {
-                            throw new FormatException($"invalid value '{value}' for parameter -z in endpoint '{endpoint}'");
-                        }
-                        compress = true;
-                        break;
-
-                    default:
-                        throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
-                }
-            }
-            return compress;
+            return (compress, ttl, multicastInterface);
         }
     }
 }

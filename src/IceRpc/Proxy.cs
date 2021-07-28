@@ -359,9 +359,7 @@ namespace IceRpc
                     // Use ice+transport scheme
                     sb.AppendEndpoint(_endpoint, Path);
 
-                    firstOption = _endpoint.Protocol == Protocol.Ice2 &&
-                                  _endpoint.ExternalParams.Count == 0 &&
-                                  _endpoint.LocalParams.Count == 0;
+                    firstOption = _endpoint.Protocol == Protocol.Ice2 && _endpoint.Params.Count == 0;
                 }
                 else
                 {
@@ -474,8 +472,7 @@ namespace IceRpc
                                                 Port: proxyData.Protocol == Protocol.Ice1 ?
                                                     Ice1Parser.DefaultPort :
                                                     IceUriParser.DefaultUriPort,
-                                                ImmutableList<EndpointParam>.Empty,
-                                                ImmutableList<EndpointParam>.Empty);
+                                                Params: ImmutableList<EndpointParam>.Empty);
                     }
                     altEndpoints = ImmutableList<Endpoint>.Empty;
                 }

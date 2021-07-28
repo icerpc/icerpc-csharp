@@ -954,7 +954,7 @@ namespace IceRpc
 
                     if (endpoint == null)
                     {
-                        var parameters = ImmutableList.Create(
+                        var endpointParams = ImmutableList.Create(
                             new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
                             new EndpointParam("-e", encoding.ToString()),
                             new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
@@ -964,8 +964,7 @@ namespace IceRpc
                             TransportNames.Opaque,
                             Host: "",
                             Port: 0,
-                            parameters,
-                            LocalParams: ImmutableList<EndpointParam>.Empty);
+                            endpointParams);
 
                         Pos += size;
                     }

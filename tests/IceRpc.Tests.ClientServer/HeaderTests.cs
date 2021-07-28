@@ -13,7 +13,7 @@ namespace IceRpc.Tests.ClientServer
     [Parallelizable(ParallelScope.All)]
     public class HeaderTests
     {
-        [TestCase("ice+tcp://127.0.0.1:0?_tls=false")]
+        [TestCase("ice+tcp://127.0.0.1:0?tls=false")]
         [TestCase("tcp -h 127.0.0.1 -p 0")]
         [TestCase("udp -h 127.0.0.1 -p 0")]
         [TestCase("ice+coloc://header_request:10000")]
