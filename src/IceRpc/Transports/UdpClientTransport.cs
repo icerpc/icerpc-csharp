@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using IceRpc.Transports.Internal;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-
 using static IceRpc.Transports.Internal.UdpUtils;
 
 namespace IceRpc.Transports

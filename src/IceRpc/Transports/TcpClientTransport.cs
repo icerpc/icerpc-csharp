@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using Microsoft.Extensions.Logging;
 using IceRpc.Transports.Internal;
-using System;
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
 
@@ -11,10 +10,10 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
     public class TcpClientTransport : IClientTransport
     {
-       MultiStreamConnection IClientTransport.CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions options,
-            ILogger logger)
+        MultiStreamConnection IClientTransport.CreateConnection(
+             Endpoint remoteEndpoint,
+             ClientConnectionOptions options,
+             ILogger logger)
         {
             // First verify all parameters:
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;

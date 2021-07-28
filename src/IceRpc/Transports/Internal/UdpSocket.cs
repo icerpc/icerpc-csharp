@@ -49,7 +49,7 @@ namespace IceRpc.Transports.Internal
                 await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
 
                 var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
-                return endpoint with { Host = ipEndPoint.Address.ToString(), Port =  checked((ushort)ipEndPoint.Port) };
+                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
             }
             catch (Exception ex)
             {

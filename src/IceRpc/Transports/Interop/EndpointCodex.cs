@@ -168,13 +168,13 @@ namespace IceRpc.Transports.Interop
                                      transportCode,
                                      static (encoder, endpoint) =>
                                      {
-                                        (bool compress, int timeout) = endpoint.ParseExternalTcpParams();
-                                        encoder.EncodeString(endpoint.Host);
-                                        encoder.EncodeInt(endpoint.Port);
-                                        encoder.EncodeInt(timeout);
-                                        encoder.EncodeBool(compress);
+                                         (bool compress, int timeout) = endpoint.ParseExternalTcpParams();
+                                         encoder.EncodeString(endpoint.Host);
+                                         encoder.EncodeInt(endpoint.Port);
+                                         encoder.EncodeInt(timeout);
+                                         encoder.EncodeBool(compress);
                                      });
-       }
+        }
     }
 
     /// <summary>Implements <see cref="IEndpointCodex"/> for the udp transport.</summary>
@@ -217,10 +217,10 @@ namespace IceRpc.Transports.Interop
                                      TransportCode.UDP,
                                      static (encoder, endpoint) =>
                                      {
-                                        bool compress = endpoint.ParseExternalUdpParams();
-                                        encoder.EncodeString(endpoint.Host);
-                                        encoder.EncodeInt(endpoint.Port);
-                                        encoder.EncodeBool(compress);
+                                         bool compress = endpoint.ParseExternalUdpParams();
+                                         encoder.EncodeString(endpoint.Host);
+                                         encoder.EncodeInt(endpoint.Port);
+                                         encoder.EncodeBool(compress);
                                      });
         }
     }

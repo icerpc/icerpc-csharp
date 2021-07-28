@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using IceRpc.Transports;
 using System.Runtime.CompilerServices;
 
 // Make internals visible to the tests assembly, to allow writing unit tests for the internal classes

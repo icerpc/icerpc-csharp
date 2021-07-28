@@ -206,7 +206,7 @@ namespace IceRpc.Tests.CodeGeneration
                 (p1, p2) => _prx.OpOptionalByteDictAsync(p1, p2),
                 Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(
                     key => key,
-                    value => value % 2== 0? (byte?)value : null),
+                    value => value % 2 == 0 ? (byte?)value : null),
                 Enumerable.Range(0, size).Select(i => (byte)i).ToDictionary(
                     key => key,
                     value => value % 2 == 0 ? (byte?)value : null));
