@@ -79,7 +79,11 @@ namespace IceRpc
 
         /// <summary>The encoding that a caller should use when encoding request parameters when such a caller supports
         /// multiple encodings. Its value is usually null which means use the encoding of the protocol.</summary>
-        public string? Encoding { get; set; }
+        public string? Encoding
+        {
+            get => _encoding;
+            set => _encoding = value == null ? null : (string.IsInterned(value) ?? value);
+        }
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
         /// <value>The main endpoint of this proxy, or null if this proxy has no endpoint.</value>
@@ -175,6 +179,7 @@ namespace IceRpc
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
+        private string? _encoding;
         private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
