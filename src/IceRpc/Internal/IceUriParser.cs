@@ -135,10 +135,8 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
-
-            Encoding encoding = encodingValue == null ? Encoding.V20 : Encoding.Parse(encodingValue);
 
             protocol ??= Protocol.Ice2;
 

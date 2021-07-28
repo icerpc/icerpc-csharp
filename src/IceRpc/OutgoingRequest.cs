@@ -213,7 +213,7 @@ namespace IceRpc
 
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding;
+            PayloadEncoding = proxy.IceEncodingVersion;
             Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }
