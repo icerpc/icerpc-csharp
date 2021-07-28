@@ -223,6 +223,10 @@ namespace IceRpc
 
         internal int ClassGraphMaxDepth => _options?.ClassGraphMaxDepth ?? 200; // TODO why is _options ever null?
 
+        /// <summary>The endpoint codex is used when encoding or decoding an ice1 endpoint (typically inside a proxy)
+        /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
+        /// transport-dependent.</summary>
+        // TODO: provide public API to get/set this codex.
         internal IEndpointCodex EndpointCodex { get; set; } = _defaultEndpointCodex;
 
         // Delegate used to remove the connection once it has been closed.
