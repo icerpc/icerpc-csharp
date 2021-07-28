@@ -125,21 +125,18 @@ namespace IceRpc
         {
             public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
                 ReferenceEquals(lhs, rhs) ||
-                (lhs != null && rhs != null &&
-                 lhs.Protocol == rhs.Protocol &&
-                 lhs.Transport == rhs.Transport &&
-                 lhs.Host == rhs.Host &&
-                 lhs.Port == rhs.Port);
+                    (lhs != null && rhs != null &&
+                    lhs.Protocol == rhs.Protocol &&
+                    lhs.Transport == rhs.Transport &&
+                    lhs.Host == rhs.Host &&
+                    lhs.Port == rhs.Port);
 
-            public override int GetHashCode(Endpoint endpoint)
-            {
-                var hash = new HashCode();
-                hash.Add(endpoint.Protocol);
-                hash.Add(endpoint.Transport);
-                hash.Add(endpoint.Host);
-                hash.Add(endpoint.Port);
-                return hash.ToHashCode();
-            }
+            public override int GetHashCode(Endpoint endpoint) =>
+                HashCode.Combine(
+                    endpoint.Protocol,
+                    endpoint.Transport,
+                    endpoint.Host,
+                    endpoint.Port);
         }
     }
 
