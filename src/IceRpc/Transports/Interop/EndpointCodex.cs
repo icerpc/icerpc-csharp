@@ -58,11 +58,11 @@ namespace IceRpc.Transports.Interop
                     builder.ToDictionary(entry => entry.Key.TransportName, entry => entry.Value as IEndpointEncoder);
             }
 
-            public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
+            Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
                 _endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder) ?
                     endpointDecoder.DecodeEndpoint(transportCode, decoder) : null;
 
-            public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+            void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
             {
                 if (_endpointEncoders.TryGetValue(endpoint.Transport, out IEndpointEncoder? endpointEncoder))
                 {
@@ -118,8 +118,7 @@ namespace IceRpc.Transports.Interop
     /// <summary>Implements <see cref="IEndpointCodex"/> for the tcp transport.</summary>
     public sealed class TcpEndpointCodex : IEndpointCodex
     {
-        /// <inheritdoc/>
-        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
             if (decoder.Encoding != Encoding.V11)
             {
@@ -155,8 +154,7 @@ namespace IceRpc.Transports.Interop
             return null;
         }
 
-        /// <inheritdoc/>
-        public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
             if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
             {
@@ -182,8 +180,7 @@ namespace IceRpc.Transports.Interop
     /// <summary>Implements <see cref="IEndpointCodex"/> for the udp transport.</summary>
     public sealed class UdpEndpointCodex : IEndpointCodex
     {
-        /// <inheritdoc/>
-        public Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
             if (decoder.Encoding != Encoding.V11)
             {
@@ -209,8 +206,7 @@ namespace IceRpc.Transports.Interop
             return null;
         }
 
-        /// <inheritdoc/>
-        public void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
             if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
             {
