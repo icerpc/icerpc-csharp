@@ -9,28 +9,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
-    public partial class MyBaseClass1
-    {
-        // Overwrite property to ensure this value takes preference over a value set by
-        // the constructor.
-        partial void Initialize() => Id = "My id";
-    }
-
-    public partial class MyDerivedClass1
-    {
-        // Overwrite property to ensure this value takes preference over a value set by
-        // the constructor.
-        partial void Initialize() => Name = "My name";
-    }
-
-    public partial class MyClass2
-    {
-        public bool Called { get; set; }
-
-        // Ensure that partial initialize is also called for classes without data members
-        partial void Initialize() => Called = true;
-    }
-
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
     [TestFixture(Protocol.Ice1)]
@@ -185,31 +163,6 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual(2, m2.V.Count);
             Assert.AreEqual("one", m2.V[k1].Data);
             Assert.AreEqual("two", m2.V[k2].Data);
-        }
-
-        [Test]
-        public async Task Class_PartialInitializeAsync()
-        {
-            Assert.AreEqual("My id", new MyBaseClass1("").Id);
-
-            var derived1 = new MyDerivedClass1("", "");
-            Assert.AreEqual("My id", derived1.Id);
-            Assert.AreEqual("My name", derived1.Name);
-
-            Assert.AreEqual("My id", new MyDerivedClass2("").Id);
-
-            Assert.That(new MyClass2().Called, Is.True);
-
-            // Ensure the partial Initialize method called when unmarshaling a class
-            derived1 = await _prx.GetMyDerivedClass1Async();
-            Assert.AreEqual("My id", derived1.Id);
-            Assert.AreEqual("My name", derived1.Name);
-
-            MyDerivedClass2 derived2 = await _prx.GetMyDerivedClass2Async();
-            Assert.AreEqual("My id", derived2.Id);
-
-            MyClass2 class2 = await _prx.GetMyClass2Async();
-            Assert.That(class2.Called, Is.True);
         }
 
         [Test]
