@@ -68,7 +68,7 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?_tls=false" : "tcp -h 127.0.0.1 -p 0",
+                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
             };
 
             _server.Listen();

@@ -88,7 +88,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> externalParams, ImmutableList<EndpointParam> localParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
                 uri.Query,
                 uriString);
 
@@ -104,7 +104,7 @@ namespace IceRpc.Internal
             {
                 throw new FormatException($"invalid encoding parameter in endpoint '{uriString}'");
             }
-            return CreateEndpoint(uri, externalParams, localParams, protocol ?? defaultProtocol, uriString);
+            return CreateEndpoint(uri, endpointParams, protocol ?? defaultProtocol, uriString);
         }
 
         internal static Proxy ParseProxyUri(string uriString)
@@ -135,7 +135,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> externalParams, ImmutableList<EndpointParam> localParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
                 ParseQuery(uri.Query, uriString);
 
             Encoding encoding = encodingValue == null ? Encoding.V20 : Encoding.Parse(encodingValue);
@@ -146,7 +146,7 @@ namespace IceRpc.Internal
             ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
             if (!iceScheme)
             {
-                endpoint = CreateEndpoint(uri, externalParams, localParams, protocol.Value, uriString);
+                endpoint = CreateEndpoint(uri, endpointParams, protocol.Value, uriString);
 
                 if (altEndpointValue != null)
                 {
@@ -188,22 +188,19 @@ namespace IceRpc.Internal
 
         private static Endpoint CreateEndpoint(
             Uri uri,
-            ImmutableList<EndpointParam> externalParams,
-            ImmutableList<EndpointParam> localParams,
+            ImmutableList<EndpointParam> endpointParams,
             Protocol protocol,
             string uriString) => new(protocol,
                                      uri.Scheme[IcePlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
-                                     externalParams,
-                                     localParams);
+                                     endpointParams);
 
-        private static (ImmutableList<EndpointParam> ExternalParams, ImmutableList<EndpointParam> LocalParams, Protocol? Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
+        private static (ImmutableList<EndpointParam> EndpointParams, Protocol? Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
-            var externalParams = new List<EndpointParam>();
-            var localParams = new List<EndpointParam>();
+            var endpointParams = new List<EndpointParam>();
             Protocol? protocol = null;
             string? altEndpoint = null;
             string? encoding = null;
@@ -241,17 +238,10 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (name[0] == '_')
-                    {
-                        localParams.Add(new EndpointParam(name, value));
-                    }
-                    else
-                    {
-                        externalParams.Add(new EndpointParam(name, value));
-                    }
+                    endpointParams.Add(new EndpointParam(name, value));
                 }
             }
-            return (externalParams.ToImmutableList(), localParams.ToImmutableList(), protocol, altEndpoint, encoding);
+            return (endpointParams.ToImmutableList(), protocol, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)

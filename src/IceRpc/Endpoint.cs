@@ -17,17 +17,13 @@ namespace IceRpc
     /// <param name="Transport">The transport of this endpoint, for example "tcp" or "quic".</param>
     /// <param name="Host">The host name or address.</param>
     /// <param name="Port">The port number.</param>
-    /// <param name="ExternalParams">Transport-specific parameters that are encoded when this endpoint is encoded.
-    /// </param>
-    /// <param name="LocalParams">Transport-specific parameters that are not encoded when this endpoint is encoded.
-    /// </param>
+    /// <param name="Params">Transport-specific parameters.</param>
     public sealed record Endpoint(
         Protocol Protocol,
         string Transport,
         string Host,
         ushort Port,
-        ImmutableList<EndpointParam> ExternalParams,
-        ImmutableList<EndpointParam> LocalParams)
+        ImmutableList<EndpointParam> Params)
     {
         /// <summary>Converts a string into an endpoint implicitly using <see cref="FromString"/>.</summary>
         /// <param name="s">The string representation of the endpoint.</param>
@@ -46,16 +42,15 @@ namespace IceRpc
 
         /// <summary>Checks if this endpoint is equal to another endpoint.</summary>
         /// <param name="other">The other endpoint.</param>
-        /// <returns><c>true</c>when the two endpoints have the same properties. The external and local parameters are
-        /// compared in order; otherwise, <c>false</c>.</returns>
+        /// <returns><c>true</c>when the two endpoints have the same properties, including the same parameters (in the
+        /// same order); otherwise, <c>false</c>.</returns>
         public bool Equals(Endpoint? other) =>
             other != null &&
             Protocol == other.Protocol &&
             Transport == other.Transport &&
             Host == other.Host &&
             Port == other.Port &&
-            ExternalParams.SequenceEqual(other.ExternalParams) &&
-            LocalParams.SequenceEqual(other.LocalParams);
+            Params.SequenceEqual(other.Params);
 
         /// <summary>Computes the hash code for this endpoint.</summary>
         /// <returns>The hash code.</returns>
@@ -65,8 +60,7 @@ namespace IceRpc
                 Transport,
                 Host,
                 Port,
-                ExternalParams.GetSequenceHashCode(),
-                LocalParams.GetSequenceHashCode());
+                Params.GetSequenceHashCode());
 
         /// <summary>Converts this endpoint into a string.</summary>
         /// <returns>The string representation of this endpoint. It's an ice+transport URI when <see cref="Protocol"/>
@@ -100,17 +94,7 @@ namespace IceRpc
                     sb.Append(Port.ToString(CultureInfo.InvariantCulture));
                 }
 
-                foreach ((string name, string value) in ExternalParams)
-                {
-                    sb.Append(' ');
-                    sb.Append(name);
-                    if (value.Length > 0)
-                    {
-                        sb.Append(' ');
-                        sb.Append(value);
-                    }
-                }
-                foreach ((string name, string value) in LocalParams)
+                foreach ((string name, string value) in Params)
                 {
                     sb.Append(' ');
                     sb.Append(name);
@@ -134,11 +118,10 @@ namespace IceRpc
     /// <summary>Equality comparer for <see cref="Endpoint"/>.</summary>
     public abstract class EndpointComparer : EqualityComparer<Endpoint>
     {
-        /// <summary>An endpoint comparer that compares all endpoint properties except the parameters and local
-        /// parameters.</summary>
-        public static EndpointComparer ParameterLess { get; } = new ParameterLessEndpointComparer();
+        /// <summary>An endpoint comparer that compares all endpoint properties except the parameters.</summary>
+        public static EndpointComparer ParameterLess { get; } = new ParamLessEndpointComparer();
 
-        private class ParameterLessEndpointComparer : EndpointComparer
+        private class ParamLessEndpointComparer : EndpointComparer
         {
             public override bool Equals(Endpoint? lhs, Endpoint? rhs) =>
                 ReferenceEquals(lhs, rhs) ||

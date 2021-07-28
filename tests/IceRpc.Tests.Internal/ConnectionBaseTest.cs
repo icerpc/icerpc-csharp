@@ -92,7 +92,6 @@ namespace IceRpc.Tests.Internal
                                               transport,
                                               Host: Guid.NewGuid().ToString(),
                                               Port: 4062,
-                                              ImmutableList<EndpointParam>.Empty,
                                               ImmutableList<EndpointParam>.Empty);
                 ServerEndpoint = ClientEndpoint;
             }
@@ -103,7 +102,7 @@ namespace IceRpc.Tests.Internal
                     string tlsOption = "";
                     if (transport == "tcp" && !IsSecure)
                     {
-                        tlsOption = "?_tls=false";
+                        tlsOption = "?tls=false";
                     }
 
                     string host = IsIPv6 ? "[::1]" : "127.0.0.1";

@@ -28,7 +28,7 @@ namespace IceRpc.Transports
                 tls = true;
                 remoteEndpoint = remoteEndpoint with
                 {
-                    LocalParams = remoteEndpoint.LocalParams.Add(new EndpointParam("_tls", "true"))
+                    Params = remoteEndpoint.Params.Add(new EndpointParam("tls", "true"))
                 };
             }
 
