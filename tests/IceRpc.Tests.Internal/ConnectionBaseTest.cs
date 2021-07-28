@@ -141,7 +141,7 @@ namespace IceRpc.Tests.Internal
             try
             {
                 MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
-                Debug.Assert(multiStreamConnection.TransportName == TransportName);
+                Debug.Assert(multiStreamConnection.Transport == TransportName);
                 await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
                 if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure!.Value)
                 {
@@ -193,7 +193,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            if (multiStreamConnection.TransportName != TransportName)
+            if (multiStreamConnection.Transport != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
                 Debug.Assert(multiStreamConnection is ColocConnection);

@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Interop;
-using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 
 namespace IceRpc.Internal
 {
@@ -58,7 +56,7 @@ namespace IceRpc.Internal
                     throw new FormatException($"invalid parameter name '{name}' in endpoint '{endpointString}'");
                 }
 
-                // Extract the value given to the current option, if any
+                // Extract the value given to the current parameter, if any
                 string value = "";
                 if (n + 1 < args.Length && args[n + 1][0] != '-')
                 {
@@ -92,7 +90,16 @@ namespace IceRpc.Internal
                     }
                     else
                     {
-                        port = ushort.Parse(value, CultureInfo.InvariantCulture);
+                        try
+                        {
+                            port = ushort.Parse(value, CultureInfo.InvariantCulture);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new FormatException(
+                                $"invalid value for -p parameter in '{endpointString}', must be between 0 and 65535",
+                                ex);
+                        }
                     }
                 }
                 else
@@ -109,11 +116,11 @@ namespace IceRpc.Internal
             }
 
             return new Endpoint(Protocol.Ice1,
-                                      transportName,
-                                      host ?? "",
-                                      port ?? 0,
-                                      externalParams.ToImmutableList(),
-                                      localParams.ToImmutableList());
+                                transportName,
+                                host ?? "",
+                                port ?? 0,
+                                externalParams.ToImmutableList(),
+                                localParams.ToImmutableList());
         }
 
         /// <summary>Parses a proxy string in the ice1 format.</summary>
@@ -312,10 +319,7 @@ namespace IceRpc.Internal
             if (beg == -1)
             {
                 // Well-known proxy
-                return new Proxy(identity, facet)
-                {
-                    Encoding = encoding
-                };
+                return new Proxy(identity, facet) { Encoding = encoding };
             }
 
             if (s[beg] == ':')
@@ -446,11 +450,11 @@ namespace IceRpc.Internal
                 }
 
                 endpoint = new Endpoint(Protocol.Ice1,
-                                              TransportNames.Loc,
-                                              Host: adapterId,
-                                              Port: 0,
-                                              ImmutableList<EndpointParam>.Empty,
-                                              ImmutableList<EndpointParam>.Empty);
+                                        TransportNames.Loc,
+                                        Host: adapterId,
+                                        Port: 0,
+                                        ImmutableList<EndpointParam>.Empty,
+                                        ImmutableList<EndpointParam>.Empty);
 
                 return new Proxy(identity, facet)
                 {

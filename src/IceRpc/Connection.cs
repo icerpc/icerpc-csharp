@@ -214,6 +214,10 @@ namespace IceRpc
             }
         }
 
+        /// <summary>The default value for <see cref="EndpointCodex"/>.</summary>
+        internal static IEndpointCodex DefaultEndpointCodex { get; } =
+            new EndpointCodexBuilder().AddTcp().AddSsl().AddUdp().Build();
+
         /// <summary>The underlying multi-stream connection.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
@@ -227,7 +231,7 @@ namespace IceRpc
         /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
         /// transport-dependent.</summary>
         // TODO: provide public API to get/set this codex.
-        internal IEndpointCodex EndpointCodex { get; set; } = _defaultEndpointCodex;
+        internal IEndpointCodex EndpointCodex { get; set; } = DefaultEndpointCodex;
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -249,9 +253,6 @@ namespace IceRpc
                 }
             }
         }
-
-        private static readonly IEndpointCodex _defaultEndpointCodex =
-            new EndpointCodexBuilder().AddTcp().AddSsl().AddUdp().Build();
 
         private readonly TaskCompletionSource _acceptStreamCompletion = new();
         private TaskCompletionSource? _cancelGoAwaySource;

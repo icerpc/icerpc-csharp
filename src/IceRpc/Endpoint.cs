@@ -49,27 +49,24 @@ namespace IceRpc
         /// <returns><c>true</c>when the two endpoints have the same properties. The external and local parameters are
         /// compared in order; otherwise, <c>false</c>.</returns>
         public bool Equals(Endpoint? other) =>
-                   other != null &&
-                   Protocol == other.Protocol &&
-                   Transport == other.Transport &&
-                   Host == other.Host &&
-                   Port == other.Port &&
-                   ExternalParams.SequenceEqual(other.ExternalParams) &&
-                   LocalParams.SequenceEqual(other.LocalParams);
+            other != null &&
+            Protocol == other.Protocol &&
+            Transport == other.Transport &&
+            Host == other.Host &&
+            Port == other.Port &&
+            ExternalParams.SequenceEqual(other.ExternalParams) &&
+            LocalParams.SequenceEqual(other.LocalParams);
 
         /// <summary>Computes the hash code for this endpoint.</summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode()
-        {
-            var hash = new HashCode();
-            hash.Add(Protocol);
-            hash.Add(Transport);
-            hash.Add(Host);
-            hash.Add(Port);
-            hash.Add(ExternalParams.GetSequenceHashCode());
-            hash.Add(LocalParams.GetSequenceHashCode());
-            return hash.ToHashCode();
-        }
+        public override int GetHashCode() =>
+            HashCode.Combine(
+                Protocol,
+                Transport,
+                Host,
+                Port,
+                ExternalParams.GetSequenceHashCode(),
+                LocalParams.GetSequenceHashCode());
 
         /// <summary>Converts this endpoint into a string.</summary>
         /// <returns>The string representation of this endpoint. It's an ice+transport URI when <see cref="Protocol"/>

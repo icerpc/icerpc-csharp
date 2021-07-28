@@ -108,13 +108,21 @@ namespace IceRpc
                         {
                             if (exceptionList == null)
                             {
-                                exceptionList = new List<Exception>();
-                                if (ex is not UnknownTransportException)
+                                if (ex is UnknownTransportException)
                                 {
-                                    exceptionList.Add(ex);
+                                    // keep in ex the first exception that is not an UnknownTransportException
+                                    ex = altEx;
+                                }
+                                else
+                                {
+                                    // we have at least 2 exceptions that are not UnknownTransportException
+                                    exceptionList = new List<Exception> { ex, altEx };
                                 }
                             }
-                            exceptionList.Add(altEx);
+                            else
+                            {
+                                exceptionList.Add(altEx);
+                            }
                             // and keep trying
                         }
                     }

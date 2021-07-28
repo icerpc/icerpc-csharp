@@ -10,7 +10,7 @@ namespace IceRpc.Transports.Internal
     /// <summary>Various parse extension methods for class Endpoint.</summary>
     internal static class EndpointParseExtensions
     {
-        internal const int DefaultTcpTimeout = 60_000;
+        internal const int DefaultTcpTimeout = 60_000; // 60s
 
         internal static (TransportCode TransportCode, ReadOnlyMemory<byte> Bytes) ParseExternalOpaqueParams(
            this Endpoint endpoint)
@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
                         catch (FormatException ex)
                         {
                             throw new FormatException(
-                                $"invalid value for paramater -t in endpoint '{endpoint}'", ex);
+                                $"invalid value for parameter -t in endpoint '{endpoint}'", ex);
                         }
 
                         if (t < 0)
@@ -178,11 +178,10 @@ namespace IceRpc.Transports.Internal
                             continue; // loop back
 
                         default:
-                            break;
+                            break; // and throw after the if block
                     }
-
-                    throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
                 }
+                throw new FormatException($"unknown parameter '{name}' in endpoint '{endpoint}'");
             }
             return (compress, timeout ?? DefaultTcpTimeout);
         }

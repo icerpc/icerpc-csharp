@@ -1,11 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
 
 namespace IceRpc.Internal
 {
@@ -46,6 +44,8 @@ namespace IceRpc.Internal
                 return false;
             }
 
+            // The printable ASCII character range is x20 (space) to x7E inclusive. And space is an invalid character
+            // in addition to the invalid characters in the invalidChars string.
             foreach (char c in path)
             {
                 if (c.CompareTo('\x20') <= 0 ||
@@ -88,7 +88,7 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
+            (ImmutableList<EndpointParam> externalParams, ImmutableList<EndpointParam> localParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
                 uri.Query,
                 uriString);
 
@@ -135,14 +135,10 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (List<EndpointParam> externalParams, List<EndpointParam> localParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
+            (ImmutableList<EndpointParam> externalParams, ImmutableList<EndpointParam> localParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
                 ParseQuery(uri.Query, uriString);
 
-            Encoding encoding = Encoding.V20;
-            if (encodingValue != null)
-            {
-                encoding = Encoding.Parse(encodingValue);
-            }
+            Encoding encoding = encodingValue == null ? Encoding.V20 : Encoding.Parse(encodingValue);
 
             protocol ??= Protocol.Ice2;
 
@@ -157,14 +153,9 @@ namespace IceRpc.Internal
                     // Split and parse recursively each endpoint
                     foreach (string endpointStr in altEndpointValue.Split(','))
                     {
-                        if (endpointStr.StartsWith(IceColon, StringComparison.Ordinal))
-                        {
-                            throw new FormatException(
-                                $"invalid URI scheme for endpoint '{endpointStr}': must be empty or ice+transport");
-                        }
-
                         string altUriString = endpointStr;
-                        if (!altUriString.StartsWith(IcePlus, StringComparison.Ordinal))
+                        if (!altUriString.StartsWith(IceColon, StringComparison.Ordinal) &&
+                            !altUriString.Contains("://", StringComparison.Ordinal))
                         {
                             altUriString = $"{uri.Scheme}://{altUriString}";
                         }
@@ -197,17 +188,17 @@ namespace IceRpc.Internal
 
         private static Endpoint CreateEndpoint(
             Uri uri,
-            List<EndpointParam> externalParams,
-            List<EndpointParam> localParams,
+            ImmutableList<EndpointParam> externalParams,
+            ImmutableList<EndpointParam> localParams,
             Protocol protocol,
             string uriString) => new(protocol,
                                      uri.Scheme[IcePlus.Length..],
                                      uri.DnsSafeHost,
                                      checked((ushort)uri.Port),
-                                     externalParams.ToImmutableList(),
-                                     localParams.ToImmutableList());
+                                     externalParams,
+                                     localParams);
 
-        private static (List<EndpointParam> ExternalParams, List<EndpointParam> LocalParams, Protocol Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
+        private static (ImmutableList<EndpointParam> ExternalParams, ImmutableList<EndpointParam> LocalParams, Protocol? Protocol, string? AltEndpoint, string? Encoding) ParseQuery(
             string query,
             string uriString)
         {
@@ -260,7 +251,7 @@ namespace IceRpc.Internal
                     }
                 }
             }
-            return (externalParams, localParams, protocol ?? Protocol.Ice2, altEndpoint, encoding);
+            return (externalParams.ToImmutableList(), localParams.ToImmutableList(), protocol, altEndpoint, encoding);
         }
 
         private static void TryAddScheme(string scheme)

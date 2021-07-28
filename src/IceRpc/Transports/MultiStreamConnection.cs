@@ -56,7 +56,7 @@ namespace IceRpc.Transports
         }
 
         /// <summary>The name of the transport.</summary>
-        public string TransportName => _endpoint.Transport;
+        public string Transport => _endpoint.Transport;
 
         internal int IncomingFrameMaxSize { get; }
 

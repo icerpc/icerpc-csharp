@@ -11,21 +11,21 @@ namespace IceRpc.Internal
     /// <summary>This class provides extension methods for <see cref="Endpoint"/>.</summary>
     internal static class EndpointExtensions
     {
-        /// <summary>Appends the endpoint and all its options (if any) to this string builder, when using the URI
-        /// format.</summary>
+        /// <summary>Appends the endpoint and all its parameters (if any) to this string builder. This method is never
+        /// called for ice1 endpoints.</summary>
         /// <param name="sb">The string builder.</param>
         /// <param name="endpoint">The endpoint to append.</param>
         /// <param name="path">The path of the endpoint URI. Use this parameter to start building a proxy URI.</param>
         /// <param name="includeScheme">When true, first appends the endpoint's scheme followed by ://.</param>
-        /// <param name="optionSeparator">The character that separates options in the query component of the URI.
+        /// <param name="paramSeparator">The character that separates parameters in the query component of the URI.
         /// </param>
-        /// <returns>The string builder parameter.</returns>
+        /// <returns>The string builder <paramref name="sb"/>.</returns>
         internal static StringBuilder AppendEndpoint(
             this StringBuilder sb,
             Endpoint endpoint,
             string path = "",
             bool includeScheme = true,
-            char optionSeparator = '&')
+            char paramSeparator = '&')
         {
             Debug.Assert(endpoint.Protocol != Protocol.Ice1); // we never generate URIs for the ice1 protocol
 
@@ -91,7 +91,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    sb.Append(optionSeparator);
+                    sb.Append(paramSeparator);
                 }
             }
         }

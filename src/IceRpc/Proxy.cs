@@ -126,7 +126,7 @@ namespace IceRpc
         /// transport-dependent.</summary>
         /// <seealso cref="Connection.EndpointCodex"/>
         // TODO: provide public API to get/set this encoder.
-        internal IEndpointEncoder EndpointEncoder { get; set; } = _defaultEndpointEncoder;
+        internal IEndpointEncoder EndpointEncoder { get; set; } = Connection.DefaultEndpointCodex;
 
         /// <summary>The facet of this proxy. Used only with the ice1 protocol.</summary>
         internal string Facet
@@ -157,9 +157,6 @@ namespace IceRpc
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
         /// </summary>
         internal IList<string> FacetPath { get; set; } = ImmutableList<string>.Empty;
-
-        private static readonly IEndpointEncoder _defaultEndpointEncoder =
-            new EndpointCodexBuilder().AddSsl().AddTcp().AddUdp().Build();
 
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
@@ -553,11 +550,7 @@ namespace IceRpc
                 }
 
                 Protocol protocol = proxyData.Protocol ?? Protocol.Ice2;
-                Endpoint? endpoint = null;
-                if (proxyData.Endpoint is EndpointData data)
-                {
-                    endpoint = data.ToEndpoint();
-                }
+                Endpoint? endpoint = proxyData.Endpoint is EndpointData data ? data.ToEndpoint() : null;
                 ImmutableList<Endpoint> altEndpoints =
                     proxyData.AltEndpoints?.Select(data => data.ToEndpoint()).ToImmutableList() ??
                         ImmutableList<Endpoint>.Empty;

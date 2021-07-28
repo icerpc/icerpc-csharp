@@ -43,6 +43,9 @@ namespace IceRpc.Transports.Internal
             _logger = logger;
             _options = options;
             _socket = socket;
+
+            // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
+
             _tls = endpoint.ParseTcpParams().Tls;
 
             if (endpoint.Protocol == Protocol.Ice1)

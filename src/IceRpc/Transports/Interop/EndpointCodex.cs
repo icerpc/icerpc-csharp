@@ -46,8 +46,8 @@ namespace IceRpc.Transports.Interop
 
         private class CompositeEndpointCodex : IEndpointCodex
         {
-            private IReadOnlyDictionary<TransportCode, IEndpointDecoder> _endpointDecoders;
-            private IReadOnlyDictionary<string, IEndpointEncoder> _endpointEncoders;
+            private readonly IReadOnlyDictionary<TransportCode, IEndpointDecoder> _endpointDecoders;
+            private readonly IReadOnlyDictionary<string, IEndpointEncoder> _endpointEncoders;
 
             internal CompositeEndpointCodex(EndpointCodexBuilder builder)
             {
@@ -145,11 +145,11 @@ namespace IceRpc.Transports.Interop
                 }
 
                 return new Endpoint(Protocol.Ice1,
-                                          transportCode == TransportCode.SSL ? TransportNames.Ssl : TransportNames.Tcp,
-                                          host,
-                                          port,
-                                          parameters,
-                                          ImmutableList<EndpointParam>.Empty);
+                                    transportCode == TransportCode.SSL ? TransportNames.Ssl : TransportNames.Tcp,
+                                    host,
+                                    port,
+                                    parameters,
+                                    ImmutableList<EndpointParam>.Empty);
             }
             return null;
         }
