@@ -144,7 +144,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<DPrx> OpAAsync(
                 APrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new DPrx(new Proxy(p.Proxy.Path)));
+                CancellationToken cancel) => new(new DPrx(Proxy.FromPath(p.Proxy.Path)));
         }
 
         public class B : A, IB
@@ -152,7 +152,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<BPrx> OpBAsync(
                 BPrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new BPrx(new Proxy(dispatch.Path)));
+                CancellationToken cancel) => new(new BPrx(Proxy.FromPath(dispatch.Path)));
         }
 
         public class C : A, IC
@@ -160,7 +160,7 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<CPrx> OpCAsync(
                 CPrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new CPrx(new Proxy(dispatch.Path)));
+                CancellationToken cancel) => new(new CPrx(Proxy.FromPath(dispatch.Path)));
         }
 
         public class D : B, ID
@@ -169,12 +169,12 @@ namespace IceRpc.Tests.CodeGeneration
             public ValueTask<CPrx> OpCAsync(
                 CPrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new CPrx(new Proxy(dispatch.Path)));
+                CancellationToken cancel) => new(new CPrx(Proxy.FromPath(dispatch.Path)));
 
             public ValueTask<APrx> OpDAsync(
                 DPrx p,
                 Dispatch dispatch,
-                CancellationToken cancel) => new(new DPrx(new Proxy(dispatch.Path)));
+                CancellationToken cancel) => new(new DPrx(Proxy.FromPath(dispatch.Path)));
         }
     }
 }
