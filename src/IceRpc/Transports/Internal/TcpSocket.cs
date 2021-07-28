@@ -72,11 +72,11 @@ namespace IceRpc.Transports.Internal
                         sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
                 }
 
-                ImmutableList<EndpointParam> localParams = endpoint.LocalParams;
+                ImmutableList<EndpointParam> endpointParams = endpoint.Params;
                 if (_tls == null && endpoint.Protocol == Protocol.Ice2)
                 {
-                    // the accepted endpoint gets a _tls parameter
-                    localParams = localParams.Add(new EndpointParam("_tls", SslStream == null ? "false" : "true"));
+                    // the accepted endpoint gets a tls parameter
+                    endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));
                 }
 
                 var ipEndPoint = (IPEndPoint)_socket.RemoteEndPoint!;
@@ -84,7 +84,7 @@ namespace IceRpc.Transports.Internal
                 {
                     Host = ipEndPoint.Address.ToString(),
                     Port = checked((ushort)ipEndPoint.Port),
-                    LocalParams = localParams
+                    Params = endpointParams
                 };
             }
             catch (Exception ex)

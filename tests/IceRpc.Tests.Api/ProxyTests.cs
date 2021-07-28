@@ -469,7 +469,7 @@ namespace IceRpc.Tests.Api
 
             await using var server = new Server
             {
-                Endpoint = "ice+tcp://127.0.0.1:0?_tls=false",
+                Endpoint = "ice+tcp://127.0.0.1:0?tls=false",
                 Dispatcher = router
             };
             server.Listen();

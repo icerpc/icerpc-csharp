@@ -171,7 +171,6 @@ namespace IceRpc.Tests.Internal
                                             transport,
                                             Host: Guid.NewGuid().ToString(),
                                             Port: 4062,
-                                            ImmutableList<EndpointParam>.Empty,
                                             ImmutableList<EndpointParam>.Empty);
                 }
                 else if (transport == "udp" || protocol == Protocol.Ice1)
@@ -187,7 +186,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    Endpoint = $"ice+{transport}://127.0.0.1:0?_tls={(secure ? "true" : "false")}";
+                    Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
                 }
             }
         }

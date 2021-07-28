@@ -152,8 +152,15 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        // There are no coloc parameters so the parameters are always compatible.
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) => !IsServer;
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        {
+            if (remoteEndpoint.Params.Count > 0)
+            {
+                throw new FormatException(
+                    $"unknown parameter '{remoteEndpoint.Params[0].Name}' in endpoint '{remoteEndpoint}'");
+            }
+            return !IsServer;
+        }
 
         public override async Task PingAsync(CancellationToken cancel)
         {
