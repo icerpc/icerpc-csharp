@@ -132,11 +132,10 @@ namespace IceRpc
                     lhs.Port == rhs.Port);
 
             public override int GetHashCode(Endpoint endpoint) =>
-                HashCode.Combine(
-                    endpoint.Protocol,
-                    endpoint.Transport,
-                    endpoint.Host,
-                    endpoint.Port);
+                HashCode.Combine(endpoint.Protocol,
+                                 endpoint.Transport,
+                                 endpoint.Host,
+                                 endpoint.Port);
         }
     }
 
