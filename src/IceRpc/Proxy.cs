@@ -113,12 +113,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The Ice encoding version of this proxy, when <see cref="Encoding"/> is null or is a string that
-        /// corresponds to a supported Ice encoding version such as "1.1" or "2.0".</summary>
-        /// <exception name="NotSupportedException">Thrown when <see cref="Encoding"/> is set to some other value.
-        /// </exception>
-        public Encoding IceEncodingVersion => Encoding;
-
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
 
@@ -691,7 +685,7 @@ namespace IceRpc
                     identity.Encode(encoder);
                 }
 
-                (byte encodingMajor, byte encodingMinor) = IceEncodingVersion.ToMajorMinor();
+                (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
                 var proxyData = new ProxyData11(
                     FacetPath,
                     Protocol == Protocol.Ice1 && (Endpoint?.Transport == TransportNames.Udp) ?

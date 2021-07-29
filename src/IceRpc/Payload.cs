@@ -64,7 +64,7 @@ namespace IceRpc
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
         {
-            var encoder = new IceEncoder(proxy.IceEncodingVersion, classFormat: classFormat);
+            var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (encoder.IceEncoding == Encoding.V20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -78,7 +78,7 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(Proxy proxy) =>
-            new ReadOnlyMemory<byte>[] { proxy.Protocol.GetEmptyArgsPayload(proxy.IceEncodingVersion) };
+            new ReadOnlyMemory<byte>[] { proxy.Protocol.GetEmptyArgsPayload(proxy.Encoding) };
 
         /// <summary>Creates the payload of a response from the request's dispatch and return value tuple. Use this
         /// method when the operation returns a tuple.</summary>
@@ -119,7 +119,7 @@ namespace IceRpc
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
         {
-            var encoder = new IceEncoder(proxy.IceEncodingVersion, classFormat: classFormat);
+            var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
             if (encoder.IceEncoding == Encoding.V20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
