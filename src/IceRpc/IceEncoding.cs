@@ -14,7 +14,7 @@ namespace IceRpc
 
         public static IceEncoding Parse(string s) =>
             TryParse(s, out IceEncoding? iceEncoding) ? iceEncoding :
-                throw new FormatException($"encoding '{s}' does not represent a supported version of the Ice encoding");
+                throw new FormatException($"'{s}' does not represent a supported version of the Ice encoding");
 
         public static bool TryParse(string s, [NotNullWhen(true)] out IceEncoding? iceEncoding)
         {
