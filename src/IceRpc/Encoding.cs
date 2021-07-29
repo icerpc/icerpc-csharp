@@ -43,7 +43,7 @@ namespace IceRpc
             {
                 return false;
             }
-            return rhs.Equals(lhs);
+            return lhs.Equals(rhs);
         }
 
         /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
