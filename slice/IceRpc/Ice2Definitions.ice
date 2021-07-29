@@ -5,7 +5,6 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Encoding.ice>
 
 module IceRpc
 {

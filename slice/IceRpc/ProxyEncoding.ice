@@ -6,7 +6,6 @@
 
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Encoding.ice>
 #include <IceRpc/Endpoint.ice>
 #include <IceRpc/Protocol.ice>
 
