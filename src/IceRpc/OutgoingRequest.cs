@@ -63,7 +63,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override string PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
@@ -161,7 +161,7 @@ namespace IceRpc
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding.ToString() ? null : PayloadEncoding);
+                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString());
 
                 requestHeaderBody.Encode(encoder);
 
@@ -182,7 +182,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
-                (byte encodingMajor, byte encodingMinor) = Encoding.FromString(PayloadEncoding).ToMajorMinor();
+                (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
                 var requestHeader = new Ice1RequestHeader(
                     Identity,
                     FacetPath,
@@ -216,7 +216,7 @@ namespace IceRpc
 
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding ?? proxy.Protocol.GetEncoding().ToString();
+            PayloadEncoding = proxy.Encoding is string encoding ? Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
             Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }

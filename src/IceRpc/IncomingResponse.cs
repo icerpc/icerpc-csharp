@@ -16,7 +16,7 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override string PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="ReplyStatus.OK"/> when <see cref="ResultType"/> is
@@ -43,8 +43,8 @@ namespace IceRpc
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(decoder);
-                    PayloadEncoding =
-                       Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor, responseHeader.PayloadEncodingMinor).ToString();
+                    PayloadEncoding = Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor,
+                                                             responseHeader.PayloadEncodingMinor);
                     Payload = data[decoder.Pos..];
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;
@@ -58,7 +58,7 @@ namespace IceRpc
                 else
                 {
                     // "special" exception
-                    PayloadEncoding = EncodingNames.V11;
+                    PayloadEncoding = Encoding.V11;
                     Payload = data[decoder.Pos..];
                 }
             }
@@ -69,7 +69,8 @@ namespace IceRpc
                 int startPos = decoder.Pos;
                 var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
                 ResultType = responseHeaderBody.ResultType;
-                PayloadEncoding = responseHeaderBody.PayloadEncoding ?? Ice2Definitions.Encoding.ToString();
+                PayloadEncoding = responseHeaderBody.PayloadEncoding is string payloadEncoding ?
+                    Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding;
 
                 Fields = decoder.DecodeFieldDictionary();
 
@@ -87,7 +88,7 @@ namespace IceRpc
                         $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length} bytes");
                 }
 
-                if (ResultType == ResultType.Failure && PayloadEncoding == EncodingNames.V11)
+                if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
                     ReplyStatus = decoder.DecodeReplyStatus(); // first byte of the payload
                 }
@@ -117,7 +118,7 @@ namespace IceRpc
         }
 
         // Constructor for oneway response pseudo frame.
-        internal IncomingResponse(Connection connection, string encoding)
+        internal IncomingResponse(Connection connection, Encoding encoding)
             : base(connection.Protocol)
         {
             Connection = connection;
@@ -126,13 +127,13 @@ namespace IceRpc
             ReplyStatus = ReplyStatus.OK;
 
             PayloadEncoding = encoding;
-            Payload = Protocol.GetVoidReturnPayload(Encoding.Parse(encoding));
+            Payload = Protocol.GetVoidReturnPayload(PayloadEncoding);
         }
 
         internal RetryPolicy GetRetryPolicy(Proxy proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
-            if (PayloadEncoding == EncodingNames.V11)
+            if (PayloadEncoding == Encoding.V11)
             {
                 // For compatibility with ZeroC Ice
                 if (ReplyStatus == ReplyStatus.ObjectNotExistException && proxy.IsIndirect)

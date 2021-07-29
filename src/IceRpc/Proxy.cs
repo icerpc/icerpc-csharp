@@ -906,7 +906,7 @@ namespace IceRpc
                     if (response.ResultType == ResultType.Failure)
                     {
                         throw Payload.ToRemoteException(responsePayload,
-                                                        Encoding.Parse(response.PayloadEncoding),
+                                                        response.PayloadEncoding,
                                                         response.ReplyStatus,
                                                         response.Connection,
                                                         proxy.Invoker);
@@ -918,7 +918,7 @@ namespace IceRpc
                         streamReader = new RpcStreamReader(request);
                     }
 
-                    return (responsePayload, streamReader, Encoding.Parse(response.PayloadEncoding), response.Connection);
+                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {

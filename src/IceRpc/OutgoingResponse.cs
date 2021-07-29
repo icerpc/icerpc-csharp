@@ -13,7 +13,7 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
-        public override string PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
@@ -51,7 +51,7 @@ namespace IceRpc
             Dispatch dispatch,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             RpcStreamWriter? streamWriter = null)
-            : this(dispatch.Protocol, payload, dispatch.Encoding.ToString(), dispatch.ResponseFeatures, streamWriter)
+            : this(dispatch.Protocol, payload, dispatch.Encoding, dispatch.ResponseFeatures, streamWriter)
         {
             ResultType = ResultType.Success;
             ReplyStatus = ReplyStatus.OK;
@@ -90,7 +90,7 @@ namespace IceRpc
             }
             else
             {
-                if (response.ResultType == ResultType.Failure && PayloadEncoding == EncodingNames.V11)
+                if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
                 {
                     // When the response carries a failure encoded with 1.1, we need to perform a small adjustment
                     // between ice1 and ice2 response frames.
@@ -168,7 +168,7 @@ namespace IceRpc
                 IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
                 new Ice2ResponseHeaderBody(
                     ResultType,
-                    PayloadEncoding == Ice2Definitions.Encoding.ToString() ? null : PayloadEncoding).Encode(encoder);
+                    PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString()).Encode(encoder);
                 EncodeFields(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(startPos, 2);
@@ -180,7 +180,7 @@ namespace IceRpc
                 encoder.EncodeReplyStatus(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    (byte encodingMajor, byte encodingMinor) = Encoding.FromString(PayloadEncoding).ToMajorMinor();
+                    (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
 
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6,
                                                                 encodingMajor,
@@ -193,7 +193,7 @@ namespace IceRpc
         private OutgoingResponse(
             Protocol protocol,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
-            string payloadEncoding,
+            Encoding payloadEncoding,
             FeatureCollection features,
             RpcStreamWriter? streamWriter)
             : base(protocol, features, streamWriter)

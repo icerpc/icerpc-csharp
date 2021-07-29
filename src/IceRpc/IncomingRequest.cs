@@ -42,7 +42,7 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override string PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; private protected set; }
 
         /// <summary>The priority of this request.</summary>
         public Priority Priority { get; set; }
@@ -93,7 +93,8 @@ namespace IceRpc
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                 PayloadSize = requestHeader.EncapsulationSize - 6;
-                PayloadEncoding = Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor).ToString();
+                PayloadEncoding =
+                    Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor);
 
                 Priority = default;
                 Deadline = DateTime.MaxValue;
@@ -122,7 +123,8 @@ namespace IceRpc
                 Deadline = requestHeaderBody.Deadline == -1 ?
                     DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline);
 
-                PayloadEncoding = requestHeaderBody.PayloadEncoding ?? Ice2Definitions.Encoding.ToString();
+                PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
+                    Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding;
 
                 Fields = decoder.DecodeFieldDictionary();
                 PayloadSize = decoder.DecodeSize();
