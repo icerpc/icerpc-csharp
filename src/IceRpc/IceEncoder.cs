@@ -923,8 +923,8 @@ namespace IceRpc
         // Constructs a Ice encoder
         internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
+            encoding.CheckSupportedIceEncoding();
             IceEncoding = encoding;
-            _ = encoding.ToIceEncoding(); // temporary
             _classFormat = classFormat;
             _tail = default;
             Size = 0;

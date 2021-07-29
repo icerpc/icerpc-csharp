@@ -891,8 +891,9 @@ namespace IceRpc
 
             Pos = 0;
             _buffer = buffer;
+
+            encoding.CheckSupportedIceEncoding();
             IceEncoding = encoding;
-            _ = encoding.ToIceEncoding(); // temporary
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
