@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports.Internal;
+using System.Diagnostics;
 using System.Net.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,15 +21,32 @@ namespace IceRpc.Transports
         /// <param name="networkSocket">The network socket.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
-        /// <param name="options">The connection options.</param>
+        /// <param name="connectionOptions">The connection options.</param>
         /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
             Endpoint endpoint,
-            ConnectionOptions options) =>
+            ConnectionOptions connectionOptions)
+        {
+            Debug.Assert(endpoint.Protocol == Protocol.Ice1);
+            return new Ice1Connection(networkSocket, endpoint, connectionOptions);
+        }
+
+        /// <summary>Creates a network socket connection from a network socket.</summary>
+        /// <param name="networkSocket">The network socket.</param>
+        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
+        /// the server is listening on.</param>
+        /// <param name="connectionOptions">The connection options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
+        /// <returns>A new network socket connection.</returns>
+        public static NetworkSocketConnection FromNetworkSocket(
+            NetworkSocket networkSocket,
+            Endpoint endpoint,
+            ConnectionOptions connectionOptions,
+            TcpOptions slicOptions) =>
             endpoint.Protocol == Protocol.Ice1 ?
-                new Ice1Connection(networkSocket, endpoint, options) :
-                new SlicConnection(networkSocket, endpoint, options);
+                new Ice1Connection(networkSocket, endpoint, connectionOptions) :
+                new SlicConnection(networkSocket, endpoint, connectionOptions, slicOptions!);
 
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }

@@ -46,13 +46,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new CompositeClientTransport
-            {
-                [TransportNames.Tcp] = new TcpClientTransport(),
-                [TransportNames.Ssl] = new TcpClientTransport(),
-                [TransportNames.Coloc] = new ColocClientTransport(),
-                [TransportNames.Udp] = new UdpClientTransport()
-            };
+            new ClientTransportBuilder().AddTcp().AddSsl().AddColoc().AddUdp().Build();
 
         /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
         /// </summary>
@@ -343,8 +337,10 @@ namespace IceRpc
                     {
                         throw new InvalidOperationException("client connection has no remote endpoint set");
                     }
-                    UnderlyingConnection =
-                        ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
+                    UnderlyingConnection = ClientTransport.CreateConnection(
+                        _remoteEndpoint,
+                        clientOptions,
+                        _loggerFactory ?? NullLoggerFactory.Instance);
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;

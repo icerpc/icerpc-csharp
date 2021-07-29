@@ -13,8 +13,8 @@ namespace IceRpc.Transports
     {
         MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
-            ClientConnectionOptions options,
-            ILogger logger)
+            ClientConnectionOptions connectionOptions,
+            ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -24,8 +24,9 @@ namespace IceRpc.Transports
 
             if (ColocListener.TryGetValue(remoteEndpoint, out ColocListener? listener))
             {
+                ILogger logger = loggerFactory.CreateLogger("IceRpc");
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(remoteEndpoint, id, writer, reader, options, logger);
+                return new ColocConnection(remoteEndpoint, id, writer, reader, connectionOptions, logger);
             }
             else
             {

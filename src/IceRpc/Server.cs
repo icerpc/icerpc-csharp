@@ -21,13 +21,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new CompositeServerTransport
-            {
-                [TransportNames.Tcp] = new TcpServerTransport(),
-                [TransportNames.Ssl] = new TcpServerTransport(),
-                [TransportNames.Coloc] = new ColocServerTransport(),
-                [TransportNames.Udp] = new UdpServerTransport()
-            };
+            new ServerTransportBuilder().AddTcp().AddSsl().AddColoc().AddUdp().Build();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
@@ -128,7 +122,10 @@ namespace IceRpc
                 }
 
                 MultiStreamConnection? multiStreamConnection;
-                (_listener, multiStreamConnection) = ServerTransport.Listen(_endpoint, ConnectionOptions, _logger);
+                (_listener, multiStreamConnection) = ServerTransport.Listen(
+                    _endpoint,
+                    ConnectionOptions,
+                    _loggerFactory ?? NullLoggerFactory.Instance);
 
                 if (_listener != null)
                 {

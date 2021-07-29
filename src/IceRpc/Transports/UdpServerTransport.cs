@@ -13,10 +13,20 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the udp transport.</summary>
     public class UdpServerTransport : IServerTransport
     {
+        private UdpOptions _options;
+
+        /// <summary>Constructs a <see cref="UdpServerTransport"/> that use the default <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpServerTransport() => _options = new UdpOptions();
+
+        /// <summary>Constructs a <see cref="UdpServerTransport"/> that use the given <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpServerTransport(UdpOptions options) => _options = options;
+
         (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,
-            ServerConnectionOptions options,
-            ILogger logger)
+            ServerConnectionOptions connectionOptions,
+            ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -31,22 +41,21 @@ namespace IceRpc.Transports
 
             IPEndPoint? multicastAddress = null;
             ushort port;
+            ILogger logger = loggerFactory.CreateLogger("IceRpc");
             var socket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
-
                 if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 {
                     // TODO: Don't enable DualMode sockets on macOS, https://github.com/dotnet/corefx/issues/31182
-                    socket.DualMode = !(OperatingSystem.IsMacOS() || udpOptions.IsIPv6Only);
+                    socket.DualMode = !(OperatingSystem.IsMacOS() || _options.IsIPv6Only);
                 }
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(udpOptions.ReceiveBufferSize,
-                                     udpOptions.SendBufferSize,
+                socket.SetBufferSize(_options.ReceiveBufferSize,
+                                     _options.SendBufferSize,
                                      endpoint.Transport,
                                      logger);
 
@@ -95,7 +104,7 @@ namespace IceRpc.Transports
                     NetworkSocketConnection.FromNetworkSocket(
                         udpSocket,
                         endpoint: endpoint with { Port = port },
-                        options));
+                        connectionOptions));
         }
     }
 }
