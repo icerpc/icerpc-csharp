@@ -8,16 +8,14 @@ namespace IceRpc
     /// <summary>Provides public extensions methods for <see cref="Protocol"/>.</summary>
     public static class ProtocolExtensions
     {
-        /// <summary>Returns the Ice encoding that this protocol uses for its headers.</summary>
+        /// <summary>Returns the encoding that this protocol uses for its headers.</summary>
         /// <param name="protocol">The protocol.</param>
         public static Encoding GetEncoding(this Protocol protocol) =>
             protocol switch
             {
                 Protocol.Ice1 => Encoding.V11,
                 Protocol.Ice2 => Encoding.V20,
-                _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
-                    })")
+                _ => Encoding.Unknown
             };
 
         /// <summary>Returns the name of this protocol in lowercase, e.g. "ice1" or "ice2".</summary>

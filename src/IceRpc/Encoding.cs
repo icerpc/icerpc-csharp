@@ -16,6 +16,8 @@ namespace IceRpc
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
         public static readonly Encoding V20 = new(IceEncoding.V20);
 
+        public static readonly Encoding Unknown = new("unknown");
+
         private readonly string _name;
         private readonly IceEncoding? _iceEncoding;
 

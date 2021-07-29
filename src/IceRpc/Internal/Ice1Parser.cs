@@ -158,7 +158,6 @@ namespace IceRpc.Internal
             var identity = Identity.Parse(identityString);
             string facet = "";
             Encoding encoding = Ice1Definitions.Encoding;
-            string encodingName = encoding.ToString();
             Endpoint? endpoint = null;
             var altEndpoints = ImmutableList<Endpoint>.Empty;
 
@@ -289,8 +288,7 @@ namespace IceRpc.Internal
                         {
                             throw new FormatException($"no argument provided for -e option in '{s}'");
                         }
-                        encoding = Encoding.Parse(argument);
-                        encodingName = encoding.ToString();
+                        encoding = Encoding.FromString(argument);
                         break;
 
                     case 'p':
@@ -312,7 +310,7 @@ namespace IceRpc.Internal
             if (beg == -1)
             {
                 // Well-known proxy
-                return new Proxy(identity, facet) { Encoding = encodingName };
+                return new Proxy(identity, facet) { Encoding = encoding };
             }
 
             if (s[beg] == ':')
@@ -396,7 +394,7 @@ namespace IceRpc.Internal
                 {
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
-                    Encoding = encodingName
+                    Encoding = encoding
                 };
             }
             else if (s[beg] == '@')
@@ -451,7 +449,7 @@ namespace IceRpc.Internal
                 return new Proxy(identity, facet)
                 {
                     Endpoint = endpoint,
-                    Encoding = encodingName
+                    Encoding = encoding
                 };
             }
 

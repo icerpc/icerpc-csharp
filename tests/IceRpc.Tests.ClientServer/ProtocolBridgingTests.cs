@@ -144,7 +144,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 var proxy = Proxy.FromPath(dispatch.Path, dispatch.Protocol);
                 proxy.Endpoint = dispatch.Connection.LocalEndpoint;
-                proxy.Encoding = dispatch.Encoding.ToString(); // use the request's encoding instead of the server's encoding.
+                proxy.Encoding = dispatch.Encoding; // use the request's encoding instead of the server's encoding.
                 return new(new ProtocolBridgingTestPrx(proxy));
             }
 

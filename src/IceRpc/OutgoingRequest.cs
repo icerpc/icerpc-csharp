@@ -216,7 +216,7 @@ namespace IceRpc
 
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding is string encoding ? Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
+            PayloadEncoding = proxy.Encoding;
             Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }
