@@ -20,7 +20,7 @@ namespace IceRpc
     {
         /// <summary>The Ice encoding used by this decoder when decoding its byte buffer.</summary>
         /// <value>The encoding.</value>
-        public Encoding Encoding { get; }
+        public Encoding IceEncoding { get; }
 
         /// <summary>Connection used when decoding proxies.</summary>
         internal Connection? Connection { get; }
@@ -43,12 +43,12 @@ namespace IceRpc
                 }
                 else
                 {
-                    return new SlicedData(Encoding, _current.Slices);
+                    return new SlicedData(IceEncoding, _current.Slices);
                 }
             }
         }
 
-        private bool OldEncoding => Encoding == Encoding.V11;
+        private bool OldEncoding => IceEncoding == Encoding.V11;
 
         // The byte buffer we are decoding.
         private readonly ReadOnlyMemory<byte> _buffer;
@@ -891,8 +891,8 @@ namespace IceRpc
 
             Pos = 0;
             _buffer = buffer;
-            Encoding = encoding;
-            Encoding.CheckSupported();
+            IceEncoding = encoding;
+            IceEncoding.CheckSupported();
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>

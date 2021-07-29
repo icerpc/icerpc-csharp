@@ -15,7 +15,7 @@ namespace IceRpc
         /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
         public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder decoder)
         {
-            Debug.Assert(decoder.Encoding == Encoding.V20);
+            Debug.Assert(decoder.IceEncoding == Encoding.V20);
 
             int size = decoder.DecodeSize();
             if (size == 0)

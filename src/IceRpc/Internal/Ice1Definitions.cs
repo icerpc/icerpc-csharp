@@ -112,7 +112,7 @@ namespace IceRpc.Internal
         /// <returns>The exception read from the buffer.</returns>
         internal static RemoteException DecodeIce1SystemException(this IceDecoder decoder, ReplyStatus replyStatus)
         {
-            Debug.Assert(decoder.Encoding == Encoding.V11);
+            Debug.Assert(decoder.IceEncoding == Encoding.V11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -169,7 +169,7 @@ namespace IceRpc.Internal
             IncomingRequest request,
             string message)
         {
-            Debug.Assert(encoder.Encoding == Encoding.V11);
+            Debug.Assert(encoder.IceEncoding == Encoding.V11);
 
             switch (replyStatus)
             {

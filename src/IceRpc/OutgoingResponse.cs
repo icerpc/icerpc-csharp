@@ -161,7 +161,7 @@ namespace IceRpc
         /// <inheritdoc/>
         internal override void EncodeHeader(IceEncoder encoder)
         {
-            Debug.Assert(encoder.Encoding == Protocol.GetEncoding());
+            Debug.Assert(encoder.IceEncoding == Protocol.GetEncoding());
 
             if (Protocol == Protocol.Ice2)
             {

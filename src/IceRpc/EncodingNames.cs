@@ -7,5 +7,6 @@ namespace IceRpc
     {
         public const string V11 = "1.1";
         public const string V20 = "2.0";
+        public const string Unknown = "unknown";
     }
 }
