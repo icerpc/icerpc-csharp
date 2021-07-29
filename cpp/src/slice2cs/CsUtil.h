@@ -31,7 +31,7 @@ std::string getUnqualified(const ContainedPtr&,
 
 bool normalizeCase(const ContainedPtr&);
 std::string operationName(const OperationPtr&);
-std::string paramName(const MemberPtr& param, const std::string& prefix = "");
+std::string paramName(const MemberPtr& param, const std::string& prefix = "", bool escapeKeywords = true);
 std::string paramTypeStr(const MemberPtr& param, const std::string& ns, bool readOnly = false);
 
 std::string fieldName(const MemberPtr&);
