@@ -11,15 +11,15 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
     public class TcpServerTransport : IServerTransport
     {
-        private readonly TcpTransportOptions _options;
+        private readonly TcpOptions _options;
 
-        /// <summary>Construct a <see cref="TcpServerTransport"/> that use the default
-        /// <see cref="TcpTransportOptions"/>.</summary>
-        public TcpServerTransport() => _options = new TcpTransportOptions();
+        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the default <see cref="TcpOptions"/>.
+        /// </summary>
+        public TcpServerTransport() => _options = new TcpOptions();
 
-        /// <summary>Construct a <see cref="TcpServerTransport"/> that use the given
-        /// <see cref="TcpTransportOptions"/>.</summary>
-        public TcpServerTransport(TcpTransportOptions options) => _options = options;
+        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the given <see cref="TcpOptions"/>.
+        /// </summary>
+        public TcpServerTransport(TcpOptions options) => _options = options;
 
         (IListener?, MultiStreamConnection?) IServerTransport.Listen(
             Endpoint endpoint,

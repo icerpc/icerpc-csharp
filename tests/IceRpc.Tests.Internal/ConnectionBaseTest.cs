@@ -201,7 +201,7 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IListener CreateListener(TcpTransportOptions? options = null, Endpoint? serverEndpoint = null)
+        protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null)
         {
             IServerTransport transport =
                 options == null ? Server.DefaultServerTransport : new TcpServerTransport(options);

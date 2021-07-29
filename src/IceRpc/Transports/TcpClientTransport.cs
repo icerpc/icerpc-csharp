@@ -10,15 +10,15 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
     public class TcpClientTransport : IClientTransport
     {
-        private readonly TcpTransportOptions _options;
+        private readonly TcpOptions _options;
 
-        /// <summary>Construct a <see cref="TcpClientTransport"/> that use the default
-        /// <see cref="TcpTransportOptions"/>.</summary>
-        public TcpClientTransport() => _options = new TcpTransportOptions();
+        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the default <see cref="TcpOptions"/>.
+        /// </summary>
+        public TcpClientTransport() => _options = new TcpOptions();
 
-        /// <summary>Construct a <see cref="TcpClientTransport"/> that use the given
-        /// <see cref="TcpTransportOptions"/>.</summary>
-        public TcpClientTransport(TcpTransportOptions options) => _options = options;
+        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the given <see cref="TcpOptions"/>.
+        /// </summary>
+        public TcpClientTransport(TcpOptions options) => _options = options;
 
         MultiStreamConnection IClientTransport.CreateConnection(
              Endpoint remoteEndpoint,

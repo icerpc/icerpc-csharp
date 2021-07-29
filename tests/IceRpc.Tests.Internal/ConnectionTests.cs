@@ -282,7 +282,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            IServerTransport transport = new TcpServerTransport(new TcpTransportOptions() { ListenerBackLog = 1 });
+            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 });
             using IListener listener = transport.Listen(
                 factory.Endpoint,
                 new ServerConnectionOptions(),

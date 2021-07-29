@@ -30,11 +30,12 @@ namespace IceRpc.Tests.Internal
         public void TcpOptions_Client_BufferSize(int size)
         {
             using IListener listener = CreateListener();
-            using NetworkSocket clientConnection = CreateClientConnection(new TcpTransportOptions
-            {
-                SendBufferSize = size,
-                ReceiveBufferSize = size
-            });
+            using NetworkSocket clientConnection = CreateClientConnection(
+                new TcpOptions
+                {
+                    SendBufferSize = size,
+                    ReceiveBufferSize = size
+                });
 
             // The OS might allocate more space than the requested size.
             Assert.That(clientConnection.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
@@ -61,7 +62,7 @@ namespace IceRpc.Tests.Internal
         {
             using IListener listener = CreateListener();
             using NetworkSocket clientConnection = CreateClientConnection(
-                new TcpTransportOptions { IsIPv6Only = true });
+                new TcpOptions { IsIPv6Only = true });
             Assert.That(clientConnection.Socket!.DualMode, Is.False);
         }
 
@@ -76,7 +77,7 @@ namespace IceRpc.Tests.Internal
                     using IListener listener = CreateListener();
                     var localEndPoint = new IPEndPoint(IsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
                     using NetworkSocket clientConnection = CreateClientConnection(
-                        new TcpTransportOptions { LocalEndPoint = localEndPoint });
+                        new TcpOptions { LocalEndPoint = localEndPoint });
                     Assert.AreEqual(localEndPoint, clientConnection.Socket!.LocalEndPoint);
                     break;
                 }
@@ -93,7 +94,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener listener = CreateListener(new TcpTransportOptions
+            IListener listener = CreateListener(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -146,7 +147,7 @@ namespace IceRpc.Tests.Internal
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
 
                 using IListener listener = CreateListener(
-                    new TcpTransportOptions() { IsIPv6Only = ipv6Only },
+                    new TcpOptions() { IsIPv6Only = ipv6Only },
                     serverEndpoint);
 
                 ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
@@ -181,7 +182,7 @@ namespace IceRpc.Tests.Internal
             // (TLS handshake or WebSocket initialization).
             if (TransportName == "tcp" && !IsSecure)
             {
-                IListener listener = CreateListener(new TcpTransportOptions
+                IListener listener = CreateListener(new TcpOptions
                 {
                     ListenerBackLog = 18
                 });
@@ -213,7 +214,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private NetworkSocket CreateClientConnection(TcpTransportOptions? options = null, Endpoint? endpoint = null)
+        private NetworkSocket CreateClientConnection(TcpOptions? options = null, Endpoint? endpoint = null)
         {
             endpoint ??= ClientEndpoint;
 

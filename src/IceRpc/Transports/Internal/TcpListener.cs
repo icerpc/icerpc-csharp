@@ -15,8 +15,8 @@ namespace IceRpc.Transports.Internal
 
         private readonly ILogger _logger;
         private readonly ServerConnectionOptions _connectionOptions;
-        private readonly TcpTransportOptions _tcpTransportOptions;
         private readonly Socket _socket;
+        private readonly TcpOptions _tcpOptions;
         private readonly bool? _tls;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
@@ -35,7 +35,7 @@ namespace IceRpc.Transports.Internal
                 tcpSocket,
                 Endpoint,
                 _connectionOptions,
-                _tcpTransportOptions);
+                _tcpOptions);
         }
 
         public void Dispose() => _socket.Dispose();
@@ -47,12 +47,12 @@ namespace IceRpc.Transports.Internal
             Endpoint endpoint,
             ILogger logger,
             ServerConnectionOptions connectionOptions,
-            TcpTransportOptions tcpTransportOptions)
+            TcpOptions tcpOptions)
         {
             Endpoint = endpoint;
             _logger = logger;
             _connectionOptions = connectionOptions;
-            _tcpTransportOptions = tcpTransportOptions;
+            _tcpOptions = tcpOptions;
             _socket = socket;
 
             // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.

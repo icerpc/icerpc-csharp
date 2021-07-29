@@ -13,15 +13,15 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport
     {
-        private UdpTransportOptions _options;
+        private UdpOptions _options;
 
-        /// <summary>Construct a <see cref="UdpClientTransport"/> that use the default
-        /// <see cref="UdpTransportOptions"/>.</summary>
-        public UdpClientTransport() => _options = new UdpTransportOptions();
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the default <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpClientTransport() => _options = new UdpOptions();
 
-        /// <summary>Construct a <see cref="UdpClientTransport"/> that use the given
-        /// <see cref="UdpTransportOptions"/>.</summary>
-        public UdpClientTransport(UdpTransportOptions options) => _options = options;
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the given <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpClientTransport(UdpOptions options) => _options = options;
 
         MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,

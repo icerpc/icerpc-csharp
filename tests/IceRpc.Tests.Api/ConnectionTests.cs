@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_TcpTransportOptions_ArgumentException()
         {
-            var options = new Transports.TcpTransportOptions();
+            var options = new Transports.TcpOptions();
             Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_UdpTransportOptions_ArgumentException()
         {
-            var options = new Transports.UdpTransportOptions();
+            var options = new Transports.UdpOptions();
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
         }

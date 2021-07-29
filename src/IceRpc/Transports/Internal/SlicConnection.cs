@@ -405,14 +405,14 @@ namespace IceRpc.Transports.Internal
             NetworkSocket networkSocket,
             Endpoint endpoint,
             ConnectionOptions connectionOptions,
-            TcpTransportOptions tcpTransportOptions)
+            SlicOptions slicOptions)
             : base(networkSocket, endpoint, connectionOptions)
         {
             _idleTimeout = connectionOptions.IdleTimeout;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = tcpTransportOptions.SlicPacketMaxSize;
-            StreamBufferMaxSize = tcpTransportOptions.SlicStreamBufferMaxSize;
+            PacketMaxSize = slicOptions.SlicPacketMaxSize;
+            StreamBufferMaxSize = slicOptions.SlicStreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.

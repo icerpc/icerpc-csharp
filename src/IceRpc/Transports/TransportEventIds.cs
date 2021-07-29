@@ -22,16 +22,16 @@ namespace IceRpc.Transports
         /// <seealso cref="Connection.ConnectAsync(System.Threading.CancellationToken)"/>
         ConnectionEstablished,
         /// <summary>The transport received buffer size was adjusted.</summary>
-        /// <seealso cref="TcpTransportOptions.ReceiveBufferSize"/>
-        /// <seealso cref="UdpTransportOptions.ReceiveBufferSize"/>
+        /// <seealso cref="TcpOptions.ReceiveBufferSize"/>
+        /// <seealso cref="UdpOptions.ReceiveBufferSize"/>
         ReceiveBufferSizeAdjusted,
         /// <summary>The transport received data.</summary>
         ReceivedData,
         /// <summary>The transport received an invalid datagram message.</summary>
         ReceivedInvalidDatagram,
         /// <summary>The transport send buffer size was adjusted.</summary>
-        /// <seealso cref="TcpTransportOptions.SendBufferSize"/>
-        /// <seealso cref="UdpTransportOptions.SendBufferSize"/>
+        /// <seealso cref="TcpOptions.SendBufferSize"/>
+        /// <seealso cref="UdpOptions.SendBufferSize"/>
         SendBufferSizeAdjusted,
         /// <summary>The transport sent data.</summary>
         SentData,
