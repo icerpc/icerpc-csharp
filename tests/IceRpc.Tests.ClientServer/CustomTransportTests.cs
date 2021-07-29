@@ -28,8 +28,6 @@ namespace IceRpc.Tests.ClientServer
             ILoggerFactory loggerFactory) => _transport.Listen(endpoint, connectionOptions, loggerFactory);
     }
 
-    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [Parallelizable(ParallelScope.All)]
     public class CustomTransportTests
     {
         [Test]
