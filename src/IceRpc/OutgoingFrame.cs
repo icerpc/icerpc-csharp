@@ -52,7 +52,7 @@ namespace IceRpc
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public abstract Encoding PayloadEncoding { get; private protected set; }
+        public abstract Encoding PayloadEncoding { get; }
 
         /// <summary>Returns the number of bytes in the payload.</summary>
         public int PayloadSize

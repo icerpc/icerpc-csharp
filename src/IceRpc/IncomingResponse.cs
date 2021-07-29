@@ -16,7 +16,7 @@ namespace IceRpc
             ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="ReplyStatus.OK"/> when <see cref="ResultType"/> is
@@ -44,7 +44,7 @@ namespace IceRpc
                 {
                     var responseHeader = new Ice1ResponseHeader(decoder);
                     PayloadEncoding = Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor,
-                                                             responseHeader.PayloadEncodingMinor);
+                                                              responseHeader.PayloadEncodingMinor);
                     Payload = data[decoder.Pos..];
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;

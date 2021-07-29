@@ -42,7 +42,7 @@ namespace IceRpc
         public string Path { get; }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The priority of this request.</summary>
         public Priority Priority { get; set; }

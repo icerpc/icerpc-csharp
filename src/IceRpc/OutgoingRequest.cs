@@ -63,7 +63,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
