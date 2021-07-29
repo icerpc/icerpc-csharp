@@ -6,16 +6,16 @@ using System.Globalization;
 namespace IceRpc
 {
     /// <summary>...</summary>
-    public partial class Encoding : IEquatable<Encoding>
+    public sealed class Encoding : IEquatable<Encoding>
     {
-        /// <summary>Version 1.1 of the Ice encoding, supported by Ice but not IceRPC.</summary>
-        public static readonly Encoding V10 = new(EncodingNames.V10);
+        /// <summary>Version 1.1 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
+        public static readonly Encoding Ice10 = new(EncodingNames.V10);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Encoding V11 = new(EncodingNames.V11);
+        public static readonly Encoding Ice11 = new(EncodingNames.V11);
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Encoding V20 = new(EncodingNames.V20);
+        public static readonly Encoding Ice20 = new(EncodingNames.V20);
 
         /// <summary>An unknown encoding, used as the default payload encoding for unknown protocols.</summary>
         internal static readonly Encoding Unknown = new(EncodingNames.Unknown);
@@ -58,18 +58,18 @@ namespace IceRpc
         public static Encoding FromMajorMinor(byte major, byte minor) => // TODO make internal
             (major, minor) switch
             {
-                (1, 0) => V10,
-                (1, 1) => V11,
-                (2, 0) => V20,
+                (1, 0) => Ice10,
+                (1, 1) => Ice11,
+                (2, 0) => Ice20,
                 _ => new Encoding($"{major}.{minor}")
             };
 
         public static Encoding FromString(string name) =>
             name switch
             {
-                EncodingNames.V10 => V10,
-                EncodingNames.V11 => V11,
-                EncodingNames.V20 => V20,
+                EncodingNames.V10 => Ice10,
+                EncodingNames.V11 => Ice11,
+                EncodingNames.V20 => Ice20,
                 EncodingNames.Unknown => Unknown,
                 _ => new Encoding(name)
             };
@@ -120,7 +120,7 @@ namespace IceRpc
     {
         internal static void CheckSupportedIceEncoding(this Encoding encoding)
         {
-            if (encoding != Encoding.V11 && encoding != Encoding.V20)
+            if (encoding != Encoding.Ice11 && encoding != Encoding.Ice20)
             {
                 throw new NotSupportedException($"encoding '{encoding}' is not a supported by this IceRPC runtime");
             }

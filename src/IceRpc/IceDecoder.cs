@@ -48,7 +48,7 @@ namespace IceRpc
             }
         }
 
-        private bool OldEncoding => Encoding == Encoding.V11;
+        private bool OldEncoding => Encoding == Encoding.Ice11;
 
         // The byte buffer we are decoding.
         private readonly ReadOnlyMemory<byte> _buffer;
@@ -940,7 +940,7 @@ namespace IceRpc
 
             var encoding = Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
 
-            if (encoding == Encoding.V11 || encoding == Encoding.V10)
+            if (encoding == Encoding.Ice11 || encoding == Encoding.Ice10)
             {
                 int oldPos = Pos;
 

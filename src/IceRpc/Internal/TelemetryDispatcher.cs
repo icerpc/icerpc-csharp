@@ -83,7 +83,7 @@ namespace IceRpc.Internal
                 activity.SetParentId(traceId, spanId, traceFlags);
 
                 // Read tracestate encoded as a string
-                var decoder = new IceDecoder(buffer[i..], Encoding.V20);
+                var decoder = new IceDecoder(buffer[i..], Encoding.Ice20);
                 activity.TraceStateString = decoder.DecodeString();
 
                 // The min element size is 2 bytes for a struct with two empty strings.

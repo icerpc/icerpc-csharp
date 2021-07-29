@@ -434,7 +434,7 @@ namespace IceRpc
         {
             Debug.Assert(decoder.Connection != null);
 
-            if (decoder.Encoding == IceRpc.Encoding.V11)
+            if (decoder.Encoding == IceRpc.Encoding.Ice11)
             {
                 var identity = new Identity(decoder);
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
@@ -656,7 +656,7 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
             }
 
-            if (encoder.Encoding == IceRpc.Encoding.V11)
+            if (encoder.Encoding == IceRpc.Encoding.Ice11)
             {
                 if (Protocol == Protocol.Ice1)
                 {

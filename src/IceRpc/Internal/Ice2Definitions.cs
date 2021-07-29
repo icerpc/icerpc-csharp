@@ -8,7 +8,7 @@ namespace IceRpc.Internal
 
     internal static class Ice2Definitions
     {
-        internal static readonly Encoding Encoding = Encoding.V20;
+        internal static readonly Encoding Encoding = Encoding.Ice20;
 
         private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = ReadOnlyMemory<byte>.Empty;
 
@@ -27,7 +27,7 @@ namespace IceRpc.Internal
         internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(Encoding encoding)
         {
             encoding.CheckSupportedIceEncoding();
-            return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
+            return encoding == Encoding.Ice11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
     }
 }

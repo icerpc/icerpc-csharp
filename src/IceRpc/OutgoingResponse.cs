@@ -90,7 +90,7 @@ namespace IceRpc
             }
             else
             {
-                if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
+                if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.Ice11)
                 {
                     // When the response carries a failure encoded with 1.1, we need to perform a small adjustment
                     // between ice1 and ice2 response frames.

@@ -58,7 +58,7 @@ namespace IceRpc
                 else
                 {
                     // "special" exception
-                    PayloadEncoding = Encoding.V11;
+                    PayloadEncoding = Encoding.Ice11;
                     Payload = data[decoder.Pos..];
                 }
             }
@@ -88,7 +88,7 @@ namespace IceRpc
                         $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length} bytes");
                 }
 
-                if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
+                if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.Ice11)
                 {
                     ReplyStatus = decoder.DecodeReplyStatus(); // first byte of the payload
                 }
@@ -133,7 +133,7 @@ namespace IceRpc
         internal RetryPolicy GetRetryPolicy(Proxy proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
-            if (PayloadEncoding == Encoding.V11)
+            if (PayloadEncoding == Encoding.Ice11)
             {
                 // For compatibility with ZeroC Ice
                 if (ReplyStatus == ReplyStatus.ObjectNotExistException && proxy.IsIndirect)

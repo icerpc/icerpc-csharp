@@ -80,10 +80,10 @@ namespace IceRpc.Tests.Api
         {
             var proxy = Proxy.Parse(s);
 
-            proxy.Encoding = Encoding.V11;
-            Assert.AreEqual(Encoding.V11, proxy.Encoding);
-            proxy.Encoding = Encoding.V20;
-            Assert.AreEqual(Encoding.V20, proxy.Encoding);
+            proxy.Encoding = Encoding.Ice11;
+            Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
+            proxy.Encoding = Encoding.Ice20;
+            Assert.AreEqual(Encoding.Ice20, proxy.Encoding);
 
             if (proxy.Protocol == Protocol.Ice1)
             {
@@ -410,7 +410,7 @@ namespace IceRpc.Tests.Api
             string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+tcp://localhost";
             proxy = Proxy.Parse(complicated);
 
-            Assert.AreEqual(Encoding.V11, proxy.Encoding);
+            Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
             Endpoint altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
             Assert.AreEqual("tcp", altEndpoint.Transport);

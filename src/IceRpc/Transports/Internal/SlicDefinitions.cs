@@ -30,6 +30,6 @@ namespace IceRpc.Transports.Internal
             0x03, 0x05, 0x07, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, // Stream ID (varulong)
         };
 
-        internal static readonly Encoding Encoding = Encoding.V20;
+        internal static readonly Encoding Encoding = Encoding.Ice20;
     }
 }

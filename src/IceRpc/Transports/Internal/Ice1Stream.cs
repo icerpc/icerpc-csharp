@@ -93,7 +93,7 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var encoder = new IceEncoder(Encoding.V11);
+            var encoder = new IceEncoder(Encoding.Ice11);
             encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
             encoder.EncodeIce1FrameType(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             encoder.EncodeByte(0); // compression status

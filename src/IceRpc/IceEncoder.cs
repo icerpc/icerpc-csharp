@@ -58,7 +58,7 @@ namespace IceRpc
 
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        private bool OldEncoding => Encoding == Encoding.V11;
+        private bool OldEncoding => Encoding == Encoding.Ice11;
 
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;

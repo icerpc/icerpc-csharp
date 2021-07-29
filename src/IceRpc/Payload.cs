@@ -14,7 +14,7 @@ namespace IceRpc
         /// <param name="dispatch">The dispatch properties.</param>
         public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch)
         {
-            if (dispatch.Encoding == Encoding.V20)
+            if (dispatch.Encoding == Encoding.Ice20)
             {
                 if (payload.Length == 0)
                 {
@@ -34,7 +34,7 @@ namespace IceRpc
         /// <param name="payloadEncoding">The response's payload encoding.</param>
         public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding)
         {
-            if (payloadEncoding == Encoding.V20)
+            if (payloadEncoding == Encoding.Ice20)
             {
                 if (payload.Length == 0)
                 {
@@ -65,7 +65,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
-            if (encoder.Encoding == Encoding.V20)
+            if (encoder.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -95,7 +95,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
-            if (payloadEncoding == Encoding.V20)
+            if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -120,7 +120,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
-            if (encoder.Encoding == Encoding.V20)
+            if (encoder.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -145,7 +145,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var encoder = new IceEncoder(payloadEncoding, classFormat: classFormat);
-            if (payloadEncoding == Encoding.V20)
+            if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -182,7 +182,7 @@ namespace IceRpc
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
 
-            if (dispatch.Encoding == Encoding.V20)
+            if (dispatch.Encoding == Encoding.Ice20)
             {
                 if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
                 {
@@ -221,7 +221,7 @@ namespace IceRpc
             {
                 throw new ArgumentException("invalid empty payload", nameof(payload));
             }
-            if (payloadEncoding == Encoding.V20)
+            if (payloadEncoding == Encoding.Ice20)
             {
                 if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
                 {
@@ -252,7 +252,7 @@ namespace IceRpc
             exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
-            if (request.PayloadEncoding == Encoding.V11)
+            if (request.PayloadEncoding == Encoding.Ice11)
             {
                 replyStatus = exception switch
                 {
@@ -268,7 +268,7 @@ namespace IceRpc
             {
                 encoder = new IceEncoder(request.PayloadEncoding, classFormat: FormatType.Sliced);
 
-                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
+                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.Ice11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
                     encoder.EncodeReplyStatus(replyStatus);
@@ -324,14 +324,14 @@ namespace IceRpc
                 invoker,
                 connection?.Options?.ClassFactory);
 
-            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.Ice11)
             {
                 // Skip reply status byte
                 decoder.Skip(1);
             }
 
             RemoteException exception;
-            if (decoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (decoder.Encoding == Encoding.Ice11 && replyStatus != ReplyStatus.UserException)
             {
                 exception = decoder.DecodeIce1SystemException(replyStatus);
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);

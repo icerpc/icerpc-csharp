@@ -36,7 +36,7 @@ namespace IceRpc
                 async (request, cancel) =>
                 {
                     if (compressorOptions.DecompressRequestPayload &&
-                        request.PayloadEncoding == Encoding.V20 &&
+                        request.PayloadEncoding == Encoding.Ice20 &&
                         request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
                     {
                         ReadOnlyMemory<byte> payload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
@@ -60,7 +60,7 @@ namespace IceRpc
 
                     // TODO: rename CompressResponsePayload to CompressResponse or add CompressStreamParam?
                     if (compressorOptions.CompressResponsePayload &&
-                        response.PayloadEncoding == Encoding.V20 &&
+                        response.PayloadEncoding == Encoding.Ice20 &&
                         response.ResultType == ResultType.Success &&
                         response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
                     {

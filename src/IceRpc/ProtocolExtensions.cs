@@ -13,8 +13,8 @@ namespace IceRpc
         public static Encoding GetEncoding(this Protocol protocol) =>
             protocol switch
             {
-                Protocol.Ice1 => Encoding.V11,
-                Protocol.Ice2 => Encoding.V20,
+                Protocol.Ice1 => Encoding.Ice11,
+                Protocol.Ice2 => Encoding.Ice20,
                 _ => Encoding.Unknown
             };
 
