@@ -6,7 +6,7 @@ using System.Globalization;
 namespace IceRpc
 {
     /// <summary>...</summary>
-    public partial class Encoding : global::System.IEquatable<Encoding>
+    public partial class Encoding : IEquatable<Encoding>
     {
         public static readonly Encoding V10 = new(EncodingNames.V10);
 
@@ -78,11 +78,46 @@ namespace IceRpc
         /// <param name="s">The string to parse.</param>
         /// <returns>A new encoding.</returns>
         public static Encoding Parse(string s) => FromString(s);
+
+        internal static Encoding FromMajorMinor(byte major, byte minor) =>
+            (major, minor) switch
+            {
+                (1, 0) => V10,
+                (1, 1) => V11,
+                (2, 0) => V20,
+                _ => new Encoding($"{major}.{minor}")
+            };
+
         public static Encoding FromString(string name) =>
             IceEncoding.TryParse(name, out IceEncoding? iceEncoding) ? new Encoding(iceEncoding) : new Encoding(name);
 
         /// <inheritdoc/>
         public override string ToString() => _name;
+
+        internal (byte Major, byte Minor) ToMajorMinor()
+        {
+            if (_iceEncoding is IceEncoding iceEncoding)
+            {
+                return iceEncoding == IceEncoding.V11 ? ((byte)1, (byte)1) : ((byte)2, (byte)0);
+            }
+            else if (_name.Length == 3 && _name[1] == '.')
+            {
+                try
+                {
+                    byte major = byte.Parse(_name.AsSpan(0, 1));
+                    byte minor = byte.Parse(_name.AsSpan(2, 1));
+                    return (major, minor);
+                }
+                catch (FormatException ex)
+                {
+                    throw new NotSupportedException($"cannot convert encoding '{this}' into to major/minor bytes", ex);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"cannot convert encoding '{this}' into to major/minor bytes");
+            }
+        }
 
         private Encoding(string name) =>
             _name = name;
