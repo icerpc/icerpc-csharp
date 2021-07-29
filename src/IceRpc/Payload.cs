@@ -65,7 +65,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
-            if (encoder.IceEncoding == Encoding.V20)
+            if (encoder.Encoding == Encoding.V20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -120,7 +120,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var encoder = new IceEncoder(proxy.Encoding, classFormat: classFormat);
-            if (encoder.IceEncoding == Encoding.V20)
+            if (encoder.Encoding == Encoding.V20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -324,14 +324,14 @@ namespace IceRpc
                 invoker,
                 connection?.Options?.ClassFactory);
 
-            if (protocol == Protocol.Ice2 && decoder.IceEncoding == Encoding.V11)
+            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.V11)
             {
                 // Skip reply status byte
                 decoder.Skip(1);
             }
 
             RemoteException exception;
-            if (decoder.IceEncoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
+            if (decoder.Encoding == Encoding.V11 && replyStatus != ReplyStatus.UserException)
             {
                 exception = decoder.DecodeIce1SystemException(replyStatus);
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);

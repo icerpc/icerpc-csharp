@@ -119,7 +119,7 @@ namespace IceRpc
         private protected void EncodeFields(IceEncoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
-            Debug.Assert(encoder.IceEncoding == Encoding.V20);
+            Debug.Assert(encoder.Encoding == Encoding.V20);
 
             // can be larger than necessary, which is fine
             int sizeLength =

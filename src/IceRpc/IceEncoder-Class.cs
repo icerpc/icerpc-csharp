@@ -240,10 +240,10 @@ namespace IceRpc
             {
                 throw new NotSupportedException($"cannot encode sliced data into payload using {_classFormat} format");
             }
-            if (IceEncoding != slicedData.Encoding)
+            if (Encoding != slicedData.Encoding)
             {
                 throw new NotSupportedException(@$"cannot encode sliced data encoded with encoding {slicedData.Encoding
-                    } into payload encoded with encoding {IceEncoding}");
+                    } into payload encoded with encoding {Encoding}");
             }
 
             bool firstSliceWithNewEncoding = !OldEncoding;

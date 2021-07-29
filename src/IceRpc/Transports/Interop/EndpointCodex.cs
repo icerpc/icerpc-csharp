@@ -120,7 +120,7 @@ namespace IceRpc.Transports.Interop
     {
         Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
-            if (decoder.IceEncoding != Encoding.V11)
+            if (decoder.Encoding != Encoding.V11)
             {
                 throw new InvalidOperationException();
             }
@@ -155,7 +155,7 @@ namespace IceRpc.Transports.Interop
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.IceEncoding != Encoding.V11)
+            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
             {
                 throw new InvalidOperationException();
             }
@@ -181,7 +181,7 @@ namespace IceRpc.Transports.Interop
     {
         Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
         {
-            if (decoder.IceEncoding != Encoding.V11)
+            if (decoder.Encoding != Encoding.V11)
             {
                 throw new InvalidOperationException();
             }
@@ -206,7 +206,7 @@ namespace IceRpc.Transports.Interop
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.IceEncoding != Encoding.V11)
+            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.V11)
             {
                 throw new InvalidOperationException();
             }
