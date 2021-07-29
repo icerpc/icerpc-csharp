@@ -88,9 +88,8 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
-                uri.Query,
-                uriString);
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) =
+                ParseQuery(uri.Query, uriString);
 
             if (uri.AbsolutePath.Length > 1)
             {
