@@ -275,7 +275,11 @@ namespace IceRpc
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection() => _logger = NullLogger.Instance;
+        public Connection()
+        {
+            _logger = NullLogger.Instance;
+            _options = ClientConnectionOptions.Default;
+        }
 
         /// <summary>Aborts the connection. This methods switches the connection state to
         /// <see cref="ConnectionState.Closed"/>. If <see cref="Closed"/> event listeners are registered, it waits for
@@ -314,7 +318,6 @@ namespace IceRpc
                 ValueTask connectTask;
                 if (IsServer)
                 {
-                    _options ??= ServerConnectionOptions.Default;
                     var serverOptions = (ServerConnectionOptions)_options;
                     Debug.Assert(UnderlyingConnection != null);
 
@@ -333,7 +336,6 @@ namespace IceRpc
                 }
                 else
                 {
-                    _options ??= ClientConnectionOptions.Default;
                     var clientOptions = (ClientConnectionOptions)_options;
                     Debug.Assert(UnderlyingConnection == null);
 
