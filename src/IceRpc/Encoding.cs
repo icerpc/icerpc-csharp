@@ -121,13 +121,13 @@ namespace IceRpc
                         catch (FormatException ex)
                         {
                             throw new NotSupportedException(
-                                $"cannot convert encoding '{this}' into to major/minor bytes", ex);
+                                $"cannot convert encoding '{this}' to major/minor bytes", ex);
                         }
                     }
                     else
                     {
                         throw new NotSupportedException(
-                            $"cannot convert encoding '{this}' into to major/minor bytes");
+                            $"cannot convert encoding '{this}' to major/minor bytes");
                     }
             }
         }
