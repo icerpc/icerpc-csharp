@@ -435,8 +435,8 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = true
                 });
-            Assert.That(factory.ClientConnection.Options!.KeepAlive, Is.True);
-            Assert.That(factory.ServerConnection.Options!.KeepAlive, Is.True);
+            Assert.That(factory.ClientConnection.KeepAlive, Is.True);
+            Assert.That(factory.ServerConnection.KeepAlive, Is.True);
         }
 
         [TestCase(Protocol.Ice1, false)]

@@ -54,6 +54,10 @@ namespace IceRpc
                 [TransportNames.Udp] = new UdpClientTransport()
             };
 
+        /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
+        /// </summary>
+        public IClassFactory? ClassFactory => _options.ClassFactory;
+
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
         /// </summary>
         public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
@@ -108,6 +112,9 @@ namespace IceRpc
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
         public TimeSpan IdleTimeout => UnderlyingConnection?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
 
+        /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame.</summary>
+        public int IncomingFrameMaxSize => _options.IncomingFrameMaxSize;
+
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
@@ -116,6 +123,12 @@ namespace IceRpc
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
         public bool IsServer => _localEndpoint != null;
+
+        /// <summary>Whether or not connections are kept alive. If a connection is kept alive, the
+        /// connection monitoring will send keep alive frames to ensure the peer doesn't close the connection
+        /// in the period defined by its idle timeout. How often keep alive frames are sent depends on the
+        /// peer's IdleTimeout configuration. The default value is false.</summary>
+        public bool KeepAlive => _options.KeepAlive;
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
@@ -134,33 +147,17 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The connection options.</summary>
-        /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
-        /// <see cref="ConnectionState.NotConnected"/>.</exception>
-        public ConnectionOptions? Options
-        {
-            get => _options?.Clone();
-            set
-            {
-                if (_state > ConnectionState.NotConnected)
-                {
-                    throw new InvalidOperationException(
-                        $"cannot change the connection's options after calling {nameof(ConnectAsync)}");
-                }
 
-                if (value == null)
-                {
-                    throw new ArgumentException($"{nameof(value)} can't be null");
-                }
-                else if (value is ClientConnectionOptions && IsServer)
-                {
-                    throw new InvalidOperationException("invalid client connection options for server connection");
-                }
-                else if (value is ServerConnectionOptions && !IsServer)
-                {
-                    throw new InvalidOperationException("invalid server connection options for client connection");
-                }
-                _options = value.Clone();
+        /// <summary>The client connection options. This property can be used to initialize the client connection options.</summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Design",
+            "CA1044:Properties should not be write only",
+            Justification = "Used for initializing the client options")]
+        public ClientConnectionOptions Options
+        {
+            init
+            {
+                _options = value;
             }
         }
 
@@ -270,7 +267,7 @@ namespace IceRpc
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
-        private ConnectionOptions? _options;
+        private ConnectionOptions _options;
         private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
@@ -294,8 +291,7 @@ namespace IceRpc
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>A task that indicates the completion of the connect operation.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if the connection is already closed.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set or if
-        /// <see cref="Options"/> is set to a <see cref="ServerConnectionOptions"/> instance.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
             lock (_mutex)
@@ -617,14 +613,13 @@ namespace IceRpc
         /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(
             MultiStreamConnection connection,
-            // TODO dispatcher should not be nullable, but the Server class only provides a null one.
             IDispatcher? dispatcher,
             ServerConnectionOptions options,
             ILoggerFactory? loggerFactory)
         {
             UnderlyingConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
-            Options = options;
+            _options = options;
             _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
             _dispatcher = dispatcher;
         }
