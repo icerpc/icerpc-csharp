@@ -38,10 +38,18 @@ Slice::operationName(const OperationPtr& op)
 }
 
 std::string
-Slice::paramName(const MemberPtr& param, const string& prefix)
+Slice::paramName(const MemberPtr& param, const string& prefix, bool escapeKeywords)
 {
     string name = param->name();
-    return normalizeCase(param) ? fixId(prefix + camelCase(name)) : fixId(prefix + name);
+
+    if (normalizeCase(param))
+    {
+        name = camelCase(name);
+    }
+
+    name = prefix + name;
+
+    return escapeKeywords ? fixId(name) : name;
 }
 
 std::string
