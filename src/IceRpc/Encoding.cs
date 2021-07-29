@@ -21,6 +21,8 @@ namespace IceRpc
 
         internal bool IsSupported => this == V11 || this == V20;
 
+        public IceEncoding ToIceEncoding() => IceEncoding.Parse(ToString());
+
         /// <summary>Parses a string into an Encoding.</summary>
         /// <param name="str">The string to parse.</param>
         /// <returns>A new encoding.</returns>

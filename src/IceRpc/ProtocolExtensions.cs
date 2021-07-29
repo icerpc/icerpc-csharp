@@ -67,8 +67,8 @@ namespace IceRpc
         internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding) =>
             protocol switch
             {
-                Protocol.Ice1 => Ice1Definitions.GetEmptyArgsPayload(encoding),
-                Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding),
+                Protocol.Ice1 => Ice1Definitions.GetEmptyArgsPayload(encoding.ToIceEncoding()),
+                Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding.ToIceEncoding()),
                 _ => throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
                     }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
@@ -77,8 +77,8 @@ namespace IceRpc
         internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding) =>
             protocol switch
             {
-                Protocol.Ice1 => Ice1Definitions.GetVoidReturnValuePayload(encoding),
-                Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding),
+                Protocol.Ice1 => Ice1Definitions.GetVoidReturnValuePayload(encoding.ToIceEncoding()),
+                Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding.ToIceEncoding()),
                 _ => throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
                     }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
