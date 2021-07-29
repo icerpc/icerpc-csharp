@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Builds a composite client transports.</summary>
+    /// <summary>Builds a composite client transport.</summary>
     public class ClientTransportBuilder : Dictionary<string, IClientTransport>
     {
         /// <summary>Builds a new client transport.</summary>
@@ -21,8 +21,7 @@ namespace IceRpc.Transports
             internal CompositeClientTransport(IReadOnlyDictionary<string, IClientTransport> transports) =>
                 _transports = transports;
 
-            /// <inheritdoc/>
-            public MultiStreamConnection CreateConnection(
+            MultiStreamConnection IClientTransport.CreateConnection(
                 Endpoint remoteEndpoint,
                 ClientConnectionOptions connectionOptions,
                 ILoggerFactory loggerFactory)
