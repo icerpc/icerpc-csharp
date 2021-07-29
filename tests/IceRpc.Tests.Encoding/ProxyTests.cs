@@ -37,13 +37,13 @@ namespace IceRpc.Tests.Encoding
             await _connection.DisposeAsync();
         }
 
-        [TestCase(2, 0, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
-        [TestCase(1, 1, "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
-        [TestCase(2, 0, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        [TestCase(1, 1, "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
-        public async Task Proxy_EncodingVersioning(byte encodingMajor, byte encodingMinor, string str)
+        [TestCase("2.0", "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
+        [TestCase("1.1", "ice+tcp://localhost:10000/foo?alt-endpoint=ice+tcp://localhost:10001")]
+        [TestCase("2.0", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
+        public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
-            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             var encoder = new IceEncoder(encoding, _buffer);
 
             var proxy = Proxy.Parse(str);
@@ -58,11 +58,11 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(proxy, proxy2);
         }
 
-        [TestCase(2, 0)]
-        [TestCase(1, 1)]
-        public void Proxy_EndpointLess(byte encodingMajor, byte encodingMinor)
+        [TestCase("2.0")]
+        [TestCase("1.1")]
+        public void Proxy_EndpointLess(string encodingStr)
         {
-            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
 
             // Create an endpointless proxy
             var endpointLess = Proxy.FromPath("/foo", _server.Protocol);

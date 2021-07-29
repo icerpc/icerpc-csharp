@@ -8,8 +8,8 @@ using System.Linq;
 namespace IceRpc.Tests.Encoding
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [TestFixture((byte)1, (byte)1)]
-    [TestFixture((byte)2, (byte)0)]
+    [TestFixture("1.1")]
+    [TestFixture("2.0")]
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesSequencesTests
     {
@@ -18,9 +18,9 @@ namespace IceRpc.Tests.Encoding
         private readonly IceEncoder _encoder;
         private readonly IceDecoder _decoder;
 
-        public BuiltInTypesSequencesTests(byte encodingMajor, byte encodingMinor)
+        public BuiltInTypesSequencesTests(string encoding)
         {
-            _encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor); // TODO
+            _encoding = IceRpc.Encoding.FromString(encoding);
             _buffer = new byte[1024 * 1024];
             _encoder = new IceEncoder(_encoding, _buffer);
             _decoder = new IceDecoder(_buffer, _encoding);

@@ -5,20 +5,26 @@ using System.Globalization;
 
 namespace IceRpc
 {
-    /// <summary>...</summary>
+    /// <summary>Encoding identifies the format (a.k.a. encoding) used to encode data into bytes. With IceRPC, it is
+    /// usually the Ice 2.0 encoding named "2.0".</summary>
     public sealed class Encoding : IEquatable<Encoding>
     {
-        /// <summary>Version 1.1 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
-        public static readonly Encoding Ice10 = new(EncodingNames.V10);
+        /// <summary>Version 1.0 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
+        public static readonly Encoding Ice10 = new(Ice10Name);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Encoding Ice11 = new(EncodingNames.V11);
+        public static readonly Encoding Ice11 = new(Ice11Name);
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Encoding Ice20 = new(EncodingNames.V20);
+        public static readonly Encoding Ice20 = new(Ice20Name);
 
-        /// <summary>An unknown encoding, used as the default payload encoding for unknown protocols.</summary>
-        internal static readonly Encoding Unknown = new(EncodingNames.Unknown);
+        /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
+        internal static readonly Encoding Unknown = new(UnknownName);
+
+        private const string Ice10Name = "1.0";
+        private const string Ice11Name = "1.1";
+        private const string Ice20Name = "2.0";
+        private const string UnknownName = "unknown";
 
         private readonly string _name;
 
@@ -49,13 +55,36 @@ namespace IceRpc
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
 
-        /// <inheritdoc/>
+        /// <summary>Checks if this encoding is equal to another encoding.</summary>
+        /// <param name="other">The other encoding.</param>
+        /// <returns><c>true</c>when the two encodings have the same name; otherwise, <c>false</c>.</returns>
         public bool Equals(Encoding? other) => _name == other?._name;
 
-        /// <inheritdoc/>
+        /// <summary>Computes the hash code for this encoding.</summary>
+        /// <returns>The hash code.</returns>
         public override int GetHashCode() => _name.GetHashCode(StringComparison.Ordinal);
 
-        public static Encoding FromMajorMinor(byte major, byte minor) => // TODO make internal
+        /// <summary>Returns an Encoding with the given name. This method always succeeds.</summary>
+        /// <param name="name">The name of the encoding.</param>
+        /// <returns>One of the well-known Encoding instance (Ice11, Ice20 etc.) when the name matches; otherwise, a new
+        /// Encoding instance.</returns>
+        public static Encoding FromString(string name) =>
+            name switch
+            {
+                Ice10Name => Ice10,
+                Ice11Name => Ice11,
+                Ice20Name => Ice20,
+                UnknownName => Unknown,
+                _ => new Encoding(name)
+            };
+
+        /// <summary>Converts this encoding into a string.</summary>
+        /// <returns>The name of the encoding.</returns>
+        public override string ToString() => _name;
+
+        /// <summary>Returns an Encoding with the given major and minor versions. This method always succeeds.
+        /// </summary>
+        internal static Encoding FromMajorMinor(byte major, byte minor) =>
             (major, minor) switch
             {
                 (1, 0) => Ice10,
@@ -64,30 +93,20 @@ namespace IceRpc
                 _ => new Encoding($"{major}.{minor}")
             };
 
-        public static Encoding FromString(string name) =>
-            name switch
-            {
-                EncodingNames.V10 => Ice10,
-                EncodingNames.V11 => Ice11,
-                EncodingNames.V20 => Ice20,
-                EncodingNames.Unknown => Unknown,
-                _ => new Encoding(name)
-            };
-
-        /// <inheritdoc/>
-        public override string ToString() => _name;
-
+        /// <summary>Returns the major and minor byte versions of this encoding.</summary>
+        /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
+        /// </exception>
         internal (byte Major, byte Minor) ToMajorMinor()
         {
             switch (_name)
             {
-                case EncodingNames.V10:
+                case Ice10Name:
                     return ((byte)1, (byte)0);
 
-                case EncodingNames.V11:
+                case Ice11Name:
                     return ((byte)1, (byte)1);
 
-                case EncodingNames.V20:
+                case Ice20Name:
                     return ((byte)2, (byte)0);
 
                 default:
@@ -112,18 +131,8 @@ namespace IceRpc
                     }
             }
         }
+
         private Encoding(string name) =>
             _name = name;
-    }
-
-    internal static class EncodingExtensions
-    {
-        internal static void CheckSupportedIceEncoding(this Encoding encoding)
-        {
-            if (encoding != Encoding.Ice11 && encoding != Encoding.Ice20)
-            {
-                throw new NotSupportedException($"encoding '{encoding}' is not a supported by this IceRPC runtime");
-            }
-        }
     }
 }

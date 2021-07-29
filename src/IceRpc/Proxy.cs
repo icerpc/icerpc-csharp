@@ -645,8 +645,7 @@ namespace IceRpc
             Protocol = protocol;
             IceUriParser.CheckPath(path, nameof(path));
             Path = path;
-
-            Encoding = Protocol.IsSupported() ? Protocol.GetEncoding() : Encoding.Unknown;
+            Encoding = Protocol.GetEncoding();
         }
 
         internal void Encode(IceEncoder encoder)
