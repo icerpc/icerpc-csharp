@@ -13,10 +13,20 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport
     {
+        private UdpOptions _options;
+
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the default <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpClientTransport() => _options = new UdpOptions();
+
+        /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the given <see cref="UdpOptions"/>.
+        /// </summary>
+        public UdpClientTransport(UdpOptions options) => _options = options;
+
         MultiStreamConnection IClientTransport.CreateConnection(
             Endpoint remoteEndpoint,
-            ClientConnectionOptions options,
-            ILogger logger)
+            ClientConnectionOptions clientOptions,
+            ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -33,18 +43,18 @@ namespace IceRpc.Transports
                     $"endpoint '{remoteEndpoint}' cannot use interface '*' to send datagrams");
             }
 
+            ILogger logger = loggerFactory.CreateLogger("IceRpc");
             Socket socket = ipAddress == null ?
                 new Socket(SocketType.Dgram, ProtocolType.Udp) :
                 new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
             try
             {
-                UdpOptions udpOptions = options.TransportOptions as UdpOptions ?? UdpOptions.Default;
                 if (netEndPoint is IPEndPoint ipEndpoint && IsMulticast(ipEndpoint.Address))
                 {
                     if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                     {
-                        socket.DualMode = !udpOptions.IsIPv6Only;
+                        socket.DualMode = !_options.IsIPv6Only;
                     }
 
                     // IP multicast socket options require a socket created with the correct address family.
@@ -73,13 +83,13 @@ namespace IceRpc.Transports
                     }
                 }
 
-                if (udpOptions.LocalEndPoint is IPEndPoint localEndPoint)
+                if (_options.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     socket.Bind(localEndPoint);
                 }
 
-                socket.SetBufferSize(udpOptions.ReceiveBufferSize,
-                                     udpOptions.SendBufferSize,
+                socket.SetBufferSize(_options.ReceiveBufferSize,
+                                     _options.SendBufferSize,
                                      remoteEndpoint.Transport,
                                      logger);
             }
@@ -90,7 +100,7 @@ namespace IceRpc.Transports
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
-            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, options);
+            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, clientOptions);
         }
     }
 }

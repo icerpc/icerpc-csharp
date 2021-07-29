@@ -30,11 +30,12 @@ namespace IceRpc.Tests.Internal
         public void TcpOptions_Client_BufferSize(int size)
         {
             using IListener listener = CreateListener();
-            using NetworkSocket clientConnection = CreateClientConnection(new TcpOptions
-            {
-                SendBufferSize = size,
-                ReceiveBufferSize = size
-            });
+            using NetworkSocket clientConnection = CreateClientConnection(
+                new TcpOptions
+                {
+                    SendBufferSize = size,
+                    ReceiveBufferSize = size
+                });
 
             // The OS might allocate more space than the requested size.
             Assert.That(clientConnection.Socket!.SendBufferSize, Is.GreaterThanOrEqualTo(size));
@@ -60,10 +61,8 @@ namespace IceRpc.Tests.Internal
         public void TcpOptions_Client_IsIPv6Only()
         {
             using IListener listener = CreateListener();
-            using NetworkSocket clientConnection = CreateClientConnection(new TcpOptions
-            {
-                IsIPv6Only = true
-            });
+            using NetworkSocket clientConnection = CreateClientConnection(
+                new TcpOptions { IsIPv6Only = true });
             Assert.That(clientConnection.Socket!.DualMode, Is.False);
         }
 
@@ -77,10 +76,8 @@ namespace IceRpc.Tests.Internal
                 {
                     using IListener listener = CreateListener();
                     var localEndPoint = new IPEndPoint(IsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback, port++);
-                    using NetworkSocket clientConnection = CreateClientConnection(new TcpOptions
-                    {
-                        LocalEndPoint = localEndPoint
-                    });
+                    using NetworkSocket clientConnection = CreateClientConnection(
+                        new TcpOptions { LocalEndPoint = localEndPoint });
                     Assert.AreEqual(localEndPoint, clientConnection.Socket!.LocalEndPoint);
                     break;
                 }
@@ -97,7 +94,7 @@ namespace IceRpc.Tests.Internal
         [TestCase(384 * 1024)]
         public async Task TcpOptions_Server_BufferSizeAsync(int size)
         {
-            IListener listener = CreateListenerWithTcpOptions(new TcpOptions
+            IListener listener = CreateListener(new TcpOptions
             {
                 SendBufferSize = size,
                 ReceiveBufferSize = size
@@ -146,15 +143,12 @@ namespace IceRpc.Tests.Internal
             {
                 // Create a server endpoint for ::0 instead of loopback
                 ServerConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
-                connectionOptions.TransportOptions = new TcpOptions()
-                {
-                    IsIPv6Only = ipv6Only
-                };
 
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
 
-                using IListener listener =
-                    Server.DefaultServerTransport.Listen(serverEndpoint, connectionOptions, Logger).Listener!;
+                using IListener listener = CreateListener(
+                    new TcpOptions() { IsIPv6Only = ipv6Only },
+                    serverEndpoint);
 
                 ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
@@ -163,8 +157,7 @@ namespace IceRpc.Tests.Internal
 
                 using NetworkSocket clientConnection = CreateClientConnection(endpoint: clientEndpoint);
 
-                ValueTask<Endpoint> connectTask =
-                    clientConnection.ConnectAsync(clientEndpoint, null, default);
+                ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(clientEndpoint, null, default);
 
                 if (ipv6Only)
                 {
@@ -179,8 +172,6 @@ namespace IceRpc.Tests.Internal
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);
                 }
-
-                listener.Dispose();
             }
         }
 
@@ -191,7 +182,7 @@ namespace IceRpc.Tests.Internal
             // (TLS handshake or WebSocket initialization).
             if (TransportName == "tcp" && !IsSecure)
             {
-                IListener listener = CreateListenerWithTcpOptions(new TcpOptions
+                IListener listener = CreateListener(new TcpOptions
                 {
                     ListenerBackLog = 18
                 });
@@ -223,21 +214,16 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private IListener CreateListenerWithTcpOptions(TcpOptions options)
+        private NetworkSocket CreateClientConnection(TcpOptions? options = null, Endpoint? endpoint = null)
         {
-            ServerConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
-            connectionOptions.TransportOptions = options;
-            return Server.DefaultServerTransport.Listen(ServerEndpoint, connectionOptions, Logger).Listener!;
-        }
-
-        private NetworkSocket CreateClientConnection(TcpOptions? tcpOptions = null, Endpoint? endpoint = null)
-        {
-            ClientConnectionOptions options = ClientConnectionOptions.Clone();
-            options.TransportOptions = tcpOptions ?? options.TransportOptions;
             endpoint ??= ClientEndpoint;
 
-            return (Connection.DefaultClientTransport.CreateConnection(endpoint, options, Logger) as
-                NetworkSocketConnection)!.NetworkSocket;
+            IClientTransport transport = options == null ? Connection.DefaultClientTransport : new TcpClientTransport(options);
+
+            return (transport.CreateConnection(
+                endpoint,
+                ClientConnectionOptions.Clone(),
+                LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
         }
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>

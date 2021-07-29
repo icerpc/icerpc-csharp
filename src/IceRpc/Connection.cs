@@ -343,8 +343,10 @@ namespace IceRpc
                     {
                         throw new InvalidOperationException("client connection has no remote endpoint set");
                     }
-                    UnderlyingConnection =
-                        ClientTransport.CreateConnection(_remoteEndpoint, clientOptions, _logger);
+                    UnderlyingConnection = ClientTransport.CreateConnection(
+                        _remoteEndpoint,
+                        clientOptions,
+                        _loggerFactory ?? NullLoggerFactory.Instance);
 
                     // If the endpoint is secure, connect with the SSL client authentication options.
                     SslClientAuthenticationOptions? clientAuthenticationOptions = null;
