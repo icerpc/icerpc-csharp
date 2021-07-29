@@ -937,7 +937,7 @@ namespace IceRpc
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = new Encoding(DecodeByte(), DecodeByte());
+            var encoding = Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
 
             if (encoding == Encoding.V11 || encoding == Encoding.V10)
             {

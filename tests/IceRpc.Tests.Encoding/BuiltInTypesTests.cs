@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Encoding
 
         public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
         {
-            _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            _encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             _buffer = new byte[256];
             _encoder = new IceEncoder(_encoding, _buffer);
             _decoder = new IceDecoder(_buffer, _encoding);

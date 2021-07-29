@@ -48,7 +48,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)2, (byte)0)]
         public void Slicing_Classes(byte encodingMajor, byte encodingMinor)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -114,7 +114,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)1, (byte)1)]
         public void Slicing_Classes_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -175,7 +175,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)2, (byte)0)]
         public void Slicing_Exceptions(byte encodingMajor, byte encodingMinor)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -264,7 +264,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)2, (byte)0)]
         public void Slicing_PreservedClasses(byte encodingMajor, byte encodingMinor)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -311,7 +311,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase((byte)1, (byte)1)]
         public void Slicing_PreservedClasses_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromMajorMinor(encodingMajor, encodingMinor);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 

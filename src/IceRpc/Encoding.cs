@@ -49,14 +49,6 @@ namespace IceRpc
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
         public static bool operator !=(Encoding? lhs, Encoding? rhs) => !(lhs == rhs);
 
-        /// <summary>Constructs a new instance of <see cref="Encoding"/>.</summary>
-        /// <param name="major">The major version number of this version of the Ice encoding.</param>
-        /// <param name="minor">The minor version number of this version of the Ice encoding.</param>
-        public Encoding(byte major, byte minor)
-            : this(IceEncoding.Parse($"{major}.{minor}"))
-        {
-        }
-
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
 
@@ -79,7 +71,7 @@ namespace IceRpc
         /// <returns>A new encoding.</returns>
         public static Encoding Parse(string s) => FromString(s);
 
-        internal static Encoding FromMajorMinor(byte major, byte minor) =>
+        public static Encoding FromMajorMinor(byte major, byte minor) => // TODO make internal
             (major, minor) switch
             {
                 (1, 0) => V10,
