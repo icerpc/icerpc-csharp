@@ -35,7 +35,7 @@ namespace IceRpc
             internal int Offset;
         }
 
-        /// <summary>The Ice encoding used when writing to this buffer.</summary>
+        /// <summary>The Ice encoding used by this encoder when encoding data.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
