@@ -40,4 +40,20 @@ namespace IceRpc
 
         private IceEncoding(string name) => _name = name;
     }
+
+    public sealed class NewEncoding
+    {
+        private readonly string? _name;
+        private readonly IceEncoding? _iceEncoding;
+
+        public IceEncoding ToIceEncoding() =>
+            _iceEncoding ?? throw new NotSupportedException($"'{_name}' is not a supported Ice encoding");
+
+        public override string ToString() =>
+            _iceEncoding?.ToString() ?? _name!;
+
+        private NewEncoding()
+        {
+        }
+    }
 }
