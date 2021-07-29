@@ -10,8 +10,6 @@ namespace IceRpc.Internal
     {
         internal static readonly Encoding Encoding = Encoding.V20;
 
-        internal static readonly IceEncoding IceEncoding = IceEncoding.V20;
-
         private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = ReadOnlyMemory<byte>.Empty;
 
         // The only byte is for the compression format.
