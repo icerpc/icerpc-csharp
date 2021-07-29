@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
-using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Collections.Immutable;
@@ -50,8 +49,6 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            public ILogger Logger { get; } = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
-
             public IServicePrx ServicePrx
             {
                 get
@@ -76,7 +73,10 @@ namespace IceRpc.Tests.Internal
                 if (Endpoint.Transport == "udp")
                 {
                     serverConnection = new Connection(
-                        Server.DefaultServerTransport.Listen(Endpoint, _server.ConnectionOptions, Logger).Connection!,
+                        Server.DefaultServerTransport.Listen(
+                            Endpoint,
+                            _server.ConnectionOptions,
+                            LogAttributeLoggerFactory.Instance).Connection!,
                         _server.Dispatcher,
                         _server.ConnectionOptions,
                         LogAttributeLoggerFactory.Instance);
@@ -86,8 +86,10 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using IListener listener =
-                        Server.DefaultServerTransport.Listen(Endpoint, _server.ConnectionOptions, Logger).Listener!;
+                    using IListener listener = Server.DefaultServerTransport.Listen(
+                        Endpoint,
+                        _server.ConnectionOptions,
+                        LogAttributeLoggerFactory.Instance).Listener!;
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
                     serverConnection = await serverTask;
@@ -279,16 +281,11 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            using IListener listener = Server.DefaultServerTransport.Listen(
+            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 });
+            using IListener listener = transport.Listen(
                 factory.Endpoint,
-                new ServerConnectionOptions
-                {
-                    TransportOptions = new TcpOptions()
-                    {
-                        ListenerBackLog = 1
-                    }
-                },
-                factory.Logger).Listener!;
+                new ServerConnectionOptions(),
+                LogAttributeLoggerFactory.Instance).Listener!;
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
             // is handled by the client connection factory.
@@ -435,8 +432,8 @@ namespace IceRpc.Tests.Internal
                 {
                     KeepAlive = true
                 });
-            Assert.That(factory.ClientConnection.Options!.KeepAlive, Is.True);
-            Assert.That(factory.ServerConnection.Options!.KeepAlive, Is.True);
+            Assert.That(factory.ClientConnection.KeepAlive, Is.True);
+            Assert.That(factory.ServerConnection.KeepAlive, Is.True);
         }
 
         [TestCase(Protocol.Ice1, false)]
