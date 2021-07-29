@@ -180,7 +180,7 @@ namespace IceRpc.Internal
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding
+                Encoding = encoding ?? (protocol.Value.IsSupported() ? protocol.Value.GetEncoding().ToString() : "")
             };
         }
 

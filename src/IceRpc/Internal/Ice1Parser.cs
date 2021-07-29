@@ -158,7 +158,7 @@ namespace IceRpc.Internal
             var identity = Identity.Parse(identityString);
             string facet = "";
             Encoding encoding = Ice1Definitions.Encoding;
-            string? encodingName = null;
+            string encodingName = encoding.ToString();
             Endpoint? endpoint = null;
             var altEndpoints = ImmutableList<Endpoint>.Empty;
 
@@ -290,10 +290,7 @@ namespace IceRpc.Internal
                             throw new FormatException($"no argument provided for -e option in '{s}'");
                         }
                         encoding = Encoding.Parse(argument);
-                        if (encoding != Ice1Definitions.Encoding)
-                        {
-                            encodingName = encoding.ToString();
-                        }
+                        encodingName = encoding.ToString();
                         break;
 
                     case 'p':

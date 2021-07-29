@@ -78,11 +78,11 @@ namespace IceRpc
         }
 
         /// <summary>The encoding that a caller should use when encoding request parameters when such a caller supports
-        /// multiple encodings. Its value is usually null which means use the encoding of the protocol.</summary>
-        public string? Encoding
+        /// multiple encodings. Its value is usually the encoding of the protocol.</summary>
+        public string Encoding
         {
             get => _encoding;
-            set => _encoding = value == null ? null : (string.IsInterned(value) ?? value);
+            set => _encoding = string.IsInterned(value) ?? value;
         }
 
         /// <summary>Gets or sets the main endpoint of this proxy.</summary>
@@ -122,12 +122,12 @@ namespace IceRpc
         /// <exception name="NotSupportedException">Thrown when <see cref="Encoding"/> is set to some other value.
         /// </exception>
         public Encoding IceEncodingVersion =>
-            Encoding is string encoding ? encoding switch
+            Encoding switch
             {
                 EncodingNames.V11 => IceRpc.Encoding.V11,
                 EncodingNames.V20 => IceRpc.Encoding.V20,
-                _ => throw new NotSupportedException($"unknown encoding '{encoding}'")
-            } : Protocol.GetEncoding();
+                _ => throw new NotSupportedException($"'{Encoding}' is not a supported Ice encoding")
+            };
 
         /// <summary>Gets or sets the invoker of this proxy.</summary>
         public IInvoker? Invoker { get; set; }
@@ -179,7 +179,7 @@ namespace IceRpc
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
-        private string? _encoding;
+        private string _encoding;
         private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -387,7 +387,7 @@ namespace IceRpc
                     // TODO: append protocol
                 }
 
-                if (Encoding != null)
+                if (Encoding != Ice2Definitions.Encoding.ToString())
                 {
                     StartQueryOption(sb, ref firstOption);
                     sb.Append("encoding=");
@@ -513,8 +513,7 @@ namespace IceRpc
                         var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
                         proxy.Identity = identity;
                         proxy.FacetPath = proxyData.FacetPath;
-                        proxy.Encoding =
-                            proxyData.Encoding == Ice1Definitions.Encoding ? null : proxyData.Encoding.ToString();
+                        proxy.Encoding = proxyData.Encoding.ToString();
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         proxy.Invoker = decoder.Invoker;
@@ -558,8 +557,7 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding =
-                            proxyData.Encoding == proxy.Protocol.GetEncoding() ? null : proxyData.Encoding.ToString();
+                        proxy.Encoding = proxyData.Encoding.ToString();
                         return proxy;
                     }
                     catch (Exception ex)
@@ -609,7 +607,7 @@ namespace IceRpc
                     {
                         var proxy = Proxy.FromPath(path, Protocol.Ice1);
                         proxy.FacetPath = facetPath;
-                        proxy.Encoding = proxyData.Encoding;
+                        proxy.Encoding = proxyData.Encoding ?? Ice1Definitions.Encoding.ToString();
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
                         proxy.Invoker = decoder.Invoker;
@@ -642,7 +640,7 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding = proxyData.Encoding;
+                        proxy.Encoding = proxyData.Encoding ?? proxy.Protocol.GetEncoding().ToString();
 
                         return proxy;
                     }
@@ -662,6 +660,8 @@ namespace IceRpc
             Protocol = protocol;
             IceUriParser.CheckPath(path, nameof(path));
             Path = path;
+
+            _encoding = Protocol.IsSupported() ? Protocol.GetEncoding().ToString() : "";
         }
 
         internal void Encode(IceEncoder encoder)
@@ -764,7 +764,8 @@ namespace IceRpc
                 var proxyData = new ProxyData20(
                     path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
-                    encoding: Encoding,
+                    encoding:
+                        Protocol.IsSupported() && Encoding == Protocol.GetEncoding().ToString() ? null : Encoding,
                     endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
                     altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());

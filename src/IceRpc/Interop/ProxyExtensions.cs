@@ -68,7 +68,7 @@ namespace IceRpc.Interop
             // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
             // same encoding with StringToProxy. (Only needed for backwards compatibility).
             sb.Append(" -e ");
-            sb.Append(proxy.Encoding?.ToString() ?? EncodingNames.V11);
+            sb.Append(proxy.Encoding);
 
             if (proxy.IsIndirect)
             {
