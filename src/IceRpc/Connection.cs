@@ -141,7 +141,6 @@ namespace IceRpc
             }
         }
 
-
         /// <summary>The client connection options. This property can be used to initialize the client connection options.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Design",
