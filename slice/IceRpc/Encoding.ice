@@ -6,18 +6,6 @@
 
 module IceRpc
 {
-    /// The Ice encoding defines how Slice constructs are marshaled to and later unmarshaled from sequences of bytes.
-    /// An Encoding struct holds a version of the Ice encoding.
-    [cs:readonly]
-    struct Encoding
-    {
-        /// The major version number of this version of the Ice encoding.
-        byte major;
-
-        /// The minor version number of this version of the Ice encoding.
-        byte minor;
-    }
-
     /// With the 2.0 encoding, the payload of some frames such a Request and "Success" Response can be compressed.
     /// CompressionFormat is the first byte of such a payload.
     unchecked enum CompressionFormat : byte

@@ -5,6 +5,74 @@ using System.Globalization;
 
 namespace IceRpc
 {
+    /// <summary>The Ice encoding defines how Slice constructs are marshaled to and later unmarshaled from sequences of bytes.
+    /// An Encoding struct holds a version of the Ice encoding.</summary>
+    public readonly partial struct Encoding : global::System.IEquatable<Encoding>
+    {
+        /// <summary>The major version number of this version of the Ice encoding.</summary>
+        public readonly byte Major;
+
+        /// <summary>The minor version number of this version of the Ice encoding.</summary>
+        public readonly byte Minor;
+
+        /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
+        public static bool operator ==(Encoding lhs, Encoding rhs) => lhs.Equals(rhs);
+
+        /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
+        public static bool operator !=(Encoding lhs, Encoding rhs) => !lhs.Equals(rhs);
+
+        /// <summary>Constructs a new instance of <see cref="Encoding"/>.</summary>
+        /// <param name="major">The major version number of this version of the Ice encoding.</param>
+        /// <param name="minor">The minor version number of this version of the Ice encoding.</param>
+        public Encoding(byte major, byte minor)
+        {
+            Major = major;
+            Minor = minor;
+            Initialize();
+        }
+
+        /// <summary>Constructs a new instance of <see cref="Encoding"/> from a decoder.</summary>
+        public Encoding(IceRpc.IceDecoder decoder)
+        {
+            this.Major = decoder.DecodeByte();
+            this.Minor = decoder.DecodeByte();
+            Initialize();
+        }
+
+        /// <inheritdoc/>
+        public readonly override bool Equals(object? obj) => obj is Encoding value && this.Equals(value);
+
+        /// <inheritdoc/>
+        public readonly bool Equals(Encoding other) =>
+            this.Major == other.Major &&
+            this.Minor == other.Minor;
+
+        /// <inheritdoc/>
+        public readonly override int GetHashCode()
+        {
+            var hash = new global::System.HashCode();
+            hash.Add(this.Major);
+            hash.Add(this.Minor);
+            return hash.ToHashCode();
+        }
+
+        /// <summary>Encodes the fields of this struct.</summary>
+        public readonly void Encode(IceRpc.IceEncoder encoder)
+        {
+            encoder.EncodeByte(this.Major);
+            encoder.EncodeByte(this.Minor);
+        }
+
+        /// <summary>The constructor calls the Initialize partial method after initializing the fields.</summary>
+        partial void Initialize();
+    }
+
     // Extends the Slice-defined Encoding struct
     public readonly partial struct Encoding
     {
