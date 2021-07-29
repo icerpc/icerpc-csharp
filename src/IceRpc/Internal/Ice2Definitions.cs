@@ -18,15 +18,18 @@ namespace IceRpc.Internal
         private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload20 = new byte[] { 0 };
 
         /// <summary>Returns the payload of an ice2 request frame for an operation with no argument.</summary>
-        /// <param name="iceEncoding">The Ice encoding of this empty args payload.</param>
+        /// <param name="encoding">The encoding of this empty args payload.</param>
         /// <returns>The payload.</returns>
-        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(IceEncoding iceEncoding) =>
-            GetVoidReturnValuePayload(iceEncoding);
+        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(Encoding encoding) =>
+            GetVoidReturnValuePayload(encoding);
 
         /// <summary>Returns the payload of an ice2 response frame for an operation returning void.</summary>
-        /// <param name="iceEncoding">The encoding of this void return.</param>
+        /// <param name="encoding">The encoding of this void return.</param>
         /// <returns>The payload.</returns>
-        internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(IceEncoding iceEncoding) =>
-            iceEncoding == IceEncoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
+        internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(Encoding encoding)
+        {
+            encoding.CheckSupportedIceEncoding();
+            return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
+        }
     }
 }

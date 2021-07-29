@@ -120,8 +120,12 @@ namespace IceRpc
 
     internal static class EncodingExtensions
     {
-        internal static bool CheckSupportedIceEncoding(this Encoding encoding) =>
-            encoding == Encoding.V11 || encoding == Encoding.V20 ? true :
-                throw new NotSupportedException($"'{encoding}' is not a supported Ice encoding");
+        internal static void CheckSupportedIceEncoding(this Encoding encoding)
+        {
+            if (encoding != Encoding.V11 && encoding != Encoding.V20)
+            {
+                throw new NotSupportedException($"encoding '{encoding}' is not a supported by this IceRPC runtime");
+            }
+        }
     }
 }
