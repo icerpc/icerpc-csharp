@@ -892,7 +892,7 @@ namespace IceRpc
             Pos = 0;
             _buffer = buffer;
             IceEncoding = encoding;
-            IceEncoding.CheckSupported();
+            _ = encoding.ToIceEncoding(); // temporary
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
@@ -937,7 +937,7 @@ namespace IceRpc
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = new Encoding(this);
+            var encoding = new Encoding(DecodeByte(), DecodeByte());
 
             if (encoding == Encoding.V11 || encoding == Encoding.V10)
             {

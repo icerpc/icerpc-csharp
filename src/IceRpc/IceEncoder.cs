@@ -924,7 +924,7 @@ namespace IceRpc
         internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
             IceEncoding = encoding;
-            IceEncoding.CheckSupported();
+            _ = encoding.ToIceEncoding(); // temporary
             _classFormat = classFormat;
             _tail = default;
             Size = 0;
@@ -1047,7 +1047,8 @@ namespace IceRpc
             Position startPos = _tail;
 
             EncodeInt(0); // placeholder for future encapsulation size
-            IceEncoding.Encode(this);
+            EncodeByte(IceEncoding.Major);
+            EncodeByte(IceEncoding.Minor);
             encodeAction(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }
