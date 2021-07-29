@@ -164,7 +164,7 @@ namespace IceRpc
         /// <param name="request">The request.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(IncomingRequest request) =>
-            new ReadOnlyMemory<byte>[] { request.Protocol.GetVoidReturnPayload(request.PayloadEncoding) };
+            new ReadOnlyMemory<byte>[] { request.Protocol.GetVoidReturnPayload(Encoding.Parse(request.PayloadEncoding)) };
 
         /// <summary>Reads a request payload and decodes this payload into a list of arguments.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
@@ -252,7 +252,7 @@ namespace IceRpc
             exception.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
 
             ReplyStatus replyStatus = ReplyStatus.UserException;
-            if (request.PayloadEncoding == Encoding.V11)
+            if (request.PayloadEncoding == EncodingNames.V11)
             {
                 replyStatus = exception switch
                 {
@@ -266,9 +266,9 @@ namespace IceRpc
             IceEncoder encoder;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                encoder = new IceEncoder(request.PayloadEncoding, classFormat: FormatType.Sliced);
+                encoder = new IceEncoder(Encoding.Parse(request.PayloadEncoding), classFormat: FormatType.Sliced);
 
-                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.V11)
+                if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == EncodingNames.V11)
                 {
                     // The first byte of the payload is the actual ReplyStatus in this case.
                     encoder.EncodeReplyStatus(replyStatus);

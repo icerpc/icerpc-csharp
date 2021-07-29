@@ -25,7 +25,7 @@ namespace IceRpc
         public DateTime Deadline => IncomingRequest.Deadline;
 
         /// <summary>The encoding used by the request.</summary>
-        public Encoding Encoding => IncomingRequest.PayloadEncoding;
+        public Encoding Encoding => Encoding.Parse(IncomingRequest.PayloadEncoding);
 
         /// <summary><c>True</c> if the operation was marked as idempotent, <c>False</c> otherwise.</summary>
         public bool IsIdempotent => IncomingRequest.IsIdempotent;

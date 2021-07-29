@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
 using System;
@@ -62,7 +63,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override string PayloadEncoding { get; private protected set; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
@@ -160,7 +161,7 @@ namespace IceRpc
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    payloadEncoding: PayloadEncoding == Encoding.V20 ? null : PayloadEncoding.ToString());
+                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding.ToString() ? null : PayloadEncoding);
 
                 requestHeaderBody.Encode(encoder);
 
@@ -188,7 +189,7 @@ namespace IceRpc
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     context,
                     encapsulationSize: PayloadSize + 6,
-                    PayloadEncoding);
+                    Encoding.Parse(PayloadEncoding));
                 requestHeader.Encode(encoder);
             }
         }
@@ -213,7 +214,7 @@ namespace IceRpc
 
             Operation = operation;
             Path = proxy.Path;
-            PayloadEncoding = proxy.IceEncodingVersion;
+            PayloadEncoding = proxy.Encoding ?? proxy.Protocol.GetEncoding().ToString();
             Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }

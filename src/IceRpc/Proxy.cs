@@ -119,7 +119,7 @@ namespace IceRpc
 
         /// <summary>The Ice encoding version of this proxy, when <see cref="Encoding"/> is null or is a string that
         /// corresponds to a supported Ice encoding version such as "1.1" or "2.0".</summary>
-        /// <exception name="NotSupportedException"/>Thrown when <see cref="Encoding"/> is set to some other value.
+        /// <exception name="NotSupportedException">Thrown when <see cref="Encoding"/> is set to some other value.
         /// </exception>
         public Encoding IceEncodingVersion =>
             Encoding is string encoding ? encoding switch
@@ -903,7 +903,7 @@ namespace IceRpc
                     if (response.ResultType == ResultType.Failure)
                     {
                         throw Payload.ToRemoteException(responsePayload,
-                                                        response.PayloadEncoding,
+                                                        Encoding.Parse(response.PayloadEncoding),
                                                         response.ReplyStatus,
                                                         response.Connection,
                                                         proxy.Invoker);
@@ -915,7 +915,7 @@ namespace IceRpc
                         streamReader = new RpcStreamReader(request);
                     }
 
-                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
+                    return (responsePayload, streamReader, Encoding.Parse(response.PayloadEncoding), response.Connection);
                 }
                 finally
                 {

@@ -84,7 +84,7 @@ namespace IceRpc.Internal
             string path,
             string operation,
             int payloadSize,
-            Encoding payloadEncoding);
+            string payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ProtocolEvent.ReceivedResponseFrame,
@@ -184,7 +184,7 @@ namespace IceRpc.Internal
             string path,
             string operation,
             int payloadSize,
-            Encoding payloadEncoding);
+            string payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ProtocolEvent.SentResponseFrame,
@@ -196,7 +196,7 @@ namespace IceRpc.Internal
             this ILogger logger,
             ResultType resultType,
             int payloadSize,
-            Encoding payloadEncoding);
+            string payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)ProtocolEvent.ReceivedGoAwayFrame,
