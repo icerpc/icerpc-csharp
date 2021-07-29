@@ -6,14 +6,14 @@ using System.Collections.Generic;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Builds a composite client transports.</summary>
+    /// <summary>Builds a composite server transports.</summary>
     public class ServerTransportBuilder : Dictionary<string, IServerTransport>
     {
         /// <summary>Builds a new server transport.</summary>
         /// <returns>The new server transport.</returns>
         public IServerTransport Build() => new CompositeServerTransport(this);
 
-        /// <summary>Implements <see cref="IServerTransport"/> using other client transport implementations.</summary>
+        /// <summary>Implements <see cref="IServerTransport"/> using other server transport implementations.</summary>
         private class CompositeServerTransport : IServerTransport
         {
             private readonly IReadOnlyDictionary<string, IServerTransport> _transports;
@@ -42,7 +42,7 @@ namespace IceRpc.Transports
     /// <summary>Extension methods for class <see cref="ServerTransportBuilder"/>.</summary>
     public static class ServerTransportBuilderExtensions
     {
-        /// <summary>Adds the coloc client transport to this builder.</summary>
+        /// <summary>Adds the coloc server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
         public static ServerTransportBuilder AddColoc(this ServerTransportBuilder builder)
@@ -51,7 +51,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the ssl client transport to this builder.</summary>
+        /// <summary>Adds the ssl server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
         public static ServerTransportBuilder AddSsl(this ServerTransportBuilder builder)
@@ -60,7 +60,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the ssl client transport to this builder.</summary>
+        /// <summary>Adds the ssl server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
@@ -70,7 +70,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the tcp client transport to this builder.</summary>
+        /// <summary>Adds the tcp server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
         public static ServerTransportBuilder AddTcp(this ServerTransportBuilder builder)
@@ -79,7 +79,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the tcp client transport to this builder.</summary>
+        /// <summary>Adds the tcp server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
@@ -89,7 +89,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the udp client transport to this builder.</summary>
+        /// <summary>Adds the udp server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
         public static ServerTransportBuilder AddUdp(this ServerTransportBuilder builder)
@@ -98,7 +98,7 @@ namespace IceRpc.Transports
             return builder;
         }
 
-        /// <summary>Adds the udp client transport to this builder.</summary>
+        /// <summary>Adds the udp server transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
