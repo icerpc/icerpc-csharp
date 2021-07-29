@@ -7,7 +7,6 @@
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Context.ice>
-#include <IceRpc/Encoding.ice>
 
 module IceRpc
 {
@@ -55,7 +54,8 @@ module IceRpc
         OperationMode operationMode;
         Context context;
         int encapsulationSize;
-        Encoding payloadEncoding;
+        byte payloadEncodingMajor;
+        byte payloadEncodingMinor;
     }
 
     /// The reply status of an ice1 response frame.
@@ -95,7 +95,8 @@ module IceRpc
     struct Ice1ResponseHeader
     {
         int encapsulationSize;
-        Encoding payloadEncoding;
+        byte payloadEncodingMajor;
+        byte payloadEncodingMinor;
     }
 
     /// The data carried by an ice1 RequestFailedException (ObjectNotExistException, FacetNotExistException or

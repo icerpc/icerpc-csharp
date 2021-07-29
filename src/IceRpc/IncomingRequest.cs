@@ -93,7 +93,8 @@ namespace IceRpc
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
                 PayloadSize = requestHeader.EncapsulationSize - 6;
-                PayloadEncoding = requestHeader.PayloadEncoding.ToString();
+                PayloadEncoding =
+                    new Encoding(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor).ToString();
 
                 Priority = default;
                 Deadline = DateTime.MaxValue;

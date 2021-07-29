@@ -513,7 +513,7 @@ namespace IceRpc
                         var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
                         proxy.Identity = identity;
                         proxy.FacetPath = proxyData.FacetPath;
-                        proxy.Encoding = proxyData.Encoding.ToString();
+                        proxy.Encoding = new Encoding(proxyData.EncodingMajor, proxyData.EncodingMinor).ToString();
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         proxy.Invoker = decoder.Invoker;
@@ -557,7 +557,7 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding = proxyData.Encoding.ToString();
+                        proxy.Encoding = new Encoding(proxyData.EncodingMajor, proxyData.EncodingMinor).ToString();
                         return proxy;
                     }
                     catch (Exception ex)
@@ -707,7 +707,8 @@ namespace IceRpc
                     secure: false,
                     Protocol,
                     protocolMinor: 0,
-                    IceEncodingVersion);
+                    IceEncodingVersion.Major,
+                    IceEncodingVersion.Minor);
                 proxyData.Encode(encoder);
 
                 if (IsIndirect)

@@ -43,7 +43,8 @@ namespace IceRpc
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(decoder);
-                    PayloadEncoding = responseHeader.PayloadEncoding.ToString();
+                    PayloadEncoding =
+                        new Encoding(responseHeader.PayloadEncodingMajor, responseHeader.PayloadEncodingMinor).ToString();
                     Payload = data[decoder.Pos..];
 
                     int payloadSize = responseHeader.EncapsulationSize - 6;

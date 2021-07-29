@@ -50,7 +50,8 @@ module IceRpc
         bool secure = false;           // ignored
         Protocol protocol;
         byte protocolMinor = 0;        // always 0
-        Encoding encoding;
+        byte encodingMajor;
+        byte encodingMinor;
     }
 
     [cs:readonly]

@@ -189,7 +189,8 @@ namespace IceRpc
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     context,
                     encapsulationSize: PayloadSize + 6,
-                    Encoding.Parse(PayloadEncoding));
+                    Encoding.Parse(PayloadEncoding).Major,
+                    Encoding.Parse(PayloadEncoding).Minor);
                 requestHeader.Encode(encoder);
             }
         }

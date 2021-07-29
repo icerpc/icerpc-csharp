@@ -181,7 +181,8 @@ namespace IceRpc
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6,
-                                                                Encoding.Parse(PayloadEncoding));
+                                                                Encoding.Parse(PayloadEncoding).Major,
+                                                                Encoding.Parse(PayloadEncoding).Minor);
                     responseHeader.Encode(encoder);
                 }
             }
