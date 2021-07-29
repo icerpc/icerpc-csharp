@@ -6,7 +6,7 @@
 
 module IceRpc
 {
-    /// With the 2.0 encoding, the payload of some frames such a Request and "Success" Response can be compressed.
+    /// With the Ice 2.0 encoding, the payload of some frames such a Request and "Success" Response can be compressed.
     /// CompressionFormat is the first byte of such a payload.
     unchecked enum CompressionFormat : byte
     {
