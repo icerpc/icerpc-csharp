@@ -700,6 +700,7 @@ namespace IceRpc
                     identity.Encode(encoder);
                 }
 
+                (byte encodingMajor, byte encodingMinor) = IceEncodingVersion.ToMajorMinor();
                 var proxyData = new ProxyData11(
                     FacetPath,
                     Protocol == Protocol.Ice1 && (Endpoint?.Transport == TransportNames.Udp) ?
@@ -707,8 +708,8 @@ namespace IceRpc
                     secure: false,
                     Protocol,
                     protocolMinor: 0,
-                    IceEncodingVersion.Major,
-                    IceEncodingVersion.Minor);
+                    encodingMajor,
+                    encodingMinor);
                 proxyData.Encode(encoder);
 
                 if (IsIndirect)

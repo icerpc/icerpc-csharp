@@ -180,9 +180,11 @@ namespace IceRpc
                 encoder.EncodeReplyStatus(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
+                    (byte encodingMajor, byte encodingMinor) = Encoding.FromString(PayloadEncoding).ToMajorMinor();
+
                     var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6,
-                                                                Encoding.Parse(PayloadEncoding).Major,
-                                                                Encoding.Parse(PayloadEncoding).Minor);
+                                                                encodingMajor,
+                                                                encodingMinor);
                     responseHeader.Encode(encoder);
                 }
             }

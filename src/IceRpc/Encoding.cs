@@ -16,12 +16,6 @@ namespace IceRpc
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
         public static readonly Encoding V20 = new(IceEncoding.V20);
 
-        /// <summary>The major version number of this version of the Ice encoding.</summary>
-        public byte Major => byte.Parse(ToString().AsSpan(0, 1));
-
-        /// <summary>The minor version number of this version of the Ice encoding.</summary>
-        public byte Minor => byte.Parse(ToString().AsSpan(2, 1));
-
         private readonly string _name;
         private readonly IceEncoding? _iceEncoding;
 

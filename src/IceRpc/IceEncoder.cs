@@ -1046,9 +1046,11 @@ namespace IceRpc
             this.EncodeTransportCode(transportCode);
             Position startPos = _tail;
 
+            (byte encodingMajor, byte encodingMinor) = IceEncoding.ToMajorMinor();
+
             EncodeInt(0); // placeholder for future encapsulation size
-            EncodeByte(IceEncoding.Major);
-            EncodeByte(IceEncoding.Minor);
+            EncodeByte(encodingMajor);
+            EncodeByte(encodingMinor);
             encodeAction(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }

@@ -182,6 +182,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
+                (byte encodingMajor, byte encodingMinor) = Encoding.FromString(PayloadEncoding).ToMajorMinor();
                 var requestHeader = new Ice1RequestHeader(
                     Identity,
                     FacetPath,
@@ -189,8 +190,8 @@ namespace IceRpc
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     context,
                     encapsulationSize: PayloadSize + 6,
-                    Encoding.Parse(PayloadEncoding).Major,
-                    Encoding.Parse(PayloadEncoding).Minor);
+                    encodingMajor,
+                    encodingMinor);
                 requestHeader.Encode(encoder);
             }
         }
