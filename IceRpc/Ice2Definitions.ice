@@ -5,7 +5,6 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Encoding.ice>
 
 module IceRpc
 {
@@ -59,21 +58,21 @@ module IceRpc
         bool? \idempotent;       // null equivalent to false
         Priority? priority;      // null equivalent to 0
         varlong deadline;
+        string? payloadEncoding;
     }
 
     /// Each ice2 request frame has:
     /// - a frame prologue, with the frame type and (for now) the overall frame size
     /// - a request header (below)
     /// - a request payload
-    /// We put various members of the header in the Ice2RequestHeaderBody struct because the marshaling and unmarshaling
-    /// of Fields is often custom.
+    /// We put various members of the header in the Ice2RequestHeaderBody struct because the encoding and decoding of
+    /// Fields is often custom.
     [cs:readonly]
     struct Ice2RequestHeader
     {
         varulong headerSize;
         Ice2RequestHeaderBody body;
         Fields fields;
-        Encoding payloadEncoding;
         varulong payloadSize;
     }
 
@@ -87,17 +86,26 @@ module IceRpc
         Failure = 1
     }
 
+    // See Ice2ResponseHeader below.
+    [cs:readonly]
+    struct Ice2ResponseHeaderBody
+    {
+        ResultType resultType;
+        string? payloadEncoding;
+    }
+
     /// Each ice2 response frame has:
     /// - a frame prologue, with the frame type and the overall frame size
     /// - a response header (below)
     /// - a response payload
+    /// We put various members of the header in the Ice2ResponseHeaderBody struct because the encoding and decoding of
+    /// Fields is often custom.
     [cs:readonly]
     struct Ice2ResponseHeader
     {
         varulong headerSize;
+        Ice2ResponseHeaderBody body;
         Fields fields;
-        ResultType resultType;
-        Encoding payloadEncoding;
         varulong payloadSize;
     }
 

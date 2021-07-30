@@ -6,7 +6,6 @@
 
 #include <IceRpc/Interop/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Encoding.ice>
 #include <IceRpc/Endpoint.ice>
 #include <IceRpc/Protocol.ice>
 
@@ -50,7 +49,8 @@ module IceRpc
         bool secure = false;           // ignored
         Protocol protocol;
         byte protocolMinor = 0;        // always 0
-        Encoding encoding;
+        byte encodingMajor;
+        byte encodingMinor;
     }
 
     [cs:readonly]
@@ -58,7 +58,7 @@ module IceRpc
     {
         string? path;                        // Percent-escaped URI path. Null means null proxy.
         Protocol? protocol;                  // null is equivalent to Protocol::Ice2
-        Encoding? encoding;                  // null is equivalent to Encoding 2.0
+        string? encoding;                    // null means use the encoding of protocol
         EndpointData? endpoint;
         EndpointDataSeq? altEndpoints;
     }
