@@ -306,27 +306,15 @@ namespace IceRpc.Internal
             }
         }
 
-        private bool HasCache => _ttl != TimeSpan.Zero && _cacheMaxSize > 0;
         private readonly bool _background;
-        private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string Location, string? Category)> Node)> _cache;
+        private readonly ICache<string>? _adapterIdCache;
+        private readonly ICache<Identity>? _identityCache;
 
-        // The keys in _cache. The first entries correspond to the most recently added cache entries.
-        private readonly LinkedList<(string Location, string? Category)> _cacheKeys = new();
-
-        private readonly int _cacheMaxSize;
+        private readonly ILocationResolver<string> _adapterIdResolver;
+        private readonly ILocationResolver<Identity> _identityResolver;
 
         private readonly TimeSpan _justRefreshedAge;
-
-        private readonly ILocatorPrx _locator;
-
         private readonly ILogger _logger;
-
-        // _mutex protects _cacheKeys, _requests and updates to _cache
-        private readonly object _mutex = new();
-
-        private readonly Dictionary<(string Location, string? Category), Task<(Endpoint?, ImmutableList<Endpoint>)>> _requests =
-            new();
-
         private readonly TimeSpan _ttl;
 
         /// <summary>Constructs a locator invoker.</summary>
@@ -338,13 +326,35 @@ namespace IceRpc.Internal
                     $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}", nameof(options));
             }
 
-            _locator = locator;
             _background = options.Background;
-            _cacheMaxSize = options.CacheMaxSize;
-            _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
             _justRefreshedAge = options.JustRefreshedAge;
             _logger = options.LoggerFactory.CreateLogger("IceRpc");
             _ttl = options.Ttl;
+
+            if (_ttl != TimeSpan.Zero && options.CacheMaxSize > 0)
+            {
+                var cache = new Cache(options.CacheMaxSize);
+                _adapterIdCache = cache;
+                _identityCache = cache;
+            }
+
+            _adapterIdResolver = Configure(new AdapterIdResolver(locator), "adapter ID", _adapterIdCache);
+            _identityResolver = Configure(new IdentityResolver(locator), "identity", _identityCache);
+
+            // Adds decorators to implementation
+            ILocationResolver<T> Configure<T>(
+                ILocationResolver<T> resolver,
+                string argName,
+                ICache<T>? cache) where T : IEquatable<T>
+            {
+                resolver = new LogDecorator<T>(resolver, argName, _logger);
+                if (cache != null)
+                {
+                    resolver = new CacheUpdateDecorator<T>(resolver, cache);
+                }
+                resolver = new CoalesceDecorator<T>(resolver);
+                return resolver;
+            }
         }
 
         /// <summary>Updates the endpoints of the request (as appropriate) then call InvokeAsync on next.</summary>
@@ -386,7 +396,7 @@ namespace IceRpc.Internal
 
                 if (location != null)
                 {
-                    (Endpoint? endpoint, IEnumerable<Endpoint> altEndpoints, bool fromCache) =
+                    (Proxy? proxy, bool fromCache) =
                         await ResolveAsync(location, category, refreshCache, cancel).ConfigureAwait(false);
 
                     if (refreshCache)
@@ -409,10 +419,10 @@ namespace IceRpc.Internal
                         request.Features.Set(new CachedResolutionFeature(location, category));
                     }
 
-                    if (endpoint != null)
+                    if (proxy?.Endpoint != null)
                     {
-                        request.Endpoint = endpoint;
-                        request.AltEndpoints = altEndpoints;
+                        request.Endpoint = proxy.Endpoint;
+                        request.AltEndpoints = proxy.AltEndpoints;
                     }
                     // else the resolution failed and we don't change the endpoints of the request
                 }
@@ -421,269 +431,74 @@ namespace IceRpc.Internal
             return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
         }
 
-        private void ClearCache(string location, string? category)
-        {
-            if (HasCache)
-            {
-                lock (_mutex)
-                {
-                    if (_cache.TryRemove(
-                        (location, category),
-                        out (TimeSpan _, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> Node) entry))
-                    {
-                        _cacheKeys.Remove(entry.Node);
-                        if (category == null)
-                        {
-                            _logger.LogClearAdapterIdCacheEntry(location, entry.Endpoint, entry.AltEndpoints);
-                        }
-                        else
-                        {
-                            _logger.LogClearWellKnownCacheEntry(new Identity(location, category),
-                                                                             entry.Endpoint,
-                                                                             entry.AltEndpoints);
-                        }
-                    }
-                }
-            }
-        }
-
-        private async ValueTask<(Endpoint?, ImmutableList<Endpoint>, bool FromCache)> ResolveAsync(
+        private ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             string location,
             string? category,
             bool refreshCache,
-            CancellationToken cancel)
+            CancellationToken cancel) =>
+            category == null ? ResolveAsync(location, _adapterIdResolver, _adapterIdCache, refreshCache, cancel) :
+                ResolveAsync(new Identity(location, category), _identityResolver, _identityCache, refreshCache, cancel);
+
+        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync<T>(
+            T arg,
+            ILocationResolver<T> resolver,
+            ICache<T>? cache,
+            bool refreshCache,
+            CancellationToken cancel) where T : IEquatable<T>
         {
-            Endpoint? endpoint = null;
-            ImmutableList<Endpoint> altEndpoints = ImmutableList<Endpoint>.Empty;
+            Proxy? proxy = null;
             bool expired = false;
             bool justRefreshed = false;
             bool resolved = false;
 
-            if (HasCache && _cache.TryGetValue(
-                (location, category),
-                out (TimeSpan InsertionTime, Endpoint Endpoint, ImmutableList<Endpoint> AltEndpoints, LinkedListNode<(string, string?)> _) entry))
+            if (cache != null && cache.TryGetValue(arg, out (TimeSpan InsertionTime, Proxy Proxy) entry))
             {
-                endpoint = entry.Endpoint;
-                altEndpoints = entry.AltEndpoints;
+                proxy = entry.Proxy;
                 TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
                 expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
                 justRefreshed = cacheEntryAge <= _justRefreshedAge;
             }
 
-            if (endpoint == null || (!_background && expired) || (refreshCache && !justRefreshed))
+            if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
             {
-                (endpoint, altEndpoints) =
-                    await ResolveWithLocatorAsync(location, category, cancel).ConfigureAwait(false);
+                proxy = await resolver.FindAsync(arg, cancel).ConfigureAwait(false);
                 resolved = true;
             }
             else if (_background && expired)
             {
-                // We retrieved expired endpoints from the cache, so we launch a refresh in the background.
-                _ = ResolveWithLocatorAsync(location, category, cancel: default);
+                // We retrieved an expired proxy from the cache, so we launch a refresh in the background.
+                _ = resolver.FindAsync(arg, cancel: default).ConfigureAwait(false);
             }
 
             // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
             // endpoint.
-            if (endpoint?.Transport == TransportNames.Loc)
+            if (proxy?.Endpoint?.Transport == TransportNames.Loc)
             {
                 try
                 {
-                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the endpoint, we
-                    // request a cache refresh for the adapter.
-                    (endpoint, altEndpoints, _) = await ResolveAsync(endpoint!.Host,
-                                                                     category: null,
-                                                                     refreshCache || resolved,
-                                                                     cancel).ConfigureAwait(false);
+                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
+                    // proxy, we request a cache refresh for the adapter.
+                    (proxy, _) = await ResolveAsync(proxy!.Endpoint!.Host,
+                                                    _adapterIdResolver,
+                                                    _adapterIdCache,
+                                                    refreshCache || resolved,
+                                                    cancel).ConfigureAwait(false);
                 }
                 finally
                 {
                     // When the second resolution fails, we clear the cache entry for the initial successful
                     // resolution, since the overall resolution is a failure.
-                    // endpoint below can hold a loc endpoint only when an exception is thrown.
-                    if (endpoint == null || endpoint.Transport == TransportNames.Loc)
+                    // proxy below can hold a loc endpoint only when an exception is thrown.
+                    if (proxy == null || proxy?.Endpoint?.Transport == TransportNames.Loc)
                     {
-                        ClearCache(location, category);
+                        cache?.Remove(arg);
                     }
                 }
             }
 
-            if (endpoint != null)
-            {
-                if (resolved)
-                {
-                    if (category == null)
-                    {
-                        _logger.LogResolvedAdapterId(location, endpoint, altEndpoints);
-                    }
-                    else
-                    {
-                        _logger.LogResolvedWellKnown(new Identity(location, category), endpoint, altEndpoints);
-                    }
-                }
-                else
-                {
-                    if (category == null)
-                    {
-                        _logger.LogFoundAdapterIdEntryInCache(location, endpoint, altEndpoints);
-                    }
-                    else
-                    {
-                        _logger.LogFoundWellKnownEntryInCache(new Identity(location, category), endpoint, altEndpoints);
-                    }
-                }
-            }
-            else
-            {
-                if (category == null)
-                {
-                    _logger.LogCouldNotResolveAdapterId(location);
-                }
-                else
-                {
-                    _logger.LogCouldNotResolveWellKnown(new Identity(location, category));
-                }
-            }
+            // TODO: logging
 
-            return (endpoint, altEndpoints, endpoint != null && !resolved);
-        }
-
-        private async Task<(Endpoint?, ImmutableList<Endpoint>)> ResolveWithLocatorAsync(
-            string location,
-            string? category,
-            CancellationToken cancel)
-        {
-            if (category == null)
-            {
-                _logger.LogResolvingAdapterId(location);
-            }
-            else
-            {
-                _logger.LogResolvingWellKnown(new Identity(location, category));
-            }
-
-            Task<(Endpoint?, ImmutableList<Endpoint>)>? task;
-            lock (_mutex)
-            {
-                if (!_requests.TryGetValue((location, category), out task))
-                {
-                    // If there is no request in progress, we invoke one and cache the request to prevent concurrent
-                    // identical requests. It's removed once the response is received.
-                    task = PerformResolveWithLocatorAsync();
-                    if (!task.IsCompleted)
-                    {
-                        // If PerformResolveWithLocatorAsync completed, don't add the task (it would leak since
-                        // PerformResolveWithLocatorAsync is responsible for removing it).
-                        // Since PerformResolveWithLocatorAsync locks _mutex in its finally block, the only way it can
-                        // be completed now is if completed synchronously.
-                        _requests.Add((location, category), task);
-                    }
-                }
-            }
-
-            return await task.WaitAsync(cancel).ConfigureAwait(false);
-
-            async Task<(Endpoint?, ImmutableList<Endpoint>)> PerformResolveWithLocatorAsync()
-            {
-                try
-                {
-                    ServicePrx? servicePrx = null;
-
-                    if (category == null)
-                    {
-                        try
-                        {
-                            servicePrx = await _locator.FindAdapterByIdAsync(
-                                location,
-                                cancel: CancellationToken.None).ConfigureAwait(false);
-                        }
-                        catch (AdapterNotFoundException)
-                        {
-                            // We treat AdapterNotFoundException just like a null return value.
-                            servicePrx = null;
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            servicePrx = await _locator.FindObjectByIdAsync(
-                                new Identity(location, category),
-                                cancel: CancellationToken.None).ConfigureAwait(false);
-                        }
-                        catch (ObjectNotFoundException)
-                        {
-                            // We treat ObjectNotFoundException just like a null return value.
-                            servicePrx = null;
-                        }
-                    }
-
-                    Proxy? resolved = servicePrx?.Proxy;
-
-                    if (resolved != null &&
-                        ((category == null && resolved.IsIndirect) ||
-                          resolved.IsWellKnown ||
-                          resolved.Protocol != Protocol.Ice1))
-                    {
-                        if (category == null)
-                        {
-                            _logger.LogReceivedInvalidProxyForAdapterId(location, resolved);
-                        }
-                        else
-                        {
-                            _logger.LogReceivedInvalidProxyForWellKnown(new Identity(location, category), resolved);
-                        }
-                        resolved = null;
-                    }
-
-                    if (resolved?.Endpoint == null)
-                    {
-                        ClearCache(location, category);
-                    }
-                    else if (HasCache)
-                    {
-                        // We need to insert the cache entry before removing the request from _requests (see finally
-                        // below) to avoid a race condition.
-                        lock (_mutex)
-                        {
-                            ClearCache(location, category); // remove existing cache entry if present
-
-                            _cache[(location, category)] = (Time.Elapsed,
-                                                            resolved.Endpoint,
-                                                            resolved.AltEndpoints,
-                                                            _cacheKeys.AddFirst((location, category)));
-
-                            if (_cacheKeys.Count == _cacheMaxSize + 1)
-                            {
-                                // drop last (oldest) entry
-                                (string lastLocation, string? lastCategory) = _cacheKeys.Last!.Value;
-                                ClearCache(lastLocation, lastCategory);
-
-                                Debug.Assert(_cacheKeys.Count == _cacheMaxSize); // removed the last entry
-                            }
-                        }
-                    }
-                    return (resolved?.Endpoint, resolved?.AltEndpoints ?? ImmutableList<Endpoint>.Empty);
-                }
-                catch (Exception exception)
-                {
-                    if (category == null)
-                    {
-                        _logger.LogResolveAdapterIdFailure(location, exception);
-                    }
-                    else
-                    {
-                        _logger.LogResolveWellKnownFailure(new Identity(location, category), exception);
-                    }
-                    throw;
-                }
-                finally
-                {
-                    lock (_mutex)
-                    {
-                        _requests.Remove((location, category));
-                    }
-                }
-            }
+            return (proxy, proxy != null && !resolved);
         }
 
         private sealed class CachedResolutionFeature
