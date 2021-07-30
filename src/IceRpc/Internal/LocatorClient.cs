@@ -68,7 +68,7 @@ namespace IceRpc.Internal
         {
             if (request.Connection == null)
             {
-                Key? key = null;
+                Key key = default;
                 bool refreshCache = false;
 
                 if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
@@ -90,50 +90,50 @@ namespace IceRpc.Internal
                     key = new Key(request.Identity);
                 }
 
-                if (key != null)
+                if (key != default)
                 {
-                    _logger.LogResolving(key.Value.Kind, key.Value);
+                    _logger.LogResolving(key.Kind, key);
 
                     try
                     {
                         (Proxy? proxy, bool fromCache) =
-                            await ResolveAsync(key.Value, refreshCache, cancel).ConfigureAwait(false);
+                            await ResolveAsync(key, refreshCache, cancel).ConfigureAwait(false);
 
                         if (refreshCache)
                         {
                             if (!fromCache && !request.Features.IsReadOnly)
                             {
-                                // No need to resolve the loc endpoint / identity again since we didn't returned a
+                                // No need to resolve the loc endpoint / identity again since we are not returning a
                                 // cached value.
                                 request.Features.Set<CachedResolutionFeature>(null);
                             }
                         }
                         else if (fromCache)
                         {
-                            // Make sure the next attempt re-resolves location+category and sets refreshCache to true.
+                            // Make sure the next attempt re-resolves key and sets refreshCache to true.
 
                             if (request.Features.IsReadOnly)
                             {
                                 request.Features = new FeatureCollection(request.Features);
                             }
-                            request.Features.Set(new CachedResolutionFeature(key.Value));
+                            request.Features.Set(new CachedResolutionFeature(key));
                         }
 
                         if (proxy?.Endpoint != null)
                         {
-                            _logger.LogResolved(key.Value.Kind, key.Value, proxy);
+                            _logger.LogResolved(key.Kind, key, proxy);
 
                             request.Endpoint = proxy.Endpoint;
                             request.AltEndpoints = proxy.AltEndpoints;
                         }
                         else
                         {
-                            _logger.LogFailedToResolve(key.Value.Kind, key.Value);
+                            _logger.LogFailedToResolve(key.Kind, key);
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogFailedToResolve(key.Value.Kind, key.Value, ex);
+                        _logger.LogFailedToResolve(key.Kind, key, ex);
                     }
                 }
             }
@@ -359,7 +359,7 @@ namespace IceRpc.Internal
 
             async Task<Proxy?> ILocationResolver.FindAsync(Key key, CancellationToken cancel)
             {
-               Proxy? proxy = await _decoratee.FindAsync(key, cancel).ConfigureAwait(false);
+                Proxy? proxy = await _decoratee.FindAsync(key, cancel).ConfigureAwait(false);
 
                 if (proxy != null)
                 {
@@ -466,7 +466,7 @@ namespace IceRpc.Internal
 
             bool ICache.TryGetValue(Key key, out (TimeSpan InsertionTime, Proxy Proxy) value)
             {
-                // no mutex lock
+                // no mutex lock: _cache is a concurrent dictionary and it's ok if it's updated while we read it
 
                 if (_cache.TryGetValue(key, out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Key> Node) entry))
                 {
