@@ -47,7 +47,7 @@ namespace IceRpc.Internal
             {
                 throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
             }
         }
 

@@ -7,49 +7,39 @@
           "files": [
             "src/IceRpc/IceRpc.csproj"
           ],
-          "exclude":[
+          "exclude": [
             "**/bin/**",
             "**/obj/**",
             "_site/**"
           ]
         }
       ],
-      "dest": "api"
+      "dest": "obj/api"
     }
   ],
   "build": {
     "content": [
       {
-        "files": [
-          "api/**.yml",
-          "api/index.md"
-        ]
+        "files": [ "**/*.yml" ],
+        "src": "obj/api",
+        "dest": "api"
       },
       {
-        "files": [
-          "toc.yml",
-          "*.md"
-        ]
+        "files": [ "articles/**/*.md", "*.md", "toc.yml" ]
       }
     ],
     "resource": [
       {
-        "files": [
-          "images/**"
-        ]
+        "files": [ "articles/images/**"]
       }
     ],
-    "dest": "_site",
-    "globalMetadataFiles": [],
-    "fileMetadataFiles": [],
-    "template": [
-      "default"
-    ],
-    "postProcessors": [],
+    "overwrite": "specs/*.md",
+    "globalMetadata": {
+      "_appTitle": "docfx seed website",
+      "_enableSearch": true
+    },
     "markdownEngineName": "markdig",
-    "noLangKeyword": false,
-    "keepFileLink": false,
-    "cleanupCacheHistory": false,
-    "disableGitFeatures": true
+    "dest": "_site",
+    "xrefService": [ "https://xref.docs.microsoft.com/query?uid={uid}" ]
   }
 }
