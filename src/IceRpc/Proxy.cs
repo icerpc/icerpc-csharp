@@ -180,7 +180,7 @@ namespace IceRpc
             {
                 return false;
             }
-            return rhs.Equals(lhs);
+            return lhs.Equals(rhs);
         }
 
         /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
@@ -496,7 +496,8 @@ namespace IceRpc
                         var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
                         proxy.Identity = identity;
                         proxy.FacetPath = proxyData.FacetPath;
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
+                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
+                                                                        proxyData.EncodingMinor);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         proxy.Invoker = decoder.Invoker;
@@ -540,7 +541,8 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
+                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
+                                                                        proxyData.EncodingMinor);
                         return proxy;
                     }
                     catch (Exception ex)
@@ -590,8 +592,8 @@ namespace IceRpc
                     {
                         var proxy = Proxy.FromPath(path, Protocol.Ice1);
                         proxy.FacetPath = facetPath;
-                        proxy.Encoding =
-                            proxyData.Encoding is string encoding ? Encoding.FromString(encoding) : Ice1Definitions.Encoding;
+                        proxy.Encoding = proxyData.Encoding is string encoding ?
+                            Encoding.FromString(encoding) : Ice1Definitions.Encoding;
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
                         proxy.Invoker = decoder.Invoker;
@@ -624,8 +626,8 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding =
-                            proxyData.Encoding is string encoding ? Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
+                        proxy.Encoding = proxyData.Encoding is string encoding ?
+                            Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
 
                         return proxy;
                     }
@@ -753,7 +755,8 @@ namespace IceRpc
                     encoding: Encoding == Protocol.GetEncoding() ? null : Encoding.ToString(),
                     endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
-                    altEndpoints: AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
+                    altEndpoints:
+                        AltEndpoints.Count == 0 ? null : AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
 
                 proxyData.Encode(encoder);
             }

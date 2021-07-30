@@ -150,7 +150,7 @@ Slice::CsVisitor::writeMarshal(const OperationPtr& operation, bool returnType)
         requiredMembers.size() > 1;
     if (write11ReturnLast)
     {
-        _out << nl << "if (encoder.Encoding != IceRpc.Encoding.V11)";
+        _out << nl << "if (encoder.Encoding != IceRpc.Encoding.Ice11)";
         _out << sb;
     }
 
@@ -233,7 +233,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
 
     if (read11ReturnLast)
     {
-        _out << nl << "if (decoder.Encoding != IceRpc.Encoding.V11)";
+        _out << nl << "if (decoder.Encoding != IceRpc.Encoding.Ice11)";
         _out << sb;
     }
 
@@ -972,7 +972,7 @@ Slice::CsVisitor::writeParamDocComment(const OperationPtr& op, const CommentInfo
         auto i = comment.params.find(param->name());
         if(i != comment.params.end())
         {
-            writeDocCommentLines(_out, i->second, "param", "name", fixId(param->name()));
+            writeDocCommentLines(_out, i->second, "param", "name", paramName(param, "", false));
         }
     }
 }
@@ -1223,7 +1223,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         for (const auto& member : allDataMembers)
         {
             CommentInfo comment = processComment(member, "");
-            writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member));
+            writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member, "", false));
         }
         _out << nl << "public " << name
              << spar
@@ -1271,7 +1271,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
             for (const auto& member : allMandatoryDataMembers)
             {
                 CommentInfo comment = processComment(member, "");
-                writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member));
+                writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member, "", false));
             }
             _out << nl << "public " << name
                 << spar
@@ -1520,7 +1520,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
             for (const auto& member : p->allDataMembers())
             {
                 CommentInfo comment = processComment(member, "");
-                writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member));
+                writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member, "", false));
             }
 
             if (i > 0)
@@ -1684,7 +1684,7 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     for (const auto& member : dataMembers)
     {
         CommentInfo comment = processComment(member, "");
-        writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member));
+        writeDocCommentLines(_out, comment.summaryLines, "param", "name", paramName(member, "", false));
     }
     _out << nl << "public ";
     _out << name

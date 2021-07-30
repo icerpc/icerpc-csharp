@@ -23,7 +23,7 @@ module IceRpc
     // temporary
     sequence<EndpointParam> EndpointParamSeq;
 
-    /// The "on-the-wire" representation of an endpoint when using the 2.0 encoding.
+    /// The "on-the-wire" representation of an endpoint when using the Ice 2.0 encoding.
     [cs:readonly]
     struct EndpointData
     {

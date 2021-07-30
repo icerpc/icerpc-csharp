@@ -76,7 +76,7 @@ namespace IceRpc
                         if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
                         {
                             response.Payload = payload.Decompress(
-                                maxSize: request.Connection!.Options!.IncomingFrameMaxSize);
+                                maxSize: request.Connection!.IncomingFrameMaxSize);
                         }
                     }
 

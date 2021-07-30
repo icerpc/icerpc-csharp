@@ -17,6 +17,9 @@ namespace IceRpc
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
         public static readonly Encoding Ice20 = new(Ice20Name);
 
+        /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
+        public string Name { get; }
+
         /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
         internal static readonly Encoding Unknown = new(UnknownName);
 
@@ -24,8 +27,6 @@ namespace IceRpc
         private const string Ice11Name = "1.1";
         private const string Ice20Name = "2.0";
         private const string UnknownName = "unknown";
-
-        private readonly string _name;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -42,7 +43,7 @@ namespace IceRpc
             {
                 return false;
             }
-            return rhs.Equals(lhs);
+            return lhs.Equals(rhs);
         }
 
         /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
@@ -57,11 +58,11 @@ namespace IceRpc
         /// <summary>Checks if this encoding is equal to another encoding.</summary>
         /// <param name="other">The other encoding.</param>
         /// <returns><c>true</c>when the two encodings have the same name; otherwise, <c>false</c>.</returns>
-        public bool Equals(Encoding? other) => _name == other?._name;
+        public bool Equals(Encoding? other) => Name == other?.Name;
 
         /// <summary>Computes the hash code for this encoding.</summary>
         /// <returns>The hash code.</returns>
-        public override int GetHashCode() => _name.GetHashCode(StringComparison.Ordinal);
+        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
 
         /// <summary>Returns an Encoding with the given name. This method always succeeds.</summary>
         /// <param name="name">The name of the encoding.</param>
@@ -79,7 +80,7 @@ namespace IceRpc
 
         /// <summary>Converts this encoding into a string.</summary>
         /// <returns>The name of the encoding.</returns>
-        public override string ToString() => _name;
+        public override string ToString() => Name;
 
         /// <summary>Returns an Encoding with the given major and minor versions. This method always succeeds.
         /// </summary>
@@ -97,7 +98,7 @@ namespace IceRpc
         /// </exception>
         internal (byte Major, byte Minor) ToMajorMinor()
         {
-            switch (_name)
+            switch (Name)
             {
                 case Ice10Name:
                     return ((byte)1, (byte)0);
@@ -109,29 +110,29 @@ namespace IceRpc
                     return ((byte)2, (byte)0);
 
                 default:
-                    if (_name.Length == 3 && _name[1] == '.')
+                    if (Name.Length == 3 && Name[1] == '.')
                     {
                         try
                         {
-                            byte major = byte.Parse(_name.AsSpan(0, 1));
-                            byte minor = byte.Parse(_name.AsSpan(2, 1));
+                            byte major = byte.Parse(Name.AsSpan(0, 1));
+                            byte minor = byte.Parse(Name.AsSpan(2, 1));
                             return (major, minor);
                         }
                         catch (FormatException ex)
                         {
                             throw new NotSupportedException(
-                                $"cannot convert encoding '{this}' into to major/minor bytes", ex);
+                                $"cannot convert encoding '{this}' to major/minor bytes", ex);
                         }
                     }
                     else
                     {
                         throw new NotSupportedException(
-                            $"cannot convert encoding '{this}' into to major/minor bytes");
+                            $"cannot convert encoding '{this}' to major/minor bytes");
                     }
             }
         }
 
         private Encoding(string name) =>
-            _name = name;
+            Name = name;
     }
 }

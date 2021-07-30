@@ -13,7 +13,7 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
