@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="$(MSBuildThisFileDirectory)../build/ice.props" />
+    <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.props" />
     <PropertyGroup>
         <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.ruleset</CodeAnalysisRuleSet>
         <!-- Include PDB in the built .nupkg -->

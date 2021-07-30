@@ -1,6 +1,4 @@
-//
 // Copyright (c) ZeroC, Inc. All rights reserved.
-//
 
 using System;
 using System.Diagnostics;
@@ -82,7 +80,7 @@ public class SignTask : Task
 
         public string Error { get; private set; }
 
-        public void ouput(object sendingProcess, DataReceivedEventArgs outLine)
+        public void OnOutputDataReceived(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (outLine.Data != null)
             {
@@ -90,7 +88,7 @@ public class SignTask : Task
             }
         }
 
-        public void error(object sendingProcess, DataReceivedEventArgs outLine)
+        public void OnErrorDataReceived(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (outLine.Data != null)
             {
@@ -111,8 +109,8 @@ public class SignTask : Task
         process.StartInfo.WorkingDirectory = workingDir;
 
         StreamReader streamReader = new();
-        process.OutputDataReceived += new DataReceivedEventHandler(streamReader.ouput);
-        process.ErrorDataReceived += new DataReceivedEventHandler(streamReader.error);
+        process.OutputDataReceived += new DataReceivedEventHandler(streamReader.OnOutputDataReceived);
+        process.ErrorDataReceived += new DataReceivedEventHandler(streamReader.OnErrorDataReceived);
 
         try
         {

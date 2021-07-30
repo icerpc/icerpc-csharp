@@ -6,7 +6,8 @@
         <!-- Source Link Settings -->
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
-        <RepositoryUrl>https://github.com/zeroc-ice/ice</RepositoryUrl>
+        <!-- TODO Fix repository URL before release -->
+        <RepositoryUrl>https://github.com/zeroc-ice/icerpc-csharp</RepositoryUrl>
     </PropertyGroup>
-    <Import Project="$(MSBuildThisFileDirectory)ice.common.props" />
+    <Import Project="$(MSBuildThisFileDirectory)common.props" />
 </Project>
