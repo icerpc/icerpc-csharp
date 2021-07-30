@@ -148,25 +148,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The peer's incoming frame maximum size. This is not supported with ice1 connections.</summary>
-        /// <exception cref="InvalidOperationException">Thrown if the connection is not connected.</exception>
-        /// <exception cref="NotSupportedException">Thrown if the connection is an ice1 connection.</exception>
-        public int PeerIncomingFrameMaxSize
-        {
-            get
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    throw new NotSupportedException("the peer incoming frame max size is not available with ice1");
-                }
-                else if (State < ConnectionState.Active)
-                {
-                    throw new InvalidOperationException("the connection is not connected");
-                }
-                return UnderlyingConnection!.PeerIncomingFrameMaxSize!.Value;
-            }
-        }
-
         /// <summary>This event is raised when the connection receives a ping frame. The connection object is
         /// passed as the event sender argument.</summary>
         public event EventHandler? PingReceived;
