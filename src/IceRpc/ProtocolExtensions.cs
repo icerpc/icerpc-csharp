@@ -16,8 +16,8 @@ namespace IceRpc
                 Protocol.Ice1 => Encoding.V11,
                 Protocol.Ice2 => Encoding.V20,
                 _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()}' is not supported by this IceRPC runtime ({Runtime.StringVersion
-                    })")
+                    @$"Ice protocol '{protocol.GetName()
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})")
             };
 
         /// <summary>Returns the name of this protocol in lowercase, e.g. "ice1" or "ice2".</summary>
@@ -60,7 +60,7 @@ namespace IceRpc
             {
                 throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
             }
         }
 
@@ -71,7 +71,7 @@ namespace IceRpc
                 Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding),
                 _ => throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})"),
             };
 
         internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding) =>
@@ -81,7 +81,7 @@ namespace IceRpc
                 Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding),
                 _ => throw new NotSupportedException(
                     @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
+                    }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})"),
             };
 
         internal static bool IsSupported(this Protocol protocol) =>

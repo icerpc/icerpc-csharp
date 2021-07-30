@@ -72,7 +72,8 @@ namespace IceRpc
             if (!IsSupported)
             {
                 throw new NotSupportedException(
-                    $"Ice encoding '{this}' is not supported by this IceRPC runtime ({Runtime.StringVersion})");
+                    $@"Ice encoding '{this
+                    }' is not supported by this IceRPC runtime ({typeof(Encoding).Assembly.GetName().Version})");
             }
         }
     }
