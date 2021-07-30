@@ -51,24 +51,18 @@ namespace IceRpc.Internal
             }
         }
 
-        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding) =>
-            protocol switch
-            {
-                Protocol.Ice1 => Ice1Definitions.GetEmptyArgsPayload(encoding),
-                Protocol.Ice2 => Ice2Definitions.GetEmptyArgsPayload(encoding),
-                _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
-            };
+        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding)
+        {
+            CheckSupported(protocol);
+            return protocol == Protocol.Ice1 ? Ice1Definitions.GetEmptyArgsPayload(encoding) :
+                Ice2Definitions.GetEmptyArgsPayload(encoding);
+        }
 
-        internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding) =>
-            protocol switch
-            {
-                Protocol.Ice1 => Ice1Definitions.GetVoidReturnValuePayload(encoding),
-                Protocol.Ice2 => Ice2Definitions.GetVoidReturnValuePayload(encoding),
-                _ => throw new NotSupportedException(
-                    @$"Ice protocol '{protocol.GetName()
-                    }' is not supported by this IceRPC runtime ({Runtime.StringVersion})"),
-            };
+        internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding)
+        {
+            CheckSupported(protocol);
+            return protocol == Protocol.Ice1 ? Ice1Definitions.GetVoidReturnValuePayload(encoding) :
+                Ice2Definitions.GetVoidReturnValuePayload(encoding);
+        }
     }
 }

@@ -67,7 +67,7 @@ module IceRpc
     /// - a request header (below)
     /// - a request payload
     /// We put various members of the header in the Ice2RequestHeaderBody struct because the encoding and decoding of
-    /// of Fields is often custom.
+    /// Fields is often custom.
     [cs:readonly]
     struct Ice2RequestHeader
     {
@@ -100,7 +100,7 @@ module IceRpc
     /// - a response header (below)
     /// - a response payload
     /// We put various members of the header in the Ice2ResponseHeaderBody struct because the encoding and decoding of
-    /// of Fields is often custom.
+    /// Fields is often custom.
     [cs:readonly]
     struct Ice2ResponseHeader
     {
