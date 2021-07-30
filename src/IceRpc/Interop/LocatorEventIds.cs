@@ -5,33 +5,31 @@ namespace IceRpc.Interop
     /// <summary>This enum contains event ID constants used for locator interceptor logging.</summary>
     public enum LocatorEvent
     {
-        /// <summary>A locator adapter ID cache entry was cleared.</summary>
-        ClearAdapterIdCacheEntry = Internal.LoggerExtensions.LocatorBaseEventId,
-        /// <summary>A locator well-known cache entry was cleared.</summary>
-        ClearWellKnownCacheEntry,
-        /// <summary>The locator could not resolve an adapter ID.</summary>
-        CouldNotResolveAdapterId,
-        /// <summary>The locator could not resolve a well-known proxy</summary>
-        CouldNotResolveWellKnown,
-        /// <summary>The locator found an adapter ID entry in its cache.</summary>
-        FoundAdapterIdEntryInCache,
-        /// <summary>The locator found a well-known proxy entry in its cache.</summary>
-        FoundWellKnownEntryInCache,
-        /// <summary>The locator received an invalid proxy when resolving an adapter ID.</summary>
-        ReceivedInvalidProxyForAdapterId,
-        /// <summary>The locator received an invalid proxy when resolving a well-known proxy.</summary>
-        ReceivedInvalidProxyForWellKnown,
-        /// <summary>There was a failure resolving an adapter ID.</summary>
-        ResolveAdapterIdFailure,
-        /// <summary>There was a failure resolving a well-known proxy.</summary>
-        ResolveWellKnownFailure,
-        /// <summary>The locator successfully resolved an adapter ID.</summary>
-        ResolvedAdapterId,
-        /// <summary>The locator successfully resolved a well-known proxy.</summary>
-        ResolvedWellKnown,
-        /// <summary>The locator is resolving an adapter ID.</summary>
-        ResolvingAdapterId,
-        /// <summary>The locator is resolving a well-known proxy.</summary>
-        ResolvingWellKnown
+        /// <summary>The locator interceptor is resolving an adapter ID or identity.</summary>
+        Resolving = Internal.LoggerExtensions.LocatorBaseEventId,
+
+        /// <summary>The locator interceptor resolved successfully an adapter ID or identity.</summary>
+        Resolved,
+
+        /// <summary>The locator interceptor failed to resolve an adapter ID or identity.</summary>
+        FailedToResolve,
+
+        /// <summary>The locator interceptor found the requested adapter ID or identity in its cache. This entry
+        /// may be stale.</summary>
+        FoundEntryInCache,
+
+        /// <summary>The locator interceptor set an entry in its cache. This entry may silently replace an existing
+        /// entry.</summary>
+        SetEntryInCache,
+
+        /// <summary>The locator interceptor removed an entry from its cache.</summary>
+        RemovedEntryFromCache,
+
+        /// <summary>A find operation on the locator proxy failed (returned null or an invalid proxy, or threw an
+        /// exception).</summary>
+        FindFailed,
+
+        /// <summary>A find operation on the locator proxy succeeded.</summary>
+        Found
     }
 }

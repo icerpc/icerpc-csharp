@@ -17,6 +17,186 @@ namespace IceRpc.Internal
     /// <see cref="Interceptors.Locator(ILocatorPrx, Interceptors.LocatorOptions)"/>.</summary>
     internal sealed class LocatorClient
     {
+        private readonly bool _background;
+        private readonly ICache? _cache;
+        private readonly TimeSpan _justRefreshedAge;
+        private readonly ILocationResolver _locationResolver;
+        private readonly ILogger _logger;
+        private readonly TimeSpan _ttl;
+
+        /// <summary>Constructs a locator invoker.</summary>
+        internal LocatorClient(ILocatorPrx locator, Interceptors.LocatorOptions options)
+        {
+            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
+            {
+                throw new ArgumentException(
+                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}", nameof(options));
+            }
+
+            _background = options.Background;
+            _justRefreshedAge = options.JustRefreshedAge;
+            _logger = options.LoggerFactory.CreateLogger("IceRpc");
+            _ttl = options.Ttl;
+
+            if (_ttl != TimeSpan.Zero && options.CacheMaxSize > 0)
+            {
+                _cache = new LogCacheDecorator(new Cache(options.CacheMaxSize), _logger);
+            }
+
+            ILocationResolver locationResolver = new LocationResolver(locator);
+
+            // Install decorators
+            locationResolver = new LogDecorator(locationResolver, _logger);
+            if (_cache != null)
+            {
+                locationResolver = new CacheUpdateDecorator(locationResolver, _cache);
+            }
+            locationResolver = new CoalesceDecorator(locationResolver);
+
+            _locationResolver = locationResolver;
+        }
+
+        /// <summary>Updates the endpoints of the request (as appropriate) then call InvokeAsync on next.</summary>
+        /// <param name="request">The outgoing request.</param>
+        /// <param name="next">The next invoker in the pipeline.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>The response.</returns>
+        internal async Task<IncomingResponse> InvokeAsync(
+            OutgoingRequest request,
+            IInvoker next,
+            CancellationToken cancel)
+        {
+            if (request.Connection == null)
+            {
+                Key? key = null;
+                bool refreshCache = false;
+
+                if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
+                {
+                    // This is the second (or greater) attempt, and we provided a cached resolution with the first
+                    // attempt and all subsequent attempts.
+
+                    key = cachedResolution.Key;
+                    refreshCache = true;
+                }
+                else if (request.Endpoint is Endpoint locEndpoint && locEndpoint.Transport == TransportNames.Loc)
+                {
+                    // Typically first attempt since a successful resolution replaces this loc endpoint.
+                    key = new Key(locEndpoint.Host);
+                }
+                else if (request.Endpoint == null && request.Protocol == Protocol.Ice1)
+                {
+                    // Well-known proxy
+                    key = new Key(request.Identity);
+                }
+
+                if (key != null)
+                {
+                    _logger.LogResolving(key.Value.Kind, key.Value);
+
+                    try
+                    {
+                        (Proxy? proxy, bool fromCache) =
+                            await ResolveAsync(key.Value, refreshCache, cancel).ConfigureAwait(false);
+
+                        if (refreshCache)
+                        {
+                            if (!fromCache && !request.Features.IsReadOnly)
+                            {
+                                // No need to resolve the loc endpoint / identity again since we didn't returned a
+                                // cached value.
+                                request.Features.Set<CachedResolutionFeature>(null);
+                            }
+                        }
+                        else if (fromCache)
+                        {
+                            // Make sure the next attempt re-resolves location+category and sets refreshCache to true.
+
+                            if (request.Features.IsReadOnly)
+                            {
+                                request.Features = new FeatureCollection(request.Features);
+                            }
+                            request.Features.Set(new CachedResolutionFeature(key.Value));
+                        }
+
+                        if (proxy?.Endpoint != null)
+                        {
+                            _logger.LogResolved(key.Value.Kind, key.Value, proxy);
+
+                            request.Endpoint = proxy.Endpoint;
+                            request.AltEndpoints = proxy.AltEndpoints;
+                        }
+                        else
+                        {
+                            _logger.LogFailedToResolve(key.Value.Kind, key.Value);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogFailedToResolve(key.Value.Kind, key.Value, ex);
+                    }
+                }
+            }
+
+            return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
+        }
+
+        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+            Key key,
+            bool refreshCache,
+            CancellationToken cancel)
+        {
+            Proxy? proxy = null;
+            bool expired = false;
+            bool justRefreshed = false;
+            bool resolved = false;
+
+            if (_cache != null && _cache.TryGetValue(key, out (TimeSpan InsertionTime, Proxy Proxy) entry))
+            {
+                proxy = entry.Proxy;
+                TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
+                expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
+                justRefreshed = cacheEntryAge <= _justRefreshedAge;
+            }
+
+            if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
+            {
+                proxy = await _locationResolver.FindAsync(key, cancel).ConfigureAwait(false);
+                resolved = true;
+            }
+            else if (_background && expired)
+            {
+                // We retrieved an expired proxy from the cache, so we launch a refresh in the background.
+                _ = _locationResolver.FindAsync(key, cancel: default).ConfigureAwait(false);
+            }
+
+            // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
+            // endpoint.
+            if (proxy?.Endpoint?.Transport == TransportNames.Loc)
+            {
+                try
+                {
+                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
+                    // proxy, we request a cache refresh for the adapter.
+                    (proxy, _) = await ResolveAsync(new Key(proxy!.Endpoint!.Host),
+                                                    refreshCache || resolved,
+                                                    cancel).ConfigureAwait(false);
+                }
+                finally
+                {
+                    // When the second resolution fails, we clear the cache entry for the initial successful
+                    // resolution, since the overall resolution is a failure.
+                    // proxy below can hold a loc endpoint only when an exception is thrown.
+                    if (proxy == null || proxy?.Endpoint?.Transport == TransportNames.Loc)
+                    {
+                        _cache?.Remove(key);
+                    }
+                }
+            }
+
+            return (proxy, proxy != null && !resolved);
+        }
+
         // The type used for all lookups.
         internal readonly struct Key : IEquatable<Key>
         {
@@ -38,10 +218,16 @@ namespace IceRpc.Internal
             internal Identity ToIdentity() =>
                 Category is string category ? new Identity(Location, category) : throw new InvalidOperationException();
 
-            internal Key(string location, string? category)
+            internal Key(string location)
             {
                 Location = location;
-                Category = category;
+                Category = null;
+            }
+
+            internal Key(Identity identity)
+            {
+                Location = identity.Name;
+                Category = identity.Category;
             }
         }
 
@@ -141,26 +327,21 @@ namespace IceRpc.Internal
                     if (proxy != null)
                     {
                         Debug.Assert(proxy.Endpoint != null);
-
                         _logger.LogFound(key.Kind, key, proxy);
                     }
                     else
                     {
                         _logger.LogFindFailed(key.Kind, key);
                     }
-
                     return proxy;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    _logger.LogFindFailedWithException(key.Kind, key, ex);
+                    // We log the exception itself when we actually handle it.
+                    _logger.LogFindFailed(key.Kind, key);
                     throw;
                 }
             }
-
-            private static string Display(Key key) =>
-                key.Category == null ? $"adapter ID {key.Location}" :
-                $"identity {new Identity(key.Location, key.Category)}";
         }
 
         // This decorator updates the cache after a remote call to the locator. It needs to execute downstream from the
@@ -263,16 +444,7 @@ namespace IceRpc.Internal
                 _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
             }
 
-            public void Remove(Key key)
-            {
-                lock (_mutex)
-                {
-                    if (_cache.TryRemove(key, out var entry))
-                    {
-                        _cacheKeys.Remove(entry.Node);
-                    }
-                }
-            }
+            void ICache.Remove(Key key) => Remove(key);
 
             void ICache.Set(Key key, Proxy proxy)
             {
@@ -296,7 +468,7 @@ namespace IceRpc.Internal
             {
                 // no mutex lock
 
-                if (_cache.TryGetValue(key, out var entry))
+                if (_cache.TryGetValue(key, out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Key> Node) entry))
                 {
                     value.InsertionTime = entry.InsertionTime;
                     value.Proxy = entry.Proxy;
@@ -308,190 +480,62 @@ namespace IceRpc.Internal
                     return false;
                 }
             }
+
+            private void Remove(Key key)
+            {
+                lock (_mutex)
+                {
+                    if (_cache.TryRemove(key,
+                                         out (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Key> Node) entry))
+                    {
+                        _cacheKeys.Remove(entry.Node);
+                    }
+                }
+            }
         }
 
-        private readonly bool _background;
-        private readonly ICache? _cache;
-        private readonly ILocationResolver _locationResolver;
-
-        private readonly TimeSpan _justRefreshedAge;
-        private readonly ILogger _logger;
-        private readonly TimeSpan _ttl;
-
-        /// <summary>Constructs a locator invoker.</summary>
-        internal LocatorClient(ILocatorPrx locator, Interceptors.LocatorOptions options)
+        internal class LogCacheDecorator : ICache
         {
-            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
+            private readonly ICache _decoratee;
+            private readonly ILogger _logger;
+
+            internal LogCacheDecorator(ICache decoratee, ILogger logger)
             {
-                throw new ArgumentException(
-                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}", nameof(options));
+                _decoratee = decoratee;
+                _logger = logger;
             }
 
-            _background = options.Background;
-            _justRefreshedAge = options.JustRefreshedAge;
-            _logger = options.LoggerFactory.CreateLogger("IceRpc");
-            _ttl = options.Ttl;
-
-            if (_ttl != TimeSpan.Zero && options.CacheMaxSize > 0)
+            void ICache.Remove(Key key)
             {
-                _cache = new Cache(options.CacheMaxSize);
+                _decoratee.Remove(key);
+                _logger.LogRemovedEntryFromCache(key.Kind, key);
             }
 
-            ILocationResolver locationResolver = new LocationResolver(locator);
-
-            // install decorators:
-            locationResolver = new LogDecorator(locationResolver, _logger);
-            if (_cache != null)
+            void ICache.Set(Key key, Proxy proxy)
             {
-                locationResolver = new CacheUpdateDecorator(locationResolver, _cache);
+                _decoratee.Set(key, proxy);
+                _logger.LogSetEntryInCache(key.Kind, key, proxy);
             }
-            locationResolver = new CoalesceDecorator(locationResolver);
 
-            _locationResolver = locationResolver;
-        }
-
-        /// <summary>Updates the endpoints of the request (as appropriate) then call InvokeAsync on next.</summary>
-        /// <param name="request">The outgoing request.</param>
-        /// <param name="next">The next invoker in the pipeline.</param>
-        /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response.</returns>
-        internal async Task<IncomingResponse> InvokeAsync(
-            OutgoingRequest request,
-            IInvoker next,
-            CancellationToken cancel)
-        {
-            if (request.Connection == null)
+            bool ICache.TryGetValue(Key key, out (TimeSpan InsertionTime, Proxy Proxy) value)
             {
-                string? location = null;
-                string? category = null;
-                bool refreshCache = false;
-
-                if (request.Features.Get<CachedResolutionFeature>() is CachedResolutionFeature cachedResolution)
+                if (_decoratee.TryGetValue(key, out value))
                 {
-                    // This is the second (or greater) attempt, and we provided a cached resolution with the first
-                    // attempt and all subsequent attempts.
-
-                    location = cachedResolution.Location;
-                    category = cachedResolution.Category;
-                    refreshCache = true;
+                    _logger.LogFoundEntryInCache(key.Kind, key, value.Proxy);
+                    return true;
                 }
-                else if (request.Endpoint is Endpoint locEndpoint && locEndpoint.Transport == TransportNames.Loc)
+                else
                 {
-                    // Typically first attempt since a successful resolution replaces this loc endpoint.
-                    location = locEndpoint.Host;
-                }
-                else if (request.Endpoint == null && request.Protocol == Protocol.Ice1)
-                {
-                    // Well-known proxy
-                    location = request.Identity.Name;
-                    category = request.Identity.Category;
-                }
-
-                if (location != null)
-                {
-                    (Proxy? proxy, bool fromCache) =
-                        await ResolveAsync(new Key(location, category), refreshCache, cancel).ConfigureAwait(false);
-
-                    if (refreshCache)
-                    {
-                        if (!fromCache && !request.Features.IsReadOnly)
-                        {
-                            // No need to resolve the loc endpoint / identity again since we didn't returned a cached
-                            // value.
-                            request.Features.Set<CachedResolutionFeature>(null);
-                        }
-                    }
-                    else if (fromCache)
-                    {
-                        // Make sure the next attempt re-resolves location+category and sets refreshCache to true.
-
-                        if (request.Features.IsReadOnly)
-                        {
-                            request.Features = new FeatureCollection(request.Features);
-                        }
-                        request.Features.Set(new CachedResolutionFeature(location, category));
-                    }
-
-                    if (proxy?.Endpoint != null)
-                    {
-                        request.Endpoint = proxy.Endpoint;
-                        request.AltEndpoints = proxy.AltEndpoints;
-                    }
-                    // else the resolution failed and we don't change the endpoints of the request
+                    return false;
                 }
             }
-
-            return await next.InvokeAsync(request, cancel).ConfigureAwait(false);
-        }
-
-        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
-            Key key,
-            bool refreshCache,
-            CancellationToken cancel)
-        {
-            Proxy? proxy = null;
-            bool expired = false;
-            bool justRefreshed = false;
-            bool resolved = false;
-
-            if (_cache != null && _cache.TryGetValue(key, out (TimeSpan InsertionTime, Proxy Proxy) entry))
-            {
-                proxy = entry.Proxy;
-                TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
-                expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
-                justRefreshed = cacheEntryAge <= _justRefreshedAge;
-            }
-
-            if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
-            {
-                proxy = await _locationResolver.FindAsync(key, cancel).ConfigureAwait(false);
-                resolved = true;
-            }
-            else if (_background && expired)
-            {
-                // We retrieved an expired proxy from the cache, so we launch a refresh in the background.
-                _ = _locationResolver.FindAsync(key, cancel: default).ConfigureAwait(false);
-            }
-
-            // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
-            // endpoint.
-            if (proxy?.Endpoint?.Transport == TransportNames.Loc)
-            {
-                try
-                {
-                    // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                    // proxy, we request a cache refresh for the adapter.
-                    (proxy, _) = await ResolveAsync(new Key(proxy!.Endpoint!.Host, category: null),
-                                                    refreshCache || resolved,
-                                                    cancel).ConfigureAwait(false);
-                }
-                finally
-                {
-                    // When the second resolution fails, we clear the cache entry for the initial successful
-                    // resolution, since the overall resolution is a failure.
-                    // proxy below can hold a loc endpoint only when an exception is thrown.
-                    if (proxy == null || proxy?.Endpoint?.Transport == TransportNames.Loc)
-                    {
-                        _cache?.Remove(key);
-                    }
-                }
-            }
-
-            // TODO: logging
-
-            return (proxy, proxy != null && !resolved);
         }
 
         private sealed class CachedResolutionFeature
         {
-            internal string Location { get; }
-            internal string? Category { get; }
+            internal Key Key { get; }
 
-            internal CachedResolutionFeature(string location, string? category)
-            {
-                Location = location;
-                Category = category;
-            }
+            internal CachedResolutionFeature(Key key) => Key = key;
         }
     }
 }

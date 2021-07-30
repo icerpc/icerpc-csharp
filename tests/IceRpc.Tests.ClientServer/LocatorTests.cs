@@ -14,6 +14,7 @@ namespace IceRpc.Tests.ClientServer
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Parallelizable(ParallelScope.All)]
     [Timeout(30000)]
+    [Log(LogAttributeLevel.Information)]
     public sealed class LocatorTests : IAsyncDisposable
     {
         private bool _called;
@@ -53,7 +54,7 @@ namespace IceRpc.Tests.ClientServer
             var indirectGreeter = GreeterPrx.Parse($"{greeter.Proxy.GetIdentity()} @ {adapter}", _pipeline);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptors.Locator(locator));
+            _pipeline.Use(Interceptors.Locator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance }));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -101,7 +102,8 @@ namespace IceRpc.Tests.ClientServer
                                               new Interceptors.LocatorOptions
                                               {
                                                   CacheMaxSize = cacheMaxSize,
-                                                  JustRefreshedAge = TimeSpan.Zero
+                                                  JustRefreshedAge = TimeSpan.Zero,
+                                                  LoggerFactory = LogAttributeLoggerFactory.Instance
                                               }));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
@@ -190,7 +192,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(wellKnownGreeter.Proxy.Endpoint, Is.Null);
 
             ISimpleLocatorTestPrx locator = CreateLocator();
-            _pipeline.Use(Interceptors.Locator(locator));
+            _pipeline.Use(Interceptors.Locator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance }));
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
