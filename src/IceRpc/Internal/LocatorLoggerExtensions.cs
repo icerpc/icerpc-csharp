@@ -52,6 +52,17 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.FoundAdapterIdEntryInCache,
             EventName = nameof(LocatorEvent.FoundAdapterIdEntryInCache),
             Level = LogLevel.Trace,
+            Message = "found {Location}, endpoint = {Endpoint}, alt-endpoints = {AltEndpoints}")]
+        internal static partial void LogFound(
+            this ILogger logger,
+            string location,
+            Endpoint endpoint,
+            IEnumerable<Endpoint> altEndpoints);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.FoundAdapterIdEntryInCache,
+            EventName = nameof(LocatorEvent.FoundAdapterIdEntryInCache),
+            Level = LogLevel.Trace,
             Message = "found entry for adapter ID {AdapterId} in cache, endpoint = {Endpoint}, " +
                       "alt-endpoints = {AltEndpoints}")]
         internal static partial void LogFoundAdapterIdEntryInCache(
@@ -92,6 +103,25 @@ namespace IceRpc.Internal
             this ILogger logger,
             Identity identity,
             Proxy proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ResolveAdapterIdFailure,
+            EventName = nameof(LocatorEvent.ResolveAdapterIdFailure),
+            Level = LogLevel.Debug,
+            Message = "failure when resolving {Location}")]
+        internal static partial void LogFindFailed(
+            this ILogger logger,
+            string location);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.ResolveAdapterIdFailure,
+            EventName = nameof(LocatorEvent.ResolveAdapterIdFailure),
+            Level = LogLevel.Debug,
+            Message = "failure when resolving {Location}")]
+        internal static partial void LogFindFailedWithException(
+            this ILogger logger,
+            string location,
+            Exception exception);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ResolveAdapterIdFailure,
