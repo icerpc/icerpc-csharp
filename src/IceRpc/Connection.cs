@@ -96,15 +96,9 @@ namespace IceRpc
             }
         }
 
-        // TODO: add this when we add support for connection features. Depending on what to do with
-        // connection options we might need to copy the features from the options if the features
-        // are not readonly.
-        // /// <summary>The features of this connection.</summary>
-        // public FeatureCollection Features => _options?.Features ?? throw new InvalidOperationException();
-
         /// <summary>Gets the connection idle timeout. With Ice2, the IdleTimeout is negotiated when the
         /// connection is established. The lowest IdleTimeout from either the client or server is used.</summary>
-        public TimeSpan IdleTimeout => UnderlyingConnection?.IdleTimeout ?? _options?.IdleTimeout ?? TimeSpan.Zero;
+        public TimeSpan IdleTimeout => UnderlyingConnection?.IdleTimeout ?? _options.IdleTimeout;
 
         /// <summary>The maximum size in bytes of an incoming Ice1 or Ice2 protocol frame.</summary>
         public int IncomingFrameMaxSize => _options.IncomingFrameMaxSize;
@@ -215,7 +209,7 @@ namespace IceRpc
             Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
 
-        internal int ClassGraphMaxDepth => _options?.ClassGraphMaxDepth ?? 200; // TODO why is _options ever null?
+        internal int ClassGraphMaxDepth => _options.ClassGraphMaxDepth;
 
         /// <summary>The endpoint codex is used when encoding or decoding an ice1 endpoint (typically inside a proxy)
         /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
@@ -255,7 +249,7 @@ namespace IceRpc
         // The close task is assigned when ShutdownAsync or AbortAsync are called, it's protected with _mutex.
         private Task? _closeTask;
         private IDispatcher? _dispatcher;
-        private Endpoint? _localEndpoint;
+        private readonly Endpoint? _localEndpoint;
         private ILogger _logger;
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
