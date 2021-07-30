@@ -52,8 +52,8 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.FoundAdapterIdEntryInCache,
             EventName = nameof(LocatorEvent.FoundAdapterIdEntryInCache),
             Level = LogLevel.Trace,
-            Message = "found {ArgName} {Arg}, proxy = {Proxy}")]
-        internal static partial void LogFound(this ILogger logger, string argName, string arg, Proxy proxy);
+            Message = "found {KeyKind} {Key}, proxy = {Proxy}")]
+        internal static partial void LogFound(this ILogger logger, string keyKind, LocatorClient.Key key, Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.FoundAdapterIdEntryInCache,
@@ -104,18 +104,18 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.ResolveAdapterIdFailure,
             EventName = nameof(LocatorEvent.ResolveAdapterIdFailure),
             Level = LogLevel.Debug,
-            Message = "failed to find {ArgName} {Arg}")]
-        internal static partial void LogFindFailed(this ILogger logger, string argName, string arg);
+            Message = "failed to find {KeyKind} {Key}")]
+        internal static partial void LogFindFailed(this ILogger logger, string keyKind, LocatorClient.Key key);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.ResolveAdapterIdFailure,
             EventName = nameof(LocatorEvent.ResolveAdapterIdFailure),
             Level = LogLevel.Debug,
-            Message = "failed to find {ArgName} {Arg}")]
+            Message = "failed to find {KeyKind} {Key}")]
         internal static partial void LogFindFailedWithException(
             this ILogger logger,
-            string argName,
-            string arg,
+            string keyKind,
+            LocatorClient.Key key,
             Exception exception);
 
         [LoggerMessage(
