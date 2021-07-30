@@ -19,34 +19,37 @@ namespace IceRpc.Internal
     {
         internal interface ILocationResolver<T> where T : IEquatable<T>
         {
-            Task<Proxy?> FindAsync(T location, CancellationToken cancel);
+            Task<Proxy?> FindAsync(T arg, CancellationToken cancel);
+        }
+
+        internal interface ICache<T> where T : IEquatable<T>
+        {
+            void Remove(T key);
+            void Set(T key, Proxy proxy);
+
+            bool TryGetValue(T key, out (TimeSpan InsertionTime, Proxy Proxy) value);
         }
 
         internal interface ILocationResolverWithCache<T> where T : IEquatable<T>
         {
             ValueTask<(Proxy? Proxy, bool FromCache)> FindAsync(
-                T location,
+                T arg,
                 bool refreshCache,
                 CancellationToken cancel);
         }
 
         internal class AdapterIdResolver : ILocationResolver<string>
         {
-            private readonly string _adapterId;
             private readonly ILocatorPrx _locator;
 
-            internal AdapterIdResolver(string adapterId, ILocatorPrx locator)
-            {
-                _adapterId = adapterId;
-                _locator = locator;
-            }
+            internal AdapterIdResolver(ILocatorPrx locator) => _locator = locator;
 
-            async Task<Proxy?> ILocationResolver<string>.FindAsync(string location, CancellationToken cancel)
+            async Task<Proxy?> ILocationResolver<string>.FindAsync(string arg, CancellationToken cancel)
             {
                 try
                 {
                     ServicePrx? prx =
-                        await _locator.FindAdapterByIdAsync(location, cancel: cancel).ConfigureAwait(false);
+                        await _locator.FindAdapterByIdAsync(arg, cancel: cancel).ConfigureAwait(false);
 
                     if (prx?.Proxy is Proxy proxy)
                     {
@@ -71,21 +74,16 @@ namespace IceRpc.Internal
 
         internal class IdentityResolver : ILocationResolver<Identity>
         {
-            private readonly Identity _identity;
             private readonly ILocatorPrx _locator;
 
-            internal IdentityResolver(Identity identity, ILocatorPrx locator)
-            {
-                _identity = identity;
-                _locator = locator;
-            }
+            internal IdentityResolver(ILocatorPrx locator) => _locator = locator;
 
-            async Task<Proxy?> ILocationResolver<Identity>.FindAsync(Identity location, CancellationToken cancel)
+            async Task<Proxy?> ILocationResolver<Identity>.FindAsync(Identity arg, CancellationToken cancel)
             {
                 try
                 {
                     ServicePrx? prx =
-                        await _locator.FindObjectByIdAsync(location, cancel: cancel).ConfigureAwait(false);
+                        await _locator.FindObjectByIdAsync(arg, cancel: cancel).ConfigureAwait(false);
 
                     if (prx?.Proxy is Proxy proxy)
                     {
@@ -110,42 +108,74 @@ namespace IceRpc.Internal
 
         internal class LogDecorator<T> : ILocationResolver<T> where T : IEquatable<T>
         {
+            private readonly string _argName;
             private readonly ILocationResolver<T> _decoratee;
             private readonly ILogger _logger;
 
-            internal LogDecorator(ILocationResolver<T> decoratee, ILogger logger)
+            internal LogDecorator(ILocationResolver<T> decoratee, string argName, ILogger logger)
             {
+                _argName = argName;
                 _decoratee = decoratee;
                 _logger = logger;
             }
 
-            async Task<Proxy?> ILocationResolver<T>.FindAsync(T location, CancellationToken cancel)
+            async Task<Proxy?> ILocationResolver<T>.FindAsync(T arg, CancellationToken cancel)
             {
                 try
                 {
-                    Proxy? proxy = await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+                    Proxy? proxy = await _decoratee.FindAsync(arg, cancel).ConfigureAwait(false);
 
                     if (proxy != null)
                     {
                         Debug.Assert(proxy.Endpoint != null);
 
-                        _logger.LogFound(location.ToString()!, proxy.Endpoint, proxy.AltEndpoints);
+                        _logger.LogFound(_argName, arg.ToString()!, proxy);
                     }
                     else
                     {
-                        _logger.LogFindFailed(location.ToString()!);
+                        _logger.LogFindFailed(_argName, arg.ToString()!);
                     }
 
                     return proxy;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogFindFailedWithException(location.ToString()!, ex);
+                    _logger.LogFindFailedWithException(_argName, arg.ToString()!, ex);
                     throw;
                 }
             }
         }
 
+        // This decorator updates the cache after a remote call to the locator. It needs to execute downstream from the
+        /// Coalesce decorator.
+        internal class CacheUpdateDecorator<T> : ILocationResolver<T> where T : IEquatable<T>
+        {
+            private readonly ICache<T> _cache;
+            private readonly ILocationResolver<T> _decoratee;
+
+            internal CacheUpdateDecorator(ILocationResolver<T> decoratee, ICache<T> cache)
+            {
+                _cache = cache;
+                _decoratee = decoratee;
+            }
+
+            async Task<Proxy?> ILocationResolver<T>.FindAsync(T arg, CancellationToken cancel)
+            {
+               Proxy? proxy = await _decoratee.FindAsync(arg, cancel).ConfigureAwait(false);
+
+                if (proxy != null)
+                {
+                    _cache.Set(arg, proxy);
+                }
+                else
+                {
+                    _cache.Remove(arg);
+                }
+                return proxy;
+            }
+        }
+
+        // Detects multiple concurrent identical requests and "coalesce" them to avoid overloading the locator.
         internal class CoalesceDecorator<T> : ILocationResolver<T> where T : IEquatable<T>
         {
             private readonly ILocationResolver<T> _decoratee;
@@ -155,13 +185,13 @@ namespace IceRpc.Internal
             internal CoalesceDecorator(ILocationResolver<T> decoratee) =>
                 _decoratee = decoratee;
 
-            Task<Proxy?> ILocationResolver<T>.FindAsync(T location, CancellationToken cancel)
+            Task<Proxy?> ILocationResolver<T>.FindAsync(T arg, CancellationToken cancel)
             {
                 Task<Proxy?>? task;
 
                 lock (_mutex)
                 {
-                    if (!_requests.TryGetValue(location, out task))
+                    if (!_requests.TryGetValue(arg, out task))
                     {
                         // If there is no request in progress, we invoke one and cache the request to prevent concurrent
                         // identical requests. It's removed once the response is received.
@@ -173,7 +203,7 @@ namespace IceRpc.Internal
                             // is responsible for removing it).
                             // Since PerformFindAsync locks _mutex in its finally block, the only way it can
                             // be completed now is if completed synchronously.
-                            _requests.Add(location, task);
+                            _requests.Add(arg, task);
                         }
                     }
                 }
@@ -184,151 +214,94 @@ namespace IceRpc.Internal
                 {
                     try
                     {
-                        return await _decoratee.FindAsync(location, cancel).ConfigureAwait(false);
+                        return await _decoratee.FindAsync(arg, cancel).ConfigureAwait(false);
                     }
                     finally
                     {
                         lock (_mutex)
                         {
-                            _requests.Remove(location);
+                            _requests.Remove(arg);
                         }
                     }
                 }
             }
         }
 
-        internal class CacheDecorator<T> : ILocationResolverWithCache<T> where T : IEquatable<T>
+        internal class Cache : ICache<string>, ICache<Identity>
         {
-            private readonly ILocationResolverWithCache<string>? _adapterIdResolver;
-            private readonly bool _background;
-            private readonly ConcurrentDictionary<T, (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<T> Node)> _cache;
+            private readonly ConcurrentDictionary<(string Location, string? Category), (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<(string Location, string? Category)> Node)> _cache;
 
             // The keys in _cache. The first entries correspond to the most recently added cache entries.
-            private readonly LinkedList<T> _cacheKeys = new();
+            private readonly LinkedList<(string Location, string? Category)> _cacheKeys = new();
+
             private readonly int _cacheMaxSize;
-            private readonly ILocationResolver<T> _decoratee;
-            private readonly TimeSpan _justRefreshedAge;
+
+            // _mutex protects _cacheKeys and updates to _cache
             private readonly object _mutex = new();
-            private readonly TimeSpan _ttl;
 
-            internal CacheDecorator(
-                ILocationResolver<T> decoratee,
-                ILocationResolverWithCache<string>? adapterIdResolver,
-                Interceptors.LocatorOptions options)
+            internal Cache(int cacheMaxSize)
             {
-                if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
-                {
-                    throw new ArgumentException(
-                        $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}",
-                        nameof(options));
-                }
-
-                _adapterIdResolver = adapterIdResolver;
-                _background = options.Background;
-                _cacheMaxSize = options.CacheMaxSize;
+                Debug.Assert(cacheMaxSize > 0);
+                _cacheMaxSize = cacheMaxSize;
                 _cache = new(concurrencyLevel: 1, capacity: _cacheMaxSize + 1);
-                _decoratee = decoratee;
-                _justRefreshedAge = options.JustRefreshedAge;
-                _ttl = options.Ttl;
             }
 
-            async ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolverWithCache<T>.FindAsync(
-                T location,
-                bool refreshCache,
-                CancellationToken cancel)
-            {
-                // We check the cache even when refreshCache is true!
-                bool expired = false;
-                bool justRefreshed = false;
-                Proxy? proxy = null;
-                bool resolved = false;
+            void ICache<string>.Remove(string key) => Remove(key, category: null);
+            void ICache<Identity>.Remove(Identity key) => Remove(key.Name, key.Category);
+            void ICache<string>.Set(string key, Proxy proxy) => Set(key, category: null, proxy);
+            void ICache<Identity>.Set(Identity key, Proxy proxy) => Set(key.Name, key.Category, proxy);
 
-                if (_cache.TryGetValue(location, out var entry))
-                {
-                    TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
-                    expired = _ttl != Timeout.InfiniteTimeSpan && cacheEntryAge > _ttl;
-                    justRefreshed = cacheEntryAge <= _justRefreshedAge;
-                    proxy = entry.Proxy;
-                }
+            bool ICache<string>.TryGetValue(string key, out (TimeSpan InsertionTime, Proxy Proxy) value) =>
+                TryGetValue(key, category: null, out value);
+            bool ICache<Identity>.TryGetValue(Identity key, out (TimeSpan InsertionTime, Proxy Proxy) value) =>
+                TryGetValue(key.Name, key.Category, out value);
 
-                if (proxy == null || (!_background && expired) || (refreshCache && !justRefreshed))
-                {
-                    proxy = await PerformFindAsync(cancel).ConfigureAwait(false);
-                    resolved = true;
-                }
-                else if (_background && expired)
-                {
-                    // We retrieved expired endpoints from the cache, so we launch a refresh in the background.
-                    _ =  PerformFindAsync(cancel: default);
-                }
-
-                // A well-known proxy resolution can return a loc endpoint
-                if (proxy?.Endpoint is Endpoint endpoint && endpoint.Transport == TransportNames.Loc)
-                {
-                    try
-                    {
-                        if (_adapterIdResolver != null)
-                        {
-                            // Resolves adapter ID recursively, by checking first the cache. If we resolved the
-                            // identity, we request a cache refresh for the adapter.
-                            (proxy, _) = await _adapterIdResolver.FindAsync(endpoint.Host,
-                                                                            refreshCache || resolved,
-                                                                            cancel).ConfigureAwait(false);
-
-                        }
-                    }
-                    finally
-                    {
-                        // When the second resolution fails, we clear the cache entry for the initial successful
-                        // resolution, since the overall resolution is a failure.
-                        // proxy below can hold a loc endpoint only when an exception is thrown.
-                        if (proxy == null || proxy?.Endpoint?.Transport == TransportNames.Loc)
-                        {
-                            ClearCache(location);
-                        }
-                    }
-                }
-
-                return (proxy, proxy != null && !resolved);
-
-                async Task<Proxy?> PerformFindAsync(CancellationToken cancel)
-                {
-                    Proxy? proxy = await _decoratee.FindAsync(location, cancel: default);
-
-                    if (proxy == null)
-                    {
-                        ClearCache(location);
-                    }
-                    else
-                    {
-                        lock (_mutex)
-                        {
-                            ClearCache(location); // remove existing cache entry if present
-
-                            _cache[location] = (Time.Elapsed, proxy, _cacheKeys.AddFirst(location));
-
-                            if (_cacheKeys.Count == _cacheMaxSize + 1)
-                            {
-                                // drop last (oldest) entry
-                                T lastLocation = _cacheKeys.Last!.Value;
-                                ClearCache(lastLocation);
-
-                                Debug.Assert(_cacheKeys.Count == _cacheMaxSize); // removed the last entry
-                            }
-                        }
-                    }
-                    return proxy;
-                }
-            }
-
-            private void ClearCache(T location)
+            private void Remove(string location, string? category)
             {
                 lock (_mutex)
                 {
-                    if (_cache.TryRemove(location, out var entry))
+                    if (_cache.TryRemove((location, category), out var entry))
                     {
                         _cacheKeys.Remove(entry.Node);
                     }
+                }
+            }
+
+            private void Set(string location, string? category, Proxy proxy)
+            {
+                lock (_mutex)
+                {
+                    Remove(location, category); // remove existing cache entry if present
+
+                    _cache[(location, category)] = (Time.Elapsed,
+                                                    proxy,
+                                                    _cacheKeys.AddFirst((location, category)));
+
+                    if (_cacheKeys.Count == _cacheMaxSize + 1)
+                    {
+                        // drop last (oldest) entry
+                        (string lastLocation, string? lastCategory) = _cacheKeys.Last!.Value;
+                        Remove(lastLocation, lastCategory);
+
+                        Debug.Assert(_cacheKeys.Count == _cacheMaxSize); // removed the last entry
+                    }
+                }
+            }
+
+            private bool TryGetValue(string location, string? category, out (TimeSpan InsertionTime, Proxy proxy) value)
+            {
+                // no mutex lock
+
+                if (_cache.TryGetValue((location, category), out var entry))
+                {
+                    value.InsertionTime = entry.InsertionTime;
+                    value.proxy = entry.Proxy;
+                    return true;
+                }
+                else
+                {
+                    value = default;
+                    return false;
                 }
             }
         }
