@@ -35,7 +35,7 @@ namespace IceRpc
             internal int Offset;
         }
 
-        /// <summary>The encoding used when writing to this buffer.</summary>
+        /// <summary>The Ice encoding used by this encoder when encoding data.</summary>
         /// <value>The encoding.</value>
         public Encoding Encoding { get; }
 
@@ -58,7 +58,7 @@ namespace IceRpc
 
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        private bool OldEncoding => Encoding == Encoding.V11;
+        private bool OldEncoding => Encoding == Encoding.Ice11;
 
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
@@ -923,8 +923,8 @@ namespace IceRpc
         // Constructs a Ice encoder
         internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
         {
+            encoding.CheckSupportedIceEncoding();
             Encoding = encoding;
-            Encoding.CheckSupported();
             _classFormat = classFormat;
             _tail = default;
             Size = 0;
@@ -1046,8 +1046,11 @@ namespace IceRpc
             this.EncodeTransportCode(transportCode);
             Position startPos = _tail;
 
+            (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
+
             EncodeInt(0); // placeholder for future encapsulation size
-            Encoding.Encode(this);
+            EncodeByte(encodingMajor);
+            EncodeByte(encodingMinor);
             encodeAction(this, endpoint);
             EncodeFixedLengthSize11(Distance(startPos), startPos);
         }

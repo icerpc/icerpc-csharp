@@ -65,7 +65,7 @@ namespace IceRpc.Tests.Encoding
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new IceDecoder(data, prx1.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -78,7 +78,7 @@ namespace IceRpc.Tests.Encoding
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.Encoding
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new IceDecoder(data, prx2.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -111,7 +111,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.Encoding
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new IceDecoder(data, prx3.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -164,7 +164,7 @@ namespace IceRpc.Tests.Encoding
             {
                 ReadOnlyMemory<byte> data = request.Payload.ToSingleBuffer();
                 var decoder = new IceDecoder(data, prx3.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());
@@ -176,7 +176,7 @@ namespace IceRpc.Tests.Encoding
                 Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new IceDecoder(await response.GetPayloadAsync(cancel), prx1.Proxy.Encoding);
-                if (prx1.Proxy.Encoding == IceRpc.Encoding.V20)
+                if (prx1.Proxy.Encoding == IceRpc.Encoding.Ice20)
                 {
                     // Read the compression status '0' not compressed
                     Assert.AreEqual(0, decoder.DecodeByte());

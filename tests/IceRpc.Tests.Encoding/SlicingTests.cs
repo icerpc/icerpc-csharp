@@ -44,11 +44,11 @@ namespace IceRpc.Tests.Encoding
                     null : _classFactory.CreateRemoteException(typeId, message, origin);
         }
 
-        [TestCase((byte)1, (byte)1)]
-        [TestCase((byte)2, (byte)0)]
-        public void Slicing_Classes(byte encodingMajor, byte encodingMinor)
+        [TestCase("1.1")]
+        [TestCase("2.0")]
+        public void Slicing_Classes(string encodingStr)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -111,10 +111,10 @@ namespace IceRpc.Tests.Encoding
             Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>(null));
         }
 
-        [TestCase((byte)1, (byte)1)]
-        public void Slicing_Classes_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        [TestCase("1.1")]
+        public void Slicing_Classes_WithCompactTypeId(string encodingStr)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -171,11 +171,11 @@ namespace IceRpc.Tests.Encoding
             Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>(null));
         }
 
-        [TestCase((byte)1, (byte)1)]
-        [TestCase((byte)2, (byte)0)]
-        public void Slicing_Exceptions(byte encodingMajor, byte encodingMinor)
+        [TestCase("1.1")]
+        [TestCase("2.0")]
+        public void Slicing_Exceptions(string encodingStr)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -260,11 +260,11 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r1.M3);
         }
 
-        [TestCase((byte)1, (byte)1)]
-        [TestCase((byte)2, (byte)0)]
-        public void Slicing_PreservedClasses(byte encodingMajor, byte encodingMinor)
+        [TestCase("1.1")]
+        [TestCase("2.0")]
+        public void Slicing_PreservedClasses(string encodingStr)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 
@@ -308,10 +308,10 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual("base", r3.M3.M1);
         }
 
-        [TestCase((byte)1, (byte)1)]
-        public void Slicing_PreservedClasses_WithCompactTypeId(byte encodingMajor, byte encodingMinor)
+        [TestCase("1.1")]
+        public void Slicing_PreservedClasses_WithCompactTypeId(string encodingStr)
         {
-            var encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
             var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
 

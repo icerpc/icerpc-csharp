@@ -80,10 +80,10 @@ namespace IceRpc.Tests.Api
         {
             var proxy = Proxy.Parse(s);
 
-            proxy.Encoding = Encoding.V11;
-            Assert.AreEqual(proxy.Encoding, Encoding.V11);
-            proxy.Encoding = Encoding.V20;
-            Assert.AreEqual(proxy.Encoding, Encoding.V20);
+            proxy.Encoding = Encoding.Ice11;
+            Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
+            proxy.Encoding = Encoding.Ice20;
+            Assert.AreEqual(Encoding.Ice20, proxy.Encoding);
 
             if (proxy.Protocol == Protocol.Ice1)
             {
@@ -145,6 +145,7 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:tcp -h 0.0.0.0")] // Any IPv4 in proxy endpoint (unusable but parses ok)
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
         [TestCase("identity:coloc -h *")]
+        [TestCase("identity -e 4.5:coloc -h *")]
         public void Proxy_Parse_ValidInputIce1Format(string str)
         {
             var proxy = Proxy.Parse(str);
@@ -165,6 +166,7 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(prx, prx2); // round-trip works
         }
 
+        [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]
         [TestCase("ice+tcp://host.zeroc.com/identity#facet", "/identity%23facet")] // C# Uri parser escapes #
         [TestCase("ice+tcp://host.zeroc.com:1000/category/name")]
         [TestCase("ice+tcp://host.zeroc.com:1000/loc0/loc1/category/name")]
@@ -190,8 +192,6 @@ namespace IceRpc.Tests.Api
         [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar")]
         [TestCase("ice+loc://mylocation.domain.com/foo/bar", "/foo/bar")]
         [TestCase("ice+coloc://host:10000")]
-        // a valid URI
-
         [TestCase("ice:tcp -p 10000")]
         // ice3 proxies
         [TestCase("ice+foo://host.zeroc.com/identity?transport=ws&option=/foo%2520/bar&protocol=3")]
@@ -227,6 +227,7 @@ namespace IceRpc.Tests.Api
         [TestCase("\"\" test")] // invalid trailing characters
         [TestCase("test:")] // missing endpoint
         [TestCase("id@server test")]
+        [TestCase("id -e A.0:tcp -h foobar")]
         [TestCase("id -f \"facet x")]
         [TestCase("id -f \'facet x")]
         [TestCase("test -f facet@test @test")]
@@ -410,7 +411,7 @@ namespace IceRpc.Tests.Api
             string complicated = $"{proxyString}?encoding=1.1&alt-endpoint=ice+tcp://localhost";
             proxy = Proxy.Parse(complicated);
 
-            Assert.AreEqual(Encoding.V11, proxy.Encoding);
+            Assert.AreEqual(Encoding.Ice11, proxy.Encoding);
             Endpoint altEndpoint = proxy.AltEndpoints[0];
             Assert.AreEqual(1, proxy.AltEndpoints.Count);
             Assert.AreEqual("tcp", altEndpoint.Transport);
@@ -422,7 +423,7 @@ namespace IceRpc.Tests.Api
         {
             var pipeline = new Pipeline();
             var prx = GreeterPrx.Parse("/test", pipeline);
-            prx.Proxy.Encoding = Encoding.Parse(encoding);
+            prx.Proxy.Encoding = Encoding.FromString(encoding);
             Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
         }
 

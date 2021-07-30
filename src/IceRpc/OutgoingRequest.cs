@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
+using IceRpc.Internal;
 using IceRpc.Interop;
 using IceRpc.Transports;
 using System;
@@ -62,7 +63,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy Proxy { get; }
@@ -159,7 +160,8 @@ namespace IceRpc
                     idempotent: IsIdempotent ? true : null,
                     priority: null,
                     deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds);
+                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
+                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString());
 
                 requestHeaderBody.Encode(encoder);
 
@@ -174,13 +176,13 @@ namespace IceRpc
                 // else context remains empty (not set)
 
                 EncodeFields(encoder);
-                PayloadEncoding.Encode(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(start, 2);
             }
             else
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
+                (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
                 var requestHeader = new Ice1RequestHeader(
                     Identity,
                     FacetPath,
@@ -188,7 +190,8 @@ namespace IceRpc
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     context,
                     encapsulationSize: PayloadSize + 6,
-                    PayloadEncoding);
+                    encodingMajor,
+                    encodingMinor);
                 requestHeader.Encode(encoder);
             }
         }

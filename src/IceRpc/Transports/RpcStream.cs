@@ -515,7 +515,7 @@ namespace IceRpc.Transports
             // The default implementation doesn't support Ice1
             Debug.Assert(!IsIce1);
 
-            var encoder = new IceEncoder(Encoding.V20);
+            var encoder = new IceEncoder(Encoding.Ice20);
             encoder.WriteByteSpan(TransportHeader.Span);
 
             encoder.EncodeIce2FrameType(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);

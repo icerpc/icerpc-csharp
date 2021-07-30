@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace IceRpc
     public sealed class OutgoingResponse : OutgoingFrame
     {
         /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; private protected set; }
+        public override Encoding PayloadEncoding { get; }
 
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
         /// <value><see cref="IceRpc.ReplyStatus.OK"/> when <see cref="ResultType"/> is
@@ -89,7 +90,7 @@ namespace IceRpc
             }
             else
             {
-                if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.V11)
+                if (response.ResultType == ResultType.Failure && PayloadEncoding == Encoding.Ice11)
                 {
                     // When the response carries a failure encoded with 1.1, we need to perform a small adjustment
                     // between ice1 and ice2 response frames.
@@ -165,9 +166,10 @@ namespace IceRpc
             if (Protocol == Protocol.Ice2)
             {
                 IceEncoder.Position startPos = encoder.StartFixedLengthSize(2);
+                new Ice2ResponseHeaderBody(
+                    ResultType,
+                    PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString()).Encode(encoder);
                 EncodeFields(encoder);
-                encoder.EncodeResultType(ResultType);
-                PayloadEncoding.Encode(encoder);
                 encoder.EncodeSize(PayloadSize);
                 encoder.EndFixedLengthSize(startPos, 2);
             }
@@ -178,7 +180,11 @@ namespace IceRpc
                 encoder.EncodeReplyStatus(ReplyStatus);
                 if (ReplyStatus <= ReplyStatus.UserException)
                 {
-                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6, PayloadEncoding);
+                    (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
+
+                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6,
+                                                                encodingMajor,
+                                                                encodingMinor);
                     responseHeader.Encode(encoder);
                 }
             }

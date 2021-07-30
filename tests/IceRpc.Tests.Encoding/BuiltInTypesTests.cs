@@ -7,8 +7,8 @@ using System;
 namespace IceRpc.Tests.Encoding
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    [TestFixture((byte)1, (byte)1)]
-    [TestFixture((byte)2, (byte)0)]
+    [TestFixture("1.1")]
+    [TestFixture("2.0")]
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesTests
     {
@@ -17,9 +17,9 @@ namespace IceRpc.Tests.Encoding
         private readonly IceEncoder _encoder;
         private readonly IceDecoder _decoder;
 
-        public BuiltInTypesTests(byte encodingMajor, byte encodingMinor)
+        public BuiltInTypesTests(string encoding)
         {
-            _encoding = new IceRpc.Encoding(encodingMajor, encodingMinor);
+            _encoding = IceRpc.Encoding.FromString(encoding);
             _buffer = new byte[256];
             _encoder = new IceEncoder(_encoding, _buffer);
             _decoder = new IceDecoder(_buffer, _encoding);

@@ -52,7 +52,7 @@ namespace IceRpc
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public abstract Encoding PayloadEncoding { get; private protected set; }
+        public abstract Encoding PayloadEncoding { get; }
 
         /// <summary>Returns the number of bytes in the payload.</summary>
         public int PayloadSize
@@ -98,7 +98,7 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var encoder = new IceEncoder(Encoding.V20);
+                var encoder = new IceEncoder(Encoding.Ice20);
                 EncodeFields(encoder);
                 return encoder.Finish().ToSingleBuffer().DecodeFieldValue(decoder => decoder.DecodeFieldDictionary());
             }
@@ -119,7 +119,7 @@ namespace IceRpc
         private protected void EncodeFields(IceEncoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
-            Debug.Assert(encoder.Encoding == Encoding.V20);
+            Debug.Assert(encoder.Encoding == Encoding.Ice20);
 
             // can be larger than necessary, which is fine
             int sizeLength =

@@ -288,7 +288,16 @@ namespace IceRpc.Internal
                         {
                             throw new FormatException($"no argument provided for -e option in '{s}'");
                         }
-                        encoding = Encoding.Parse(argument);
+                        encoding = Encoding.FromString(argument);
+                        try
+                        {
+                            _ = encoding.ToMajorMinor();
+                        }
+                        catch (NotSupportedException ex)
+                        {
+                            throw new FormatException(
+                                $"argument for -e option in '{s}' is not in major.minor format", ex);
+                        }
                         break;
 
                     case 'p':

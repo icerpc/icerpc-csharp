@@ -88,9 +88,8 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) = ParseQuery(
-                uri.Query,
-                uriString);
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpoint, string? encoding) =
+                ParseQuery(uri.Query, uriString);
 
             if (uri.AbsolutePath.Length > 1)
             {
@@ -135,10 +134,8 @@ namespace IceRpc.Internal
 
             var uri = new Uri(uriString);
 
-            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encodingValue) =
+            (ImmutableList<EndpointParam> endpointParams, Protocol? protocol, string? altEndpointValue, string? encoding) =
                 ParseQuery(uri.Query, uriString);
-
-            Encoding encoding = encodingValue == null ? Encoding.V20 : Encoding.Parse(encodingValue);
 
             protocol ??= Protocol.Ice2;
 
@@ -182,7 +179,7 @@ namespace IceRpc.Internal
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding
+                Encoding = encoding == null ? protocol.Value.GetEncoding() : Encoding.FromString(encoding)
             };
         }
 
@@ -228,7 +225,7 @@ namespace IceRpc.Internal
                 }
                 else if (name == "protocol")
                 {
-                    protocol = protocol == null ? ProtocolExtensions.Parse(value) :
+                    protocol = protocol == null ? ProtocolParser.Parse(value) :
                         throw new FormatException($"too many protocol query parameters in URI {uriString}");
 
                     if (protocol.Value == Protocol.Ice1)

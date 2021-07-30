@@ -12,7 +12,7 @@ namespace IceRpc.Internal
     {
         // The encoding of the header for ice1 frames. It is nominally 1.0, but in practice it is identical to 1.1
         // for the subset of the encoding used by the ice1 headers.
-        internal static readonly Encoding Encoding = Encoding.V11;
+        internal static readonly Encoding Encoding = Encoding.Ice11;
 
         // Size of an ice1 frame header:
         // Magic number (4 bytes)
@@ -102,8 +102,8 @@ namespace IceRpc.Internal
         /// <returns>The payload.</returns>
         internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(Encoding encoding)
         {
-            encoding.CheckSupported();
-            return encoding == Encoding.V11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
+            encoding.CheckSupportedIceEncoding();
+            return encoding == Encoding.Ice11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
         /// <summary>Decodes an ice1 system exception.</summary>
@@ -112,7 +112,7 @@ namespace IceRpc.Internal
         /// <returns>The exception read from the buffer.</returns>
         internal static RemoteException DecodeIce1SystemException(this IceDecoder decoder, ReplyStatus replyStatus)
         {
-            Debug.Assert(decoder.Encoding == Encoding.V11);
+            Debug.Assert(decoder.Encoding == Encoding.Ice11);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -169,7 +169,7 @@ namespace IceRpc.Internal
             IncomingRequest request,
             string message)
         {
-            Debug.Assert(encoder.Encoding == Encoding.V11);
+            Debug.Assert(encoder.Encoding == Encoding.Ice11);
 
             switch (replyStatus)
             {

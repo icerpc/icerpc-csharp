@@ -48,7 +48,7 @@ namespace IceRpc
             }
         }
 
-        private bool OldEncoding => Encoding == Encoding.V11;
+        private bool OldEncoding => Encoding == Encoding.Ice11;
 
         // The byte buffer we are decoding.
         private readonly ReadOnlyMemory<byte> _buffer;
@@ -891,8 +891,9 @@ namespace IceRpc
 
             Pos = 0;
             _buffer = buffer;
+
+            encoding.CheckSupportedIceEncoding();
             Encoding = encoding;
-            Encoding.CheckSupported();
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
@@ -937,9 +938,9 @@ namespace IceRpc
             // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
             size -= 6;
 
-            var encoding = new Encoding(this);
+            var encoding = Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
 
-            if (encoding == Encoding.V11 || encoding == Encoding.V10)
+            if (encoding == Encoding.Ice11 || encoding == Encoding.Ice10)
             {
                 int oldPos = Pos;
 

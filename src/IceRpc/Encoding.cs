@@ -1,80 +1,138 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using System;
-using System.Globalization;
 
 namespace IceRpc
 {
-    // Extends the Slice-defined Encoding struct
-    public readonly partial struct Encoding
+    /// <summary>Encoding identifies the format (a.k.a. encoding) used to encode data into bytes. With IceRPC, it is
+    /// usually the Ice 2.0 encoding named "2.0".</summary>
+    public sealed class Encoding : IEquatable<Encoding>
     {
-        // The encodings known to the IceRPC runtime.
-
-        /// <summary>Version 1.0 of the Ice encoding, supported by Ice 1.0 to Ice 3.7.</summary>
-        public static readonly Encoding V10 = new(1, 0);
+        /// <summary>Version 1.0 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
+        public static readonly Encoding Ice10 = new(Ice10Name);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Encoding V11 = new(1, 1);
+        public static readonly Encoding Ice11 = new(Ice11Name);
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Encoding V20 = new(2, 0);
+        public static readonly Encoding Ice20 = new(Ice20Name);
 
-        internal bool IsSupported => this == V11 || this == V20;
+        /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
+        public string Name { get; }
 
-        /// <summary>Parses a string into an Encoding.</summary>
-        /// <param name="str">The string to parse.</param>
-        /// <returns>A new encoding.</returns>
-        public static Encoding Parse(string str)
+        /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
+        internal static readonly Encoding Unknown = new(UnknownName);
+
+        private const string Ice10Name = "1.0";
+        private const string Ice11Name = "1.1";
+        private const string Ice20Name = "2.0";
+        private const string UnknownName = "unknown";
+
+        /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
+        public static bool operator ==(Encoding? lhs, Encoding? rhs)
         {
-            int pos = str.IndexOf('.', StringComparison.Ordinal);
-            if (pos == -1)
+            if (ReferenceEquals(lhs, rhs))
             {
-                throw new FormatException($"malformed encoding string '{str}'");
-            }
-
-            string majStr = str[..pos];
-            string minStr = str[(pos + 1)..];
-            try
-            {
-                byte major = byte.Parse(majStr, CultureInfo.InvariantCulture);
-                byte minor = byte.Parse(minStr, CultureInfo.InvariantCulture);
-                return new Encoding(major, minor);
-            }
-            catch (FormatException)
-            {
-                throw new FormatException($"malformed encoding string '{str}'");
-            }
-        }
-
-        /// <summary>Attempts to parse a string into an Encoding.</summary>
-        /// <param name="str">The string to parse.</param>
-        /// <param name="encoding">The resulting encoding.</param>
-        /// <returns>True if the parsing succeeded and encoding contains the result; otherwise, false.</returns>
-        public static bool TryParse(string str, out Encoding encoding)
-        {
-            try
-            {
-                encoding = Parse(str);
                 return true;
             }
-            catch (FormatException)
+
+            if (lhs is null || rhs is null)
             {
-                encoding = default;
                 return false;
             }
+            return lhs.Equals(rhs);
         }
+
+        /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
+        public static bool operator !=(Encoding? lhs, Encoding? rhs) => !(lhs == rhs);
 
         /// <inheritdoc/>
-        public override string ToString() => $"{Major}.{Minor}";
+        public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
 
-        internal void CheckSupported()
-        {
-            if (!IsSupported)
+        /// <summary>Checks if this encoding is equal to another encoding.</summary>
+        /// <param name="other">The other encoding.</param>
+        /// <returns><c>true</c>when the two encodings have the same name; otherwise, <c>false</c>.</returns>
+        public bool Equals(Encoding? other) => Name == other?.Name;
+
+        /// <summary>Computes the hash code for this encoding.</summary>
+        /// <returns>The hash code.</returns>
+        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
+
+        /// <summary>Returns an Encoding with the given name. This method always succeeds.</summary>
+        /// <param name="name">The name of the encoding.</param>
+        /// <returns>One of the well-known Encoding instance (Ice11, Ice20 etc.) when the name matches; otherwise, a new
+        /// Encoding instance.</returns>
+        public static Encoding FromString(string name) =>
+            name switch
             {
-                throw new NotSupportedException(
-                    $@"Ice encoding '{this
-                    }' is not supported by this IceRPC runtime ({typeof(Encoding).Assembly.GetName().Version})");
+                Ice10Name => Ice10,
+                Ice11Name => Ice11,
+                Ice20Name => Ice20,
+                UnknownName => Unknown,
+                _ => new Encoding(name)
+            };
+
+        /// <summary>Converts this encoding into a string.</summary>
+        /// <returns>The name of the encoding.</returns>
+        public override string ToString() => Name;
+
+        /// <summary>Returns an Encoding with the given major and minor versions. This method always succeeds.
+        /// </summary>
+        internal static Encoding FromMajorMinor(byte major, byte minor) =>
+            (major, minor) switch
+            {
+                (1, 0) => Ice10,
+                (1, 1) => Ice11,
+                (2, 0) => Ice20,
+                _ => new Encoding($"{major}.{minor}")
+            };
+
+        /// <summary>Returns the major and minor byte versions of this encoding.</summary>
+        /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
+        /// </exception>
+        internal (byte Major, byte Minor) ToMajorMinor()
+        {
+            switch (Name)
+            {
+                case Ice10Name:
+                    return ((byte)1, (byte)0);
+
+                case Ice11Name:
+                    return ((byte)1, (byte)1);
+
+                case Ice20Name:
+                    return ((byte)2, (byte)0);
+
+                default:
+                    if (Name.Length == 3 && Name[1] == '.')
+                    {
+                        try
+                        {
+                            byte major = byte.Parse(Name.AsSpan(0, 1));
+                            byte minor = byte.Parse(Name.AsSpan(2, 1));
+                            return (major, minor);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new NotSupportedException(
+                                $"cannot convert encoding '{this}' to major/minor bytes", ex);
+                        }
+                    }
+                    else
+                    {
+                        throw new NotSupportedException(
+                            $"cannot convert encoding '{this}' to major/minor bytes");
+                    }
             }
         }
+
+        private Encoding(string name) =>
+            Name = name;
     }
 }
