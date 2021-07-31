@@ -2,8 +2,8 @@
 
 namespace IceRpc.Interop
 {
-    /// <summary>This enum contains event ID constants used for for location-related logging by ILocationResolver,
-    /// IEndpointFinder and IEndpointCache..</summary>
+    /// <summary>This enum contains event ID constants used by log decorators of ILocationResolver, IEndpointFinder and
+    /// IEndpointCache.</summary>
     public enum LocationEvent
     {
         /// <summary>The location resolver is resolving a location.</summary>
@@ -18,7 +18,7 @@ namespace IceRpc.Interop
         /// <summary>The endpoint cache found the requested location.</summary>
         FoundEntry,
 
-        /// <summary>An entry is set in the endpoint cache. This entry may silently replace an existing entry.</summary>
+        /// <summary>An entry was set in the endpoint cache.</summary>
         SetEntry,
 
         /// <summary>An entry was removed from the endpoint cache.</summary>
