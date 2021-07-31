@@ -37,7 +37,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 var identity = indirect.Proxy.GetIdentity();
                 pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!),
-                                  Interceptors.Binder(_pool));
+                             Interceptors.Binder(_pool));
             }
 
             await indirect.SayHelloAsync();
@@ -91,10 +91,10 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     if ((request.Protocol == resolvedEndpoint.Protocol) &&
-                        ((request.Endpoint is Endpoint locEndpoint &&
-                          locEndpoint.Transport == "loc" &&
-                          locEndpoint.Host == location &&
-                           category == null) ||
+                        ((request.Endpoint is Endpoint endpoint &&
+                          endpoint.Transport == "loc" &&
+                          endpoint.Host == location &&
+                          category == null) ||
                          (request.Endpoint == null &&
                           request.Protocol == Protocol.Ice1 &&
                           category != null &&
