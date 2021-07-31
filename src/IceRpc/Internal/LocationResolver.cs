@@ -4,10 +4,6 @@ using IceRpc.Interop;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -117,7 +113,7 @@ namespace IceRpc.Internal
 
             // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
             // endpoint.
-            if (proxy?.Endpoint?.Transport == TransportNames.Loc)
+            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
             {
                 try
                 {
@@ -132,7 +128,7 @@ namespace IceRpc.Internal
                     // When the second resolution fails, we clear the cache entry for the initial successful
                     // resolution, since the overall resolution is a failure.
                     // proxy below can hold a loc endpoint only when an exception is thrown.
-                    if (proxy == null || proxy?.Endpoint?.Transport == TransportNames.Loc)
+                    if (proxy == null || proxy.Endpoint!.Transport == TransportNames.Loc)
                     {
                         _endpointCache?.Remove(location);
                     }
@@ -140,6 +136,48 @@ namespace IceRpc.Internal
             }
 
             return (proxy, proxy != null && !resolved);
+        }
+    }
+
+    internal class LogLocationResolverDecorator : ILocationResolver
+    {
+        private readonly ILocationResolver _decoratee;
+        private readonly ILogger _logger;
+
+        internal LogLocationResolverDecorator(ILocationResolver decoratee, ILogger logger)
+        {
+            _decoratee = decoratee;
+            _logger = logger;
+        }
+
+        async ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel)
+        {
+            _logger.LogResolving(location.Kind, location);
+
+            try
+            {
+                (Proxy? proxy, bool fromCache) =
+                    await _decoratee.ResolveAsync(location, refreshCache, cancel).ConfigureAwait(false);
+
+                if (proxy == null)
+                {
+                    _logger.LogFailedToResolve(location.Kind, location);
+                }
+                else
+                {
+                    _logger.LogResolved(location.Kind, location, proxy);
+                }
+
+                return (proxy, fromCache);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogFailedToResolve(location.Kind, location, ex);
+                throw;
+            }
         }
     }
 }
