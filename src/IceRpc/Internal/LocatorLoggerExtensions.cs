@@ -14,82 +14,82 @@ namespace IceRpc.Internal
             EventId = (int)LocatorEvent.Resolving,
             EventName = nameof(LocatorEvent.Resolving),
             Level = LogLevel.Trace,
-            Message = "resolving {KeyKind} {Key}")]
-        internal static partial void LogResolving(this ILogger logger, string keyKind, LocatorClient.Key key);
+            Message = "resolving {LocationKind} {Location}")]
+        internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.Resolved,
             EventName = nameof(LocatorEvent.Resolved),
             Level = LogLevel.Debug,
-            Message = "resolved {KeyKind} '{Key}' = '{Proxy}'")]
+            Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
         internal static partial void LogResolved(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key,
+            string locationKind,
+            Location location,
             Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.FailedToResolve,
             EventName = nameof(LocatorEvent.FailedToResolve),
             Level = LogLevel.Debug,
-            Message = "failed to resolve {KeyKind} '{Key}'")]
+            Message = "failed to resolve {LocationKind} '{Location}'")]
         internal static partial void LogFailedToResolve(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key,
+            string locationKind,
+            Location location,
             Exception? exception = null);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.FoundEntryInCache,
             EventName = nameof(LocatorEvent.FoundEntryInCache),
             Level = LogLevel.Trace,
-            Message = "found {KeyKind} '{Key}' = '{Proxy}' in cache")]
+            Message = "found {LocationKind} '{Location}' = '{Proxy}' in cache")]
         internal static partial void LogFoundEntryInCache(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key,
+            string locationKind,
+            Location location,
             Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.SetEntryInCache,
             EventName = nameof(LocatorEvent.SetEntryInCache),
             Level = LogLevel.Trace,
-            Message = "set {KeyKind} '{Key}' = '{Proxy}' in cache")]
+            Message = "set {LocationKind} '{Location}' = '{Proxy}' in cache")]
         internal static partial void LogSetEntryInCache(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key,
+            string locationKind,
+            Location location,
             Proxy proxy);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.RemovedEntryFromCache,
             EventName = nameof(LocatorEvent.RemovedEntryFromCache),
             Level = LogLevel.Trace,
-            Message = "removed {KeyKind} '{Key}' from cache")]
+            Message = "removed {LocationKind} '{Location}' from cache")]
         internal static partial void LogRemovedEntryFromCache(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key);
+            string locationKind,
+            Location location);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.FindFailed,
             EventName = nameof(LocatorEvent.FindFailed),
             Level = LogLevel.Trace,
-            Message = "failed to find {KeyKind} '{Key}'")]
+            Message = "failed to find {LocationKind} '{Location}'")]
         internal static partial void LogFindFailed(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key);
+            string locationKind,
+            Location location);
 
         [LoggerMessage(
             EventId = (int)LocatorEvent.Found,
             EventName = nameof(LocatorEvent.Found),
             Level = LogLevel.Trace,
-            Message = "found {KeyKind} '{Key}' = '{Proxy}'")]
+            Message = "found {LocationKind} '{Location}' = '{Proxy}'")]
         internal static partial void LogFound(
             this ILogger logger,
-            string keyKind,
-            LocatorClient.Key key,
+            string locationKind,
+            Location location,
             Proxy proxy);
     }
 }
