@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
@@ -126,5 +127,41 @@ namespace IceRpc.Internal
                 return false;
             }
         }
+    }
+
+    /// <summary>This class contains ILogger extension methods used by LogEndpointCacheDecorator.</summary>
+    internal static partial class EndpointcacheLoggerExtensions
+    {
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.FoundEntryInCache,
+            EventName = nameof(LocatorEvent.FoundEntryInCache),
+            Level = LogLevel.Trace,
+            Message = "found {LocationKind} '{Location}' = '{Proxy}' in cache")]
+        internal static partial void LogFoundEntryInCache(
+            this ILogger logger,
+            string locationKind,
+            Location location,
+            Proxy proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.SetEntryInCache,
+            EventName = nameof(LocatorEvent.SetEntryInCache),
+            Level = LogLevel.Trace,
+            Message = "set {LocationKind} '{Location}' = '{Proxy}' in cache")]
+        internal static partial void LogSetEntryInCache(
+            this ILogger logger,
+            string locationKind,
+            Location location,
+            Proxy proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.RemovedEntryFromCache,
+            EventName = nameof(LocatorEvent.RemovedEntryFromCache),
+            Level = LogLevel.Trace,
+            Message = "removed {LocationKind} '{Location}' from cache")]
+        internal static partial void LogRemovedEntryFromCache(
+            this ILogger logger,
+            string locationKind,
+            Location location);
     }
 }

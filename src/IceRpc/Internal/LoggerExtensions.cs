@@ -10,9 +10,8 @@ namespace IceRpc.Internal
         internal const int SlicBaseEventId = 3 * EventIdRange;
         internal const int TlsBaseEventId = 4 * EventIdRange;
         internal const int TransportBaseEventId = 5 * EventIdRange;
-        internal const int WebSocketBaseEventId = 6 * EventIdRange;
+        internal const int ConnectionBaseEventId = 6 * EventIdRange;
         internal const int LocatorBaseEventId = 7 * EventIdRange;
-        internal const int ConnectionBaseEventId = 8 * EventIdRange;
         private const int EventIdRange = 128;
     }
 }

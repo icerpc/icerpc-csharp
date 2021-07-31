@@ -191,4 +191,37 @@ namespace IceRpc.Internal
             }
         }
     }
+
+    /// <summary>This class contains ILogger extension methods used by LogLocationResolverDecorator.</summary>
+    internal static partial class LocatorLoggerExtensions
+    {
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolving,
+            EventName = nameof(LocatorEvent.Resolving),
+            Level = LogLevel.Trace,
+            Message = "resolving {LocationKind} {Location}")]
+        internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.Resolved,
+            EventName = nameof(LocatorEvent.Resolved),
+            Level = LogLevel.Debug,
+            Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
+        internal static partial void LogResolved(
+            this ILogger logger,
+            string locationKind,
+            Location location,
+            Proxy proxy);
+
+        [LoggerMessage(
+            EventId = (int)LocatorEvent.FailedToResolve,
+            EventName = nameof(LocatorEvent.FailedToResolve),
+            Level = LogLevel.Debug,
+            Message = "failed to resolve {LocationKind} '{Location}'")]
+        internal static partial void LogFailedToResolve(
+            this ILogger logger,
+            string locationKind,
+            Location location,
+            Exception? exception = null);
+    }
 }
