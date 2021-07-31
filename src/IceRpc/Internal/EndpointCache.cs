@@ -8,6 +8,9 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
+    /// <summary>An endpoint cache maintains a dictionary location to endpoint(s), where the endpoints are held by a
+    /// dummy proxy. It also keeps track of the insertion time of each entry. It's consumed by
+    /// <see cref="LocationResolver"/>.</summary>
     internal interface IEndpointCache
     {
         void Remove(Location location);
@@ -16,7 +19,7 @@ namespace IceRpc.Internal
         bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value);
     }
 
-    /// <summary>The default implementation for IEndpointCache.</summary>
+    /// <summary>The main implementation for IEndpointCache.</summary>
     internal sealed class EndpointCache : IEndpointCache
     {
         private readonly ConcurrentDictionary<Location, (TimeSpan InsertionTime, Proxy Proxy, LinkedListNode<Location> Node)> _cache;
@@ -87,7 +90,7 @@ namespace IceRpc.Internal
         }
     }
 
-    /// <summary>A decorator for IEndpointCache that adds logging.</summary>
+    /// <summary>A decorator that adds logging to an endpoint cache.</summary>
     internal class LogEndpointCacheDecorator : IEndpointCache
     {
         private readonly IEndpointCache _decoratee;

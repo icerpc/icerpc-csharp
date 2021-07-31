@@ -9,7 +9,11 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>.</summary>
+    /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
+    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="Interceptors.Logger"/>
+    /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
+    /// When the dummy proxy returns by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
+    /// </summary>
     internal interface ILocationResolver
     {
         ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
@@ -18,10 +22,15 @@ namespace IceRpc.Internal
             CancellationToken cancel);
     }
 
-    /// <summary>.</summary>
+    /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
+    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Location.Category"/> is null, the location
+    /// is an adapter ID; when it's not null, the location is an Identity.</summary>
     internal readonly struct Location : IEquatable<Location>
     {
+        /// <summary>The adapter ID/identity name.</summary>
         internal readonly string AdapterId;
+
+        /// <summary>When not null, the identity's category.</summary>
         internal readonly string? Category;
 
         internal string Kind => Category == null ? "adapter ID" : "identity";
@@ -52,7 +61,7 @@ namespace IceRpc.Internal
         }
     }
 
-    /// <summary>The default implementation of ILocationResolver.</summary>
+    /// <summary>The main implementation of <see cref="ILocationResolver"/>.</summary>
 
     internal class LocationResolver : ILocationResolver
     {
@@ -92,7 +101,8 @@ namespace IceRpc.Internal
             bool justRefreshed = false;
             bool resolved = false;
 
-            if (_endpointCache != null && _endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
+            if (_endpointCache != null &&
+                _endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
             {
                 proxy = entry.Proxy;
                 TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
@@ -139,6 +149,7 @@ namespace IceRpc.Internal
         }
     }
 
+    /// <summary>A decorator that adds logging to a location resolver.</summary>
     internal class LogLocationResolverDecorator : ILocationResolver
     {
         private readonly ILocationResolver _decoratee;

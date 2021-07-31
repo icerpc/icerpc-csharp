@@ -3,7 +3,6 @@
 using IceRpc.Interop;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -11,14 +10,16 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Finds the endpoint(s) at the given location. The endpoint(s) are carried by a dummy proxy. When this
-    /// dummy proxy is not null, its Endpoint is always not null.</summary>
+    /// <summary>An endpointer finds the endpoint(s) of a location. These endpoint(s) are carried by a dummy proxy. When
+    /// this dummy proxy is not null, its Endpoint property is guaranteed to be not null. Unlike
+    /// <see cref="ILocationResolver"/>, an endpoint finder does not maintain a cache.</summary>
     internal interface IEndpointFinder
     {
         Task<Proxy?> FindAsync(Location location, CancellationToken cancel);
     }
 
-    /// <summary>Implementation of IEndpointFinder that uses a locator proxy (ILocatorPrx).</summary>
+    /// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.
+    /// </summary>
     internal class LocatorEndpointFinder : IEndpointFinder
     {
         private readonly ILocatorPrx _locator;
@@ -82,7 +83,7 @@ namespace IceRpc.Internal
         }
     }
 
-    /// <summary>Adds logging to an endpoint finder.</summary>
+    /// <summary>A decorator that adds logging to an endpoint finder.</summary>
     internal class LogEndpointFinderDecorator : IEndpointFinder
     {
         private readonly IEndpointFinder _decoratee;
@@ -113,23 +114,22 @@ namespace IceRpc.Internal
             }
             catch
             {
-                // We log the exception itself when we actually handle it.
                 _logger.LogFindFailed(location.Kind, location);
                 throw;
             }
         }
     }
 
-    /// <summary>This decorator updates the cache after a call to the decoratee (e.g. remote locator). It needs to
-    /// execute downstream from the Coalesce decorator.</summary>
+    /// <summary>A decorator that updates its endpoint cache after a call to its decoratee (e.g. remote locator). It
+    /// needs to execute downstream from the Coalesce decorator.</summary>
     internal class CacheUpdateEndpointFinderDecorator : IEndpointFinder
     {
-        private readonly IEndpointCache _cache;
         private readonly IEndpointFinder _decoratee;
+        private readonly IEndpointCache _endpointCache;
 
-        internal CacheUpdateEndpointFinderDecorator(IEndpointFinder decoratee, IEndpointCache cache)
+        internal CacheUpdateEndpointFinderDecorator(IEndpointFinder decoratee, IEndpointCache endpointCache)
         {
-            _cache = cache;
+            _endpointCache = endpointCache;
             _decoratee = decoratee;
         }
 
@@ -139,18 +139,18 @@ namespace IceRpc.Internal
 
             if (proxy != null)
             {
-                _cache.Set(location, proxy);
+                _endpointCache.Set(location, proxy);
             }
             else
             {
-                _cache.Remove(location);
+                _endpointCache.Remove(location);
             }
             return proxy;
         }
     }
 
-    /// <summary>Detects multiple concurrent identical requests and "coalesce" them to avoid overloading the locator.
-    /// </summary>
+    /// <summary>A decorator that detects multiple concurrent identical FindAsync and "coalesce" them to avoid
+    /// overloading the decoratee (e.g. the remote locator).</summary>
     internal class CoalesceEndpointFinderDecorator : IEndpointFinder
     {
         private readonly IEndpointFinder _decoratee;
