@@ -196,15 +196,15 @@ namespace IceRpc.Internal
     internal static partial class LocatorLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)LocatorEvent.Resolving,
-            EventName = nameof(LocatorEvent.Resolving),
+            EventId = (int)LocationEvent.Resolving,
+            EventName = nameof(LocationEvent.Resolving),
             Level = LogLevel.Trace,
             Message = "resolving {LocationKind} {Location}")]
         internal static partial void LogResolving(this ILogger logger, string locationKind, Location location);
 
         [LoggerMessage(
-            EventId = (int)LocatorEvent.Resolved,
-            EventName = nameof(LocatorEvent.Resolved),
+            EventId = (int)LocationEvent.Resolved,
+            EventName = nameof(LocationEvent.Resolved),
             Level = LogLevel.Debug,
             Message = "resolved {LocationKind} '{Location}' = '{Proxy}'")]
         internal static partial void LogResolved(
@@ -214,8 +214,8 @@ namespace IceRpc.Internal
             Proxy proxy);
 
         [LoggerMessage(
-            EventId = (int)LocatorEvent.FailedToResolve,
-            EventName = nameof(LocatorEvent.FailedToResolve),
+            EventId = (int)LocationEvent.FailedToResolve,
+            EventName = nameof(LocationEvent.FailedToResolve),
             Level = LogLevel.Debug,
             Message = "failed to resolve {LocationKind} '{Location}'")]
         internal static partial void LogFailedToResolve(

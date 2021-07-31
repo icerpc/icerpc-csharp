@@ -106,20 +106,20 @@ namespace IceRpc.Internal
         void IEndpointCache.Remove(Location location)
         {
             _decoratee.Remove(location);
-            _logger.LogRemovedEntryFromCache(location.Kind, location);
+            _logger.LogRemovedEntry(location.Kind, location);
         }
 
         void IEndpointCache.Set(Location location, Proxy proxy)
         {
             _decoratee.Set(location, proxy);
-            _logger.LogSetEntryInCache(location.Kind, location, proxy);
+            _logger.LogSetEntry(location.Kind, location, proxy);
         }
 
         bool IEndpointCache.TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value)
         {
             if (_decoratee.TryGetValue(location, out value))
             {
-                _logger.LogFoundEntryInCache(location.Kind, location, value.Proxy);
+                _logger.LogFoundEntry(location.Kind, location, value.Proxy);
                 return true;
             }
             else
@@ -130,36 +130,36 @@ namespace IceRpc.Internal
     }
 
     /// <summary>This class contains ILogger extension methods used by LogEndpointCacheDecorator.</summary>
-    internal static partial class EndpointcacheLoggerExtensions
+    internal static partial class EndpointCacheLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)LocatorEvent.FoundEntryInCache,
-            EventName = nameof(LocatorEvent.FoundEntryInCache),
+            EventId = (int)LocationEvent.FoundEntry,
+            EventName = nameof(LocationEvent.FoundEntry),
             Level = LogLevel.Trace,
             Message = "found {LocationKind} '{Location}' = '{Proxy}' in cache")]
-        internal static partial void LogFoundEntryInCache(
+        internal static partial void LogFoundEntry(
             this ILogger logger,
             string locationKind,
             Location location,
             Proxy proxy);
 
         [LoggerMessage(
-            EventId = (int)LocatorEvent.SetEntryInCache,
-            EventName = nameof(LocatorEvent.SetEntryInCache),
+            EventId = (int)LocationEvent.SetEntry,
+            EventName = nameof(LocationEvent.SetEntry),
             Level = LogLevel.Trace,
             Message = "set {LocationKind} '{Location}' = '{Proxy}' in cache")]
-        internal static partial void LogSetEntryInCache(
+        internal static partial void LogSetEntry(
             this ILogger logger,
             string locationKind,
             Location location,
             Proxy proxy);
 
         [LoggerMessage(
-            EventId = (int)LocatorEvent.RemovedEntryFromCache,
-            EventName = nameof(LocatorEvent.RemovedEntryFromCache),
+            EventId = (int)LocationEvent.RemovedEntry,
+            EventName = nameof(LocationEvent.RemovedEntry),
             Level = LogLevel.Trace,
             Message = "removed {LocationKind} '{Location}' from cache")]
-        internal static partial void LogRemovedEntryFromCache(
+        internal static partial void LogRemovedEntry(
             this ILogger logger,
             string locationKind,
             Location location);

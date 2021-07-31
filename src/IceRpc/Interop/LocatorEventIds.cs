@@ -2,34 +2,32 @@
 
 namespace IceRpc.Interop
 {
-    /// <summary>This enum contains event ID constants used for locator interceptor logging.</summary>
-    public enum LocatorEvent
+    /// <summary>This enum contains event ID constants used for for location-related logging by ILocationResolver,
+    /// IEndpointFinder and IEndpointCache..</summary>
+    public enum LocationEvent
     {
-        /// <summary>The locator interceptor is resolving an adapter ID or identity.</summary>
-        Resolving = Internal.LoggerExtensions.LocatorBaseEventId,
+        /// <summary>The location resolver is resolving a location.</summary>
+        Resolving = Internal.LoggerExtensions.LocationBaseEventId,
 
-        /// <summary>The locator interceptor resolved successfully an adapter ID or identity.</summary>
+        /// <summary>The location resolver resolved successfully a location.</summary>
         Resolved,
 
-        /// <summary>The locator interceptor failed to resolve an adapter ID or identity.</summary>
+        /// <summary>The location resolver failed to resolve a location.</summary>
         FailedToResolve,
 
-        /// <summary>The locator interceptor found the requested adapter ID or identity in its cache. This entry
-        /// may be stale.</summary>
-        FoundEntryInCache,
+        /// <summary>The endpoint cache found the requested location.</summary>
+        FoundEntry,
 
-        /// <summary>The locator interceptor set an entry in its cache. This entry may silently replace an existing
-        /// entry.</summary>
-        SetEntryInCache,
+        /// <summary>An entry is set in the endpoint cache. This entry may silently replace an existing entry.</summary>
+        SetEntry,
 
-        /// <summary>The locator interceptor removed an entry from its cache.</summary>
-        RemovedEntryFromCache,
+        /// <summary>An entry was removed from the endpoint cache.</summary>
+        RemovedEntry,
 
-        /// <summary>A find operation on the locator proxy failed (returned null or an invalid proxy, or threw an
-        /// exception).</summary>
+        /// <summary>The endpoint finder failed to find endpoint(s) for the given location.</summary>
         FindFailed,
 
-        /// <summary>A find operation on the locator proxy succeeded.</summary>
+        /// <summary>The endpoint finder found endpoint(s) for the given location.</summary>
         Found
     }
 }

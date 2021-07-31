@@ -125,8 +125,8 @@ namespace IceRpc.Internal
     internal static partial class EndpointFinderLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)LocatorEvent.FindFailed,
-            EventName = nameof(LocatorEvent.FindFailed),
+            EventId = (int)LocationEvent.FindFailed,
+            EventName = nameof(LocationEvent.FindFailed),
             Level = LogLevel.Trace,
             Message = "failed to find {LocationKind} '{Location}'")]
         internal static partial void LogFindFailed(
@@ -135,8 +135,8 @@ namespace IceRpc.Internal
             Location location);
 
         [LoggerMessage(
-            EventId = (int)LocatorEvent.Found,
-            EventName = nameof(LocatorEvent.Found),
+            EventId = (int)LocationEvent.Found,
+            EventName = nameof(LocationEvent.Found),
             Level = LogLevel.Trace,
             Message = "found {LocationKind} '{Location}' = '{Proxy}'")]
         internal static partial void LogFound(
