@@ -12,7 +12,7 @@ namespace IceRpc.Internal
     /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
     /// optionally maintains a cache for these resolutions. It's consumed by <see cref="Interceptors.Logger"/>
     /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
-    /// When the dummy proxy returns by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
+    /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
     /// </summary>
     internal interface ILocationResolver
     {
@@ -23,7 +23,7 @@ namespace IceRpc.Internal
     }
 
     /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
-    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Location.Category"/> is null, the location
+    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Category"/> is null, the location
     /// is an adapter ID; when it's not null, the location is an Identity.</summary>
     internal readonly struct Location : IEquatable<Location>
     {
@@ -128,7 +128,7 @@ namespace IceRpc.Internal
                 try
                 {
                     // Resolves adapter ID recursively, by checking first the cache. If we resolved the well-known
-                    // proxy, we request a cache refresh for the adapter.
+                    // proxy, we request a cache refresh for the adapter ID.
                     (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host),
                                                     refreshCache || resolved,
                                                     cancel).ConfigureAwait(false);
