@@ -70,11 +70,11 @@ namespace IceRpc.Interop
             sb.Append(" -e ");
             sb.Append(proxy.Encoding.ToString());
 
-            if (proxy.IsIndirect)
+            if (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)
             {
-                if (!proxy.IsWellKnown)
+                if (proxy.Endpoint != null)
                 {
-                    string adapterId = proxy.Endpoint!.Host;
+                    string adapterId = proxy.Endpoint.Host;
 
                     sb.Append(" @ ");
 
@@ -95,11 +95,9 @@ namespace IceRpc.Interop
             }
             else
             {
-                if (proxy.Endpoint != null)
-                {
-                    sb.Append(':');
-                    sb.Append(proxy.Endpoint);
-                }
+                sb.Append(':');
+                sb.Append(proxy.Endpoint);
+
                 foreach (Endpoint e in proxy.AltEndpoints)
                 {
                     sb.Append(':');

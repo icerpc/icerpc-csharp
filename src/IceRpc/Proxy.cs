@@ -42,23 +42,37 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (_endpoint.Transport == TransportNames.Loc || _endpoint.Transport == TransportNames.Coloc)
+                    if (_endpoint.Transport == TransportNames.Coloc)
                     {
                         throw new ArgumentException(
-                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)
-                            } uses the loc or coloc transports",
+                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the coloc transport",
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Transport == TransportNames.Loc || e.Transport == TransportNames.Coloc))
+                    if (value.Any(e => e.Transport == TransportNames.Coloc))
                     {
-                        throw new ArgumentException("cannot use loc or coloc transport", nameof(AltEndpoints));
+                        throw new ArgumentException("cannot use coloc transport", nameof(AltEndpoints));
                     }
 
                     if (value.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
                                                     nameof(AltEndpoints));
+                    }
+
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        if (_endpoint.Transport == TransportNames.Loc)
+                        {
+                            throw new ArgumentException(
+                                @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the loc transport",
+                                nameof(AltEndpoints));
+                        }
+
+                        if (value.Any(e => e.Transport == TransportNames.Loc))
+                        {
+                            throw new ArgumentException("cannot use loc transport", nameof(AltEndpoints));
+                        }
                     }
                 }
                 // else, no need to check anything, an empty list is always fine.
@@ -95,11 +109,17 @@ namespace IceRpc
                         throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(Endpoint));
                     }
-                    if (_altEndpoints.Count > 0 &&
-                        (value.Transport == TransportNames.Loc || value.Transport == TransportNames.Coloc))
+
+                    if (_altEndpoints.Count > 0 && value.Transport == TransportNames.Coloc)
                     {
                         throw new ArgumentException(
-                            "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(Endpoint));
+                            "a proxy with a coloc endpoint cannot have alt endpoints", nameof(Endpoint));
+                    }
+
+                    if (Protocol == Protocol.Ice1 && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
+                    {
+                        throw new ArgumentException(
+                            "an ice1 proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)
@@ -151,9 +171,6 @@ namespace IceRpc
                 _identity = value;
             }
         }
-
-        internal bool IsIndirect => _endpoint?.Transport == TransportNames.Loc || IsWellKnown;
-        internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
 
         /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
         /// </summary>
@@ -466,13 +483,19 @@ namespace IceRpc
                     string adapterId = decoder.DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        endpoint = new Endpoint(proxyData.Protocol,
-                                                TransportNames.Loc,
-                                                Host: adapterId,
-                                                Port: proxyData.Protocol == Protocol.Ice1 ?
-                                                    Ice1Parser.DefaultPort :
-                                                    IceUriParser.DefaultUriPort,
-                                                Params: ImmutableList<EndpointParam>.Empty);
+                        if (proxyData.Protocol == Protocol.Ice1)
+                        {
+                            endpoint = new Endpoint(Protocol.Ice1,
+                                                    TransportNames.Loc,
+                                                    Host: adapterId,
+                                                    Port: Ice1Parser.DefaultPort,
+                                                    Params: ImmutableList<EndpointParam>.Empty);
+                        }
+                        else
+                        {
+                            throw new InvalidDataException(
+                                $"received {proxyData.Protocol.GetName()} proxy with an adapter ID");
+                        }
                     }
                     altEndpoints = ImmutableList<Endpoint>.Empty;
                 }
@@ -691,15 +714,15 @@ namespace IceRpc
                     Encoding);
                 proxyData.Encode(encoder);
 
-                if (IsIndirect)
-                {
-                    encoder.EncodeSize(0); // 0 endpoints
-                    encoder.EncodeString(IsWellKnown ? "" : Endpoint!.Host); // adapter ID unless well-known
-                }
-                else if (Endpoint == null)
+                if (Endpoint == null)
                 {
                     encoder.EncodeSize(0); // 0 endpoints
                     encoder.EncodeString(""); // empty adapter ID
+                }
+                else if (Protocol == Protocol.Ice1 && Endpoint.Transport == TransportNames.Loc)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(Endpoint.Host); // adapter ID unless well-known
                 }
                 else
                 {

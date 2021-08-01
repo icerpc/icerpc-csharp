@@ -62,7 +62,7 @@ namespace IceRpc
             return next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                    if (request.Connection == null)
+                    if (request.Connection == null && request.Protocol == Protocol.Ice1)
                     {
                         Location location = default;
                         bool refreshCache = false;

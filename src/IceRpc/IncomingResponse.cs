@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports.Internal;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -132,7 +133,9 @@ namespace IceRpc
             if (PayloadEncoding == Encoding.V11)
             {
                 // For compatibility with ZeroC Ice
-                if (ReplyStatus == ReplyStatus.ObjectNotExistException && proxy.IsIndirect)
+                if (ReplyStatus == ReplyStatus.ObjectNotExistException &&
+                    proxy.Protocol == Protocol.Ice1 &&
+                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {
                     retryPolicy = RetryPolicy.OtherReplica;
                 }
