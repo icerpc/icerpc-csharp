@@ -16,7 +16,6 @@ namespace IceRpc.Internal
     {
         void Remove(Location location);
         void Set(Location location, Proxy proxy);
-
         bool TryGetValue(Location location, out (TimeSpan InsertionTime, Proxy Proxy) value);
     }
 
