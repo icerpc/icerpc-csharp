@@ -162,11 +162,12 @@ namespace IceRpc
 
                 // Create and decorate location resolver:
                 return new LogLocationResolverDecorator(
-                    new LocationResolver(endpointFinder,
-                                         endpointCache,
-                                         options.Background,
-                                         options.JustRefreshedAge,
-                                         options.Ttl),
+                    endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+                        new LocationResolver(endpointFinder,
+                                             endpointCache,
+                                             options.Background,
+                                             options.JustRefreshedAge,
+                                             options.Ttl),
                     logger);
             }
         }

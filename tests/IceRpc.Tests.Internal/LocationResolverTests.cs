@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Interop;
 using NUnit.Framework;
 using System;
 using System.Threading;
@@ -13,18 +12,11 @@ namespace IceRpc.Tests.Internal
     public class LocationResolverTests
     {
         [Test]
-        public async Task LocationResolver_NoCacheAsync()
+        public async Task CacheLessLocationResolver_ResolveAsync()
         {
-            // TODO: background etc. are meaningful only when cache is not null.
-
             var endpointFinder = new FakeEndpointFinder();
 
-            ILocationResolver locationResolver =
-                new LocationResolver(endpointFinder,
-                                     endpointCache: null,
-                                     background: false,
-                                     justRefreshedAge: TimeSpan.Zero,
-                                     ttl: TimeSpan.Zero);
+            ILocationResolver locationResolver = new CacheLessLocationResolver(endpointFinder);
 
             (Proxy? proxy, bool fromCache) =
                 await locationResolver.ResolveAsync(new Location("good"), refreshCache: false, cancel: default);

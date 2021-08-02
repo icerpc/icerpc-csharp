@@ -61,12 +61,44 @@ namespace IceRpc.Internal
         }
     }
 
-    /// <summary>The main implementation of <see cref="ILocationResolver"/>.</summary>
+    /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
+
+    internal class CacheLessLocationResolver : ILocationResolver
+    {
+        private readonly IEndpointFinder _endpointFinder;
+
+        internal CacheLessLocationResolver(IEndpointFinder endpointFinder) => _endpointFinder = endpointFinder;
+
+        ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel) => ResolveAsync(location, refreshCache, cancel);
+
+        private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel)
+        {
+            Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
+
+            // A well-known proxy resolution can return a loc endpoint:
+            if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
+            {
+                (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host),
+                                                refreshCache: false, // no caching anyway
+                                                cancel).ConfigureAwait(false);
+            }
+
+            return (proxy, false);
+        }
+    }
+
+    /// <summary>The main implementation of <see cref="ILocationResolver"/>, with a cache.</summary>
 
     internal class LocationResolver : ILocationResolver
     {
         private readonly bool _background;
-        private readonly IEndpointCache? _endpointCache;
+        private readonly IEndpointCache _endpointCache;
         private readonly TimeSpan _justRefreshedAge;
         private readonly IEndpointFinder _endpointFinder;
 
@@ -74,7 +106,7 @@ namespace IceRpc.Internal
 
         internal LocationResolver(
             IEndpointFinder endpointFinder,
-            IEndpointCache? endpointCache,
+            IEndpointCache endpointCache,
             bool background,
             TimeSpan justRefreshedAge,
             TimeSpan ttl)
@@ -101,8 +133,7 @@ namespace IceRpc.Internal
             bool justRefreshed = false;
             bool resolved = false;
 
-            if (_endpointCache != null &&
-                _endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
+            if (_endpointCache.TryGetValue(location, out (TimeSpan InsertionTime, Proxy Proxy) entry))
             {
                 proxy = entry.Proxy;
                 TimeSpan cacheEntryAge = Time.Elapsed - entry.InsertionTime;
@@ -121,8 +152,7 @@ namespace IceRpc.Internal
                 _ = _endpointFinder.FindAsync(location, cancel: default).ConfigureAwait(false);
             }
 
-            // A well-known proxy resolution can return a loc endpoint, but not another well-known proxy loc
-            // endpoint.
+            // A well-known proxy resolution can return a loc endpoint
             if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
             {
                 try
@@ -140,7 +170,7 @@ namespace IceRpc.Internal
                     // proxy below can hold a loc endpoint only when an exception is thrown.
                     if (proxy == null || proxy.Endpoint!.Transport == TransportNames.Loc)
                     {
-                        _endpointCache?.Remove(location);
+                        _endpointCache.Remove(location);
                     }
                 }
             }
