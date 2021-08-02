@@ -85,13 +85,6 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void AsyncSemaphore_Complete_Exception()
-        {
-            var semaphore = new AsyncSemaphore(1);
-            Assert.Throws<ArgumentOutOfRangeException>(() => semaphore.Complete(null!));
-        }
-
-        [Test]
         public async Task AsyncSemaphore_Complete_ExceptionThrowing()
         {
             // Completing the semaphore should cause EnterAsync to throw the completion exception, other methods
