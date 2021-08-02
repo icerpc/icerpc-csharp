@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Demo
 {
-    public class Hello : IHello
+    public class Hello : Service, IHello
     {
         public ValueTask<string?> SayHelloAsync(string? greeting, Dispatch dispatch, CancellationToken cancel)
         {

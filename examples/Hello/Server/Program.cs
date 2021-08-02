@@ -27,21 +27,18 @@ try
                     configure.SingleLine = false;
                     configure.UseUtcTimestamp = true;
                 });
-            /*builder.AddJsonConsole(configure =>
-            {
-                configure.IncludeScopes = true;
-                configure.JsonWriterOptions = new System.Text.Json.JsonWriterOptions()
-                {
-                    Indented = true
-                };
-            });*/
         });
+
+    var router = new Router();
+    router.Use(Middleware.CustomTelemetry(new Middleware.TelemetryOptions { LoggerFactory = loggerFactory}));
+    router.Use(Middleware.Logger(loggerFactory));
+    router.Map<IHello>(new Hello());
 
     await using var server = new Server
     {
         Endpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoints"),
         LoggerFactory = loggerFactory,
-        Dispatcher = new Hello()
+        Dispatcher = router
     };
 
     // Destroy the server on Ctrl+C or Ctrl+Break
