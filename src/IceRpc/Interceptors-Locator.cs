@@ -82,11 +82,12 @@ namespace IceRpc
                             // Typically first attempt since a successful resolution replaces this loc endpoint.
                             location = new Location(endpoint.Host);
                         }
-                        else if (request.Endpoint == null && request.Protocol == Protocol.Ice1)
+                        else if (request.Endpoint == null)
                         {
                             // Well-known proxy
                             location = new Location(request.Identity);
                         }
+                        // else it could be a retry where the first attempt provided non-cached endpoint(s)
 
                         if (location != default)
                         {
