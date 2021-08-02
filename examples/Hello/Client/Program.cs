@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Demo;
+using IceRpc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
-using System.Collections.Generic;
-using IceRpc;
+using System.Diagnostics;
 
 IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true)
@@ -27,22 +26,21 @@ using ILoggerFactory loggerFactory = LoggerFactory.Create(
             configure.SingleLine = false;
             configure.UseUtcTimestamp = true;
         });
-        /*builder.AddJsonConsole(configure =>
-        {
-            configure.IncludeScopes = true;
-            configure.JsonWriterOptions = new System.Text.Json.JsonWriterOptions()
-            {
-                Indented = true
-            };
-        });*/
     });
 
-await using var pool = new Communicator
+await using var connection = new Connection
 {
-    LoggerFactory = loggerFactory
+    LoggerFactory = loggerFactory,
+    RemoteEndpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoint")
 };
 
-IHelloPrx twoway = IHelloPrx.Parse(configuration.GetSection("AppSettings").GetValue<string>("Hello.Proxy"), pool);
+
+var pipeline = new Pipeline();
+pipeline.Use(Interceptors.CustomTelemetry(new Interceptors.TelemetryOptions { LoggerFactory = loggerFactory}));
+pipeline.Use(Interceptors.Logger(loggerFactory));
+
+IHelloPrx twoway = HelloPrx.FromConnection(connection, invoker: pipeline);
+
 Console.Write("Say Hello: ");
 string? greeting = Console.ReadLine();
 Console.Out.WriteLine(await twoway.SayHelloAsync(greeting));
