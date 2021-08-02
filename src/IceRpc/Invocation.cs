@@ -10,9 +10,6 @@ namespace IceRpc
     /// </summary>
     public sealed class Invocation
     {
-        /// <summary>Gets or sets the marshaling format for classes.</summary>
-        public FormatType ClassFormat { get; set; }
-
         /// <summary>Gets or sets the value of the Context feature in <see cref="RequestFeatures"/>.</summary>
         public IDictionary<string, string> Context
         {
