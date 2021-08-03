@@ -29,7 +29,4 @@ module IceRpc
 
     /// A sequence of strings.
     sequence<string> StringSeq;
-
-    /// A sequence of classes.
-    sequence<AnyClass> ClassSeq;
 }

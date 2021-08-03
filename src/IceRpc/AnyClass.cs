@@ -12,7 +12,7 @@ namespace IceRpc
             decoder => decoder.DecodeClass<AnyClass>(formalTypeId: null);
 
         /// <summary>An encode action for non-nullable class instances.</summary>
-        public static readonly EncodeAction<AnyClass> EncodeAction = (encoder, value) => encoder.EncodeClass(value, null);
+        public static readonly EncodeAction<AnyClass> EncodeAction = (encoder, value) => encoder.EncodeClass(value);
 
         /// <summary>A decode function for nullable class instances.</summary>
         public static readonly DecodeFunc<AnyClass?> NullableDecodeFunc =
@@ -20,7 +20,7 @@ namespace IceRpc
 
         /// <summary>An encode action for nullable class instances.</summary>
         public static readonly EncodeAction<AnyClass?> NullableEncodeAction =
-            (encoder, value) => encoder.EncodeNullableClass(value, null);
+            (encoder, value) => encoder.EncodeNullableClass(value);
 
         /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
         /// unmarshaling, otherwise <c>null</c>.</summary>

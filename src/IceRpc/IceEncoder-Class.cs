@@ -57,10 +57,7 @@ namespace IceRpc
                 EncodeSize(_current.IndirectionTable.Count);
                 foreach (AnyClass v in _current.IndirectionTable)
                 {
-                    // We cannot use formal type optimization for instances encoded inline in an indirection table,
-                    // as the slice may not be known/decoded by the recipient - therefore the formal type of the
-                    // data member is not known.
-                    EncodeInstance(v, formalTypeId: null);
+                    EncodeInstance(v);
                 }
                 _current.IndirectionTable.Clear();
                 _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding SlicedData.
@@ -164,10 +161,8 @@ namespace IceRpc
         }
 
         /// <summary>Encodes a class instance.</summary>
-        /// <param name="v">The class instance to encode. This instance cannot be null.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
-        /// Use null when the type of the parameter/data member is AnyClass.</param>
-        public void EncodeClass(AnyClass v, string? formalTypeId)
+        /// <param name="v">The class instance to encode.</param>
+        public void EncodeClass(AnyClass v)
         {
             if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
             {
@@ -190,7 +185,7 @@ namespace IceRpc
             }
             else
             {
-                EncodeInstance(v, formalTypeId); // Encodes the instance or a reference if already encoded.
+                EncodeInstance(v); // Encodes the instance or a reference if already encoded.
             }
         }
 
@@ -207,9 +202,7 @@ namespace IceRpc
 
         /// <summary>Encodes a class instance, or null.</summary>
         /// <param name="v">The class instance to encode, or null.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being encoded.
-        /// Use null when the type of the parameter/data member is AnyClass.</param>
-        public void EncodeNullableClass(AnyClass? v, string? formalTypeId)
+        public void EncodeNullableClass(AnyClass? v)
         {
             if (v == null)
             {
@@ -217,7 +210,7 @@ namespace IceRpc
             }
             else
             {
-                EncodeClass(v, formalTypeId);
+                EncodeClass(v);
             }
         }
 
@@ -316,8 +309,7 @@ namespace IceRpc
         /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
-        /// <param name="formalTypeId">The type ID of the formal parameter or data member being encoded.</param>
-        private void EncodeInstance(AnyClass v, string? formalTypeId)
+        private void EncodeInstance(AnyClass v)
         {
             // If the instance was already encoded, just encode its instance ID.
             if (_instanceMap != null && _instanceMap.TryGetValue(v, out int instanceId))
@@ -340,7 +332,6 @@ namespace IceRpc
                 InstanceData previousCurrent = _current;
                 _current = default;
                 _current.InstanceType = InstanceType.Class;
-                _current.FormalTypeId20 = formalTypeId;
 
                 v.Encode(this);
 
@@ -406,29 +397,25 @@ namespace IceRpc
             if (_current.InstanceType == InstanceType.Class)
             {
                 string typeId = allTypeIds[0];
-                if (typeId != _current.FormalTypeId20)
+                int index = RegisterTypeId(typeId);
+                if (index < 0)
                 {
-                    int index = RegisterTypeId(typeId);
-                    if (index < 0)
+                    if (_classFormat == FormatType.Sliced)
                     {
-                        if (_classFormat == FormatType.Sliced)
-                        {
-                            typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                            EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
-                        }
-                        else
-                        {
-                            typeIdKind = EncodingDefinitions.TypeIdKind.String;
-                            EncodeString(typeId);
-                        }
+                        typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
+                        EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
                     }
                     else
                     {
-                        typeIdKind = EncodingDefinitions.TypeIdKind.Index;
-                        EncodeSize(index);
+                        typeIdKind = EncodingDefinitions.TypeIdKind.String;
+                        EncodeString(typeId);
                     }
                 }
-                // else, don't encode anything (formal type optimization)
+                else
+                {
+                    typeIdKind = EncodingDefinitions.TypeIdKind.Index;
+                    EncodeSize(index);
+                }
             }
             else
             {
@@ -447,10 +434,6 @@ namespace IceRpc
         private struct InstanceData
         {
             // The following fields are used and reused for all the slices of a class or exception instance.
-
-            // (Class only) The type ID associated with the formal type of the parameter or data member being encoded.
-            // We use this formalTypeId to skip the encoding of type IDs when there is a match.
-            internal string? FormalTypeId20;
 
             internal InstanceType InstanceType;
 
