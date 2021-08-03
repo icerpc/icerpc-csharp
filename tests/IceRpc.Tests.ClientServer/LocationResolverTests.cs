@@ -16,6 +16,7 @@ namespace IceRpc.Tests.ClientServer
         private ConnectionPool? _pool;
         private Server? _server;
 
+        // Note that transport loc has no special meaning with ice2.
         [TestCase("ice+loc://testlocation/test", "ice+loc://unknown-location/test", "test", "test @ testlocation")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test", "ice+loc://adapter/test")]
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
@@ -28,16 +29,16 @@ namespace IceRpc.Tests.ClientServer
             GreeterPrx direct = SetupServer(indirect.Proxy.Protocol, indirect.Proxy.Path, pipeline);
             Assert.That(direct.Proxy.Endpoint, Is.Not.Null);
 
-            if (indirect.Proxy.Endpoint is Endpoint locEndpoint)
+            if (indirect.Proxy.Endpoint is Endpoint endpoint)
             {
-                pipeline.Use(LocationResolver(indirect.Proxy.Endpoint.Host, category: null, direct.Proxy.Endpoint!),
+                pipeline.Use(LocationResolver(endpoint.Host, category: null, direct.Proxy.Endpoint!),
                              Interceptors.Binder(_pool));
             }
             else
             {
                 var identity = indirect.Proxy.GetIdentity();
                 pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!),
-                                  Interceptors.Binder(_pool));
+                             Interceptors.Binder(_pool));
             }
 
             await indirect.SayHelloAsync();
@@ -91,10 +92,10 @@ namespace IceRpc.Tests.ClientServer
                 (request, cancel) =>
                 {
                     if ((request.Protocol == resolvedEndpoint.Protocol) &&
-                        ((request.Endpoint is Endpoint locEndpoint &&
-                          locEndpoint.Transport == "loc" &&
-                          locEndpoint.Host == location &&
-                           category == null) ||
+                        ((request.Endpoint is Endpoint endpoint &&
+                          endpoint.Transport == "loc" &&
+                          endpoint.Host == location &&
+                          category == null) ||
                          (request.Endpoint == null &&
                           request.Protocol == Protocol.Ice1 &&
                           category != null &&
