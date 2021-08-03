@@ -8,15 +8,14 @@ namespace IceRpc
     public abstract class AnyClass
     {
         /// <summary>A decode function for non-nullable class instances.</summary>
-        public static readonly DecodeFunc<AnyClass> DecodeFunc =
-            decoder => decoder.DecodeClass<AnyClass>(formalTypeId: null);
+        public static readonly DecodeFunc<AnyClass> DecodeFunc = decoder => decoder.DecodeClass<AnyClass>();
 
         /// <summary>An encode action for non-nullable class instances.</summary>
         public static readonly EncodeAction<AnyClass> EncodeAction = (encoder, value) => encoder.EncodeClass(value);
 
         /// <summary>A decode function for nullable class instances.</summary>
         public static readonly DecodeFunc<AnyClass?> NullableDecodeFunc =
-            decoder => decoder.DecodeNullableClass<AnyClass>(formalTypeId: null);
+            decoder => decoder.DecodeNullableClass<AnyClass>();
 
         /// <summary>An encode action for nullable class instances.</summary>
         public static readonly EncodeAction<AnyClass?> NullableEncodeAction =
