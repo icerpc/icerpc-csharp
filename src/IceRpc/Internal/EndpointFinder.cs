@@ -19,8 +19,7 @@ namespace IceRpc.Internal
         Task<Proxy?> FindAsync(Location location, CancellationToken cancel);
     }
 
-    /// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.
-    /// </summary>
+    /// <summary>The main implementation of IEndpointFinder. It uses a locator proxy to "find" the endpoints.</summary>
     internal class LocatorEndpointFinder : IEndpointFinder
     {
         private readonly ILocatorPrx _locator;
@@ -115,6 +114,8 @@ namespace IceRpc.Internal
             }
             catch
             {
+                // We don't log the exception here because we expect another logger further up in chain to log this
+                // exception.
                 _logger.LogFindFailed(location.Kind, location);
                 throw;
             }

@@ -16,7 +16,7 @@ namespace IceRpc.Tests.ClientServer
         private ConnectionPool? _pool;
         private Server? _server;
 
-        // Note that transport loc as no special meaning with ice2.
+        // Note that transport loc has no special meaning with ice2.
         [TestCase("ice+loc://testlocation/test", "ice+loc://unknown-location/test", "test", "test @ testlocation")]
         [TestCase("test @ adapter", "test @ unknown_adapter", "test", "ice+loc://adapter/test")]
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]

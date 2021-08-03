@@ -9,7 +9,7 @@ using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
-    /// <summary>An endpoint cache maintains a dictionary location to endpoint(s), where the endpoints are held by a
+    /// <summary>An endpoint cache maintains a dictionary of location to endpoint(s), where the endpoints are held by a
     /// dummy proxy. It also keeps track of the insertion time of each entry. It's consumed by
     /// <see cref="LocationResolver"/>.</summary>
     internal interface IEndpointCache

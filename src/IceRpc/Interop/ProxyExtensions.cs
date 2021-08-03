@@ -70,9 +70,9 @@ namespace IceRpc.Interop
             sb.Append(" -e ");
             sb.Append(proxy.Encoding.ToString());
 
-            if (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)
+            if (proxy.Endpoint != null)
             {
-                if (proxy.Endpoint != null)
+                if (proxy.Endpoint.Transport == TransportNames.Loc)
                 {
                     string adapterId = proxy.Endpoint.Host;
 
@@ -92,16 +92,16 @@ namespace IceRpc.Interop
                         sb.Append(adapterId);
                     }
                 }
-            }
-            else
-            {
-                sb.Append(':');
-                sb.Append(proxy.Endpoint);
-
-                foreach (Endpoint e in proxy.AltEndpoints)
+                else
                 {
                     sb.Append(':');
-                    sb.Append(e);
+                    sb.Append(proxy.Endpoint);
+
+                    foreach (Endpoint e in proxy.AltEndpoints)
+                    {
+                        sb.Append(':');
+                        sb.Append(e);
+                    }
                 }
             }
             return sb.ToString();

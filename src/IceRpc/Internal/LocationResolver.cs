@@ -62,7 +62,6 @@ namespace IceRpc.Internal
     }
 
     /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
-
     internal class CacheLessLocationResolver : ILocationResolver
     {
         private readonly IEndpointFinder _endpointFinder;
@@ -94,7 +93,6 @@ namespace IceRpc.Internal
     }
 
     /// <summary>The main implementation of <see cref="ILocationResolver"/>, with a cache.</summary>
-
     internal class LocationResolver : ILocationResolver
     {
         private readonly bool _background;

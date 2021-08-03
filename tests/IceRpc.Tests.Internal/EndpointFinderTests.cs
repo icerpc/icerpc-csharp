@@ -111,7 +111,7 @@ namespace IceRpc.Tests.Internal
                 string id,
                 Invocation? invocation,
                 CancellationToken cancel) =>
-                    Task.FromResult<ServicePrx?>(id == "good" ? ServicePrx.Parse("dummy:tsp -h host -p 10000") : null);
+                    Task.FromResult<ServicePrx?>(id == "good" ? ServicePrx.Parse("dummy:tcp -h host -p 10000") : null);
 
             Task<ServicePrx?> ILocatorPrx.FindObjectByIdAsync(
                 Identity id,
