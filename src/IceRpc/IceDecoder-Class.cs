@@ -91,9 +91,9 @@ namespace IceRpc
             else
             {
                 // The type IDs are always decoded and cannot be null or empty.
-                string[]? allTypeIds;
+                string[] allTypeIds;
                 (allTypeIds, errorMessage, origin) = DecodeFirstSliceHeaderIntoCurrent20();
-                Debug.Assert(allTypeIds != null && allTypeIds.Length > 0 && errorMessage != null);
+                Debug.Assert(allTypeIds.Length > 0 && errorMessage != null);
                 bool firstSlice = true;
 
                 foreach (string typeId in allTypeIds)
