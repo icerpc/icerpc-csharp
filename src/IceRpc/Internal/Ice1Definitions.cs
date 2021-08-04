@@ -125,26 +125,26 @@ namespace IceRpc.Internal
 
                     var requestFailed = new Ice1RequestFailedExceptionData(decoder);
 
-                    IList<string> facetPath = requestFailed.FacetPath;
-                    if (facetPath.Count > 1)
+                    if (requestFailed.IdentityAndFacet.FacetPath.Count > 1)
                     {
-                        throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
+                        throw new InvalidDataException("received ice1 facet path with too many segments");
                     }
-                    string facet = facetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
                         systemException = new OperationNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
-                        { Facet = facet };
+                            new RemoteExceptionOrigin(
+                                requestFailed.IdentityAndFacet.ToPath(),
+                                requestFailed.Operation));
                     }
                     else
                     {
                         systemException = new ServiceNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
-                        { Facet = facet };
+                            new RemoteExceptionOrigin(
+                                requestFailed.IdentityAndFacet.ToPath(),
+                                requestFailed.Operation));
                     }
                     break;
 
@@ -187,7 +187,7 @@ namespace IceRpc.Internal
                         identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
                     }
                     var requestFailed =
-                        new Ice1RequestFailedExceptionData(identityAndFacet.Identity, identityAndFacet.FacetPath, request.Operation);
+                        new Ice1RequestFailedExceptionData(identityAndFacet, request.Operation);
 
                     requestFailed.Encode(encoder);
                     break;

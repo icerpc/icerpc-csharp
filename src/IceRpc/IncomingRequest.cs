@@ -74,12 +74,12 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 var requestHeader = new Ice1RequestHeader(decoder);
-                if (requestHeader.Identity.Name.Length == 0)
+                if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                 {
                     throw new InvalidDataException("received request with null identity");
                 }
 
-                Path = new IdentityAndFacet(requestHeader.Identity, requestHeader.FacetPath).ToPath();
+                Path = requestHeader.IdentityAndFacet.ToPath();
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
                 if (requestHeader.Context.Count > 0)

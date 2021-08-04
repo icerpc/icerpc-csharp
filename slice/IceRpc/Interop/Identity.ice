@@ -28,7 +28,7 @@ module Ice
         /// The identity.
         Identity identity;
 
-        /// The facet path, with 0 or 1 elements.
+        /// The facet path, with 0 or 1 element.
         IceRpc::StringSeq facetPath;
     }
 }
