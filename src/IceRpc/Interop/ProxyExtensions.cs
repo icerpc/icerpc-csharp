@@ -21,11 +21,13 @@ namespace IceRpc.Interop
                 return proxy.ToString()!;
             }
 
+            var identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+
             var sb = new StringBuilder();
 
             // If the encoded identity string contains characters which the reference parser uses as separators,
             // then we enclose the identity string in quotes.
-            string id = proxy.GetIdentity().ToString(mode);
+            string id = identityAndFacet.Identity.ToString(mode);
             if (StringUtil.FindFirstOf(id, " :@") != -1)
             {
                 sb.Append('"');
@@ -37,13 +39,12 @@ namespace IceRpc.Interop
                 sb.Append(id);
             }
 
-            string facet = proxy.GetFacet();
-            if (facet.Length > 0)
+            if (identityAndFacet.FacetPath.Count > 0)
             {
                 // If the encoded facet string contains characters which the reference parser uses as separators,
                 // then we enclose the facet string in quotes.
                 sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(facet, mode);
+                string fs = StringUtil.EscapeString(identityAndFacet.FacetPath[0], mode);
                 if (StringUtil.FindFirstOf(fs, " :@") != -1)
                 {
                     sb.Append('"');

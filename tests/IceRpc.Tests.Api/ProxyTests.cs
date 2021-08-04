@@ -97,32 +97,6 @@ namespace IceRpc.Tests.Api
                 proxy.Endpoint = proxy2.Endpoint;
                 Assert.AreEqual(proxy.Endpoint, proxy2.Endpoint);
             }
-
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                Assert.AreEqual("facet", proxy.WithFacet("facet").GetFacet());
-            }
-
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                proxy = Proxy.Parse(s);
-
-                Proxy other = proxy.WithPath("/test").WithFacet("facet");
-
-                Assert.AreEqual("facet", other.GetFacet());
-                Assert.AreEqual("test", other.GetIdentity().Name);
-                Assert.AreEqual("", other.GetIdentity().Category);
-
-                other = other.WithPath("/category/test");
-                Assert.AreEqual("facet", other.GetFacet());
-                Assert.AreEqual("test", other.GetIdentity().Name);
-                Assert.AreEqual("category", other.GetIdentity().Category);
-
-                other = proxy.WithPath("/foo").WithFacet("facet1");
-                Assert.AreEqual("facet1", other.GetFacet());
-                Assert.AreEqual("foo", other.GetIdentity().Name);
-                Assert.AreEqual("", other.GetIdentity().Category);
-            }
         }
 
         [Test]
@@ -239,36 +213,6 @@ namespace IceRpc.Tests.Api
         {
             Assert.Throws<FormatException>(() => Proxy.Parse(str));
             Assert.That(Proxy.TryParse(str, invoker: null, out _), Is.False);
-        }
-
-        /// <summary>Test that the parsed proxy has the expected identity and location</summary>
-        /// <param name="str">The string to parse as a proxy.</param>
-        /// <param name="name">The expected identity name for the parsed proxy.</param>
-        /// <param name="category">The expected identity category for the parsed proxy.</param>
-        /// <param name="location">The expected location for the parsed proxy.</param>
-        [TestCase("test", "test", "")]
-        [TestCase(" test ", "test", "")]
-        [TestCase(" test", "test", "")]
-        [TestCase("test ", "test", "")]
-        [TestCase("'test -f facet'", "test -f facet", "")]
-        [TestCase("\"test -f facet\"", "test -f facet", "")]
-        [TestCase("\"test -f facet@test\"", "test -f facet@test", "")]
-        [TestCase("\"test -f facet@test @test\"", "test -f facet@test @test", "")]
-        [TestCase("test\\040test", "test test", "")]
-        [TestCase("test\\40test", "test test", "")]
-        // Test some octal and hex corner cases.
-        [TestCase("test\\4test", "test\u0004test", "")]
-        [TestCase("test\\04test", "test\u0004test", "")]
-        [TestCase("test\\004test", "test\u0004test", "")]
-        [TestCase("test\\1114test", "test\u00494test", "")]
-        [TestCase("test\\b\\f\\n\\r\\t\\'\\\"\\\\test", "test\b\f\n\r\t\'\"\\test", "")]
-        [TestCase("category/test", "test", "category")]
-        public void Proxy_Parse_InputWithIdentity(string str, string name, string category)
-        {
-            var proxy = Proxy.Parse(str);
-            Assert.AreEqual(name, proxy.GetIdentity().Name);
-            Assert.AreEqual(category, proxy.GetIdentity().Category);
-            Assert.AreEqual("", proxy.GetFacet());
         }
 
         [Test]

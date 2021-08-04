@@ -176,20 +176,18 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    Identity identity = request.Identity;
-                    if (request.Protocol == Protocol.Ice2)
+                    IdentityAndFacet identityAndFacet;
+                    try
                     {
-                        try
-                        {
-                            identity = Identity.FromPath(request.Path);
-                        }
-                        catch (FormatException)
-                        {
-                            // ignored, i.e. we'll marshal an empty identity
-                        }
+                        identityAndFacet = IdentityAndFacet.FromPath(request.Path);
+                    }
+                    catch (FormatException)
+                    {
+                        // ignored, i.e. we'll encode an empty identity + facet
+                        identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
                     }
                     var requestFailed =
-                        new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
+                        new Ice1RequestFailedExceptionData(identityAndFacet.Identity, identityAndFacet.FacetPath, request.Operation);
 
                     requestFailed.Encode(encoder);
                     break;
