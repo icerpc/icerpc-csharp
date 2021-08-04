@@ -111,17 +111,20 @@ namespace IceRpc
     {
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
+        private readonly Encoding _encoding;
         private readonly Func<RpcStream, Task> _encoder;
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="IAsyncEnumerable{T}"/> to
         /// the request <see cref="RpcStream"/>.</summary>
         /// <param name="inputStream">The async enumerable to read the elements from.</param>
+        /// <param name="encoding">The encoding.</param>
         /// <param name="encodeAction">The action to encode each element.</param>
-        public UnboundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
+        public UnboundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Encoding encoding, Action<IceEncoder, T> encodeAction)
         {
             _inputStream = inputStream;
+            _encoding = encoding;
             _encodeAction = encodeAction;
-            _encoder = stream => SendDataAsync(stream, _inputStream, _encodeAction);
+            _encoder = stream => SendDataAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
         void IRpcStreamWriter.Send(
@@ -132,6 +135,7 @@ namespace IceRpc
         private static async Task SendDataAsync(
             RpcStream rpcStream,
             IAsyncEnumerable<T> inputStream,
+            Encoding encoding,
             Action<IceEncoder, T> encodeAction)
         {
             rpcStream.EnableSendFlowControl();
@@ -149,7 +153,7 @@ namespace IceRpc
             {
                 await foreach (T item in inputStream)
                 {
-                    var encoder = new IceEncoder(Encoding.Ice20);
+                    var encoder = new IceEncoder(encoding);
                     encodeAction(encoder, item);
                     ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
                     for (int i = 0; i < buffers.Length; ++i)
@@ -178,17 +182,20 @@ namespace IceRpc
     {
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
+        private readonly Encoding _encoding;
         private readonly Func<RpcStream, Task> _encoder;
 
         /// <summary>Creates a stream writer that writes the data from the given <see cref="IAsyncEnumerable{T}"/> to
         /// the request <see cref="RpcStream"/>.</summary>
         /// <param name="inputStream">The async enumerable to read the elements from.</param>
+        /// <param name="encoding">The encoding.</param>
         /// <param name="encodeAction">The action to encode each element.</param>
-        public BoundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
+        public BoundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Encoding encoding, Action<IceEncoder, T> encodeAction)
         {
             _inputStream = inputStream;
+            _encoding = encoding;
             _encodeAction = encodeAction;
-            _encoder = stream => SendDataAsync(stream, _inputStream, _encodeAction);
+            _encoder = stream => SendDataAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
         void IRpcStreamWriter.Send(
@@ -199,6 +206,7 @@ namespace IceRpc
         private static async Task SendDataAsync(
             RpcStream rpcStream,
             IAsyncEnumerable<T> inputStream,
+            Encoding encoding,
             Action<IceEncoder, T> encodeAction)
         {
             rpcStream.EnableSendFlowControl();
@@ -209,7 +217,7 @@ namespace IceRpc
             {
                 await foreach (T item in inputStream)
                 {
-                    var encoder = new IceEncoder(Encoding.Ice20);
+                    var encoder = new IceEncoder(encoding);
                     encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
                     IceEncoder.Position start = encoder.StartFixedLengthSize();
                     encodeAction(encoder, item);

@@ -290,7 +290,8 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 {
                     _out << " = streamReader!.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
                     _out.inc();
-                    _out << nl << decodeFunc(streamT, ns) << ","
+                    _out << nl << "payloadEncoding,"
+                         << nl << decodeFunc(streamT, ns) << ","
                          << nl << streamT->minWireSize() << ");";
                     _out.dec();
                 }
@@ -312,6 +313,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                     _out.inc();
                     _out << nl << "connection,"
                          << nl << "invoker,"
+                         << nl << "payloadEncoding,"
                          << nl << decodeFunc(streamT, ns) << ");";
                     _out.dec();
                 }
@@ -2450,6 +2452,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
             _out << "<" << typeToString(streamT, ns) << ">(";
             _out.inc();
             _out << nl << paramName(streamParam) << ","
+                 << nl << "Proxy.Encoding,"
                  << nl << encodeAction(streamT, ns, true, true) << "),";
             _out.dec();
         }
@@ -2478,7 +2481,8 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << nl << "streamReader!.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
             _out.inc();
-            _out << nl << decodeFunc(streamT, ns) << ","
+            _out << nl << "payloadEncoding,"
+                 << nl << decodeFunc(streamT, ns) << ","
                  << nl << streamT->minWireSize() << "),";
             _out.dec();
         }
@@ -2488,6 +2492,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
             _out.inc();
             _out << nl << "connection,"
                  << nl << "invoker,"
+                 << nl << "payloadEncoding,"
                  << nl << decodeFunc(streamT, ns) << "),";
             _out.dec();
         }
@@ -3004,6 +3009,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                     _out << "<" << typeToString(streamT, ns) << ">(";
                     _out.inc();
                     _out << nl << "returnValue,"
+                         << nl << "dispatch.Encoding,"
                          << nl << encodeAction(streamT, ns, true, true) << ")";
                     _out.dec();
                 }
@@ -3037,6 +3043,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                 _out << "<" << typeToString(streamT, ns) << ">(";
                 _out.inc();
                 _out << nl << streamName << ","
+                     << nl << "dispatch.Encoding,"
                      << nl << encodeAction(streamT, ns, true, true) << ")";
                 _out.dec();
             }

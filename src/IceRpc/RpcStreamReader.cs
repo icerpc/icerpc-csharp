@@ -28,6 +28,7 @@ namespace IceRpc
             int elementSize) =>
             new StreamReaderUnboundedEnumerable<T>(
                 dispatch.IncomingRequest.Stream,
+                dispatch.Encoding,
                 decodeAction,
                 elementSize).ReadAsync();
 
@@ -41,6 +42,7 @@ namespace IceRpc
                 dispatch.IncomingRequest.Stream,
                 dispatch.Connection,
                 dispatch.ProxyInvoker,
+                dispatch.Encoding,
                 decodeAction).ReadAsync();
 
         /// <summary>Reads the stream data from an incoming request with a <see cref="System.IO.Stream"/>.</summary>
@@ -49,24 +51,27 @@ namespace IceRpc
             new StreamReaderIOStream(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
 
         /// <summary>Reads the stream data from an outgoing request with a <see cref="IAsyncEnumerable{T}"/>.</summary>
+        /// <param name="encoding">The encoding.</param>
         /// <param name="decodeAction">The action used to decode the stream param.</param>
         /// <param name="elementSize">The size in bytes of the stream element.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
-        public IAsyncEnumerable<T> ToAsyncEnumerable<T>(Func<IceDecoder, T> decodeAction, int elementSize) =>
-            new StreamReaderUnboundedEnumerable<T>(_stream, decodeAction, elementSize).ReadAsync();
+        public IAsyncEnumerable<T> ToAsyncEnumerable<T>(Encoding encoding, Func<IceDecoder, T> decodeAction, int elementSize) =>
+            new StreamReaderUnboundedEnumerable<T>(_stream, encoding, decodeAction, elementSize).ReadAsync();
 
         /// <summary>Reads the stream data from an outgoing request with a <see cref="IAsyncEnumerable{T}"/>.</summary>
         /// <param name="connection">The connection used to construct the <see cref="IceDecoder"/>.</param>
         /// <param name="invoker">The invoker used to construct the <see cref="IceDecoder"/>.</param>
+        /// <param name="encoding">The encoding.</param>
         /// <param name="decodeAction">The action used to decode the stream param.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             Connection connection,
             IInvoker? invoker,
+            Encoding encoding,
             Func<IceDecoder, T> decodeAction) =>
-            new StreamReaderBoundedEnumerable<T>(_stream, connection, invoker, decodeAction).ReadAsync();
+            new StreamReaderBoundedEnumerable<T>(_stream, connection, invoker, encoding, decodeAction).ReadAsync();
 
         /// <summary>Reads the stream data from an outgoing request with a <see cref="System.IO.Stream"/>.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
@@ -185,14 +190,17 @@ namespace IceRpc
         {
             private readonly Func<IceDecoder, T> _decodeAction;
             private readonly int _elementSize;
+            private readonly Encoding _encoding;
             private readonly RpcStream _rpcStream;
 
             internal StreamReaderUnboundedEnumerable(
                 RpcStream rpcStream,
+                Encoding encoding,
                 Func<IceDecoder, T> decodeAction,
                 int elementSize)
             {
                 _rpcStream = rpcStream;
+                _encoding = encoding;
                 _decodeAction = decodeAction;
                 _elementSize = elementSize;
             }
@@ -216,7 +224,7 @@ namespace IceRpc
                     {
                         break; // EOF
                     }
-                    yield return _decodeAction(new IceDecoder(buffer, Encoding.Ice20));
+                    yield return _decodeAction(new IceDecoder(buffer, _encoding));
                 }
 
                 async ValueTask<int> ReceiveFullAsync(Memory<byte> buffer)
@@ -250,6 +258,7 @@ namespace IceRpc
         {
             private readonly Connection _connection;
             private readonly Func<IceDecoder, T> _decodeAction;
+            private readonly Encoding _encoding;
             private readonly IInvoker? _invoker;
             private readonly RpcStream _rpcStream;
 
@@ -257,11 +266,13 @@ namespace IceRpc
                 RpcStream rpcStream,
                 Connection connection,
                 IInvoker? invoker,
+                Encoding encoding,
                 Func<IceDecoder, T> decodeAction)
             {
                 _rpcStream = rpcStream;
                 _connection = connection;
                 _invoker = invoker;
+                _encoding = encoding;
                 _decodeAction = decodeAction;
             }
 
@@ -291,7 +302,7 @@ namespace IceRpc
                         break; // EOF
                     }
                     yield return _decodeAction(
-                        new IceDecoder(buffer, Encoding.Ice20, _connection, _invoker, _connection.ClassFactory));
+                        new IceDecoder(buffer, _encoding, _connection, _invoker, _connection.ClassFactory));
                 }
 
                 async ValueTask<int> ReceiveFullAsync(Memory<byte> buffer)
