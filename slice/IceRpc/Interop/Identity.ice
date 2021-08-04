@@ -9,18 +9,18 @@
 [cs:namespace(IceRpc.Interop)]
 module Ice
 {
-    /// The identity of a service reachable through the ice1 protocol.
+    /// The identity of a service reachable with the ice1 protocol.
     [cs:readonly]
     struct Identity
     {
-        /// The name component of the identity. An empty name is not a valid name.
+        /// The name of the identity. An empty name is not a valid name.
         string name;
 
         /// The category of the identity. Can be empty.
         string category;
     }
 
-     /// The identity and facet of a service reachable through the ice1 protocol. They both map to path with the ice2
+     /// The identity and facet of a service reachable with the ice1 protocol. They both map to path with the ice2
      /// protocol.
     [cs:readonly]
     struct IdentityAndFacet
@@ -28,8 +28,8 @@ module Ice
         /// The identity.
         Identity identity;
 
-        /// The optional facet: an empty sequence represents a null facet , while a single element means represents a
-        /// a non-null facet. However, a null facet is always treated like a non-null empty facet.
+        /// The optional facet: an empty sequence represents a null facet, while a single element represents a non-null
+        /// facet. However, a null facet and a non-null empty facet are always treated the same.
         IceRpc::StringSeq optionalFacet;
     }
 }
