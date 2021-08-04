@@ -39,12 +39,12 @@ namespace IceRpc.Interop
                 sb.Append(id);
             }
 
-            if (identityAndFacet.FacetPath.Count > 0)
+            if (identityAndFacet.Facet.Length > 0)
             {
                 // If the encoded facet string contains characters which the reference parser uses as separators,
                 // then we enclose the facet string in quotes.
                 sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(identityAndFacet.FacetPath[0], mode);
+                string fs = StringUtil.EscapeString(identityAndFacet.Facet, mode);
                 if (StringUtil.FindFirstOf(fs, " :@") != -1)
                 {
                     sb.Append('"');

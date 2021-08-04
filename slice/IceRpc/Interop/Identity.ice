@@ -21,14 +21,15 @@ module Ice
     }
 
      /// The identity and facet of a service reachable through the ice1 protocol. They both map to path with the ice2
-     /// protocol. For historical reasons, the facet is represented by a facet path.
+     /// protocol.
     [cs:readonly]
     struct IdentityAndFacet
     {
         /// The identity.
         Identity identity;
 
-        /// The facet path, with 0 or 1 element.
-        IceRpc::StringSeq facetPath;
+        /// The optional facet: an empty sequence represents a null facet , while a single element means represents a
+        /// a non-null facet. However, a null facet is always treated like a non-null empty facet.
+        IceRpc::StringSeq optionalFacet;
     }
 }

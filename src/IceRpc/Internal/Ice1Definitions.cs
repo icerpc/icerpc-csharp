@@ -125,9 +125,9 @@ namespace IceRpc.Internal
 
                     var requestFailed = new Ice1RequestFailedExceptionData(decoder);
 
-                    if (requestFailed.IdentityAndFacet.FacetPath.Count > 1)
+                    if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
                     {
-                        throw new InvalidDataException("received ice1 facet path with too many segments");
+                        throw new InvalidDataException("received ice1 optionalFacet with too many elements");
                     }
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)

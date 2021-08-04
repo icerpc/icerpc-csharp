@@ -182,7 +182,7 @@ namespace IceRpc.Interop
     public readonly partial struct IdentityAndFacet
     {
         /// <summary>Gets the facet.</summary>
-        public string Facet => FacetPath.Count == 0 ? "" : FacetPath[0];
+        public string Facet => OptionalFacet.Count == 0 ? "" : OptionalFacet[0];
 
         /// <summary>Creates an IdentityAndFacet from a URI path.</summary>
         /// <param name="path">A URI path.</param>
@@ -218,13 +218,13 @@ namespace IceRpc.Interop
         public string ToPath()
         {
             string path = Identity.ToPath();
-            if (FacetPath.Count == 0)
+            if (Facet.Length == 0)
             {
                 return path;
             }
             else
             {
-                return $"{path}:{Uri.EscapeDataString(FacetPath[0])}";
+                return $"{path}:{Uri.EscapeDataString(Facet)}";
             }
         }
 

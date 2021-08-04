@@ -456,15 +456,15 @@ namespace IceRpc
 
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    if (proxyData.FacetPath.Count > 1)
+                    if (proxyData.OptionalFacet.Count > 1)
                     {
                         throw new InvalidDataException(
-                            $"received proxy with {proxyData.FacetPath.Count} elements in its facet path");
+                            $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
                     }
 
                     try
                     {
-                        var identityAndFacet = new IdentityAndFacet(identity, proxyData.FacetPath);
+                        var identityAndFacet = new IdentityAndFacet(identity, proxyData.OptionalFacet);
 
                         var proxy = new Proxy(identityAndFacet.ToPath(), Protocol.Ice1);
                         proxy.Encoding = Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
@@ -484,10 +484,10 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (proxyData.FacetPath.Count > 0)
+                    if (proxyData.OptionalFacet.Count > 0)
                     {
                         throw new InvalidDataException(
-                            $"received proxy for protocol {proxyData.Protocol.GetName()} with facet");
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with a facet");
                     }
                     if (proxyData.InvocationMode != InvocationMode.Twoway)
                     {
@@ -613,7 +613,7 @@ namespace IceRpc
 
                 (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
                 var proxyData = new ProxyData11(
-                    identityAndFacet.FacetPath,
+                    identityAndFacet.OptionalFacet,
                     Protocol == Protocol.Ice1 && (Endpoint?.Transport == TransportNames.Udp) ?
                         InvocationMode.Datagram : InvocationMode.Twoway,
                     secure: false,
