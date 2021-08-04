@@ -107,7 +107,7 @@ namespace IceRpc
     }
 
     /// <summary>A stream writer to write a unbounded stream params to a <see cref="RpcStream"/>.</summary>
-    public sealed class RpcStreamWriter<T> : IRpcStreamWriter
+    public sealed class UnboundedRpcStreamWriter<T> : IRpcStreamWriter
     {
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
@@ -117,7 +117,7 @@ namespace IceRpc
         /// the request <see cref="RpcStream"/>.</summary>
         /// <param name="inputStream">The async enumerable to read the elements from.</param>
         /// <param name="encodeAction">The action to encode each element.</param>
-        public RpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
+        public UnboundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
         {
             _inputStream = inputStream;
             _encodeAction = encodeAction;
