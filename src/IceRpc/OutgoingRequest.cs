@@ -123,7 +123,7 @@ namespace IceRpc
             Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
-            RpcStreamWriter? streamWriter,
+            IRpcStreamWriter? streamWriter,
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
@@ -200,7 +200,7 @@ namespace IceRpc
             Proxy proxy,
             string operation,
             FeatureCollection features,
-            RpcStreamWriter? streamWriter)
+            IRpcStreamWriter? streamWriter)
             : base(proxy.Protocol, features, streamWriter)
         {
             AltEndpoints = proxy.AltEndpoints;

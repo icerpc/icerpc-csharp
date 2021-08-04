@@ -3,16 +3,26 @@
 using IceRpc.Transports;
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
-    public sealed class RpcStreamWriter
+    /// <summary>A stream writer to write stream params to a <see cref="RpcStream"/>.</summary>
+    public interface IRpcStreamWriter
+    {
+        /// <summary>Writes the stream params to a <see cref="RpcStream"/>.</summary>
+        /// <param name="stream">The stream to write to.</param>
+        /// <param name="streamCompressor">The compressor to apply to the encoded data.</param>
+        void Send(RpcStream stream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor);
+    }
+
+    /// <summary>A stream writer to write a unbounded stream params to a <see cref="RpcStream"/>.</summary>
+    public sealed class RpcStreamWriter : IRpcStreamWriter
     {
         private readonly Func<RpcStream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>?, Task> _encoder;
 
-        internal void Send(
+        void IRpcStreamWriter.Send(
             RpcStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
             Task.Run(() => _encoder(stream, streamCompressor));
@@ -92,6 +102,135 @@ namespace IceRpc
             finally
             {
                 inputStream.Dispose();
+            }
+        }
+    }
+
+    /// <summary>A stream writer to write a unbounded stream params to a <see cref="RpcStream"/>.</summary>
+    public sealed class RpcStreamWriter<T> : IRpcStreamWriter
+    {
+        private readonly IAsyncEnumerable<T> _inputStream;
+        private readonly Action<IceEncoder, T> _encodeAction;
+        private readonly Func<RpcStream, Task> _encoder;
+
+        /// <summary>Creates a stream writer that writes the data from the given <see cref="IAsyncEnumerable{T}"/> to
+        /// the request <see cref="RpcStream"/>.</summary>
+        /// <param name="inputStream">The async enumerable to read the elements from.</param>
+        /// <param name="encodeAction">The action to encode each element.</param>
+        public RpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
+        {
+            _inputStream = inputStream;
+            _encodeAction = encodeAction;
+            _encoder = stream => SendDataAsync(stream, _inputStream, _encodeAction);
+        }
+
+        void IRpcStreamWriter.Send(
+            RpcStream stream,
+            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
+            Task.Run(() => _encoder(stream));
+
+        private static async Task SendDataAsync(
+            RpcStream rpcStream,
+            IAsyncEnumerable<T> inputStream,
+            Action<IceEncoder, T> encodeAction)
+        {
+            rpcStream.EnableSendFlowControl();
+
+            // TODO: use a buffered stream to ensure the header isn't sent immediately?
+            using System.IO.Stream outputStream = rpcStream.AsByteStream();
+
+            // Write the unbounded data frame header.
+            byte[] header = new byte[2];
+            header[0] = (byte)Ice2FrameType.UnboundedData;
+            header[1] = (byte)CompressionFormat.NotCompressed;
+            await outputStream.WriteAsync(header).ConfigureAwait(false);
+
+            try
+            {
+                await foreach (T item in inputStream)
+                {
+                    var encoder = new IceEncoder(Encoding.Ice20);
+                    encodeAction(encoder, item);
+                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+                    for (int i = 0; i < buffers.Length; ++i)
+                    {
+                        await outputStream.WriteAsync(buffers.Span[i]).ConfigureAwait(false);
+                    }
+                    // TODO: should the frequency of the flush be configurable? When using compression and
+                    // the input stream provides only small amount of data, we'll send many small compressed
+                    // chunks of bytes.
+                    await outputStream.FlushAsync().ConfigureAwait(false);
+                }
+
+                // Write end of stream (TODO: this might not work with Quic)
+                await outputStream.WriteAsync(Array.Empty<byte>()).ConfigureAwait(false);
+            }
+            catch
+            {
+                rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>A stream writer to write a unbounded stream params to a <see cref="RpcStream"/>.</summary>
+    public sealed class BoundedRpcStreamWriter<T> : IRpcStreamWriter
+    {
+        private readonly IAsyncEnumerable<T> _inputStream;
+        private readonly Action<IceEncoder, T> _encodeAction;
+        private readonly Func<RpcStream, Task> _encoder;
+
+        /// <summary>Creates a stream writer that writes the data from the given <see cref="IAsyncEnumerable{T}"/> to
+        /// the request <see cref="RpcStream"/>.</summary>
+        /// <param name="inputStream">The async enumerable to read the elements from.</param>
+        /// <param name="encodeAction">The action to encode each element.</param>
+        public BoundedRpcStreamWriter(IAsyncEnumerable<T> inputStream, Action<IceEncoder, T> encodeAction)
+        {
+            _inputStream = inputStream;
+            _encodeAction = encodeAction;
+            _encoder = stream => SendDataAsync(stream, _inputStream, _encodeAction);
+        }
+
+        void IRpcStreamWriter.Send(
+            RpcStream stream,
+            Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
+            Task.Run(() => _encoder(stream));
+
+        private static async Task SendDataAsync(
+            RpcStream rpcStream,
+            IAsyncEnumerable<T> inputStream,
+            Action<IceEncoder, T> encodeAction)
+        {
+            rpcStream.EnableSendFlowControl();
+
+            // TODO: use a buffered stream to ensure the header isn't sent immediately?
+            using System.IO.Stream outputStream = rpcStream.AsByteStream();
+            try
+            {
+                await foreach (T item in inputStream)
+                {
+                    var encoder = new IceEncoder(Encoding.Ice20);
+                    encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
+                    IceEncoder.Position start = encoder.StartFixedLengthSize();
+                    encodeAction(encoder, item);
+                    encoder.EndFixedLengthSize(start);
+                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+                    for (int i = 0; i < buffers.Length; ++i)
+                    {
+                        await outputStream.WriteAsync(buffers.Span[i]).ConfigureAwait(false);
+                    }
+                    // TODO: should the frequency of the flush be configurable? When using compression and
+                    // the input stream provides only small amount of data, we'll send many small compressed
+                    // chunks of bytes.
+                    await outputStream.FlushAsync().ConfigureAwait(false);
+                }
+                // Write end of stream (TODO: this might not work with Quic)
+                await outputStream.WriteAsync(Array.Empty<byte>()).ConfigureAwait(false);
+            }
+            catch
+            {
+                rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
+                throw;
             }
         }
     }

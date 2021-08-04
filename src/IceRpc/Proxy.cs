@@ -434,7 +434,7 @@ namespace IceRpc
         {
             Debug.Assert(decoder.Connection != null);
 
-            if (decoder.Encoding == IceRpc.Encoding.Ice11)
+            if (decoder.Encoding == Encoding.Ice11)
             {
                 var identity = new Identity(decoder);
                 if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding
@@ -496,8 +496,7 @@ namespace IceRpc
                         var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
                         proxy.Identity = identity;
                         proxy.FacetPath = proxyData.FacetPath;
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
-                                                                        proxyData.EncodingMinor);
+                        proxy.Encoding = Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
                         proxy.Invoker = decoder.Invoker;
@@ -541,8 +540,7 @@ namespace IceRpc
                             proxy.Invoker = decoder.Invoker;
                         }
 
-                        proxy.Encoding = IceRpc.Encoding.FromMajorMinor(proxyData.EncodingMajor,
-                                                                        proxyData.EncodingMinor);
+                        proxy.Encoding = Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
                         return proxy;
                     }
                     catch (Exception ex)
@@ -801,7 +799,7 @@ namespace IceRpc
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            RpcStreamWriter? streamWriter = null,
+            IRpcStreamWriter? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,

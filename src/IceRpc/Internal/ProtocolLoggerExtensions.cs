@@ -177,7 +177,7 @@ namespace IceRpc.Internal
             EventId = (int)ProtocolEvent.SentRequestFrame,
             EventName = nameof(ProtocolEvent.SentRequestFrame),
             Level = LogLevel.Information,
-            Message = "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+            Message = "sending request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
                       "PayloadEncoding={PayloadEncoding})")]
         internal static partial void LogSentRequest(
             this ILogger logger,

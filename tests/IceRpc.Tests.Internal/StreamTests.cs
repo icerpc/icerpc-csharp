@@ -299,7 +299,8 @@ namespace IceRpc.Tests.Internal
             byte[] sendBuffer = new byte[sendSize];
             new Random().NextBytes(sendBuffer);
 
-            new RpcStreamWriter(new MemoryStream(sendBuffer)).Send(stream, null);
+            IRpcStreamWriter writer = new RpcStreamWriter(new MemoryStream(sendBuffer));
+            writer.Send(stream, null);
 
             byte[] receiveBuffer = new byte[recvSize];
             Stream receiveStream = new RpcStreamReader(serverStream, null).ToByteStream();
@@ -345,7 +346,8 @@ namespace IceRpc.Tests.Internal
 
             var sendStream = new TestMemoryStream(new byte[100]);
 
-            new RpcStreamWriter(sendStream).Send(stream, null);
+            IRpcStreamWriter writer = new RpcStreamWriter(sendStream);
+            writer.Send(stream, null);
 
             byte[] readBuffer = new byte[100];
             Stream receiveStream = new RpcStreamReader(serverStream, null).ToByteStream();
@@ -426,7 +428,8 @@ namespace IceRpc.Tests.Internal
             bool compressorCalled = false;
             bool decompressorCalled = false;
 
-            new RpcStreamWriter(sendStream).Send(
+            IRpcStreamWriter writer = new RpcStreamWriter(sendStream);
+            writer.Send(
                 clientStream,
                 outputStream =>
                 {

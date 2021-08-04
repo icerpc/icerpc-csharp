@@ -327,7 +327,12 @@ Slice::fixId(const string& name, unsigned int baseTypes)
 }
 
 string
-Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, bool readOnly, bool isParam, bool streamParam)
+Slice::CsGenerator::typeToString(
+    const TypePtr& type,
+    const string& package,
+    bool readOnly,
+    bool isParam,
+    bool streamParam)
 {
     if (streamParam)
     {
@@ -337,9 +342,9 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         }
         else
         {
-            // TODO
-            assert(false);
-            return "";
+            return "global::System.Collections.Generic.IAsyncEnumerable<" +
+                typeToString(type, package, readOnly, isParam, false) +
+                ">";
         }
     }
 
@@ -567,6 +572,31 @@ Slice::isValueType(const TypePtr& type)
 
     if (EnumPtr::dynamicCast(type) || StructPtr::dynamicCast(type) || type->isInterfaceType())
     {
+        return true;
+    }
+    return false;
+}
+
+bool
+Slice::isFixedSize(const TypePtr& type)
+{
+    BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
+    if (builtin)
+    {
+        return builtin->isNumericTypeOrBool() && !builtin->isVariableLength();
+    }
+
+    auto st = StructPtr::dynamicCast(type);
+    if (st)
+    {
+        MemberList dataMembers = st->dataMembers();
+        for (MemberList::const_iterator q = dataMembers.begin(); q != dataMembers.end(); q++)
+        {
+            if (!isFixedSize((*q)->type()))
+            {
+                return false;
+            }
+        }
         return true;
     }
     return false;
