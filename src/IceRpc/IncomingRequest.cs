@@ -76,7 +76,7 @@ namespace IceRpc
                 var requestHeader = new Ice1RequestHeader(decoder);
                 if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                 {
-                    throw new InvalidDataException("received request with null identity");
+                    throw new InvalidDataException("received ice1 request with empty identity name");
                 }
 
                 Path = requestHeader.IdentityAndFacet.ToPath();

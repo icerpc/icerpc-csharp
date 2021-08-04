@@ -218,14 +218,7 @@ namespace IceRpc.Interop
         public string ToPath()
         {
             string path = Identity.ToPath();
-            if (Facet.Length == 0)
-            {
-                return path;
-            }
-            else
-            {
-                return $"{path}:{Uri.EscapeDataString(Facet)}";
-            }
+            return Facet.Length == 0 ? path : $"{path}:{Uri.EscapeDataString(Facet)}";
         }
 
         /// <summary>Converts this identity + facet into a string.</summary>

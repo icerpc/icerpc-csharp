@@ -544,11 +544,11 @@ namespace IceRpc
                 {
                     Proxy proxy;
 
-                    // TODO: is it possible for decoder.Connection to be null?
+                    Debug.Assert(decoder.Connection != null);
 
-                    if (endpoint == null && protocol != Protocol.Ice1 && decoder.Connection is Connection connection)
+                    if (endpoint == null && protocol != Protocol.Ice1)
                     {
-                        proxy = Proxy.FromConnection(connection, proxyData.Path, decoder.Invoker);
+                        proxy = Proxy.FromConnection(decoder.Connection, proxyData.Path, decoder.Invoker);
                     }
                     else
                     {
