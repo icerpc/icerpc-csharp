@@ -57,146 +57,151 @@ namespace IceRpc.Tests.CodeGeneration
         [Test]
         public async Task Tagged_Parameters()
         {
-            var oneOptional = (OneOptional?)await _prx.PingPongAsync(new OneOptional());
-            Assert.That(oneOptional, Is.Not.Null);
+            OneOptional? oneOptionalOpt = await _prx.PingPongOneAsync(new OneOptional());
+            Assert.That(oneOptionalOpt, Is.Not.Null);
+            var oneOptional = oneOptionalOpt.Value;
             Assert.That(oneOptional.A.HasValue, Is.False);
 
-            oneOptional = (OneOptional?)await _prx.PingPongAsync(new OneOptional(16));
-            Assert.That(oneOptional, Is.Not.Null);
+            oneOptionalOpt = await _prx.PingPongOneAsync(new OneOptional(16));
+            Assert.That(oneOptionalOpt, Is.Not.Null);
+            oneOptional = oneOptionalOpt.Value;
             Assert.AreEqual(16, oneOptional.A);
 
-            var multiOtional = (MultiOptional?)await _prx.PingPongAsync(new MultiOptional());
-            Assert.That(multiOtional, Is.Not.Null);
-            CheckMultiOptionalHasNoValue(multiOtional);
+            MultiOptional? multiOptionalOpt = await _prx.PingPongMultiAsync(new MultiOptional());
+            Assert.That(multiOptionalOpt, Is.Not.Null);
+            var multiOptional = multiOptionalOpt.Value;
+            CheckMultiOptionalHasNoValue(multiOptional);
 
-            multiOtional.MByte = 1;
-            multiOtional.MShort = 1;
-            multiOtional.MLong = 1;
-            multiOtional.MDouble = 1.0;
-            multiOtional.MUShort = 1;
-            multiOtional.MULong = 1;
-            multiOtional.MVarLong = 1;
-            multiOtional.MString = "1";
-            multiOtional.MMyEnum = MyEnum.enum1;
-            multiOtional.MAnotherStruct = new AnotherStruct(
+            multiOptional.MByte = 1;
+            multiOptional.MShort = 1;
+            multiOptional.MLong = 1;
+            multiOptional.MDouble = 1.0;
+            multiOptional.MUShort = 1;
+            multiOptional.MULong = 1;
+            multiOptional.MVarLong = 1;
+            multiOptional.MString = "1";
+            multiOptional.MMyEnum = MyEnum.enum1;
+            multiOptional.MAnotherStruct = new AnotherStruct(
                 "hello",
                 OperationsPrx.Parse("ice+tcp://localhost/hello"),
                 MyEnum.enum1,
                 new MyStruct(1, 1));
 
-            multiOtional.MStringSeq = new string[] { "hello" };
-            multiOtional.MMyEnumSeq = new MyEnum[] { MyEnum.enum1 };
-            multiOtional.MAnotherStructSeq = new AnotherStruct[] { multiOtional.MAnotherStruct.Value };
+            multiOptional.MStringSeq = new string[] { "hello" };
+            multiOptional.MMyEnumSeq = new MyEnum[] { MyEnum.enum1 };
+            multiOptional.MAnotherStructSeq = new AnotherStruct[] { multiOptional.MAnotherStruct.Value };
 
-            multiOtional.MStringDict = new Dictionary<string, string>()
+            multiOptional.MStringDict = new Dictionary<string, string>()
             {
                 { "key", "value" }
             };
-            multiOtional.MVarIntSeq = new int[] { 1 };
+            multiOptional.MVarIntSeq = new int[] { 1 };
 
-            multiOtional.MByteDict = new Dictionary<byte, byte>() { { 1, 1 } };
-            multiOtional.MAnotherStructDict = new Dictionary<string, AnotherStruct>()
+            multiOptional.MByteDict = new Dictionary<byte, byte>() { { 1, 1 } };
+            multiOptional.MAnotherStructDict = new Dictionary<string, AnotherStruct>()
             {
-                { "key", multiOtional.MAnotherStruct.Value}
+                { "key", multiOptional.MAnotherStruct.Value}
             };
 
-            var multiOptional1 = (MultiOptional?)await _prx.PingPongAsync(multiOtional);
-            Assert.That(multiOptional1, Is.Not.Null);
-            Assert.AreEqual(multiOtional.MByte, multiOptional1.MByte);
-            Assert.AreEqual(multiOtional.MBool, multiOptional1.MBool);
-            Assert.AreEqual(multiOtional.MShort, multiOptional1.MShort);
-            Assert.AreEqual(multiOtional.MInt, multiOptional1.MInt);
-            Assert.AreEqual(multiOtional.MLong, multiOptional1.MLong);
-            Assert.AreEqual(multiOtional.MFloat, multiOptional1.MFloat);
-            Assert.AreEqual(multiOtional.MDouble, multiOptional1.MDouble);
-            Assert.AreEqual(multiOtional.MUShort, multiOptional1.MUShort);
-            Assert.AreEqual(multiOtional.MUInt, multiOptional1.MUInt);
-            Assert.AreEqual(multiOtional.MULong, multiOptional1.MULong);
-            Assert.AreEqual(multiOtional.MVarInt, multiOptional1.MVarInt);
-            Assert.AreEqual(multiOtional.MVarLong, multiOptional1.MVarLong);
-            Assert.AreEqual(multiOtional.MVarUInt, multiOptional1.MVarUInt);
-            Assert.AreEqual(multiOtional.MVarULong, multiOptional1.MVarULong);
-            Assert.AreEqual(multiOtional.MString, multiOptional1.MString);
-            Assert.AreEqual(multiOtional.MMyEnum, multiOptional1.MMyEnum);
-            Assert.AreEqual(multiOtional.MMyStruct, multiOptional1.MMyStruct);
-            Assert.AreEqual(multiOtional.MAnotherStruct, multiOptional1.MAnotherStruct);
+            MultiOptional? multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
+            Assert.That(multiOptional1Opt, Is.Not.Null);
+            var multiOptional1 = multiOptional1Opt.Value;
+            Assert.AreEqual(multiOptional.MByte, multiOptional1.MByte);
+            Assert.AreEqual(multiOptional.MBool, multiOptional1.MBool);
+            Assert.AreEqual(multiOptional.MShort, multiOptional1.MShort);
+            Assert.AreEqual(multiOptional.MInt, multiOptional1.MInt);
+            Assert.AreEqual(multiOptional.MLong, multiOptional1.MLong);
+            Assert.AreEqual(multiOptional.MFloat, multiOptional1.MFloat);
+            Assert.AreEqual(multiOptional.MDouble, multiOptional1.MDouble);
+            Assert.AreEqual(multiOptional.MUShort, multiOptional1.MUShort);
+            Assert.AreEqual(multiOptional.MUInt, multiOptional1.MUInt);
+            Assert.AreEqual(multiOptional.MULong, multiOptional1.MULong);
+            Assert.AreEqual(multiOptional.MVarInt, multiOptional1.MVarInt);
+            Assert.AreEqual(multiOptional.MVarLong, multiOptional1.MVarLong);
+            Assert.AreEqual(multiOptional.MVarUInt, multiOptional1.MVarUInt);
+            Assert.AreEqual(multiOptional.MVarULong, multiOptional1.MVarULong);
+            Assert.AreEqual(multiOptional.MString, multiOptional1.MString);
+            Assert.AreEqual(multiOptional.MMyEnum, multiOptional1.MMyEnum);
+            Assert.AreEqual(multiOptional.MMyStruct, multiOptional1.MMyStruct);
+            Assert.AreEqual(multiOptional.MAnotherStruct, multiOptional1.MAnotherStruct);
 
             Assert.That(multiOptional1.MByteSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MStringSeq, multiOptional1.MStringSeq);
+            CollectionAssert.AreEqual(multiOptional.MStringSeq, multiOptional1.MStringSeq);
             Assert.That(multiOptional1.MShortSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MMyEnumSeq, multiOptional1.MMyEnumSeq);
+            CollectionAssert.AreEqual(multiOptional.MMyEnumSeq, multiOptional1.MMyEnumSeq);
             Assert.That(multiOptional1.MMyStructSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MAnotherStructSeq, multiOptional1.MAnotherStructSeq);
+            CollectionAssert.AreEqual(multiOptional.MAnotherStructSeq, multiOptional1.MAnotherStructSeq);
 
             Assert.That(multiOptional1.MIntDict, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MStringDict, multiOptional1.MStringDict);
+            CollectionAssert.AreEqual(multiOptional.MStringDict, multiOptional1.MStringDict);
             Assert.That(multiOptional1.MUShortSeq, Is.Null);
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MVarIntSeq, multiOptional1.MVarIntSeq);
+            CollectionAssert.AreEqual(multiOptional.MVarIntSeq, multiOptional1.MVarIntSeq);
 
-            CollectionAssert.AreEqual(multiOtional.MByteDict, multiOptional1.MByteDict);
+            CollectionAssert.AreEqual(multiOptional.MByteDict, multiOptional1.MByteDict);
             Assert.That(multiOptional1.MMyStructDict, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MAnotherStructDict, multiOptional1.MAnotherStructDict);
+            CollectionAssert.AreEqual(multiOptional.MAnotherStructDict, multiOptional1.MAnotherStructDict);
 
-            multiOtional = new MultiOptional();
-            multiOtional.MBool = true;
-            multiOtional.MInt = 1;
-            multiOtional.MFloat = 1;
-            multiOtional.MUShort = 1;
-            multiOtional.MULong = 1;
-            multiOtional.MVarLong = 1;
-            multiOtional.MVarULong = 1;
-            multiOtional.MMyEnum = MyEnum.enum1;
-            multiOtional.MMyStruct = new MyStruct(1, 1);
+            multiOptional = new MultiOptional();
+            multiOptional.MBool = true;
+            multiOptional.MInt = 1;
+            multiOptional.MFloat = 1;
+            multiOptional.MUShort = 1;
+            multiOptional.MULong = 1;
+            multiOptional.MVarLong = 1;
+            multiOptional.MVarULong = 1;
+            multiOptional.MMyEnum = MyEnum.enum1;
+            multiOptional.MMyStruct = new MyStruct(1, 1);
 
-            multiOtional.MByteSeq = new byte[] { 1 };
-            multiOtional.MShortSeq = new short[] { 1 };
-            multiOtional.MMyStructSeq = new MyStruct[] { new MyStruct(1, 1) };
+            multiOptional.MByteSeq = new byte[] { 1 };
+            multiOptional.MShortSeq = new short[] { 1 };
+            multiOptional.MMyStructSeq = new MyStruct[] { new MyStruct(1, 1) };
 
-            multiOtional.MIntDict = new Dictionary<int, int> { { 1, 1 } };
-            multiOtional.MUShortSeq = new ushort[] { 1 };
-            multiOtional.MVarIntSeq = new int[] { 1 };
-            multiOtional.MMyStructDict = new Dictionary<MyStruct, MyStruct>()
+            multiOptional.MIntDict = new Dictionary<int, int> { { 1, 1 } };
+            multiOptional.MUShortSeq = new ushort[] { 1 };
+            multiOptional.MVarIntSeq = new int[] { 1 };
+            multiOptional.MMyStructDict = new Dictionary<MyStruct, MyStruct>()
             {
                 { new MyStruct(1, 1), new MyStruct(1, 1) }
             };
 
-            multiOptional1 = (MultiOptional?)await _prx.PingPongAsync(multiOtional);
-            Assert.That(multiOptional1, Is.Not.Null);
-            Assert.AreEqual(multiOtional.MByte, multiOptional1.MByte);
-            Assert.AreEqual(multiOtional.MBool, multiOptional1.MBool);
-            Assert.AreEqual(multiOtional.MShort, multiOptional1.MShort);
-            Assert.AreEqual(multiOtional.MInt, multiOptional1.MInt);
-            Assert.AreEqual(multiOtional.MLong, multiOptional1.MLong);
-            Assert.AreEqual(multiOtional.MFloat, multiOptional1.MFloat);
-            Assert.AreEqual(multiOtional.MDouble, multiOptional1.MDouble);
-            Assert.AreEqual(multiOtional.MUShort, multiOptional1.MUShort);
-            Assert.AreEqual(multiOtional.MUInt, multiOptional1.MUInt);
-            Assert.AreEqual(multiOtional.MULong, multiOptional1.MULong);
-            Assert.AreEqual(multiOtional.MVarInt, multiOptional1.MVarInt);
-            Assert.AreEqual(multiOtional.MVarLong, multiOptional1.MVarLong);
-            Assert.AreEqual(multiOtional.MVarUInt, multiOptional1.MVarUInt);
-            Assert.AreEqual(multiOtional.MVarULong, multiOptional1.MVarULong);
-            Assert.AreEqual(multiOtional.MString, multiOptional1.MString);
-            Assert.AreEqual(multiOtional.MMyEnum, multiOptional1.MMyEnum);
-            Assert.AreEqual(multiOtional.MMyStruct, multiOptional1.MMyStruct);
-            Assert.AreEqual(multiOtional.MAnotherStruct, multiOptional1.MAnotherStruct);
+            multiOptional1Opt = await _prx.PingPongMultiAsync(multiOptional);
+            Assert.That(multiOptional1Opt, Is.Not.Null);
+            multiOptional1 = multiOptional1Opt.Value;
+            Assert.AreEqual(multiOptional.MByte, multiOptional1.MByte);
+            Assert.AreEqual(multiOptional.MBool, multiOptional1.MBool);
+            Assert.AreEqual(multiOptional.MShort, multiOptional1.MShort);
+            Assert.AreEqual(multiOptional.MInt, multiOptional1.MInt);
+            Assert.AreEqual(multiOptional.MLong, multiOptional1.MLong);
+            Assert.AreEqual(multiOptional.MFloat, multiOptional1.MFloat);
+            Assert.AreEqual(multiOptional.MDouble, multiOptional1.MDouble);
+            Assert.AreEqual(multiOptional.MUShort, multiOptional1.MUShort);
+            Assert.AreEqual(multiOptional.MUInt, multiOptional1.MUInt);
+            Assert.AreEqual(multiOptional.MULong, multiOptional1.MULong);
+            Assert.AreEqual(multiOptional.MVarInt, multiOptional1.MVarInt);
+            Assert.AreEqual(multiOptional.MVarLong, multiOptional1.MVarLong);
+            Assert.AreEqual(multiOptional.MVarUInt, multiOptional1.MVarUInt);
+            Assert.AreEqual(multiOptional.MVarULong, multiOptional1.MVarULong);
+            Assert.AreEqual(multiOptional.MString, multiOptional1.MString);
+            Assert.AreEqual(multiOptional.MMyEnum, multiOptional1.MMyEnum);
+            Assert.AreEqual(multiOptional.MMyStruct, multiOptional1.MMyStruct);
+            Assert.AreEqual(multiOptional.MAnotherStruct, multiOptional1.MAnotherStruct);
 
-            CollectionAssert.AreEqual(multiOtional.MByteSeq, multiOptional1.MByteSeq);
+            CollectionAssert.AreEqual(multiOptional.MByteSeq, multiOptional1.MByteSeq);
             Assert.That(multiOptional1.MStringSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MShortSeq, multiOptional1.MShortSeq);
+            CollectionAssert.AreEqual(multiOptional.MShortSeq, multiOptional1.MShortSeq);
             Assert.That(multiOptional1.MMyEnumSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MMyStructSeq, multiOptional1.MMyStructSeq);
+            CollectionAssert.AreEqual(multiOptional.MMyStructSeq, multiOptional1.MMyStructSeq);
             Assert.That(multiOptional1.MAnotherStructSeq, Is.Null);
 
-            CollectionAssert.AreEqual(multiOtional.MIntDict, multiOptional1.MIntDict);
+            CollectionAssert.AreEqual(multiOptional.MIntDict, multiOptional1.MIntDict);
             Assert.That(multiOptional1.MStringDict, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MUShortSeq, multiOptional1.MUShortSeq);
+            CollectionAssert.AreEqual(multiOptional.MUShortSeq, multiOptional1.MUShortSeq);
             Assert.That(multiOptional1.MVarULongSeq, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MVarIntSeq, multiOptional1.MVarIntSeq);
+            CollectionAssert.AreEqual(multiOptional.MVarIntSeq, multiOptional1.MVarIntSeq);
 
             Assert.That(multiOptional1.MByteDict, Is.Null);
-            CollectionAssert.AreEqual(multiOtional.MMyStructDict, multiOptional1.MMyStructDict);
+            CollectionAssert.AreEqual(multiOptional.MMyStructDict, multiOptional1.MMyStructDict);
             Assert.That(multiOptional1.MAnotherStructDict, Is.Null);
 
             {
@@ -588,43 +593,43 @@ namespace IceRpc.Tests.CodeGeneration
             }
         }
 
-        private static void CheckMultiOptionalHasNoValue(MultiOptional multiOtional)
+        private static void CheckMultiOptionalHasNoValue(MultiOptional multiOptional)
         {
-            Assert.That(multiOtional.MByte.HasValue, Is.False);
-            Assert.That(multiOtional.MBool.HasValue, Is.False);
-            Assert.That(multiOtional.MShort.HasValue, Is.False);
-            Assert.That(multiOtional.MInt.HasValue, Is.False);
-            Assert.That(multiOtional.MLong.HasValue, Is.False);
-            Assert.That(multiOtional.MFloat.HasValue, Is.False);
-            Assert.That(multiOtional.MDouble.HasValue, Is.False);
-            Assert.That(multiOtional.MUShort.HasValue, Is.False);
-            Assert.That(multiOtional.MUInt.HasValue, Is.False);
-            Assert.That(multiOtional.MULong.HasValue, Is.False);
-            Assert.That(multiOtional.MVarInt.HasValue, Is.False);
-            Assert.That(multiOtional.MVarLong.HasValue, Is.False);
-            Assert.That(multiOtional.MVarUInt.HasValue, Is.False);
-            Assert.That(multiOtional.MVarULong.HasValue, Is.False);
-            Assert.That(multiOtional.MString, Is.Null);
-            Assert.That(multiOtional.MMyEnum.HasValue, Is.False);
-            Assert.That(multiOtional.MMyStruct.HasValue, Is.False);
-            Assert.That(multiOtional.MAnotherStruct.HasValue, Is.False);
+            Assert.That(multiOptional.MByte.HasValue, Is.False);
+            Assert.That(multiOptional.MBool.HasValue, Is.False);
+            Assert.That(multiOptional.MShort.HasValue, Is.False);
+            Assert.That(multiOptional.MInt.HasValue, Is.False);
+            Assert.That(multiOptional.MLong.HasValue, Is.False);
+            Assert.That(multiOptional.MFloat.HasValue, Is.False);
+            Assert.That(multiOptional.MDouble.HasValue, Is.False);
+            Assert.That(multiOptional.MUShort.HasValue, Is.False);
+            Assert.That(multiOptional.MUInt.HasValue, Is.False);
+            Assert.That(multiOptional.MULong.HasValue, Is.False);
+            Assert.That(multiOptional.MVarInt.HasValue, Is.False);
+            Assert.That(multiOptional.MVarLong.HasValue, Is.False);
+            Assert.That(multiOptional.MVarUInt.HasValue, Is.False);
+            Assert.That(multiOptional.MVarULong.HasValue, Is.False);
+            Assert.That(multiOptional.MString, Is.Null);
+            Assert.That(multiOptional.MMyEnum.HasValue, Is.False);
+            Assert.That(multiOptional.MMyStruct.HasValue, Is.False);
+            Assert.That(multiOptional.MAnotherStruct.HasValue, Is.False);
 
-            Assert.That(multiOtional.MByteSeq, Is.Null);
-            Assert.That(multiOtional.MStringSeq, Is.Null);
-            Assert.That(multiOtional.MShortSeq, Is.Null);
-            Assert.That(multiOtional.MMyEnumSeq, Is.Null);
-            Assert.That(multiOtional.MMyStructSeq, Is.Null);
-            Assert.That(multiOtional.MAnotherStructSeq, Is.Null);
+            Assert.That(multiOptional.MByteSeq, Is.Null);
+            Assert.That(multiOptional.MStringSeq, Is.Null);
+            Assert.That(multiOptional.MShortSeq, Is.Null);
+            Assert.That(multiOptional.MMyEnumSeq, Is.Null);
+            Assert.That(multiOptional.MMyStructSeq, Is.Null);
+            Assert.That(multiOptional.MAnotherStructSeq, Is.Null);
 
-            Assert.That(multiOtional.MIntDict, Is.Null);
-            Assert.That(multiOtional.MStringDict, Is.Null);
-            Assert.That(multiOtional.MUShortSeq, Is.Null);
-            Assert.That(multiOtional.MVarULongSeq, Is.Null);
-            Assert.That(multiOtional.MVarIntSeq, Is.Null);
+            Assert.That(multiOptional.MIntDict, Is.Null);
+            Assert.That(multiOptional.MStringDict, Is.Null);
+            Assert.That(multiOptional.MUShortSeq, Is.Null);
+            Assert.That(multiOptional.MVarULongSeq, Is.Null);
+            Assert.That(multiOptional.MVarIntSeq, Is.Null);
 
-            Assert.That(multiOtional.MByteDict, Is.Null);
-            Assert.That(multiOtional.MMyStructDict, Is.Null);
-            Assert.That(multiOtional.MAnotherStructDict, Is.Null);
+            Assert.That(multiOptional.MByteDict, Is.Null);
+            Assert.That(multiOptional.MMyStructDict, Is.Null);
+            Assert.That(multiOptional.MAnotherStructDict, Is.Null);
         }
 
         class OptionalOperations : Service, IOptionalOperations
@@ -808,7 +813,11 @@ namespace IceRpc.Tests.CodeGeneration
                 string[]? p1,
                 Dispatch dispatch,
                 CancellationToken cancel) => new(new IOptionalOperations.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
-            public ValueTask<AnyClass?> PingPongAsync(AnyClass? o, Dispatch dispatch, CancellationToken cancel) =>
+
+            public ValueTask<OneOptional?> PingPongOneAsync(OneOptional? o, Dispatch dispatch, CancellationToken cancel) =>
+                new(o);
+
+            public ValueTask<MultiOptional?> PingPongMultiAsync(MultiOptional? o, Dispatch dispatch, CancellationToken cancel) =>
                 new(o);
         }
     }

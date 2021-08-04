@@ -48,12 +48,9 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a class instance.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
-        /// It's T.IceTypeId for generated classes. Use null when the type of the parameter/data member is AnyClass.
-        /// </param>
         /// <returns>The class instance decoded.</returns>
-        public T DecodeClass<T>(string? formalTypeId) where T : AnyClass =>
-            DecodeNullableClass<T>(formalTypeId) ??
+        public T DecodeClass<T>() where T : AnyClass =>
+            DecodeNullableClass<T>() ??
                 throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
         /// <summary>Decodes a remote exception.</summary>
@@ -94,9 +91,9 @@ namespace IceRpc
             else
             {
                 // The type IDs are always decoded and cannot be null or empty.
-                string[]? allTypeIds;
+                string[] allTypeIds;
                 (allTypeIds, errorMessage, origin) = DecodeFirstSliceHeaderIntoCurrent20();
-                Debug.Assert(allTypeIds != null && allTypeIds.Length > 0 && errorMessage != null);
+                Debug.Assert(allTypeIds.Length > 0 && errorMessage != null);
                 bool firstSlice = true;
 
                 foreach (string typeId in allTypeIds)
@@ -133,12 +130,10 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a nullable class instance.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
-        /// Use null when the type of the parameter/data member is AnyClass.</param>
         /// <returns>The class instance, or null.</returns>
-        public T? DecodeNullableClass<T>(string? formalTypeId) where T : AnyClass
+        public T? DecodeNullableClass<T>() where T : AnyClass
         {
-            AnyClass? obj = DecodeAnyClass(formalTypeId);
+            AnyClass? obj = DecodeAnyClass();
             if (obj is T result)
             {
                 return result;
@@ -155,10 +150,8 @@ namespace IceRpc
         }
 
         /// <summary>Decodes a class instance.</summary>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
-        /// </param>
         /// <returns>The class instance. Can be null.</returns>
-        private AnyClass? DecodeAnyClass(string? formalTypeId)
+        private AnyClass? DecodeAnyClass()
         {
             int index = DecodeSize();
             if (index < 0)
@@ -187,16 +180,15 @@ namespace IceRpc
             }
             else
             {
-                return DecodeInstance(index, formalTypeId);
+                return DecodeInstance(index);
             }
         }
 
         /// <summary>Decodes the header of the first (and current) slice of a class/exception instance into _current.
         /// </summary>
-        /// <returns>Null when no type ID was encoded (because of formal type optimization) or a non-empty array of type
-        /// IDs. With the compact format, this array contains a single element. Also returns an error message for remote
-        /// exceptions.</returns>
-        private (string[]? AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) DecodeFirstSliceHeaderIntoCurrent20()
+        /// <returns>A non-empty array of type IDs. With the compact format, this array contains a single element. Also
+        /// returns an error message for remote exceptions.</returns>
+        private (string[] AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) DecodeFirstSliceHeaderIntoCurrent20()
         {
             string[]? typeIds;
             string? errorMessage = null;
@@ -239,10 +231,8 @@ namespace IceRpc
                         break;
 
                     default:
-                        // TypeIdKind has only 4 possible values.
-                        Debug.Assert(typeIdKind == EncodingDefinitions.TypeIdKind.None);
-                        typeIds = null;
-                        break;
+                        // TypeIdKind cannot have another value.
+                        throw new InvalidDataException($"unexpected type ID kind {typeIdKind}");
                 }
             }
             else
@@ -294,7 +284,7 @@ namespace IceRpc
                 {
                     throw new InvalidDataException($"decoded invalid index {index} in indirection table");
                 }
-                indirectionTable[i] = DecodeInstance(index, formalTypeId: null);
+                indirectionTable[i] = DecodeInstance(index);
             }
             return indirectionTable;
         }
@@ -323,9 +313,7 @@ namespace IceRpc
         /// <summary>Decodes a class instance.</summary>
         /// <param name="index">The index of the class instance. If greater than 1, it's a reference to a previously
         /// seen class; if 1, the class's bytes are next. Cannot be 0 or less.</param>
-        /// <param name="formalTypeId">The type ID of the formal type of the parameter or data member being decoded.
-        /// </param>
-        private AnyClass DecodeInstance(int index, string? formalTypeId)
+        private AnyClass DecodeInstance(int index)
         {
             Debug.Assert(index > 0);
 
@@ -413,68 +401,43 @@ namespace IceRpc
                 // With the 2.0 encoding, we don't need a DeferredIndirectionTableList because all the type IDs are
                 // provided by the first slice (when using the sliced format).
 
-                (string[]? allTypeIds, _, _) = DecodeFirstSliceHeaderIntoCurrent20();
-                if (allTypeIds != null)
+                (string[] allTypeIds, _, _) = DecodeFirstSliceHeaderIntoCurrent20();
+                int skipCount = 0;
+                foreach (string typeId in allTypeIds)
                 {
-                    int skipCount = 0;
-                    foreach (string typeId in allTypeIds)
-                    {
-                        instance = _classFactory.CreateClassInstance(typeId);
-                        if (instance != null)
-                        {
-                            break; // foreach
-                        }
-                        else
-                        {
-                            skipCount++;
-                        }
-                    }
-
-                    instance ??= new UnknownSlicedClass();
-
-                    _instanceMap.Add(instance);
-                    DecodeIndirectionTableIntoCurrent(); // decode the indirection table immediately
-
-                    for (int i = 0; i < skipCount; ++i)
-                    {
-                        // SkipSlice saves the slice data including the current indirection table, if any.
-                        if (SkipSlice(allTypeIds[i]))
-                        {
-                            if (i != skipCount - 1)
-                            {
-                                throw new InvalidDataException(
-                                    "class slice marked as the last slice is not the last slice");
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            DecodeNextSliceHeaderIntoCurrent();
-                            DecodeIndirectionTableIntoCurrent();
-                        }
-                    }
-                }
-                else if (formalTypeId != null)
-                {
-                    // received null and formalTypeId is not null, apply formal type optimization.
-                    instance = _classFactory.CreateClassInstance(formalTypeId);
+                    instance = _classFactory.CreateClassInstance(typeId);
                     if (instance != null)
                     {
-                        _instanceMap.Add(instance);
-                        DecodeIndirectionTableIntoCurrent();
-                        // Nothing to skip
+                        break; // foreach
                     }
                     else
                     {
-                        throw new ArgumentException($"cannot find class factory for '{formalTypeId}'",
-                            nameof(formalTypeId));
+                        skipCount++;
                     }
                 }
-                else
+
+                instance ??= new UnknownSlicedClass();
+
+                _instanceMap.Add(instance);
+                DecodeIndirectionTableIntoCurrent(); // decode the indirection table immediately
+
+                for (int i = 0; i < skipCount; ++i)
                 {
-                    throw new InvalidDataException(
-                        @$"cannot decode a class instance with no type ID; did you forget to specify the {
-                            nameof(formalTypeId)}?");
+                    // SkipSlice saves the slice data including the current indirection table, if any.
+                    if (SkipSlice(allTypeIds[i]))
+                    {
+                        if (i != skipCount - 1)
+                        {
+                            throw new InvalidDataException(
+                                "class slice marked as the last slice is not the last slice");
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        DecodeNextSliceHeaderIntoCurrent();
+                        DecodeIndirectionTableIntoCurrent();
+                    }
                 }
             }
 

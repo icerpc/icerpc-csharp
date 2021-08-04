@@ -12,12 +12,12 @@
 
 module IceRpc::Tests::CodeGeneration
 {
-    class OneOptional
+    struct OneOptional
     {
         int? a;
     }
 
-    class MultiOptional
+    struct MultiOptional
     {
         byte? mByte;
         bool? mBool;
@@ -59,7 +59,8 @@ module IceRpc::Tests::CodeGeneration
 
     interface OptionalOperations
     {
-        AnyClass? pingPong(AnyClass? o);
+        OneOptional? pingPongOne(OneOptional? o);
+        MultiOptional? pingPongMulti(MultiOptional? o);
 
         (byte? r1, byte? r2) opByte(byte? p1);
 

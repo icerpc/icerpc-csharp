@@ -672,15 +672,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
         TypePtr underlying = optional->underlying();
         if (underlying->isClassType())
         {
-            out << "(encoder, value) => encoder.EncodeNullableClass(value, ";
-            if (BuiltinPtr::dynamicCast(underlying))
-            {
-                out << "formalTypeId: null)";
-            }
-            else
-            {
-                out << typeToString(underlying, scope) << ".IceTypeId)";
-            }
+            out << "(encoder, value) => encoder.EncodeNullableClass(value)";
         }
         else
         {
@@ -689,15 +681,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else if (type->isClassType())
     {
-        out << "(encoder, value) => encoder.EncodeClass(value, ";
-        if (BuiltinPtr::dynamicCast(type))
-        {
-            out << "formalTypeId: null)";
-        }
-        else
-        {
-            out << typeToString(type, scope) << ".IceTypeId)";
-        }
+        out << "(encoder, value) => encoder.EncodeClass(value)";
     }
     else if (type->isInterfaceType())
     {
@@ -751,15 +735,7 @@ Slice::CsGenerator::writeMarshalCode(
         else if (underlying->isClassType())
         {
             // does not use bit sequence
-            out << nl << "encoder.EncodeNullableClass(" << param;
-            if (BuiltinPtr::dynamicCast(underlying))
-            {
-                out << ", null);"; // no formal type optimization
-            }
-            else
-            {
-                out << ", " << typeToString(underlying, scope, false, !forNestedType) << ".IceTypeId);";
-            }
+            out << nl << "encoder.EncodeNullableClass(" << param << ");";
         }
         else
         {
@@ -803,15 +779,7 @@ Slice::CsGenerator::writeMarshalCode(
         }
         else if (type->isClassType())
         {
-            out << nl << "encoder.EncodeClass(" << param;
-            if (BuiltinPtr::dynamicCast(type))
-            {
-                out << ", null);"; // no formal type optimization
-            }
-            else
-            {
-                out << ", " << typeToString(type, scope) << ".IceTypeId);";
-            }
+            out << nl << "encoder.EncodeClass(" << param << ");";
         }
         else if (auto builtin = BuiltinPtr::dynamicCast(type))
         {
@@ -849,15 +817,7 @@ Slice::CsGenerator::decodeFunc(const TypePtr& type, const string& scope)
         string name = typeToString(underlying, scope);
         if (underlying->isClassType())
         {
-            out << "decoder => decoder.DecodeNullableClass<" << name << ">(";
-            if (BuiltinPtr::dynamicCast(underlying))
-            {
-                out << "formalTypeId: null)";
-            }
-            else
-            {
-                out << name << ".IceTypeId)";
-            }
+            out << "decoder => decoder.DecodeNullableClass<" << name << ">()";
         }
         else
         {
@@ -867,15 +827,7 @@ Slice::CsGenerator::decodeFunc(const TypePtr& type, const string& scope)
     else if (type->isClassType())
     {
         string name = typeToString(type, scope);
-        out << "decoder => decoder.DecodeClass<" << name << ">(";
-        if (BuiltinPtr::dynamicCast(type))
-        {
-            out << "formalTypeId: null)";
-        }
-        else
-        {
-            out << name << ".IceTypeId)";
-        }
+        out << "decoder => decoder.DecodeClass<" << name << ">()";
     }
     else if (type->isInterfaceType())
     {
@@ -963,16 +915,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         else if (underlying->isClassType())
         {
             // does not use bit sequence
-            out << "decoder.DecodeNullableClass<" << typeToString(underlying, scope) << ">(";
-            if (BuiltinPtr::dynamicCast(underlying))
-            {
-                out << "formalTypeId: null";
-            }
-            else
-            {
-                out << typeToString(underlying, scope) << ".IceTypeId";
-            }
-            out << ");";
+            out << "decoder.DecodeNullableClass<" << typeToString(underlying, scope) << ">();";
             return;
         }
         else
@@ -991,16 +934,7 @@ Slice::CsGenerator::writeUnmarshalCode(
     else if (underlying->isClassType())
     {
         assert(!optional);
-        out << "decoder.DecodeClass<" << typeToString(underlying, scope) << ">(";
-        if (BuiltinPtr::dynamicCast(underlying))
-        {
-            out << "formalTypeId: null";
-        }
-        else
-        {
-            out << typeToString(underlying, scope) << ".IceTypeId";
-        }
-        out << ")";
+        out << "decoder.DecodeClass<" << typeToString(underlying, scope) << ">()";
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(underlying))
     {
