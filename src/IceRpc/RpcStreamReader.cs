@@ -212,7 +212,7 @@ namespace IceRpc
                 int received = await ReceiveFullAsync(header.AsMemory()).ConfigureAwait(false);
                 if (received == 0)
                 {
-                    break; // EOF
+                    yield break; // EOF
                 }
                 if (header[0] != (byte)Ice2FrameType.UnboundedData)
                 {
