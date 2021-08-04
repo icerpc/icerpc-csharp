@@ -209,7 +209,11 @@ namespace IceRpc
             {
                 // Receive the data frame header.
                 byte[] header = new byte[2];
-                await _rpcStream.ReceiveAsync(header, default).ConfigureAwait(false);
+                int received = await ReceiveFullAsync(header.AsMemory()).ConfigureAwait(false);
+                if (received == 0)
+                {
+                    break; // EOF
+                }
                 if (header[0] != (byte)Ice2FrameType.UnboundedData)
                 {
                     throw new InvalidDataException("invalid stream data");
@@ -219,7 +223,7 @@ namespace IceRpc
 
                 while (true)
                 {
-                    int received = await ReceiveFullAsync(buffer.AsMemory()).ConfigureAwait(false);
+                    received = await ReceiveFullAsync(buffer.AsMemory()).ConfigureAwait(false);
                     if (received == 0)
                     {
                         break; // EOF
