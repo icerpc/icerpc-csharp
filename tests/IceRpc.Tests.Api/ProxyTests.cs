@@ -120,9 +120,18 @@ namespace IceRpc.Tests.Api
         [TestCase("identity:tcp -h \"::0\"")] // Any IPv6 address in proxy endpoint (unusable but parses ok)
         [TestCase("identity:coloc -h *")]
         [TestCase("identity -e 4.5:coloc -h *")]
-        public void Proxy_Parse_ValidInputIce1Format(string str)
+        [TestCase("name -f facet:coloc -h localhost", "/name:facet")]
+        [TestCase("category/name -f facet:coloc -h localhost", "/category/name:facet")]
+        [TestCase("cat$gory/nam$ -f fac$t:coloc -h localhost", "/cat%24gory/nam%24:fac%24t")]
+        public void Proxy_Parse_ValidInputIce1Format(string str, string? path = null)
         {
             var proxy = Proxy.Parse(str);
+
+            if (path != null)
+            {
+                Assert.AreEqual(path, proxy.Path);
+            }
+
             Assert.AreEqual(Protocol.Ice1, proxy.Protocol);
             Assert.That(Proxy.TryParse(proxy.ToString(), invoker: null, out Proxy? proxy2), Is.True);
             Assert.AreEqual(proxy, proxy2); // round-trip works
