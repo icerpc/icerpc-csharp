@@ -36,7 +36,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                var identity = indirect.Proxy.GetIdentity();
+                var identity = Identity.FromPath(indirect.Proxy.Path);
                 pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!),
                              Interceptors.Binder(_pool));
             }
@@ -99,7 +99,7 @@ namespace IceRpc.Tests.ClientServer
                          (request.Endpoint == null &&
                           request.Protocol == Protocol.Ice1 &&
                           category != null &&
-                          request.GetIdentity() == new Identity(location, category))))
+                          request.Path == new Identity(location, category).ToPath())))
                     {
                         request.Endpoint = resolvedEndpoint;
                         CollectionAssert.IsEmpty(request.AltEndpoints);

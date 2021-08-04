@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc.Interop
@@ -14,13 +15,14 @@ namespace IceRpc.Interop
         /// <summary>Creates an Identity from a URI path.</summary>
         /// <param name="path">A URI path.</param>
         /// <exception cref="ArgumentException">path is not a valid path.</exception>
+        /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity.</exception>
         /// <returns>A new Identity struct.</returns>
         public static Identity FromPath(string path)
         {
             IceUriParser.CheckPath(path, nameof(path));
             string workingPath = path[1..]; // removes leading /.
 
-            int firstSlash = workingPath.IndexOf('/', StringComparison.InvariantCulture);
+            int firstSlash = workingPath.IndexOf('/', StringComparison.Ordinal);
             if (firstSlash != workingPath.LastIndexOf('/'))
             {
                 throw new FormatException($"too many slashes in path '{path}'");
@@ -177,23 +179,51 @@ namespace IceRpc.Interop
         }
     }
 
-    /// <summary>Extension methods that give access to identity.</summary>
-    public static class IdentityExtensions
+    public readonly partial struct IdentityAndFacet
     {
-        /// <summary>Returns the identity of this proxy.</summary>
-        /// <param name="proxy">The proxy.</param>
-        /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this Proxy proxy) => proxy.Identity;
+        /// <summary>Gets the facet.</summary>
+        public string Facet => OptionalFacet.Count == 0 ? "" : OptionalFacet[0];
 
-        /// <summary>Returns the identity carried by this incoming request.</summary>
-        /// <param name="request">The incoming request.</param>
-        /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this IncomingRequest request) => request.Identity;
+        /// <summary>Creates an IdentityAndFacet from a URI path.</summary>
+        /// <param name="path">A URI path.</param>
+        /// <exception cref="ArgumentException">path is not a valid path.</exception>
+        /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity + facet.
+        /// </exception>
+        /// <returns>A new IdentityAndFacet struct.</returns>
+        public static IdentityAndFacet FromPath(string path)
+        {
+            string facet = "";
 
-        /// <summary>Returns the identity carried by this outgoing request.</summary>
-        /// <param name="request">The outgoing request.</param>
-        /// <returns>The identity.</returns>
-        public static Identity GetIdentity(this OutgoingRequest request) => request.Identity;
+            int firstColon = path.IndexOf(':', StringComparison.Ordinal);
+            if (firstColon > 0) // colon at position 0 is not good either
+            {
+                facet = Uri.UnescapeDataString(path[(firstColon + 1)..]);
+                path = path[0..firstColon];
+            }
+
+            return new IdentityAndFacet(Identity.FromPath(path),
+                                        facet.Length > 0 ? ImmutableList.Create(facet) : ImmutableList<string>.Empty);
+        }
+
+        /// <summary>Constructs an identity + facet from an identity and a facet.</summary>
+        /// <param name="identity">The identity.</param>
+        /// <param name="facet">The facet.</param>
+        public IdentityAndFacet(Identity identity, string facet)
+            : this(identity, facet.Length > 0 ? ImmutableList.Create(facet) : ImmutableList<string>.Empty)
+        {
+        }
+
+        /// <summary>Converts this identity + facet into a URI path.</summary>
+        /// <returns>A URI path [/category]/name[:facet], where category, name and facet are percent-escaped.</returns>
+        public string ToPath()
+        {
+            string path = Identity.ToPath();
+            return Facet.Length == 0 ? path : $"{path}:{Uri.EscapeDataString(Facet)}";
+        }
+
+        /// <summary>Converts this identity + facet into a string.</summary>
+        /// <returns>The URI path representation of this identity + facet.</returns>
+        public override string ToString() => ToPath();
     }
 
     /// <summary>The output mode or format for <see cref="Identity.ToString(ToStringMode)"/>.</summary>

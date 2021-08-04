@@ -54,12 +54,6 @@ namespace IceRpc
         /// parameter.</summary>
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
-        /// <summary>The facet path of the target service. ice1 only.</summary>
-        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
-
-        /// <summary>The identity of the target service. ice1 only.</summary>
-        internal Identity Identity { get; } = Identity.Empty;
-
         /// <summary>The stream used to receive the request.</summary>
         internal RpcStream Stream
         {
@@ -80,9 +74,12 @@ namespace IceRpc
             if (Protocol == Protocol.Ice1)
             {
                 var requestHeader = new Ice1RequestHeader(decoder);
-                Identity = requestHeader.Identity;
-                Path = Identity.ToPath();
-                FacetPath = requestHeader.FacetPath;
+                if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                {
+                    throw new InvalidDataException("received ice1 request with empty identity name");
+                }
+
+                Path = requestHeader.IdentityAndFacet.ToPath();
                 Operation = requestHeader.Operation;
                 IsIdempotent = requestHeader.OperationMode != OperationMode.Normal;
                 if (requestHeader.Context.Count > 0)
@@ -98,11 +95,6 @@ namespace IceRpc
 
                 Priority = default;
                 Deadline = DateTime.MaxValue;
-
-                if (Identity.Name.Length == 0)
-                {
-                    throw new InvalidDataException("received request with null identity");
-                }
             }
             else
             {
@@ -169,11 +161,6 @@ namespace IceRpc
         internal IncomingRequest(OutgoingRequest request)
             : base(request.Protocol)
         {
-            if (Protocol == Protocol.Ice1)
-            {
-                FacetPath = request.FacetPath;
-                Identity = request.Identity;
-            }
             Path = request.Path;
 
             Operation = request.Operation;

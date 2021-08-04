@@ -2,22 +2,34 @@
 
 #pragma once
 
+#include <IceRpc/BuiltinSequences.ice>
+
 [[suppress-warning(reserved-identifier)]]
 
 [cs:namespace(IceRpc.Interop)]
 module Ice
 {
-    /// The identity of an Ice object.
+    /// The identity of a service reachable with the ice1 protocol.
     [cs:readonly]
     struct Identity
     {
-        /// The name of the Ice object. An empty name is not a valid name.
+        /// The name of the identity. An empty name is not a valid name.
         string name;
 
-        /// The Ice object category.
+        /// The category of the identity. Can be empty.
         string category;
     }
 
-    /// A sequence of identities.
-    sequence<Identity> IdentitySeq;
+     /// The identity and facet of a service reachable with the ice1 protocol. They both map to path with the ice2
+     /// protocol.
+    [cs:readonly]
+    struct IdentityAndFacet
+    {
+        /// The identity.
+        Identity identity;
+
+        /// The optional facet: an empty sequence represents a null facet, while a single element represents a non-null
+        /// facet. However, a null facet and a non-null empty facet are always treated the same.
+        IceRpc::StringSeq optionalFacet;
+    }
 }

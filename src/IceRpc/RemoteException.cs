@@ -180,9 +180,6 @@ namespace IceRpc
 
     public partial class ServiceNotFoundException
     {
-        /// <summary>The service facet.</summary>
-        protected internal string Facet { get; init; } = "";
-
         /// <inheritdoc/>
         protected override string? DefaultMessage
         {
@@ -192,13 +189,6 @@ namespace IceRpc
                 {
                     var sb = new StringBuilder("could not find service '");
                     sb.Append(Origin.Path);
-                    sb.Append('\'');
-                    if (Facet.Length > 0)
-                    {
-                        sb.Append(" with facet '");
-                        sb.Append(Facet);
-                        sb.Append('\'');
-                    }
                     sb.Append(" while attempting to dispatch operation '");
                     sb.Append(Origin.Operation);
                     sb.Append('\'');
@@ -214,9 +204,6 @@ namespace IceRpc
 
     public partial class OperationNotFoundException
     {
-        /// <summary>The service facet.</summary>
-        protected internal string Facet { get; init; } = "";
-
         /// <inheritdoc/>
         protected override string? DefaultMessage
         {
@@ -229,12 +216,6 @@ namespace IceRpc
                     sb.Append("' for service '");
                     sb.Append(Origin.Path);
                     sb.Append('\'');
-                    if (Facet.Length > 0)
-                    {
-                        sb.Append(" with facet '");
-                        sb.Append(Facet);
-                        sb.Append('\'');
-                    }
                     return sb.ToString();
                 }
                 else

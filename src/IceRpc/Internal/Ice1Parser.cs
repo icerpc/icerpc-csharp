@@ -319,7 +319,7 @@ namespace IceRpc.Internal
             if (beg == -1)
             {
                 // Well-known proxy
-                return new Proxy(identity, facet) { Encoding = encoding };
+                return new Proxy(new IdentityAndFacet(identity, facet).ToPath(), Protocol.Ice1) { Encoding = encoding };
             }
 
             if (s[beg] == ':')
@@ -399,7 +399,7 @@ namespace IceRpc.Internal
 
                 Debug.Assert(endpoint != null);
 
-                return new Proxy(identity, facet)
+                return new Proxy(new IdentityAndFacet(identity, facet).ToPath(), Protocol.Ice1)
                 {
                     Endpoint = endpoint,
                     AltEndpoints = altEndpoints,
@@ -455,7 +455,7 @@ namespace IceRpc.Internal
                                         Port: 0,
                                         ImmutableList<EndpointParam>.Empty);
 
-                return new Proxy(identity, facet)
+                return new Proxy(new IdentityAndFacet(identity, facet).ToPath(), Protocol.Ice1)
                 {
                     Endpoint = endpoint,
                     Encoding = encoding

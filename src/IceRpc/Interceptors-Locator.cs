@@ -85,7 +85,15 @@ namespace IceRpc
                         else if (request.Endpoint == null)
                         {
                             // Well-known proxy
-                            location = new Location(request.Identity);
+                            try
+                            {
+                                var identityAndFacet = IdentityAndFacet.FromPath(request.Path);
+                                location = new Location(identityAndFacet.Identity);
+                            }
+                            catch (FormatException)
+                            {
+                                // ignore path that can't be converted, location remains default
+                            }
                         }
                         // else it could be a retry where the first attempt provided non-cached endpoint(s)
 
