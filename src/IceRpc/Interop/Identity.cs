@@ -189,7 +189,7 @@ namespace IceRpc.Interop
         /// <exception cref="ArgumentException">path is not a valid path.</exception>
         /// <exception cref="FormatException">path is a valid path but cannot be converted into an identity + facet.
         /// </exception>
-        /// <returns>A new IdentityAmdFacet struct.</returns>
+        /// <returns>A new IdentityAndFacet struct.</returns>
         public static IdentityAndFacet FromPath(string path)
         {
             string facet = "";
