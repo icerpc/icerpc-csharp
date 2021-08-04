@@ -181,6 +181,9 @@ namespace IceRpc.Interop
 
     public readonly partial struct IdentityAndFacet
     {
+        /// <summary>Gets the facet.</summary>
+        public string Facet => FacetPath.Count == 0 ? "" : FacetPath[0];
+
         /// <summary>Creates an IdentityAndFacet from a URI path.</summary>
         /// <param name="path">A URI path.</param>
         /// <exception cref="ArgumentException">path is not a valid path.</exception>

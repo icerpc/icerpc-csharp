@@ -147,6 +147,11 @@ namespace IceRpc.Tests.Api
             Assert.AreEqual(Protocol.Ice1, prx.Proxy.Protocol);
             Assert.That(GreeterPrx.TryParse(prx.ToString(), invoker: null, out GreeterPrx prx2), Is.True);
             Assert.AreEqual(prx, prx2); // round-trip works
+
+            var identityAndFacet = IdentityAndFacet.FromPath(prx.Proxy.Path);
+            var identityAndFacet2 = IdentityAndFacet.FromPath(prx2.Proxy.Path);
+            Assert.AreEqual(identityAndFacet.Identity, identityAndFacet2.Identity);
+            Assert.AreEqual(identityAndFacet.Facet, identityAndFacet2.Facet);
         }
 
         [TestCase("ice+tcp://host.zeroc.com/path?encoding=foo")]
