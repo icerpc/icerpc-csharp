@@ -33,7 +33,7 @@ namespace IceRpc.Tests.CodeGeneration
                             Payload.FromSingleReturnValue(
                                 request.PayloadEncoding,
                                 new MyClassAlsoEmpty(),
-                                (encoder, ae) => encoder.EncodeClass(ae, null)), null);
+                                (encoder, ae) => encoder.EncodeClass(ae)), null);
                         return new(response);
                     }));
 

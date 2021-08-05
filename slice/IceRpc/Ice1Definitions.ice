@@ -48,8 +48,7 @@ module IceRpc
     [cs:readonly]
     struct Ice1RequestHeader
     {
-        Ice::Identity identity;
-        StringSeq facetPath;
+        Ice::IdentityAndFacet identityAndFacet;
         string operation;
         OperationMode operationMode;
         Context context;
@@ -104,8 +103,7 @@ module IceRpc
     [cs:readonly]
     struct Ice1RequestFailedExceptionData
     {
-        Ice::Identity identity;
-        StringSeq facetPath;
+        Ice::IdentityAndFacet identityAndFacet;
         string operation;
     }
 }

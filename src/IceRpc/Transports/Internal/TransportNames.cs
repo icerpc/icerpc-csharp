@@ -6,8 +6,8 @@ namespace IceRpc.Transports.Internal
     internal static class TransportNames
     {
         internal const string Coloc = "coloc";
-        internal const string Loc = "loc";
-        internal const string Opaque = "opaque";
+        internal const string Loc = "loc";        // ice1 only (i.e. no special handling with ice2)
+        internal const string Opaque = "opaque";  // ice1 only (i.e. no special handling with ice2)
         internal const string Ssl = "ssl";
         internal const string Tcp = "tcp";
         internal const string Udp = "udp";

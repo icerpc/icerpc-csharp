@@ -49,18 +49,7 @@ namespace IceRpc
         public string Operation { get; set; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path
-        {
-            get => _path;
-            set
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    Identity = Identity.FromPath(value);
-                }
-                _path = value;
-            }
-        }
+        public string Path { get; set; }
 
         /// <inheritdoc/>
         public override Encoding PayloadEncoding { get; }
@@ -71,12 +60,6 @@ namespace IceRpc
         /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
         /// decompress a stream return value.</summary>
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
-
-        /// <summary>The facet path of the target service. ice1 only.</summary>
-        internal IList<string> FacetPath { get; } = ImmutableList<string>.Empty;
-
-        /// <summary>The identity of the target service. ice1 only.</summary>
-        internal Identity Identity { get; private set; }
 
         /// <summary>The retry policy for the request. The policy is used by the retry invoker if the request fails
         /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
@@ -89,7 +72,6 @@ namespace IceRpc
             set => _stream = value;
         }
 
-        private string _path = "";
         private RpcStream? _stream;
 
         /// <summary>Constructs an outgoing request from the given incoming request.</summary>
@@ -183,9 +165,9 @@ namespace IceRpc
             {
                 Debug.Assert(Protocol == Protocol.Ice1);
                 (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
+
                 var requestHeader = new Ice1RequestHeader(
-                    Identity,
-                    FacetPath,
+                    IdentityAndFacet.FromPath(Path),
                     Operation,
                     IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
                     context,
@@ -207,12 +189,6 @@ namespace IceRpc
             Connection = proxy.Connection;
             Endpoint = proxy.Endpoint;
             Proxy = proxy;
-
-            if (Protocol == Protocol.Ice1)
-            {
-                FacetPath = proxy.FacetPath;
-                Identity = proxy.Identity;
-            }
 
             Operation = operation;
             Path = proxy.Path;

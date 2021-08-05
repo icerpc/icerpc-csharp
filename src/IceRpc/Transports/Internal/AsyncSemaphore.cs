@@ -50,11 +50,6 @@ namespace IceRpc.Transports.Internal
         /// completion.</param>
         internal void Complete(Exception exception)
         {
-            if (exception == null)
-            {
-                throw new ArgumentOutOfRangeException("exception can't be null");
-            }
-
             lock (_mutex)
             {
                 if (_exception != null)

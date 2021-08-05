@@ -125,26 +125,26 @@ namespace IceRpc.Internal
 
                     var requestFailed = new Ice1RequestFailedExceptionData(decoder);
 
-                    IList<string> facetPath = requestFailed.FacetPath;
-                    if (facetPath.Count > 1)
+                    if (requestFailed.IdentityAndFacet.OptionalFacet.Count > 1)
                     {
-                        throw new InvalidDataException($"read ice1 facet path with {facetPath.Count} elements");
+                        throw new InvalidDataException("received ice1 optionalFacet with too many elements");
                     }
-                    string facet = facetPath.Count == 0 ? "" : requestFailed.FacetPath[0];
 
                     if (replyStatus == ReplyStatus.OperationNotExistException)
                     {
                         systemException = new OperationNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
-                        { Facet = facet };
+                            new RemoteExceptionOrigin(
+                                requestFailed.IdentityAndFacet.ToPath(),
+                                requestFailed.Operation));
                     }
                     else
                     {
                         systemException = new ServiceNotFoundException(
                             message: null,
-                            new RemoteExceptionOrigin(requestFailed.Identity.ToPath(), requestFailed.Operation))
-                        { Facet = facet };
+                            new RemoteExceptionOrigin(
+                                requestFailed.IdentityAndFacet.ToPath(),
+                                requestFailed.Operation));
                     }
                     break;
 
@@ -176,20 +176,18 @@ namespace IceRpc.Internal
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
 
-                    Identity identity = request.Identity;
-                    if (request.Protocol == Protocol.Ice2)
+                    IdentityAndFacet identityAndFacet;
+                    try
                     {
-                        try
-                        {
-                            identity = Identity.FromPath(request.Path);
-                        }
-                        catch (FormatException)
-                        {
-                            // ignored, i.e. we'll marshal an empty identity
-                        }
+                        identityAndFacet = IdentityAndFacet.FromPath(request.Path);
+                    }
+                    catch (FormatException)
+                    {
+                        // ignored, i.e. we'll encode an empty identity + facet
+                        identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
                     }
                     var requestFailed =
-                        new Ice1RequestFailedExceptionData(identity, request.FacetPath, request.Operation);
+                        new Ice1RequestFailedExceptionData(identityAndFacet, request.Operation);
 
                     requestFailed.Encode(encoder);
                     break;

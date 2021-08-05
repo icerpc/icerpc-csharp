@@ -41,23 +41,37 @@ namespace IceRpc
                             nameof(AltEndpoints));
                     }
 
-                    if (_endpoint.Transport == TransportNames.Loc || _endpoint.Transport == TransportNames.Coloc)
+                    if (_endpoint.Transport == TransportNames.Coloc)
                     {
                         throw new ArgumentException(
-                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)
-                            } uses the loc or coloc transports",
+                            @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the coloc transport",
                             nameof(AltEndpoints));
                     }
 
-                    if (value.Any(e => e.Transport == TransportNames.Loc || e.Transport == TransportNames.Coloc))
+                    if (value.Any(e => e.Transport == TransportNames.Coloc))
                     {
-                        throw new ArgumentException("cannot use loc or coloc transport", nameof(AltEndpoints));
+                        throw new ArgumentException("cannot use coloc transport", nameof(AltEndpoints));
                     }
 
                     if (value.Any(e => e.Protocol != Protocol))
                     {
                         throw new ArgumentException($"the protocol of all endpoints must be {Protocol.GetName()}",
                                                     nameof(AltEndpoints));
+                    }
+
+                    if (Protocol == Protocol.Ice1)
+                    {
+                        if (_endpoint.Transport == TransportNames.Loc)
+                        {
+                            throw new ArgumentException(
+                                @$"cannot set {nameof(AltEndpoints)} when {nameof(Endpoint)} uses the loc transport",
+                                nameof(AltEndpoints));
+                        }
+
+                        if (value.Any(e => e.Transport == TransportNames.Loc))
+                        {
+                            throw new ArgumentException("cannot use loc transport", nameof(AltEndpoints));
+                        }
                     }
                 }
                 // else, no need to check anything, an empty list is always fine.
@@ -95,11 +109,17 @@ namespace IceRpc
                         throw new ArgumentException("the new endpoint must use the proxy's protocol",
                                                     nameof(Endpoint));
                     }
-                    if (_altEndpoints.Count > 0 &&
-                        (value.Transport == TransportNames.Loc || value.Transport == TransportNames.Coloc))
+
+                    if (_altEndpoints.Count > 0 && value.Transport == TransportNames.Coloc)
                     {
                         throw new ArgumentException(
-                            "a proxy with a loc or coloc endpoint cannot have alt endpoints", nameof(Endpoint));
+                            "a proxy with a coloc endpoint cannot have alt endpoints", nameof(Endpoint));
+                    }
+
+                    if (Protocol == Protocol.Ice1 && _altEndpoints.Count > 0 && value.Transport == TransportNames.Loc)
+                    {
+                        throw new ArgumentException(
+                            "an ice1 proxy with a loc endpoint cannot have alt endpoints", nameof(Endpoint));
                     }
                 }
                 else if (_altEndpoints.Count > 0)
@@ -128,41 +148,9 @@ namespace IceRpc
         /// <seealso cref="Connection.EndpointCodex"/>
         // TODO: provide public API to get/set this encoder.
         internal IEndpointEncoder EndpointEncoder { get; set; } = Connection.DefaultEndpointCodex;
-
-        /// <summary>The facet of this proxy. Used only with the ice1 protocol.</summary>
-        internal string Facet
-        {
-            get => FacetPath.Count == 0 ? "" : FacetPath[0];
-            set => FacetPath = value.Length > 0 ? ImmutableList.Create(value) : ImmutableList<string>.Empty;
-        }
-
-        /// <summary>The identity of this proxy. Used only with the ice1 protocol.</summary>
-        internal Identity Identity
-        {
-            get => _identity;
-            set
-            {
-                Debug.Assert(Protocol == Protocol.Ice1 || value == Identity.Empty);
-                if (Protocol == Protocol.Ice1 && value.Name.Length == 0)
-                {
-                    throw new ArgumentException("identity name of ice1 service cannot be empty",
-                                                nameof(Identity));
-                }
-                _identity = value;
-            }
-        }
-
-        internal bool IsIndirect => _endpoint?.Transport == TransportNames.Loc || IsWellKnown;
-        internal bool IsWellKnown => Protocol == Protocol.Ice1 && _endpoint == null;
-
-        /// <summary>The facet path that holds the facet. Used only during marshaling/unmarshaling of ice1 proxies.
-        /// </summary>
-        internal IList<string> FacetPath { get; set; } = ImmutableList<string>.Empty;
-
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
-        private Identity _identity = Identity.Empty;
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
         /// <param name="lhs">The left hand side operand.</param>
@@ -197,30 +185,17 @@ namespace IceRpc
         public static Proxy FromConnection(Connection connection, string path, IInvoker? invoker = null)
         {
             var proxy = new Proxy(path, connection.Protocol);
-            if (proxy.Protocol == Protocol.Ice1)
-            {
-                proxy.Identity = Identity.FromPath(path);
-            }
             proxy.Endpoint = connection.IsServer ? null : connection.RemoteEndpoint;
             proxy.Connection = connection;
             proxy.Invoker = invoker;
             return proxy;
         }
 
-        /// <summary>Creates a proxy from a path and protocol. This method sets Identity from the path when the
-        /// protocol is ice1.</summary>
+        /// <summary>Creates a proxy from a path and protocol.</summary>
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2)
-        {
-            var proxy = new Proxy(path, protocol);
-            if (protocol == Protocol.Ice1)
-            {
-                proxy.Identity = Identity.FromPath(path);
-            }
-            return proxy;
-        }
+        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2) => new Proxy(path, protocol);
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
@@ -299,10 +274,6 @@ namespace IceRpc
             {
                 return false;
             }
-            if (Facet != other.Facet)
-            {
-                return false;
-            }
             if (Path != other.Path)
             {
                 return false;
@@ -327,7 +298,6 @@ namespace IceRpc
         {
             // We only hash a subset of the properties to keep GetHashCode reasonably fast.
             var hash = new HashCode();
-            hash.Add(Facet);
             hash.Add(Invoker);
             hash.Add(Path);
             hash.Add(Protocol);
@@ -416,15 +386,10 @@ namespace IceRpc
             Proxy proxy = Clone();
             proxy.Path = path;
 
-            if (Protocol == Protocol.Ice1)
+            if (Protocol == Protocol.Ice1 && proxy.Endpoint == null)
             {
-                proxy.Identity = Identity.FromPath(path);
-
                 // clear cached connection of well-known proxy
-                if (proxy.Endpoint == null)
-                {
-                    proxy.Connection = null;
-                }
+                proxy.Connection = null;
             }
             return proxy;
         }
@@ -466,13 +431,19 @@ namespace IceRpc
                     string adapterId = decoder.DecodeString();
                     if (adapterId.Length > 0)
                     {
-                        endpoint = new Endpoint(proxyData.Protocol,
-                                                TransportNames.Loc,
-                                                Host: adapterId,
-                                                Port: proxyData.Protocol == Protocol.Ice1 ?
-                                                    Ice1Parser.DefaultPort :
-                                                    IceUriParser.DefaultUriPort,
-                                                Params: ImmutableList<EndpointParam>.Empty);
+                        if (proxyData.Protocol == Protocol.Ice1)
+                        {
+                            endpoint = new Endpoint(Protocol.Ice1,
+                                                    TransportNames.Loc,
+                                                    Host: adapterId,
+                                                    Port: Ice1Parser.DefaultPort,
+                                                    Params: ImmutableList<EndpointParam>.Empty);
+                        }
+                        else
+                        {
+                            throw new InvalidDataException(
+                                $"received {proxyData.Protocol.GetName()} proxy with an adapter ID");
+                        }
                     }
                     altEndpoints = ImmutableList<Endpoint>.Empty;
                 }
@@ -484,17 +455,16 @@ namespace IceRpc
 
                 if (proxyData.Protocol == Protocol.Ice1)
                 {
-                    if (proxyData.FacetPath.Count > 1)
+                    if (proxyData.OptionalFacet.Count > 1)
                     {
                         throw new InvalidDataException(
-                            $"received proxy with {proxyData.FacetPath.Count} elements in its facet path");
+                            $"received proxy with {proxyData.OptionalFacet.Count} elements in its optionalFacet");
                     }
 
                     try
                     {
-                        var proxy = new Proxy(identity.ToPath(), Protocol.Ice1);
-                        proxy.Identity = identity;
-                        proxy.FacetPath = proxyData.FacetPath;
+                        var identityAndFacet = new IdentityAndFacet(identity, proxyData.OptionalFacet);
+                        var proxy = new Proxy(identityAndFacet.ToPath(), Protocol.Ice1);
                         proxy.Encoding = Encoding.FromMajorMinor(proxyData.EncodingMajor, proxyData.EncodingMinor);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints.ToImmutableList();
@@ -512,10 +482,10 @@ namespace IceRpc
                 }
                 else
                 {
-                    if (proxyData.FacetPath.Count > 0)
+                    if (proxyData.OptionalFacet.Count > 0)
                     {
                         throw new InvalidDataException(
-                            $"received proxy for protocol {proxyData.Protocol.GetName()} with facet");
+                            $"received proxy for protocol {proxyData.Protocol.GetName()} with a facet");
                     }
                     if (proxyData.InvocationMode != InvocationMode.Twoway)
                     {
@@ -568,70 +538,32 @@ namespace IceRpc
                     throw new InvalidDataException("received proxy with only alt endpoints");
                 }
 
-                if (protocol == Protocol.Ice1)
+                try
                 {
-                    ImmutableList<string> facetPath;
-                    string path;
+                    Proxy proxy;
 
-                    int hashIndex = proxyData.Path.IndexOf('#', StringComparison.InvariantCulture);
-                    if (hashIndex == -1)
+                    Debug.Assert(decoder.Connection != null);
+
+                    if (endpoint == null && protocol != Protocol.Ice1)
                     {
-                        path = proxyData.Path;
-                        facetPath = ImmutableList<string>.Empty;
+                        proxy = Proxy.FromConnection(decoder.Connection, proxyData.Path, decoder.Invoker);
                     }
                     else
                     {
-                        path = proxyData.Path[0..hashIndex];
-                        facetPath = ImmutableList.Create(proxyData.Path[(hashIndex + 1)..]);
-                    }
-
-                    try
-                    {
-                        var proxy = Proxy.FromPath(path, Protocol.Ice1);
-                        proxy.FacetPath = facetPath;
-                        proxy.Encoding = proxyData.Encoding is string encoding ?
-                            Encoding.FromString(encoding) : Ice1Definitions.Encoding;
+                        proxy = new Proxy(proxyData.Path, protocol);
                         proxy.Endpoint = endpoint;
                         proxy.AltEndpoints = altEndpoints;
                         proxy.Invoker = decoder.Invoker;
-                        return proxy;
                     }
-                    catch (InvalidDataException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidDataException("received invalid proxy", ex);
-                    }
+
+                    proxy.Encoding = proxyData.Encoding is string encoding ?
+                        Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
+
+                    return proxy;
                 }
-                else
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        Proxy proxy;
-
-                        if (endpoint == null && decoder.Connection is Connection connection)
-                        {
-                            proxy = Proxy.FromConnection(connection, proxyData.Path, decoder.Invoker);
-                        }
-                        else
-                        {
-                            proxy = new Proxy(proxyData.Path, protocol);
-                            proxy.Endpoint = endpoint;
-                            proxy.AltEndpoints = altEndpoints;
-                            proxy.Invoker = decoder.Invoker;
-                        }
-
-                        proxy.Encoding = proxyData.Encoding is string encoding ?
-                            Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
-
-                        return proxy;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidDataException("received invalid proxy", ex);
-                    }
+                    throw new InvalidDataException("received invalid proxy", ex);
                 }
             }
         }
@@ -656,36 +588,30 @@ namespace IceRpc
 
             if (encoder.Encoding == IceRpc.Encoding.Ice11)
             {
-                if (Protocol == Protocol.Ice1)
-                {
-                    Debug.Assert(Identity.Name.Length > 0);
-                    Identity.Encode(encoder);
-                }
-                else
-                {
-                    Identity identity;
-                    try
-                    {
-                        identity = Identity.FromPath(Path);
-                    }
-                    catch (FormatException ex)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{Path}' using encoding 1.1",
-                            ex);
-                    }
-                    if (identity.Name.Length == 0)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot encode proxy with path '{Path}' using encoding 1.1");
-                    }
+                IdentityAndFacet identityAndFacet;
 
-                    identity.Encode(encoder);
+                try
+                {
+                    identityAndFacet = IdentityAndFacet.FromPath(Path);
                 }
+                catch (FormatException ex)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot encode proxy with path '{Path}' using encoding 1.1",
+                        ex);
+                }
+
+                if (identityAndFacet.Identity.Name.Length == 0)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot encode proxy with path '{Path}' using encoding 1.1");
+                }
+
+                identityAndFacet.Identity.Encode(encoder);
 
                 (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
                 var proxyData = new ProxyData11(
-                    FacetPath,
+                    identityAndFacet.OptionalFacet,
                     Protocol == Protocol.Ice1 && (Endpoint?.Transport == TransportNames.Udp) ?
                         InvocationMode.Datagram : InvocationMode.Twoway,
                     secure: false,
@@ -695,15 +621,15 @@ namespace IceRpc
                     encodingMinor);
                 proxyData.Encode(encoder);
 
-                if (IsIndirect)
-                {
-                    encoder.EncodeSize(0); // 0 endpoints
-                    encoder.EncodeString(IsWellKnown ? "" : Endpoint!.Host); // adapter ID unless well-known
-                }
-                else if (Endpoint == null)
+                if (Endpoint == null)
                 {
                     encoder.EncodeSize(0); // 0 endpoints
                     encoder.EncodeString(""); // empty adapter ID
+                }
+                else if (Protocol == Protocol.Ice1 && Endpoint.Transport == TransportNames.Loc)
+                {
+                    encoder.EncodeSize(0); // 0 endpoints
+                    encoder.EncodeString(Endpoint.Host); // adapter ID unless well-known
                 }
                 else
                 {
@@ -738,16 +664,8 @@ namespace IceRpc
             }
             else
             {
-                string path = Path;
-
-                // Facet is the only ice1-specific option that is encoded when using the 2.0 encoding.
-                if (Facet.Length > 0)
-                {
-                    path = $"{path}#{Uri.EscapeDataString(Facet)}";
-                }
-
                 var proxyData = new ProxyData20(
-                    path,
+                    Path,
                     protocol: Protocol != Protocol.Ice2 ? Protocol : null,
                     encoding: Encoding == Protocol.GetEncoding() ? null : Encoding.ToString(),
                     endpoint: Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
@@ -757,13 +675,6 @@ namespace IceRpc
 
                 proxyData.Encode(encoder);
             }
-        }
-
-        internal Proxy(Identity identity, string facet)
-            : this(identity.ToPath(), Protocol.Ice1)
-        {
-            Identity = identity;
-            Facet = facet;
         }
     }
 

@@ -25,12 +25,12 @@
   </ItemGroup>
   <ItemGroup>
     <SliceCompile Include="../Hello.ice" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
-    <PackageReference Include="zeroc.ice.net" Version="4.0.0-alpha.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0-preview.6.21352.12" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0-preview.6.21352.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.6.21352.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0-preview.6.21352.12" />
     <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+    <PackageReference Include="zeroc.ice.net" Version="4.0.0-alpha.0" />
     <Compile Update="generated\Hello.cs">
       <SliceCompileSource>../Hello.ice</SliceCompileSource>
     </Compile>

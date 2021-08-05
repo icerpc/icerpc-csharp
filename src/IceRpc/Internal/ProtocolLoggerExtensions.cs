@@ -76,7 +76,7 @@ namespace IceRpc.Internal
         [LoggerMessage(
             EventId = (int)ProtocolEvent.ReceivedRequestFrame,
             EventName = nameof(ProtocolEvent.ReceivedRequestFrame),
-            Level = LogLevel.Debug,
+            Level = LogLevel.Information,
             Message = "received request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
                       "PayloadEncoding={PayloadEncoding})")]
         internal static partial void LogReceivedRequest(

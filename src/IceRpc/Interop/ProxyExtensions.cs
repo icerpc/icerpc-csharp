@@ -21,11 +21,13 @@ namespace IceRpc.Interop
                 return proxy.ToString()!;
             }
 
+            var identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+
             var sb = new StringBuilder();
 
             // If the encoded identity string contains characters which the reference parser uses as separators,
             // then we enclose the identity string in quotes.
-            string id = proxy.GetIdentity().ToString(mode);
+            string id = identityAndFacet.Identity.ToString(mode);
             if (StringUtil.FindFirstOf(id, " :@") != -1)
             {
                 sb.Append('"');
@@ -37,13 +39,12 @@ namespace IceRpc.Interop
                 sb.Append(id);
             }
 
-            string facet = proxy.GetFacet();
-            if (facet.Length > 0)
+            if (identityAndFacet.Facet.Length > 0)
             {
                 // If the encoded facet string contains characters which the reference parser uses as separators,
                 // then we enclose the facet string in quotes.
                 sb.Append(" -f ");
-                string fs = StringUtil.EscapeString(facet, mode);
+                string fs = StringUtil.EscapeString(identityAndFacet.Facet, mode);
                 if (StringUtil.FindFirstOf(fs, " :@") != -1)
                 {
                     sb.Append('"');
@@ -70,11 +71,11 @@ namespace IceRpc.Interop
             sb.Append(" -e ");
             sb.Append(proxy.Encoding);
 
-            if (proxy.IsIndirect)
+            if (proxy.Endpoint != null)
             {
-                if (!proxy.IsWellKnown)
+                if (proxy.Endpoint.Transport == TransportNames.Loc)
                 {
-                    string adapterId = proxy.Endpoint!.Host;
+                    string adapterId = proxy.Endpoint.Host;
 
                     sb.Append(" @ ");
 
@@ -92,18 +93,16 @@ namespace IceRpc.Interop
                         sb.Append(adapterId);
                     }
                 }
-            }
-            else
-            {
-                if (proxy.Endpoint != null)
+                else
                 {
                     sb.Append(':');
                     sb.Append(proxy.Endpoint);
-                }
-                foreach (Endpoint e in proxy.AltEndpoints)
-                {
-                    sb.Append(':');
-                    sb.Append(e);
+
+                    foreach (Endpoint e in proxy.AltEndpoints)
+                    {
+                        sb.Append(':');
+                        sb.Append(e);
+                    }
                 }
             }
             return sb.ToString();

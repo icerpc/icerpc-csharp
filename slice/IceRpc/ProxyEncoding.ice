@@ -44,7 +44,7 @@ module IceRpc
     [cs:readonly]
     struct ProxyData11
     {
-        StringSeq facetPath;           // has 0 or 1 element
+        StringSeq optionalFacet;       // has 0 or 1 element
         InvocationMode invocationMode;
         bool secure = false;           // ignored
         Protocol protocol;
