@@ -580,8 +580,7 @@ Slice::isValueType(const TypePtr& type)
 bool
 Slice::isFixedSize(const TypePtr& type)
 {
-    BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-    if (builtin)
+    if (auto builtin = BuiltinPtr::dynamicCast(type); builtin)
     {
         return builtin->isNumericTypeOrBool() && !builtin->isVariableLength();
     }
