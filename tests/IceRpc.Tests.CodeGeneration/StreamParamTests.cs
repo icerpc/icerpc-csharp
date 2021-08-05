@@ -18,24 +18,24 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     [Parallelizable(ParallelScope.All)]
     [TestFixture("slic")]
     [TestFixture("coloc")]
-    public sealed class StreamTests : IAsyncDisposable
+    public sealed class StreamParamTests : IAsyncDisposable
     {
         private readonly Connection _connection;
         private readonly Server _server;
         private readonly IStreamsPrx _prx;
         private readonly byte[] _sendBuffer;
-        private readonly Streams _streams;
+        private readonly StreamParamOperations _servant;
 
-        public StreamTests(string transport)
+        public StreamParamTests(string transport)
         {
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
-            _streams = new Streams(_sendBuffer);
+            _servant = new StreamParamOperations(_sendBuffer);
             if (transport == "coloc")
             {
                 _server = new Server
                 {
-                    Dispatcher = _streams,
+                    Dispatcher = _servant,
                     Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2),
                 };
             }
@@ -43,7 +43,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             {
                 _server = new Server
                 {
-                    Dispatcher = _streams,
+                    Dispatcher = _servant,
                     Endpoint = TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
                 };
             }
@@ -61,7 +61,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        public async Task Streams_Byte()
+        public async Task StreamParam_Byte()
         {
             System.IO.Stream stream;
             byte r1;
@@ -115,13 +115,13 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        public async Task Streams_Receive_MyStruct()
+        public async Task StreamParam_Receive_MyStruct()
         {
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
 
             IAsyncEnumerable<MyStruct> stream = await _prx.OpStreamMyStructReceive0Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             var elements = new List<MyStruct>();
             await foreach (MyStruct e in stream)
             {
@@ -132,7 +132,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             MyStruct r1;
             (r1, stream) = await _prx.OpStreamMyStructReceive1Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             elements = new List<MyStruct>();
             await foreach (MyStruct e in stream)
             {
@@ -144,7 +144,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             MyStruct r2;
             (r1, r2, stream) = await _prx.OpStreamMyStructReceive2Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             elements = new List<MyStruct>();
             await foreach (MyStruct e in stream)
             {
@@ -157,43 +157,43 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        public async Task Streams_Send_MyStruct()
+        public async Task StreamParam_Send_MyStruct()
         {
             var v1 = new MyStruct(1, 1);
             var v2 = new MyStruct(2, 2);
 
             var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamMyStructSend0Async(MyStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.MyStructs.Count, Is.EqualTo(100));
-            Assert.That(_streams.MyStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(100));
+            Assert.That(_servant.MyStructs.All(e => e == v1));
 
-            _streams.MyStructs = ImmutableList<MyStruct>.Empty;
+            _servant.MyStructs = ImmutableList<MyStruct>.Empty;
             await _prx.OpStreamMyStructSend1Async(v1, MyStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.MyStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.MyStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.MyStructs.All(e => e == v1));
 
-            _streams.MyStructs = ImmutableList<MyStruct>.Empty;
+            _servant.MyStructs = ImmutableList<MyStruct>.Empty;
             await _prx.OpStreamMyStructSend2Async(v1, v2, MyStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.MyStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.MyStructs.Count, Is.EqualTo(100));
-            Assert.That(_streams.MyStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(100));
+            Assert.That(_servant.MyStructs.All(e => e == v1));
         }
 
         [Test]
-        public async Task Streams_SendAndReceive_MyStruct()
+        public async Task StreamParam_SendAndReceive_MyStruct()
         {
             var semaphore = new SemaphoreSlim(0);
 
@@ -243,13 +243,13 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        public async Task Streams_Receive_AnotherStruct()
+        public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
 
             IAsyncEnumerable<AnotherStruct> stream = await _prx.OpStreamAnotherStructReceive0Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             var elements = new List<AnotherStruct>();
             await foreach (AnotherStruct item in stream)
             {
@@ -260,7 +260,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             AnotherStruct r1;
             (r1, stream) = await _prx.OpStreamAnotherStructReceive1Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             elements = new List<AnotherStruct>();
             await foreach (AnotherStruct item in stream)
             {
@@ -272,7 +272,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             AnotherStruct r2;
             (r1, r2, stream) = await _prx.OpStreamAnotherStructReceive2Async();
-            _streams.EnumerableReceived.Release(1);
+            _servant.EnumerableReceived.Release(1);
             elements = new List<AnotherStruct>();
             await foreach (AnotherStruct item in stream)
             {
@@ -285,43 +285,43 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        public async Task Streams_Send_AnotherStruct()
+        public async Task StreamParam_Send_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);
             AnotherStruct v2 = GetAnotherStruct(2);
 
             var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamAnotherStructSend0Async(AnotherStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(100));
-            Assert.That(_streams.AnotherStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(100));
+            Assert.That(_servant.AnotherStructs.All(e => e == v1));
 
-            _streams.AnotherStructs = ImmutableList<AnotherStruct>.Empty;
+            _servant.AnotherStructs = ImmutableList<AnotherStruct>.Empty;
             await _prx.OpStreamAnotherStructSend1Async(v1, AnotherStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.AnotherStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.AnotherStructs.All(e => e == v1));
 
-            _streams.AnotherStructs = ImmutableList<AnotherStruct>.Empty;
+            _servant.AnotherStructs = ImmutableList<AnotherStruct>.Empty;
             await _prx.OpStreamAnotherStructSend2Async(v1, v2, AnotherStructEnumerable(semaphore, 100, v1));
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
-            await _streams.EnumerableReceived.WaitAsync();
-            Assert.That(_streams.AnotherStructs.Count, Is.EqualTo(100));
-            Assert.That(_streams.AnotherStructs.All(e => e == v1));
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(100));
+            Assert.That(_servant.AnotherStructs.All(e => e == v1));
         }
 
         [Test]
-        public async Task Streams_SendAndReceive_AnotherStruct()
+        public async Task StreamParam_SendAndReceive_AnotherStruct()
         {
             var semaphore = new SemaphoreSlim(0);
 
@@ -370,7 +370,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             Assert.That(r2, Is.EqualTo(v2));
         }
 
-        public class Streams : Service, IStreams
+        public class StreamParamOperations : Service, IStreamParamOperations
         {
             public ImmutableList<MyStruct> MyStructs { get; set; } = ImmutableList<MyStruct>.Empty;
             public ImmutableList<AnotherStruct> AnotherStructs { get; set; } = ImmutableList<AnotherStruct>.Empty;
@@ -638,7 +638,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2, p3));
 
-            public Streams(byte[] buffer) => _sendBuffer = buffer;
+            public StreamParamOperations(byte[] buffer) => _sendBuffer = buffer;
         }
 
         private static async IAsyncEnumerable<MyStruct> MyStructEnumerable(

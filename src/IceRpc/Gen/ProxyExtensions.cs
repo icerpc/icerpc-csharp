@@ -17,7 +17,7 @@ namespace IceRpc.Gen
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseDecodeFunc<T>(
         ReadOnlyMemory<byte> payload,
-        RpcStreamReader? streamReader,
+        StreamParamReceiver? streamReader,
         Encoding payloadEncoding,
         Connection connection,
         IInvoker? invoker);
@@ -46,7 +46,7 @@ namespace IceRpc.Gen
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IRpcStreamWriter? streamWriter,
+            IStreamParamSender? streamWriter,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool compress = false,
@@ -54,7 +54,7 @@ namespace IceRpc.Gen
             bool responseHasStreamValue = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
                 operation,
                 requestPayload,
                 streamWriter,
@@ -69,7 +69,7 @@ namespace IceRpc.Gen
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, RpcStreamReader? streamReader, Encoding payloadEncoding, Connection connection) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamReader, Encoding payloadEncoding, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
                 return responseDecodeFunc(payload, streamReader, payloadEncoding, connection, proxy.Invoker);
@@ -96,14 +96,14 @@ namespace IceRpc.Gen
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IRpcStreamWriter? streamWriter,
+            IStreamParamSender? streamWriter,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
+            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
                 operation,
                 requestPayload,
                 streamWriter,
@@ -118,7 +118,7 @@ namespace IceRpc.Gen
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, RpcStreamReader? _, Encoding payloadEncoding, _) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, _) =
                     await responseTask.ConfigureAwait(false);
 
                 payload.CheckVoidReturnValue(payloadEncoding);

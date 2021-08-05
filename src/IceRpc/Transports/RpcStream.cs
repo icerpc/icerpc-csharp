@@ -455,7 +455,10 @@ namespace IceRpc.Transports
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            request.StreamWriter?.Send(this, request.StreamCompressor);
+            if (request.StreamWriter is IStreamParamSender streamWriter)
+            {
+                _ = Task.Run(() => streamWriter.SendAsync(this, request.StreamCompressor), default);
+            }
         }
 
         internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
@@ -464,7 +467,10 @@ namespace IceRpc.Transports
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            response.StreamWriter?.Send(this, response.StreamCompressor);
+            if (response.StreamWriter is IStreamParamSender streamWriter)
+            {
+                _ = Task.Run(() => streamWriter.SendAsync(this, response.StreamCompressor), default);
+            }
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);

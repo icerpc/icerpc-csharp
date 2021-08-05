@@ -795,11 +795,11 @@ namespace IceRpc
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, RpcStreamReader?, Encoding, Connection)> InvokeAsync(
+        public static Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> InvokeAsync(
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IRpcStreamWriter? streamWriter = null,
+            IStreamParamSender? streamWriter = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
@@ -870,7 +870,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, RpcStreamReader?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+            async Task<(ReadOnlyMemory<byte> Payload, StreamParamReceiver?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
                 OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
@@ -896,10 +896,10 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    RpcStreamReader? streamReader = null;
+                    StreamParamReceiver? streamReader = null;
                     if (returnStreamReader)
                     {
-                        streamReader = new RpcStreamReader(request);
+                        streamReader = new StreamParamReceiver(request);
                     }
 
                     return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);

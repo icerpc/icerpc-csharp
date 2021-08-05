@@ -6,9 +6,9 @@
 
 #include <StructTests.ice>
 
-module IceRpc::Tests::CodeGeneration::Stream
+module IceRpc::Tests::CodeGeneration
 {
-    interface Streams
+    interface StreamParamOperations
     {
         stream byte opStreamByteReceive0();
         (byte r1, stream byte r2) opStreamByteReceive1();

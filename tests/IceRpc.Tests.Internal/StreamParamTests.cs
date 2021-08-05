@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
     [TestFixture(MultiStreamConnectionType.Ice1)]
-    public class StreamTests : MultiStreamConnectionBaseTest
+    public class StreamParamTests : MultiStreamConnectionBaseTest
     {
-        public StreamTests(MultiStreamConnectionType connectionType)
+        public StreamParamTests(MultiStreamConnectionType connectionType)
             : base(connectionType)
         {
         }

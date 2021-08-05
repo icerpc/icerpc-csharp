@@ -281,28 +281,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 }
                 else
                 {
-                    _out << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
-                }
-            }
-            else if(isFixedSize(streamT))
-            {
-                if (returnType)
-                {
-                    _out << " = streamReader!.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
-                    _out.inc();
-                    _out << nl << "payloadEncoding,"
-                         << nl << decodeFunc(streamT, ns) << ","
-                         << nl << streamT->minWireSize() << ");";
-                    _out.dec();
-                }
-                else
-                {
-                    _out << " = IceRpc.RpcStreamReader.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
-                    _out.inc();
-                    _out << nl << "dispatch,"
-                         << nl << decodeFunc(streamT, ns) << ","
-                         << nl << streamT->minWireSize() << ");";
-                    _out.dec();
+                    _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
                 }
             }
             else
@@ -319,7 +298,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 }
                 else
                 {
-                    _out << " = IceRpc.RpcStreamReader.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
+                    _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
                     _out.inc();
                     _out << nl << "dispatch,"
                          << nl << decodeFunc(streamT, ns) << ");";
@@ -2169,7 +2148,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamReader, ";
                 _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
@@ -2444,11 +2423,11 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 
         if (builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << nl << "new IceRpc.RpcStreamWriter(" << paramName(streamParam) << "),";
+            _out << nl << "new IceRpc.ByteStreamParamSender(" << paramName(streamParam) << "),";
         }
         else
         {
-            _out << nl << "new IceRpc." << (isFixedSize(streamT) ? "Unbounded" : "Bounded") << "RpcStreamWriter";
+            _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
             _out << "<" << typeToString(streamT, ns) << ">(";
             _out.inc();
             _out << nl << paramName(streamParam) << ","
@@ -2476,15 +2455,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         if (builtin && builtin->kind() == Builtin::KindByte)
         {
             _out << nl << "streamReader!.ToByteStream(),";
-        }
-        else if(isFixedSize(streamT))
-        {
-            _out << nl << "streamReader!.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
-            _out.inc();
-            _out << nl << "payloadEncoding,"
-                 << nl << decodeFunc(streamT, ns) << ","
-                 << nl << streamT->minWireSize() << "),";
-            _out.dec();
         }
         else
         {
@@ -2885,7 +2855,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "[IceRpc.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected static ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.IRpcStreamWriter?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.IStreamParamSender?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << fixId(interfaceName(interface)) << " target,"
@@ -2923,20 +2893,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         BuiltinPtr builtin = BuiltinPtr::dynamicCast(streamT);
         if (builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
-        }
-        else if(isFixedSize(streamT))
-        {
-            _out << " = IceRpc.RpcStreamReader.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
-            _out.inc();
-            _out << nl << "dispatch,"
-                 << nl << decodeFunc(streamT, ns) << ","
-                 << nl << streamT->minWireSize() << ");";
-            _out.dec();
+            _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
         }
         else
         {
-            _out << " = IceRpc.RpcStreamReader.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
+            _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamT, ns) << ">(";
             _out.inc();
             _out << nl << "dispatch,"
                  << nl << decodeFunc(streamT, ns) << ");";
@@ -3000,12 +2961,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
                 if (builtin && builtin->kind() == Builtin::KindByte)
                 {
-                    _out << nl << "new IceRpc.RpcStreamWriter(returnValue)";
+                    _out << nl << "new IceRpc.ByteStreamParamSender(returnValue)";
                 }
                 else
                 {
-                    _out << nl << "new IceRpc." << (isFixedSize(streamT) ? "Unbounded" : "Bounded")
-                         << "RpcStreamWriter";
+                    _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
                     _out << "<" << typeToString(streamT, ns) << ">(";
                     _out.inc();
                     _out << nl << "returnValue,"
@@ -3035,11 +2995,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
             if (builtin && builtin->kind() == Builtin::KindByte)
             {
-                _out << nl << "new IceRpc.RpcStreamWriter(" << streamName << ")";
+                _out << nl << "new IceRpc.ByteStreamParamSender(" << streamName << ")";
             }
             else
             {
-                _out << nl << "new IceRpc." << (isFixedSize(streamT) ? "Unbounded" : "Bounded") << "RpcStreamWriter";
+                _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
                 _out << "<" << typeToString(streamT, ns) << ">(";
                 _out.inc();
                 _out << nl << streamName << ","

@@ -76,7 +76,7 @@ namespace IceRpc
 
         /// <summary>The stream writer if the request or response has a stream param. The writer is called
         /// after the request or response frame is sent over the stream.</summary>
-        internal IRpcStreamWriter? StreamWriter { get; set; }
+        internal IStreamParamSender? StreamWriter { get; set; }
 
         private Dictionary<int, Action<IceEncoder>>? _fields;
 
@@ -108,7 +108,7 @@ namespace IceRpc
         /// <param name="encoder">The Ice encoder.</param>
         internal abstract void EncodeHeader(IceEncoder encoder);
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, IRpcStreamWriter? streamWriter)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, IStreamParamSender? streamWriter)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
