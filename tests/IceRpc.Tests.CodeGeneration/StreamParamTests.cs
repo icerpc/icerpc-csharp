@@ -678,7 +678,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 {
                     var cancellationSource = new CancellationTokenSource();
                     int i = 0;
-                    await foreach (var element in p1.WithCancellation(cancellationSource.Token))
+                    await foreach (MyStruct element in p1.WithCancellation(cancellationSource.Token))
                     {
                         MyStructs = MyStructs.Add(element);
                         if (++i == 20)
