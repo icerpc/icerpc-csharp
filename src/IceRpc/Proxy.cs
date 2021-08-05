@@ -899,9 +899,8 @@ namespace IceRpc
                     StreamParamReceiver? streamReader = null;
                     if (returnStreamReader)
                     {
-                        streamReader = new StreamParamReceiver(request);
+                        streamReader = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }
-
                     return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
                 }
                 finally

@@ -16,11 +16,11 @@ namespace IceRpc
         private readonly RpcStream _stream;
         private readonly Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? _streamDecompressor;
 
-        /// <summary>Reads the stream data from an incoming request with a <see cref="IAsyncEnumerable{T}"/>.</summary>
+        /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
+        /// request.</summary>
         /// <param name="dispatch">The request dispatch.</param>
-        /// <param name="decodeAction">The action used to decode the stream param.</param>
-        /// <remarks>This method is used to read element of variable size that are stream with an
-        /// <see cref="Ice2FrameType.BoundedData"/> frame.</remarks>
+        /// <param name="decodeAction">The action used to decode the streamed param.</param>
+        /// <returns>The <see cref="IAsyncEnumerable{T}"/> to receive the streamed param.</returns>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(Dispatch dispatch, Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(
                 dispatch.IncomingRequest.Stream,
@@ -29,16 +29,18 @@ namespace IceRpc
                 dispatch.Encoding,
                 decodeAction).ReadAsync();
 
-        /// <summary>Reads the stream data from an incoming request with a <see cref="System.IO.Stream"/>.</summary>
-        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
+        /// incoming request.</summary>
+        /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
         public static System.IO.Stream ToByteStream(Dispatch dispatch) =>
             new ByteStreamParamReceiver(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
 
-        /// <summary>Reads the stream data from an outgoing request with a <see cref="IAsyncEnumerable{T}"/>.</summary>
+        /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
+        /// response.</summary>
         /// <param name="connection">The connection used to construct the <see cref="IceDecoder"/>.</param>
         /// <param name="invoker">The invoker used to construct the <see cref="IceDecoder"/>.</param>
         /// <param name="encoding">The encoding.</param>
-        /// <param name="decodeAction">The action used to decode the stream param.</param>
+        /// <param name="decodeAction">The action used to decode the streamed params.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
@@ -48,15 +50,10 @@ namespace IceRpc
             Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(_stream, connection, invoker, encoding, decodeAction).ReadAsync();
 
-        /// <summary>Reads the stream data from an outgoing request with a <see cref="System.IO.Stream"/>.</summary>
-        /// <returns>The read-only <see cref="System.IO.Stream"/> to read the data from the request stream.</returns>
+        /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
+        /// incoming response.</summary>
+        /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
         public System.IO.Stream ToByteStream() => new ByteStreamParamReceiver(_stream, _streamDecompressor);
-
-        /// <summary>Constructs a stream reader to read a stream param from an outgoing request.</summary>
-        public StreamParamReceiver(OutgoingRequest request)
-            : this(request.Stream, request.StreamDecompressor)
-        {
-        }
 
         internal StreamParamReceiver(
             RpcStream stream,
