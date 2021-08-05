@@ -9,7 +9,7 @@ namespace IceRpc.Gen
     /// <summary>A function that decodes the return value from an Ice-encoded response payload.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
     /// <param name="payload">The response payload.</param>
-    /// <param name="streamReader">The stream reader from the response.</param>
+    /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
     /// <param name="payloadEncoding">The encoding of the response payload.</param>
     /// <param name="connection">The connection that received this response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
@@ -17,7 +17,7 @@ namespace IceRpc.Gen
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseDecodeFunc<T>(
         ReadOnlyMemory<byte> payload,
-        StreamParamReceiver? streamReader,
+        StreamParamReceiver? streamParamReceiver,
         Encoding payloadEncoding,
         Connection connection,
         IInvoker? invoker);
@@ -29,8 +29,7 @@ namespace IceRpc.Gen
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the
-        /// <see cref="Transports.RpcStream"/>.</param>
+        /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
@@ -46,7 +45,7 @@ namespace IceRpc.Gen
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IStreamParamSender? streamWriter,
+            IStreamParamSender? streamParamSender,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
             bool compress = false,
@@ -57,22 +56,22 @@ namespace IceRpc.Gen
             Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
                 operation,
                 requestPayload,
-                streamWriter,
+                streamParamSender,
                 invocation,
                 compress,
                 idempotent,
                 oneway: false,
-                returnStreamReader: responseHasStreamValue,
+                responseHasStreamValue: responseHasStreamValue,
                 cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamReader, Encoding payloadEncoding, Connection connection) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamParamReceiver, Encoding payloadEncoding, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
-                return responseDecodeFunc(payload, streamReader, payloadEncoding, connection, proxy.Invoker);
+                return responseDecodeFunc(payload, streamParamReceiver, payloadEncoding, connection, proxy.Invoker);
             }
         }
 
@@ -80,8 +79,7 @@ namespace IceRpc.Gen
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the
-        /// <see cref="Transports.RpcStream"/>.</param>
+        /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
@@ -96,7 +94,7 @@ namespace IceRpc.Gen
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IStreamParamSender? streamWriter,
+            IStreamParamSender? streamParamSender,
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
@@ -106,12 +104,12 @@ namespace IceRpc.Gen
             Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
                 operation,
                 requestPayload,
-                streamWriter,
+                streamParamSender,
                 invocation,
                 compress,
                 idempotent,
                 oneway,
-                returnStreamReader: false,
+                responseHasStreamValue: false,
                 cancel);
 
             return ReadResponseAsync();

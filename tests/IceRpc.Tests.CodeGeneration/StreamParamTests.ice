@@ -30,6 +30,8 @@ module IceRpc::Tests::CodeGeneration
         void opStreamMyStructSend1(MyStruct p1, stream MyStruct p2);
         void opStreamMyStructSend2(MyStruct p1, MyStruct p2, stream MyStruct p3);
 
+        void opStreamMyStructSendAndCancel0(stream MyStruct p1);
+
         stream MyStruct opStreamMyStructSendReceive0(stream MyStruct p1);
         (MyStruct r1, stream MyStruct r2) opStreamMyStructSendReceive1(MyStruct p1, stream MyStruct p2);
         (MyStruct r1, MyStruct r2, stream MyStruct r3) opStreamMyStructSendReceive2(

@@ -3,7 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Interop;
-using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using IceRpc.Transports.Interop;
 using System;
@@ -781,14 +780,13 @@ namespace IceRpc
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
-        /// <param name="streamWriter">The stream writer to write the stream parameter on the <see cref="RpcStream"/>.
-        /// </param>
+        /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="returnStreamReader">When true, a stream reader will be returned.</param>
+        /// <param name="responseHasStreamValue">When true, a stream param receiver will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
         /// the response.</returns>
@@ -799,12 +797,12 @@ namespace IceRpc
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
-            IStreamParamSender? streamWriter = null,
+            IStreamParamSender? streamParamSender = null,
             Invocation? invocation = null,
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            bool returnStreamReader = false,
+            bool responseHasStreamValue = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -851,7 +849,7 @@ namespace IceRpc
                 var request = new OutgoingRequest(proxy,
                                                   operation,
                                                   requestPayload,
-                                                  streamWriter,
+                                                  streamParamSender,
                                                   deadline,
                                                   invocation,
                                                   idempotent,
@@ -896,12 +894,12 @@ namespace IceRpc
                                                         proxy.Invoker);
                     }
 
-                    StreamParamReceiver? streamReader = null;
-                    if (returnStreamReader)
+                    StreamParamReceiver? streamParamReceiver = null;
+                    if (responseHasStreamValue)
                     {
-                        streamReader = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
+                        streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }
-                    return (responsePayload, streamReader, response.PayloadEncoding, response.Connection);
+                    return (responsePayload, streamParamReceiver, response.PayloadEncoding, response.Connection);
                 }
                 finally
                 {

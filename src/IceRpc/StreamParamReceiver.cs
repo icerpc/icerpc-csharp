@@ -5,6 +5,7 @@ using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -180,35 +181,45 @@ namespace IceRpc
                 _decodeAction = decodeAction;
             }
 
-            internal async IAsyncEnumerable<T> ReadAsync()
+            internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
+                cancel.Register(() => _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader));
+
                 while (true)
                 {
                     // Receive the data frame header.
                     Memory<byte> buffer = new byte[256];
-                    int received = await ReceiveFullAsync(buffer.Slice(0, 2), true).ConfigureAwait(false);
-                    if (received == 0)
+                    try
                     {
-                        break; // EOF
-                    }
+                        int received = await ReceiveFullAsync(buffer.Slice(0, 2), true, cancel).ConfigureAwait(false);
+                        if (received == 0)
+                        {
+                            break; // EOF
+                        }
 
-                    if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
+                        if ((Ice2FrameType)buffer.Span[0] != Ice2FrameType.BoundedData)
+                        {
+                            throw new InvalidDataException(
+                                $"invalid frame type '{buffer.Span[0]}' expected '{Ice2FrameType.BoundedData}'");
+                        }
+
+                        // Read the remainder of the size if needed.
+                        int sizeLength = buffer.Span[1].DecodeSizeLength20();
+                        if (sizeLength > 1)
+                        {
+                            await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), false, cancel).ConfigureAwait(false);
+                        }
+                        int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
+
+                        buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
+
+                        await ReceiveFullAsync(buffer, false, cancel).ConfigureAwait(false);
+                    }
+                    catch
                     {
-                        throw new InvalidDataException(
-                            $"invalid frame type '{buffer.Span[0]}' expected '{Ice2FrameType.BoundedData}'");
+                        _rpcStream.Abort(RpcStreamError.StreamingCanceledByReader);
+                        break;
                     }
-
-                    // Read the remainder of the size if needed.
-                    int sizeLength = buffer.Span[1].DecodeSizeLength20();
-                    if (sizeLength > 1)
-                    {
-                        await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), false).ConfigureAwait(false);
-                    }
-                    int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
-
-                    buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
-
-                    await ReceiveFullAsync(buffer, false).ConfigureAwait(false);
 
                     var decoder = new IceDecoder(buffer, _encoding, _connection, _invoker, _connection.ClassFactory);
                     do
@@ -218,12 +229,12 @@ namespace IceRpc
                     while (decoder.Pos < buffer.Length);
                 }
 
-                async ValueTask<int> ReceiveFullAsync(Memory<byte> buffer, bool checkEof)
+                async ValueTask<int> ReceiveFullAsync(Memory<byte> buffer, bool checkEof, CancellationToken cancel)
                 {
                     int offset = 0;
                     while (offset < buffer.Length)
                     {
-                        int received = await _rpcStream.ReceiveAsync(buffer[offset..], default).ConfigureAwait(false);
+                        int received = await _rpcStream.ReceiveAsync(buffer[offset..], cancel).ConfigureAwait(false);
                         if (received == 0)
                         {
                             if (checkEof && offset == 0)

@@ -455,9 +455,20 @@ namespace IceRpc.Transports
             await SendFrameAsync(request, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            if (request.StreamWriter is IStreamParamSender streamWriter)
+            if (request.StreamParamSender is IStreamParamSender streamParamSender)
             {
-                _ = Task.Run(() => streamWriter.SendAsync(this, request.StreamCompressor), default);
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        streamParamSender.SendAsync(this, request.StreamCompressor);
+                    }
+                    catch
+                    {
+                        // TODO log unhandled exception sending stream param
+                    }
+                },
+                default);
             }
         }
 
@@ -467,9 +478,20 @@ namespace IceRpc.Transports
             await SendFrameAsync(response, cancel).ConfigureAwait(false);
 
             // If there's a stream writer, we can start sending the data.
-            if (response.StreamWriter is IStreamParamSender streamWriter)
+            if (response.StreamParamSender is IStreamParamSender streamParamSender)
             {
-                _ = Task.Run(() => streamWriter.SendAsync(this, response.StreamCompressor), default);
+                _ = Task.Run(() =>
+                    {
+                        try
+                        {
+                            streamParamSender.SendAsync(this, response.StreamCompressor);
+                        }
+                        catch
+                        {
+                            // TODO log unhandled exception sending stream param
+                        }
+                    },
+                    default);
             }
         }
 
@@ -573,7 +595,7 @@ namespace IceRpc.Transports
             // Since SendAsync writes the transport (e.g. Slic) header, we can't call SendAsync twice, once with the
             // header buffers and a second time with the remaining payload buffers.
             await SendAsync(buffers,
-                            endStream: frame.StreamWriter == null,
+                            endStream: frame.StreamParamSender == null,
                             cancel).ConfigureAwait(false);
         }
 

@@ -578,30 +578,6 @@ Slice::isValueType(const TypePtr& type)
 }
 
 bool
-Slice::isFixedSize(const TypePtr& type)
-{
-    if (auto builtin = BuiltinPtr::dynamicCast(type); builtin)
-    {
-        return builtin->isNumericTypeOrBool() && !builtin->isVariableLength();
-    }
-
-    auto st = StructPtr::dynamicCast(type);
-    if (st)
-    {
-        MemberList dataMembers = st->dataMembers();
-        for (MemberList::const_iterator q = dataMembers.begin(); q != dataMembers.end(); q++)
-        {
-            if (!isFixedSize((*q)->type()))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-bool
 Slice::isReferenceType(const TypePtr& type)
 {
     return !isValueType(type);

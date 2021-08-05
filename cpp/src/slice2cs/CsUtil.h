@@ -47,7 +47,6 @@ std::string returnTaskStr(const OperationPtr& operation, const std::string& ns, 
 
 bool isCollectionType(const TypePtr&);
 bool isValueType(const TypePtr&); // value with C# "struct" meaning
-bool isFixedSize(const TypePtr&);
 bool isReferenceType(const TypePtr&); // opposite of value
 bool isFixedSizeNumericSequence(const SequencePtr& seq);
 

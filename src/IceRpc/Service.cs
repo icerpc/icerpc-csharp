@@ -101,9 +101,9 @@ namespace IceRpc
                 ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
                 if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
                 {
-                    (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamWriter) =
+                    (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
                         await dispatchMethod(this, requestPayload, dispatch, cancel).ConfigureAwait(false);
-                    return new OutgoingResponse(dispatch, responsePayload, streamWriter);
+                    return new OutgoingResponse(dispatch, responsePayload, streamParamSender);
                 }
                 else
                 {

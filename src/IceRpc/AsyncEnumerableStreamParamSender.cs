@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IceRpc
@@ -32,6 +33,7 @@ namespace IceRpc
             _encoder = stream => SendAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
+        // TODO should we pass a CancelationToken and forward it to RpcStream.SendAsync calls?
         Task IStreamParamSender.SendAsync(
             RpcStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
@@ -43,12 +45,13 @@ namespace IceRpc
             Encoding encoding,
             Action<IceEncoder, T> encodeAction)
         {
+            using var cancelationSource = new CancellationTokenSource();
             rpcStream.EnableSendFlowControl();
             try
             {
                 (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) = StartFrame();
 
-                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator();
+                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
                 do
                 {
                     ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
@@ -97,30 +100,34 @@ namespace IceRpc
                         new ReadOnlyMemory<byte>[1] { rpcStream.TransportHeader },
                     true,
                     default).ConfigureAwait(false);
-
-                (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) StartFrame()
-                {
-                    var encoder = new IceEncoder(encoding);
-                    if (rpcStream.TransportHeader.Length > 0)
-                    {
-                        encoder.WriteByteSpan(rpcStream.TransportHeader.Span);
-                    }
-                    encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
-                    IceEncoder.Position sizeStart = encoder.StartFixedLengthSize();
-                    return (encoder, sizeStart, encoder.Tail);
-                }
-
-                async ValueTask FinishFrameAndSendAsync(IceEncoder encoder, IceEncoder.Position start)
-                {
-                    encoder.EndFixedLengthSize(start);
-                    ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
-                    await rpcStream.SendAsync(buffers, false, default).ConfigureAwait(false);
-                }
+            }
+            catch (RpcStreamAbortedException)
+            {
+                cancelationSource.Cancel();
             }
             catch
             {
                 rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
                 throw;
+            }
+
+            (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) StartFrame()
+            {
+                var encoder = new IceEncoder(encoding);
+                if (rpcStream.TransportHeader.Length > 0)
+                {
+                    encoder.WriteByteSpan(rpcStream.TransportHeader.Span);
+                }
+                encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
+                IceEncoder.Position sizeStart = encoder.StartFixedLengthSize();
+                return (encoder, sizeStart, encoder.Tail);
+            }
+
+            async ValueTask FinishFrameAndSendAsync(IceEncoder encoder, IceEncoder.Position start)
+            {
+                encoder.EndFixedLengthSize(start);
+                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+                await rpcStream.SendAsync(buffers, false, default).ConfigureAwait(false);
             }
         }
     }

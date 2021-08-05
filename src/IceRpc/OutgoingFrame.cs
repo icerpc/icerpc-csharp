@@ -74,9 +74,9 @@ namespace IceRpc
         /// compress a stream parameter or return value.</summary>
         public Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
 
-        /// <summary>The stream writer if the request or response has a stream param. The writer is called
+        /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
-        internal IStreamParamSender? StreamWriter { get; set; }
+        internal IStreamParamSender? StreamParamSender { get; set; }
 
         private Dictionary<int, Action<IceEncoder>>? _fields;
 
@@ -108,12 +108,12 @@ namespace IceRpc
         /// <param name="encoder">The Ice encoder.</param>
         internal abstract void EncodeHeader(IceEncoder encoder);
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, IStreamParamSender? streamWriter)
+        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, IStreamParamSender? streamParamSender)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
             Features = features;
-            StreamWriter = streamWriter;
+            StreamParamSender = streamParamSender;
         }
 
         private protected void EncodeFields(IceEncoder encoder)

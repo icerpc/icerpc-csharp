@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +23,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IStreamsPrx _prx;
+        private readonly IStreamParamOperationsPrx _prx;
         private readonly byte[] _sendBuffer;
         private readonly StreamParamOperations _servant;
 
@@ -50,7 +51,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            _prx = StreamsPrx.FromConnection(_connection);
+            _prx = StreamParamOperationsPrx.FromConnection(_connection);
         }
 
         [TearDown]
@@ -190,6 +191,36 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             await _servant.EnumerableReceived.WaitAsync();
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(100));
             Assert.That(_servant.MyStructs.All(e => e == v1));
+        }
+
+        [Test]
+        public async Task StreamParam_Send_MyStructCancellation()
+        {
+            var semaphore = new SemaphoreSlim(0);
+            var canceled = new TaskCompletionSource<bool>();
+
+            async IAsyncEnumerable<MyStruct> GetDataAsync([EnumeratorCancellation] CancellationToken cancel = default)
+            {
+                cancel.Register(() => canceled.SetResult(true));
+                for (int i = 0; i < 100; i++)
+                {
+                    await semaphore.WaitAsync(cancel);
+                    yield return new MyStruct(1, 1);
+                }
+                canceled.SetResult(false);
+            }
+
+            await _prx.OpStreamMyStructSendAndCancel0Async(GetDataAsync());
+            // Start streaming data the server cancel its enumerable upon receive the first 20 items
+            semaphore.Release(20);
+            await _servant.EnumerableReceived.WaitAsync();
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
+            // The sender cancelation token is not canceled until we try to send more data, and receive
+            // RcpStreamAbortedException.
+            // TODO Add RpcStream.OnClose event and use it to cancel the cancelation source
+            semaphore.Release(20);
+            Assert.That(await canceled.Task);
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
         }
 
         [Test]
@@ -637,6 +668,30 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 IAsyncEnumerable<AnotherStruct> p3,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2, p3));
+
+            public ValueTask OpStreamMyStructSendAndCancel0Async(
+                IAsyncEnumerable<MyStruct> p1,
+                Dispatch dispatch,
+                CancellationToken cancel)
+            {
+                _ = Task.Run(async () =>
+                {
+                    var cancellationSource = new CancellationTokenSource();
+                    int i = 0;
+                    await foreach (var element in p1.WithCancellation(cancellationSource.Token))
+                    {
+                        MyStructs = MyStructs.Add(element);
+                        if (++i == 20)
+                        {
+                            break;
+                        }
+                    }
+                    cancellationSource.Cancel();
+                    EnumerableReceived.Release();
+                },
+                CancellationToken.None);
+                return default;
+            }
 
             public StreamParamOperations(byte[] buffer) => _sendBuffer = buffer;
         }

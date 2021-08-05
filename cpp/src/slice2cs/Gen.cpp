@@ -276,7 +276,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             {
                 if (returnType)
                 {
-                    _out << " = streamReader!.ToByteStream();";
+                    _out << " = streamParamReceiver!.ToByteStream();";
                 }
                 else
                 {
@@ -287,7 +287,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
             {
                 if (returnType)
                 {
-                    _out << " = streamReader!.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
+                    _out << " = streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
                     _out.inc();
                     _out << nl << "connection,"
                          << nl << "invoker,"
@@ -2148,7 +2148,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamReader, ";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamParamReceiver, ";
                 _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
@@ -2438,7 +2438,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else
     {
-        _out << nl << "streamWriter: null,";
+        _out << nl << "streamParamSender: null,";
     }
     if (!voidOp)
     {
@@ -2446,17 +2446,17 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << nl << "(payload, streamReader, payloadEncoding, connection, invoker) =>";
+        _out << nl << "(payload, streamParamReceiver, payloadEncoding, connection, invoker) =>";
 
         _out.inc();
         if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
             builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << nl << "streamReader!.ToByteStream(),";
+            _out << nl << "streamParamReceiver!.ToByteStream(),";
         }
         else
         {
-            _out << nl << "streamReader!.ToAsyncEnumerable<" << typeToString(streamReturnParam->type(), ns) << ">(";
+            _out << nl << "streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamReturnParam->type(), ns) << ">(";
             _out.inc();
             _out << nl << "connection,"
                  << nl << "invoker,"
