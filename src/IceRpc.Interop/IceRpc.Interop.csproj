@@ -24,5 +24,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.6.21352.12" PrivateAssets="All" />
         <ProjectReference Include="..\IceRpc\IceRpc.csproj" />
+        <SliceCompile Include="../../slice/IceRpc/Interop/Locator.ice;../../slice/IceRpc/Interop/Process.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)" />
+        <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
     </ItemGroup>
 </Project>
