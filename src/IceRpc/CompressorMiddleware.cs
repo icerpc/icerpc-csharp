@@ -14,14 +14,18 @@ namespace IceRpc
         /// <summary>Options class to configure <see cref="CompressorMiddleware"/>.</summary>
         public sealed class Options
         {
-            /// <summary>The compression level for the compress operation.</summary>
+            /// <summary>The compression level for the compress operation, the default value is
+            /// <see cref="CompressionLevel.Fastest"/>.</summary>
             public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-            /// <summary>The minimum size of the response payload to which apply compression.</summary>
+            /// <summary>The minimum size in bytes of the response payload to which apply compression. The default
+            /// value is 500.</summary>
             public int CompressionMinSize { get; set; } = 500;
             /// <summary>Whether or not to apply compression the 2.0 encoded payload of a response when
-            /// <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
+            /// <see cref="Features.CompressPayload.Yes"/> is present in the response features. The default value is
+            /// <c>true</c>.</summary>
             public bool CompressResponsePayload { get; set; } = true;
-            /// <summary>Whether or not to decompress the compressed request payload.</summary>
+            /// <summary>Whether or not to decompress the compressed request payload. The default value is
+            /// <c>true</c>.</summary>
             public bool DecompressRequestPayload { get; set; } = true;
         }
 

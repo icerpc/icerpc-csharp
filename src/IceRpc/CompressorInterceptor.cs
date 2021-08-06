@@ -11,26 +11,30 @@ namespace IceRpc
     /// <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
     public class CompressorInterceptor : IInvoker
     {
-        /// <summary>Options class to configure <see cref="CompressorInterceptor"/>.</summary>
+        /// <summary>Options class to configure the <see cref="CompressorInterceptor"/>.</summary>
         public sealed class Options
         {
-            /// <summary>The compression level for the compress operation.</summary>
+            /// <summary>The compression level for the compress operation, the default value is
+            /// <see cref="CompressionLevel.Fastest"/>.</summary>
             public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-            /// <summary>The minimum size of the request payload to which apply compression.</summary>
+            /// <summary>The minimum size in bytes of the request payload to which apply compression. The default value
+            /// is 500.</summary>
             public int CompressionMinSize { get; set; } = 500;
-            /// <summary>Whether or not to apply compression the 2.0 encoded payload of a request when
-            /// <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
+            /// <summary>Whether or not to apply compression to the 2.0 encoded payload of a request when
+            /// <see cref="Features.CompressPayload.Yes"/> is present in the request features. The default value is
+            /// <c>true</c>.</summary>
             public bool CompressRequestPayload { get; set; } = true;
-            /// <summary>Whether or not to decompress the compressed response payload.</summary>
+            /// <summary>Whether or not to decompress the compressed response payload. The default value is
+            /// <c>true</c>.</summary>
             public bool DecompressResponsePayload { get; set; } = true;
         }
 
         private readonly IInvoker _next;
         private readonly Options _options;
 
-        /// <summary>Constructs a new compressor interceptor.</summary>
+        /// <summary>Constructs a compressor interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
-        /// <param name="options">The compressor options.</param>
+        /// <param name="options">The options to configure the compressor.</param>
         public CompressorInterceptor(IInvoker next, Options options)
         {
             _next = next;

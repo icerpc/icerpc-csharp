@@ -4,7 +4,7 @@ using IceRpc.Interop;
 
 namespace IceRpc.Configure
 {
-    /// <summary>This class provide extension methods to add built-in interceptors to a <see cref="Pipeline"/>
+    /// <summary>This class provides extension methods to add interop interceptors to a <see cref="Pipeline"/>
     /// </summary>
     public static class PipelineExtensions
     {

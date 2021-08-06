@@ -14,7 +14,7 @@ namespace IceRpc
 
         /// <summary>Constructs a proxy invoker middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-        /// <param name="invoker">The invoker of the proxies read from the request payloads.</param>
+        /// <param name="invoker">The invoker of the proxies read from the requests payload.</param>
         public ProxyInvokerMiddleware(IDispatcher next, IInvoker invoker)
         {
             _next = next;

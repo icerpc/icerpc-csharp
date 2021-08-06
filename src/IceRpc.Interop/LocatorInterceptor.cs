@@ -52,7 +52,7 @@ namespace IceRpc
         private readonly IInvoker _next;
         private readonly ILocationResolver _locationResolver;
 
-        /// <summary>Creates a locator interceptor.</summary>
+        /// <summary>Constructs a locator interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="locator">The locator proxy used for the resolutions.</param>
         /// <param name="options">The options of this interceptor.</param>

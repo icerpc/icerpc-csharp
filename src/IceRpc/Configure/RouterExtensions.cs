@@ -17,7 +17,7 @@ namespace IceRpc.Configure
 
         /// <summary>Adds the <see cref="LoggerMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
-        /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+        /// <param name="loggerFactory">The logger factory used to create the logger.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseLogger(this Router router, ILoggerFactory loggerFactory) =>
             router.Use(next => new LoggerMiddleware(next, loggerFactory));
@@ -31,7 +31,7 @@ namespace IceRpc.Configure
 
         /// <summary>Adds the <see cref="ProxyInvokerMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
-        /// <param name="invoker">The invoker of the proxies read from the request payloads.</param>
+        /// <param name="invoker">The invoker of the proxies read from the requests payload.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseProxyInvoker(this Router router, IInvoker invoker) =>
             router.Use(next => new ProxyInvokerMiddleware(next, invoker));
