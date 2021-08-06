@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>An interceptor that logs request and response messages using IceRpc logger.</summary>
+    /// <summary>An interceptor that logs request and response messages using a logger with "IceRpc" category.
+    /// </summary>
     public class LoggerInterceptor : IInvoker
     {
         private readonly ILogger _logger;
@@ -14,7 +15,7 @@ namespace IceRpc
 
         /// <summary>Constructs a logger interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
-        /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+        /// <param name="loggerFactory">The logger factory used to create the logger.</param>
         public LoggerInterceptor(IInvoker next, ILoggerFactory loggerFactory)
         {
             _next = next;

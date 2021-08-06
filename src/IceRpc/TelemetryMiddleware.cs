@@ -12,7 +12,9 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
-    /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
+    /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null or if "IceRpc" loggin
+    /// is enabled. The middleware restores the parent invocation activity before starting the dispatch activity.</summary>
+    /// <seealso cref="TelemetryInterceptor"/>
     public class TelemetryMiddleware : IDispatcher
     {
         /// <summary>Options class to configure <see cref="TelemetryMiddleware"/> middleware.</summary>

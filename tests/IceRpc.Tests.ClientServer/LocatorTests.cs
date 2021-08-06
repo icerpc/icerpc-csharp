@@ -102,7 +102,7 @@ namespace IceRpc.Tests.ClientServer
             var wellKnownGreeter = GreeterPrx.Parse(GreeterIdentity.ToString(), _pipeline);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.UseRetry(new RetryOptions { MaxAttempts = 2 });
+            _pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = 2 });
             _pipeline.UseLocator(
                 locator,
                 new LocatorOptions

@@ -13,7 +13,7 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="connectionProvider">The connection provider.</param>
         /// <param name="cacheConnection">When <c>true</c> (the default), the binder stores the connection it retrieves
-        /// from its connection provider in the proxy that created the request</param>
+        /// from its connection provider in the proxy that created the request.</param>
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseBinder(
             this Pipeline pipeline,
@@ -53,14 +53,14 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="options">The options to configure the <see cref="RetryInterceptor"/>.</param>
         /// <returns>The pipeline being configured.</returns>
-        public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options) =>
+        public static Pipeline UseRetry(this Pipeline pipeline, RetryInterceptor.Options options) =>
             pipeline.Use(next => new RetryInterceptor(next, options));
 
         /// <summary>Adds the <see cref="TelemetryInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="options">The options to configure the <see cref="TelemetryInterceptor"/>.</param>
         /// <returns>The pipeline being configured.</returns>
-        public static Pipeline UseTelemetry(this Pipeline pipeline, TelemetryOptions options) =>
+        public static Pipeline UseTelemetry(this Pipeline pipeline, TelemetryInterceptor.Options options) =>
             pipeline.Use(next => new TelemetryInterceptor(next, options));
     }
 }

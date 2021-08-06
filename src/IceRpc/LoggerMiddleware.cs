@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A middleware that logs requests and responses.</summary>
+    /// <summary>A middleware that logs requests and responses messages using a logger with "IceRpc" category.
+    /// </summary>
     public class LoggerMiddleware : IDispatcher
     {
         private readonly IDispatcher _next;
@@ -15,7 +16,7 @@ namespace IceRpc
 
         /// <summary>Constructs a logger middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
-        /// <param name="loggerFactory">The logger factory used to create the IceRpc logger.</param>
+        /// <param name="loggerFactory">The logger factory used to create the logger.</param>
         public LoggerMiddleware(IDispatcher next, ILoggerFactory loggerFactory)
         {
             _next = next;

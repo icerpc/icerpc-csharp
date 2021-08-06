@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Internal
 {
     /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
-    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LoggerInterceptor"/>
+    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>
     /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
     /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
     /// </summary>

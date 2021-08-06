@@ -11,7 +11,7 @@ namespace IceRpc
     /// <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
     public class CompressorMiddleware : IDispatcher
     {
-        /// <summary>Options class to configure CustomCompressor middleware.</summary>
+        /// <summary>Options class to configure <see cref="CompressorMiddleware"/>.</summary>
         public sealed class Options
         {
             /// <summary>The compression level for the compress operation.</summary>

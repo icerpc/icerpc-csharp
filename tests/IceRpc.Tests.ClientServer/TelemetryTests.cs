@@ -30,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 var prx = GreeterPrx.FromConnection(connection);
                 Activity? invocationActivity = null;
                 bool called = false;
-                pipeline.UseTelemetry(new TelemetryOptions());
+                pipeline.UseTelemetry(new TelemetryInterceptor.Options());
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
                     called = true;
@@ -55,7 +55,7 @@ namespace IceRpc.Tests.ClientServer
                 var pipeline = new Pipeline();
                 var prx = GreeterPrx.FromConnection(connection);
                 prx.Proxy.Invoker = pipeline;
-                pipeline.UseTelemetry(new TelemetryOptions());
+                pipeline.UseTelemetry(new TelemetryInterceptor.Options());
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
                     invocationActivity = Activity.Current;
@@ -211,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(Activity.Current, Is.Not.Null);
 
             var pipeline = new Pipeline();
-            pipeline.UseTelemetry(new TelemetryOptions());
+            pipeline.UseTelemetry(new TelemetryInterceptor.Options());
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A interceptor that publishes invocation metrics.</summary>
+    /// <summary>An interceptor that publishes invocation metrics.</summary>
     public class MetricsInterceptor : IInvoker
     {
         private readonly InvocationEventSource _eventSource;

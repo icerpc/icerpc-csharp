@@ -23,21 +23,21 @@ namespace IceRpc.Configure
             router.Use(next => new LoggerMiddleware(next, loggerFactory));
 
         /// <summary>Adds the <see cref="MetricsMiddleware"/> to the router.</summary>
-        /// <param name="router">The pipeline being configured.</param>
+        /// <param name="router">The router being configured.</param>
         /// <param name="eventSource">The dispatch event source used to publish the metrics events.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseMetrics(this Router router, DispatchEventSource eventSource) =>
             router.Use(next => new MetricsMiddleware(next, eventSource));
 
         /// <summary>Adds the <see cref="ProxyInvokerMiddleware"/> to the router.</summary>
-        /// <param name="router">The pipeline being configured.</param>
+        /// <param name="router">The router being configured.</param>
         /// <param name="invoker">The invoker of the proxies read from the request payloads.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseProxyInvoker(this Router router, IInvoker invoker) =>
             router.Use(next => new ProxyInvokerMiddleware(next, invoker));
 
         /// <summary>Adds the <see cref="TelemetryMiddleware"/> to the router.</summary>
-        /// <param name="router">The pipeline being configured.</param>
+        /// <param name="router">The router being configured.</param>
         /// <param name="options">The options to configure the <see cref="TelemetryMiddleware"/>.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseTelemetry(this Router router, TelemetryMiddleware.Options options) =>
