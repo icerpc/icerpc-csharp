@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.Threading;
@@ -74,30 +75,6 @@ namespace IceRpc.Tests.Api
             var greeter = GreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.AreEqual(1, value);
-
-            // If we unmap the route we get ServiceNotFoundException
-            Assert.That(_router.Unmap(path), Is.True);
-            Assert.That(_router.Unmount(path), Is.True);
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
-
-            // Without exact match from Map, we hit the mounted route:
-            _router.Mount(path, new InlineDispatcher(
-                async (current, cancel) =>
-                {
-                    value = 2;
-                    Assert.AreEqual(path, current.Path);
-                    return await _service.DispatchAsync(current, cancel);
-                }));
-
-            await greeter.IcePingAsync();
-            Assert.AreEqual(2, value);
-            value = 0;
-
-            // With a slightly different Map-path, we still hit the mounted route
-
-            _router.Map($"{path}/", _failDispatcher);
-            await greeter.IcePingAsync();
-            Assert.AreEqual(2, value);
         }
 
         [TestCase("/foo", "/foo/")]
@@ -130,9 +107,6 @@ namespace IceRpc.Tests.Api
             var greeter = GreeterPrx.FromConnection(_connection, path);
             await greeter.IcePingAsync();
             Assert.That(called, Is.True);
-
-            Assert.That(_router.Unmount(prefix), Is.True);
-            Assert.ThrowsAsync<ServiceNotFoundException>(async () => await greeter.IcePingAsync());
         }
 
         [TestCase("/foo", "/foobar")]
@@ -231,27 +205,16 @@ namespace IceRpc.Tests.Api
             _router.Map<IGreeter>(new Greeter());
             await GreeterPrx.FromConnection(_connection).IcePingAsync();
 
-            _router.Unmap<IGreeter>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await GreeterPrx.FromConnection(_connection).IcePingAsync());
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await BaseAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseA>(new BaseA());
             await BaseAPrx.FromConnection(_connection).IcePingAsync();
 
-            _router.Unmap<IBaseA>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await BaseAPrx.FromConnection(_connection).IcePingAsync());
-
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await DerivedAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IDerivedA>(new DerivedA());
             await DerivedAPrx.FromConnection(_connection).IcePingAsync();
-
-            _router.Unmap<IDerivedA>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await DerivedAPrx.FromConnection(_connection).IcePingAsync());
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await MostDerivedAPrx.FromConnection(_connection).IcePingAsync());
@@ -263,10 +226,6 @@ namespace IceRpc.Tests.Api
             _router.Map<IBaseB>(new BaseB());
             await BaseBPrx.FromConnection(_connection).IcePingAsync();
 
-            _router.Unmap<IBaseB>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await BaseBPrx.FromConnection(_connection).IcePingAsync());
-
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await DerivedBPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IDerivedB>(new DerivedB());
@@ -277,18 +236,10 @@ namespace IceRpc.Tests.Api
             _router.Map<IMostDerivedB>(new MostDerivedB());
             await MostDerivedBPrx.FromConnection(_connection).IcePingAsync();
 
-            _router.Unmap<IMostDerivedB>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await MostDerivedBPrx.FromConnection(_connection).IcePingAsync());
-
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await BaseCPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseC>(new BaseC());
             await BaseCPrx.FromConnection(_connection).IcePingAsync();
-
-            _router.Unmap<IBaseC>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-             async () => await BaseCPrx.FromConnection(_connection).IcePingAsync());
 
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await DerivedCPrx.FromConnection(_connection).IcePingAsync());
@@ -299,10 +250,6 @@ namespace IceRpc.Tests.Api
                 async () => await MostDerivedCPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IMostDerivedC>(new MostDerivedC());
             await MostDerivedCPrx.FromConnection(_connection).IcePingAsync();
-
-            _router.Unmap<IMostDerivedC>();
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await MostDerivedCPrx.FromConnection(_connection).IcePingAsync());
         }
 
         [TearDown]

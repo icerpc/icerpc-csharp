@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Features;
 using IceRpc.Interop;
 using NUnit.Framework;
@@ -339,7 +340,7 @@ namespace IceRpc.Tests.Api
             var router = new Router();
             router.Map<IProxyTest>(service);
             var pipeline = new Pipeline();
-            router.Use(Middleware.ProxyInvoker(pipeline));
+            router.UseProxyInvoker(pipeline);
 
             await using var server2 = new Server
             {

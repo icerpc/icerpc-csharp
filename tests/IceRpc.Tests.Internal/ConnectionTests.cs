@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System;
@@ -55,7 +56,7 @@ namespace IceRpc.Tests.Internal
                 {
                     var prx = IceRpc.ServicePrx.FromConnection(ClientConnection);
                     var pipeline = new Pipeline();
-                    pipeline.Use(Interceptors.Logger(LogAttributeLoggerFactory.Instance));
+                    pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
                     prx.Proxy.Invoker = pipeline;
                     return prx;
                 }
@@ -161,7 +162,9 @@ namespace IceRpc.Tests.Internal
 
                 if (dispatcher != null)
                 {
-                    dispatcher = Middleware.Logger(LogAttributeLoggerFactory.Instance)(dispatcher);
+                    var router = new Router().UseLogger(LogAttributeLoggerFactory.Instance);
+                    router.Mount("/", dispatcher);
+                    dispatcher = router;
                 }
 
                 _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };

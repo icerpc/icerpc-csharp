@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc
 {
     /// <summary>Provides public extensions methods for <see cref="Protocol"/>.</summary>

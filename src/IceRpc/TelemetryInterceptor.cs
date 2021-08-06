@@ -1,23 +1,42 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
-
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
-    /// <summary>The implementation of <see cref="Interceptors.CustomTelemetry(Interceptors.TelemetryOptions)"/>.</summary>
-    internal sealed class TelemetryInvoker : IInvoker
+    /// <summary>Options class to configure <see cref="TelemetryInterceptor"/> interceptor.</summary>
+    public sealed class TelemetryOptions
     {
-        private readonly ILogger _logger;
-        private readonly IInvoker _next;
-        private readonly Interceptors.TelemetryOptions _options;
+        /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
+        /// <see cref="Activity"/>.</summary>
+        public ActivitySource? ActivitySource { get; set; }
 
-        /// <inheritdoc/>
-        public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
+        /// <summary>The logger factory used to create the IceRpc logger.</summary>
+        public ILoggerFactory? LoggerFactory { get; set; }
+    }
+
+    /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
+    /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
+    public class TelemetryInterceptor : IInvoker
+    {
+        private readonly IInvoker _next;
+        private readonly ILogger _logger;
+        private readonly TelemetryOptions _options;
+
+        /// <summary>Constructs a telemetry interceptor.</summary>
+        /// <param name="next">The next invoker in the invocation pipeline.</param>
+        /// <param name="options">The options to configure the telemetry interceptor.</param>
+        public TelemetryInterceptor(IInvoker next, TelemetryOptions options)
+        {
+            _next = next;
+            _options = options;
+            _logger = options.LoggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
+        }
+
+        async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             if (request.Protocol == Protocol.Ice2)
             {
@@ -55,13 +74,6 @@ namespace IceRpc.Internal
             {
                 return await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
             }
-        }
-
-        internal TelemetryInvoker(Interceptors.TelemetryOptions options, IInvoker next)
-        {
-            _options = options;
-            _logger = (options.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
-            _next = next;
         }
 
         private static void WriteActivityContext(OutgoingRequest request)

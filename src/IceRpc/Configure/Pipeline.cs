@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>A pipeline is an invoker created from zero or more interceptors installed by calling <see cref="Use"/>.
     /// The last invoker of the pipeline calls the connection carried by the request or throws
@@ -26,7 +26,7 @@ namespace IceRpc
         /// <param name="interceptor">One or more interceptors.</param>
         /// <exception cref="InvalidOperationException">Thrown if this method is called after the first call to
         /// <see cref="InvokeAsync"/>.</exception>
-        public void Use(params Func<IInvoker, IInvoker>[] interceptor)
+        public Pipeline Use(params Func<IInvoker, IInvoker>[] interceptor)
         {
             if (_invoker != null)
             {
@@ -34,6 +34,7 @@ namespace IceRpc
                     "interceptors must be installed before the first call to InvokeAsync");
             }
             _interceptorList = _interceptorList.AddRange(interceptor);
+            return this;
         }
 
         /// <summary>Creates a new pipeline with this pipeline's interceptor stack plus the specified interceptors.

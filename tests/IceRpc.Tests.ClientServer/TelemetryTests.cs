@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -29,7 +30,7 @@ namespace IceRpc.Tests.ClientServer
                 var prx = GreeterPrx.FromConnection(connection);
                 Activity? invocationActivity = null;
                 bool called = false;
-                pipeline.Use(Interceptors.Telemetry);
+                pipeline.UseTelemetry(new TelemetryOptions());
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
                     called = true;
@@ -54,7 +55,7 @@ namespace IceRpc.Tests.ClientServer
                 var pipeline = new Pipeline();
                 var prx = GreeterPrx.FromConnection(connection);
                 prx.Proxy.Invoker = pipeline;
-                pipeline.Use(Interceptors.Telemetry);
+                pipeline.UseTelemetry(new TelemetryOptions());
                 pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
                     invocationActivity = Activity.Current;
@@ -76,7 +77,7 @@ namespace IceRpc.Tests.ClientServer
                 var router = new Router();
                 Activity? dispatchActivity = null;
                 bool called = false;
-                router.Use(Middleware.Telemetry);
+                router.UseTelemetry(new TelemetryMiddleware.Options());
                 router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
@@ -126,10 +127,7 @@ namespace IceRpc.Tests.ClientServer
 
                 var router = new Router();
                 // Now configure the CustomTracer with an ActivitySource to trigger the creation of the Dispatch activity.
-                router.Use(Middleware.CustomTelemetry(new Middleware.TelemetryOptions
-                {
-                    ActivitySource = activitySource
-                }));
+                router.UseTelemetry(new TelemetryMiddleware.Options { ActivitySource = activitySource });
                 router.Use(next => new InlineDispatcher(
                     async (current, cancel) =>
                     {
@@ -186,10 +184,7 @@ namespace IceRpc.Tests.ClientServer
             ActivitySource.AddActivityListener(listener);
 
             var router = new Router();
-            router.Use(Middleware.CustomTelemetry(new Middleware.TelemetryOptions
-            {
-                ActivitySource = activitySource
-            }));
+            router.UseTelemetry(new TelemetryMiddleware.Options { ActivitySource = activitySource });
             router.Use(next => new InlineDispatcher(
                 async (current, cancel) =>
                 {
@@ -216,7 +211,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(Activity.Current, Is.Not.Null);
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Telemetry);
+            pipeline.UseTelemetry(new TelemetryOptions());
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationActivity = Activity.Current;

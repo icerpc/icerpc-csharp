@@ -1,4 +1,4 @@
-// Copyright (c) ZeroC, Inc. All rights reserved.
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,17 +9,39 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
-    /// <summary>The implementation of <see cref="Middleware.CustomTelemetry(Middleware.TelemetryOptions)"/>.</summary>
-    internal sealed class TelemetryDispatcher : IDispatcher
+    /// <summary>A middleware that start an <see cref="Activity"/> per request, following OpenTelemetry
+    /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null.</summary>
+    public class TelemetryMiddleware : IDispatcher
     {
+        /// <summary>Options class to configure <see cref="TelemetryMiddleware"/> middleware.</summary>
+        public sealed class Options
+        {
+            /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
+            /// <see cref="Activity"/>.</summary>
+            public ActivitySource? ActivitySource { get; set; }
+
+            /// <summary>The logger factory used to create the IceRpc logger.</summary>
+            public ILoggerFactory? LoggerFactory { get; set; }
+        }
+
         private readonly ILogger _logger;
         private readonly IDispatcher _next;
-        private readonly Middleware.TelemetryOptions _options;
+        private readonly Options _options;
 
-        /// <inheritdoc/>
-        public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
+
+        /// <summary>Constructs a telemetry middleware.</summary>
+        /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
+        /// <param name="options">The options to configure the telemetry middleware.</param>
+        public TelemetryMiddleware(IDispatcher next, Options options)
+        {
+            _next = next;
+            _options = options;
+            _logger = options.LoggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
+        }
+
+        async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             if (request.Protocol != Protocol.Ice1)
             {
@@ -56,13 +78,6 @@ namespace IceRpc.Internal
             {
                 return await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             }
-        }
-
-        internal TelemetryDispatcher(Middleware.TelemetryOptions options, IDispatcher next)
-        {
-            _options = options;
-            _logger = (options.LoggerFactory ?? NullLoggerFactory.Instance).CreateLogger("IceRpc");
-            _next = next;
         }
 
         private static void RestoreActivityContext(IncomingRequest request, Activity activity)
@@ -104,5 +119,6 @@ namespace IceRpc.Internal
                 }
             }
         }
+
     }
 }

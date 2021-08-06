@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>A router routes incoming requests to dispatchers.</summary>
     public sealed class Router : IDispatcher
@@ -106,45 +106,19 @@ namespace IceRpc
             return subRouter;
         }
 
-        /// <summary>Unregisters a route previously registered with <see cref="Map(string, IDispatcher)"/>.</summary>
-        /// <param name="path">The path of the route.</param>
-        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
-        public bool Unmap(string path)
-        {
-            IceUriParser.CheckPath(path, nameof(path));
-            return _exactMatchRoutes.Remove(path);
-        }
-
-        /// <summary>Unregisters a route previously registered with <see cref="Map{T}(IDispatcher)"/>.</summary>
-        /// <typeparam name="T">The service type used to get the default path.</typeparam>
-        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        public bool Unmap<T>() =>
-            _exactMatchRoutes.Remove(typeof(T).GetDefaultPath());
-
-        /// <summary>Unregisters a route previously registered with <see cref="Mount"/>.</summary>
-        /// <param name="prefix">The prefix of the route.</param>
-        /// <returns>True when the route was found and unregistered; otherwise, false.</returns>
-        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
-        public bool Unmount(string prefix)
-        {
-            IceUriParser.CheckPath(prefix, nameof(prefix));
-            prefix = NormalizePrefix(prefix);
-            return _prefixMatchRoutes.Remove(prefix);
-        }
-
         /// <summary>Installs one or more middleware in this router. A middleware must be installed before calling
         /// <see cref="IDispatcher.DispatchAsync"/>.</summary>
         /// <param name="middleware">One or more middleware.</param>
         /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
         /// called on this router.</exception>
-        public void Use(params Func<IDispatcher, IDispatcher>[] middleware)
+        public Router Use(params Func<IDispatcher, IDispatcher>[] middleware)
         {
             if (_dispatcher != null)
             {
                 throw new InvalidOperationException("all middleware must be registered before calling DispatchAsync");
             }
             _middlewareList = _middlewareList.AddRange(middleware);
+            return this;
         }
 
         /// <inheritdoc/>
