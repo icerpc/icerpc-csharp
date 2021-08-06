@@ -205,7 +205,6 @@ namespace IceRpc.Tests.Api
             _router.Map<IGreeter>(new Greeter());
             await GreeterPrx.FromConnection(_connection).IcePingAsync();
 
-
             Assert.ThrowsAsync<ServiceNotFoundException>(
                 async () => await BaseAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseA>(new BaseA());

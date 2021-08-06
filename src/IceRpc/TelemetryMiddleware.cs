@@ -30,7 +30,6 @@ namespace IceRpc
         private readonly IDispatcher _next;
         private readonly Options _options;
 
-
         /// <summary>Constructs a telemetry middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="options">The options to configure the telemetry middleware.</param>

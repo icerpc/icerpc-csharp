@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A binder interceptor is responsible of providing connections to requests using an 
+    /// <summary>A binder interceptor is responsible of providing connections to requests using an
     /// <see cref="IConnectionProvider"/>, the binder is no-op when the request carries a connection; otherwise it
     /// retrieves a connection from its connection provider and sets the request's connection.</summary>
     public class BinderInterceptor : IInvoker

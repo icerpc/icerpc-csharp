@@ -45,7 +45,7 @@ namespace IceRpc
 
     /// <summary>A locator interceptor is responsible for resolving "loc" endpoints, the locator interceptor is no-op
     /// when the request carries a connection; otherwise it "resolves" the endpoints of the request using an
-    /// <see cref="ILocatorPrx"/> such as IceGrid. It must be installed between <see cref="RetryInterceptor"/> and 
+    /// <see cref="ILocatorPrx"/> such as IceGrid. It must be installed between <see cref="RetryInterceptor"/> and
     /// <see cref="BinderInterceptor"/>.</summary>
     public class LocatorInterceptor : IInvoker
     {

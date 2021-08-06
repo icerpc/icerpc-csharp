@@ -16,7 +16,6 @@ namespace IceRpc
         private readonly IInvoker _next;
         private readonly TimeSpan _timeout;
 
-
         /// <summary>Constructs a default timeout interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="timeout">The timeout for the invocation.</param>
