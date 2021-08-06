@@ -29,7 +29,7 @@ namespace IceRpc
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
         /// <seealso cref="IDispatcher"/>
-        /// <seealso cref="Router"/>
+        /// <seealso cref="Configure.Router"/>
         public IDispatcher? Dispatcher { get; set; }
 
         /// <summary>Gets or sets the endpoint of this server.</summary>
