@@ -87,10 +87,10 @@ namespace IceRpc
             _locationResolver = new LogLocationResolverDecorator(
                 endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
                     new LocationResolver(endpointFinder,
-                                            endpointCache,
-                                            options.Background,
-                                            options.JustRefreshedAge,
-                                            options.Ttl),
+                                         endpointCache,
+                                         options.Background,
+                                         options.JustRefreshedAge,
+                                         options.Ttl),
                 logger);
         }
 
