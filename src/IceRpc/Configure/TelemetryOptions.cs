@@ -13,7 +13,5 @@ namespace IceRpc.Configure
 
         /// <summary>The logger factory used to create the IceRpc logger.</summary>
         public ILoggerFactory? LoggerFactory { get; set; }
-
-        internal static TelemetryOptions Default = new();
     }
 }

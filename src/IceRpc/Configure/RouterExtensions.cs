@@ -13,7 +13,7 @@ namespace IceRpc.Configure
         /// <param name="router">The router being configured.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseCompressor(this Router router) =>
-            router.UseCompressor(CompressOptions.Default);
+            router.UseCompressor(new CompressOptions());
 
         /// <summary>Adds a <see cref="CompressorMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>
@@ -48,7 +48,7 @@ namespace IceRpc.Configure
         /// <param name="router">The router being configured.</param>
         /// <returns>The router being configured.</returns>
         public static Router UseTelemetry(this Router router) =>
-            router.UseTelemetry(TelemetryOptions.Default);
+            router.UseTelemetry(new TelemetryOptions());
 
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> to the router.</summary>
         /// <param name="router">The router being configured.</param>

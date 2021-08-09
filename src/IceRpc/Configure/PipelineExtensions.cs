@@ -25,7 +25,7 @@ namespace IceRpc.Configure
         /// the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         public static Pipeline UseCompressor(this Pipeline pipeline) =>
-            pipeline.UseCompressor(CompressOptions.Default);
+            pipeline.UseCompressor(new CompressOptions());
 
         /// <summary>Adds a <see cref="CompressorInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
@@ -60,7 +60,7 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseRetry(this Pipeline pipeline) =>
-            pipeline.UseRetry(RetryOptions.Default);
+            pipeline.UseRetry(new RetryOptions());
 
         /// <summary>Adds a <see cref="RetryInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
@@ -73,7 +73,7 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseTelemetry(this Pipeline pipeline) =>
-            pipeline.UseTelemetry(TelemetryOptions.Default);
+            pipeline.UseTelemetry(new TelemetryOptions());
 
         /// <summary>Adds the <see cref="TelemetryInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>

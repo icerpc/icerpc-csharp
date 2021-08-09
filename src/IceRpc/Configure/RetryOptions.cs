@@ -60,8 +60,6 @@ namespace IceRpc.Configure
             }
         }
 
-        internal static RetryOptions Default = new();
-
         private int _bufferMaxSize = 1024 * 1024 * 100;
         private int _maxAttempts = 1;
         private int _requestMaxSize = 1024 * 1024;

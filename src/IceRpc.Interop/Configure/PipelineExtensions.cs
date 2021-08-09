@@ -13,7 +13,7 @@ namespace IceRpc.Configure
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="locator">The locator proxy used for the resolutions.</param>
         public static Pipeline UseLocator(this Pipeline pipeline, ILocatorPrx locator) =>
-            UseLocator(pipeline, locator, LocatorOptions.Default);
+            UseLocator(pipeline, locator, new LocatorOptions());
 
         /// <summary>Adds a <see cref="LocatorInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
