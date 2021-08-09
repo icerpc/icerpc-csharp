@@ -40,7 +40,7 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = 5, LoggerFactory = loggerFactory })
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, LoggerFactory = loggerFactory })
                     .UseBinder(pool)
                     .UseLogger(loggerFactory);
 

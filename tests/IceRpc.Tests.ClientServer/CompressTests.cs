@@ -24,11 +24,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
             var pipeline = new Pipeline();
-            pipeline.UseCompressor(new CompressorInterceptor.Options
-            {
-                CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
-                CompressionMinSize = compressionMinSize
-            });
+            pipeline.UseCompressor(
+                new CompressOptions
+                {
+                    CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
+                    CompressionMinSize = compressionMinSize
+                });
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
@@ -58,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                 }));
             router.UseCompressor(
-                new CompressorMiddleware.Options
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
@@ -146,7 +147,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var pipeline = new Pipeline();
             pipeline.UseCompressor(
-                new CompressorInterceptor.Options
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
@@ -165,7 +166,7 @@ namespace IceRpc.Tests.ClientServer
 
             var router = new Router();
             router.UseCompressor(
-                new CompressorMiddleware.Options
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize

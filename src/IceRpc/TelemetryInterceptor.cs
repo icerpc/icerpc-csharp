@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Diagnostics;
@@ -9,29 +11,18 @@ namespace IceRpc
 {
     /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
     /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null or if "IceRpc" logging is
-    /// enabled. The activity context is written in the request fields and can be restored by installing a 
+    /// enabled. The activity context is written in the request fields and can be restored by installing a
     /// <see cref="TelemetryMiddleware"/>.</summary>
     public class TelemetryInterceptor : IInvoker
     {
-        /// <summary>Options class to configure <see cref="TelemetryInterceptor"/> interceptor.</summary>
-        public sealed class Options
-        {
-            /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
-            /// <see cref="Activity"/>.</summary>
-            public ActivitySource? ActivitySource { get; set; }
-
-            /// <summary>The logger factory used to create the logger.</summary>
-            public ILoggerFactory? LoggerFactory { get; set; }
-        }
-
         private readonly IInvoker _next;
         private readonly ILogger _logger;
-        private readonly Options _options;
+        private readonly TelemetryOptions _options;
 
         /// <summary>Constructs a telemetry interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the telemetry interceptor.</param>
-        public TelemetryInterceptor(IInvoker next, Options options)
+        public TelemetryInterceptor(IInvoker next, TelemetryOptions options)
         {
             _next = next;
             _options = options;

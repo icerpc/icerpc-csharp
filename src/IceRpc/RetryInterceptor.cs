@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -15,76 +14,17 @@ namespace IceRpc
     /// typically configured before the <see cref="BinderInterceptor"/>.</summary>
     public class RetryInterceptor : IInvoker
     {
-        /// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>
-        public sealed class Options
-        {
-            /// <summary>The maximum amount of memory in bytes used to hold all retryable requests. Once this limit is
-            /// reached new requests are not retried and their memory is released after being sent. The default value is
-            /// 100 MB</summary>
-            public int BufferMaxSize
-            {
-                get => _bufferMaxSize;
-                set
-                {
-                    if (value < 1)
-                    {
-                        throw new ArgumentOutOfRangeException(
-                            $"Invalid value '{value}' for '{nameof(BufferMaxSize)}' it must be greater than 0.");
-                    }
-                    _bufferMaxSize = value;
-                }
-            }
-
-            /// <summary>A logger factory used to create the retry interceptor logger.</summary>
-            public ILoggerFactory LoggerFactory { get; set; } = NullLoggerFactory.Instance;
-
-            /// <summary>The maximum number of attempts for retrying a request.</summary>
-            public int MaxAttempts
-            {
-                get => _maxAttempts;
-                set
-                {
-                    if (value < 1)
-                    {
-                        throw new ArgumentOutOfRangeException(
-                            $"Invalid value '{value}' for '{nameof(MaxAttempts)}', it must be greater than 0.");
-                    }
-                    _maxAttempts = value;
-                }
-            }
-
-            /// <summary>The maximum payload size in bytes for a request to be retryable, requests with a bigger payload
-            /// size are released after sent and cannot be retried. The default value is 1 MB.</summary>
-            public int RequestMaxSize
-            {
-                get => _requestMaxSize;
-                set
-                {
-                    if (value < 1)
-                    {
-                        throw new ArgumentOutOfRangeException(
-                            $"Invalid value '{value}' for '{nameof(RequestMaxSize)}' it must be greater than 0.");
-                    }
-                    _requestMaxSize = value;
-                }
-            }
-
-            private int _bufferMaxSize = 1024 * 1024 * 100;
-            private int _maxAttempts = 1;
-            private int _requestMaxSize = 1024 * 1024;
-        }
-
         private int _bufferSize;
         private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly IInvoker _next;
-        private readonly Options _options;
+        private readonly RetryOptions _options;
 
         /// <summary>Constructs a retry interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the retry interceptor.</param>
         /// <see cref="RetryPolicy"/>
-        public RetryInterceptor(IInvoker next, Options options)
+        public RetryInterceptor(IInvoker next, RetryOptions options)
         {
             _next = next;
             _options = options;

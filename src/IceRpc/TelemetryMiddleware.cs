@@ -17,25 +17,14 @@ namespace IceRpc
     /// <seealso cref="TelemetryInterceptor"/>
     public class TelemetryMiddleware : IDispatcher
     {
-        /// <summary>Options class to configure <see cref="TelemetryMiddleware"/> middleware.</summary>
-        public sealed class Options
-        {
-            /// <summary>If set to a non null object the <see cref="ActivitySource"/> is used to start the request
-            /// <see cref="Activity"/>.</summary>
-            public ActivitySource? ActivitySource { get; set; }
-
-            /// <summary>The logger factory used to create the IceRpc logger.</summary>
-            public ILoggerFactory? LoggerFactory { get; set; }
-        }
-
         private readonly ILogger _logger;
         private readonly IDispatcher _next;
-        private readonly Options _options;
+        private readonly TelemetryOptions _options;
 
         /// <summary>Constructs a telemetry middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="options">The options to configure the telemetry middleware.</param>
-        public TelemetryMiddleware(IDispatcher next, Options options)
+        public TelemetryMiddleware(IDispatcher next, TelemetryOptions options)
         {
             _next = next;
             _options = options;

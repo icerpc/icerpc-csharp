@@ -11,31 +11,13 @@ namespace IceRpc
     /// <see cref="Features.CompressPayload.Yes"/> is present in the request features.</summary>
     public class CompressorInterceptor : IInvoker
     {
-        /// <summary>Options class to configure the <see cref="CompressorInterceptor"/>.</summary>
-        public sealed class Options
-        {
-            /// <summary>The compression level for the compress operation, the default value is
-            /// <see cref="CompressionLevel.Fastest"/>.</summary>
-            public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-            /// <summary>The minimum size in bytes of the request payload to which apply compression. The default value
-            /// is 500.</summary>
-            public int CompressionMinSize { get; set; } = 500;
-            /// <summary>Whether or not to apply compression to the 2.0 encoded payload of a request when
-            /// <see cref="Features.CompressPayload.Yes"/> is present in the request features. The default value is
-            /// <c>true</c>.</summary>
-            public bool CompressRequestPayload { get; set; } = true;
-            /// <summary>Whether or not to decompress the compressed response payload. The default value is
-            /// <c>true</c>.</summary>
-            public bool DecompressResponsePayload { get; set; } = true;
-        }
-
         private readonly IInvoker _next;
-        private readonly Options _options;
+        private readonly CompressOptions _options;
 
         /// <summary>Constructs a compressor interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the compressor.</param>
-        public CompressorInterceptor(IInvoker next, Options options)
+        public CompressorInterceptor(IInvoker next, CompressOptions options)
         {
             _next = next;
             _options = options;
@@ -44,7 +26,7 @@ namespace IceRpc
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // TODO: rename CompressRequestPayload to CompressRequest or add CompressStreamParam?
-            if (_options.CompressRequestPayload &&
+            if (_options.CompressPayload &&
                 request.PayloadEncoding == Encoding.Ice20 &&
                 request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
             {
@@ -65,8 +47,8 @@ namespace IceRpc
                     outputStream => outputStream.CompressStream(_options.CompressionLevel);
             }
 
-            // TODO: rename DecompressResponsePayload to DecompressResponse or add DecompressStreamParam?
-            if (_options.DecompressResponsePayload)
+            // TODO: rename DecompressPayload to DecompressResponse or add DecompressStreamParam?
+            if (_options.DecompressPayload)
             {
                 // TODO: check for response Features.DecompressPayload?
                 request.StreamDecompressor =
@@ -75,7 +57,7 @@ namespace IceRpc
 
             IncomingResponse response = await _next.InvokeAsync(request, cancel).ConfigureAwait(false);
 
-            if (_options.DecompressResponsePayload &&
+            if (_options.DecompressPayload &&
                 response.ResultType == ResultType.Success &&
                 response.PayloadEncoding == Encoding.Ice20 &&
                 response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)

@@ -11,31 +11,13 @@ namespace IceRpc
     /// <see cref="Features.CompressPayload.Yes"/> is present in the response features.</summary>
     public class CompressorMiddleware : IDispatcher
     {
-        /// <summary>Options class to configure <see cref="CompressorMiddleware"/>.</summary>
-        public sealed class Options
-        {
-            /// <summary>The compression level for the compress operation, the default value is
-            /// <see cref="CompressionLevel.Fastest"/>.</summary>
-            public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Fastest;
-            /// <summary>The minimum size in bytes of the response payload to which apply compression. The default
-            /// value is 500.</summary>
-            public int CompressionMinSize { get; set; } = 500;
-            /// <summary>Whether or not to apply compression the 2.0 encoded payload of a response when
-            /// <see cref="Features.CompressPayload.Yes"/> is present in the response features. The default value is
-            /// <c>true</c>.</summary>
-            public bool CompressResponsePayload { get; set; } = true;
-            /// <summary>Whether or not to decompress the compressed request payload. The default value is
-            /// <c>true</c>.</summary>
-            public bool DecompressRequestPayload { get; set; } = true;
-        }
-
         private readonly IDispatcher _next;
-        private readonly Options _options;
+        private readonly CompressOptions _options;
 
         /// <summary>Constructs a compressor middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="options">The options to configure the compressor middleware.</param>
-        public CompressorMiddleware(IDispatcher next, Options options)
+        public CompressorMiddleware(IDispatcher next, CompressOptions options)
         {
             _next = next;
             _options = options;
@@ -43,7 +25,7 @@ namespace IceRpc
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            if (_options.DecompressRequestPayload &&
+            if (_options.DecompressPayload &&
                 request.PayloadEncoding == Encoding.Ice20 &&
                 request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
@@ -56,7 +38,7 @@ namespace IceRpc
             }
 
             // TODO: rename DecompressRequestPayload to DecompressRequest or add DecompressStreamParam?
-            if (_options.DecompressRequestPayload)
+            if (_options.DecompressPayload)
             {
                 // TODO: check for request Features.DecompressPayload?
                 request.StreamDecompressor =
@@ -66,7 +48,7 @@ namespace IceRpc
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
 
             // TODO: rename CompressResponsePayload to CompressResponse or add CompressStreamParam?
-            if (_options.CompressResponsePayload &&
+            if (_options.CompressPayload &&
                 response.PayloadEncoding == Encoding.Ice20 &&
                 response.ResultType == ResultType.Success &&
                 response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)

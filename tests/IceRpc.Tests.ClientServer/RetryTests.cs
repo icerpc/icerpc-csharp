@@ -146,7 +146,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
                 protocol,
-                (pipeline, pool) => pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = maxAttempts }).UseBinder(pool),
+                (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = maxAttempts }).UseBinder(pool),
                 async (service, retry) =>
                 {
                     // Idempotent operations can always be retried, the operation must succeed if the failed attempts
@@ -217,7 +217,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(failedAttempts, Is.GreaterThan(0));
             await WithRetryServiceAsync(
                 protocol,
-                (pipeline, pool) => pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = maxAttempts }).UseBinder(pool),
+                (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = maxAttempts }).UseBinder(pool),
                 async (service, retry) =>
                 {
                     if (failedAttempts > 0 && killConnection)
@@ -359,7 +359,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryBufferMaxSize()
         {
             await WithRetryServiceAsync(
-                (pipeline, pool) => pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = 5, BufferMaxSize = 2048 })
+                (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, BufferMaxSize = 2048 })
                                             .UseBinder(pool),
                 async (service, retry) =>
                 {
