@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace IceRpc.Internal
 {
     /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
-    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="Interceptors.Logger"/>
+    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>
     /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
     /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
     /// </summary>
@@ -71,11 +71,10 @@ namespace IceRpc.Internal
         ValueTask<(Proxy? Proxy, bool FromCache)> ILocationResolver.ResolveAsync(
             Location location,
             bool refreshCache,
-            CancellationToken cancel) => ResolveAsync(location, refreshCache, cancel);
+            CancellationToken cancel) => ResolveAsync(location, cancel);
 
         private async ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
             Location location,
-            bool refreshCache,
             CancellationToken cancel)
         {
             Proxy? proxy = await _endpointFinder.FindAsync(location, cancel).ConfigureAwait(false);
@@ -83,9 +82,7 @@ namespace IceRpc.Internal
             // A well-known proxy resolution can return a loc endpoint:
             if (proxy != null && proxy.Endpoint!.Transport == TransportNames.Loc)
             {
-                (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host),
-                                                refreshCache: false, // no caching anyway
-                                                cancel).ConfigureAwait(false);
+                (proxy, _) = await ResolveAsync(new Location(proxy!.Endpoint!.Host), cancel).ConfigureAwait(false);
             }
 
             return (proxy, false);

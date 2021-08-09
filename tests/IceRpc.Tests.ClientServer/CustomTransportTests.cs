@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 using System;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -20,9 +19,11 @@ namespace IceRpc.Tests.ClientServer
         {
             if (remoteEndpoint.Transport == "custom")
             {
-                Endpoint newEndpoint = remoteEndpoint with {
+                Endpoint newEndpoint = remoteEndpoint with
+                {
                     Params = remoteEndpoint.Params.RemoveAll(
-                        p => p.Name.StartsWith("custom-", StringComparison.Ordinal)) };
+                        p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
+                };
                 return _transport.CreateConnection(newEndpoint, connectionOptions, loggerFactory);
             }
             else
@@ -43,8 +44,10 @@ namespace IceRpc.Tests.ClientServer
         {
             if (endpoint.Transport == "custom")
             {
-                Endpoint newEndpoint = endpoint with {
-                    Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal)) };
+                Endpoint newEndpoint = endpoint with
+                {
+                    Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
+                };
                 return _transport.Listen(newEndpoint, connectionOptions, loggerFactory);
             }
             else
@@ -107,8 +110,10 @@ namespace IceRpc.Tests.ClientServer
                     ClientTransport = new CustomClientTransport(),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
                     // removes the parameter
-                    RemoteEndpoint = server.Endpoint with {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))}
+                    RemoteEndpoint = server.Endpoint with
+                    {
+                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                    }
                 };
 
                 var prx = ServicePrx.FromConnection(connection1);
@@ -119,8 +124,10 @@ namespace IceRpc.Tests.ClientServer
                     ClientTransport = new TcpClientTransport(),
                     // We add the custom endpoint here because listen updates the endpoint and the custom transport
                     // removes the parameter
-                    RemoteEndpoint = server.Endpoint with {
-                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))}
+                    RemoteEndpoint = server.Endpoint with
+                    {
+                        Params = server.Endpoint.Params.Add(new EndpointParam("custom-p", "bar"))
+                    }
                 };
 
                 prx = ServicePrx.FromConnection(connection2);

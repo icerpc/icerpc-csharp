@@ -47,6 +47,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

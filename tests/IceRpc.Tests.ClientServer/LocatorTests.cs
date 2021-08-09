@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Interop;
 using NUnit.Framework;
 using System;
@@ -58,7 +59,7 @@ namespace IceRpc.Tests.ClientServer
             var indirectGreeter = GreeterPrx.Parse($"{greeterIdentity} @ {adapter}", _pipeline);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.Use(Interceptors.Locator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance }));
+            _pipeline.UseLocator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -69,7 +70,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptors.Binder(_pool));
+            _pipeline.UseBinder(_pool);
 
             locator.RegisterAdapter(adapter, greeter);
 
@@ -101,14 +102,15 @@ namespace IceRpc.Tests.ClientServer
             var wellKnownGreeter = GreeterPrx.Parse(GreeterIdentity.ToString(), _pipeline);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.Use(Interceptors.Retry(2));
-            _pipeline.Use(Interceptors.Locator(locator,
-                                              new Interceptors.LocatorOptions
-                                              {
-                                                  CacheMaxSize = cacheMaxSize,
-                                                  JustRefreshedAge = TimeSpan.Zero,
-                                                  LoggerFactory = LogAttributeLoggerFactory.Instance
-                                              }));
+            _pipeline.UseRetry(new RetryOptions { MaxAttempts = 2 });
+            _pipeline.UseLocator(
+                locator,
+                new LocatorOptions
+                {
+                    CacheMaxSize = cacheMaxSize,
+                    JustRefreshedAge = TimeSpan.Zero,
+                    LoggerFactory = LogAttributeLoggerFactory.Instance
+                });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -127,7 +129,7 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             // We don't cache the connection in order to use the locator interceptor for each invocation.
-            _pipeline.Use(Interceptors.Binder(_pool, cacheConnection: false));
+            _pipeline.UseBinder(_pool, cacheConnection: false);
 
             Assert.ThrowsAsync<NoEndpointException>(async () => await indirectGreeter.SayHelloAsync());
             Assert.That(_called, Is.False);
@@ -196,7 +198,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.That(wellKnownGreeter.Proxy.Endpoint, Is.Null);
 
             var locator = new FakeLocatorPrx();
-            _pipeline.Use(Interceptors.Locator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance }));
+            _pipeline.UseLocator(locator, new() { LoggerFactory = LogAttributeLoggerFactory.Instance });
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
@@ -207,7 +209,7 @@ namespace IceRpc.Tests.ClientServer
                     }
                     return next.InvokeAsync(request, cancel);
                 }));
-            _pipeline.Use(Interceptors.Binder(_pool));
+            _pipeline.UseBinder(_pool);
 
             // Test with direct endpoints
             locator.RegisterWellKnownProxy(identity, greeter);

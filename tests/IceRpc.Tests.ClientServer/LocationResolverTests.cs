@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Interop;
 using NUnit.Framework;
 using System;
@@ -31,14 +32,14 @@ namespace IceRpc.Tests.ClientServer
 
             if (indirect.Proxy.Endpoint is Endpoint endpoint)
             {
-                pipeline.Use(LocationResolver(endpoint.Host, category: null, direct.Proxy.Endpoint!),
-                             Interceptors.Binder(_pool));
+                pipeline.Use(LocationResolver(endpoint.Host, category: null, direct.Proxy.Endpoint!))
+                        .UseBinder(_pool);
             }
             else
             {
                 var identity = Identity.FromPath(indirect.Proxy.Path);
-                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!),
-                             Interceptors.Binder(_pool));
+                pipeline.Use(LocationResolver(identity.Name, identity.Category, direct.Proxy.Endpoint!))
+                        .UseBinder(_pool);
             }
 
             await indirect.SayHelloAsync();
