@@ -183,7 +183,11 @@ namespace IceRpc
 
             internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
-                cancel.Register(() => _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader));
+                cancel.Register(
+                    () =>
+                    {
+                        _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                    });
 
                 while (true)
                 {
@@ -226,7 +230,7 @@ namespace IceRpc
                     catch
                     {
                         _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
-                        break;
+                        yield break; // finish iteration
                     }
 
                     var decoder = new IceDecoder(buffer, _encoding, _connection, _invoker, _connection.ClassFactory);

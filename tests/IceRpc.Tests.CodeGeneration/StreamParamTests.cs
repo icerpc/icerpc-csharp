@@ -32,22 +32,14 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
             _servant = new StreamParamOperations(_sendBuffer);
-            if (transport == "coloc")
+
+            _server = new Server
             {
-                _server = new Server
-                {
-                    Dispatcher = _servant,
-                    Endpoint = TestHelper.GetUniqueColocEndpoint(Protocol.Ice2),
-                };
-            }
-            else
-            {
-                _server = new Server
-                {
-                    Dispatcher = _servant,
-                    Endpoint = TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
-                };
-            }
+                Dispatcher = _servant,
+                Endpoint = transport == "coloc" ?
+                    TestHelper.GetUniqueColocEndpoint(Protocol.Ice2) :
+                    TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
+            };
 
             _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.Endpoint };
@@ -216,34 +208,6 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             semaphore.Release(20);
             await _servant.EnumerableReceived.WaitAsync();
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
-            // The sender cancelation token is not canceled until we try to send more data, and receive
-            // RcpStreamAbortedException.
-            // TODO Add RpcStream.OnClose event and use it to cancel the cancelation source
-            semaphore.Release(20);
-            Assert.That(await canceled.Task);
-            Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
-
-            // Send and infinite enumerable
-            canceled = new TaskCompletionSource<bool>();
-            async IAsyncEnumerable<MyStruct> MyStructEnemerable1Async(
-                [EnumeratorCancellation] CancellationToken cancel = default)
-            {
-                cancel.Register(() => canceled.SetResult(true));
-                await semaphore.WaitAsync(cancel);
-                while (true)
-                {
-                    if (cancel.IsCancellationRequested)
-                    {
-                        canceled.SetResult(true);
-                        yield break;
-                    }
-                    yield return new MyStruct(1, 1);
-                }
-            }
-            await _prx.OpStreamMyStructSendAndCancel0Async(MyStructEnemerable1Async());
-            semaphore.Release();
-            await canceled.Task;
-            Assert.That(canceled.Task.Result);
         }
 
         [Test]

@@ -258,7 +258,7 @@ namespace IceRpc.Transports.Internal
             try
             {
                 // If the stream is aborted, stop sending stream frames.
-                if (stream.WriteCompleted && !(frame is RpcStreamError))
+                if (stream.WriteCompleted && (frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>))
                 {
                     if (!stream.IsStarted && !stream.IsControl)
                     {
