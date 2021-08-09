@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Interop
+namespace IceRpc
 {
     /// <summary>This enum contains event ID constants used by log decorators of ILocationResolver, IEndpointFinder and
     /// IEndpointCache.</summary>
