@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>An interceptor that start an <see cref="Activity"/> per request, following OpenTelemetry
+    /// <summary>An interceptor that starts an <see cref="Activity"/> per request, following OpenTelemetry
     /// conventions. The Activity is started if <see cref="Activity.Current"/> is not null or if "IceRpc" logging is
     /// enabled. The activity context is written in the request fields and can be restored by installing a
     /// <see cref="TelemetryMiddleware"/>.</summary>
