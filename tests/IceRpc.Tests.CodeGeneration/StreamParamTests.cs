@@ -199,7 +199,8 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             var semaphore = new SemaphoreSlim(0);
             var canceled = new TaskCompletionSource<bool>();
 
-            async IAsyncEnumerable<MyStruct> GetDataAsync([EnumeratorCancellation] CancellationToken cancel = default)
+            async IAsyncEnumerable<MyStruct> MyStructEnemerable0Async(
+                [EnumeratorCancellation] CancellationToken cancel = default)
             {
                 cancel.Register(() => canceled.SetResult(true));
                 for (int i = 0; i < 100; i++)
@@ -210,7 +211,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 canceled.SetResult(false);
             }
 
-            await _prx.OpStreamMyStructSendAndCancel0Async(GetDataAsync());
+            await _prx.OpStreamMyStructSendAndCancel0Async(MyStructEnemerable0Async());
             // Start streaming data the server cancel its enumerable upon receive the first 20 items
             semaphore.Release(20);
             await _servant.EnumerableReceived.WaitAsync();
@@ -221,6 +222,28 @@ namespace IceRpc.Tests.CodeGeneration.Stream
             semaphore.Release(20);
             Assert.That(await canceled.Task);
             Assert.That(_servant.MyStructs.Count, Is.EqualTo(20));
+
+            // Send and infinite enumerable
+            canceled = new TaskCompletionSource<bool>();
+            async IAsyncEnumerable<MyStruct> MyStructEnemerable1Async(
+                [EnumeratorCancellation] CancellationToken cancel = default)
+            {
+                cancel.Register(() => canceled.SetResult(true));
+                await semaphore.WaitAsync(cancel);
+                while (true)
+                {
+                    if (cancel.IsCancellationRequested)
+                    {
+                        canceled.SetResult(true);
+                        yield break;
+                    }
+                    yield return new MyStruct(1, 1);
+                }
+            }
+            await _prx.OpStreamMyStructSendAndCancel0Async(MyStructEnemerable1Async());
+            semaphore.Release();
+            await canceled.Task;
+            Assert.That(canceled.Task.Result);
         }
 
         [Test]

@@ -34,7 +34,6 @@ await using var connection = new Connection
     RemoteEndpoint = configuration.GetSection("AppSettings").GetValue<string>("Hello.Endpoint")
 };
 
-
 var pipeline = new Pipeline();
 pipeline.Use(Interceptors.CustomTelemetry(new Interceptors.TelemetryOptions { LoggerFactory = loggerFactory}));
 pipeline.Use(Interceptors.Logger(loggerFactory));

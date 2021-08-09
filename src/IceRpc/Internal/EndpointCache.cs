@@ -27,7 +27,7 @@ namespace IceRpc.Internal
         {
             get
             {
-                lock(_mutex)
+                lock (_mutex)
                 {
                     Debug.Assert(_cache.Count == _cacheKeys.Count);
                     return _cache.Count;

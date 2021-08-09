@@ -47,11 +47,11 @@ namespace IceRpc
         {
             using var cancelationSource = new CancellationTokenSource();
             rpcStream.EnableSendFlowControl();
+            IAsyncEnumerator<T>? asyncEnumerator = null;
             try
             {
+                asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
                 (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) = StartFrame();
-
-                IAsyncEnumerator<T> asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
                 do
                 {
                     ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
@@ -89,7 +89,12 @@ namespace IceRpc
                         }
                     }
 
-                    // TODO sent the encoded elements upon a limit
+                    // TODO allow to configure the size limit?
+                    if (encoder.Size > 32 * 1024)
+                    {
+                        await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
+                        (encoder, sizeStart, payloadStart) = StartFrame();
+                    }
                 }
                 while (true);
 
@@ -109,6 +114,13 @@ namespace IceRpc
             {
                 rpcStream.AbortWrite(RpcStreamError.StreamingCanceledByWriter);
                 throw;
+            }
+            finally
+            {
+                if (asyncEnumerator != null)
+                {
+                    await asyncEnumerator!.DisposeAsync().ConfigureAwait(false);
+                }
             }
 
             (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) StartFrame()
