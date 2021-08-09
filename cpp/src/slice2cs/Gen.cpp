@@ -2482,7 +2482,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (streamReturnParam)
     {
-        _out << nl << "responseHasStreamValue: true,";
+        _out << nl << "returnStreamParamReceiver: true,";
     }
     _out << nl << "cancel: " << cancel << ");";
     _out.dec();

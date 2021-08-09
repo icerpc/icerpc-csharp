@@ -35,7 +35,7 @@ namespace IceRpc.Gen
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When <c>true</c>, the request payload should be compressed.</param>
         /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
-        /// <param name="responseHasStreamValue"><c>true</c> if the response has a stream value.</param>
+        /// <param name="returnStreamParamReceiver"><c>true</c> if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The operation's return value.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
@@ -50,7 +50,7 @@ namespace IceRpc.Gen
             Invocation? invocation,
             bool compress = false,
             bool idempotent = false,
-            bool responseHasStreamValue = false,
+            bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
             Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
@@ -61,7 +61,7 @@ namespace IceRpc.Gen
                 compress,
                 idempotent,
                 oneway: false,
-                responseHasStreamValue: responseHasStreamValue,
+                returnStreamParamReceiver: returnStreamParamReceiver,
                 cancel);
 
             return ReadResponseAsync();
@@ -109,7 +109,7 @@ namespace IceRpc.Gen
                 compress,
                 idempotent,
                 oneway,
-                responseHasStreamValue: false,
+                returnStreamParamReceiver: false,
                 cancel);
 
             return ReadResponseAsync();

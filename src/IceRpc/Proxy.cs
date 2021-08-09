@@ -697,7 +697,7 @@ namespace IceRpc
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
-        /// <param name="responseHasStreamValue">When true, a stream param receiver will be returned.</param>
+        /// <param name="returnStreamParamReceiver">When true, a stream param receiver will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
         /// the response.</returns>
@@ -713,7 +713,7 @@ namespace IceRpc
             bool compress = false,
             bool idempotent = false,
             bool oneway = false,
-            bool responseHasStreamValue = false,
+            bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
             CancellationTokenSource? timeoutSource = null;
@@ -806,7 +806,7 @@ namespace IceRpc
                     }
 
                     StreamParamReceiver? streamParamReceiver = null;
-                    if (responseHasStreamValue)
+                    if (returnStreamParamReceiver)
                     {
                         streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }

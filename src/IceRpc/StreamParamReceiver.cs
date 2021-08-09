@@ -211,20 +211,38 @@ namespace IceRpc
                         }
                         int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
 
+                        if (size > _connection.IncomingFrameMaxSize)
+                        {
+                            throw new InvalidDataException(
+                                @$"frame size of {size
+                                } bytes is greater than the configured IncomingFrameMaxSize value ({
+                                _connection.IncomingFrameMaxSize} bytes)");
+                        }
+
                         buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
 
                         await ReceiveFullAsync(buffer, false, cancel).ConfigureAwait(false);
                     }
                     catch
                     {
-                        _rpcStream.Abort(RpcStreamError.StreamingCanceledByReader);
+                        _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
                         break;
                     }
 
                     var decoder = new IceDecoder(buffer, _encoding, _connection, _invoker, _connection.ClassFactory);
+                    T value = default!;
                     do
                     {
-                        yield return _decodeAction(decoder);
+                        try
+                        {
+                            value = _decodeAction(decoder);
+                        }
+                        catch
+                        {
+                            _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
+                            yield break; // finish iteration
+                        }
+                        yield return value;
                     }
                     while (decoder.Pos < buffer.Length);
                 }

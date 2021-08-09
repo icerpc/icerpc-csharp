@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A stream param sender that encapsulates a <see cref="IAsyncEnumerable{T}"/> and it is used to send
-    /// <c>stream T</c> params using one or more <see cref="Ice2FrameType.BoundedData"/> frames.</summary>
+    /// <summary>A stream parameter sender that encapsulates an<see cref="IAsyncEnumerable{T}"/> used to send a
+    /// <c> stream T</c> parameter using one or more <see cref="Ice2FrameType.BoundedData"/> frames.</summary>
     public sealed class AsyncEnumerableStreamParamSender<T> : IStreamParamSender
     {
         private readonly IAsyncEnumerable<T> _inputStream;
@@ -17,7 +17,7 @@ namespace IceRpc
         private readonly Encoding _encoding;
         private readonly Func<RpcStream, Task> _encoder;
 
-        /// <summary>Constructs an async enumerable stream param sender from the given
+        /// <summary>Constructs an async enumerable stream parameter sender from the given
         /// <see cref="IAsyncEnumerable{T}"/>.</summary>
         /// <param name="asyncEnumerable">The async enumerable to read the elements from.</param>
         /// <param name="encoding">The encoding used to encode the enumerable elements.</param>
@@ -33,7 +33,7 @@ namespace IceRpc
             _encoder = stream => SendAsync(stream, _inputStream, _encoding, _encodeAction);
         }
 
-        // TODO should we pass a CancelationToken and forward it to RpcStream.SendAsync calls?
+        // TODO support compression
         Task IStreamParamSender.SendAsync(
             RpcStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
