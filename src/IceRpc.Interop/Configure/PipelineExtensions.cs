@@ -8,14 +8,14 @@ namespace IceRpc.Configure
     /// </summary>
     public static class PipelineExtensions
     {
-        /// <summary>Adds the <see cref="LocatorInterceptor"/> that use the default options to the pipeline.
+        /// <summary>Adds a <see cref="LocatorInterceptor"/> that use the default options to the pipeline.
         /// </summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="locator">The locator proxy used for the resolutions.</param>
         public static Pipeline UseLocator(this Pipeline pipeline, ILocatorPrx locator) =>
             UseLocator(pipeline, locator, LocatorOptions.Default);
 
-        /// <summary>Adds the <see cref="LocatorInterceptor"/> to the pipeline.</summary>
+        /// <summary>Adds a <see cref="LocatorInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>
         /// <param name="locator">The locator proxy used for the resolutions.</param>
         /// <param name="options">The options to configure the <see cref="LocatorInterceptor"/>.</param>

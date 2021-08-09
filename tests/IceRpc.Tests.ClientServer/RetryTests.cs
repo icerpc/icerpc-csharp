@@ -400,7 +400,7 @@ namespace IceRpc.Tests.ClientServer
         public async Task Retry_RetryRequestSizeMax(int maxSize, int requestSize)
         {
             await WithRetryServiceAsync(
-                (pipeline, pool) => pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = 5, RequestMaxSize = maxSize })
+                (pipeline, pool) => pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, RequestMaxSize = maxSize })
                                             .UseBinder(pool),
                 async (service, retry) =>
                 {
@@ -422,7 +422,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var pipeline = new Pipeline();
             pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
-            pipeline.UseRetry(new RetryInterceptor.Options { MaxAttempts = 5 });
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5 });
             pipeline.UseBinder(pool);
             return pipeline;
         }

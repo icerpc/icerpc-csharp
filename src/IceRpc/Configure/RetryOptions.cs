@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>Options class to configure <see cref="RetryInterceptor"/>.</summary>
     public sealed class RetryOptions

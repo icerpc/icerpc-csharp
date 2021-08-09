@@ -12,12 +12,12 @@ namespace IceRpc
     public class CompressorInterceptor : IInvoker
     {
         private readonly IInvoker _next;
-        private readonly CompressOptions _options;
+        private readonly Configure.CompressOptions _options;
 
         /// <summary>Constructs a compressor interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the compressor.</param>
-        public CompressorInterceptor(IInvoker next, CompressOptions options)
+        public CompressorInterceptor(IInvoker next, Configure.CompressOptions options)
         {
             _next = next;
             _options = options;

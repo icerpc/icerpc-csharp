@@ -19,12 +19,12 @@ namespace IceRpc
     {
         private readonly ILogger _logger;
         private readonly IDispatcher _next;
-        private readonly TelemetryOptions _options;
+        private readonly Configure.TelemetryOptions _options;
 
         /// <summary>Constructs a telemetry middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="options">The options to configure the telemetry middleware.</param>
-        public TelemetryMiddleware(IDispatcher next, TelemetryOptions options)
+        public TelemetryMiddleware(IDispatcher next, Configure.TelemetryOptions options)
         {
             _next = next;
             _options = options;

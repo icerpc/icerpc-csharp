@@ -18,13 +18,13 @@ namespace IceRpc
         private readonly ILogger _logger;
         private readonly object _mutex = new();
         private readonly IInvoker _next;
-        private readonly RetryOptions _options;
+        private readonly Configure.RetryOptions _options;
 
         /// <summary>Constructs a retry interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the retry interceptor.</param>
         /// <see cref="RetryPolicy"/>
-        public RetryInterceptor(IInvoker next, RetryOptions options)
+        public RetryInterceptor(IInvoker next, Configure.RetryOptions options)
         {
             _next = next;
             _options = options;

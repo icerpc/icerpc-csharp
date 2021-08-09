@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>Options class to configure <see cref="TelemetryMiddleware"/> and <see cref="TelemetryInterceptor"/>.
     /// </summary>

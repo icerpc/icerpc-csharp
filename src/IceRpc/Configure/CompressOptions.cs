@@ -1,6 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Configure
 {
     /// <summary>Options class to configure the <see cref="CompressorInterceptor"/> and
     /// <see cref="CompressorMiddleware"/>.</summary>

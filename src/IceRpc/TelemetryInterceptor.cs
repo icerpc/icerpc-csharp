@@ -17,12 +17,12 @@ namespace IceRpc
     {
         private readonly IInvoker _next;
         private readonly ILogger _logger;
-        private readonly TelemetryOptions _options;
+        private readonly Configure.TelemetryOptions _options;
 
         /// <summary>Constructs a telemetry interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
         /// <param name="options">The options to configure the telemetry interceptor.</param>
-        public TelemetryInterceptor(IInvoker next, TelemetryOptions options)
+        public TelemetryInterceptor(IInvoker next, Configure.TelemetryOptions options)
         {
             _next = next;
             _options = options;

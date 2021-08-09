@@ -12,12 +12,12 @@ namespace IceRpc
     public class CompressorMiddleware : IDispatcher
     {
         private readonly IDispatcher _next;
-        private readonly CompressOptions _options;
+        private readonly Configure.CompressOptions _options;
 
         /// <summary>Constructs a compressor middleware.</summary>
         /// <param name="next">The next dispatcher in the dispatch pipeline.</param>
         /// <param name="options">The options to configure the compressor middleware.</param>
-        public CompressorMiddleware(IDispatcher next, CompressOptions options)
+        public CompressorMiddleware(IDispatcher next, Configure.CompressOptions options)
         {
             _next = next;
             _options = options;
