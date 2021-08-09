@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A locator interceptor is responsible for resolving "loc" endpoints, the locator interceptor is no-op
-    /// when the request carries a connection; otherwise it "resolves" the endpoints of the request using an
-    /// <see cref="ILocatorPrx"/> such as IceGrid. It must be installed between <see cref="RetryInterceptor"/> and
+    /// <summary>A locator interceptor intercepts ice1 requests that have no connection and have either no endpoint or
+    /// an endpoint with the "loc" transport, and attempts to assign a usable endpoint (and alt-endpoints) to such
+    /// requests. This interceptor must be installed between <see cref="RetryInterceptor"/> and
     /// <see cref="BinderInterceptor"/>.</summary>
     public class LocatorInterceptor : IInvoker
     {
@@ -22,44 +22,12 @@ namespace IceRpc
 
         /// <summary>Constructs a locator interceptor.</summary>
         /// <param name="next">The next invoker in the invocation pipeline.</param>
-        /// <param name="locator">The locator proxy used for the resolutions.</param>
-        /// <param name="options">The options of this interceptor.</param>
-        /// <returns>A new locator interceptor.</returns>
-        public LocatorInterceptor(IInvoker next, ILocatorPrx locator, Configure.LocatorOptions options)
+        /// <param name="locationResolver">The location resolver. It is usually created by
+        /// <see cref="ILocationResolver.FromLocator"/>.</param>
+        public LocatorInterceptor(IInvoker next, ILocationResolver locationResolver)
         {
             _next = next;
-
-            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
-            {
-                throw new ArgumentException(
-                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}",
-                    nameof(options));
-            }
-
-            ILogger logger = options.LoggerFactory.CreateLogger("IceRpc");
-
-            // Create and decorate endpoint cache (if caching enabled):
-            IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
-                new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
-
-            // Create an decorate endpoint finder:
-            IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
-            endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
-            if (endpointCache != null)
-            {
-                endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
-            }
-            endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
-
-            // Create and decorate location resolver:
-            _locationResolver = new LogLocationResolverDecorator(
-                endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
-                    new LocationResolver(endpointFinder,
-                                         endpointCache,
-                                         options.Background,
-                                         options.JustRefreshedAge,
-                                         options.Ttl),
-                logger);
+            _locationResolver = locationResolver;
         }
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
@@ -151,5 +119,125 @@ namespace IceRpc
 
             internal CachedResolutionFeature(Location location) => Location = location;
         }
+    }
+
+    /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
+    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>
+    /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
+    /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
+    /// </summary>
+    public interface ILocationResolver
+    {
+        /// <summary>Creates a new location resolver using a locator proxy.</summary>
+        /// <param name="locator">The locator proxy.</param>
+        /// <param name="options">The configuration options for this locator-based location resolver.</param>
+        /// <returns>A new location resolver.</returns>
+        public static ILocationResolver FromLocator(ILocatorPrx locator, Configure.LocatorOptions options)
+        {
+            if (options.Ttl != Timeout.InfiniteTimeSpan && options.JustRefreshedAge >= options.Ttl)
+            {
+                throw new ArgumentException(
+                    $"{nameof(options.JustRefreshedAge)} must be smaller than {nameof(options.Ttl)}",
+                    nameof(options));
+            }
+
+            ILogger logger = options.LoggerFactory.CreateLogger("IceRpc");
+
+            // Create and decorate endpoint cache (if caching enabled):
+            IEndpointCache? endpointCache = options.Ttl != TimeSpan.Zero && options.CacheMaxSize > 0 ?
+                new LogEndpointCacheDecorator(new EndpointCache(options.CacheMaxSize), logger) : null;
+
+            // Create an decorate endpoint finder:
+            IEndpointFinder endpointFinder = new LocatorEndpointFinder(locator);
+            endpointFinder = new LogEndpointFinderDecorator(endpointFinder, logger);
+            if (endpointCache != null)
+            {
+                endpointFinder = new CacheUpdateEndpointFinderDecorator(endpointFinder, endpointCache);
+            }
+            endpointFinder = new CoalesceEndpointFinderDecorator(endpointFinder);
+
+            // Create and decorate location resolver:
+            return new LogLocationResolverDecorator(
+                endpointCache == null ? new CacheLessLocationResolver(endpointFinder) :
+                    new LocationResolver(endpointFinder,
+                                         endpointCache,
+                                         options.Background,
+                                         options.JustRefreshedAge,
+                                         options.Ttl),
+                logger);
+        }
+
+        /// <summary>Resolves a location into a list of endpoints carried by a dummy proxy.</summary>
+        /// <param name="location">The location.</param>
+        /// <param name="refreshCache">When <c>true</c>, requests a cache refresh.</param>
+        /// <param name="cancel">The cancellation token.</param>
+        /// <returns>A tuple with a nullable dummy proxy that holds the endpoint(s) (if resolved), and a bool that
+        /// indicates whether these endpoints were retrieved from the implemention's cache. Proxy is null when
+        /// the location resolver fails to resolve a location.</returns>
+        ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
+            Location location,
+            bool refreshCache,
+            CancellationToken cancel);
+    }
+
+    /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
+    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Category"/> is null, the location
+    /// is an adapter ID; when it's not null, the location is an Identity.</summary>
+    public readonly struct Location : IEquatable<Location>
+    {
+        /// <summary>The adapter ID/identity name.</summary>
+        public readonly string AdapterId;
+
+        /// <summary>When not null, the identity's category.</summary>
+        public readonly string? Category;
+
+        /// <summary>A string that describes the location.</summary>
+        public string Kind => Category == null ? "adapter ID" : "identity";
+
+        /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
+        public static bool operator ==(Location lhs, Location rhs) => lhs.Equals(rhs);
+
+        /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
+        /// <param name="lhs">The left hand side operand.</param>
+        /// <param name="rhs">The right hand side operand.</param>
+        /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
+        public static bool operator !=(Location lhs, Location rhs) => !lhs.Equals(rhs);
+
+        /// <summary>Constructs a location from an adapter ID.</summary>
+        public Location(string adapterId)
+        {
+            AdapterId = adapterId;
+            Category = null;
+        }
+
+        /// <summary>Constructs a location from an Identity.</summary>
+        public Location(Identity identity)
+        {
+            AdapterId = identity.Name;
+            Category = identity.Category;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is Location value && Equals(value);
+
+        /// <inheritdoc/>
+        public bool Equals(Location other) => AdapterId == other.AdapterId && Category == other.Category;
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(AdapterId, Category);
+
+        /// <summary>Converts a location into an Identity.</summary>
+        /// <returns>The identity.</returns>
+        /// <exception name="InvalidOperationException">Thrown when <see cref="Category"/> is null.</exception>
+        public Identity ToIdentity() =>
+            Category is string category ? new Identity(AdapterId, category) : throw new InvalidOperationException();
+
+        /// <summary>Converts a location into a string.</summary>
+        /// <returns>The adapter ID when <see cref="Category"/> is null; otherwise the identity as a string.</returns>
+        public override string ToString() =>
+            Category == null ? AdapterId : new Identity(AdapterId, Category).ToString();
     }
 }
