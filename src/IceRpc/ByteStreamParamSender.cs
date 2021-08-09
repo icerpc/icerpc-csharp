@@ -7,23 +7,23 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>A stream writer to write a stream param to a <see cref="RpcStream"/>.</summary>
-    public sealed class RpcStreamWriter
+    /// <summary>A stream param sender that encapsulates a <see cref="System.IO.Stream"/> and it is used to send
+    /// <c>stream byte</c> params using a <see cref="Ice2FrameType.UnboundedData"/> frame.</summary>
+    public sealed class ByteStreamParamSender : IStreamParamSender
     {
         private readonly Func<RpcStream, Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>?, Task> _encoder;
 
-        internal void Send(
+        Task IStreamParamSender.SendAsync(
             RpcStream stream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor) =>
-            Task.Run(() => _encoder(stream, streamCompressor));
+            _encoder(stream, streamCompressor);
 
-        /// <summary>Creates a stream writer that writes the data from the given <see cref="System.IO.Stream"/> to the
-        /// request <see cref="RpcStream"/>.</summary>
-        /// <param name="byteStream">The stream to read data from.</param>
-        public RpcStreamWriter(System.IO.Stream byteStream) =>
-            _encoder = (stream, streamCompressor) => SendDataAsync(stream, streamCompressor, byteStream);
+        /// <summary>Constructs a byte stream param sender from the given <see cref="System.IO.Stream"/>.</summary>
+        /// <param name="byteStream">The stream to read from.</param>
+        public ByteStreamParamSender(System.IO.Stream byteStream) =>
+            _encoder = (stream, streamCompressor) => SendAsync(stream, streamCompressor, byteStream);
 
-        private static async Task SendDataAsync(
+        private static async Task SendAsync(
             RpcStream rpcStream,
             Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? streamCompressor,
             System.IO.Stream inputStream)

@@ -17,8 +17,14 @@ namespace IceRpc
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
         /// buffer in the vector and the offset into that buffer.</summary>
-        internal struct Position
+        internal struct Position : IEquatable<Position>
         {
+            /// <summary>The zero based index of the buffer.</summary>
+            internal int Buffer;
+
+            /// <summary>The offset into the buffer.</summary>
+            internal int Offset;
+
             /// <summary>Creates a new position from the buffer and offset values.</summary>
             /// <param name="buffer">The zero based index of the buffer in the buffer vector.</param>
             /// <param name="offset">The offset into the buffer.</param>
@@ -28,11 +34,23 @@ namespace IceRpc
                 Offset = offset;
             }
 
-            /// <summary>The zero based index of the buffer.</summary>
-            internal int Buffer;
+            /// <inheritdoc/>
+            public bool Equals(Position other) =>
+                Buffer == other.Buffer &&
+                Offset == other.Offset;
 
-            /// <summary>The offset into the buffer.</summary>
-            internal int Offset;
+            /// <inheritdoc/>
+            public override bool Equals(object? obj) => obj is SlicedData value && Equals(value);
+
+            /// <inheritdoc/>
+            public override int GetHashCode() =>
+                HashCode.Combine(Buffer, Offset);
+
+            /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
+            public static bool operator ==(Position lhs, Position rhs) => lhs.Equals(rhs);
+
+            /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
+            public static bool operator !=(Position lhs, Position rhs) => !(lhs == rhs);
         }
 
         /// <summary>The Ice encoding used by this encoder when encoding data.</summary>

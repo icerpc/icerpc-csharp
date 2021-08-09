@@ -105,7 +105,7 @@ namespace IceRpc
             Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> args,
-            RpcStreamWriter? streamWriter,
+            IStreamParamSender? streamParamSender,
             DateTime deadline,
             Invocation? invocation = null,
             bool idempotent = false,
@@ -113,7 +113,7 @@ namespace IceRpc
             : this(proxy,
                    operation,
                    invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                   streamWriter)
+                   streamParamSender)
         {
             Deadline = deadline;
             IsOneway = oneway || (invocation?.IsOneway ?? false);
@@ -182,8 +182,8 @@ namespace IceRpc
             Proxy proxy,
             string operation,
             FeatureCollection features,
-            RpcStreamWriter? streamWriter)
-            : base(proxy.Protocol, features, streamWriter)
+            IStreamParamSender? streamParamSender)
+            : base(proxy.Protocol, features, streamParamSender)
         {
             AltEndpoints = proxy.AltEndpoints;
             Connection = proxy.Connection;

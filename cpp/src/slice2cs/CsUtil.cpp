@@ -327,7 +327,12 @@ Slice::fixId(const string& name, unsigned int baseTypes)
 }
 
 string
-Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, bool readOnly, bool isParam, bool streamParam)
+Slice::CsGenerator::typeToString(
+    const TypePtr& type,
+    const string& package,
+    bool readOnly,
+    bool isParam,
+    bool streamParam)
 {
     if (streamParam)
     {
@@ -337,9 +342,9 @@ Slice::CsGenerator::typeToString(const TypePtr& type, const string& package, boo
         }
         else
         {
-            // TODO
-            assert(false);
-            return "";
+            return "global::System.Collections.Generic.IAsyncEnumerable<" +
+                typeToString(type, package, readOnly, isParam, false) +
+                ">";
         }
     }
 

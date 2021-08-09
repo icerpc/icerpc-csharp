@@ -88,7 +88,7 @@ namespace IceRpc.Transports.Internal
 
         private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
         {
-            if (frame.StreamWriter != null)
+            if (frame.StreamParamSender != null)
             {
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }

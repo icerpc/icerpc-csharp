@@ -270,13 +270,40 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
         if (streamParam)
         {
             _out << nl << paramTypeStr(streamParam, ns, false) << " " << paramName(streamParam, "iceP_");
-            if (returnType)
+
+            if (auto builtin = BuiltinPtr::dynamicCast(streamParam->type());
+                builtin && builtin->kind() == Builtin::KindByte)
             {
-                _out << " = streamReader!.ToByteStream();";
+                if (returnType)
+                {
+                    _out << " = streamParamReceiver!.ToByteStream();";
+                }
+                else
+                {
+                    _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
+                }
             }
             else
             {
-                _out << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
+                if (returnType)
+                {
+                    _out << " = streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
+                    _out.inc();
+                    _out << nl << "connection,"
+                         << nl << "invoker,"
+                         << nl << "payloadEncoding,"
+                         << nl << decodeFunc(streamParam->type(), ns) << ");";
+                    _out.dec();
+                }
+                else
+                {
+                    _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns)
+                         << ">(";
+                    _out.inc();
+                    _out << nl << "dispatch,"
+                         << nl << decodeFunc(streamParam->type(), ns) << ");";
+                    _out.dec();
+                }
             }
         }
 
@@ -2121,7 +2148,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.RpcStreamReader? streamReader, ";
+                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamParamReceiver, ";
                 _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
@@ -2391,11 +2418,27 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (streamParam)
     {
-        _out << nl << "new IceRpc.RpcStreamWriter(" << paramName(streamParam) << "),";
+        TypePtr streamT = streamParam->type();
+        BuiltinPtr builtin = BuiltinPtr::dynamicCast(streamT);
+
+        if (builtin && builtin->kind() == Builtin::KindByte)
+        {
+            _out << nl << "new IceRpc.ByteStreamParamSender(" << paramName(streamParam) << "),";
+        }
+        else
+        {
+            _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
+            _out << "<" << typeToString(streamT, ns) << ">(";
+            _out.inc();
+            _out << nl << paramName(streamParam) << ","
+                 << nl << "Proxy.Encoding,"
+                 << nl << encodeAction(streamT, ns, true, true) << "),";
+            _out.dec();
+        }
     }
     else
     {
-        _out << nl << "streamWriter: null,";
+        _out << nl << "streamParamSender: null,";
     }
     if (!voidOp)
     {
@@ -2403,7 +2446,25 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << nl << "(payload, streamReader, payloadEncoding, connection, invoker) => streamReader!.ToByteStream(),";
+        _out << nl << "(payload, streamParamReceiver, payloadEncoding, connection, invoker) =>";
+
+        _out.inc();
+        if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
+            builtin && builtin->kind() == Builtin::KindByte)
+        {
+            _out << nl << "streamParamReceiver!.ToByteStream(),";
+        }
+        else
+        {
+            _out << nl << "streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamReturnParam->type(), ns) << ">(";
+            _out.inc();
+            _out << nl << "connection,"
+                 << nl << "invoker,"
+                 << nl << "payloadEncoding,"
+                 << nl << decodeFunc(streamReturnParam->type(), ns) << "),";
+            _out.dec();
+        }
+        _out.dec();
     }
 
     _out << nl << invocation << ",";
@@ -2421,7 +2482,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     if (streamReturnParam)
     {
-        _out << nl << "responseHasStreamValue: true,";
+        _out << nl << "returnStreamParamReceiver: true,";
     }
     _out << nl << "cancel: " << cancel << ");";
     _out.dec();
@@ -2792,7 +2853,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "[IceRpc.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected static ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.RpcStreamWriter?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IceRpc.IStreamParamSender?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << fixId(interfaceName(interface)) << " target,"
@@ -2825,8 +2886,20 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (params.size() == 1 && streamParam)
     {
-        _out << nl << "var " << paramName(params.front(), "iceP_")
-             << " = IceRpc.RpcStreamReader.ToByteStream(dispatch);";
+        _out << nl << "var " << paramName(params.front(), "iceP_");
+        if (auto builtin = BuiltinPtr::dynamicCast(streamParam->type());
+            builtin && builtin->kind() == Builtin::KindByte)
+        {
+            _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
+        }
+        else
+        {
+            _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
+            _out.inc();
+            _out << nl << "dispatch,"
+                 << nl << decodeFunc(streamParam->type(), ns) << ");";
+            _out.dec();
+        }
     }
     else if (params.size() >= 1)
     {
@@ -2876,9 +2949,27 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             if (streamReturnParam)
             {
-                _out << nl << "return (IceRpc.Payload.FromVoidReturnValue(dispatch), ";
-                _out << "new IceRpc.RpcStreamWriter(returnValue)";
+                _out << nl << "return (";
+                _out.inc();
+                _out << nl << "IceRpc.Payload.FromVoidReturnValue(dispatch),";
+
+                if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
+                    builtin && builtin->kind() == Builtin::KindByte)
+                {
+                    _out << nl << "new IceRpc.ByteStreamParamSender(returnValue)";
+                }
+                else
+                {
+                    _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
+                    _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
+                    _out.inc();
+                    _out << nl << "returnValue,"
+                         << nl << "dispatch.Encoding,"
+                         << nl << encodeAction(streamReturnParam->type(), ns, true, true) << ")";
+                    _out.dec();
+                }
                 _out << ");";
+                _out.dec();
             }
             else
             {
@@ -2890,9 +2981,27 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             auto names = getNames(returnType, [](const MemberPtr &param) { return "returnValue." + fieldName(param); });
             auto streamName = names.back();
             names.pop_back();
-            _out << nl << "return (Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "), ";
-            _out << "new IceRpc.RpcStreamWriter(" << streamName << ")";
+            _out << nl << "return (";
+            _out.inc();
+            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+
+            if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
+                builtin && builtin->kind() == Builtin::KindByte)
+            {
+                _out << nl << "new IceRpc.ByteStreamParamSender(" << streamName << ")";
+            }
+            else
+            {
+                _out << nl << "new IceRpc.AsyncEnumerableStreamParamSender";
+                _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
+                _out.inc();
+                _out << nl << streamName << ","
+                     << nl << "dispatch.Encoding,"
+                     << nl << encodeAction(streamReturnParam->type(), ns, true, true) << ")";
+                _out.dec();
+            }
             _out << ");";
+            _out.dec();
         }
         else
         {

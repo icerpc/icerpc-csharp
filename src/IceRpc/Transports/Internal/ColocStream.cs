@@ -245,7 +245,7 @@ namespace IceRpc.Transports.Internal
             await _connection.SendFrameAsync(
                 this,
                 frame.ToIncoming(),
-                endStream: frame.StreamWriter == null,
+                endStream: frame.StreamParamSender == null,
                 cancel).ConfigureAwait(false);
 
         private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
