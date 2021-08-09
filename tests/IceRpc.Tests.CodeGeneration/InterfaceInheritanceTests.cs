@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Tests.CodeGeneration.InterfaceInheritance;
 using NUnit.Framework;
 using System;

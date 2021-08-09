@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.Threading;
@@ -97,7 +98,7 @@ namespace IceRpc.Tests.Api
 
             // Setting a timeout with an interceptor
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.DefaultTimeout(TimeSpan.FromMilliseconds(timeout)));
+            pipeline.UseDefaultTimeout(TimeSpan.FromMilliseconds(timeout));
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 invocationDeadline = request.Deadline;
@@ -142,7 +143,7 @@ namespace IceRpc.Tests.Api
 
             // Invocation timeout prevails
             pipeline = new Pipeline();
-            pipeline.Use(Interceptors.DefaultTimeout(TimeSpan.FromMilliseconds(timeout * 10)));
+            pipeline.UseDefaultTimeout(TimeSpan.FromMilliseconds(timeout * 10));
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
             {
                 Assert.That(cancel.CanBeCanceled, Is.True);

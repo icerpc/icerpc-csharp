@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.IO;
@@ -23,12 +24,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Compress_Payload(int size, int compressionMinSize, string compressionLevel)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.CustomCompressor(
-                new Interceptors.CompressorOptions
+            pipeline.UseCompressor(
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
-                }));
+                });
 
             int compressedRequestSize = 0;
             bool compressedRequest = false;
@@ -57,12 +58,12 @@ namespace IceRpc.Tests.ClientServer
                         throw;
                     }
                 }));
-            router.Use(Middleware.CustomCompressor(
-                new Middleware.CompressorOptions
+            router.UseCompressor(
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
-                }));
+                });
 
             await using var server = new Server
             {
@@ -145,12 +146,12 @@ namespace IceRpc.Tests.ClientServer
         public async Task Compress_StreamBytes(int size, int compressionMinSize, string compressionLevel)
         {
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.CustomCompressor(
-                new Interceptors.CompressorOptions
+            pipeline.UseCompressor(
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
-                }));
+                });
 
             OutgoingRequest? outgoingRequest = null;
             IncomingRequest? incomingRequest = null;
@@ -164,12 +165,12 @@ namespace IceRpc.Tests.ClientServer
                 }));
 
             var router = new Router();
-            router.Use(Middleware.CustomCompressor(
-                new Middleware.CompressorOptions
+            router.UseCompressor(
+                new CompressOptions
                 {
                     CompressionLevel = Enum.Parse<CompressionLevel>(compressionLevel),
                     CompressionMinSize = compressionMinSize
-                }));
+                });
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {

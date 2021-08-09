@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -39,9 +40,9 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
-                         Interceptors.Binder(pool),
-                         Interceptors.Logger(loggerFactory));
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, LoggerFactory = loggerFactory })
+                    .UseBinder(pool)
+                    .UseLogger(loggerFactory);
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
@@ -95,9 +96,9 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Retry(5, loggerFactory: loggerFactory),
-                         Interceptors.Binder(pool),
-                         Interceptors.Logger(loggerFactory));
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, LoggerFactory = loggerFactory })
+                    .UseBinder(pool)
+                    .UseLogger(loggerFactory);
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
@@ -123,10 +124,10 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Error));
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Logger(loggerFactory));
+            pipeline.UseLogger(loggerFactory);
 
             var router = new Router();
-            router.Use(Middleware.Logger(loggerFactory));
+            router.UseLogger(loggerFactory);
             router.Map<IGreeter>(new Greeter());
             await using Server server = CreateServer(colocated, portNumber: 1, router);
             server.Listen();
@@ -155,11 +156,11 @@ namespace IceRpc.Tests.ClientServer
                 writer,
                 builder => builder.AddFilter("IceRpc", LogLevel.Information));
             var pipeline = new Pipeline();
-            pipeline.Use(Interceptors.Logger(loggerFactory));
+            pipeline.UseLogger(loggerFactory);
 
             var router = new Router();
             router.Map<IGreeter>(new Greeter());
-            router.Use(Middleware.Logger(loggerFactory));
+            router.UseLogger(loggerFactory);
             await using Server server = CreateServer(colocated, portNumber: 2, router);
             server.Listen();
 

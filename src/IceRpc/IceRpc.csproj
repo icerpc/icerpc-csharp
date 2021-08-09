@@ -24,46 +24,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.6.21352.12" PrivateAssets="All" />
         <SliceCompile Include="../../slice/$(AssemblyName)/*.ice" Exclude="../../slice/$(AssemblyName)/BuiltinSequences.ice;../../slice/$(AssemblyName)/Context.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)" />
-        <SliceCompile Include="../../slice/$(AssemblyName)/Interop/*.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop" />
-        <Compile Update="generated\IceRpc\Interop\Discovery.cs">
-          <SliceCompileSource>..\..\slice\Ice\Discovery.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Identity.cs">
-          <SliceCompileSource>..\..\slice\Ice\Identity.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Locator.cs">
-          <SliceCompileSource>..\..\slice\Ice\Locator.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Interop\Process.cs">
-          <SliceCompileSource>..\..\slice\Ice\Process.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Encoding.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Encoding.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Endpoint.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Endpoint.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Exceptions.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Exceptions.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Ice1Definitions.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Ice1Definitions.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Ice2Definitions.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Ice2Definitions.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Protocol.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Protocol.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\ProxyEncoding.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\ProxyEncoding.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\Retryable.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\Retryable.ice</SliceCompileSource>
-        </Compile>
-        <Compile Update="generated\IceRpc\SlicDefinitions.cs">
-          <SliceCompileSource>..\..\slice\IceRpc\SlicDefinitions.ice</SliceCompileSource>
-        </Compile>
+        <SliceCompile Include="../../slice/$(AssemblyName)/Interop/Identity.ice;../../slice/$(AssemblyName)/Interop/TransportCode.ice" OutputDir="$(MSBuildProjectDirectory)/generated/$(AssemblyName)/Interop" />
     </ItemGroup>
     <!-- NuGet package contents-->
     <ItemGroup>

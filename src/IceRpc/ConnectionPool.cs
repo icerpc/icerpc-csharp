@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace IceRpc
 {
     /// <summary>A connection pool manages a pool of client connections and is a connection provider for the
-    /// <see cref="Interceptors.Binder"/> interceptor.</summary>
+    /// <see cref="BinderInterceptor"/> interceptor.</summary>
     public sealed partial class ConnectionPool : IConnectionProvider, IAsyncDisposable
     {
         /// <summary>The <see cref="IClientTransport"/> used by the connections created by this pool.

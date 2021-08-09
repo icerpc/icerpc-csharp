@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;

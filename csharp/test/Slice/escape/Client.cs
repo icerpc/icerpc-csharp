@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc;
+using IceRpc.Configure;
 using IceRpc.Slice.Test.Escape.@abstract;
 using IceRpc.Test;
 using System;

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace IceRpc
 {
-    /// <summary>Provides connections to the <see cref="Interceptors.Binder"/> interceptor.</summary>
+    /// <summary>Provides connections to the <see cref="BinderInterceptor"/> interceptor.</summary>
     public interface IConnectionProvider
     {
         /// <summary>Retrieves or creates a connection.</summary>

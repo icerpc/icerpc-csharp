@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
@@ -34,11 +35,11 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
+            pipeline.UseMetrics(invocationEventSource);
 
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CustomMetrics(dispatchEventSource));
+            router.UseMetrics(dispatchEventSource);
             int dispatchRequests = 0;
             var mutex = new object();
             using var dispatchSemaphore = new SemaphoreSlim(0);
@@ -107,10 +108,10 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
+            pipeline.UseMetrics(invocationEventSource);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CustomMetrics(dispatchEventSource));
+            router.UseMetrics(dispatchEventSource);
             router.Map<IGreeter>(new Greeter2());
             await using var server = new Server
             {
@@ -155,10 +156,10 @@ namespace IceRpc.Tests.ClientServer
 
             var pipeline = new Pipeline();
             using var invocationEventSource = new InvocationEventSource("IceRpc.Invocation.Test");
-            pipeline.Use(Interceptors.CustomMetrics(invocationEventSource));
+            pipeline.UseMetrics(invocationEventSource);
             using var dispatchEventSource = new DispatchEventSource("IceRpc.Dispatch.Test");
             var router = new Router();
-            router.Use(Middleware.CustomMetrics(dispatchEventSource));
+            router.UseMetrics(dispatchEventSource);
             router.Map<IGreeter>(new Greeter3());
             await using var server = new Server
             {
