@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
@@ -46,7 +47,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new ClientTransportBuilder().AddTcp().AddSsl().AddColoc().AddUdp().Build();
+            new ClientTransportBuilder().UseTcp().UseSsl().UseColoc().UseUdp().Build();
 
         /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
         /// </summary>

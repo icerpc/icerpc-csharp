@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
@@ -21,7 +22,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransportBuilder().AddTcp().AddSsl().AddColoc().AddUdp().Build();
+            new ServerTransportBuilder().UseTcp().UseSsl().UseColoc().UseUdp().Build();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
