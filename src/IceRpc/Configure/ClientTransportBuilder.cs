@@ -45,7 +45,7 @@ namespace IceRpc.Configure
         /// <summary>Adds the coloc client transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddColoc(this ClientTransportBuilder builder)
+        public static ClientTransportBuilder UseColoc(this ClientTransportBuilder builder)
         {
             builder.Add(TransportNames.Coloc, new ColocClientTransport());
             return builder;
@@ -54,7 +54,7 @@ namespace IceRpc.Configure
         /// <summary>Adds the ssl client transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddSsl(this ClientTransportBuilder builder)
+        public static ClientTransportBuilder UseSsl(this ClientTransportBuilder builder)
         {
             builder.Add(TransportNames.Ssl, new TcpClientTransport());
             return builder;
@@ -64,7 +64,7 @@ namespace IceRpc.Configure
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddSsl(this ClientTransportBuilder builder, TcpOptions options)
+        public static ClientTransportBuilder UseSsl(this ClientTransportBuilder builder, TcpOptions options)
         {
             builder.Add(TransportNames.Ssl, new TcpClientTransport(options));
             return builder;
@@ -73,7 +73,7 @@ namespace IceRpc.Configure
         /// <summary>Adds the tcp client transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddTcp(this ClientTransportBuilder builder)
+        public static ClientTransportBuilder UseTcp(this ClientTransportBuilder builder)
         {
             builder.Add(TransportNames.Tcp, new TcpClientTransport());
             return builder;
@@ -83,7 +83,7 @@ namespace IceRpc.Configure
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddTcp(this ClientTransportBuilder builder, TcpOptions options)
+        public static ClientTransportBuilder UseTcp(this ClientTransportBuilder builder, TcpOptions options)
         {
             builder.Add(TransportNames.Tcp, new TcpClientTransport(options));
             return builder;
@@ -92,7 +92,7 @@ namespace IceRpc.Configure
         /// <summary>Adds the udp client transport to this builder.</summary>
         /// <param name="builder">The builder being configured.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddUdp(this ClientTransportBuilder builder)
+        public static ClientTransportBuilder UseUdp(this ClientTransportBuilder builder)
         {
             builder.Add(TransportNames.Udp, new UdpClientTransport());
             return builder;
@@ -102,7 +102,7 @@ namespace IceRpc.Configure
         /// <param name="builder">The builder being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The builder.</returns>
-        public static ClientTransportBuilder AddUdp(this ClientTransportBuilder builder, UdpOptions options)
+        public static ClientTransportBuilder UseUdp(this ClientTransportBuilder builder, UdpOptions options)
         {
             builder.Add(TransportNames.Udp, new UdpClientTransport(options));
             return builder;
