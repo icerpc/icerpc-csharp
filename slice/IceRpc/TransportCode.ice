@@ -4,8 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(IceRpc.Interop)]
-module Ice
+module IceRpc
 {
     /// TransportCode is used by the Ice 1.1 encoding to encode a transport name (such as "tcp") as a short value.
     unchecked enum TransportCode : short

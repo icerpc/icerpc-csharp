@@ -6,7 +6,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(IceRpc.Interop)]
+[cs:namespace(IceRpc)]
 module Ice
 {
     /// The identity of a service reachable with the ice1 protocol.

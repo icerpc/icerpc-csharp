@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
-
 namespace IceRpc.Configure
 {
     /// <summary>This class provides extension methods to add interop interceptors to a <see cref="Pipeline"/>.
