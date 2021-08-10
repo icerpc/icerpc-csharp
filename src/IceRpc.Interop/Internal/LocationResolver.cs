@@ -9,58 +9,6 @@ using System.Threading.Tasks;
 
 namespace IceRpc.Internal
 {
-    /// <summary>A location resolver resolves a location into a list of endpoints carried by a dummy proxy, and
-    /// optionally maintains a cache for these resolutions. It's consumed by <see cref="LocatorInterceptor"/>
-    /// and typically uses an <see cref="IEndpointFinder"/> and an <see cref="IEndpointCache"/> in its implementation.
-    /// When the dummy proxy returned by ResolveAsync is not null, its Endpoint property is guaranteed to be not null.
-    /// </summary>
-    internal interface ILocationResolver
-    {
-        ValueTask<(Proxy? Proxy, bool FromCache)> ResolveAsync(
-            Location location,
-            bool refreshCache,
-            CancellationToken cancel);
-    }
-
-    /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
-    /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Category"/> is null, the location
-    /// is an adapter ID; when it's not null, the location is an Identity.</summary>
-    internal readonly struct Location : IEquatable<Location>
-    {
-        /// <summary>The adapter ID/identity name.</summary>
-        internal readonly string AdapterId;
-
-        /// <summary>When not null, the identity's category.</summary>
-        internal readonly string? Category;
-
-        internal string Kind => Category == null ? "adapter ID" : "identity";
-
-        public static bool operator ==(Location lhs, Location rhs) => lhs.Equals(rhs);
-        public static bool operator !=(Location lhs, Location rhs) => !lhs.Equals(rhs);
-
-        public override bool Equals(object? obj) => obj is Location value && Equals(value);
-        public bool Equals(Location other) => AdapterId == other.AdapterId && Category == other.Category;
-        public override int GetHashCode() => HashCode.Combine(AdapterId, Category);
-
-        public override string ToString() =>
-            Category == null ? AdapterId : new Identity(AdapterId, Category).ToString();
-
-        internal Identity ToIdentity() =>
-            Category is string category ? new Identity(AdapterId, category) : throw new InvalidOperationException();
-
-        internal Location(string location)
-        {
-            AdapterId = location;
-            Category = null;
-        }
-
-        internal Location(Identity identity)
-        {
-            AdapterId = identity.Name;
-            Category = identity.Category;
-        }
-    }
-
     /// <summary>An implementation of <see cref="ILocationResolver"/> without a cache.</summary>
     internal class CacheLessLocationResolver : ILocationResolver
     {
