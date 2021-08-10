@@ -1,10 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
-namespace IceRpc.Transports
+namespace IceRpc.Configure
 {
     /// <summary>Builds a composite client transport.</summary>
     public class ClientTransportBuilder : Dictionary<string, IClientTransport>
