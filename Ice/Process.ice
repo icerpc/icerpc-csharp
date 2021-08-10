@@ -4,7 +4,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-[cs:namespace(IceRpc.Interop)]
+[cs:namespace(IceRpc)]
 module Ice
 {
     /// An administrative interface for process management. Managed servers must
