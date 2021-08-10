@@ -2,7 +2,6 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
-using IceRpc.Interop;
 using IceRpc.Transports.Internal;
 using IceRpc.Transports.Interop;
 using System;
@@ -317,7 +316,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                return Interop.ProxyExtensions.ToString(this, default);
+                return InteropProxyExtensions.ToString(this, default);
             }
             else // >= ice2, use URI format
             {
