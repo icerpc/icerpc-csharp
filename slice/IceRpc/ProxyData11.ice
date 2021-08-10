@@ -4,14 +4,12 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <Ice/Identity.ice>
 #include <IceRpc/BuiltinSequences.ice>
-#include <IceRpc/Endpoint.ice>
 #include <IceRpc/Protocol.ice>
 
 module IceRpc
 {
-    // These definitions help with the encoding of proxies.
+    // These definitions help with the encoding of proxies with the Ice 1.1 encoding.
 
     /// The InvocationMode is carried by proxies that use the ice1 protocol, and it specifies the behavior when sending
     /// a request using such a proxy.
@@ -35,7 +33,7 @@ module IceRpc
         BatchDatagram,
     }
 
-    /// With the 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
+    /// With the Ice 1.1 encoding, a proxy is encoded as a kind of discriminated union with:
     /// - Identity
     /// - if Identity is not the null identity:
     ///     - ProxyData11
@@ -51,15 +49,5 @@ module IceRpc
         byte protocolMinor = 0;        // always 0
         byte encodingMajor;
         byte encodingMinor;
-    }
-
-    [cs:readonly]
-    struct ProxyData20
-    {
-        string? path;                        // Percent-escaped URI path. Null means null proxy.
-        Protocol? protocol;                  // null is equivalent to Protocol::Ice2
-        string? encoding;                    // null means use the encoding of protocol
-        EndpointData? endpoint;
-        EndpointDataSeq? altEndpoints;
     }
 }

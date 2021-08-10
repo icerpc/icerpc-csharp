@@ -7,9 +7,9 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 
-namespace IceRpc.Transports.Interop
+namespace IceRpc.Transports
 {
-    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
     /// an abstraction to plug-in decoders for such endpoints.</summary>
     public interface IEndpointDecoder
     {

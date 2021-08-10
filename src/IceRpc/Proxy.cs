@@ -2,8 +2,8 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using IceRpc.Transports.Interop;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
