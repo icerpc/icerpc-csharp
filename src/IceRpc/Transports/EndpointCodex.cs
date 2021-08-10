@@ -21,7 +21,7 @@ namespace IceRpc.Transports
         Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
-    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
     /// an abstraction to plug-in encoders for such endpoints.</summary>
     public interface IEndpointEncoder
     {
