@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -27,16 +26,14 @@ namespace IceRpc.Configure
         // results in numerous unsuccessful lookups.
         private const int MaxSegments = 10;
 
-        private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
-            new ConcurrentDictionary<string, IDispatcher>();
+        private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
 
         private ImmutableList<Func<IDispatcher, IDispatcher>> _middlewareList =
             ImmutableList<Func<IDispatcher, IDispatcher>>.Empty;
 
         private IDispatcher? _dispatcher;
 
-        private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes =
-            new ConcurrentDictionary<string, IDispatcher>();
+        private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
 
         /// <summary>Constructs a top-level router.</summary>
         public Router()
@@ -65,6 +62,10 @@ namespace IceRpc.Configure
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
+            if (_dispatcher != null)
+            {
+                throw new InvalidOperationException("cannot call Map after calling DispatchAsync");
+            }
             IceUriParser.CheckPath(path, nameof(path));
             _exactMatchRoutes[path] = dispatcher;
         }
@@ -74,8 +75,7 @@ namespace IceRpc.Configure
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IDispatcher service) where T : class =>
-            _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
+        public void Map<T>(IDispatcher service) where T : class => Map(typeof(T).GetDefaultPath(), service);
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>
@@ -86,6 +86,10 @@ namespace IceRpc.Configure
         /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
+            if (_dispatcher != null)
+            {
+                throw new InvalidOperationException("cannot call Mount after calling DispatchAsync");
+            }
             IceUriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;

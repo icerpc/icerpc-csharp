@@ -43,13 +43,23 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Router_BadPath()
         {
+            Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
+            Assert.Throws<ArgumentException>(() => _router.Mount("foo", _failDispatcher));
+
             _router.Mount("/", _failDispatcher);
             string badPath = "/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q";
             var greeter = GreeterPrx.FromConnection(_connection, badPath);
             Assert.ThrowsAsync<DispatchException>(async () => await greeter.IcePingAsync());
+        }
 
-            Assert.Throws<ArgumentException>(() => _router.Map("foo", _failDispatcher));
-            Assert.Throws<ArgumentException>(() => _router.Mount("foo", _failDispatcher));
+        [Test]
+        public async Task Router_InvalidOperationAsync()
+        {
+            _router.Map<IGreeter>(new Greeter());
+            await GreeterPrx.FromConnection(_connection).IcePingAsync();
+            Assert.Throws<InvalidOperationException>(() => _router.Map<IGreeter>(new Greeter()));
+            Assert.Throws<InvalidOperationException>(() => _router.Mount("/foo", new Greeter()));
+            Assert.Throws<InvalidOperationException>(() => _router.Use(next => next));
         }
 
         [TestCase("/foo")]
@@ -200,54 +210,26 @@ namespace IceRpc.Tests.Api
         {
             Assert.That(_router.AbsolutePrefix, Is.Empty);
 
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await GreeterPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IGreeter>(new Greeter());
-            await GreeterPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await BaseAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseA>(new BaseA());
-            await BaseAPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await DerivedAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IDerivedA>(new DerivedA());
-            await DerivedAPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await MostDerivedAPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IMostDerivedA>(new MostDerivedA());
-            await MostDerivedAPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await BaseBPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseB>(new BaseB());
-            await BaseBPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await DerivedBPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IDerivedB>(new DerivedB());
-            await DerivedBPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await MostDerivedBPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IMostDerivedB>(new MostDerivedB());
-            await MostDerivedBPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await BaseCPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IBaseC>(new BaseC());
-            await BaseCPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await DerivedCPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IDerivedC>(new DerivedC());
-            await DerivedCPrx.FromConnection(_connection).IcePingAsync();
-
-            Assert.ThrowsAsync<ServiceNotFoundException>(
-                async () => await MostDerivedCPrx.FromConnection(_connection).IcePingAsync());
             _router.Map<IMostDerivedC>(new MostDerivedC());
+
+            await GreeterPrx.FromConnection(_connection).IcePingAsync();
+            await BaseAPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedAPrx.FromConnection(_connection).IcePingAsync();
+            await MostDerivedAPrx.FromConnection(_connection).IcePingAsync();
+            await BaseBPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedBPrx.FromConnection(_connection).IcePingAsync();
+            await MostDerivedBPrx.FromConnection(_connection).IcePingAsync();
+            await BaseCPrx.FromConnection(_connection).IcePingAsync();
+            await DerivedCPrx.FromConnection(_connection).IcePingAsync();
             await MostDerivedCPrx.FromConnection(_connection).IcePingAsync();
         }
 
