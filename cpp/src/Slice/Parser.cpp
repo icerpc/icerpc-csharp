@@ -1457,7 +1457,11 @@ Slice::Container::validateConstant(const string& name, const TypePtr& lhsType, S
             {
                 if (b->kind() == Builtin::KindULong)
                 {
-                    stoull(value); // throws out_of_range if value is out of range
+                    auto val = stoull(value); // throws out_of_range if value is out of range
+                    if (val > max)
+                    {
+                        throw out_of_range("");
+                    }
                 }
                 else
                 {

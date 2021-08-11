@@ -42,6 +42,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = endpoint,
+                ServerTransport = new ServerTransport().UseColoc().UseSsl().UseTcp().UseInteropUdp()
             };
             server.Listen();
 
@@ -58,7 +59,11 @@ namespace IceRpc.Tests.ClientServer
                     return response;
                 }));
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = server.Endpoint,
+                ClientTransport = new ClientTransport().UseColoc().UseSsl().UseTcp().UseInteropUdp()
+            };
             var greeter = GreeterPrx.FromConnection(connection);
             greeter.Proxy.Invoker = pipeline;
 
