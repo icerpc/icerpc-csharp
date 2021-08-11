@@ -162,7 +162,7 @@
   -->
   <ItemDefinitionGroup Condition="'$(IceBuildingSrc)' == 'yes'">
     <Link>
-      <GenerateDebugInformation>Yes</GenerateDebugInformation>
+        <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
 
@@ -173,10 +173,9 @@
     </Link>
   </ItemDefinitionGroup>
 
-  <ItemDefinitionGroup Condition="'$(IceBuildingSrc)' == 'yes' and ('$(DefaultPlatformToolset)'=='v141' or '$(DefaultPlatformToolset)'=='v142')">
+  <ItemDefinitionGroup Condition="'$(IceBuildingSrc)' == 'yes'">
     <Link>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
 

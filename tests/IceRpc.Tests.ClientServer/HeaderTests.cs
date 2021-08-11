@@ -42,7 +42,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = endpoint,
-                ServerTransport = new ServerTransport().UseColoc().UseSsl().UseTcp().UseUdp()
+                ServerTransport = new ServerTransport().UseColoc().UseSsl().UseTcp().UseInteropUdp()
             };
             server.Listen();
 
