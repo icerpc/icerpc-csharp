@@ -48,8 +48,8 @@ namespace IceRpc.Configure
     public static class ServerTransportExtensions
     {
         /// <summary>Adds the coloc server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
-        /// <returns>The composite server transport.</returns>
+        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <returns>The transport being configured.</returns>
         public static ServerTransport UseColoc(this ServerTransport compositeTransport)
         {
             compositeTransport.Add(TransportNames.Coloc, new ColocServerTransport());
@@ -57,8 +57,8 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
-        /// <returns>The composite server transport.</returns>
+        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <returns>The transport being configured.</returns>
         public static ServerTransport UseSsl(this ServerTransport compositeTransport)
         {
             compositeTransport.Add(TransportNames.Ssl, new TcpServerTransport());
@@ -66,9 +66,9 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
+        /// <param name="compositeTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
-        /// <returns>The composite server transport.</returns>
+        /// <returns>The transport being configured.</returns>
         public static ServerTransport UseSsl(this ServerTransport compositeTransport, TcpOptions options)
         {
             compositeTransport.Add(TransportNames.Ssl, new TcpServerTransport(options));
@@ -76,8 +76,8 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
-        /// <returns>The composite server transport.</returns>
+        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <returns>The transport being configured.</returns>
         public static ServerTransport UseTcp(this ServerTransport compositeTransport)
         {
             compositeTransport.Add(TransportNames.Tcp, new TcpServerTransport());
@@ -85,31 +85,12 @@ namespace IceRpc.Configure
         }
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
+        /// <param name="compositeTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
-        /// <returns>The composite server transport.</returns>
+        /// <returns>The transport being configured.</returns>
         public static ServerTransport UseTcp(this ServerTransport compositeTransport, TcpOptions options)
         {
             compositeTransport.Add(TransportNames.Tcp, new TcpServerTransport(options));
-            return compositeTransport;
-        }
-
-        /// <summary>Adds the udp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
-        /// <returns>The composite server transport.</returns>
-        public static ServerTransport UseUdp(this ServerTransport compositeTransport)
-        {
-            compositeTransport.Add(TransportNames.Udp, new UdpServerTransport());
-            return compositeTransport;
-        }
-
-        /// <summary>Adds the udp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
-        /// <param name="options">The transport options.</param>
-        /// <returns>The composite server transport.</returns>
-        public static ServerTransport UseUdp(this ServerTransport compositeTransport, UdpOptions options)
-        {
-            compositeTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
             return compositeTransport;
         }
     }

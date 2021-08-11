@@ -47,7 +47,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new ClientTransportBuilder().UseTcp().UseSsl().UseColoc().UseUdp().Build();
+            new ClientTransport().UseTcp().UseSsl().UseColoc();
 
         /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
         /// </summary>

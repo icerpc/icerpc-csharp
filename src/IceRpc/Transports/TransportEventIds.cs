@@ -23,7 +23,6 @@ namespace IceRpc.Transports
         ConnectionEstablished,
         /// <summary>The transport received buffer size was adjusted.</summary>
         /// <seealso cref="TcpOptions.ReceiveBufferSize"/>
-        /// <seealso cref="UdpOptions.ReceiveBufferSize"/>
         ReceiveBufferSizeAdjusted,
         /// <summary>The transport received data.</summary>
         ReceivedData,
@@ -31,7 +30,6 @@ namespace IceRpc.Transports
         ReceivedInvalidDatagram,
         /// <summary>The transport send buffer size was adjusted.</summary>
         /// <seealso cref="TcpOptions.SendBufferSize"/>
-        /// <seealso cref="UdpOptions.SendBufferSize"/>
         SendBufferSizeAdjusted,
         /// <summary>The transport sent data.</summary>
         SentData,
