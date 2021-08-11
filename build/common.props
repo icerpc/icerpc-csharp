@@ -10,7 +10,7 @@
         <WarningLevel>4</WarningLevel>
         <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
-        <LangVersion>9.0</LangVersion>
+        <LangVersion>10.0</LangVersion>
     </PropertyGroup>
 
     <!-- Import Ice version settings -->
