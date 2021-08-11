@@ -482,8 +482,8 @@ namespace IceRpc
             _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
 
             string? typeId;
-            // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact ID,
-            // for exceptions it's always encoded as a string.
+            // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
+            // ID, for exceptions it's always encoded as a string.
             if (_current.InstanceType == InstanceType.Class)
             {
                 typeId = DecodeTypeId11(_current.SliceFlags.GetTypeIdKind());
