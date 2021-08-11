@@ -17,8 +17,6 @@ namespace IceRpc
         /// <seealso cref="Assembly.GetEntryAssembly"/>
         public static ClassFactory Default { get; } = new ClassFactory(
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
-
-        private readonly IReadOnlyDictionary<int, Lazy<Func<AnyClass>>> _compactTypeIdClassFactoryCache;
         private readonly IReadOnlyDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache;
         private readonly IReadOnlyDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache;
 
@@ -31,7 +29,6 @@ namespace IceRpc
             // An enumerable of distinct assemblies that always implicitly includes the IceRpc assembly.
             assemblies = assemblies.Concat(new Assembly[] { typeof(ClassFactory).Assembly }).Distinct();
 
-            var compactTypeIdClassFactoryCache = new Dictionary<int, Lazy<Func<AnyClass>>>();
             var typeIdClassFactoryCache = new Dictionary<string, Lazy<Func<AnyClass>>>();
             var typeIdExceptionFactoryCache =
                 new Dictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
@@ -43,9 +40,9 @@ namespace IceRpc
                 if (typeof(AnyClass).IsAssignableFrom(attribute.Type))
                 {
                     var factory = new Lazy<Func<AnyClass>>(() => attribute.ClassFactory);
-                    if (attribute.CompactTypeId is int compactTypeId)
+                    if (attribute.CompactTypeId is string compactTypeId)
                     {
-                        compactTypeIdClassFactoryCache.Add(compactTypeId, factory);
+                        typeIdClassFactoryCache.Add(compactTypeId, factory);
                     }
                     typeIdClassFactoryCache.Add(attribute.TypeId, factory);
                 }
@@ -55,7 +52,6 @@ namespace IceRpc
                     typeIdExceptionFactoryCache.Add(attribute.TypeId, new(() => attribute.ExceptionFactory));
                 }
             }
-            _compactTypeIdClassFactoryCache = compactTypeIdClassFactoryCache;
             _typeIdClassFactoryCache = typeIdClassFactoryCache;
             _typeIdExceptionFactoryCache = typeIdExceptionFactoryCache;
         }
@@ -63,12 +59,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public AnyClass? CreateClassInstance(string typeId) =>
             _typeIdClassFactoryCache.TryGetValue(typeId, out Lazy<Func<AnyClass>>? factory) ? factory.Value() : null;
-
-        /// <inheritdoc/>
-        public AnyClass? CreateClassInstance(int compactId) =>
-            _compactTypeIdClassFactoryCache.TryGetValue(
-                compactId,
-                out Lazy<Func<AnyClass>>? factory) ? factory.Value() : null;
 
         /// <inheritdoc/>
         public RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin) =>

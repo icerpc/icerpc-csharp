@@ -263,8 +263,15 @@ namespace IceRpc
                 }
                 else
                 {
+                    // If TypeId is a compact ID, extract it.
+                    int compactId = -1;
+                    if (!sliceInfo.TypeId.StartsWith("::"))
+                    {
+                        int.TryParse(sliceInfo.TypeId, out compactId);
+                    }
+
                     // With the 1.1 encoding in sliced format, IceStartNextSlice is the same as IceStartFirstSlice.
-                    IceStartNextSlice(sliceInfo.TypeId, sliceInfo.CompactId);
+                    IceStartNextSlice(sliceInfo.TypeId, compactId == -1 ? null : compactId);
                 }
 
                 // Writes the bytes associated with this slice.

@@ -46,12 +46,8 @@ namespace IceRpc
     /// <summary>SliceInfo encapsulates the details of a slice for an unknown class or remote exception.</summary>
     public sealed class SliceInfo
     {
-        /// <summary>The Slice type ID for this slice.</summary>
+        /// <summary>The Slice type ID or compact ID for this slice.</summary>
         public string TypeId { get; }
-
-        /// <summary>The Slice compact type ID for this slice. Only applicable to classes with the 1.1 encoding;
-        /// otherwise, always null.</summary>
-        public int? CompactId { get; }
 
         /// <summary>The encoded bytes for this slice, including the leading size integer.</summary>
         public ReadOnlyMemory<byte> Bytes { get; }
@@ -64,16 +60,14 @@ namespace IceRpc
 
         internal SliceInfo(
             string typeId,
-            int? compactId,
             ReadOnlyMemory<byte> bytes,
             IReadOnlyList<AnyClass> instances,
-            bool hasTaggedlMembers)
+            bool hasTaggedMembers)
         {
             TypeId = typeId;
-            CompactId = compactId;
             Bytes = bytes;
             Instances = instances;
-            HasTaggedMembers = hasTaggedlMembers;
+            HasTaggedMembers = hasTaggedMembers;
         }
     }
 }

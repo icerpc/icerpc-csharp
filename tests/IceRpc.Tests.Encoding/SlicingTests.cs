@@ -16,25 +16,20 @@ namespace IceRpc.Tests.Encoding
         {
             private readonly IClassFactory _classFactory;
             private readonly ImmutableList<string> _slicedClassTypeIds;
-            private readonly ImmutableList<int> _slicedClassCompactTypeIds;
             private readonly ImmutableList<string> _slicedExceptionTypeIds;
 
             public SlicingClassFactory(
                 IClassFactory classFactory,
                 ImmutableList<string>? slicedClassTypeIds = null,
-                ImmutableList<int>? slicedClassCompactTypeIds = null,
                 ImmutableList<string>? slicedExceptionTypeIds = null)
             {
                 _classFactory = classFactory;
                 _slicedClassTypeIds = slicedClassTypeIds ?? ImmutableList<string>.Empty;
-                _slicedClassCompactTypeIds = slicedClassCompactTypeIds ?? ImmutableList<int>.Empty;
                 _slicedExceptionTypeIds = slicedExceptionTypeIds ?? ImmutableList<string>.Empty;
             }
 
             public AnyClass? CreateClassInstance(string typeId) =>
                 _slicedClassTypeIds.Contains(typeId) ? null : _classFactory.CreateClassInstance(typeId);
-            public AnyClass? CreateClassInstance(int compactId) =>
-                _slicedClassCompactTypeIds.Contains(compactId) ? null : _classFactory.CreateClassInstance(compactId);
 
             public RemoteException? CreateRemoteException(
                 string typeId,
@@ -141,7 +136,7 @@ namespace IceRpc.Tests.Encoding
             // the class is unmarshaled as 'MyCompactDerivedClass' which is the base type.
             var slicingClassFactory = new SlicingClassFactory(
                 classFactory,
-                slicedClassCompactTypeIds: ImmutableList.Create(3));
+                slicedClassTypeIds: ImmutableList.Create("3"));
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactMostDerivedClass>());
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
@@ -153,7 +148,7 @@ namespace IceRpc.Tests.Encoding
             // Repeat with a factory that also excludes 'MyCompactDerivedClass' compact type ID (2)
             slicingClassFactory = slicingClassFactory = new SlicingClassFactory(
                 classFactory,
-                slicedClassCompactTypeIds: ImmutableList.Create(3, 2));
+                slicedClassTypeIds: ImmutableList.Create("3", "2"));
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactDerivedClass>());
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
@@ -164,7 +159,7 @@ namespace IceRpc.Tests.Encoding
             // Repeat with a factory that also excludes 'MyCompactBaseClass' compact type ID (1)
             slicingClassFactory = slicingClassFactory = new SlicingClassFactory(
                 classFactory,
-                slicedClassCompactTypeIds: ImmutableList.Create(3, 2, 1));
+                slicedClassTypeIds: ImmutableList.Create("3", "2", "1"));
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactBaseClass>());
             decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
@@ -327,7 +322,7 @@ namespace IceRpc.Tests.Encoding
             // is sliced and the Slices are preserved.
             var slicingClassFactory = new SlicingClassFactory(
                 classFactory,
-                slicedClassCompactTypeIds: ImmutableList.Create(56));
+                slicedClassTypeIds: ImmutableList.Create("56"));
 
             var decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyPreservedDerivedClass2>());

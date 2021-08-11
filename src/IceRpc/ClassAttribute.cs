@@ -3,6 +3,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Globalization;
 using System.Reflection;
 
 namespace IceRpc
@@ -14,7 +15,7 @@ namespace IceRpc
     {
         /// <summary>The compact type ID assigned to the type or null if the type does not have a compact type ID.
         /// </summary>
-        public int? CompactTypeId => Type.GetIceCompactTypeId();
+        public string? CompactTypeId => Type.GetIceCompactTypeId()?.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>The type ID assigned to the type.</summary>
         public new string TypeId
