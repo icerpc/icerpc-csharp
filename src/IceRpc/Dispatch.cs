@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using System;
-using System.Collections.Generic;
 
 namespace IceRpc
 {

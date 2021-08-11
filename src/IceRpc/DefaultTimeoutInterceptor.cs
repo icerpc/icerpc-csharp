@@ -1,9 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace IceRpc
 {
     /// <summary>An interceptor that sets the invocation timeout, the interceptor sets the

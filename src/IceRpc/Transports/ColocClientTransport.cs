@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using ColocChannelReader = System.Threading.Channels.ChannelReader<(long StreamId, object Frame, bool Fin)>;
 using ColocChannelWriter = System.Threading.Channels.ChannelWriter<(long StreamId, object Frame, bool Fin)>;
 

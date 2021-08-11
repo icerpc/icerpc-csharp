@@ -2,9 +2,6 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Multiplier = System.Int32;
 
 namespace IceRpc.Tests.Api

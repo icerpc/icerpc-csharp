@@ -3,11 +3,8 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {

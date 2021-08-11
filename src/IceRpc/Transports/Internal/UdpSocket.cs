@@ -2,15 +2,12 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {

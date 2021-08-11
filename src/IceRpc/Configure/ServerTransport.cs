@@ -3,8 +3,6 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System;
 
 namespace IceRpc.Configure
 {
