@@ -65,7 +65,8 @@ namespace IceRpc.Configure
         {
             if (_dispatcher != null)
             {
-                throw new InvalidOperationException($"cannot call {nameof(Map)} after calling {nameof(DispatchAsync)}");
+                throw new InvalidOperationException(
+                    $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
             IceUriParser.CheckPath(path, nameof(path));
             _exactMatchRoutes[path] = dispatcher;
@@ -93,7 +94,8 @@ namespace IceRpc.Configure
         {
             if (_dispatcher != null)
             {
-                throw new InvalidOperationException("cannot call Mount after calling DispatchAsync");
+                throw new InvalidOperationException(
+                    $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
             }
             IceUriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
@@ -124,7 +126,8 @@ namespace IceRpc.Configure
         {
             if (_dispatcher != null)
             {
-                throw new InvalidOperationException("all middleware must be registered before calling DispatchAsync");
+                throw new InvalidOperationException(
+                    $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");
             }
             _middlewareList = _middlewareList.AddRange(middleware);
             return this;
