@@ -4,7 +4,6 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using IceRpc.Transports.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
