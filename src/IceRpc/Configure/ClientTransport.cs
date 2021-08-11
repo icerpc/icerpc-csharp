@@ -1,10 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
 
 namespace IceRpc.Configure
 {
@@ -32,7 +30,7 @@ namespace IceRpc.Configure
             ClientConnectionOptions connectionOptions,
             ILoggerFactory loggerFactory)
         {
-            _transports ??=  _builder;
+            _transports ??= _builder;
             if (_transports.TryGetValue(remoteEndpoint.Transport, out IClientTransport? clientTransport))
             {
                 return clientTransport.CreateConnection(remoteEndpoint, connectionOptions, loggerFactory);
@@ -48,50 +46,50 @@ namespace IceRpc.Configure
     public static class ClientTransportExtensions
     {
         /// <summary>Adds the coloc client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseColoc(this ClientTransport compositeTransport)
+        public static ClientTransport UseColoc(this ClientTransport clientTransport)
         {
-            compositeTransport.Add(TransportNames.Coloc, new ColocClientTransport());
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Coloc, new ColocClientTransport());
+            return clientTransport;
         }
 
         /// <summary>Adds the ssl client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseSsl(this ClientTransport compositeTransport)
+        public static ClientTransport UseSsl(this ClientTransport clientTransport)
         {
-            compositeTransport.Add(TransportNames.Ssl, new TcpClientTransport());
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Ssl, new TcpClientTransport());
+            return clientTransport;
         }
 
         /// <summary>Adds the ssl client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseSsl(this ClientTransport compositeTransport, TcpOptions options)
+        public static ClientTransport UseSsl(this ClientTransport clientTransport, TcpOptions options)
         {
-            compositeTransport.Add(TransportNames.Ssl, new TcpClientTransport(options));
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Ssl, new TcpClientTransport(options));
+            return clientTransport;
         }
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseTcp(this ClientTransport compositeTransport)
+        public static ClientTransport UseTcp(this ClientTransport clientTransport)
         {
-            compositeTransport.Add(TransportNames.Tcp, new TcpClientTransport());
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport());
+            return clientTransport;
         }
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseTcp(this ClientTransport compositeTransport, TcpOptions options)
+        public static ClientTransport UseTcp(this ClientTransport clientTransport, TcpOptions options)
         {
-            compositeTransport.Add(TransportNames.Tcp, new TcpClientTransport(options));
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Tcp, new TcpClientTransport(options));
+            return clientTransport;
         }
     }
 }

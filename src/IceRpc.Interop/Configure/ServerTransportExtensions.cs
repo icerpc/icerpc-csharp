@@ -9,22 +9,22 @@ namespace IceRpc.Configure
     public static class ServerTransportExtensions
     {
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The server transport being configured.</param>
+        /// <param name="serverTransport">The server transport being configured.</param>
         /// <returns>The server transport being configured.</returns>
-        public static ServerTransport UseInteropUdp(this ServerTransport compositeTransport)
+        public static ServerTransport UseInteropUdp(this ServerTransport serverTransport)
         {
-            compositeTransport.Add(TransportNames.Udp, new UdpServerTransport());
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Udp, new UdpServerTransport());
+            return serverTransport;
         }
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The composite server transport being configured.</param>
+        /// <param name="serverTransport">The composite server transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The server transport being configured.</returns>
-        public static ServerTransport UseInteropUdp(this ServerTransport compositeTransport, UdpOptions options)
+        public static ServerTransport UseInteropUdp(this ServerTransport serverTransport, UdpOptions options)
         {
-            compositeTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
+            return serverTransport;
         }
     }
 }

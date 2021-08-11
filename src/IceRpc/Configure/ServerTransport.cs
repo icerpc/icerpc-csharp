@@ -32,7 +32,7 @@ namespace IceRpc.Configure
             ServerConnectionOptions connectionOptions,
             ILoggerFactory loggerFactory)
         {
-            _transports = _builder;
+            _transports ??= _builder;
             if (_transports.TryGetValue(endpoint.Transport, out IServerTransport? serverTransport))
             {
                 return serverTransport.Listen(endpoint, connectionOptions, loggerFactory);
@@ -48,50 +48,50 @@ namespace IceRpc.Configure
     public static class ServerTransportExtensions
     {
         /// <summary>Adds the coloc server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseColoc(this ServerTransport compositeTransport)
+        public static ServerTransport UseColoc(this ServerTransport serverTransport)
         {
-            compositeTransport.Add(TransportNames.Coloc, new ColocServerTransport());
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Coloc, new ColocServerTransport());
+            return serverTransport;
         }
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseSsl(this ServerTransport compositeTransport)
+        public static ServerTransport UseSsl(this ServerTransport serverTransport)
         {
-            compositeTransport.Add(TransportNames.Ssl, new TcpServerTransport());
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Ssl, new TcpServerTransport());
+            return serverTransport;
         }
 
         /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="serverTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseSsl(this ServerTransport compositeTransport, TcpOptions options)
+        public static ServerTransport UseSsl(this ServerTransport serverTransport, TcpOptions options)
         {
-            compositeTransport.Add(TransportNames.Ssl, new TcpServerTransport(options));
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Ssl, new TcpServerTransport(options));
+            return serverTransport;
         }
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseTcp(this ServerTransport compositeTransport)
+        public static ServerTransport UseTcp(this ServerTransport serverTransport)
         {
-            compositeTransport.Add(TransportNames.Tcp, new TcpServerTransport());
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Tcp, new TcpServerTransport());
+            return serverTransport;
         }
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
-        /// <param name="compositeTransport">The transport being configured.</param>
+        /// <param name="serverTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseTcp(this ServerTransport compositeTransport, TcpOptions options)
+        public static ServerTransport UseTcp(this ServerTransport serverTransport, TcpOptions options)
         {
-            compositeTransport.Add(TransportNames.Tcp, new TcpServerTransport(options));
-            return compositeTransport;
+            serverTransport.Add(TransportNames.Tcp, new TcpServerTransport(options));
+            return serverTransport;
         }
     }
 }

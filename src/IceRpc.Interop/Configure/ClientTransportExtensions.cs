@@ -9,22 +9,22 @@ namespace IceRpc.Configure
     public static class ClientTransportExtensions
     {
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The client transport being configured.</param>
+        /// <param name="clienTransport">The client transport being configured.</param>
         /// <returns>The client transport being configured.</returns>
-        public static ClientTransport UseInteropUdp(this ClientTransport compositeTransport)
+        public static ClientTransport UseInteropUdp(this ClientTransport clienTransport)
         {
-            compositeTransport.Add(TransportNames.Udp, new UdpClientTransport());
-            return compositeTransport;
+            clienTransport.Add(TransportNames.Udp, new UdpClientTransport());
+            return clienTransport;
         }
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
-        /// <param name="compositeTransport">The client transport being configured.</param>
+        /// <param name="clientTransport">The client transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The client transport being configured.</returns>
-        public static ClientTransport UseInteropUdp(this ClientTransport compositeTransport, UdpOptions options)
+        public static ClientTransport UseInteropUdp(this ClientTransport clientTransport, UdpOptions options)
         {
-            compositeTransport.Add(TransportNames.Udp, new UdpClientTransport(options));
-            return compositeTransport;
+            clientTransport.Add(TransportNames.Udp, new UdpClientTransport(options));
+            return clientTransport;
         }
     }
 }
