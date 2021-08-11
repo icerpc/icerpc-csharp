@@ -4,10 +4,10 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Text;
 
-namespace IceRpc.Interop
+namespace IceRpc
 {
     /// <summary>Provides extension methods for Proxy.</summary>
-    public static class ProxyExtensions
+    public static class InteropProxyExtensions
     {
         /// <summary>Converts a proxy into a string, using the format specified by ToStringMode.</summary>
         /// <param name="proxy">The service proxy.</param>

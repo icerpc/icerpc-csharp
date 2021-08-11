@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System;
