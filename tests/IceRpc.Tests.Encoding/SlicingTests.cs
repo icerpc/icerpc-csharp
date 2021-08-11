@@ -44,13 +44,11 @@ namespace IceRpc.Tests.Encoding
                     null : _classFactory.CreateRemoteException(typeId, message, origin);
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void Slicing_Classes(string encodingStr)
+        [Test]
+        public void Slicing_Classes()
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -65,7 +63,7 @@ namespace IceRpc.Tests.Encoding
             });
 
             // First we unmarshal the class using the factory that know all the types, no Slicing should occur in this case.
-            var decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            var decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             MyMostDerivedClass r = decoder.DecodeClass<MyMostDerivedClass>();
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
@@ -77,9 +75,9 @@ namespace IceRpc.Tests.Encoding
                 classFactory,
                 slicedClassTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyMostDerivedClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
             Assert.That(r1.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r1.M1);
@@ -90,9 +88,9 @@ namespace IceRpc.Tests.Encoding
                 classFactory,
                 slicedClassTypeIds: ImmutableList.Create(MyMostDerivedClass.IceTypeId, MyDerivedClass.IceTypeId));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyDerivedClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r2.M1);
@@ -105,18 +103,17 @@ namespace IceRpc.Tests.Encoding
                         MyDerivedClass.IceTypeId,
                         MyBaseClass.IceTypeId));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyBaseClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>());
         }
 
-        [TestCase("1.1")]
-        public void Slicing_Classes_WithCompactTypeId(string encodingStr)
+        [Test]
+        public void Slicing_Classes_WithCompactTypeId()
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -131,7 +128,7 @@ namespace IceRpc.Tests.Encoding
             });
 
             // First we unmarshal the class using the default factories, no Slicing should occur in this case.
-            var decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            var decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             MyCompactMostDerivedClass r = decoder.DecodeClass<MyCompactMostDerivedClass>();
             Assert.AreEqual(p1.M1, r.M1);
             Assert.AreEqual(p1.M2, r.M2);
@@ -142,9 +139,9 @@ namespace IceRpc.Tests.Encoding
             var slicingClassFactory = new SlicingClassFactory(
                 classFactory,
                 slicedClassCompactTypeIds: ImmutableList.Create(3));
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactMostDerivedClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
             Assert.That(r1.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r1.M1);
@@ -154,9 +151,9 @@ namespace IceRpc.Tests.Encoding
             slicingClassFactory = slicingClassFactory = new SlicingClassFactory(
                 classFactory,
                 slicedClassCompactTypeIds: ImmutableList.Create(3, 2));
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactDerivedClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual(p1.M1, r2.M1);
@@ -165,19 +162,17 @@ namespace IceRpc.Tests.Encoding
             slicingClassFactory = slicingClassFactory = new SlicingClassFactory(
                 classFactory,
                 slicedClassCompactTypeIds: ImmutableList.Create(3, 2, 1));
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactBaseClass>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.DoesNotThrow(() => decoder.DecodeClass<AnyClass>());
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void Slicing_Exceptions(string encodingStr)
+        [Test]
+        public void Slicing_Exceptions()
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
@@ -192,7 +187,7 @@ namespace IceRpc.Tests.Encoding
             });
 
             // First we unmarshal the exception using the factory that knows all the types, no Slicing should occur in this case.
-            var decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            var decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             RemoteException r = decoder.DecodeException();
             Assert.That(r.SlicedData, Is.Null);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
@@ -207,7 +202,7 @@ namespace IceRpc.Tests.Encoding
                 classFactory,
                 slicedExceptionTypeIds: ImmutableList.Create("::IceRpc::Tests::Encoding::MyMostDerivedException"));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
 
             r = decoder.DecodeException();
             Assert.That(r.SlicedData, Is.Not.Null);
@@ -224,7 +219,7 @@ namespace IceRpc.Tests.Encoding
                     "::IceRpc::Tests::Encoding::MyMostDerivedException",
                     "::IceRpc::Tests::Encoding::MyDerivedException"));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             r = decoder.DecodeException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
@@ -240,17 +235,17 @@ namespace IceRpc.Tests.Encoding
                     "::IceRpc::Tests::Encoding::MyDerivedException",
                     "::IceRpc::Tests::Encoding::MyBaseException"));
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             r = decoder.DecodeException();
             Assert.That(r.SlicedData, Is.Not.Null);
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
 
             // Marshal the exception again to ensure all Slices are correctly preserved
-            encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
             data = encoder.Finish().Span[0];
 
-            decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             r = decoder.DecodeException();
             Assert.That(r.SlicedData, Is.Null);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
@@ -260,13 +255,11 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(p1.M3, r1.M3);
         }
 
-        [TestCase("1.1")]
-        [TestCase("2.0")]
-        public void Slicing_PreservedClasses(string encodingStr)
+        [Test]
+        public void Slicing_PreservedClasses()
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -282,21 +275,21 @@ namespace IceRpc.Tests.Encoding
                 classFactory,
                 slicedClassTypeIds: ImmutableList.Create(MyPreservedDerivedClass1.IceTypeId));
 
-            var decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            var decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyPreservedDerivedClass1>());
 
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
             Assert.That(r1.SlicedData, Is.Not.Null);
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             data = encoder.Finish().Span[0];
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
-            decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             MyPreservedDerivedClass1 r2 = decoder.DecodeClass<MyPreservedDerivedClass1>();
             Assert.That(r2.SlicedData, Is.Null);
             Assert.AreEqual("p1-m1", r2.M1);
@@ -308,12 +301,11 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual("base", r3.M3.M1);
         }
 
-        [TestCase("1.1")]
-        public void Slicing_PreservedClasses_WithCompactTypeId(string encodingStr)
+        [Test]
+        public void Slicing_PreservedClasses_WithCompactTypeId()
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
             byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -329,19 +321,19 @@ namespace IceRpc.Tests.Encoding
                 classFactory,
                 slicedClassCompactTypeIds: ImmutableList.Create(56));
 
-            var decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            var decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyPreservedDerivedClass2>());
-            decoder = new IceDecoder(data, encoding, classFactory: slicingClassFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: slicingClassFactory);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
 
             // Marshal the sliced class
             buffer = new byte[1024 * 1024];
-            encoder = new IceEncoder(encoding, buffer, classFormat: FormatType.Sliced);
+            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             data = encoder.Finish().Span[0];
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
-            decoder = new IceDecoder(data, encoding, classFactory: classFactory);
+            decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             MyPreservedDerivedClass2 r2 = decoder.DecodeClass<MyPreservedDerivedClass2>();
             Assert.AreEqual("p1-m1", r2.M1);
             Assert.AreEqual("p1-m2", r2.M2);

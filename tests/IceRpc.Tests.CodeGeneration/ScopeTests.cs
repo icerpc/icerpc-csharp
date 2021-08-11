@@ -16,10 +16,10 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly Scope.IOperationsPrx _prx1;
-        private readonly Scope.Inner.IOperationsPrx _prx2;
-        private readonly Scope.Inner.Inner2.IOperationsPrx _prx3;
-        private readonly Scope.Inner.Test.Inner2.IOperationsPrx _prx4;
+        private readonly Scope.OperationsPrx _prx1;
+        private readonly Scope.Inner.OperationsPrx _prx2;
+        private readonly Scope.Inner.Inner2.OperationsPrx _prx3;
+        private readonly Scope.Inner.Test.Inner2.OperationsPrx _prx4;
 
         public ScopeTests()
         {
@@ -44,9 +44,13 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
             _prx1 = Scope.OperationsPrx.FromConnection(_connection);
+            _prx1.Proxy.Encoding = Encoding.Ice11; // TODO: segregate use of classes
             _prx2 = Scope.Inner.OperationsPrx.FromConnection(_connection);
+            _prx2.Proxy.Encoding = Encoding.Ice11;
             _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(_connection);
+            _prx3.Proxy.Encoding = Encoding.Ice11;
             _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(_connection);
+            _prx4.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

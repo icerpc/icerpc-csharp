@@ -45,8 +45,11 @@ namespace IceRpc.Tests.Encoding
             };
 
             _sliced = SlicedFormatOperationsPrx.FromConnection(_connection);
+            _sliced.Proxy.Encoding = IceRpc.Encoding.Ice11;
             _compact = CompactFormatOperationsPrx.FromConnection(_connection);
+            _compact.Proxy.Encoding = IceRpc.Encoding.Ice11;
             _classformat = ClassFormatOperationsPrx.FromConnection(_connection);
+            _classformat.Proxy.Encoding = IceRpc.Encoding.Ice11;
         }
 
         [OneTimeTearDown]
@@ -223,6 +226,7 @@ namespace IceRpc.Tests.Encoding
             };
 
             var prx = ClassGraphOperationsPrx.FromConnection(connection);
+            prx.Proxy.Encoding = IceRpc.Encoding.Ice11;
             await prx.IcePingAsync();
             Assert.AreEqual(clientClassGraphMaxDepth, connection.ClassGraphMaxDepth);
             if (graphSize > clientClassGraphMaxDepth)

@@ -978,7 +978,10 @@ namespace IceRpc
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
         {
-            _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+            if (_bufferVector.Length > 0)
+            {
+                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+            }
             return _bufferVector;
         }
 
