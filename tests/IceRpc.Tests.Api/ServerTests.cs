@@ -15,6 +15,11 @@ namespace IceRpc.Tests.Api
         public async Task Server_Exceptions()
         {
             {
+                await using var server = new Server();
+                Assert.AreEqual(Endpoint.FromString("ice+tcp://[::0]"), server.Endpoint);
+            }
+
+            {
                 await using var server = new Server
                 {
                     Endpoint = "tcp -h foo -p 10000"
