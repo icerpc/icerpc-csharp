@@ -65,7 +65,7 @@ namespace IceRpc.Configure
         {
             if (_dispatcher != null)
             {
-                throw new InvalidOperationException("cannot call Map after calling DispatchAsync");
+                throw new InvalidOperationException($"cannot call {nameof(Map)} after calling {nameof(DispatchAsync)}");
             }
             IceUriParser.CheckPath(path, nameof(path));
             _exactMatchRoutes[path] = dispatcher;
