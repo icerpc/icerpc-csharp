@@ -179,11 +179,7 @@ namespace IceRpc
 
             internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
-                cancel.Register(
-                    () =>
-                    {
-                        _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
-                    });
+                cancel.Register(() => _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader));
 
                 while (true)
                 {

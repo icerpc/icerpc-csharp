@@ -12,14 +12,13 @@ namespace IceRpc.Transports.Internal
     /// <summary>The IListener implementation for the colocated transport.</summary>
     internal class ColocListener : IListener
     {
-        public Endpoint Endpoint => _endpoint;
+        public Endpoint Endpoint { get; }
 
         /// <summary>A dictionary that keeps track of all coloc listeners.</summary>
         private static readonly IDictionary<Endpoint, ColocListener> _colocListenerDictionary =
             new ConcurrentDictionary<Endpoint, ColocListener>();
 
         private readonly Channel<(long, ColocChannelWriter, ColocChannelReader)> _channel;
-        private readonly Endpoint _endpoint;
         private readonly ILogger _logger;
         // The next ID to assign to an accepted ColocatedSocket. This ID is used for tracing purpose only.
         private long _nextId;
@@ -30,16 +29,16 @@ namespace IceRpc.Transports.Internal
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);
 
-            return new ColocConnection(_endpoint, id, writer, reader, _options, _logger);
+            return new ColocConnection(Endpoint, id, writer, reader, _options, _logger);
         }
 
         public void Dispose()
         {
             _channel.Writer.Complete();
-            _colocListenerDictionary.Remove(_endpoint);
+            _colocListenerDictionary.Remove(Endpoint);
         }
 
-        public override string ToString() => $"{base.ToString()} {_endpoint}";
+        public override string ToString() => $"{base.ToString()} {Endpoint}";
 
         internal static bool TryGetValue(
             Endpoint endpoint,
@@ -53,7 +52,7 @@ namespace IceRpc.Transports.Internal
                 throw new FormatException($"unknown parameter '{endpoint.Params[0].Name}' in endpoint '{endpoint}'");
             }
 
-            _endpoint = endpoint;
+            Endpoint = endpoint;
             _logger = logger;
             _options = options;
 
@@ -69,7 +68,7 @@ namespace IceRpc.Transports.Internal
                     AllowSynchronousContinuations = false
                 });
 
-            if (!_colocListenerDictionary.TryAdd(_endpoint, this))
+            if (!_colocListenerDictionary.TryAdd(Endpoint, this))
             {
                 throw new TransportException($"endpoint '{endpoint}' is already in use");
             }

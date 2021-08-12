@@ -12,7 +12,7 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the UDP transport.</summary>
     public class UdpClientTransport : IClientTransport
     {
-        private UdpOptions _options;
+        private readonly UdpOptions _options;
 
         /// <summary>Constructs a <see cref="UdpClientTransport"/> that use the default <see cref="UdpOptions"/>.
         /// </summary>
