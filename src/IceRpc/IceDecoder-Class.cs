@@ -73,7 +73,7 @@ namespace IceRpc
                 do
                 {
                     // The type ID is always decoded for an exception and cannot be null.
-                    (string? typeId, _) = DecodeSliceHeaderIntoCurrent11();
+                    string? typeId = DecodeSliceHeaderIntoCurrent11();
                     Debug.Assert(typeId != null);
 
                     DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
@@ -343,7 +343,7 @@ namespace IceRpc
                 do
                 {
                     // Decode the slice header.
-                    (string? typeId, int? compactId) = DecodeSliceHeaderIntoCurrent11();
+                    string? typeId = DecodeSliceHeaderIntoCurrent11();
 
                     // We cannot decode the indirection table at this point as it may reference the new instance that is
                     // not created yet.
@@ -351,12 +351,8 @@ namespace IceRpc
                     {
                         instance = _classFactory.CreateClassInstance(typeId);
                     }
-                    else if (compactId is int compactIdValue)
-                    {
-                        instance = _classFactory.CreateClassInstance(compactIdValue);
-                    }
 
-                    if (instance == null && SkipSlice(typeId, compactId)) // Slice off what we don't understand.
+                    if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
                     {
                         instance = new UnknownSlicedClass();
                         // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.
@@ -479,20 +475,18 @@ namespace IceRpc
 
         /// <summary>Decodes the header of the current slice into _current.</summary>
         /// <returns>The type ID or the compact ID of the current slice.</returns>
-        private (string? TypeId, int? CompactId) DecodeSliceHeaderIntoCurrent11()
+        private string? DecodeSliceHeaderIntoCurrent11()
         {
             _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
 
             string? typeId;
-            int? compactId = null;
-
-            // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact ID,
-            // for exceptions it's always encoded as a string.
+            // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
+            // ID, for exceptions it's always encoded as a string.
             if (_current.InstanceType == InstanceType.Class)
             {
-                (typeId, compactId) = DecodeTypeId11(_current.SliceFlags.GetTypeIdKind());
+                typeId = DecodeTypeId11(_current.SliceFlags.GetTypeIdKind());
 
-                if (typeId == null && compactId == null)
+                if (typeId == null)
                 {
                     if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
                     {
@@ -521,7 +515,7 @@ namespace IceRpc
             _current.IndirectionTable = null;
             _current.PosAfterIndirectionTable = null;
 
-            return (typeId, compactId);
+            return typeId;
         }
 
         /// <summary>Decodes the size of the current slice.</summary>
@@ -539,8 +533,8 @@ namespace IceRpc
 
         /// <summary>Decodes the type ID of a class instance.</summary>
         /// <param name="typeIdKind">The kind of type ID to decode.</param>
-        /// <returns>The type ID and the compact ID, if any.</returns>
-        private (string? TypeId, int? CompactId) DecodeTypeId11(EncodingDefinitions.TypeIdKind typeIdKind)
+        /// <returns>The type ID or the compact ID, if any.</returns>
+        private string? DecodeTypeId11(EncodingDefinitions.TypeIdKind typeIdKind)
         {
             _typeIdMap11 ??= new List<string>();
 
@@ -551,7 +545,7 @@ namespace IceRpc
                     if (index > 0 && index - 1 < _typeIdMap11.Count)
                     {
                         // The encoded type-id indexes start at 1, not 0.
-                        return (_typeIdMap11[index - 1], null);
+                        return _typeIdMap11[index - 1];
                     }
                     throw new InvalidDataException($"decoded invalid type ID index {index}");
 
@@ -567,15 +561,15 @@ namespace IceRpc
                         _posAfterLatestInsertedTypeId11 = Pos;
                         _typeIdMap11.Add(typeId);
                     }
-                    return (typeId, null);
+                    return typeId;
 
                 case EncodingDefinitions.TypeIdKind.CompactId11:
-                    return (null, DecodeSize());
+                    return DecodeSize().ToString(CultureInfo.InvariantCulture);
 
                 default:
                     // TypeIdKind has only 4 possible values.
                     Debug.Assert(typeIdKind == EncodingDefinitions.TypeIdKind.None);
-                    return (null, null);
+                    return null;
             }
         }
 
@@ -636,25 +630,19 @@ namespace IceRpc
 
         /// <summary>Skips and saves the body of the current slice; also skips and save the indirection table (if any).
         /// </summary>
-        /// <param name="typeId">The type ID of the current slice.</param>
-        /// <param name="compactId">The compact ID of the current slice.</param>
+        /// <param name="typeId">The type ID or compact ID of the current slice.</param>
         /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
-        private bool SkipSlice(string? typeId, int? compactId = null)
+        private bool SkipSlice(string? typeId)
         {
-            // With the 2.0 encoding, typeId is not null and compactId is always null.
-            // With the 1.1 encoding, they are potentially both null (but this will result in an exception below).
-            Debug.Assert(OldEncoding || (typeId != null && compactId == null));
-
-            if (typeId == null && compactId == null)
+            if (typeId == null)
             {
                 throw new InvalidDataException("cannot skip a class slice with no type ID");
             }
 
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
             {
-                string printableId = typeId ?? compactId?.ToString(CultureInfo.InvariantCulture) ?? "(none)";
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
-                throw new InvalidDataException(@$"no {kind} found for type ID '{printableId
+                throw new InvalidDataException(@$"no {kind} found for type ID '{typeId
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
@@ -709,8 +697,7 @@ namespace IceRpc
             }
 
             _current.Slices ??= new List<SliceInfo>();
-            var info = new SliceInfo(typeId ?? "",
-                                     compactId,
+            var info = new SliceInfo(typeId,
                                      new ReadOnlyMemory<byte>(bytes),
                                      Array.AsReadOnly(_current.IndirectionTable ?? Array.Empty<AnyClass>()),
                                      hasTaggedMembers);

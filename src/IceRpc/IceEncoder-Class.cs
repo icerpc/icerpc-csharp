@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace IceRpc
 {
@@ -261,8 +262,22 @@ namespace IceRpc
                 }
                 else
                 {
+                    // If TypeId is a compact ID, extract it.
+                    int? compactId = null;
+                    if (!sliceInfo.TypeId.StartsWith("::"))
+                    {
+                        try
+                        {
+                            compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
+                        }
+                        catch (FormatException ex)
+                        {
+                            throw new InvalidDataException($"received invalid type ID {sliceInfo.TypeId}", ex);
+                        }
+                    }
+
                     // With the 1.1 encoding in sliced format, IceStartNextSlice is the same as IceStartFirstSlice.
-                    IceStartNextSlice(sliceInfo.TypeId, sliceInfo.CompactId);
+                    IceStartNextSlice(sliceInfo.TypeId, compactId);
                 }
 
                 // Writes the bytes associated with this slice.
