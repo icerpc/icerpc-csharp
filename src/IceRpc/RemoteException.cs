@@ -89,7 +89,7 @@ namespace IceRpc
         /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
         /// otherwise.</param>
         protected virtual void IceEncode(IceEncoder encoder, bool firstSlice) =>
-            encoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+            encoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>());
 
         internal void Encode(IceEncoder encoder) => IceEncode(encoder, true);
     }

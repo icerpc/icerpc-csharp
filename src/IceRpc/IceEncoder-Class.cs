@@ -60,71 +60,75 @@ namespace IceRpc
             }
         }
 
+        public void IceStartException(string typeId, RemoteException exception)
+        {
+            if (OldEncoding)
+            {
+                if (_current.InstanceType == InstanceType.None)
+                {
+                    _current.InstanceType = InstanceType.Exception;
+                    IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
+                }
+                else
+                {
+                    Debug.Assert(_current.InstanceType == InstanceType.Exception);
+                    IceStartNextSlice(typeId);
+                }
+            }
+            else
+            {
+                EncodeString(typeId);
+                EncodeString(exception.Message);
+                exception.Origin.Encode(this);
+            }
+        }
+
+        public void IceEndException() => IceEndSlice(true);
+
         /// <summary>Starts encoding the first slice of a class or exception instance. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
         /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
         /// most derived to least derived.</param>
         /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
-        /// <param name="errorMessage">The exception error message (provided only by exceptions).</param>
-        /// <param name="origin">The exception origin (provided only by exceptions).</param>
         /// <param name="compactTypeId ">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartFirstSlice(
-            string[] allTypeIds,
-            SlicedData? slicedData = null,
-            string? errorMessage = null,
-            RemoteExceptionOrigin? origin = null,
-            int? compactTypeId = null)
+        public void IceStartFirstSlice(string[] allTypeIds, SlicedData? slicedData = null, int? compactTypeId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
+            Debug.Assert(OldEncoding);
 
-            if (OldEncoding)
+            if (slicedData is SlicedData slicedDataValue)
             {
-                if (slicedData is SlicedData slicedDataValue)
+                bool firstSliceWritten = false;
+                try
                 {
-                    bool firstSliceWritten = false;
-                    try
-                    {
-                        // WriteSlicedData calls IceStartFirstSlice.
-                        EncodeSlicedData(slicedDataValue, allTypeIds, errorMessage, origin);
-                        firstSliceWritten = true;
-                    }
-                    catch (NotSupportedException)
-                    {
-                        // For some reason we could not re-encode the sliced data; firstSliceWritten remains false.
-                    }
-                    if (firstSliceWritten)
-                    {
-                        IceStartNextSlice(allTypeIds[0], compactTypeId);
-                        return;
-                    }
-                    // else keep going, we're still encoding the first slice and we're ignoring slicedData.
+                    // WriteSlicedData calls IceStartFirstSlice.
+                    EncodeSlicedData(slicedDataValue, allTypeIds);
+                    firstSliceWritten = true;
                 }
-
-                if (_classFormat == FormatType.Sliced)
+                catch (NotSupportedException)
                 {
-                    // With the 1.1 encoding in sliced format, all the slice headers are the same.
+                    // For some reason we could not re-encode the sliced data; firstSliceWritten remains false.
+                }
+                if (firstSliceWritten)
+                {
                     IceStartNextSlice(allTypeIds[0], compactTypeId);
+                    return;
                 }
-                else
-                {
-                    _current.SliceFlags = default;
-                    _current.SliceFlagsPos = _tail;
-                    EncodeByte(0); // Placeholder for the slice flags
-                    EncodeTypeId11(allTypeIds[0], compactTypeId);
-                }
+                // else keep going, we're still encoding the first slice and we're ignoring slicedData.
+            }
+
+            if (_classFormat == FormatType.Sliced)
+            {
+                // With the 1.1 encoding in sliced format, all the slice headers are the same.
+                IceStartNextSlice(allTypeIds[0], compactTypeId);
             }
             else
             {
-                // for now, we use this code to encode 2.0 exceptions
-
-                Debug.Assert(_current.InstanceType == InstanceType.Exception);
-                Debug.Assert(allTypeIds.Length == 1);
-                EncodeString(allTypeIds[0]);
-                Debug.Assert(errorMessage != null);
-                EncodeString(errorMessage);
-                Debug.Assert(origin != null);
-                origin.Value.Encode(this);
+                _current.SliceFlags = default;
+                _current.SliceFlagsPos = _tail;
+                EncodeByte(0); // Placeholder for the slice flags
+                EncodeTypeId11(allTypeIds[0], compactTypeId);
             }
         }
 
@@ -188,7 +192,6 @@ namespace IceRpc
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_classFormat == FormatType.Sliced);
-            _current.InstanceType = InstanceType.Exception;
             v.Encode(this);
             _current = default;
         }
@@ -211,13 +214,9 @@ namespace IceRpc
         /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="slicedData">The sliced-off slices to encode.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
-        /// <param name="errorMessage">For exceptions, the exception's error message.</param>
-        /// <param name="origin">For exceptions, the exception's origin.</param>
         internal void EncodeSlicedData(
             SlicedData slicedData,
-            string[] baseTypeIds,
-            string? errorMessage = null,
-            RemoteExceptionOrigin? origin = null)
+            string[] baseTypeIds)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 

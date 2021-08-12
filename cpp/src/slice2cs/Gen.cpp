@@ -1652,7 +1652,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "encoder.IceStartFirstSlice(_iceAllTypeIds, IceSlicedData, errorMessage: Message, origin: Origin);";
+    _out << nl << "encoder.IceStartException(_iceAllTypeIds[0], this);";
     _out << eb;
     _out << nl << "else";
     _out << sb;
@@ -1667,7 +1667,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     }
     else
     {
-        _out << nl << "encoder.IceEndSlice(true);"; // this is the last slice.
+        _out << nl << "encoder.IceEndException();"; // this is the last slice.
     }
     _out << eb;
 
