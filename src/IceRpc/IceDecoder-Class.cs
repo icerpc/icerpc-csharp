@@ -301,31 +301,9 @@ namespace IceRpc
         /// is not the first (most derived) slice.</summary>
         private void DecodeNextSliceHeaderIntoCurrent()
         {
-            if (OldEncoding)
-            {
-                // With the 1.1 encoding, each slice header in sliced format contains a type ID - we decode it and
-                // ignore it.
-                _ = DecodeSliceHeaderIntoCurrent11();
-            }
-            else
-            {
-                _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
-                if (_current.SliceFlags.GetTypeIdKind() != EncodingDefinitions.TypeIdKind.None)
-                {
-                    throw new InvalidDataException(
-                        $"invalid type ID kind '{_current.SliceFlags.GetTypeIdKind()}' for next slice");
-                }
-
-                // Decode the slice size if available.
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
-                {
-                    _current.SliceSize = DecodeSize();
-                }
-                else
-                {
-                    _current.SliceSize = 0;
-                }
-            }
+            // With the 1.1 encoding, each slice header in sliced format contains a type ID - we decode it and
+            // ignore it.
+            _ = DecodeSliceHeaderIntoCurrent11();
         }
 
         /// <summary>Decodes the header of the current slice into _current.</summary>
