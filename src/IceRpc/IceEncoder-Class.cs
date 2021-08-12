@@ -233,47 +233,26 @@ namespace IceRpc
                     } into payload encoded with encoding {Encoding}");
             }
 
-            bool firstSliceWithNewEncoding = !OldEncoding;
-
             for (int i = 0; i < slicedData.Slices.Count; ++i)
             {
                 SliceInfo sliceInfo = slicedData.Slices[i];
 
-                if (firstSliceWithNewEncoding)
+                // If TypeId is a compact ID, extract it.
+                int? compactId = null;
+                if (!sliceInfo.TypeId.StartsWith("::"))
                 {
-                    firstSliceWithNewEncoding = false;
-
-                    string[] allTypeIds = new string[slicedData.Slices.Count + baseTypeIds.Length];
-                    for (int j = 0; j < slicedData.Slices.Count; ++j)
+                    try
                     {
-                        allTypeIds[j] = slicedData.Slices[j].TypeId;
+                        compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
                     }
-                    if (baseTypeIds.Length > 0)
+                    catch (FormatException ex)
                     {
-                        baseTypeIds.CopyTo(allTypeIds, slicedData.Slices.Count);
+                        throw new InvalidDataException($"received invalid type ID {sliceInfo.TypeId}", ex);
                     }
-
-                    IceStartFirstSlice(allTypeIds, errorMessage: errorMessage, origin: origin);
                 }
-                else
-                {
-                    // If TypeId is a compact ID, extract it.
-                    int? compactId = null;
-                    if (!sliceInfo.TypeId.StartsWith("::"))
-                    {
-                        try
-                        {
-                            compactId = int.Parse(sliceInfo.TypeId, CultureInfo.InvariantCulture);
-                        }
-                        catch (FormatException ex)
-                        {
-                            throw new InvalidDataException($"received invalid type ID {sliceInfo.TypeId}", ex);
-                        }
-                    }
 
-                    // With the 1.1 encoding in sliced format, IceStartNextSlice is the same as IceStartFirstSlice.
-                    IceStartNextSlice(sliceInfo.TypeId, compactId);
-                }
+                // With the 1.1 encoding in sliced format, IceStartNextSlice is the same as IceStartFirstSlice.
+                IceStartNextSlice(sliceInfo.TypeId, compactId);
 
                 // Writes the bytes associated with this slice.
                 WriteByteSpan(sliceInfo.Bytes.Span);
