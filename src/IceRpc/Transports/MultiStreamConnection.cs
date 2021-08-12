@@ -3,14 +3,11 @@
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Security;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {

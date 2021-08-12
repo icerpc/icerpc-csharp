@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc
 {
     /// <summary>UnknownSlicedClass represents a fully sliced class instance. The local Ice runtime does not known this

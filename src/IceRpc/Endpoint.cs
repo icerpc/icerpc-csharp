@@ -2,11 +2,8 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 
 namespace IceRpc

@@ -3,8 +3,6 @@
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {

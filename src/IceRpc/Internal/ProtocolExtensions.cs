@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc.Internal
 {
     /// <summary>Parser that creates protocol instances.</summary>

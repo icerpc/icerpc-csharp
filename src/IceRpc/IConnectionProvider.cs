@@ -1,10 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace IceRpc
 {
     /// <summary>Provides connections to the <see cref="BinderInterceptor"/> interceptor.</summary>

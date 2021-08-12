@@ -22,10 +22,10 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateClassInstance(MyClassC.IceTypeId), Is.Null);
             Assert.That(factory.CreateClassInstance(MyClassD.IceTypeId), Is.Null);
 
-            Assert.That(factory.CreateClassInstance(1), Is.Null);
-            Assert.That(factory.CreateClassInstance(2), Is.Null);
-            Assert.That(factory.CreateClassInstance(3), Is.Null);
-            Assert.That(factory.CreateClassInstance(4), Is.Null);
+            Assert.That(factory.CreateClassInstance("1"), Is.Null);
+            Assert.That(factory.CreateClassInstance("2"), Is.Null);
+            Assert.That(factory.CreateClassInstance("3"), Is.Null);
+            Assert.That(factory.CreateClassInstance("4"), Is.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionB", "", default), Is.Null);
@@ -39,11 +39,11 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateClassInstance(MyClassC.IceTypeId), Is.Null);
             Assert.That(factory.CreateClassInstance(MyClassD.IceTypeId), Is.Null);
 
-            Assert.That(factory.CreateClassInstance(1), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("1"), Is.Not.Null);
 
-            Assert.That(factory.CreateClassInstance(2), Is.Null);
-            Assert.That(factory.CreateClassInstance(3), Is.Null);
-            Assert.That(factory.CreateClassInstance(4), Is.Null);
+            Assert.That(factory.CreateClassInstance("2"), Is.Null);
+            Assert.That(factory.CreateClassInstance("3"), Is.Null);
+            Assert.That(factory.CreateClassInstance("4"), Is.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Not.Null);
 
@@ -63,11 +63,11 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateClassInstance(MyClassC.IceTypeId), Is.Null);
             Assert.That(factory.CreateClassInstance(MyClassD.IceTypeId), Is.Null);
 
-            Assert.That(factory.CreateClassInstance(1), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(2), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("1"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("2"), Is.Not.Null);
 
-            Assert.That(factory.CreateClassInstance(3), Is.Null);
-            Assert.That(factory.CreateClassInstance(4), Is.Null);
+            Assert.That(factory.CreateClassInstance("3"), Is.Null);
+            Assert.That(factory.CreateClassInstance("4"), Is.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Not.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionB", "", default), Is.Not.Null);
@@ -88,11 +88,11 @@ namespace IceRpc.Tests.Api
 
             Assert.That(factory.CreateClassInstance(MyClassD.IceTypeId), Is.Null);
 
-            Assert.That(factory.CreateClassInstance(1), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(2), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(3), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("1"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("2"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("3"), Is.Not.Null);
 
-            Assert.That(factory.CreateClassInstance(4), Is.Null);
+            Assert.That(factory.CreateClassInstance("4"), Is.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Not.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionB", "", default), Is.Not.Null);
@@ -113,10 +113,10 @@ namespace IceRpc.Tests.Api
             Assert.That(factory.CreateClassInstance(MyClassC.IceTypeId), Is.Not.Null);
             Assert.That(factory.CreateClassInstance(MyClassD.IceTypeId), Is.Not.Null);
 
-            Assert.That(factory.CreateClassInstance(1), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(2), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(3), Is.Not.Null);
-            Assert.That(factory.CreateClassInstance(4), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("1"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("2"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("3"), Is.Not.Null);
+            Assert.That(factory.CreateClassInstance("4"), Is.Not.Null);
 
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionA", "", default), Is.Not.Null);
             Assert.That(factory.CreateRemoteException("::IceRpc::Tests::Api::MyExceptionB", "", default), Is.Not.Null);

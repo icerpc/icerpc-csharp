@@ -2,8 +2,6 @@
 
 using IceRpc.Transports;
 using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {

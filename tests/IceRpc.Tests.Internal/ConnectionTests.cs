@@ -3,14 +3,11 @@
 using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System;
 using System.Collections.Immutable;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {

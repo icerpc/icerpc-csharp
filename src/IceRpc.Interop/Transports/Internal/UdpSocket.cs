@@ -2,15 +2,12 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
@@ -60,7 +57,7 @@ namespace IceRpc.Transports.Internal
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
-            return (ttl == _ttl && multicastInterface == _multicastInterface);
+            return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)

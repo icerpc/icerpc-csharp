@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Collections.Generic;
-
 namespace IceRpc.Internal
 {
     /// <summary>This class contains extensions methods to compute sequences hash code.</summary>
