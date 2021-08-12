@@ -29,6 +29,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
+
+            // TODO: should test without classes too
+            _prx.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

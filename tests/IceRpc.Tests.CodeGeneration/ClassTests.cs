@@ -14,8 +14,8 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly IClassOperationsPrx _prx;
-        private readonly IClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
+        private readonly ClassOperationsPrx _prx;
+        private readonly ClassOperationsUnexpectedClassPrx _prxUnexpectedClass;
 
         public ClassTests(Protocol protocol)
         {
@@ -51,7 +51,9 @@ namespace IceRpc.Tests.CodeGeneration
             };
 
             _prx = ClassOperationsPrx.FromConnection(_connection);
+            _prx.Proxy.Encoding = Encoding.Ice11;
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
+            _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

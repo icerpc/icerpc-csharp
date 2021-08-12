@@ -13,7 +13,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly INamespaceMDOperationsPrx _prx;
+        private readonly NamespaceMDOperationsPrx _prx;
 
         public NamespaceMetadataTests()
         {
@@ -31,6 +31,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
             _prx = NamespaceMDOperationsPrx.FromConnection(_connection);
+            _prx.Proxy.Encoding = Encoding.Ice11; // because we use classes for this test
         }
 
         [Test]

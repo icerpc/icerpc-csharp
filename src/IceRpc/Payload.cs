@@ -176,13 +176,13 @@ namespace IceRpc
             Dispatch dispatch,
             DecodeFunc<T> decodeFunc)
         {
-            if (payload.Length == 0)
-            {
-                throw new ArgumentException("invalid empty payload", nameof(payload));
-            }
-
             if (dispatch.Encoding == Encoding.Ice20)
             {
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+
                 if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
                 {
                     throw new ArgumentException("cannot read compressed payload");
@@ -216,12 +216,13 @@ namespace IceRpc
             Connection connection,
             IInvoker? invoker)
         {
-            if (payload.Length == 0)
-            {
-                throw new ArgumentException("invalid empty payload", nameof(payload));
-            }
             if (payloadEncoding == Encoding.Ice20)
             {
+                if (payload.Length == 0)
+                {
+                    throw new ArgumentException("invalid empty payload", nameof(payload));
+                }
+
                 if ((CompressionFormat)payload.Span[0] != CompressionFormat.NotCompressed)
                 {
                     throw new ArgumentException("cannot read compressed payload");
