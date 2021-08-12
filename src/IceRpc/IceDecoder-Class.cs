@@ -17,16 +17,20 @@ namespace IceRpc
         {
             // Note that IceEndSlice is not called when we call SkipSlice.
             Debug.Assert(_current.InstanceType != InstanceType.None);
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
+
+            if (OldEncoding)
             {
-                SkipTaggedParams();
-            }
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
-            {
-                Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
-                Pos = _current.PosAfterIndirectionTable.Value;
-                _current.PosAfterIndirectionTable = null;
-                _current.IndirectionTable = null;
+                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
+                {
+                    SkipTaggedParams();
+                }
+                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+                {
+                    Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
+                    Pos = _current.PosAfterIndirectionTable.Value;
+                    _current.PosAfterIndirectionTable = null;
+                    _current.IndirectionTable = null;
+                }
             }
         }
 
@@ -88,39 +92,13 @@ namespace IceRpc
             }
             else
             {
-                // The type IDs are always decoded and cannot be null or empty.
-                string[] allTypeIds;
-                (allTypeIds, errorMessage, origin) = DecodeFirstSliceHeaderIntoCurrent20();
-                Debug.Assert(allTypeIds.Length > 0 && errorMessage != null);
-                bool firstSlice = true;
-
-                foreach (string typeId in allTypeIds)
-                {
-                    if (firstSlice)
-                    {
-                        firstSlice = false;
-                    }
-                    else
-                    {
-                        DecodeNextSliceHeaderIntoCurrent();
-                    }
-                    DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
-
-                    remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
-                    if (remoteEx != null)
-                    {
-                        break; // Break foreach loop
-                    }
-                    else if (SkipSlice(typeId))
-                    {
-                        // It should be the last element of allTypeIds; if it's not, we'll fail when decoding the slices.
-                        break;
-                    }
-                    // else, loop.
-                }
+                string typeId = DecodeString();
+                errorMessage = DecodeString();
+                origin = new RemoteExceptionOrigin(this);
+                remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
             }
 
-            remoteEx ??= new RemoteException(errorMessage);
+            remoteEx ??= new RemoteException(errorMessage); // TODO: keep origin?
             remoteEx.Decode(this);
 
             _current = default;
