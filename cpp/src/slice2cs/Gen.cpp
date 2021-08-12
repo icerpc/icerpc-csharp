@@ -1648,22 +1648,15 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << eb;
 
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder, bool firstSlice)";
-    _out << sb;
-    _out << nl << "if (firstSlice)";
+    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder)";
     _out << sb;
     _out << nl << "encoder.IceStartException(_iceAllTypeIds[0], this);";
-    _out << eb;
-    _out << nl << "else";
-    _out << sb;
-    _out << nl << "encoder.IceStartNextSlice(_iceAllTypeIds[0]);";
-    _out << eb;
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
 
     if(base)
     {
         _out << nl << "encoder.IceEndSlice(false);"; // the current slice is not last slice
-        _out << nl << "base.IceEncode(encoder, false);"; // the next one is not the first slice
+        _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
