@@ -142,13 +142,9 @@ namespace IceRpc
             _current.SliceFlagsPos = _tail;
             EncodeByte(0); // Placeholder for the slice flags
 
-            if (OldEncoding && _classFormat == FormatType.Sliced)
-            {
-                EncodeTypeId11(typeId, compactId);
-            }
-
             if (_classFormat == FormatType.Sliced)
             {
+                EncodeTypeId11(typeId, compactId);
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
                 _current.SliceSizePos = StartFixedLengthSize();

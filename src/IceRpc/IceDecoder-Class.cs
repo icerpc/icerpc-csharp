@@ -208,6 +208,7 @@ namespace IceRpc
         /// seen class; if 1, the class's bytes are next. Cannot be 0 or less.</param>
         private AnyClass DecodeInstance(int index)
         {
+            Debug.Assert(OldEncoding);
             Debug.Assert(index > 0);
 
             if (index > 1)
@@ -232,62 +233,55 @@ namespace IceRpc
             AnyClass? instance = null;
             _instanceMap ??= new List<AnyClass>();
 
-            if (OldEncoding)
+            bool decodeIndirectionTable = true;
+            do
             {
-                bool decodeIndirectionTable = true;
-                do
+                // Decode the slice header.
+                string? typeId = DecodeSliceHeaderIntoCurrent11();
+
+                // We cannot decode the indirection table at this point as it may reference the new instance that is
+                // not created yet.
+                if (typeId != null)
                 {
-                    // Decode the slice header.
-                    string? typeId = DecodeSliceHeaderIntoCurrent11();
-
-                    // We cannot decode the indirection table at this point as it may reference the new instance that is
-                    // not created yet.
-                    if (typeId != null)
-                    {
-                        instance = _classFactory.CreateClassInstance(typeId);
-                    }
-
-                    if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
-                    {
-                        instance = new UnknownSlicedClass();
-                        // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.
-                        decodeIndirectionTable = false;
-                    }
-                }
-                while (instance == null);
-
-                // Add the instance to the map/list of instances. This must be done before decoding the instances (for
-                // circular references).
-                _instanceMap.Add(instance);
-
-                // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
-                if (_current.DeferredIndirectionTableList11?.Count > 0)
-                {
-                    int savedPos = Pos;
-
-                    Debug.Assert(_current.Slices?.Count == _current.DeferredIndirectionTableList11.Count);
-                    for (int i = 0; i < _current.DeferredIndirectionTableList11.Count; ++i)
-                    {
-                        int pos = _current.DeferredIndirectionTableList11[i];
-                        if (pos > 0)
-                        {
-                            Pos = pos;
-                            _current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
-                        }
-                        // else remains empty
-                    }
-
-                    Pos = savedPos;
+                    instance = _classFactory.CreateClassInstance(typeId);
                 }
 
-                if (decodeIndirectionTable)
+                if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
-                    DecodeIndirectionTableIntoCurrent();
+                    instance = new UnknownSlicedClass();
+                    // Don't decode the indirection table as it's the last entry in DeferredIndirectionTableList11.
+                    decodeIndirectionTable = false;
                 }
             }
-            else
+            while (instance == null);
+
+            // Add the instance to the map/list of instances. This must be done before decoding the instances (for
+            // circular references).
+            _instanceMap.Add(instance);
+
+            // Decode all the deferred indirection tables now that the instance is inserted in _instanceMap.
+            if (_current.DeferredIndirectionTableList11?.Count > 0)
             {
-                Debug.Assert(false);
+                int savedPos = Pos;
+
+                Debug.Assert(_current.Slices?.Count == _current.DeferredIndirectionTableList11.Count);
+                for (int i = 0; i < _current.DeferredIndirectionTableList11.Count; ++i)
+                {
+                    int pos = _current.DeferredIndirectionTableList11[i];
+                    if (pos > 0)
+                    {
+                        Pos = pos;
+                        _current.Slices[i].Instances = Array.AsReadOnly(DecodeIndirectionTable());
+                    }
+                    // else remains empty
+                }
+
+                Pos = savedPos;
+            }
+
+            if (decodeIndirectionTable)
+            {
+                DecodeIndirectionTableIntoCurrent();
             }
 
             instance.Decode(this);
@@ -467,6 +461,7 @@ namespace IceRpc
         /// <returns>True when the current slice is the last slice; otherwise, false.</returns>
         private bool SkipSlice(string? typeId)
         {
+            Debug.Assert(OldEncoding);
             if (typeId == null)
             {
                 throw new InvalidDataException("cannot skip a class slice with no type ID");
@@ -505,9 +500,7 @@ namespace IceRpc
 
             // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
             // _current.DeferredIndirectionTableList11 for later decoding.
-            // For exceptions and with the 2.0 encoding, we always decode the indirection table before calling SkipSlice
-            // (if there is an indirection table), hence no need for a DeferredIndirectionTableList.
-            if (OldEncoding && _current.InstanceType == InstanceType.Class)
+            if (_current.InstanceType == InstanceType.Class)
             {
                 _current.DeferredIndirectionTableList11 ??= new List<int>();
                 if (hasIndirectionTable)
