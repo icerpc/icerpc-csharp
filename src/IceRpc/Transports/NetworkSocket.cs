@@ -1,11 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
-using System;
 using System.Net.Security;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {

@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Globalization;

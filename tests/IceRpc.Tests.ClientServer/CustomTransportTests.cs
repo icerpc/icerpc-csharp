@@ -3,8 +3,6 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {

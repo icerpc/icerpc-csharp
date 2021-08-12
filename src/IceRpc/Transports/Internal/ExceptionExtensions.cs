@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace IceRpc.Transports.Internal
 {

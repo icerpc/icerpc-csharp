@@ -3,7 +3,6 @@
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {

@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace IceRpc

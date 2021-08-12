@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc.Transports
 {
     /// <summary>This exception reports that the provided transport is unknown or unregistered.</summary>

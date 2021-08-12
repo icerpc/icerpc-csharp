@@ -2,8 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Threading;
 
 namespace IceRpc.Configure
 {

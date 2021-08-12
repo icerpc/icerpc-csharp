@@ -2,8 +2,6 @@
 
 using NUnit.Framework;
 using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace IceRpc.Tests.Encoding
 {
