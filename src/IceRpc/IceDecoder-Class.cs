@@ -98,7 +98,7 @@ namespace IceRpc
                 remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
             }
 
-            remoteEx ??= new RemoteException(errorMessage); // TODO: keep origin?
+            remoteEx ??= new RemoteException(errorMessage, origin);
             remoteEx.Decode(this);
 
             _current = default;
