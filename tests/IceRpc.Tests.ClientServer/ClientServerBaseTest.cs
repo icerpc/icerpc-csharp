@@ -2,7 +2,6 @@
 
 using NUnit.Framework;
 using System.Globalization;
-using System.Threading;
 
 namespace IceRpc.Tests.ClientServer
 {

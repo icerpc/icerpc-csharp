@@ -2,7 +2,6 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -11,8 +10,6 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {

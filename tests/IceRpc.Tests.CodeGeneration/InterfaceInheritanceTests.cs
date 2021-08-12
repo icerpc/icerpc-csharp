@@ -3,9 +3,6 @@
 using IceRpc.Configure;
 using IceRpc.Tests.CodeGeneration.InterfaceInheritance;
 using NUnit.Framework;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {

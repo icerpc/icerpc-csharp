@@ -1,10 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace IceRpc
 {
     /// <summary>A binder interceptor is responsible for providing connections to requests using an

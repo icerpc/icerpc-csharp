@@ -1,9 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace IceRpc
 {
     /// <summary>A middleware that publishes dispatch metrics using a dispatch event source.</summary>

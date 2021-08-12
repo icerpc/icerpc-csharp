@@ -1,8 +1,5 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace IceRpc
 {
     /// <summary>A middleware that sets <see cref="IncomingRequest.ProxyInvoker"/> and indirectly

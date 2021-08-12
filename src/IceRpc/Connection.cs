@@ -6,12 +6,8 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {

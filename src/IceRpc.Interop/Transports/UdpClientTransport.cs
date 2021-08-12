@@ -2,7 +2,6 @@
 
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
