@@ -57,7 +57,7 @@ namespace IceRpc.Transports.Internal
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             (_, int ttl, string? multicastInterface) = remoteEndpoint.ParseUdpParams();
-            return (ttl == _ttl && multicastInterface == _multicastInterface);
+            return ttl == _ttl && multicastInterface == _multicastInterface;
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)

@@ -136,14 +136,14 @@ namespace IceRpc.Internal
                 string msg;
                 if (pos > 0)
                 {
-                    msg = "character after '" + s.Substring(0, pos) + "'";
+                    msg = string.Concat("character after '", s.AsSpan(0, pos), "'");
                 }
                 else
                 {
                     msg = "first character";
                 }
                 msg += " is not a printable ASCII character (ordinal " + (int)c + ")";
-                throw new System.ArgumentException(msg);
+                throw new ArgumentException(msg);
             }
             return c;
         }

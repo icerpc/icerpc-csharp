@@ -189,7 +189,7 @@ namespace IceRpc
         /// <param name="path">The path.</param>
         /// <param name="protocol">The protocol.</param>
         /// <returns>The new proxy.</returns>
-        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2) => new Proxy(path, protocol);
+        public static Proxy FromPath(string path, Protocol protocol = Protocol.Ice2) => new(path, protocol);
 
         /// <summary>Creates a proxy from a string and an invoker.</summary>
         /// <param name="s">The string to parse.</param>
