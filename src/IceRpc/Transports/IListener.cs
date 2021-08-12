@@ -1,8 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.Threading.Tasks;
-
 namespace IceRpc.Transports
 {
     /// <summary>A listener listens for connection requests from clients. It creates a server connection when it accepts

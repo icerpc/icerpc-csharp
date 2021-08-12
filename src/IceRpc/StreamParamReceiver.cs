@@ -2,12 +2,8 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -183,11 +179,7 @@ namespace IceRpc
 
             internal async IAsyncEnumerable<T> ReadAsync([EnumeratorCancellation] CancellationToken cancel = default)
             {
-                cancel.Register(
-                    () =>
-                    {
-                        _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader);
-                    });
+                cancel.Register(() => _rpcStream.AbortRead(RpcStreamError.StreamingCanceledByReader));
 
                 while (true)
                 {

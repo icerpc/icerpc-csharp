@@ -2,9 +2,7 @@
 
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {

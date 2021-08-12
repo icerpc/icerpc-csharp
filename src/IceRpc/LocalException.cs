@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc
 {
     /// <summary>This exception reports that a proxy has no endpoint or no usable endpoint.</summary>
