@@ -37,17 +37,8 @@ namespace IceRpc
                 // Encodes the slice size if necessary.
                 if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
                 {
-                    if (OldEncoding)
-                    {
-                        // Size includes the size length.
-                        EncodeFixedLengthSize11(Distance(_current.SliceSizePos), _current.SliceSizePos);
-                    }
-                    else
-                    {
-                        // Size does not include the size length.
-                        EncodeFixedLengthSize20(Distance(_current.SliceSizePos) - DefaultSizeLength,
-                            _current.SliceSizePos);
-                    }
+                    // Size includes the size length.
+                    EncodeFixedLengthSize11(Distance(_current.SliceSizePos), _current.SliceSizePos);
                 }
 
                 if (_current.IndirectionTable?.Count > 0)
@@ -398,55 +389,6 @@ namespace IceRpc
                 Debug.Assert(compactId == null);
                 // With the 1.1 encoding, we always encode a string and don't set a type ID kind in SliceFlags.
                 EncodeString(typeId);
-            }
-
-            _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;
-        }
-
-        /// <summary>Encodes the type ID or type ID sequence immediately after the slice flags byte of the first slice,
-        /// and updates the slice flags byte as needed. Applies formal type optimization (class only), if possible.
-        /// </summary>
-        /// <param name="allTypeIds">The type IDs of all slices of this class or exception instance.</param>
-        /// <param name="errorMessage">The exception's error message. Provided only for exceptions.</param>
-        /// <param name="origin">The exception's origin. Provided only for exceptions.</param>
-        private void EncodeTypeId20(string[] allTypeIds, string? errorMessage, RemoteExceptionOrigin? origin)
-        {
-            Debug.Assert(_current.InstanceType != InstanceType.None);
-
-            EncodingDefinitions.TypeIdKind typeIdKind = EncodingDefinitions.TypeIdKind.None;
-
-            if (_current.InstanceType == InstanceType.Class)
-            {
-                string typeId = allTypeIds[0];
-                int index = RegisterTypeId(typeId);
-                if (index < 0)
-                {
-                    if (_classFormat == FormatType.Sliced)
-                    {
-                        typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                        EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
-                    }
-                    else
-                    {
-                        typeIdKind = EncodingDefinitions.TypeIdKind.String;
-                        EncodeString(typeId);
-                    }
-                }
-                else
-                {
-                    typeIdKind = EncodingDefinitions.TypeIdKind.Index;
-                    EncodeSize(index);
-                }
-            }
-            else
-            {
-                typeIdKind = EncodingDefinitions.TypeIdKind.Sequence20;
-                EncodeSequence(allTypeIds, (encoder, value) => encoder.EncodeString(value));
-
-                Debug.Assert(errorMessage != null);
-                EncodeString(errorMessage);
-                Debug.Assert(origin != null);
-                origin.Value.Encode(this);
             }
 
             _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;
