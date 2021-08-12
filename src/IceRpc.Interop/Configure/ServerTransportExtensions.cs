@@ -11,11 +11,8 @@ namespace IceRpc.Configure
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The server transport being configured.</param>
         /// <returns>The server transport being configured.</returns>
-        public static ServerTransport UseInteropUdp(this ServerTransport serverTransport)
-        {
-            serverTransport.Add(TransportNames.Udp, new UdpServerTransport());
-            return serverTransport;
-        }
+        public static ServerTransport UseInteropUdp(this ServerTransport serverTransport) =>
+            serverTransport.UseInteropUdp(new UdpOptions());
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The composite server transport being configured.</param>
@@ -23,7 +20,7 @@ namespace IceRpc.Configure
         /// <returns>The server transport being configured.</returns>
         public static ServerTransport UseInteropUdp(this ServerTransport serverTransport, UdpOptions options)
         {
-            serverTransport.Add(TransportNames.Udp, new UdpServerTransport(options));
+            serverTransport.Add(TransportNames.Udp, Protocol.Ice1, new UdpServerTransport(options));
             return serverTransport;
         }
     }
