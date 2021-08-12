@@ -64,14 +64,14 @@ namespace IceRpc
         {
             if (OldEncoding)
             {
-                if (_current.InstanceType == InstanceType.None)
+                Debug.Assert(_current.InstanceType == InstanceType.Exception);
+                if (_current.FirstSlice)
                 {
-                    _current.InstanceType = InstanceType.Exception;
+                    _current.FirstSlice = false;
                     IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
                 }
                 else
                 {
-                    Debug.Assert(_current.InstanceType == InstanceType.Exception);
                     IceStartNextSlice(typeId);
                 }
             }
@@ -192,6 +192,7 @@ namespace IceRpc
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_classFormat == FormatType.Sliced);
+            _current.InstanceType = InstanceType.Exception;
             v.Encode(this);
             _current = default;
         }
@@ -373,6 +374,8 @@ namespace IceRpc
             // The following fields are used and reused for all the slices of a class or exception instance.
 
             internal InstanceType InstanceType;
+
+            internal bool FirstSlice;
 
             // The following fields are used for the current slice:
 
