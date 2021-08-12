@@ -22,7 +22,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransport().UseTcp().UseSsl().UseColoc();
+            new ServerTransport().UseTcp().UseColoc().UseInteropTcp().UseInteropColoc();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();

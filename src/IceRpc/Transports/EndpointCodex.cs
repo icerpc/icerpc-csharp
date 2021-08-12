@@ -77,7 +77,7 @@ namespace IceRpc.Transports
                 }
                 else
                 {
-                    throw new UnknownTransportException(endpoint.Transport);
+                    throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol);
                 }
             }
         }
