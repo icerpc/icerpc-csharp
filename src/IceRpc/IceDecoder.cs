@@ -77,9 +77,8 @@ namespace IceRpc
         // Map of type ID index to type ID sequence, used only for classes.
         // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
         // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
-        // _typeIdMap[index - 1]. With the 2.0 encoding, each entry has at least 1 element.
+        // _typeIdMap[index - 1].
         private List<string>? _typeIdMap11;
-        private List<string[]>? _typeIdMap20;
 
         // Decode methods for basic types
 

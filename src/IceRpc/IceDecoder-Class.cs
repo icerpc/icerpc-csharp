@@ -160,89 +160,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes the header of the first (and current) slice of a class/exception instance into _current.
-        /// </summary>
-        /// <returns>A non-empty array of type IDs. With the compact format, this array contains a single element. Also
-        /// returns an error message for remote exceptions.</returns>
-        private (string[] AllTypeIds, string? ErrorMessage, RemoteExceptionOrigin Origin) DecodeFirstSliceHeaderIntoCurrent20()
-        {
-            string[]? typeIds;
-            string? errorMessage = null;
-            RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
-
-            _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
-            EncodingDefinitions.TypeIdKind typeIdKind = _current.SliceFlags.GetTypeIdKind();
-
-            if (_current.InstanceType == InstanceType.Class)
-            {
-                _typeIdMap20 ??= new List<string[]>();
-
-                switch (typeIdKind)
-                {
-                    case EncodingDefinitions.TypeIdKind.Index:
-                        int index = DecodeSize();
-                        if (index > 0 && index - 1 < _typeIdMap20.Count)
-                        {
-                            // The encoded type-id indexes start at 1, not 0.
-                            typeIds = _typeIdMap20[index - 1];
-                        }
-                        else
-                        {
-                            throw new InvalidDataException($"decoded invalid type ID index {index}");
-                        }
-                        break;
-
-                    case EncodingDefinitions.TypeIdKind.String:
-                        typeIds = new string[] { DecodeString() };
-                        _typeIdMap20.Add(typeIds);
-                        break;
-
-                    case EncodingDefinitions.TypeIdKind.Sequence20:
-                        typeIds = DecodeArray(1, decoder => decoder.DecodeString());
-                        if (typeIds.Length == 0)
-                        {
-                            throw new InvalidDataException("received empty type ID sequence");
-                        }
-                        _typeIdMap20.Add(typeIds);
-                        break;
-
-                    default:
-                        // TypeIdKind cannot have another value.
-                        throw new InvalidDataException($"unexpected type ID kind {typeIdKind}");
-                }
-            }
-            else
-            {
-                // Exception
-                if (typeIdKind == EncodingDefinitions.TypeIdKind.Sequence20)
-                {
-                    typeIds = DecodeArray(1, decoder => decoder.DecodeString());
-                    if (typeIds.Length == 0)
-                    {
-                        throw new InvalidDataException("received empty type ID sequence");
-                    }
-                }
-                else
-                {
-                    throw new InvalidDataException(
-                        $"the type IDs for an exception cannot be encoded using {typeIdKind}");
-                }
-                errorMessage = DecodeString();
-                origin = new RemoteExceptionOrigin(this);
-            }
-
-            // Decode the slice size if available.
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
-            {
-                _current.SliceSize = DecodeSize();
-            }
-            else
-            {
-                _current.SliceSize = 0;
-            }
-            return (typeIds, errorMessage, origin);
-        }
-
         /// <summary>Decodes an indirection table without updating _current.</summary>
         /// <returns>The indirection table.</returns>
         private AnyClass[] DecodeIndirectionTable()
@@ -370,47 +287,7 @@ namespace IceRpc
             }
             else
             {
-                // With the 2.0 encoding, we don't need a DeferredIndirectionTableList because all the type IDs are
-                // provided by the first slice (when using the sliced format).
-
-                (string[] allTypeIds, _, _) = DecodeFirstSliceHeaderIntoCurrent20();
-                int skipCount = 0;
-                foreach (string typeId in allTypeIds)
-                {
-                    instance = _classFactory.CreateClassInstance(typeId);
-                    if (instance != null)
-                    {
-                        break; // foreach
-                    }
-                    else
-                    {
-                        skipCount++;
-                    }
-                }
-
-                instance ??= new UnknownSlicedClass();
-
-                _instanceMap.Add(instance);
-                DecodeIndirectionTableIntoCurrent(); // decode the indirection table immediately
-
-                for (int i = 0; i < skipCount; ++i)
-                {
-                    // SkipSlice saves the slice data including the current indirection table, if any.
-                    if (SkipSlice(allTypeIds[i]))
-                    {
-                        if (i != skipCount - 1)
-                        {
-                            throw new InvalidDataException(
-                                "class slice marked as the last slice is not the last slice");
-                        }
-                        break;
-                    }
-                    else
-                    {
-                        DecodeNextSliceHeaderIntoCurrent();
-                        DecodeIndirectionTableIntoCurrent();
-                    }
-                }
+                Debug.Assert(false);
             }
 
             instance.Decode(this);
