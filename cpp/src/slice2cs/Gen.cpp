@@ -1650,20 +1650,26 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder)";
     _out << sb;
-    _out << nl << "encoder.IceStartException(_iceAllTypeIds[0], this);";
+    if (base)
+    {
+        _out << nl << "encoder.IceStartDerivedException(_iceAllTypeIds[0], this);";
+    }
+    else
+    {
+        _out << nl << "encoder.IceStartException(_iceAllTypeIds[0], this);";
+    }
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
 
-    if(base)
+    if (base)
     {
-        _out << nl << "encoder.IceEndSlice(false);"; // the current slice is not last slice
+        _out << nl << "encoder.IceEndDerivedException();"; // the current exception has a parent
         _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
-        _out << nl << "encoder.IceEndException();"; // this is the last slice.
+        _out << nl << "encoder.IceEndException();"; // no Slice base exception
     }
     _out << eb;
-
     _out << eb;
 }
 

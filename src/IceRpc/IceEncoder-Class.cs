@@ -85,6 +85,17 @@ namespace IceRpc
 
         public void IceEndException() => IceEndSlice(true);
 
+        public void IceStartDerivedException(string typeId, RemoteException exception)
+        {
+            Debug.Assert(OldEncoding);
+            IceStartException(typeId, exception);
+        }
+        public void IceEndDerivedException()
+        {
+            Debug.Assert(OldEncoding);
+            IceEndSlice(false);
+        }
+
         /// <summary>Starts encoding the first slice of a class or exception instance. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
         /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
