@@ -56,7 +56,7 @@ namespace IceRpc.Internal
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedIce1RequestBatchFrame,
             EventName = nameof(ProtocolEventIds.ReceivedIce1RequestBatchFrame),
-            Level = LogLevel.Information,
+            Level = LogLevel.Debug,
             Message = "received batch request (RequestCount={RequestCount})")]
         internal static partial void LogReceivedIce1RequestBatchFrame(this ILogger logger, int requestCount);
 
@@ -71,6 +71,33 @@ namespace IceRpc.Internal
                 logger.LogReceivedInitializeFrame(connection.PeerIncomingFrameMaxSize!.Value);
             }
         }
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEventIds.ReceivedRequestFrame,
+            EventName = nameof(ProtocolEventIds.ReceivedRequestFrame),
+            Level = LogLevel.Debug,
+            Message = "received request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        internal static partial void LogReceivedRequestFrame(
+            this ILogger logger,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEventIds.ReceivedResponseFrame,
+            EventName = nameof(ProtocolEventIds.ReceivedResponseFrame),
+            Level = LogLevel.Debug,
+            Message = "received response frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
+        internal static partial void LogReceivedResponseFrame(
+            this ILogger logger,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding,
+            ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentGoAwayCanceledFrame,
@@ -114,15 +141,29 @@ namespace IceRpc.Internal
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.SentRequestFrame,
             EventName = nameof(ProtocolEventIds.SentRequestFrame),
-            Level = LogLevel.Information,
-            Message = "sent request (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+            Level = LogLevel.Debug,
+            Message = "sent request frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
                       "PayloadEncoding={PayloadEncoding})")]
-        internal static partial void LogSentRequest(
+        internal static partial void LogSentRequestFrame(
             this ILogger logger,
             string path,
             string operation,
             int payloadSize,
             Encoding payloadEncoding);
+
+        [LoggerMessage(
+            EventId = (int)ProtocolEventIds.SentResponseFrame,
+            EventName = nameof(ProtocolEventIds.SentResponseFrame),
+            Level = LogLevel.Debug,
+            Message = "sent response frame (Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding}, ResultType={ResultType})")]
+        internal static partial void LogSentResponseFrame(
+            this ILogger logger,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding,
+            ResultType resultType);
 
         [LoggerMessage(
             EventId = (int)ProtocolEventIds.ReceivedGoAwayFrame,

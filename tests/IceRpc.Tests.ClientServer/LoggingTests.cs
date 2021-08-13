@@ -46,12 +46,12 @@ namespace IceRpc.Tests.ClientServer
             int[] eventIds = new int[] {
                 (int)TransportEventIds.ConnectionConnectFailed,
                 (int)RetryInterceptorEventIds.RetryRequest,
-                (int)LoggerInterceptorEventIds.RequestException
+                (int)LoggerInterceptorEventIds.InvokeException
             };
 
             foreach (JsonDocument entry in logEntries)
             {
-                string expectedLogLevel = GetEventId(entry) == (int)LoggerInterceptorEventIds.RequestException ?
+                string expectedLogLevel = GetEventId(entry) == (int)LoggerInterceptorEventIds.InvokeException ?
                      "Information" : "Debug";
 
                 Assert.AreEqual(expectedLogLevel, GetLogLevel(entry));
@@ -182,7 +182,7 @@ namespace IceRpc.Tests.ClientServer
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
                     Assert.That(GetMessage(entry).StartsWith("sending request", StringComparison.Ordinal), Is.True);
-                    JsonElement[] scopes = GetScopes(entry);
+                    Assert.That(GetScopes(entry), Is.Empty);
                 }
                 else if (eventId == (int)LoggerInterceptorEventIds.ReceivedResponse)
                 {
@@ -205,6 +205,86 @@ namespace IceRpc.Tests.ClientServer
                     Assert.Fail($"Unexpected event {eventId}");
                 }
             }
+        }
+
+        /// <summary>Check that the protocol and transport logging contains the expected output for colocated, and non
+        /// colocated invocations.</summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Logging_RequestException(bool colocated)
+        {
+            using var writer = new StringWriter();
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
+                writer,
+                builder => builder.AddFilter("IceRpc", LogLevel.Information));
+            var pipeline = new Pipeline();
+            pipeline.UseLogger(loggerFactory);
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                _ = next.InvokeAsync(request, cancel);
+                throw new ArgumentException();
+            }));
+
+            var router = new Router();
+            // router.Map<IGreeter>(new Greeter());
+            router.Mount("/", new InlineDispatcher((request, cancel) =>
+            {
+                throw new ArgumentException();
+            }));
+            router.UseLogger(loggerFactory);
+            // router.Use(next => new InlineDispatcher((request, cancel) =>
+            // {
+            //     _ = next.DispatchAsync(request, cancel);
+            //     throw new ArgumentException();
+            // }));
+            await using Server server = CreateServer(colocated, portNumber: 2, router);
+            server.Listen();
+
+            await using var connection = new Connection
+            {
+                LoggerFactory = loggerFactory,
+                RemoteEndpoint = server.Endpoint,
+            };
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
+
+            Assert.ThrowsAsync<ArgumentException>(async () => await service.IcePingAsync());
+            writer.Flush();
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
+
+            var events = new List<int>();
+            // The order of sending/received requests and response logs is not deterministic.
+            bool invokeException = false;
+            bool dispatchException = false;
+            foreach (JsonDocument entry in logEntries)
+            {
+                int eventId = GetEventId(entry);
+                events.Add(eventId);
+                CollectionAssert.AllItemsAreUnique(events);
+
+                if (eventId == (int)LoggerMiddlewareEventIds.DispatchException)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("request dispatch", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
+                    dispatchException = true;
+                }
+                else if (eventId == (int)LoggerInterceptorEventIds.InvokeException)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("request invocation", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
+                    invokeException = true;
+                }
+                else
+                {
+                    // Ignore
+                }
+            }
+
+            Assert.That(invokeException, Is.True);
+            Assert.That(dispatchException, Is.True);
         }
 
         private static ILoggerFactory CreateLoggerFactory(TextWriter writer, Action<ILoggingBuilder> loggerBuilder) =>

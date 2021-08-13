@@ -40,7 +40,7 @@ namespace IceRpc
             }
             catch (Exception ex)
             {
-                _logger.LogRequestException(request.Connection, request.Path, request.Operation, ex);
+                _logger.LogInvokeException(request.Connection, request.Path, request.Operation, ex);
                 throw;
             }
         }
@@ -49,6 +49,24 @@ namespace IceRpc
     /// <summary>This class contains the ILogger extension methods for logging logger interceptor messages.</summary>
     internal static partial class LoggerInterceptorLoggerExtensions
     {
+        internal static void LogInvokeException(
+            this ILogger logger,
+            Connection? connection,
+            string path,
+            string operation,
+            Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInvokeException(
+                    connection?.LocalEndpoint?.ToString() ?? "undefined",
+                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    path,
+                    operation,
+                    ex);
+            }
+        }
+
         internal static void LogReceivedResponse(
             this ILogger logger,
             Connection? connection,
@@ -64,24 +82,6 @@ namespace IceRpc
                     path,
                     operation,
                     resultType);
-            }
-        }
-
-        internal static void LogRequestException(
-            this ILogger logger,
-            Connection? connection,
-            string path,
-            string operation,
-            Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogRequestException(
-                    connection?.LocalEndpoint?.ToString() ?? "undefined",
-                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
-                    path,
-                    operation,
-                    ex);
             }
         }
 
@@ -106,6 +106,20 @@ namespace IceRpc
         }
 
         [LoggerMessage(
+            EventId = (int)LoggerInterceptorEventIds.InvokeException,
+            EventName = nameof(LoggerInterceptorEventIds.InvokeException),
+            Level = LogLevel.Information,
+            Message = "request invocation exception (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+                      "Path={Path}, Operation={Operation})")]
+        private static partial void LogInvokeException(
+            this ILogger logger,
+            string localEndpoint,
+            string remoteEndpoint,
+            string path,
+            string operation,
+            Exception ex);
+
+        [LoggerMessage(
             EventId = (int)LoggerInterceptorEventIds.ReceivedResponse,
             EventName = nameof(LoggerInterceptorEventIds.ReceivedResponse),
             Level = LogLevel.Information,
@@ -118,20 +132,6 @@ namespace IceRpc
             string path,
             string operation,
             ResultType resultType);
-
-        [LoggerMessage(
-            EventId = (int)LoggerInterceptorEventIds.RequestException,
-            EventName = nameof(LoggerInterceptorEventIds.RequestException),
-            Level = LogLevel.Information,
-            Message = "request exception (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                      "Path={Path}, Operation={Operation})")]
-        private static partial void LogRequestException(
-            this ILogger logger,
-            string localEndpoint,
-            string remoteEndpoint,
-            string path,
-            string operation,
-            Exception ex);
 
         [LoggerMessage(
             EventId = (int)LoggerInterceptorEventIds.SendingRequest,

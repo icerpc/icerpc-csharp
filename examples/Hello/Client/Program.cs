@@ -2,10 +2,9 @@
 
 using Demo;
 using IceRpc;
+using IceRpc.Configure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Diagnostics;
 
 IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true)
@@ -35,8 +34,8 @@ await using var connection = new Connection
 };
 
 var pipeline = new Pipeline();
-pipeline.Use(Interceptors.CustomTelemetry(new Interceptors.TelemetryOptions { LoggerFactory = loggerFactory}));
-pipeline.Use(Interceptors.Logger(loggerFactory));
+pipeline.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory});
+pipeline.UseLogger(loggerFactory);
 
 IHelloPrx twoway = HelloPrx.FromConnection(connection, invoker: pipeline);
 

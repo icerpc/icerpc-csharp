@@ -28,22 +28,48 @@ namespace IceRpc
                                        request.Operation,
                                        request.PayloadSize,
                                        request.PayloadEncoding);
-            OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
-            if (!request.IsOneway)
+            try
             {
-                _logger.LogSendingResponse(request.Connection,
-                                           request.Path,
-                                           request.Operation,
-                                           response.ResultType,
-                                           response.PayloadSize,
-                                           response.PayloadEncoding);
+                OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
+                if (!request.IsOneway)
+                {
+                    _logger.LogSendingResponse(request.Connection,
+                                               request.Path,
+                                               request.Operation,
+                                               response.ResultType,
+                                               response.PayloadSize,
+                                               response.PayloadEncoding);
+                }
+                return response;
             }
-            return response;
+            catch (Exception ex)
+            {
+                _logger.LogDispatchException(request.Connection, request.Path, request.Operation, ex);
+                throw;
+            }
         }
     }
 
     internal static partial class LoggerMiddlewareLoggerExtensions
     {
+        internal static void LogDispatchException(
+            this ILogger logger,
+            Connection? connection,
+            string path,
+            string operation,
+            Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogDispatchException(
+                    connection?.LocalEndpoint?.ToString() ?? "undefined",
+                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    path,
+                    operation,
+                    ex);
+            }
+        }
+
         internal static void LogReceivedRequest(
             this ILogger logger,
             Connection? connection,
@@ -85,6 +111,20 @@ namespace IceRpc
                     payloadEncoding);
             }
         }
+
+        [LoggerMessage(
+            EventId = (int)LoggerMiddlewareEventIds.DispatchException,
+            EventName = nameof(LoggerMiddlewareEventIds.DispatchException),
+            Level = LogLevel.Information,
+            Message = "request dispatch exception (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+                      "Path={Path}, Operation={Operation})")]
+        private static partial void LogDispatchException(
+            this ILogger logger,
+            string localEndpoint,
+            string remoteEndpoint,
+            string path,
+            string operation,
+            Exception ex);
 
         [LoggerMessage(
             EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
