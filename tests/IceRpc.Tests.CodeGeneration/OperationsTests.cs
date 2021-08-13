@@ -21,7 +21,7 @@ namespace IceRpc.Tests.CodeGeneration
         {
             var classFactory = new ClassFactory(new Assembly[] { typeof(OperationsTests).Assembly });
 
-            string serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new Operations(),

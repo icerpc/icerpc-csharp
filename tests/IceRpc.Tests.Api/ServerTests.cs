@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                string endpoint = TestHelper.GetUniqueColocEndpoint();
+                Endpoint endpoint = TestHelper.GetUniqueColocEndpoint();
                 await using var server1 = new Server
                 {
                     Endpoint = endpoint
@@ -250,7 +250,7 @@ namespace IceRpc.Tests.Api
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
         {
             using var semaphore = new SemaphoreSlim(0);
-            string serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>

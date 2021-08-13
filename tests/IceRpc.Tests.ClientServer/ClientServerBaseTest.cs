@@ -22,7 +22,7 @@ namespace IceRpc.Tests.ClientServer
             _basePort = Interlocked.Add(ref _nextBasePort, 15) + basePort;
         }
 
-        public string GetTestEndpoint(
+        public Endpoint GetTestEndpoint(
             string host = "127.0.0.1",
             int port = 0,
             string transport = "tcp",

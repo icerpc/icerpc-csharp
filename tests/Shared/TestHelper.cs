@@ -15,7 +15,7 @@ namespace IceRpc.Tests
                 _ => address.Contains(':', StringComparison.InvariantCulture) ? $"[{address}]" : address
             };
 
-        public static string GetTestEndpoint(
+        public static Endpoint GetTestEndpoint(
              string host = "127.0.0.1",
              int port = 0,
              string transport = "tcp",
@@ -60,16 +60,16 @@ namespace IceRpc.Tests
             }
         }
 
-        public static string GetUniqueColocEndpoint(Protocol protocol = Protocol.Ice2) =>
+        public static Endpoint GetUniqueColocEndpoint(Protocol protocol = Protocol.Ice2) =>
             protocol == Protocol.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
                 $"coloc -h test.{Interlocked.Increment(ref _counter)}";
 
         public static IServerTransport CreateServerTransport(Endpoint endpoint, object? options = null) =>
             endpoint.Transport switch
             {
-                "tcp" => new TcpServerTransport(options as TcpOptions ?? new TcpOptions()),
-                "ssl" => new TcpServerTransport(options as TcpOptions ?? new TcpOptions()),
-                "udp" => new UdpServerTransport(options as UdpOptions ?? new UdpOptions()),
+                "tcp" => new TcpServerTransport((TcpOptions?)options ?? new TcpOptions()),
+                "ssl" => new TcpServerTransport((TcpOptions?)options ?? new TcpOptions()),
+                "udp" => new UdpServerTransport((UdpOptions?)options ?? new UdpOptions()),
                 "coloc" => new ColocServerTransport(),
                 _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
             };
@@ -77,9 +77,9 @@ namespace IceRpc.Tests
         public static IClientTransport CreateClientTransport(Endpoint endpoint, object? options = null) =>
             endpoint.Transport switch
             {
-                "tcp" => new TcpClientTransport(options as TcpOptions ?? new TcpOptions()),
-                "ssl" => new TcpClientTransport(options as TcpOptions ?? new TcpOptions()),
-                "udp" => new UdpClientTransport(options as UdpOptions ?? new UdpOptions()),
+                "tcp" => new TcpClientTransport((TcpOptions?)options ?? new TcpOptions()),
+                "ssl" => new TcpClientTransport((TcpOptions?)options ?? new TcpOptions()),
+                "udp" => new UdpClientTransport((UdpOptions?)options ?? new UdpOptions()),
                 "coloc" => new ColocClientTransport(),
                 _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
             };

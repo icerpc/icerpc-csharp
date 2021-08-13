@@ -121,7 +121,7 @@ namespace IceRpc.Tests.CodeGeneration
             Protocol protocol,
             Func<IEnumOperationsPrx, Task> closure)
         {
-            string serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             await using var server = new Server
             {
                 Dispatcher = new EnumOperations(),

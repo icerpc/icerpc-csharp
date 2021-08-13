@@ -17,7 +17,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public DictionaryTests(Protocol protocol)
         {
-            string serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new DictionaryOperations(),

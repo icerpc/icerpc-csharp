@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests()
         {
-            _pool = new ConnectionPool()
+            _pool = new ConnectionPool
             {
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
                 ConnectionOptions = new ClientConnectionOptions()

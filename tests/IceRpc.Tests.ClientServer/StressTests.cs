@@ -23,7 +23,7 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Servant = new StressTest();
-            string serverEndpoint = GetTestEndpoint(protocol: Protocol, transport: Transport);
+            Endpoint serverEndpoint = GetTestEndpoint(protocol: Protocol, transport: Transport);
             Server = new Server
             {
                 Dispatcher = Servant,
