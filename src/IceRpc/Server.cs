@@ -6,12 +6,7 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -22,7 +17,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransportBuilder().UseTcp().UseSsl().UseColoc().UseUdp().Build();
+            new ServerTransport().UseTcp().UseColoc().UseInteropTcp().UseInteropSsl().UseInteropColoc();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();
@@ -34,9 +29,9 @@ namespace IceRpc
         public IDispatcher? Dispatcher { get; set; }
 
         /// <summary>Gets or sets the endpoint of this server.</summary>
-        /// <value>The endpoint of this server, for example <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
+        /// <value>The endpoint of this server, by default <c>ice+tcp://[::0]</c>.The endpoint's host is usually an
         /// IP address, and it cannot be a DNS name.</value>
-        public Endpoint? Endpoint
+        public Endpoint Endpoint
         {
             get => _endpoint;
             set
@@ -76,7 +71,7 @@ namespace IceRpc
 
         private readonly HashSet<Connection> _connections = new();
 
-        private Endpoint? _endpoint;
+        private Endpoint _endpoint = "ice+tcp://[::0]";
 
         private IListener? _listener;
 
@@ -110,11 +105,6 @@ namespace IceRpc
                 if (_listening)
                 {
                     throw new InvalidOperationException($"server '{this}' is already listening");
-                }
-
-                if (_endpoint == null)
-                {
-                    throw new InvalidOperationException("server has no endpoint");
                 }
 
                 if (_shutdownTask != null)

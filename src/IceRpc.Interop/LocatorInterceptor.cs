@@ -1,13 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Interop;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {

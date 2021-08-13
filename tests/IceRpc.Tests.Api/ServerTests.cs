@@ -2,9 +2,6 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {
@@ -14,6 +11,11 @@ namespace IceRpc.Tests.Api
         [Test]
         public async Task Server_Exceptions()
         {
+            {
+                await using var server = new Server();
+                Assert.AreEqual(Endpoint.FromString("ice+tcp://[::0]"), server.Endpoint);
+            }
+
             {
                 await using var server = new Server
                 {

@@ -3,8 +3,6 @@
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -28,7 +26,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                throw new UnknownTransportException($"Unknown transport {remoteEndpoint.Transport}");
+                throw new UnknownTransportException(remoteEndpoint.Transport, remoteEndpoint.Protocol);
             }
         }
     }
@@ -52,7 +50,7 @@ namespace IceRpc.Tests.ClientServer
             }
             else
             {
-                throw new UnknownTransportException($"Unknown transport {endpoint.Transport}");
+                throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol);
             }
         }
     }

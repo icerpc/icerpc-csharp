@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 

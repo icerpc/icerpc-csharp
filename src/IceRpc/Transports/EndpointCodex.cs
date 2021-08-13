@@ -1,16 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
 using IceRpc.Transports.Internal;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Linq;
 
-namespace IceRpc.Transports.Interop
+namespace IceRpc.Transports
 {
-    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
     /// an abstraction to plug-in decoders for such endpoints.</summary>
     public interface IEndpointDecoder
     {
@@ -22,7 +18,7 @@ namespace IceRpc.Transports.Interop
         Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
     }
 
-    /// <summary>The encoding of ice1 endpoints with the 1.1 encoding is transport-specific. This interface provides
+    /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
     /// an abstraction to plug-in encoders for such endpoints.</summary>
     public interface IEndpointEncoder
     {
@@ -78,7 +74,7 @@ namespace IceRpc.Transports.Interop
                 }
                 else
                 {
-                    throw new UnknownTransportException(endpoint.Transport);
+                    throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol);
                 }
             }
         }

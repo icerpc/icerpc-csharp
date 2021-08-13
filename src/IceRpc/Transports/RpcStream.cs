@@ -2,10 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports
 {

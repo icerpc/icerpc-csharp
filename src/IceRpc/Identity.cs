@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
-namespace IceRpc.Interop
+namespace IceRpc
 {
     public readonly partial struct Identity
     {

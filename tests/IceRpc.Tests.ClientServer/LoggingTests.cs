@@ -4,13 +4,7 @@ using IceRpc.Configure;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {

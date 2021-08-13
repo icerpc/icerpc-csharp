@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System;
-
 namespace IceRpc.Transports
 {
     /// <summary>This exception reports that the provided transport is unknown or unregistered.</summary>
@@ -9,8 +7,9 @@ namespace IceRpc.Transports
     {
         /// <summary>Constructs a new instance of the <see cref="UnknownTransportException"/> class.</summary>
         /// <param name="transport">The name of the transport.</param>
-        public UnknownTransportException(string transport)
-            : base($"unknown transport '{transport}'")
+        /// <param name="protocol">The Ice protocol.</param>
+        public UnknownTransportException(string transport, Protocol protocol)
+            : base($"cannot find transport '{transport}' for protocol {protocol.GetName()}")
         {
         }
     }

@@ -2,12 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
-using IceRpc.Interop;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Api
 {

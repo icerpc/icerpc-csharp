@@ -3,14 +3,11 @@
 using IceRpc.Configure;
 using IceRpc.Transports;
 using NUnit.Framework;
-using System;
 using System.Collections.Immutable;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
@@ -73,8 +70,9 @@ namespace IceRpc.Tests.Internal
 
                 if (Endpoint.Transport == "udp")
                 {
+                    IServerTransport serverTransport = new UdpServerTransport();
                     serverConnection = new Connection(
-                        Server.DefaultServerTransport.Listen(
+                        serverTransport.Listen(
                             Endpoint,
                             _server.ConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Connection!,
@@ -114,7 +112,9 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Options = ClientConnectionOptions
+                        Options = ClientConnectionOptions,
+                        ClientTransport =
+                            endpoint.Transport == "udp" ? new UdpClientTransport() : Connection.DefaultClientTransport
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -167,7 +167,12 @@ namespace IceRpc.Tests.Internal
                     dispatcher = router;
                 }
 
-                _server = new Server { ConnectionOptions = serverConnectionOptions ?? new(), Dispatcher = dispatcher };
+                _server = new Server
+                {
+                    ConnectionOptions = serverConnectionOptions ?? new(),
+                    Dispatcher = dispatcher,
+                    ServerTransport = transport == "udp" ? new UdpServerTransport() : Server.DefaultServerTransport
+                };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")

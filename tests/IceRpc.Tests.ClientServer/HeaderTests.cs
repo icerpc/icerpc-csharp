@@ -2,10 +2,6 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -42,6 +38,8 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = endpoint,
+                ServerTransport =
+                    new ServerTransport().UseColoc().UseTcp().UseInteropColoc().UseInteropTcp().UseInteropUdp()
             };
             server.Listen();
 
@@ -58,7 +56,12 @@ namespace IceRpc.Tests.ClientServer
                     return response;
                 }));
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = server.Endpoint,
+                ClientTransport =
+                    new ClientTransport().UseColoc().UseTcp().UseInteropColoc().UseInteropTcp().UseInteropUdp()
+            };
             var greeter = GreeterPrx.FromConnection(connection);
             greeter.Proxy.Invoker = pipeline;
 

@@ -1,13 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Interop;
 using NUnit.Framework;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {

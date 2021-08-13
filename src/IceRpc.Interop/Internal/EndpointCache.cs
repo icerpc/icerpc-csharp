@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Interop;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace IceRpc.Internal

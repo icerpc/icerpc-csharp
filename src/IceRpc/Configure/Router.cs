@@ -1,14 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Configure
 {
@@ -27,16 +21,14 @@ namespace IceRpc.Configure
         // results in numerous unsuccessful lookups.
         private const int MaxSegments = 10;
 
-        private readonly IDictionary<string, IDispatcher> _exactMatchRoutes =
-            new ConcurrentDictionary<string, IDispatcher>();
+        private readonly IDictionary<string, IDispatcher> _exactMatchRoutes = new Dictionary<string, IDispatcher>();
 
         private ImmutableList<Func<IDispatcher, IDispatcher>> _middlewareList =
             ImmutableList<Func<IDispatcher, IDispatcher>>.Empty;
 
         private IDispatcher? _dispatcher;
 
-        private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes =
-            new ConcurrentDictionary<string, IDispatcher>();
+        private readonly IDictionary<string, IDispatcher> _prefixMatchRoutes = new Dictionary<string, IDispatcher>();
 
         /// <summary>Constructs a top-level router.</summary>
         public Router()
@@ -52,7 +44,6 @@ namespace IceRpc.Configure
             AbsolutePrefix = absolutePrefix.Length > 1 ? absolutePrefix : "";
         }
 
-        /// <inherit-doc/>
         ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel) =>
             (_dispatcher ??= CreateDispatchPipeline()).DispatchAsync(request, cancel);
 
@@ -61,10 +52,17 @@ namespace IceRpc.Configure
         /// <param name="path">The path of this route. It must match exactly the path of the request. In particular, it
         /// must start with a <c>/</c>.</param>
         /// <param name="dispatcher">The target of this route. It is typically an <see cref="IService"/>.</param>
-        /// <exception cref="ArgumentException">Raised if path does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Thrown if path does not start with a <c>/</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
+        /// called on this router.</exception>
         /// <seealso cref="Mount"/>
         public void Map(string path, IDispatcher dispatcher)
         {
+            if (_dispatcher != null)
+            {
+                throw new InvalidOperationException(
+                    $"cannot call {nameof(Map)} after calling {nameof(IDispatcher.DispatchAsync)}");
+            }
             IceUriParser.CheckPath(path, nameof(path));
             _exactMatchRoutes[path] = dispatcher;
         }
@@ -73,19 +71,27 @@ namespace IceRpc.Configure
         /// an existing route at the same path, it is replaced.</summary>
         /// <typeparam name="T">The service type used to get the default path.</typeparam>
         /// <param name="service">The target service of this route.</param>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
+        /// called on this router.</exception>
         /// <seealso cref="Mount"/>
-        public void Map<T>(IDispatcher service) where T : class =>
-            _exactMatchRoutes[typeof(T).GetDefaultPath()] = service;
+        public void Map<T>(IDispatcher service) where T : class => Map(typeof(T).GetDefaultPath(), service);
 
         /// <summary>Registers a route with a prefix. If there is an existing route at the same prefix, it is replaced.
         /// </summary>
         /// <param name="prefix">The prefix of this route. This prefix will be compared with the start of the path of
         /// the request.</param>
         /// <param name="dispatcher">The target of this route.</param>
-        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Thrown if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if <see cref="IDispatcher.DispatchAsync"/> was already
+        /// called on this router.</exception>
         /// <seealso cref="Map(string, IDispatcher)"/>
         public void Mount(string prefix, IDispatcher dispatcher)
         {
+            if (_dispatcher != null)
+            {
+                throw new InvalidOperationException(
+                    $"cannot call {nameof(Mount)} after calling {nameof(IDispatcher.DispatchAsync)}");
+            }
             IceUriParser.CheckPath(prefix, nameof(prefix));
             prefix = NormalizePrefix(prefix);
             _prefixMatchRoutes[prefix] = dispatcher;
@@ -96,7 +102,7 @@ namespace IceRpc.Configure
         /// <param name="prefix">The prefix of the route to the sub-router.</param>
         /// <param name="configure">A delegate that configures the new sub-router.</param>
         /// <returns>The new sub-router.</returns>
-        /// <exception cref="ArgumentException">Raised if prefix does not start with a <c>/</c>.</exception>
+        /// <exception cref="ArgumentException">Thrown if prefix does not start with a <c>/</c>.</exception>
         public Router Route(string prefix, Action<Router> configure)
         {
             IceUriParser.CheckPath(prefix, nameof(prefix));
@@ -115,7 +121,8 @@ namespace IceRpc.Configure
         {
             if (_dispatcher != null)
             {
-                throw new InvalidOperationException("all middleware must be registered before calling DispatchAsync");
+                throw new InvalidOperationException(
+                    $"all middleware must be registered before calling {nameof(IDispatcher.DispatchAsync)}");
             }
             _middlewareList = _middlewareList.AddRange(middleware);
             return this;

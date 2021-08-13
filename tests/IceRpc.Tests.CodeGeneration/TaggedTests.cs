@@ -1,11 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
@@ -33,6 +29,9 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
+
+            // TODO: should test without classes too
+            _prx.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

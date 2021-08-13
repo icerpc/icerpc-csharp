@@ -4,10 +4,7 @@ using IceRpc.Tests.CodeGeneration.NamespaceMD.M1.M2.M3;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace.N1.N2;
 using NUnit.Framework;
-using System;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.CodeGeneration
 {
@@ -16,7 +13,7 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly INamespaceMDOperationsPrx _prx;
+        private readonly NamespaceMDOperationsPrx _prx;
 
         public NamespaceMetadataTests()
         {
@@ -34,6 +31,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Options = new ClientConnectionOptions() { ClassFactory = classFactory }
             };
             _prx = NamespaceMDOperationsPrx.FromConnection(_connection);
+            _prx.Proxy.Encoding = Encoding.Ice11; // because we use classes for this test
         }
 
         [Test]

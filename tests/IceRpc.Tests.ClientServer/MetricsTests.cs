@@ -2,12 +2,7 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.Tracing;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {

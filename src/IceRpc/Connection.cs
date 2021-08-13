@@ -4,15 +4,10 @@ using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
-using IceRpc.Transports.Interop;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Security;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc
 {
@@ -47,7 +42,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new ClientTransportBuilder().UseTcp().UseSsl().UseColoc().UseUdp().Build();
+            new ClientTransport().UseTcp().UseColoc().UseInteropTcp().UseInteropSsl().UseInteropColoc();
 
         /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
         /// </summary>
@@ -143,10 +138,7 @@ namespace IceRpc
             Justification = "Used for initializing the client options")]
         public ClientConnectionOptions Options
         {
-            init
-            {
-                _options = value;
-            }
+            init => _options = value;
         }
 
         /// <summary>This event is raised when the connection receives a ping frame. The connection object is

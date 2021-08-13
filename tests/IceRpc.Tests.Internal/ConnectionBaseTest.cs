@@ -4,15 +4,12 @@ using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
-using System;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.Internal
 {
@@ -175,7 +172,10 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            MultiStreamConnection multiStreamConnection = Connection.DefaultClientTransport.CreateConnection(
+            IClientTransport clientTransport =
+                ClientEndpoint.Transport == "udp" ? new UdpClientTransport() : Connection.DefaultClientTransport;
+
+            MultiStreamConnection multiStreamConnection = clientTransport.CreateConnection(
                     ClientEndpoint,
                     connectionOptions ?? ClientConnectionOptions,
                     LogAttributeLoggerFactory.Instance);
@@ -210,9 +210,14 @@ namespace IceRpc.Tests.Internal
                 LogAttributeLoggerFactory.Instance).Listener!;
         }
 
-        protected MultiStreamConnection CreateServerConnection() =>
-            Server.DefaultServerTransport.Listen(ServerEndpoint,
+        protected MultiStreamConnection CreateServerConnection()
+        {
+            IServerTransport transport =
+                ServerEndpoint.Transport == "udp" ? new UdpServerTransport() : Server.DefaultServerTransport;
+            return transport.Listen(
+                ServerEndpoint,
                 ServerConnectionOptions,
                 LogAttributeLoggerFactory.Instance).Connection!;
+        }
     }
 }

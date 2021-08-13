@@ -2,14 +2,9 @@
 
 using IceRpc.Transports;
 using NUnit.Framework;
-using System;
-using System.IO;
-using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Tests.ClientServer
 {

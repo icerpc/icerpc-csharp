@@ -2,13 +2,9 @@
 
 using IceRpc.Internal;
 using IceRpc.Slic;
-using System;
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace IceRpc.Transports.Internal
 {
