@@ -17,7 +17,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="ServerTransport"/>.</summary>
         public static IServerTransport DefaultServerTransport { get; } =
-            new ServerTransport().UseTcp().UseColoc().UseInteropTcp().UseInteropSsl().UseInteropColoc();
+            new ServerTransport().UseTcp().UseColoc();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
         public ServerConnectionOptions ConnectionOptions { get; set; } = new();

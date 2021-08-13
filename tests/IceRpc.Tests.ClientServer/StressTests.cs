@@ -23,12 +23,18 @@ namespace IceRpc.Tests.ClientServer
             Protocol = protocol;
             Transport = transport;
             Servant = new StressTest();
+            Endpoint serverEndpoint = GetTestEndpoint(protocol: Protocol, transport: Transport);
             Server = new Server
             {
                 Dispatcher = Servant,
-                Endpoint = GetTestEndpoint(protocol: Protocol, transport: Transport),
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
-            Connection = new Connection { RemoteEndpoint = Server.Endpoint };
+            Connection = new Connection
+            {
+                RemoteEndpoint = serverEndpoint,
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+            };
             Prx = StressTestPrx.FromConnection(Connection);
             Server.Listen();
         }

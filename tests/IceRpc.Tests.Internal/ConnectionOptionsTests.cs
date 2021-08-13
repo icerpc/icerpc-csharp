@@ -210,17 +210,12 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private NetworkSocket CreateClientConnection(TcpOptions? options = null, Endpoint? endpoint = null)
-        {
-            endpoint ??= ClientEndpoint;
+        private NetworkSocket CreateClientConnection(TcpOptions? options = null, Endpoint? endpoint = null) =>
 
-            IClientTransport transport = options == null ? Connection.DefaultClientTransport : new TcpClientTransport(options);
-
-            return (transport.CreateConnection(
-                endpoint,
+            (TestHelper.CreateClientTransport(endpoint ?? ClientEndpoint, options).CreateConnection(
+                endpoint ?? ClientEndpoint,
                 ClientConnectionOptions.Clone(),
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
-        }
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
             ((await listener.AcceptAsync()) as NetworkSocketConnection)!.NetworkSocket;

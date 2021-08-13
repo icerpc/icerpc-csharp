@@ -15,14 +15,19 @@ namespace IceRpc.Tests.Api
         public async Task Proxy_ServiceAsync(Protocol protocol)
         {
             // Tests the IceRpc::Service interface implemented by all typed proxies.
-
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             server.Listen();
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = serverEndpoint,
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+            };
             await connection.ConnectAsync();
 
             var prx = GreeterPrx.FromConnection(connection);

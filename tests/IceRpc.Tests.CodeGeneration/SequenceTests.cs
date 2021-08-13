@@ -17,13 +17,19 @@ namespace IceRpc.Tests.CodeGeneration
 
         public SequenceTests(Protocol protocol)
         {
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new SequenceOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = serverEndpoint,
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+            };
             _prx = SequenceOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);
         }

@@ -19,7 +19,7 @@ namespace IceRpc.Tests.Api
             {
                 await using var server = new Server
                 {
-                    Endpoint = "tcp -h foo -p 10000"
+                    Endpoint = "ice+tcp://foo:10000"
                 };
 
                 // A DNS name cannot be used with a server endpoint
@@ -105,7 +105,7 @@ namespace IceRpc.Tests.Api
             }
 
             {
-                string endpoint = TestHelper.GetUniqueColocEndpoint();
+                Endpoint endpoint = TestHelper.GetUniqueColocEndpoint();
                 await using var server1 = new Server
                 {
                     Endpoint = endpoint
@@ -250,6 +250,7 @@ namespace IceRpc.Tests.Api
         public async Task Server_ShutdownCancelAsync(bool disposeInsteadOfShutdown, Protocol protocol)
         {
             using var semaphore = new SemaphoreSlim(0);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             await using var server = new Server
             {
                 Dispatcher = new InlineDispatcher(async (request, cancel) =>
@@ -259,12 +260,17 @@ namespace IceRpc.Tests.Api
                     await Task.Delay(-1, cancel);
                     return new OutgoingResponse(request, Payload.FromVoidReturnValue(request));
                 }),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol)
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
 
             server.Listen();
 
-            await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = serverEndpoint,
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+            };
 
             var proxy = GreeterPrx.FromConnection(connection);
 

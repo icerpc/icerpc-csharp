@@ -18,10 +18,13 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests()
         {
-            _pool = new ConnectionPool();
-            _pool.ConnectionOptions = new ClientConnectionOptions()
+            _pool = new ConnectionPool
             {
-                ClassFactory = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly })
+                ClientTransport = new ClientTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
+                ConnectionOptions = new ClientConnectionOptions()
+                {
+                    ClassFactory = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly }),
+                }
             };
         }
 
@@ -126,6 +129,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
+                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
             };
         }
 

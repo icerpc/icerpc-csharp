@@ -129,7 +129,8 @@ namespace IceRpc.Tests.Internal
             if (wildcard1)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                listener = Server.DefaultServerTransport.Listen(
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
+                listener = serverTransport.Listen(
                     serverEndpoint,
                     ServerConnectionOptions,
                     LogAttributeLoggerFactory.Instance).Listener!;
@@ -142,13 +143,13 @@ namespace IceRpc.Tests.Internal
             if (wildcard2)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
                 if (OperatingSystem.IsMacOS())
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => Server.DefaultServerTransport.Listen(
+                        () => serverTransport.Listen(
                             serverEndpoint,
                             ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
@@ -156,7 +157,7 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => Server.DefaultServerTransport.Listen(
+                        () => serverTransport.Listen(
                             serverEndpoint,
                             ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
@@ -211,7 +212,7 @@ namespace IceRpc.Tests.Internal
         }
 
         private NetworkSocket CreateClientConnection() =>
-           (Connection.DefaultClientTransport.CreateConnection(
+            (TestHelper.CreateClientTransport(ClientEndpoint).CreateConnection(
                 ClientEndpoint,
                 ClientConnectionOptions,
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;

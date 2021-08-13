@@ -172,8 +172,7 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            IClientTransport clientTransport =
-                ClientEndpoint.Transport == "udp" ? new UdpClientTransport() : Connection.DefaultClientTransport;
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(ClientEndpoint);
 
             MultiStreamConnection multiStreamConnection = clientTransport.CreateConnection(
                     ClientEndpoint,
@@ -200,24 +199,16 @@ namespace IceRpc.Tests.Internal
             return multiStreamConnection;
         }
 
-        protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null)
-        {
-            IServerTransport transport =
-                options == null ? Server.DefaultServerTransport : new TcpServerTransport(options);
-            return transport.Listen(
+        protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
+            TestHelper.CreateServerTransport(serverEndpoint ?? ServerEndpoint, options).Listen(
                 serverEndpoint ?? ServerEndpoint,
                 ServerConnectionOptions,
                 LogAttributeLoggerFactory.Instance).Listener!;
-        }
 
-        protected MultiStreamConnection CreateServerConnection()
-        {
-            IServerTransport transport =
-                ServerEndpoint.Transport == "udp" ? new UdpServerTransport() : Server.DefaultServerTransport;
-            return transport.Listen(
+        protected MultiStreamConnection CreateServerConnection() =>
+            TestHelper.CreateServerTransport(ServerEndpoint).Listen(
                 ServerEndpoint,
                 ServerConnectionOptions,
                 LogAttributeLoggerFactory.Instance).Connection!;
-        }
     }
 }
