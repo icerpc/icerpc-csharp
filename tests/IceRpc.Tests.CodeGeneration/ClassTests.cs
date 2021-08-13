@@ -36,18 +36,21 @@ namespace IceRpc.Tests.CodeGeneration
 
             var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
 
+            string serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
+                Endpoint = serverEndpoint,
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                RemoteEndpoint = serverEndpoint,
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory },
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 
             _prx = ClassOperationsPrx.FromConnection(_connection);

@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports;
+
 namespace IceRpc.Tests
 {
     public static class TestHelper
@@ -61,5 +63,25 @@ namespace IceRpc.Tests
         public static string GetUniqueColocEndpoint(Protocol protocol = Protocol.Ice2) =>
             protocol == Protocol.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
                 $"coloc -h test.{Interlocked.Increment(ref _counter)}";
+
+        public static IServerTransport CreateServerTransport(Endpoint endpoint, object? options = null) =>
+            endpoint.Transport switch
+            {
+                "tcp" => new TcpServerTransport(options as TcpOptions ?? new TcpOptions()),
+                "ssl" => new TcpServerTransport(options as TcpOptions ?? new TcpOptions()),
+                "udp" => new UdpServerTransport(options as UdpOptions ?? new UdpOptions()),
+                "coloc" => new ColocServerTransport(),
+                _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+            };
+
+        public static IClientTransport CreateClientTransport(Endpoint endpoint, object? options = null) =>
+            endpoint.Transport switch
+            {
+                "tcp" => new TcpClientTransport(options as TcpOptions ?? new TcpOptions()),
+                "ssl" => new TcpClientTransport(options as TcpOptions ?? new TcpOptions()),
+                "udp" => new UdpClientTransport(options as UdpOptions ?? new UdpOptions()),
+                "coloc" => new ColocClientTransport(),
+                _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
+            };
     }
 }

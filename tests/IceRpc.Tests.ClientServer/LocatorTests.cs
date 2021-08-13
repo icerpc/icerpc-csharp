@@ -16,7 +16,10 @@ namespace IceRpc.Tests.ClientServer
         private Identity GreeterIdentity => Identity.FromPath(_greeter.Proxy.Path);
 
         private bool _called;
-        private readonly ConnectionPool _pool = new();
+        private readonly ConnectionPool _pool = new()
+        {
+            ClientTransport = new ClientTransport().UseInteropTcp()
+        };
         private readonly GreeterPrx _greeter;
 
         private readonly Pipeline _pipeline = new();
@@ -27,10 +30,12 @@ namespace IceRpc.Tests.ClientServer
             var router = new Router();
             string path = $"/{Guid.NewGuid()}";
             router.Map(path, new Greeter());
+            string serverEndpoint = "tcp -h 127.0.0.1 -p 0";
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = "tcp -h 127.0.0.1 -p 0"
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
 
             _server.Listen();

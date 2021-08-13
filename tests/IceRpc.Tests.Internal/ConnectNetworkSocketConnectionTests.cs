@@ -70,7 +70,7 @@ namespace IceRpc.Tests.Internal
         }
 
         private NetworkSocket CreateClientConnection() =>
-           (Connection.DefaultClientTransport.CreateConnection(
+           (TestHelper.CreateClientTransport(ClientEndpoint).CreateConnection(
                 ClientEndpoint,
                 ClientConnectionOptions,
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;

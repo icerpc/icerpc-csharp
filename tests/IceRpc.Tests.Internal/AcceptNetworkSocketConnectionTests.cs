@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
@@ -18,6 +19,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
+    [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class AcceptNetworkSocketConnectionTests : ConnectionBaseTest
     {
         public AcceptNetworkSocketConnectionTests(
@@ -129,7 +131,8 @@ namespace IceRpc.Tests.Internal
             if (wildcard1)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-                listener = Server.DefaultServerTransport.Listen(
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
+                listener = serverTransport.Listen(
                     serverEndpoint,
                     ServerConnectionOptions,
                     LogAttributeLoggerFactory.Instance).Listener!;
@@ -142,13 +145,13 @@ namespace IceRpc.Tests.Internal
             if (wildcard2)
             {
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
-
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
                 if (OperatingSystem.IsMacOS())
                 {
                     // On macOS, it's still possible to bind to a specific address even if a connection is bound
                     // to the wildcard address.
                     Assert.DoesNotThrow(
-                        () => Server.DefaultServerTransport.Listen(
+                        () => serverTransport.Listen(
                             serverEndpoint,
                             ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
@@ -156,7 +159,7 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     Assert.Catch<TransportException>(
-                        () => Server.DefaultServerTransport.Listen(
+                        () => serverTransport.Listen(
                             serverEndpoint,
                             ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
@@ -211,10 +214,11 @@ namespace IceRpc.Tests.Internal
         }
 
         private NetworkSocket CreateClientConnection() =>
-           (Connection.DefaultClientTransport.CreateConnection(
+            (TestHelper.CreateClientTransport(ClientEndpoint).CreateConnection(
                 ClientEndpoint,
                 ClientConnectionOptions,
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
+
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
             (await listener.AcceptAsync() as NetworkSocketConnection)!.NetworkSocket;

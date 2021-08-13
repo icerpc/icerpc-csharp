@@ -19,7 +19,10 @@ namespace IceRpc.Tests.ClientServer
         [TestCase("test", "test @ adapter", "test2", "ice+loc://adapter/test")]
         public async Task LocationResolver_ResolveAsync(string proxy, params string[] badProxies)
         {
-            _pool = new ConnectionPool();
+            _pool = new ConnectionPool()
+            {
+                ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()
+            };
             var pipeline = new Pipeline();
 
             var indirect = GreeterPrx.Parse(proxy, pipeline);
@@ -63,10 +66,12 @@ namespace IceRpc.Tests.ClientServer
 
         private GreeterPrx SetupServer(Protocol protocol, string path, IInvoker invoker)
         {
+            string serverEndpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0";
             _server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = protocol == Protocol.Ice2 ? "ice+tcp://127.0.0.1:0?tls=false" : "tcp -h 127.0.0.1 -p 0",
+                Endpoint = serverEndpoint,
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
 
             _server.Listen();

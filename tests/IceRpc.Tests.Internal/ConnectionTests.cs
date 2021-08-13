@@ -68,9 +68,9 @@ namespace IceRpc.Tests.Internal
                 Connection clientConnection;
                 Connection serverConnection;
 
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(Endpoint);
                 if (Endpoint.Transport == "udp")
                 {
-                    IServerTransport serverTransport = new UdpServerTransport();
                     serverConnection = new Connection(
                         serverTransport.Listen(
                             Endpoint,
@@ -85,7 +85,7 @@ namespace IceRpc.Tests.Internal
                 }
                 else
                 {
-                    using IListener listener = Server.DefaultServerTransport.Listen(
+                    using IListener listener = serverTransport.Listen(
                         Endpoint,
                         _server.ConnectionOptions,
                         LogAttributeLoggerFactory.Instance).Listener!;
@@ -113,8 +113,7 @@ namespace IceRpc.Tests.Internal
                     {
                         RemoteEndpoint = endpoint,
                         Options = ClientConnectionOptions,
-                        ClientTransport =
-                            endpoint.Transport == "udp" ? new UdpClientTransport() : Connection.DefaultClientTransport
+                        ClientTransport = TestHelper.CreateClientTransport(endpoint)
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -160,19 +159,6 @@ namespace IceRpc.Tests.Internal
                     };
                 }
 
-                if (dispatcher != null)
-                {
-                    var router = new Router().UseLogger(LogAttributeLoggerFactory.Instance);
-                    router.Mount("/", dispatcher);
-                    dispatcher = router;
-                }
-
-                _server = new Server
-                {
-                    ConnectionOptions = serverConnectionOptions ?? new(),
-                    Dispatcher = dispatcher,
-                    ServerTransport = transport == "udp" ? new UdpServerTransport() : Server.DefaultServerTransport
-                };
                 ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")
@@ -198,6 +184,20 @@ namespace IceRpc.Tests.Internal
                 {
                     Endpoint = $"ice+{transport}://127.0.0.1:0?tls={(secure ? "true" : "false")}";
                 }
+
+                if (dispatcher != null)
+                {
+                    var router = new Router().UseLogger(LogAttributeLoggerFactory.Instance);
+                    router.Mount("/", dispatcher);
+                    dispatcher = router;
+                }
+
+                _server = new Server
+                {
+                    ConnectionOptions = serverConnectionOptions ?? new(),
+                    Dispatcher = dispatcher,
+                    ServerTransport = TestHelper.CreateServerTransport(Endpoint)
+                };
             }
         }
 

@@ -27,18 +27,21 @@ namespace IceRpc.Tests.Encoding
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
             var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
+            var serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server()
             {
                 Dispatcher = router,
-                Endpoint = TestHelper.GetUniqueColocEndpoint(protocol),
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
+                Endpoint = serverEndpoint,
+                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
+                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
 
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options = new ClientConnectionOptions() { ClassFactory = classFactory },
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 
             _sliced = SlicedFormatOperationsPrx.FromConnection(_connection);

@@ -52,7 +52,8 @@ namespace IceRpc.Tests.ClientServer
                 await using var server = new Server
                 {
                     Dispatcher = new RetryTest(),
-                    Endpoint = GetTestEndpoint(port: port, protocol: protocol)
+                    Endpoint = GetTestEndpoint(port: port, protocol: protocol),
+                    ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -68,7 +69,8 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = new Bidir(),
-                Endpoint = GetTestEndpoint()
+                Endpoint = GetTestEndpoint(),
+                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
             };
             server.Listen();
 
@@ -424,10 +426,13 @@ namespace IceRpc.Tests.ClientServer
 
         private static ConnectionPool CreateConnectionPool()
         {
-            var pool = new ConnectionPool();
-            pool.ConnectionOptions = new ClientConnectionOptions()
+            var pool = new ConnectionPool()
             {
-                ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
+                ConnectionOptions = new ClientConnectionOptions()
+                {
+                    ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                },
+                ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()
             };
             return pool;
         }
@@ -438,6 +443,7 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
+                    ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -478,7 +484,8 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = router,
-                Endpoint = GetTestEndpoint(protocol: protocol)
+                Endpoint = GetTestEndpoint(protocol: protocol),
+                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
             };
             server.Listen();
 
