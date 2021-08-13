@@ -11,11 +11,10 @@ namespace IceRpc.Internal
         internal const int Slic = 3 * EventIdRange;
         internal const int Tls = 4 * EventIdRange;
         internal const int Transport = 5 * EventIdRange;
-        internal const int Connection = 6 * EventIdRange;
-        internal const int Location = 7 * EventIdRange;
-        internal const int LoggerInterceptor = 8 * EventIdRange;
-        internal const int LoggerMiddleware = 9 * EventIdRange;
-        internal const int Retry = 10 * EventIdRange;
+        internal const int Location = 6 * EventIdRange;
+        internal const int LoggerInterceptor = 7 * EventIdRange;
+        internal const int LoggerMiddleware = 8 * EventIdRange;
+        internal const int Retry = 9 * EventIdRange;
         private const int EventIdRange = 128;
     }
 }

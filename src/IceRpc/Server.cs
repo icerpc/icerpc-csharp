@@ -205,6 +205,8 @@ namespace IceRpc
                 }
                 finally
                 {
+                    // TODO: if _listening = false, this will log shutdown completed even though the server never
+                    // actually listened.
                     _logger.LogServerShutdownComplete(this);
 
                     _shutdownCancelSource!.Dispose();
