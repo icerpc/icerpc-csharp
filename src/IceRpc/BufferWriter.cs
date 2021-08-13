@@ -51,14 +51,14 @@ namespace IceRpc
 
         /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
         /// </summary>
-        internal int Capacity { get; private set; }
+        public int Capacity { get; private set; }
 
         /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
         /// using this encoder.</summary>
         /// <value>The current size.</value>
-        internal int Size { get; private set; }
+        public int Size { get; private set; }
 
-        // Gets the position for the next write operation.
+        /// <summary>Gets the position of the next write.</summary>
         public Position Tail => _tail;
 
         private const int DefaultBufferSize = 256;
@@ -225,8 +225,7 @@ namespace IceRpc
         }
 
         /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this Ice encoder after calling Finish, however rewriting previous data (with for example
-        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
+        /// this buffer after calling Finish, however rewriting previous data is fine.</summary>
         /// <returns>The buffers.</returns>
         internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
         {
