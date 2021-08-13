@@ -449,17 +449,18 @@ namespace IceRpc.Transports.Internal
                 type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
-            var encoder = new IceEncoder(SlicDefinitions.Encoding);
+            var bufferWriter = new BufferWriter();
+            var encoder = new IceEncoder(SlicDefinitions.Encoding, bufferWriter);
             encoder.EncodeByte((byte)type);
-            IceEncoder.Position sizePos = encoder.StartFixedLengthSize(4);
+            BufferWriter.Position sizePos = encoder.StartFixedLengthSize(4);
             if (stream != null)
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
             }
             encodeAction?.Invoke(encoder);
-            int frameSize = encoder.Tail.Offset - sizePos.Offset - 4;
+            int frameSize = bufferWriter.Tail.Offset - sizePos.Offset - 4;
             encoder.EndFixedLengthSize(sizePos, 4);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);

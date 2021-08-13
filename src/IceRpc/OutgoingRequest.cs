@@ -130,7 +130,7 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice2)
             {
-                IceEncoder.Position start = encoder.StartFixedLengthSize(2);
+                BufferWriter.Position start = encoder.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(

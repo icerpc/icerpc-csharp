@@ -70,7 +70,7 @@ namespace IceRpc.Transports
 
                     encoder.EncodeEndpoint11(endpoint,
                                              transportCode,
-                                             (encoder, _) => encoder.WriteByteSpan(bytes.Span));
+                                             (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
                 }
                 else
                 {

@@ -85,7 +85,7 @@ namespace IceRpc
                 if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
                 {
                     // Size includes the size length.
-                    EncodeFixedLengthSize11(Distance(_current.SliceSizePos), _current.SliceSizePos);
+                    EncodeFixedLengthSize11(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
                 }
 
                 if (_current.IndirectionTable?.Count > 0)
@@ -103,7 +103,7 @@ namespace IceRpc
                 }
 
                 // Update SliceFlags in case they were updated.
-                RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
+                BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
             }
         }
 
@@ -148,7 +148,7 @@ namespace IceRpc
             else
             {
                 _current.SliceFlags = default;
-                _current.SliceFlagsPos = _tail;
+                _current.SliceFlagsPos = BufferWriter.Tail;
                 EncodeByte(0); // Placeholder for the slice flags
                 EncodeTypeId11(allTypeIds[0], compactTypeId);
             }
@@ -165,7 +165,7 @@ namespace IceRpc
             Debug.Assert(OldEncoding);
 
             _current.SliceFlags = default;
-            _current.SliceFlagsPos = _tail;
+            _current.SliceFlagsPos = BufferWriter.Tail;
             EncodeByte(0); // Placeholder for the slice flags
 
             if (_classFormat == FormatType.Sliced)
@@ -284,7 +284,7 @@ namespace IceRpc
                 IceStartNextSlice(sliceInfo.TypeId, compactId);
 
                 // Writes the bytes associated with this slice.
-                WriteByteSpan(sliceInfo.Bytes.Span);
+                BufferWriter.WriteByteSpan(sliceInfo.Bytes.Span);
 
                 if (sliceInfo.HasTaggedMembers)
                 {
@@ -415,10 +415,10 @@ namespace IceRpc
             internal EncodingDefinitions.SliceFlags SliceFlags;
 
             // Position of the slice flags.
-            internal Position SliceFlagsPos;
+            internal BufferWriter.Position SliceFlagsPos;
 
             // Position of the slice size. Used only for the sliced format.
-            internal Position SliceSizePos;
+            internal BufferWriter.Position SliceSizePos;
         }
 
         private enum InstanceType : byte

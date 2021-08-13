@@ -96,9 +96,11 @@ namespace IceRpc
             else
             {
                 // Need to marshal/unmarshal these fields
-                var encoder = new IceEncoder(Encoding.Ice20);
+                var bufferWriter = new BufferWriter();
+                var encoder = new IceEncoder(Encoding.Ice20, bufferWriter);
                 EncodeFields(encoder);
-                return encoder.Finish().ToSingleBuffer().DecodeFieldValue(decoder => decoder.DecodeFieldDictionary());
+                return bufferWriter.Finish().ToSingleBuffer().DecodeFieldValue(
+                    decoder => decoder.DecodeFieldDictionary());
             }
         }
 
@@ -125,7 +127,7 @@ namespace IceRpc
 
             int size = 0;
 
-            IceEncoder.Position start = encoder.StartFixedLengthSize(sizeLength);
+            BufferWriter.Position start = encoder.StartFixedLengthSize(sizeLength);
 
             // First encode the fields then the remaining FieldsDefaults.
 
@@ -134,7 +136,7 @@ namespace IceRpc
                 foreach ((int key, Action<IceEncoder> action) in fields)
                 {
                     encoder.EncodeVarInt(key);
-                    IceEncoder.Position startValue = encoder.StartFixedLengthSize(2);
+                    BufferWriter.Position startValue = encoder.StartFixedLengthSize(2);
                     action(encoder);
                     encoder.EndFixedLengthSize(startValue, 2);
                     size++;
@@ -146,7 +148,7 @@ namespace IceRpc
                 {
                     encoder.EncodeVarInt(key);
                     encoder.EncodeSize(value.Length);
-                    encoder.WriteByteSpan(value.Span);
+                    encoder.BufferWriter.WriteByteSpan(value.Span);
                     size++;
                 }
             }

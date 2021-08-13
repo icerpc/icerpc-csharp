@@ -90,28 +90,29 @@ namespace IceRpc.Transports.Internal
                 throw new NotSupportedException("stream parameters are not supported with ice1");
             }
 
-            var encoder = new IceEncoder(Encoding.Ice11);
-            encoder.WriteByteSpan(Ice1Definitions.FramePrologue);
+            var bufferWriter = new BufferWriter();
+            var encoder = new IceEncoder(Encoding.Ice11, bufferWriter);
+            bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
             encoder.EncodeIce1FrameType(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
             encoder.EncodeByte(0); // compression status
-            IceEncoder.Position start = encoder.StartFixedLengthSize();
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
 
             // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
             // it from the send queue to ensure requests are sent in the same order as the request ID values.
             encoder.EncodeInt(IsStarted ? RequestId : 0);
             frame.EncodeHeader(encoder);
 
-            encoder.EncodeFixedLengthSize11(encoder.Size + frame.PayloadSize, start); // frame size
+            encoder.EncodeFixedLengthSize11(bufferWriter.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;
             while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= encoder.Capacity - encoder.Size)
+                   frame.Payload.Span[payloadIndex].Length <= bufferWriter.Capacity - bufferWriter.Size)
             {
-                encoder.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
+                bufferWriter.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
             }
 
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish(); // only headers so far
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish(); // only headers so far
 
             if (payloadIndex < frame.Payload.Length)
             {
