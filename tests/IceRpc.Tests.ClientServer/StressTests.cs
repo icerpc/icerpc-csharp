@@ -31,7 +31,7 @@ namespace IceRpc.Tests.ClientServer
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             Connection = new Connection
-            { 
+            {
                 RemoteEndpoint = serverEndpoint,
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };

@@ -267,7 +267,7 @@ namespace IceRpc.Tests.Api
             server.Listen();
 
             await using var connection = new Connection
-            { 
+            {
                 RemoteEndpoint = serverEndpoint,
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };

@@ -11,11 +11,8 @@ namespace IceRpc.Configure
         /// <summary>Adds the interop coloc client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseInteropColoc(this ClientTransport clientTransport)
-        {
+        public static ClientTransport UseInteropColoc(this ClientTransport clientTransport) =>
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, new ColocClientTransport());
-            return clientTransport;
-        }
 
         /// <summary>Adds the interop ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -27,11 +24,8 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseInteropSsl(this ClientTransport clientTransport, TcpOptions options)
-        {
+        public static ClientTransport UseInteropSsl(this ClientTransport clientTransport, TcpOptions options) =>
             clientTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpClientTransport(options));
-            return clientTransport;
-        }
 
         /// <summary>Adds the interop tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -43,11 +37,8 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseInteropTcp(this ClientTransport clientTransport, TcpOptions options)
-        {
+        public static ClientTransport UseInteropTcp(this ClientTransport clientTransport, TcpOptions options) =>
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, new TcpClientTransport(options));
-            return clientTransport;
-        }
 
         /// <summary>Adds the udp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The client transport being configured.</param>
@@ -59,10 +50,7 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The client transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The client transport being configured.</returns>
-        public static ClientTransport UseInteropUdp(this ClientTransport clientTransport, UdpOptions options)
-        {
+        public static ClientTransport UseInteropUdp(this ClientTransport clientTransport, UdpOptions options) =>
             clientTransport.Add(TransportNames.Udp, Protocol.Ice1, new UdpClientTransport(options));
-            return clientTransport;
-        }
     }
 }

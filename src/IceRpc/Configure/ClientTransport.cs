@@ -16,7 +16,8 @@ namespace IceRpc.Configure
         /// <param name="name">The transport name.</param>
         /// <param name="protocol">The Ice protocol supported by this transport.</param>
         /// <param name="transport">The transport instance.</param>
-        public void Add(string name, Protocol protocol, IClientTransport transport)
+        /// <returns>This transport.</returns>
+        public ClientTransport Add(string name, Protocol protocol, IClientTransport transport)
         {
             if (_transports != null)
             {
@@ -24,6 +25,7 @@ namespace IceRpc.Configure
                     $"cannot call {nameof(Add)} after calling {nameof(IClientTransport.CreateConnection)}");
             }
             _builder.Add((name, protocol), transport);
+            return this;
         }
 
         MultiStreamConnection IClientTransport.CreateConnection(
@@ -51,11 +53,8 @@ namespace IceRpc.Configure
         /// <summary>Adds the coloc client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseColoc(this ClientTransport clientTransport)
-        {
+        public static ClientTransport UseColoc(this ClientTransport clientTransport) =>
             clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocClientTransport());
-            return clientTransport;
-        }
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -67,10 +66,7 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseTcp(this ClientTransport clientTransport, TcpOptions options)
-        {
+        public static ClientTransport UseTcp(this ClientTransport clientTransport, TcpOptions options) =>
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpClientTransport(options));
-            return clientTransport;
-        }
     }
 }

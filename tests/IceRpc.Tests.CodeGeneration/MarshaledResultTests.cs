@@ -26,7 +26,7 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
             _connection = new Connection
-            { 
+            {
                 RemoteEndpoint = serverEndpoint,
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };

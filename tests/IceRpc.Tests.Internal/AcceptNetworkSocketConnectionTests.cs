@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using NUnit.Framework;
@@ -218,7 +217,6 @@ namespace IceRpc.Tests.Internal
                 ClientEndpoint,
                 ClientConnectionOptions,
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
-
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
             (await listener.AcceptAsync() as NetworkSocketConnection)!.NetworkSocket;
