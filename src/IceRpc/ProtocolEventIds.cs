@@ -3,10 +3,10 @@
 namespace IceRpc
 {
     /// <summary>This class contains event ID constants used for protocol logging.</summary>
-    public enum ProtocolEvent
+    public enum ProtocolEventIds
     {
         /// <summary>A datagram connection received a close connection frame.</summary>
-        DatagramConnectionReceiveCloseConnectionFrame = Internal.LoggerExtensions.ProtocolBaseEventId,
+        DatagramConnectionReceiveCloseConnectionFrame = Internal.BaseEventIds.Protocol,
         /// <summary>A datagram message that exceeded the <see cref="ConnectionOptions.IncomingFrameMaxSize"/> was
         /// received.</summary>
         DatagramSizeExceededIncomingFrameMaxSize,
@@ -28,12 +28,6 @@ namespace IceRpc
         ReceivedRequestFrame,
         /// <summary>Received a response frame.</summary>
         ReceivedResponseFrame,
-        /// <summary>A request failed with an exception.</summary>
-        RequestException,
-        /// <summary>A request will be retried because of a retryable exception.</summary>
-        RetryRequestRetryableException,
-        /// <summary>A connection establishment will be retried because of a retryable exception.</summary>
-        RetryRequestConnectionException,
         /// <summary>An ice1 validate connection frame was sent.</summary>
         SentIce1ValidateConnectionFrame,
         /// <summary>An ice1 close connection frame was sent.</summary>

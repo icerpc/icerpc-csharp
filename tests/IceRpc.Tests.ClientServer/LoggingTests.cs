@@ -42,23 +42,23 @@ namespace IceRpc.Tests.ClientServer
                 async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
-            Assert.AreEqual(10, logEntries.Count);
+            Assert.AreEqual(9, logEntries.Count);
             int[] eventIds = new int[] {
-                (int)TransportEvent.ConnectionConnectFailed,
-                (int)ProtocolEvent.RetryRequestConnectionException,
-                (int)ProtocolEvent.RequestException
+                (int)TransportEventIds.ConnectionConnectFailed,
+                (int)RetryInterceptorEventIds.RetryRequest,
+                (int)LoggerInterceptorEventIds.InvokeException
             };
 
             foreach (JsonDocument entry in logEntries)
             {
-                string expectedLogLevel = GetEventId(entry) == (int)ProtocolEvent.RequestException ?
-                    "Information" : "Debug";
+                string expectedLogLevel = GetEventId(entry) == (int)LoggerInterceptorEventIds.InvokeException ?
+                     "Information" : "Debug";
 
                 Assert.AreEqual(expectedLogLevel, GetLogLevel(entry));
                 Assert.AreEqual("IceRpc", GetCategory(entry));
                 CollectionAssert.Contains(eventIds, GetEventId(entry));
                 JsonElement[] scopes = GetScopes(entry);
-                if (GetEventId(entry) == (int)TransportEvent.ConnectionConnectFailed)
+                if (GetEventId(entry) == (int)TransportEventIds.ConnectionConnectFailed)
                 {
                     Assert.That(scopes, Is.Not.Empty);
                 }
@@ -90,21 +90,13 @@ namespace IceRpc.Tests.ClientServer
             };
 
             var pipeline = new Pipeline();
-            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, LoggerFactory = loggerFactory })
-                    .UseBinder(pool)
-                    .UseLogger(loggerFactory);
+            pipeline.UseRetry(new RetryOptions { MaxAttempts = 5, LoggerFactory = loggerFactory }).UseBinder(pool);
 
             Assert.CatchAsync<ConnectFailedException>(
                 async () => await ServicePrx.Parse("ice+tcp://127.0.0.1/hello", pipeline).IcePingAsync());
 
             List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
-            Assert.AreEqual(1, logEntries.Count);
-            JsonDocument entry = logEntries[0];
-            Assert.AreEqual("Information", GetLogLevel(entry));
-            Assert.AreEqual("IceRpc", GetCategory(entry));
-            JsonElement[] scopes = GetScopes(entry);
-            Assert.That(scopes, Is.Empty);
-            Assert.That(GetEventId(entry), Is.EqualTo((int)ProtocolEvent.RequestException));
+            Assert.That(logEntries, Is.Empty);
         }
 
         /// <summary>Check that the protocol and transport logging don't emit any output for a normal request,
@@ -177,54 +169,116 @@ namespace IceRpc.Tests.ClientServer
                 int eventId = GetEventId(entry);
                 events.Add(eventId);
                 CollectionAssert.AllItemsAreUnique(events);
-                // TODO The log scopes are not started with interceptor/middleware protocol logging
-                if (eventId == (int)ProtocolEvent.ReceivedRequestFrame)
+
+                if (eventId == (int)LoggerMiddlewareEventIds.ReceivedRequest)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
                     Assert.That(GetMessage(entry).StartsWith("received request", StringComparison.Ordinal), Is.True);
-                    JsonElement[] scopes = GetScopes(entry);
-                    //CheckServerScope(scopes[0], colocated);
-                    //CheckServerConnectionScope(scopes[1], colocated);
-                    //CheckStreamScope(scopes[2]);
+                    Assert.That(GetScopes(entry), Is.Empty);
                 }
-                else if (eventId == (int)ProtocolEvent.SentRequestFrame)
+                else if (eventId == (int)LoggerInterceptorEventIds.SendingRequest)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
-                    Assert.That(GetMessage(entry).StartsWith("sent request", StringComparison.Ordinal), Is.True);
-                    JsonElement[] scopes = GetScopes(entry);
-                    //CheckClientConnectionScope(scopes[0], colocated);
-                    //CheckStreamScope(scopes[1]);
+                    Assert.That(GetMessage(entry).StartsWith("sending request", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
                 }
-                else if (eventId == (int)ProtocolEvent.ReceivedResponseFrame)
+                else if (eventId == (int)LoggerInterceptorEventIds.ReceivedResponse)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
                     Assert.That(GetMessage(entry).StartsWith("received response", StringComparison.Ordinal), Is.True);
-                    JsonElement[] scopes = GetScopes(entry);
-                    //CheckClientConnectionScope(scopes[0], colocated);
-                    //CheckStreamScope(scopes[1]);
-                    // The sending of the request always comes before the receiving of the response
-                    CollectionAssert.Contains(events, (int)ProtocolEvent.SentRequestFrame);
+                    Assert.That(GetScopes(entry), Is.Empty);
                 }
-                else if (eventId == (int)ProtocolEvent.SentResponseFrame)
+                else if (eventId == (int)LoggerMiddlewareEventIds.SendingResponse)
                 {
                     Assert.AreEqual("IceRpc", GetCategory(entry));
                     Assert.AreEqual("Information", GetLogLevel(entry));
-                    Assert.That(GetMessage(entry).StartsWith("sent response", StringComparison.Ordinal), Is.True);
-                    JsonElement[] scopes = GetScopes(entry);
-                    //CheckServerScope(scopes[0], colocated);
-                    //CheckServerConnectionScope(scopes[1], colocated);
-                    //CheckStreamScope(scopes[2]);
+                    Assert.That(GetMessage(entry).StartsWith("sending response", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
                     // The sending of the response always comes before the receiving of the request
-                    CollectionAssert.Contains(events, (int)ProtocolEvent.SentResponseFrame);
+                    CollectionAssert.Contains(events, (int)LoggerMiddlewareEventIds.SendingResponse);
                 }
                 else
                 {
                     Assert.Fail($"Unexpected event {eventId}");
                 }
             }
+        }
+
+        /// <summary>Check that the protocol and transport logging contains the expected output for colocated, and non
+        /// colocated invocations.</summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task Logging_RequestException(bool colocated)
+        {
+            using var writer = new StringWriter();
+            using ILoggerFactory loggerFactory = CreateLoggerFactory(
+                writer,
+                builder => builder.AddFilter("IceRpc", LogLevel.Information));
+            var pipeline = new Pipeline();
+            pipeline.UseLogger(loggerFactory);
+            pipeline.Use(next => new InlineInvoker((request, cancel) =>
+            {
+                _ = next.InvokeAsync(request, cancel);
+                throw new ArgumentException();
+            }));
+
+            var router = new Router();
+            router.Mount("/", new InlineDispatcher((request, cancel) =>
+            {
+                throw new ArgumentException();
+            }));
+            router.UseLogger(loggerFactory);
+            await using Server server = CreateServer(colocated, portNumber: 2, router);
+            server.Listen();
+
+            await using var connection = new Connection
+            {
+                LoggerFactory = loggerFactory,
+                RemoteEndpoint = server.Endpoint,
+            };
+            var service = GreeterPrx.FromConnection(connection, invoker: pipeline);
+
+            Assert.ThrowsAsync<ArgumentException>(async () => await service.IcePingAsync());
+            writer.Flush();
+            List<JsonDocument> logEntries = ParseLogEntries(writer.ToString());
+
+            var events = new List<int>();
+            // The order of sending/received requests and response logs is not deterministic.
+            bool invokeException = false;
+            bool dispatchException = false;
+            foreach (JsonDocument entry in logEntries)
+            {
+                int eventId = GetEventId(entry);
+                events.Add(eventId);
+                CollectionAssert.AllItemsAreUnique(events);
+
+                if (eventId == (int)LoggerMiddlewareEventIds.DispatchException)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("request dispatch", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
+                    dispatchException = true;
+                }
+                else if (eventId == (int)LoggerInterceptorEventIds.InvokeException)
+                {
+                    Assert.AreEqual("IceRpc", GetCategory(entry));
+                    Assert.AreEqual("Information", GetLogLevel(entry));
+                    Assert.That(GetMessage(entry).StartsWith("request invocation", StringComparison.Ordinal), Is.True);
+                    Assert.That(GetScopes(entry), Is.Empty);
+                    invokeException = true;
+                }
+                else
+                {
+                    // Ignore
+                }
+            }
+
+            Assert.That(invokeException, Is.True);
+            Assert.That(dispatchException, Is.True);
         }
 
         private static ILoggerFactory CreateLoggerFactory(TextWriter writer, Action<ILoggingBuilder> loggerBuilder) =>

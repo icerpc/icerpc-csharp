@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Demo;
+using IceRpc;
+using IceRpc.Configure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using IceRpc;
 
 try
 {
@@ -30,8 +30,8 @@ try
         });
 
     var router = new Router();
-    router.Use(Middleware.CustomTelemetry(new Middleware.TelemetryOptions { LoggerFactory = loggerFactory}));
-    router.Use(Middleware.Logger(loggerFactory));
+    router.UseTelemetry(new TelemetryOptions { LoggerFactory = loggerFactory});
+    router.UseLogger(loggerFactory);
     router.Map<IHello>(new Hello());
 
     await using var server = new Server

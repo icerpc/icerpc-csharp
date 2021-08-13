@@ -248,7 +248,7 @@ namespace IceRpc
         /// <param name="message">A description of the connection abortion reason.</param>
         public Task AbortAsync(string? message = null)
         {
-            using IDisposable? scope = StartScope();
+            using IDisposable? scope = _logger.StartConnectionScope(this);
             return AbortAsync(new ConnectionClosedException(message ?? "connection closed forcefully"));
         }
 
@@ -314,7 +314,7 @@ namespace IceRpc
                     if (UnderlyingConnection.IsSecure ?? true)
                     {
                         clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
-                        clientAuthenticationOptions.TargetHost ??= UnderlyingConnection.RemoteEndpoint.Host;
+                        clientAuthenticationOptions.TargetHost ??= _remoteEndpoint.Host;
                         clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
                             new SslApplicationProtocol(Protocol.GetName())
                         };
@@ -341,7 +341,7 @@ namespace IceRpc
 
                     // Start the scope only once the connection is connected/accepted to ensure that the .NET connection
                     // endpoints are available.
-                    using IDisposable? scope = StartScope();
+                    using IDisposable? scope = _logger.StartConnectionScope(this);
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
@@ -378,7 +378,7 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
-                    using IDisposable? scope = StartScope();
+                    using IDisposable? scope = _logger.StartConnectionScope(this);
                     await AbortAsync(exception).ConfigureAwait(false);
                     throw;
                 }
@@ -417,7 +417,7 @@ namespace IceRpc
                         _timer = new Timer(value => Monitor(), null, period, period);
                     }
 
-                    using IDisposable? scope = StartScope();
+                    using IDisposable? scope = _logger.StartConnectionScope(this);
 
                     // Start a task to wait for the GoAway frame on the peer's control stream.
                     if (!connection.IsDatagram)
@@ -478,7 +478,7 @@ namespace IceRpc
 
             try
             {
-                using IDisposable? connectionScope = StartScope();
+                using IDisposable? connectionScope = _logger.StartConnectionScope(this);
 
                 // Create the stream. The caller (the proxy InvokeAsync implementation) is responsible for releasing
                 // the stream.
@@ -487,6 +487,12 @@ namespace IceRpc
                 // Send the request and wait for the sending to complete.
                 await request.Stream.SendRequestFrameAsync(request, cancel).ConfigureAwait(false);
 
+                _logger.LogSentRequestFrame(
+                    request.Path,
+                    request.Operation,
+                    request.PayloadSize,
+                    request.PayloadEncoding);
+
                 // Mark the request as sent.
                 request.IsSent = true;
 
@@ -494,6 +500,14 @@ namespace IceRpc
                 IncomingResponse response = request.IsOneway ?
                     new IncomingResponse(this, request.PayloadEncoding) :
                     await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+
+                _logger.LogReceivedResponseFrame(
+                    request.Path,
+                    request.Operation,
+                    response.PayloadSize,
+                    response.PayloadEncoding,
+                    response.ResultType);
+
                 response.Connection = this;
 
                 return response;
@@ -629,8 +643,6 @@ namespace IceRpc
                 }
             }
         }
-
-        internal IDisposable? StartScope() => _logger.StartConnectionScope(this);
 
         private async Task AbortAsync(Exception exception)
         {
@@ -771,6 +783,12 @@ namespace IceRpc
             request.Connection = this;
             request.Stream = stream;
 
+            _logger.LogReceivedRequestFrame(
+                request.Path,
+                request.Operation,
+                request.PayloadSize,
+                request.PayloadEncoding);
+
             OutgoingResponse? response = null;
             try
             {
@@ -792,24 +810,11 @@ namespace IceRpc
             }
             catch (Exception exception)
             {
-                if (request.IsOneway)
-                {
-                    // We log this exception, otherwise it would be lost since we don't send a response.
-                    UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                      request.Path,
-                                                                      request.Operation,
-                                                                      exception);
-                }
-                else
+                if (!request.IsOneway)
                 {
                     // Convert the exception to an UnhandledException if needed.
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
-                        // We log the exception as the UnhandledException may not include all details.
-                        UnderlyingConnection!.Logger.LogDispatchException(request.Connection,
-                                                                          request.Path,
-                                                                          request.Operation,
-                                                                          exception);
                         response = new OutgoingResponse(request, new UnhandledException(exception));
                     }
                     else
@@ -830,8 +835,16 @@ namespace IceRpc
                 {
                     // Send the exception as the response instead of sending the response from the dispatch
                     // This can occur if the response exceeds the peer's incoming frame max size.
-                    await stream.SendResponseFrameAsync(new OutgoingResponse(request, ex)).ConfigureAwait(false);
+                    response = new OutgoingResponse(request, ex);
+                    await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                 }
+
+                _logger.LogSentResponseFrame(
+                    request.Path,
+                    request.Operation,
+                    response.PayloadSize,
+                    response.PayloadEncoding,
+                    response.ResultType);
             }
         }
 
@@ -877,7 +890,7 @@ namespace IceRpc
             {
                 Debug.Assert(UnderlyingConnection != null);
 
-                using IDisposable? scope = StartScope();
+                using IDisposable? scope = _logger.StartConnectionScope(this);
                 TimeSpan now = Time.Elapsed;
                 try
                 {

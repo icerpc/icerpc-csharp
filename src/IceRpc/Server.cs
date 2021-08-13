@@ -138,7 +138,7 @@ namespace IceRpc
                         ConnectionOptions,
                         LoggerFactory);
 #pragma warning restore CA2000
-                    _endpoint = multiStreamConnection.LocalEndpoint;
+                    _endpoint = multiStreamConnection.LocalEndpoint!;
 
                     // Connect the connection to start accepting new streams.
                     _ = serverConnection.ConnectAsync(default);
@@ -205,6 +205,8 @@ namespace IceRpc
                 }
                 finally
                 {
+                    // TODO: if _listening = false, this will log shutdown completed even though the server never
+                    // actually listened.
                     _logger.LogServerShutdownComplete(this);
 
                     _shutdownCancelSource!.Dispose();

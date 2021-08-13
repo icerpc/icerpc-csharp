@@ -10,13 +10,13 @@ namespace IceRpc.Transports.Internal
         private static readonly Action<ILogger, Dictionary<string, string>, Exception> _tlsAuthenticationSucceeded =
             LoggerMessage.Define<Dictionary<string, string>>(
                 LogLevel.Debug,
-                new EventId((int)TlsEvent.TlsAuthenticationSucceeded, nameof(TlsEvent.TlsAuthenticationSucceeded)),
+                new EventId((int)TlsEventIds.TlsAuthenticationSucceeded, nameof(TlsEventIds.TlsAuthenticationSucceeded)),
                 "Tls authentication succeeded ({TlsInfo})");
 
         // TODO: log SslStream properties
         [LoggerMessage(
-            EventId = (int)TlsEvent.TlsAuthenticationFailed,
-            EventName = nameof(TlsEvent.TlsAuthenticationFailed),
+            EventId = (int)TlsEventIds.TlsAuthenticationFailed,
+            EventName = nameof(TlsEventIds.TlsAuthenticationFailed),
             Level = LogLevel.Debug,
             Message = "Tls authentication failed")]
         internal static partial void LogTlsAuthenticationFailed(this ILogger logger, Exception exception);

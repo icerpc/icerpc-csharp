@@ -107,29 +107,14 @@ namespace IceRpc
                         tryAgain = true;
                         attempt++;
 
-                        if (request.Connection != null)
-                        {
-                            using IDisposable? connectionScope = request.Connection.StartScope();
-                            _logger.LogRetryRequestRetryableException(
-                                request.Path,
-                                request.Operation,
-                                retryPolicy,
-                                attempt,
-                                _options.MaxAttempts,
-                                exception);
-                        }
-                        else
-                        {
-                            // TODO: this is really a failure to establish a connection; other connection failure could
-                            // leave request.Connection not null
-                            _logger.LogRetryRequestConnectionException(
-                                request.Path,
-                                request.Operation,
-                                retryPolicy,
-                                attempt,
-                                _options.MaxAttempts,
-                                exception);
-                        }
+                        _logger.LogRetryRequest(
+                            request.Connection,
+                            request.Path,
+                            request.Operation,
+                            retryPolicy,
+                            attempt,
+                            _options.MaxAttempts,
+                            exception);
 
                         if (retryPolicy.Retryable == Retryable.AfterDelay && retryPolicy.Delay != TimeSpan.Zero)
                         {
@@ -138,7 +123,8 @@ namespace IceRpc
 
                         if (request.Connection != null &&
                             !request.Connection.IsServer &&
-                            (retryPolicy == RetryPolicy.OtherReplica || request.Connection.State != ConnectionState.Active))
+                            (retryPolicy == RetryPolicy.OtherReplica ||
+                             request.Connection.State != ConnectionState.Active))
                         {
                             // Retry with a new connection
                             request.Connection = null;
@@ -150,14 +136,6 @@ namespace IceRpc
                     }
                 }
                 while (tryAgain);
-
-                if (exception != null)
-                {
-                    // TODO this doesn't seems correct we need to log request exceptions even if there isn't
-                    // a retry invoker
-                    using IDisposable? connectionScope = request.Connection?.StartScope();
-                    _logger.LogRequestException(request.Path, request.Operation, exception);
-                }
 
                 Debug.Assert(response != null || exception != null);
                 Debug.Assert(response == null || response.ResultType == ResultType.Failure);
@@ -194,5 +172,50 @@ namespace IceRpc
             }
             return false;
         }
+    }
+
+    internal static partial class RetryInterceptorLoggerExtensions
+    {
+        internal static void LogRetryRequest(
+            this ILogger logger,
+            Connection? connection,
+            string path,
+            string operation,
+            RetryPolicy retryPolicy,
+            int attempt,
+            int maxAttempts,
+            Exception? ex)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogRetryRequest(
+                    connection?.LocalEndpoint?.ToString() ?? "undefined",
+                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    path,
+                    operation,
+                    retryPolicy,
+                    attempt,
+                    maxAttempts,
+                    ex);
+            }
+        }
+
+        [LoggerMessage(
+            EventId = (int)RetryInterceptorEventIds.RetryRequest,
+            EventName = nameof(RetryInterceptorEventIds.RetryRequest),
+            Level = LogLevel.Debug,
+            Message = "retrying request because of retryable exception (LocalEndpoint={LocalEndpoint}, " +
+                      "RemoteEndpoint={RemoteEndpoint}, Path={Path}, Operation={Operation}, " +
+                      "RetryPolicy={RetryPolicy}, Attempt={Attempt}/{MaxAttempts})")]
+        private static partial void LogRetryRequest(
+            this ILogger logger,
+            string localEndpoint,
+            string remoteEndpoint,
+            string path,
+            string operation,
+            RetryPolicy retryPolicy,
+            int attempt,
+            int maxAttempts,
+            Exception? ex);
     }
 }

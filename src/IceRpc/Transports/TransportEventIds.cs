@@ -3,10 +3,10 @@
 namespace IceRpc.Transports
 {
     /// <summary>This enum contains event ID constants used for transport logging.</summary>
-    public enum TransportEvent
+    public enum TransportEventIds
     {
         /// <summary>The transport failed to accept a connection.</summary>
-        AcceptingConnectionFailed = IceRpc.Internal.LoggerExtensions.TransportBaseEventId,
+        AcceptingConnectionFailed = IceRpc.Internal.BaseEventIds.Transport,
         /// <summary>The transport accepted a new connection.</summary>
         ConnectionAccepted,
         /// <summary>The transport failed to accept a connection.</summary>

@@ -27,4 +27,11 @@
         <SliceCompile Include="../../slice/Ice/Locator.ice;../../slice/Ice/Process.ice" OutputDir="$(MSBuildProjectDirectory)/generated" />
         <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" PrivateAssets="All" />
     </ItemGroup>
+    <!-- NuGet package contents-->
+    <ItemGroup>
+      <None Include="..\..\build\logo.png">
+          <Pack>True</Pack>
+          <PackagePath>.</PackagePath>
+      </None>
+    </ItemGroup>
 </Project>
