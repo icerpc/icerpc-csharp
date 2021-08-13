@@ -13,6 +13,7 @@ namespace IceRpc
     {
         /// <summary>Marks the start of the encoding of a top-level exception. This is an IceRPC-internal method marked
         /// public because it's called by the generated code.</summary>
+        // TODO: the exception parameter is used only to access the SlicedData.
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartException(string typeId, RemoteException exception)
         {
@@ -32,8 +33,6 @@ namespace IceRpc
             else
             {
                 EncodeString(typeId);
-                EncodeString(exception.Message);
-                exception.Origin.Encode(this);
             }
         }
 
@@ -216,6 +215,13 @@ namespace IceRpc
             Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_classFormat == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
+
+            if (!OldEncoding)
+            {
+                EncodeString(v.Message);
+                v.Origin.Encode(this);
+            }
+
             v.Encode(this);
             _current = default;
         }

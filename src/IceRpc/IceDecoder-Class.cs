@@ -130,9 +130,9 @@ namespace IceRpc
             }
             else
             {
-                string typeId = DecodeString();
                 errorMessage = DecodeString();
                 origin = new RemoteExceptionOrigin(this);
+                string typeId = DecodeString();
                 remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
             }
 
