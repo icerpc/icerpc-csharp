@@ -322,7 +322,7 @@ namespace IceRpc
                     if (UnderlyingConnection.IsSecure ?? true)
                     {
                         clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
-                        clientAuthenticationOptions.TargetHost ??= UnderlyingConnection.RemoteEndpoint.Host;
+                        clientAuthenticationOptions.TargetHost ??= _remoteEndpoint.Host;
                         clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
                             new SslApplicationProtocol(Protocol.GetName())
                         };

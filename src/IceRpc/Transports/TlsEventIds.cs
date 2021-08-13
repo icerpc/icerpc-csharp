@@ -3,10 +3,10 @@
 namespace IceRpc.Transports
 {
     /// <summary>This class contains event ID constants used for Tls logging.</summary>
-    public enum TlsEvent
+    public enum TlsEventIds
     {
         /// <summary>The TLS authentication operation completed successfully.</summary>
-        TlsAuthenticationSucceeded = IceRpc.Internal.LoggerExtensions.TlsBaseEventId,
+        TlsAuthenticationSucceeded = IceRpc.Internal.BaseEventIds.Tls,
         /// <summary>The TSL authentication operation failed.</summary>
         TlsAuthenticationFailed
     }

@@ -25,16 +25,100 @@ namespace IceRpc
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            _logger.LogReceivedRequest(request.Path,
+            _logger.LogReceivedRequest(request.Connection,
+                                       request.Path,
                                        request.Operation,
                                        request.PayloadSize,
                                        request.PayloadEncoding);
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
             if (!request.IsOneway)
             {
-                _logger.LogSentResponse(response.ResultType, response.PayloadSize, response.PayloadEncoding);
+                _logger.LogSendingResponse(request.Connection,
+                                           request.Path,
+                                           request.Operation,
+                                           response.ResultType,
+                                           response.PayloadSize,
+                                           response.PayloadEncoding);
             }
             return response;
         }
+    }
+
+    internal static partial class LoggerMiddlewareLoggerExtensions
+    {
+        internal static void LogReceivedRequest(
+            this ILogger logger,
+            Connection? connection,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogReceivedRequest(
+                    connection?.LocalEndpoint?.ToString() ?? "undefined",
+                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    path,
+                    operation,
+                    payloadSize,
+                    payloadEncoding);
+            }
+        }
+
+        internal static void LogSendingResponse(
+            this ILogger logger,
+            Connection? connection,
+            string path,
+            string operation,
+            ResultType resultType,
+            int payloadSize,
+            Encoding payloadEncoding)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogSendingResponse(
+                    connection?.LocalEndpoint?.ToString() ?? "undefined",
+                    connection?.RemoteEndpoint?.ToString() ?? "undefined",
+                    path,
+                    operation,
+                    resultType,
+                    payloadSize,
+                    payloadEncoding);
+            }
+        }
+
+        [LoggerMessage(
+            EventId = (int)LoggerMiddlewareEventIds.ReceivedRequest,
+            EventName = nameof(LoggerMiddlewareEventIds.ReceivedRequest),
+            Level = LogLevel.Information,
+            Message = "received request (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+                      "Path={Path}, Operation={Operation}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        private static partial void LogReceivedRequest(
+            this ILogger logger,
+            string localEndpoint,
+            string remoteEndpoint,
+            string path,
+            string operation,
+            int payloadSize,
+            Encoding payloadEncoding);
+
+        [LoggerMessage(
+            EventId = (int)LoggerMiddlewareEventIds.SendingResponse,
+            EventName = nameof(LoggerMiddlewareEventIds.SendingResponse),
+            Level = LogLevel.Information,
+            Message = "sending response (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
+                      "Path={Path}, Operation={Operation}, ResultType={ResultType}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
+        private static partial void LogSendingResponse(
+            this ILogger logger,
+            string localEndpoint,
+            string remoteEndpoint,
+            string path,
+            string operation,
+            ResultType resultType,
+            int payloadSize,
+            Encoding payloadEncoding);
     }
 }

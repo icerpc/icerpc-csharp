@@ -3,10 +3,10 @@
 namespace IceRpc.Transports
 {
     /// <summary>This enum contains event ID constants used for Slic transport logging.</summary>
-    public enum SlicEvent
+    public enum SlicEventIds
     {
         /// <summary>Received Slic reset frame.</summary>
-        ReceivedResetFrame = IceRpc.Internal.LoggerExtensions.SlicBaseEventId,
+        ReceivedResetFrame = IceRpc.Internal.BaseEventIds.Slic,
         /// <summary>Received Slic stop sending frame.</summary>
         ReceivedStopSendingFrame,
         /// <summary>Received Slic Initialize frame with unsupported version.</summary>

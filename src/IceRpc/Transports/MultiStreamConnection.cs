@@ -38,22 +38,14 @@ namespace IceRpc.Transports
 
         /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
         /// </summary>
-        public Endpoint LocalEndpoint
-        {
-            get => _localEndpoint ?? throw new InvalidOperationException("the connection is not connected");
-            protected set => _localEndpoint = value;
-        }
+        public Endpoint? LocalEndpoint { get; protected set; }
 
         /// <summary>The Ice protocol used by this connection.</summary>
         public Protocol Protocol => _endpoint.Protocol;
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
-        public Endpoint RemoteEndpoint
-        {
-            get => _remoteEndpoint ?? throw new InvalidOperationException("the connection is not connected");
-            protected set => _remoteEndpoint = value;
-        }
+        public Endpoint? RemoteEndpoint { get; protected set; }
 
         /// <summary>The name of the transport.</summary>
         public string Transport => _endpoint.Transport;
@@ -99,11 +91,9 @@ namespace IceRpc.Transports
         private TaskCompletionSource? _incomingStreamsEmptySource;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
-        private Endpoint? _localEndpoint;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
         private TaskCompletionSource? _outgoingStreamsEmptySource;
-        private Endpoint? _remoteEndpoint;
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
@@ -183,8 +173,8 @@ namespace IceRpc.Transports
         {
             _endpoint = endpoint;
             IsServer = options is ServerConnectionOptions;
-            _localEndpoint = IsServer ? _endpoint : null;
-            _remoteEndpoint = IsServer ? null : _endpoint;
+            LocalEndpoint = IsServer ? _endpoint : null;
+            RemoteEndpoint = IsServer ? null : _endpoint;
             IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;
@@ -235,13 +225,13 @@ namespace IceRpc.Transports
         {
             builder.Append("IsSecure = ").Append(IsSecure).Append(", ");
             builder.Append("IsServer = ").Append(IsServer);
-            if (_localEndpoint != null)
+            if (LocalEndpoint != null)
             {
-                builder.Append(", LocalEndpoint = ").Append(_localEndpoint);
+                builder.Append(", LocalEndpoint = ").Append(LocalEndpoint);
             }
-            if (_remoteEndpoint != null)
+            if (RemoteEndpoint != null)
             {
-                builder.Append(", RemoteEndpoint = ").Append(_remoteEndpoint);
+                builder.Append(", RemoteEndpoint = ").Append(RemoteEndpoint);
             }
             return true;
         }

@@ -9,8 +9,8 @@ namespace IceRpc.Internal
     internal static partial class ConnectionLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)ConnectionEvent.DispatchException,
-            EventName = nameof(ConnectionEvent.DispatchException),
+            EventId = (int)ConnectionEventIds.DispatchException,
+            EventName = nameof(ConnectionEventIds.DispatchException),
             Level = LogLevel.Debug,
             Message = "dispatch exception (Connection={Connection}, Path={Path}, Operation={Operation})")]
         internal static partial void LogDispatchException(

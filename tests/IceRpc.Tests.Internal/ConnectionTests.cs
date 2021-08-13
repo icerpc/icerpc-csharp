@@ -323,7 +323,7 @@ namespace IceRpc.Tests.Internal
             if (transport == "udp")
             {
                 Assert.That(serverSocket.RemoteEndPoint, Is.Null);
-                Assert.Throws<InvalidOperationException>(() => _ = factory.ServerConnection.RemoteEndpoint);
+                Assert.That(factory.ServerConnection.RemoteEndpoint, Is.Null);
             }
             else
             {

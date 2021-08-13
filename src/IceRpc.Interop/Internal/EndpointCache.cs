@@ -145,8 +145,8 @@ namespace IceRpc.Internal
     internal static partial class EndpointCacheLoggerExtensions
     {
         [LoggerMessage(
-            EventId = (int)LocationEvent.FoundEntry,
-            EventName = nameof(LocationEvent.FoundEntry),
+            EventId = (int)LocationEventIds.FoundEntry,
+            EventName = nameof(LocationEventIds.FoundEntry),
             Level = LogLevel.Trace,
             Message = "found {LocationKind} '{Location}' = '{Proxy}' in cache")]
         internal static partial void LogFoundEntry(
@@ -156,8 +156,8 @@ namespace IceRpc.Internal
             Proxy proxy);
 
         [LoggerMessage(
-            EventId = (int)LocationEvent.SetEntry,
-            EventName = nameof(LocationEvent.SetEntry),
+            EventId = (int)LocationEventIds.SetEntry,
+            EventName = nameof(LocationEventIds.SetEntry),
             Level = LogLevel.Trace,
             Message = "set {LocationKind} '{Location}' = '{Proxy}' in cache")]
         internal static partial void LogSetEntry(
@@ -167,8 +167,8 @@ namespace IceRpc.Internal
             Proxy proxy);
 
         [LoggerMessage(
-            EventId = (int)LocationEvent.RemovedEntry,
-            EventName = nameof(LocationEvent.RemovedEntry),
+            EventId = (int)LocationEventIds.RemovedEntry,
+            EventName = nameof(LocationEventIds.RemovedEntry),
             Level = LogLevel.Trace,
             Message = "removed {LocationKind} '{Location}' from cache")]
         internal static partial void LogRemovedEntry(
