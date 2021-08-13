@@ -1627,23 +1627,26 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder, bool firstSlice)";
+    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder)";
     _out << sb;
-    _out << nl << "if (firstSlice)";
-    _out << sb;
-    _out << nl << "IceSlicedData = decoder.IceStartFirstSlice();";
-    _out << nl << "ConvertToUnhandled = true;";
-    _out << eb;
-    _out << nl << "else";
-    _out << sb;
-    _out << nl << "decoder.IceStartNextSlice();";
-    _out << eb;
-    writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-    _out << nl << "decoder.IceEndSlice();";
-
     if (base)
     {
-        _out << nl << "base.IceDecode(decoder, false);";
+        _out << nl << "decoder.IceStartDerivedExceptionSlice();";
+    }
+    else
+    {
+        _out << nl << "decoder.IceStartException();";
+        _out << nl << "ConvertToUnhandled = true;";
+    }
+    writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+    if (base)
+    {
+        _out << nl << "decoder.IceEndDerivedExceptionSlice();";
+        _out << nl << "base.IceDecode(decoder);";
+    }
+    else
+    {
+        _out << nl << "decoder.IceEndException();";
     }
     _out << eb;
 
@@ -1652,7 +1655,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sb;
     if (base)
     {
-        _out << nl << "encoder.IceStartDerivedException(_iceAllTypeIds[0], this);";
+        _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceAllTypeIds[0], this);";
     }
     else
     {
@@ -1662,7 +1665,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
 
     if (base)
     {
-        _out << nl << "encoder.IceEndDerivedException();"; // the current exception has a parent
+        _out << nl << "encoder.IceEndDerivedExceptionSlice();"; // the current exception has a parent
         _out << nl << "base.IceEncode(encoder);";
     }
     else

@@ -85,12 +85,12 @@ namespace IceRpc
 
         public void IceEndException() => IceEndSlice(true);
 
-        public void IceStartDerivedException(string typeId, RemoteException exception)
+        public void IceStartDerivedExceptionSlice(string typeId, RemoteException exception)
         {
             Debug.Assert(OldEncoding);
             IceStartException(typeId, exception);
         }
-        public void IceEndDerivedException()
+        public void IceEndDerivedExceptionSlice()
         {
             Debug.Assert(OldEncoding);
             IceEndSlice(false);

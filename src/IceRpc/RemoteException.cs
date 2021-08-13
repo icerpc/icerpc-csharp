@@ -34,10 +34,7 @@ namespace IceRpc
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
-        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced
-        /// during unmarshaling, <c>null</c> is returned otherwise.</summary>
-        protected SlicedData? IceSlicedData { get; set; }
-        internal SlicedData? SlicedData => IceSlicedData;
+        internal SlicedData? SlicedData { get; set; }
 
         private readonly bool _hasCustomMessage;
 
@@ -72,22 +69,15 @@ namespace IceRpc
         /// <summary>Decodes a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
         /// called on a plain RemoteException.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
-        /// otherwise.</param>
-        protected virtual void IceDecode(IceDecoder decoder, bool firstSlice)
-        {
-            Debug.Assert(firstSlice);
-            IceSlicedData = decoder.SlicedData;
-            ConvertToUnhandled = true;
-        }
+        protected virtual void IceDecode(IceDecoder decoder) => ConvertToUnhandled = true;
 
-        internal void Decode(IceDecoder decoder) => IceDecode(decoder, true);
+        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
 
         /// <summary>Encodes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
         /// <param name="encoder">The Ice encoder.</param>
         protected virtual void IceEncode(IceEncoder encoder) =>
-            encoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>());
+            encoder.EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
 
         internal void Encode(IceEncoder encoder) => IceEncode(encoder);
     }

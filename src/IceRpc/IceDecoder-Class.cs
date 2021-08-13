@@ -10,6 +10,34 @@ namespace IceRpc
     // This partial class provides the class/exception decoding logic.
     public sealed partial class IceDecoder
     {
+        public void IceStartException()
+        {
+            Debug.Assert(_current.InstanceType != InstanceType.None);
+            if (OldEncoding)
+            {
+                if (_current.FirstSlice)
+                {
+                    _current.FirstSlice = false;
+                }
+                else
+                {
+                    IceStartNextSlice();
+                }
+            }
+        }
+
+        public void IceEndException()
+        {
+            if (OldEncoding)
+            {
+                IceEndSlice();
+            }
+        }
+
+        public void IceStartDerivedExceptionSlice() => IceStartException();
+
+        public void IceEndDerivedExceptionSlice() => IceEndException();
+
         /// <summary>Tells the decoder the end of a class or exception slice was reached. This is an IceRPC-internal
         /// method marked public because it's called by the generated code.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -99,8 +127,10 @@ namespace IceRpc
             }
 
             remoteEx ??= new RemoteException(errorMessage, origin);
-            remoteEx.Decode(this);
+            remoteEx.SlicedData = SlicedData;
 
+            _current.FirstSlice = true;
+            remoteEx.Decode(this);
             _current = default;
             return remoteEx;
         }
@@ -545,6 +575,7 @@ namespace IceRpc
 
             // Slice fields
 
+            internal bool FirstSlice;
             internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
             internal int? PosAfterIndirectionTable;
 
