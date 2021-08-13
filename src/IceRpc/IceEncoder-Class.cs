@@ -11,6 +11,54 @@ namespace IceRpc
 
     public sealed partial class IceEncoder
     {
+        /// <summary>Marks the start of the encoding of a top-level exception. This is an IceRPC-internal method marked
+        /// public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartException(string typeId, RemoteException exception)
+        {
+            if (OldEncoding)
+            {
+                Debug.Assert(_current.InstanceType == InstanceType.Exception);
+                if (_current.FirstSlice)
+                {
+                    _current.FirstSlice = false;
+                    IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
+                }
+                else
+                {
+                    IceStartNextSlice(typeId);
+                }
+            }
+            else
+            {
+                EncodeString(typeId);
+                EncodeString(exception.Message);
+                exception.Origin.Encode(this);
+            }
+        }
+
+        /// <summary>Marks the end of the encoding of a top-level exception. This is an IceRPC-internal method marked
+        /// public because it's called by the generated code.</summary>
+        public void IceEndException() => IceEndSlice(true);
+
+        /// <summary>Marks the start of the encoding of a derived exception slice. This is an IceRPC-internal method
+        /// marked public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartDerivedExceptionSlice(string typeId, RemoteException exception)
+        {
+            Debug.Assert(OldEncoding);
+            IceStartException(typeId, exception);
+        }
+
+        /// <summary>Marks the end of the encoding of a derived exception slice. This is an IceRPC-internal method
+        /// marked public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceEndDerivedExceptionSlice()
+        {
+            Debug.Assert(OldEncoding);
+            IceEndSlice(false);
+        }
+
         /// <summary>Marks the end of a slice for a class instance or user exception. This is an Ice-internal method
         /// marked public because it's called by the generated code.</summary>
         /// <param name="lastSlice">True when it's the last (least derived) slice of the instance; otherwise, false.
@@ -58,42 +106,6 @@ namespace IceRpc
                 // Update SliceFlags in case they were updated.
                 RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
             }
-        }
-
-        public void IceStartException(string typeId, RemoteException exception)
-        {
-            if (OldEncoding)
-            {
-                Debug.Assert(_current.InstanceType == InstanceType.Exception);
-                if (_current.FirstSlice)
-                {
-                    _current.FirstSlice = false;
-                    IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
-                }
-                else
-                {
-                    IceStartNextSlice(typeId);
-                }
-            }
-            else
-            {
-                EncodeString(typeId);
-                EncodeString(exception.Message);
-                exception.Origin.Encode(this);
-            }
-        }
-
-        public void IceEndException() => IceEndSlice(true);
-
-        public void IceStartDerivedExceptionSlice(string typeId, RemoteException exception)
-        {
-            Debug.Assert(OldEncoding);
-            IceStartException(typeId, exception);
-        }
-        public void IceEndDerivedExceptionSlice()
-        {
-            Debug.Assert(OldEncoding);
-            IceEndSlice(false);
         }
 
         /// <summary>Starts encoding the first slice of a class or exception instance. This is an Ice-internal method
@@ -386,9 +398,9 @@ namespace IceRpc
 
             internal InstanceType InstanceType;
 
-            internal bool FirstSlice;
-
             // The following fields are used for the current slice:
+
+            internal bool FirstSlice; // for now, used only for exceptions
 
             // The indirection map and indirection table are only used for the sliced format.
             internal Dictionary<AnyClass, int>? IndirectionMap;

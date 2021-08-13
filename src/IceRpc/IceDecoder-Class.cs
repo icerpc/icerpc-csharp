@@ -10,6 +10,9 @@ namespace IceRpc
     // This partial class provides the class/exception decoding logic.
     public sealed partial class IceDecoder
     {
+        /// <summary>Marks the start of the decoding of a top-level exception. This is an IceRPC-internal method marked
+        /// public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartException()
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
@@ -26,6 +29,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Marks the end of the decoding of a top-level exception. This is an IceRPC-internal method marked
+        /// public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndException()
         {
             if (OldEncoding)
@@ -34,8 +40,14 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Marks the start of the decoding of a derived exception slice. This is an IceRPC-internal method
+        /// marked public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartDerivedExceptionSlice() => IceStartException();
 
+        /// <summary>Marks the end of the decoding of a derived exception slice. This is an IceRPC-internal method
+        /// marked public because it's called by the generated code.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndDerivedExceptionSlice() => IceEndException();
 
         /// <summary>Tells the decoder the end of a class or exception slice was reached. This is an IceRPC-internal
@@ -45,25 +57,23 @@ namespace IceRpc
         {
             // Note that IceEndSlice is not called when we call SkipSlice.
             Debug.Assert(_current.InstanceType != InstanceType.None);
+            Debug.Assert(OldEncoding);
 
-            if (OldEncoding)
+            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
             {
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
-                {
-                    SkipTaggedParams();
-                }
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
-                {
-                    Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
-                    Pos = _current.PosAfterIndirectionTable.Value;
-                    _current.PosAfterIndirectionTable = null;
-                    _current.IndirectionTable = null;
-                }
+                SkipTaggedParams();
+            }
+            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+            {
+                Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
+                Pos = _current.PosAfterIndirectionTable.Value;
+                _current.PosAfterIndirectionTable = null;
+                _current.IndirectionTable = null;
             }
         }
 
-        /// <summary>Starts decoding the first slice of a class or exception. This is an Ice-internal method marked
-        /// public because it's called by the generated code.</summary>
+        /// <summary>Starts decoding the first slice of a class. This is an Ice-internal method marked public because
+        /// it's called by the generated code.</summary>
         /// <returns>The sliced-off slices, if any.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public SlicedData? IceStartFirstSlice() => SlicedData;
@@ -575,7 +585,7 @@ namespace IceRpc
 
             // Slice fields
 
-            internal bool FirstSlice;
+            internal bool FirstSlice; // for now, used only for exceptions
             internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
             internal int? PosAfterIndirectionTable;
 

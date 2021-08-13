@@ -1522,8 +1522,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         }
     }
 
-    _out << nl << "private readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
-         << name << "));";
+    _out << nl << "private readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof(" << name << "))!;";
 
     // Up to 2 "one-shot" constructors
     for (int i = 0; i < 2; i++)
@@ -1655,11 +1654,11 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sb;
     if (base)
     {
-        _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceAllTypeIds[0], this);";
+        _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceTypeId, this);";
     }
     else
     {
-        _out << nl << "encoder.IceStartException(_iceAllTypeIds[0], this);";
+        _out << nl << "encoder.IceStartException(_iceTypeId, this);";
     }
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
 
