@@ -6,73 +6,6 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The retry policy that can be specified when constructing a remote exception.</summary>
-    public readonly struct RetryPolicy : IEquatable<RetryPolicy>
-    {
-        /// <summary>The retry policy ability for retrying.</summary>
-        public readonly Retryable Retryable;
-        /// <summary>The retry policy delay to apply for retries.</summary>
-        public readonly TimeSpan Delay;
-
-        /// <summary>The NoRetry policy specifies that the exception cannot be retried. This is the default policy
-        /// when no policy is specified.</summary>
-        public static readonly RetryPolicy NoRetry = new(Retryable.No);
-
-        /// <summary>The OtherReplica policy specifies that the exception can be retried on a different replica.
-        /// </summary>
-        public static readonly RetryPolicy OtherReplica = new(Retryable.OtherReplica);
-
-        /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
-        public static readonly RetryPolicy Immediately = new(Retryable.AfterDelay, TimeSpan.Zero);
-
-        /// <summary>Creates a retry policy that specifies that the exception can be retried after the given delay.</summary>
-        /// <param name="delay">The delay after which the exception can be retried.</param>
-        /// <returns>The retry policy.</returns>
-        public static RetryPolicy AfterDelay(TimeSpan delay) => new(Retryable.AfterDelay, delay);
-
-        /// <inheritdoc/>
-        public bool Equals(RetryPolicy other) => Retryable == other.Retryable && Delay == other.Delay;
-
-        /// <inheritdoc/>
-        public override bool Equals(object? obj) => obj is RetryPolicy other && Equals(other);
-
-        /// <inheritdoc/>
-        public override int GetHashCode() => HashCode.Combine(Retryable, Delay);
-
-        /// <inheritdoc/>
-        public override string? ToString() => Retryable switch
-        {
-            Retryable.AfterDelay => $"after {Delay.ToPropertyValue()} delay",
-            Retryable.OtherReplica => "other replica",
-            Retryable.No => "no retry",
-            _ => "unknown"
-        };
-
-        /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
-        /// <param name="lhs">The left hand side operand.</param>
-        /// <param name="rhs">The right hand side operand.</param>
-        /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
-        public static bool operator ==(RetryPolicy lhs, RetryPolicy rhs) => lhs.Equals(rhs);
-
-        /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
-        /// <param name="lhs">The left hand side operand.</param>
-        /// <param name="rhs">The right hand side operand.</param>
-        /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
-        public static bool operator !=(RetryPolicy lhs, RetryPolicy rhs) => !(lhs == rhs);
-
-        internal RetryPolicy(IceDecoder decoder)
-        {
-            Retryable = decoder.DecodeRetryable();
-            Delay = Retryable == Retryable.AfterDelay ? TimeSpan.FromMilliseconds(decoder.DecodeVarULong()) : TimeSpan.Zero;
-        }
-
-        private RetryPolicy(Retryable retryable, TimeSpan delay = default)
-        {
-            Retryable = retryable;
-            Delay = delay;
-        }
-    }
-
     /// <summary>Base class for exceptions that can be transmitted in responses to Ice requests. The derived exception
     /// classes are generated from exceptions defined in Slice.</summary>
     public class RemoteException : Exception
@@ -101,10 +34,7 @@ namespace IceRpc
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
-        /// <summary>Returns the sliced data if the exception has a preserved-slice base exception and has been sliced
-        /// during unmarshaling, <c>null</c> is returned otherwise.</summary>
-        protected SlicedData? IceSlicedData { get; set; }
-        internal SlicedData? SlicedData => IceSlicedData;
+        internal SlicedData? SlicedData { get; set; }
 
         private readonly bool _hasCustomMessage;
 
@@ -139,26 +69,17 @@ namespace IceRpc
         /// <summary>Decodes a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
         /// called on a plain RemoteException.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
-        /// otherwise.</param>
-        protected virtual void IceDecode(IceDecoder decoder, bool firstSlice)
-        {
-            Debug.Assert(firstSlice);
-            IceSlicedData = decoder.SlicedData;
-            ConvertToUnhandled = true;
-        }
+        protected virtual void IceDecode(IceDecoder decoder) => ConvertToUnhandled = true;
 
-        internal void Decode(IceDecoder decoder) => IceDecode(decoder, true);
+        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
 
         /// <summary>Encodes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
         /// called on a plain RemoteException with IceSlicedData set.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        /// <param name="firstSlice"><c>True</c> if the exception corresponds to the first Slice, <c>False</c>
-        /// otherwise.</param>
-        protected virtual void IceEncode(IceEncoder encoder, bool firstSlice) =>
-            encoder.EncodeSlicedData(IceSlicedData!.Value, Array.Empty<string>(), Message, Origin);
+        protected virtual void IceEncode(IceEncoder encoder) =>
+            encoder.EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
 
-        internal void Encode(IceEncoder encoder) => IceEncode(encoder, true);
+        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>
