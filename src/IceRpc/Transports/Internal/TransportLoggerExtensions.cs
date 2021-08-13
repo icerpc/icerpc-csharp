@@ -164,17 +164,8 @@ namespace IceRpc.Transports.Internal
             Message = "stopping to receive datagrams")]
         internal static partial void LogStopReceivingDatagrams(this ILogger logger);
 
-        internal static IDisposable? StartServerScope(this ILogger logger, IListener listener)
-        {
-            if (logger.IsEnabled(LogLevel.Error))
-            {
-                return _listenerScope(logger, listener.Endpoint.ToString());
-            }
-            else
-            {
-                return null;
-            }
-        }
+        internal static IDisposable? StartServerScope(this ILogger logger, IListener listener) =>
+            logger.IsEnabled(LogLevel.Error) ? _listenerScope(logger, listener.Endpoint.ToString()) : null;
 
         internal static IDisposable? StartConnectionScope(this ILogger logger, Connection connection)
         {

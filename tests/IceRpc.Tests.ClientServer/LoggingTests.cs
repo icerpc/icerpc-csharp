@@ -226,17 +226,11 @@ namespace IceRpc.Tests.ClientServer
             }));
 
             var router = new Router();
-            // router.Map<IGreeter>(new Greeter());
             router.Mount("/", new InlineDispatcher((request, cancel) =>
             {
                 throw new ArgumentException();
             }));
             router.UseLogger(loggerFactory);
-            // router.Use(next => new InlineDispatcher((request, cancel) =>
-            // {
-            //     _ = next.DispatchAsync(request, cancel);
-            //     throw new ArgumentException();
-            // }));
             await using Server server = CreateServer(colocated, portNumber: 2, router);
             server.Listen();
 
