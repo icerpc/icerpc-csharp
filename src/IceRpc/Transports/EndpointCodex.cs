@@ -26,7 +26,7 @@ namespace IceRpc.Transports
         /// <summary>Encodes an ice1 endpoint with the Ice 1.1 encoding.</summary>
         /// <param name="endpoint">The ice1 endpoint to encode.</param>
         /// <param name="encoder">The Ice encoder.</param>
-        void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder);
+        internal void EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder);
     }
 
     /// <summary>Composes the <see cref="IEndpointEncoder"/> and <see cref="IEndpointDecoder"/> interfaces.</summary>
@@ -59,7 +59,7 @@ namespace IceRpc.Transports
                 _endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder) ?
                     endpointDecoder.DecodeEndpoint(transportCode, decoder) : null;
 
-            void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+            void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
             {
                 if (_endpointEncoders.TryGetValue(endpoint.Transport, out IEndpointEncoder? endpointEncoder))
                 {
@@ -69,7 +69,7 @@ namespace IceRpc.Transports
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) = endpoint.ParseOpaqueParams();
 
-                    ((Ice11Encoder)encoder).EncodeEndpoint(
+                    encoder.EncodeEndpoint(
                         endpoint,
                         transportCode,
                         (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
@@ -151,7 +151,7 @@ namespace IceRpc.Transports
             return null;
         }
 
-        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
             if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
             {
@@ -161,7 +161,7 @@ namespace IceRpc.Transports
             TransportCode transportCode =
                 endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP;
 
-            ((Ice11Encoder)encoder).EncodeEndpoint(
+            encoder.EncodeEndpoint(
                 endpoint,
                 transportCode,
                 static (encoder, endpoint) =>
@@ -203,14 +203,14 @@ namespace IceRpc.Transports
             return null;
         }
 
-        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
             if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
             {
                 throw new InvalidOperationException();
             }
 
-            ((Ice11Encoder)encoder).EncodeEndpoint(
+            encoder.EncodeEndpoint(
                 endpoint,
                 TransportCode.UDP,
                 static (encoder, endpoint) =>

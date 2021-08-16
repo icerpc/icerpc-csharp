@@ -148,19 +148,26 @@ namespace IceRpc.Internal
                 {
                     if (proxy.Protocol == Protocol.Ice1)
                     {
-                        EncodeSequence(
-                            endpoints,
-                            (encoder, endpoint) => proxy.EndpointEncoder.EncodeEndpoint(endpoint, encoder));
+                        // Encode sequence by hand
+                        EncodeSize(endpoints.Count());
+
+                        foreach (Endpoint endpoint in endpoints)
+                        {
+                            proxy.EndpointEncoder.EncodeEndpoint(endpoint, this);
+                        }
                     }
                     else
                     {
-                        EncodeSequence(
-                            endpoints,
-                            (encoder, endpoint) =>
-                                ((Ice11Encoder)encoder).EncodeEndpoint(
-                                    endpoint,
-                                    TransportCode.Any,
-                                    static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));
+                        // Encode sequence by hand
+                        EncodeSize(endpoints.Count());
+
+                        foreach (Endpoint endpoint in endpoints)
+                        {
+                            EncodeEndpoint(endpoint,
+                                           TransportCode.Any,
+                                           static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder));
+
+                        }
                     }
                 }
                 else // encoded as an endpointless proxy
@@ -319,7 +326,7 @@ namespace IceRpc.Internal
         internal void EncodeEndpoint(
             Endpoint endpoint,
             TransportCode transportCode,
-            EncodeAction<Endpoint> encodeAction)
+            Action<Ice11Encoder, Endpoint> encodeAction)
         {
             this.EncodeTransportCode(transportCode);
             BufferWriter.Position startPos = BufferWriter.Tail;
