@@ -69,7 +69,7 @@ namespace IceRpc.Transports
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) = endpoint.ParseOpaqueParams();
 
-                    ((Ice11Encoder)encoder).EncodeEndpoint11(
+                    ((Ice11Encoder)encoder).EncodeEndpoint(
                         endpoint,
                         transportCode,
                         (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
@@ -161,7 +161,7 @@ namespace IceRpc.Transports
             TransportCode transportCode =
                 endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP;
 
-            ((Ice11Encoder)encoder).EncodeEndpoint11(
+            ((Ice11Encoder)encoder).EncodeEndpoint(
                 endpoint,
                 transportCode,
                 static (encoder, endpoint) =>
@@ -210,7 +210,7 @@ namespace IceRpc.Transports
                 throw new InvalidOperationException();
             }
 
-            ((Ice11Encoder)encoder).EncodeEndpoint11(
+            ((Ice11Encoder)encoder).EncodeEndpoint(
                 endpoint,
                 TransportCode.UDP,
                 static (encoder, endpoint) =>

@@ -644,7 +644,7 @@ namespace IceRpc
                             encoder.EncodeSequence(
                                 endpoints,
                                 (encoder, endpoint) =>
-                                    ((Ice11Encoder)encoder).EncodeEndpoint11(
+                                    ((Ice11Encoder)encoder).EncodeEndpoint(
                                         endpoint,
                                         TransportCode.Any,
                                         static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));

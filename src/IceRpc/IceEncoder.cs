@@ -874,21 +874,6 @@ namespace IceRpc
             BufferWriter.RewriteByteSpan(data, pos);
         }
 
-        internal void EncodeField(int key, ReadOnlySpan<byte> value)
-        {
-            EncodeVarInt(key);
-            EncodeSize(value.Length);
-            BufferWriter.WriteByteSpan(value);
-        }
-
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
-        {
-            EncodeVarInt(key);
-            BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            encodeAction(this, value);
-            EndFixedLengthSize(pos, 2);
-        }
-
         /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="slicedData">The sliced-off slices to encode.</param>
         /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
@@ -943,16 +928,6 @@ namespace IceRpc
                 ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
-        }
-
-        /// <summary>Encodes a size on 4 bytes at the given position.</summary>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="pos">The position to encode to.</param>
-        internal void EncodeFixedLengthSize11(int size, BufferWriter.Position pos)
-        {
-            Span<byte> data = stackalloc byte[4];
-            MemoryMarshal.Write(data, ref size);
-            BufferWriter.RewriteByteSpan(data, pos);
         }
 
         /// <summary>Encodes a fixed-size numeric value.</summary>

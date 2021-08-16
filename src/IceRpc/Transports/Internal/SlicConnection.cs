@@ -440,7 +440,7 @@ namespace IceRpc.Transports.Internal
 
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
-            Action<IceEncoder>? encodeAction = null,
+            Action<Ice20Encoder>? encodeAction = null,
             Action<int>? logAction = null,
             SlicStream? stream = null,
             CancellationToken cancel = default)
@@ -650,7 +650,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static void WriteParameters(IceEncoder encoder, Dictionary<ParameterKey, ulong> parameters)
+        private static void WriteParameters(Ice20Encoder encoder, Dictionary<ParameterKey, ulong> parameters)
         {
             encoder.EncodeSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)

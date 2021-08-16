@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Internal
 {
-    /// <summary>.</summary>
+    /// <summary>Encoder for the Ice 1.1 encoding.</summary>
     internal class Ice11Encoder : IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
@@ -63,7 +63,6 @@ namespace IceRpc.Internal
             _current = default;
         }
 
-
         public override void EncodeNullableClass(AnyClass? v)
         {
             if (v == null)
@@ -76,8 +75,6 @@ namespace IceRpc.Internal
             }
         }
 
-
-        /// <inheritdoc/>
         public override void EncodeSize(int v)
         {
             if (v < 255)
@@ -91,7 +88,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <inheritdoc/>
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
         public override void IceStartException(string typeId, RemoteException exception)
@@ -135,7 +131,7 @@ namespace IceRpc.Internal
             if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
-                EncodeFixedLengthSize11(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
+                EncodeFixedLengthSize(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
             }
 
             if (_current.IndirectionTable?.Count > 0)
@@ -194,7 +190,7 @@ namespace IceRpc.Internal
                 _current.SliceFlags = default;
                 _current.SliceFlagsPos = BufferWriter.Tail;
                 EncodeByte(0); // Placeholder for the slice flags
-                EncodeTypeId11(allTypeIds[0], compactTypeId);
+                EncodeTypeId(allTypeIds[0], compactTypeId);
             }
         }
 
@@ -208,7 +204,7 @@ namespace IceRpc.Internal
 
             if (_classFormat == FormatType.Sliced)
             {
-                EncodeTypeId11(typeId, compactId);
+                EncodeTypeId(typeId, compactId);
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
                 _current.SliceSizePos = StartFixedLengthSize();
@@ -224,7 +220,7 @@ namespace IceRpc.Internal
         /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
         /// the nested encapsulation.</param>
         /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
-        internal void EncodeEndpoint11(
+        internal void EncodeEndpoint(
             Endpoint endpoint,
             TransportCode transportCode,
             EncodeAction<Endpoint> encodeAction)
@@ -236,7 +232,7 @@ namespace IceRpc.Internal
             EncodeByte(1); // encoding version major
             EncodeByte(1); // encoding version minor
             encodeAction(this, endpoint);
-            EncodeFixedLengthSize11(BufferWriter.Distance(startPos), startPos);
+            EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
         }
 
         internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds)
@@ -387,7 +383,7 @@ namespace IceRpc.Internal
         /// flags byte as needed.</summary>
         /// <param name="typeId">The type ID of the current slice.</param>
         /// <param name="compactId">The compact ID of the current slice.</param>
-        private void EncodeTypeId11(string typeId, int? compactId)
+        private void EncodeTypeId(string typeId, int? compactId)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 

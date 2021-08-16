@@ -102,7 +102,7 @@ namespace IceRpc.Transports.Internal
             encoder.EncodeInt(IsStarted ? RequestId : 0);
             frame.EncodeHeader(encoder);
 
-            encoder.EncodeFixedLengthSize11(bufferWriter.Size + frame.PayloadSize, start); // frame size
+            encoder.EncodeFixedLengthSize(bufferWriter.Size + frame.PayloadSize, start); // frame size
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;

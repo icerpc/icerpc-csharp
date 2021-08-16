@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Internal
 {
-    /// <summary>.</summary>
+    /// <summary>Encoder for the Ice 2.0 encoding.</summary>
     internal class Ice20Encoder : IceEncoder
     {
         public override void EncodeClass(AnyClass v) =>
@@ -64,6 +64,14 @@ namespace IceRpc.Internal
         internal Ice20Encoder(BufferWriter bufferWriter)
             : base(bufferWriter)
         {
+        }
+
+        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
+        {
+            EncodeVarInt(key);
+            BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
+            encodeAction(this, value);
+            EndFixedLengthSize(pos, 2);
         }
 
         internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds) =>
