@@ -64,8 +64,8 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = new IceEncoder(proxy.Encoding, bufferWriter, classFormat: classFormat);
-            if (encoder.Encoding == Encoding.Ice20)
+            var encoder = IceEncoder.Create(proxy.Encoding, bufferWriter, classFormat: classFormat);
+            if (proxy.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -95,7 +95,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = new IceEncoder(payloadEncoding, bufferWriter, classFormat: classFormat);
+            var encoder = IceEncoder.Create(payloadEncoding, bufferWriter, classFormat: classFormat);
             if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -121,8 +121,8 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = new IceEncoder(proxy.Encoding, bufferWriter, classFormat: classFormat);
-            if (encoder.Encoding == Encoding.Ice20)
+            var encoder = IceEncoder.Create(proxy.Encoding, bufferWriter, classFormat: classFormat);
+            if (proxy.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
             }
@@ -147,7 +147,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = new IceEncoder(payloadEncoding, bufferWriter, classFormat: classFormat);
+            var encoder = IceEncoder.Create(payloadEncoding, bufferWriter, classFormat: classFormat);
             if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -272,7 +272,7 @@ namespace IceRpc
             IceEncoder encoder;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                encoder = new IceEncoder(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
+                encoder = IceEncoder.Create(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.Ice11)
                 {
@@ -296,7 +296,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                encoder = new IceEncoder(Ice1Definitions.Encoding, bufferWriter);
+                encoder = new Ice11Encoder(bufferWriter);
                 encoder.EncodeIce1SystemException(replyStatus, request, exception.Message);
             }
 

@@ -580,7 +580,8 @@ namespace IceRpc
                 throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
             }
 
-            if (encoder.Encoding == IceRpc.Encoding.Ice11)
+            // TODO: move to IceEncoder
+            if (encoder is Ice11Encoder)
             {
                 IdentityAndFacet identityAndFacet;
 
@@ -643,7 +644,7 @@ namespace IceRpc
                             encoder.EncodeSequence(
                                 endpoints,
                                 (encoder, endpoint) =>
-                                    encoder.EncodeEndpoint11(
+                                    ((Ice11Encoder)encoder).EncodeEndpoint11(
                                         endpoint,
                                         TransportCode.Any,
                                         static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -42,7 +43,7 @@ namespace IceRpc.Tests.Encoding
         public void Slicing_Classes()
         {
             var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -107,7 +108,7 @@ namespace IceRpc.Tests.Encoding
         public void Slicing_Classes_WithCompactTypeId()
         {
             var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
@@ -166,7 +167,7 @@ namespace IceRpc.Tests.Encoding
         public void Slicing_Exceptions()
         {
             var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
@@ -236,7 +237,7 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the exception again to ensure all Slices are correctly preserved
             bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
             data = bufferWriter.Finish().Span[0];
 
@@ -254,7 +255,7 @@ namespace IceRpc.Tests.Encoding
         public void Slicing_PreservedClasses()
         {
             var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
@@ -279,7 +280,7 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             data = bufferWriter.Finish().Span[0];
 
@@ -300,7 +301,7 @@ namespace IceRpc.Tests.Encoding
         public void Slicing_PreservedClasses_WithCompactTypeId()
         {
             var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
@@ -323,7 +324,7 @@ namespace IceRpc.Tests.Encoding
 
             // Marshal the sliced class
             bufferWriter = new BufferWriter(new byte[1024 * 1024]);
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, bufferWriter, classFormat: FormatType.Sliced);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
             data = bufferWriter.Finish().Span[0];
 

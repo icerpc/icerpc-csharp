@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -68,9 +69,10 @@ namespace IceRpc.Transports
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) = endpoint.ParseOpaqueParams();
 
-                    encoder.EncodeEndpoint11(endpoint,
-                                             transportCode,
-                                             (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
+                    ((Ice11Encoder)encoder).EncodeEndpoint11(
+                        endpoint,
+                        transportCode,
+                        (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
                 }
                 else
                 {
@@ -151,7 +153,7 @@ namespace IceRpc.Transports
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.Ice11)
+            if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
             {
                 throw new InvalidOperationException();
             }
@@ -159,16 +161,17 @@ namespace IceRpc.Transports
             TransportCode transportCode =
                 endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP;
 
-            encoder.EncodeEndpoint11(endpoint,
-                                     transportCode,
-                                     static (encoder, endpoint) =>
-                                     {
-                                         (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
-                                         encoder.EncodeString(endpoint.Host);
-                                         encoder.EncodeInt(endpoint.Port);
-                                         encoder.EncodeInt(timeout);
-                                         encoder.EncodeBool(compress);
-                                     });
+            ((Ice11Encoder)encoder).EncodeEndpoint11(
+                endpoint,
+                transportCode,
+                static (encoder, endpoint) =>
+                {
+                    (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
+                    encoder.EncodeString(endpoint.Host);
+                    encoder.EncodeInt(endpoint.Port);
+                    encoder.EncodeInt(timeout);
+                    encoder.EncodeBool(compress);
+                });
         }
     }
 
@@ -202,20 +205,21 @@ namespace IceRpc.Transports
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.Ice11)
+            if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
             {
                 throw new InvalidOperationException();
             }
 
-            encoder.EncodeEndpoint11(endpoint,
-                                     TransportCode.UDP,
-                                     static (encoder, endpoint) =>
-                                     {
-                                         bool compress = endpoint.ParseUdpParams().Compress;
-                                         encoder.EncodeString(endpoint.Host);
-                                         encoder.EncodeInt(endpoint.Port);
-                                         encoder.EncodeBool(compress);
-                                     });
+            ((Ice11Encoder)encoder).EncodeEndpoint11(
+                endpoint,
+                TransportCode.UDP,
+                static (encoder, endpoint) =>
+                {
+                    bool compress = endpoint.ParseUdpParams().Compress;
+                    encoder.EncodeString(endpoint.Host);
+                    encoder.EncodeInt(endpoint.Port);
+                    encoder.EncodeBool(compress);
+                });
         }
     }
 }

@@ -450,16 +450,16 @@ namespace IceRpc.Transports.Internal
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
             var bufferWriter = new BufferWriter();
-            var encoder = new IceEncoder(SlicDefinitions.Encoding, bufferWriter);
+            var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)type);
-            BufferWriter.Position sizePos = encoder.StartFixedLengthSize(4);
+            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             if (stream != null)
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
             }
             encodeAction?.Invoke(encoder);
             int frameSize = bufferWriter.Tail.Offset - sizePos.Offset - 4;
-            encoder.EndFixedLengthSize(sizePos, 4);
+            encoder.EndFixedLengthSize(sizePos);
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
 
             // Wait for other packets to be sent.
@@ -609,9 +609,9 @@ namespace IceRpc.Transports.Internal
                 try
                 {
                     // Compute how much space the size and stream ID require to figure out the start of the Slic header.
-                    int streamIdLength = IceEncoder.GetSizeLength20(stream.Id);
+                    int streamIdLength = Ice20Encoder.GetSizeLength(stream.Id);
                     packetSize += streamIdLength;
-                    int sizeLength = IceEncoder.GetSizeLength20(packetSize);
+                    int sizeLength = Ice20Encoder.GetSizeLength(packetSize);
 
                     SlicDefinitions.FrameType frameType =
                         endStream ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;

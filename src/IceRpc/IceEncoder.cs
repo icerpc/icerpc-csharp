@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,36 +10,14 @@ using System.Runtime.InteropServices;
 namespace IceRpc
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed partial class IceEncoder
+    public abstract class IceEncoder
     {
-        /// <summary>The Ice encoding used by this encoder when encoding data.</summary>
-        /// <value>The encoding.</value>
-        public Encoding Encoding { get; }
-
-        // The number of bytes we use by default when writing a size on a fixed number of byte with the 2.0 encoding.
+        // The number of bytes we use by default when writing a size on a fixed number of bytes.
         private const int DefaultSizeLength = 4;
 
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        private bool OldEncoding => Encoding == Encoding.Ice11;
-
         internal BufferWriter BufferWriter { get; }
-
-        // The current class/exception format, can be either Compact or Sliced.
-        private readonly FormatType _classFormat;
-
-        // Data for the class or exception instance that is currently getting encoded.
-        private InstanceData _current;
-
-        // Map of class instance to instance ID, where the instance IDs start at 2.
-        //  - Instance ID = 0 means null.
-        //  - Instance ID = 1 means the instance is encoded inline afterwards.
-        //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
-        private Dictionary<AnyClass, int>? _instanceMap;
-
-        // Map of type ID string to type ID index.
-        // We assign a type ID index (starting with 1) to each type ID we write, in order.
-        private Dictionary<string, int>? _typeIdMap;
 
         // Encode methods for basic types
 
@@ -70,27 +49,9 @@ namespace IceRpc
         /// <param name="v">The short to encode.</param>
         public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a size.</summary>
-        /// <param name="v">The size.</param>
-        public void EncodeSize(int v)
-        {
-            if (OldEncoding)
-            {
-                if (v < 255)
-                {
-                    EncodeByte((byte)v);
-                }
-                else
-                {
-                    EncodeByte(255);
-                    EncodeInt(v);
-                }
-            }
-            else
-            {
-                EncodeVarULong((ulong)v);
-            }
-        }
+        /// <summary>Encodes a size on variable number of bytes.</summary>
+        /// <param name="v">The size to encode.</param>
+        public abstract void EncodeSize(int v);
 
         /// <summary>Encodes a string.</summary>
         /// <param name="v">The string to encode.</param>
@@ -131,8 +92,8 @@ namespace IceRpc
         /// <param name="v">The int to encode.</param>
         public void EncodeVarInt(int v) => EncodeVarLong(v);
 
-        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number
-        /// of bytes required by the encoding.</summary>
+        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number of bytes
+        /// required by the encoding.</summary>
         /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
         public void EncodeVarLong(long v)
         {
@@ -161,11 +122,15 @@ namespace IceRpc
             BufferWriter.WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        // Encode methods for constructed types except class and exception
+        // Encode methods for constructed types
 
         /// <summary>Encodes an array of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The array of numeric values.</param>
         public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
+
+        /// <summary>Encodes a class instance.</summary>
+        /// <param name="v">The class instance to encode.</param>
+        public abstract void EncodeClass(AnyClass v);
 
         /// <summary>Encodes a dictionary.</summary>
         /// <param name="v">The dictionary to encode.</param>
@@ -255,6 +220,14 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Encodes a remote exception.</summary>
+        /// <param name="v">The remote exception to encode.</param>
+        public abstract void EncodeException(RemoteException v);
+
+        /// <summary>Encodes a class instance, or null.</summary>
+        /// <param name="v">The class instance to encode, or null.</param>
+        public abstract void EncodeNullableClass(AnyClass? v);
+
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
         public void EncodeNullableProxy(Proxy? proxy)
@@ -263,14 +236,9 @@ namespace IceRpc
             {
                 EncodeProxy(p);
             }
-            else if (OldEncoding)
-            {
-                Identity.Empty.Encode(this);
-            }
             else
             {
-                ProxyData20 proxyData = default;
-                proxyData.Encode(this);
+                EncodeNullProxy();
             }
         }
 
@@ -280,8 +248,7 @@ namespace IceRpc
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
-        // This method works because (as long as) there is no padding in the memory representation of the
-        // ReadOnlySpan.
+        // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
         public void EncodeSequence<T>(ReadOnlySpan<T> v) where T : struct
         {
             EncodeSize(v.Length);
@@ -825,60 +792,68 @@ namespace IceRpc
 
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
-        /// </returns>
+        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
         public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
 
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
-        /// </summary>
-        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
-        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
-        /// </remarks>
-        internal static int GetSizeLength20(long size)
-        {
-            Debug.Assert(size >= 0);
-            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
-        }
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
+        /// <param name="size">The size.</param>
+        /// <returns>The minimum number of bytes.</returns>
+        public abstract int GetSizeLength(int size);
 
-        // Constructs a Ice encoder
-        internal IceEncoder(Encoding encoding, BufferWriter bufferWriter, FormatType classFormat = default)
-        {
-            BufferWriter = bufferWriter;
-            encoding.CheckSupportedIceEncoding();
-            Encoding = encoding;
-            _classFormat = classFormat;
-        }
+        // Logically internal methods that are marked public because they are called by the generated code.
+
+        /// <summary>Marks the end of the encoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndException();
+
+        /// <summary>Marks the end of the encoding of a class slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndSlice(bool lastSlice);
+
+        /// <summary>Marks the end of the encoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndDerivedExceptionSlice();
+
+        /// <summary>Marks the start of the encoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartDerivedExceptionSlice(string typeId, RemoteException exception);
+
+        /// <summary>Marks the start of the encoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartException(string typeId, RemoteException exception);
+
+        /// <summary>Starts encoding the first slice of a class instance.</summary>
+        /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
+        /// most derived to least derived.</param>
+        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
+        /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartFirstSlice(
+            string[] allTypeIds,
+            SlicedData? slicedData = null,
+            int? compactTypeId = null);
+
+        /// <summary>Starts encoding the next (i.e. not first) slice of a class  instance.</summary>
+        /// <param name="typeId">The type ID of this slice.</param>
+        /// <param name="compactId">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartNextSlice(string typeId, int? compactId = null);
+
+        internal static IceEncoder Create(
+            Encoding encoding,
+            BufferWriter bufferWriter,
+            FormatType classFormat = default) =>
+                encoding == Encoding.Ice20 ? new Ice20Encoder(bufferWriter) :
+                    encoding == Encoding.Ice11 ? new Ice11Encoder(bufferWriter, classFormat) :
+                        throw new NotSupportedException($"cannot create an Ice encoder for encoding {encoding}");
 
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>
         /// <param name="start">The start position.</param>
         /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
-        internal void EndFixedLengthSize(BufferWriter.Position start, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(start.Offset >= 0);
-            if (OldEncoding)
-            {
-                EncodeFixedLengthSize11(BufferWriter.Distance(start) - 4, start);
-            }
-            else
-            {
-                EncodeFixedLengthSize20(BufferWriter.Distance(start) - sizeLength, start, sizeLength);
-            }
-        }
-
-        /// <summary>Encodes a size on a fixed number of bytes at the given position.</summary>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="pos">The position to encode to.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
-        internal void EncodeFixedLengthSize20(int size, BufferWriter.Position pos, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
-
-            Span<byte> data = stackalloc byte[sizeLength];
-            data.EncodeFixedLengthSize20(size);
-            BufferWriter.RewriteByteSpan(data, pos);
-        }
+        internal void EndFixedLengthSize(BufferWriter.Position start, int sizeLength = DefaultSizeLength) =>
+            EncodeFixedLengthSize(BufferWriter.Distance(start) - sizeLength, start, sizeLength);
 
         /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
         /// position must be used to rewrite the size later.</summary>
@@ -887,32 +862,16 @@ namespace IceRpc
         internal BufferWriter.Position StartFixedLengthSize(int sizeLength = DefaultSizeLength)
         {
             BufferWriter.Position pos = BufferWriter.Tail;
-            BufferWriter.WriteByteSpan(stackalloc byte[OldEncoding ? 4 : sizeLength]); // placeholder for future size
+            BufferWriter.WriteByteSpan(stackalloc byte[sizeLength]); // placeholder for future size
             return pos;
         }
 
-        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
-        /// <param name="endpoint">The endpoint to encode.</param>
-        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
-        /// the nested encapsulation.</param>
-        /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
-        internal void EncodeEndpoint11(
-            Endpoint endpoint,
-            TransportCode transportCode,
-            EncodeAction<Endpoint> encodeAction)
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength = DefaultSizeLength)
         {
-            Debug.Assert(OldEncoding);
-
-            this.EncodeTransportCode(transportCode);
-            BufferWriter.Position startPos = BufferWriter.Tail;
-
-            (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
-
-            EncodeInt(0); // placeholder for future encapsulation size
-            EncodeByte(encodingMajor);
-            EncodeByte(encodingMinor);
-            encodeAction(this, endpoint);
-            EncodeFixedLengthSize11(BufferWriter.Distance(startPos), startPos);
+            Debug.Assert(pos.Offset >= 0);
+            Span<byte> data = stackalloc byte[sizeLength];
+            EncodeFixedLengthSize(size, data);
+            BufferWriter.RewriteByteSpan(data, pos);
         }
 
         internal void EncodeField(int key, ReadOnlySpan<byte> value)
@@ -929,6 +888,22 @@ namespace IceRpc
             encodeAction(this, value);
             EndFixedLengthSize(pos, 2);
         }
+
+        /// <summary>Encodes sliced-off slices.</summary>
+        /// <param name="slicedData">The sliced-off slices to encode.</param>
+        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
+        internal abstract void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds);
+
+        // Constructs a Ice encoder
+        private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
+
+        private protected abstract void EncodeNullProxy();
+        private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
+
+        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
+        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+        /// <param name="format">The tag format.</param>
+        private protected abstract void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
@@ -954,7 +929,7 @@ namespace IceRpc
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
         /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private static int GetVarULongEncodedSizeExponent(ulong value)
+        private protected static int GetVarULongEncodedSizeExponent(ulong value)
         {
             if (value > EncodingDefinitions.VarULongMaxValue)
             {
@@ -969,12 +944,6 @@ namespace IceRpc
                 _ => 3
             };
         }
-
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the current
-        /// encoding.</summary>
-        /// <param name="size">The size.</param>
-        /// <returns>The minimum number of bytes.</returns>
-        private int GetSizeLength(int size) => OldEncoding ? (size < 255 ? 1 : 5) : GetSizeLength20(size);
 
         /// <summary>Encodes a size on 4 bytes at the given position.</summary>
         /// <param name="size">The size to encode.</param>
@@ -994,31 +963,6 @@ namespace IceRpc
             Span<byte> data = stackalloc byte[elementSize];
             MemoryMarshal.Write(data, ref v);
             BufferWriter.WriteByteSpan(data);
-        }
-
-        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
-        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
-        /// <param name="format">The tag format.</param>
-        private void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
-        {
-            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-            if (_current.InstanceType != InstanceType.None)
-            {
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
-            }
         }
     }
 }

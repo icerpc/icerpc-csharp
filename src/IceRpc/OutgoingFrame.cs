@@ -97,7 +97,7 @@ namespace IceRpc
             {
                 // Need to marshal/unmarshal these fields
                 var bufferWriter = new BufferWriter();
-                var encoder = new IceEncoder(Encoding.Ice20, bufferWriter);
+                var encoder = new Ice20Encoder(bufferWriter);
                 EncodeFields(encoder);
                 return bufferWriter.Finish().ToSingleBuffer().DecodeFieldValue(
                     decoder => decoder.DecodeFieldDictionary());
@@ -119,15 +119,13 @@ namespace IceRpc
         private protected void EncodeFields(IceEncoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
-            Debug.Assert(encoder.Encoding == Encoding.Ice20);
 
             // can be larger than necessary, which is fine
-            int sizeLength =
-                IceEncoder.GetSizeLength20(FieldsDefaults.Count + (_fields?.Count ?? 0));
-
-            int size = 0;
+            int sizeLength = Ice20Encoder.GetSizeLength(FieldsDefaults.Count + (_fields?.Count ?? 0));
 
             BufferWriter.Position start = encoder.StartFixedLengthSize(sizeLength);
+
+            int count = 0; // the number of fields
 
             // First encode the fields then the remaining FieldsDefaults.
 
@@ -139,7 +137,7 @@ namespace IceRpc
                     BufferWriter.Position startValue = encoder.StartFixedLengthSize(2);
                     action(encoder);
                     encoder.EndFixedLengthSize(startValue, 2);
-                    size++;
+                    count++;
                 }
             }
             foreach ((int key, ReadOnlyMemory<byte> value) in FieldsDefaults)
@@ -149,10 +147,10 @@ namespace IceRpc
                     encoder.EncodeVarInt(key);
                     encoder.EncodeSize(value.Length);
                     encoder.BufferWriter.WriteByteSpan(value.Span);
-                    size++;
+                    count++;
                 }
             }
-            encoder.EncodeFixedLengthSize20(size, start, sizeLength);
+            encoder.EncodeFixedLengthSize(count, start, sizeLength);
         }
     }
 }

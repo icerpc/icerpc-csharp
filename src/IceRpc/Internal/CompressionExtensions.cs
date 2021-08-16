@@ -50,7 +50,7 @@ namespace IceRpc.Internal
             // Set the compression status byte to Deflate compressed
             compressedData[offset++] = (byte)CompressionFormat.Deflate;
             // Write the size of the uncompressed data
-            int sizeLength = IceEncoder.GetSizeLength20(payloadSize);
+            int sizeLength = Ice20Encoder.GetSizeLength(payloadSize);
             compressedData.AsSpan(offset, sizeLength).EncodeFixedLengthSize20(payloadSize);
             offset += sizeLength;
 

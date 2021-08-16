@@ -42,7 +42,7 @@ namespace IceRpc.Tests.Encoding
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             var encoding = IceRpc.Encoding.FromString(encodingStr);
-            var encoder = new IceEncoder(encoding, _bufferWriter);
+            var encoder = IceEncoder.Create(encoding, _bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
@@ -68,7 +68,7 @@ namespace IceRpc.Tests.Encoding
             var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var encoder = new IceEncoder(encoding, _bufferWriter);
+            var encoder = IceEncoder.Create(encoding, _bufferWriter);
             encoder.EncodeProxy(endpointLess);
             ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 

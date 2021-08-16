@@ -88,10 +88,6 @@ namespace IceRpc.Tests.ClientServer
 
                 await prx.OpVoidAsync(invocation);
 
-                (int v, string s) = await prx.OpReturnOutAsync(34, invocation);
-                Assert.AreEqual(34, v);
-                Assert.AreEqual("value=34", s);
-
                 await prx.OpOnewayAsync(42);
 
                 Assert.ThrowsAsync<ProtocolBridgingException>(async () => await prx.OpExceptionAsync());
@@ -150,12 +146,6 @@ namespace IceRpc.Tests.ClientServer
             }
 
             public ValueTask OpOnewayAsync(int x, Dispatch dispatch, CancellationToken cancel) => default;
-
-            public ValueTask<(int ReturnValue, string Y)> OpReturnOutAsync(
-                int x,
-                Dispatch dispatch,
-                CancellationToken cancel) =>
-                new((x, $"value={x}"));
 
             public ValueTask OpServiceNotFoundExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
                 throw new ServiceNotFoundException();

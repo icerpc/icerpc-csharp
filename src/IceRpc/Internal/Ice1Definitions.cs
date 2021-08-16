@@ -166,8 +166,6 @@ namespace IceRpc.Internal
             IncomingRequest request,
             string message)
         {
-            Debug.Assert(encoder.Encoding == Encoding.Ice11);
-
             switch (replyStatus)
             {
                 case ReplyStatus.ObjectNotExistException:

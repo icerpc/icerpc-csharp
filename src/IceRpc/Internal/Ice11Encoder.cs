@@ -1,123 +1,167 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
-using System.ComponentModel;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
-    // This partial class provides the class/exception encoding logic.
-
-    public sealed partial class IceEncoder
+    /// <summary>.</summary>
+    internal class Ice11Encoder : IceEncoder
     {
-        /// <summary>Marks the start of the encoding of a top-level exception. This is an IceRPC-internal method marked
-        /// public because it's called by the generated code.</summary>
-        // TODO: the exception parameter is used only to access the SlicedData.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartException(string typeId, RemoteException exception)
+        // The current class/exception format, can be either Compact or Sliced.
+        private readonly FormatType _classFormat;
+
+        // Data for the class or exception instance that is currently getting encoded.
+        private InstanceData _current;
+
+        // Map of class instance to instance ID, where the instance IDs start at 2.
+        //  - Instance ID = 0 means null.
+        //  - Instance ID = 1 means the instance is encoded inline afterwards.
+        //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
+        private Dictionary<AnyClass, int>? _instanceMap;
+
+        // Map of type ID string to type ID index.
+        // We assign a type ID index (starting with 1) to each type ID we write, in order.
+        private Dictionary<string, int>? _typeIdMap;
+
+        public override void EncodeClass(AnyClass v)
         {
-            if (OldEncoding)
+            if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
             {
-                Debug.Assert(_current.InstanceType == InstanceType.Exception);
-                if (_current.FirstSlice)
+                // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
+                // indirection table.
+                if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
                 {
-                    _current.FirstSlice = false;
-                    IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
+                    // Found, index is position in indirection table + 1
+                    Debug.Assert(index > 0);
                 }
                 else
                 {
-                    IceStartNextSlice(typeId);
+                    _current.IndirectionTable ??= new List<AnyClass>();
+                    _current.IndirectionMap ??= new Dictionary<AnyClass, int>();
+                    _current.IndirectionTable.Add(v);
+                    index = _current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
+                    _current.IndirectionMap.Add(v, index);
                 }
+                EncodeSize(index);
             }
             else
             {
-                EncodeString(typeId);
+                EncodeInstance(v); // Encodes the instance or a reference if already encoded.
             }
         }
 
-        /// <summary>Marks the end of the encoding of a top-level exception. This is an IceRPC-internal method marked
-        /// public because it's called by the generated code.</summary>
-        public void IceEndException() => IceEndSlice(true);
-
-        /// <summary>Marks the start of the encoding of a derived exception slice. This is an IceRPC-internal method
-        /// marked public because it's called by the generated code.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartDerivedExceptionSlice(string typeId, RemoteException exception)
+        public override void EncodeException(RemoteException v)
         {
-            Debug.Assert(OldEncoding);
-            IceStartException(typeId, exception);
+            Debug.Assert(_current.InstanceType == InstanceType.None);
+            Debug.Assert(_classFormat == FormatType.Sliced);
+            _current.InstanceType = InstanceType.Exception;
+            v.Encode(this);
+            _current = default;
         }
 
-        /// <summary>Marks the end of the encoding of a derived exception slice. This is an IceRPC-internal method
-        /// marked public because it's called by the generated code.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceEndDerivedExceptionSlice()
-        {
-            Debug.Assert(OldEncoding);
-            IceEndSlice(false);
-        }
 
-        /// <summary>Marks the end of a slice for a class instance or user exception. This is an Ice-internal method
-        /// marked public because it's called by the generated code.</summary>
-        /// <param name="lastSlice">True when it's the last (least derived) slice of the instance; otherwise, false.
-        /// </param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceEndSlice(bool lastSlice)
+        public override void EncodeNullableClass(AnyClass? v)
         {
-            if (OldEncoding)
+            if (v == null)
             {
-                Debug.Assert(_current.InstanceType != InstanceType.None);
-
-                if (lastSlice)
-                {
-                    _current.SliceFlags |= EncodingDefinitions.SliceFlags.IsLastSlice;
-                }
-
-                // Encodes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
-                // before the indirection table and are included in the slice size.
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
-                {
-                    EncodeByte(EncodingDefinitions.TaggedEndMarker);
-                }
-
-                // Encodes the slice size if necessary.
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
-                {
-                    // Size includes the size length.
-                    EncodeFixedLengthSize11(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
-                }
-
-                if (_current.IndirectionTable?.Count > 0)
-                {
-                    Debug.Assert(_classFormat == FormatType.Sliced);
-                    _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasIndirectionTable;
-
-                    EncodeSize(_current.IndirectionTable.Count);
-                    foreach (AnyClass v in _current.IndirectionTable)
-                    {
-                        EncodeInstance(v);
-                    }
-                    _current.IndirectionTable.Clear();
-                    _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding SlicedData.
-                }
-
-                // Update SliceFlags in case they were updated.
-                BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
+                EncodeSize(0);
+            }
+            else
+            {
+                EncodeClass(v);
             }
         }
 
-        /// <summary>Starts encoding the first slice of a class or exception instance. This is an Ice-internal method
-        /// marked public because it's called by the generated code.</summary>
-        /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
-        /// most derived to least derived.</param>
-        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
-        /// <param name="compactTypeId ">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartFirstSlice(string[] allTypeIds, SlicedData? slicedData = null, int? compactTypeId = null)
+
+        /// <inheritdoc/>
+        public override void EncodeSize(int v)
+        {
+            if (v < 255)
+            {
+                EncodeByte((byte)v);
+            }
+            else
+            {
+                EncodeByte(255);
+                EncodeInt(v);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
+
+        public override void IceStartException(string typeId, RemoteException exception)
+        {
+            Debug.Assert(_current.InstanceType == InstanceType.Exception);
+            if (_current.FirstSlice)
+            {
+                _current.FirstSlice = false;
+                IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
+            }
+            else
+            {
+                IceStartNextSlice(typeId);
+            }
+        }
+
+        public override void IceEndException() => IceEndSlice(true);
+
+        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
+            IceStartException(typeId, exception);
+
+        public override void IceEndDerivedExceptionSlice() => IceEndSlice(false);
+
+        public override void IceEndSlice(bool lastSlice)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
-            Debug.Assert(OldEncoding);
+
+            if (lastSlice)
+            {
+                _current.SliceFlags |= EncodingDefinitions.SliceFlags.IsLastSlice;
+            }
+
+            // Encodes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
+            // before the indirection table and are included in the slice size.
+            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
+            {
+                EncodeByte(EncodingDefinitions.TaggedEndMarker);
+            }
+
+            // Encodes the slice size if necessary.
+            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
+            {
+                // Size includes the size length.
+                EncodeFixedLengthSize11(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
+            }
+
+            if (_current.IndirectionTable?.Count > 0)
+            {
+                Debug.Assert(_classFormat == FormatType.Sliced);
+                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasIndirectionTable;
+
+                EncodeSize(_current.IndirectionTable.Count);
+                foreach (AnyClass v in _current.IndirectionTable)
+                {
+                    EncodeInstance(v);
+                }
+                _current.IndirectionTable.Clear();
+                _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding SlicedData.
+            }
+
+            // Update SliceFlags in case they were updated.
+            BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
+        }
+
+        public override void IceStartFirstSlice(
+            string[] allTypeIds,
+            SlicedData? slicedData = null,
+            int? compactTypeId = null)
+        {
+            Debug.Assert(_current.InstanceType != InstanceType.None);
 
             if (slicedData is SlicedData slicedDataValue)
             {
@@ -154,15 +198,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts encoding the next (i.e. not first) slice of a class or exception instance. This is an
-        /// Ice-internal method marked public because it's called by the generated code.</summary>
-        /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="compactId">The compact ID of this slice, if any. Used by the 1.1 encoding.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartNextSlice(string typeId, int? compactId = null)
+        public override void IceStartNextSlice(string typeId, int? compactId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
-            Debug.Assert(OldEncoding);
 
             _current.SliceFlags = default;
             _current.SliceFlagsPos = BufferWriter.Tail;
@@ -177,76 +215,31 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Encodes a class instance.</summary>
-        /// <param name="v">The class instance to encode.</param>
-        public void EncodeClass(AnyClass v)
-        {
-            Debug.Assert(OldEncoding);
+        internal Ice11Encoder(BufferWriter bufferWriter, FormatType classFormat = default)
+            : base(bufferWriter) =>
+            _classFormat = classFormat;
 
-            if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
-            {
-                // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
-                // indirection table.
-                if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
-                {
-                    // Found, index is position in indirection table + 1
-                    Debug.Assert(index > 0);
-                }
-                else
-                {
-                    _current.IndirectionTable ??= new List<AnyClass>();
-                    _current.IndirectionMap ??= new Dictionary<AnyClass, int>();
-                    _current.IndirectionTable.Add(v);
-                    index = _current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
-                    _current.IndirectionMap.Add(v, index);
-                }
-                EncodeSize(index);
-            }
-            else
-            {
-                EncodeInstance(v); // Encodes the instance or a reference if already encoded.
-            }
+        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
+        /// <param name="endpoint">The endpoint to encode.</param>
+        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
+        /// the nested encapsulation.</param>
+        /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
+        internal void EncodeEndpoint11(
+            Endpoint endpoint,
+            TransportCode transportCode,
+            EncodeAction<Endpoint> encodeAction)
+        {
+            this.EncodeTransportCode(transportCode);
+            BufferWriter.Position startPos = BufferWriter.Tail;
+
+            EncodeInt(0); // placeholder for future encapsulation size
+            EncodeByte(1); // encoding version major
+            EncodeByte(1); // encoding version minor
+            encodeAction(this, endpoint);
+            EncodeFixedLengthSize11(BufferWriter.Distance(startPos), startPos);
         }
 
-        /// <summary>Encodes a remote exception.</summary>
-        /// <param name="v">The remote exception to encode.</param>
-        public void EncodeException(RemoteException v)
-        {
-            Debug.Assert(_current.InstanceType == InstanceType.None);
-            Debug.Assert(_classFormat == FormatType.Sliced);
-            _current.InstanceType = InstanceType.Exception;
-
-            if (!OldEncoding)
-            {
-                EncodeString(v.Message);
-                v.Origin.Encode(this);
-            }
-
-            v.Encode(this);
-            _current = default;
-        }
-
-        /// <summary>Encodes a class instance, or null.</summary>
-        /// <param name="v">The class instance to encode, or null.</param>
-        public void EncodeNullableClass(AnyClass? v)
-        {
-            Debug.Assert(OldEncoding);
-            if (v == null)
-            {
-                EncodeSize(0);
-            }
-            else
-            {
-                EncodeClass(v);
-            }
-        }
-
-        /// <summary>Encodes sliced-off slices.</summary>
-        /// <param name="slicedData">The sliced-off slices to encode.</param>
-        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
-        internal void EncodeSlicedData(
-            SlicedData slicedData,
-            string[] baseTypeIds)
+        internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -256,10 +249,10 @@ namespace IceRpc
             {
                 throw new NotSupportedException($"cannot encode sliced data into payload using {_classFormat} format");
             }
-            if (Encoding != slicedData.Encoding)
+            if (slicedData.Encoding != Encoding.Ice11)
             {
                 throw new NotSupportedException(@$"cannot encode sliced data encoded with encoding {slicedData.Encoding
-                    } into payload encoded with encoding {Encoding}");
+                    } into payload encoded with Ice 1.1");
             }
 
             for (int i = 0; i < slicedData.Slices.Count; ++i)
@@ -300,6 +293,40 @@ namespace IceRpc
                     _current.IndirectionTable.AddRange(sliceInfo.Instances);
                 }
                 IceEndSlice(lastSlice: baseTypeIds.Length == 0 && (i == slicedData.Slices.Count - 1));
+            }
+        }
+
+        private protected override void EncodeFixedLengthSize(int size, Span<byte> into)
+        {
+            if (into.Length != 4)
+            {
+                throw new ArgumentException($"into has {into.Length} bytes");
+            }
+            into.EncodeInt(size);
+        }
+
+        private protected override void EncodeNullProxy() => Identity.Empty.Encode(this);
+
+        private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
+        {
+            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
+
+            int v = (int)format;
+            if (tag < 30)
+            {
+                v |= tag << 3;
+                EncodeByte((byte)v);
+            }
+            else
+            {
+                v |= 0x0F0; // tag = 30
+                EncodeByte((byte)v);
+                EncodeSize(tag);
+            }
+
+            if (_current.InstanceType != InstanceType.None)
+            {
+                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
             }
         }
 

@@ -122,7 +122,7 @@ namespace IceRpc
             (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartFrame()
             {
                 var bufferWriter = new BufferWriter();
-                var encoder = new IceEncoder(encoding, bufferWriter);
+                var encoder = IceEncoder.Create(encoding, bufferWriter);
                 if (rpcStream.TransportHeader.Length > 0)
                 {
                     bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);

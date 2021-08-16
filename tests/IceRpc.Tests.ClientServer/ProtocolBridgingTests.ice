@@ -16,9 +16,6 @@ module IceRpc::Tests::ClientServer
         int op(int x);
         void opVoid();
 
-        // Operation with both return and out
-        int opReturnOut(int x, out string y);
-
         // Oneway operation
         [oneway] void opOneway(int x);
 

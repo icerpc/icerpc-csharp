@@ -156,8 +156,6 @@ namespace IceRpc
         /// <inheritdoc/>
         internal override void EncodeHeader(IceEncoder encoder)
         {
-            Debug.Assert(encoder.Encoding == Protocol.GetEncoding());
-
             if (Protocol == Protocol.Ice2)
             {
                 BufferWriter.Position startPos = encoder.StartFixedLengthSize(2);

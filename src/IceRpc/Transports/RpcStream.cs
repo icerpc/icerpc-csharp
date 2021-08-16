@@ -376,7 +376,7 @@ namespace IceRpc.Transports
             else
             {
                 var bufferWriter = new BufferWriter(new byte[1024]);
-                var encoder = new IceEncoder(Ice2Definitions.Encoding, bufferWriter);
+                var encoder = new Ice20Encoder(bufferWriter);
                 if (!TransportHeader.IsEmpty)
                 {
                     bufferWriter.WriteByteSpan(TransportHeader.Span);
@@ -399,7 +399,7 @@ namespace IceRpc.Transports
             Debug.Assert(IsStarted && !IsIce1);
 
             var bufferWriter = new BufferWriter(new byte[1024]);
-            var encoder = new IceEncoder(Ice2Definitions.Encoding, bufferWriter);
+            var encoder = new Ice20Encoder(bufferWriter);
             if (!TransportHeader.IsEmpty)
             {
                 bufferWriter.WriteByteSpan(TransportHeader.Span);
@@ -420,7 +420,7 @@ namespace IceRpc.Transports
             else
             {
                 var bufferWriter = new BufferWriter(new byte[1024]);
-                var encoder = new IceEncoder(Ice2Definitions.Encoding, bufferWriter);
+                var encoder = new Ice20Encoder(bufferWriter);
                 if (!TransportHeader.IsEmpty)
                 {
                     bufferWriter.WriteByteSpan(TransportHeader.Span);
@@ -542,10 +542,10 @@ namespace IceRpc.Transports
 
             var bufferWriter = new BufferWriter();
             bufferWriter.WriteByteSpan(TransportHeader.Span);
-            var encoder = new IceEncoder(Encoding.Ice20, bufferWriter);
+            var encoder = new Ice20Encoder(bufferWriter);
 
             encoder.EncodeIce2FrameType(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            BufferWriter.Position start = encoder.StartFixedLengthSize(4);
+            BufferWriter.Position start = encoder.StartFixedLengthSize();
             frame.EncodeHeader(encoder);
 
             int frameSize = encoder.BufferWriter.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
@@ -569,7 +569,7 @@ namespace IceRpc.Transports
                 }
             }
 
-            encoder.EncodeFixedLengthSize20(frameSize, start, 4);
+            encoder.EncodeFixedLengthSize(frameSize, start);
 
             // Coalesce small payload buffers at the end of the current header buffer
             int payloadIndex = 0;

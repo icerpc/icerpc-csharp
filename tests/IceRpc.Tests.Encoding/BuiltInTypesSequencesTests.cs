@@ -21,7 +21,7 @@ namespace IceRpc.Tests.Encoding
             _encoding = IceRpc.Encoding.FromString(encoding);
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new BufferWriter(buffer);
-            _encoder = new IceEncoder(_encoding, _bufferWriter);
+            _encoder = IceEncoder.Create(_encoding, _bufferWriter);
             _decoder = new IceDecoder(buffer, _encoding);
         }
 
