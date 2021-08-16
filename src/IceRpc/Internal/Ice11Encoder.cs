@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
@@ -72,6 +73,101 @@ namespace IceRpc.Internal
             else
             {
                 EncodeClass(v);
+            }
+        }
+
+        public override void EncodeNullableProxy(Proxy? proxy)
+        {
+            if (proxy == null)
+            {
+                Identity.Empty.Encode(this);
+            }
+            else
+            {
+                EncodeProxy(proxy);
+            }
+        }
+
+        public override void EncodeProxy(Proxy proxy)
+        {
+            if (proxy.Connection?.IsServer ?? false)
+            {
+                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+            }
+
+            IdentityAndFacet identityAndFacet;
+
+            try
+            {
+                identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidOperationException(
+                    $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
+                    ex);
+            }
+
+            if (identityAndFacet.Identity.Name.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
+            }
+
+            identityAndFacet.Identity.Encode(this);
+
+            (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
+
+            var proxyData = new ProxyData11(
+                identityAndFacet.OptionalFacet,
+                proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                    InvocationMode.Datagram : InvocationMode.Twoway,
+                secure: false,
+                proxy.Protocol,
+                protocolMinor: 0,
+                encodingMajor,
+                encodingMinor);
+            proxyData.Encode(this);
+
+            if (proxy.Endpoint == null)
+            {
+                EncodeSize(0); // 0 endpoints
+                EncodeString(""); // empty adapter ID
+            }
+            else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+            {
+                EncodeSize(0); // 0 endpoints
+                EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
+            }
+            else
+            {
+                IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == TransportNames.Coloc ?
+                    proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
+
+                if (endpoints.Any())
+                {
+                    if (proxy.Protocol == Protocol.Ice1)
+                    {
+                        EncodeSequence(
+                            endpoints,
+                            (encoder, endpoint) => proxy.EndpointEncoder.EncodeEndpoint(endpoint, encoder));
+                    }
+                    else
+                    {
+                        EncodeSequence(
+                            endpoints,
+                            (encoder, endpoint) =>
+                                ((Ice11Encoder)encoder).EncodeEndpoint(
+                                    endpoint,
+                                    TransportCode.Any,
+                                    static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder)));
+                    }
+                }
+                else // encoded as an endpointless proxy
+                {
+                    EncodeSize(0); // 0 endpoints
+                    EncodeString(""); // empty adapter ID
+                }
             }
         }
 
@@ -300,8 +396,6 @@ namespace IceRpc.Internal
             }
             into.EncodeInt(size);
         }
-
-        private protected override void EncodeNullProxy() => Identity.Empty.Encode(this);
 
         private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {

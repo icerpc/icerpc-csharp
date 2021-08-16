@@ -230,21 +230,11 @@ namespace IceRpc
 
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
-        public void EncodeNullableProxy(Proxy? proxy)
-        {
-            if (proxy is Proxy p)
-            {
-                EncodeProxy(p);
-            }
-            else
-            {
-                EncodeNullProxy();
-            }
-        }
+        public abstract void EncodeNullableProxy(Proxy? proxy);
 
         /// <summary>Encodes a proxy.</summary>
         /// <param name="proxy">The proxy to encode.</param>
-        public void EncodeProxy(Proxy proxy) => proxy.Encode(this);
+        public abstract void EncodeProxy(Proxy proxy);
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
@@ -882,7 +872,6 @@ namespace IceRpc
         // Constructs a Ice encoder
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
 
-        private protected abstract void EncodeNullProxy();
         private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
 
         /// <summary>Encodes the header for a tagged parameter or data member.</summary>

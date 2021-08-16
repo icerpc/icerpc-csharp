@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -21,6 +22,39 @@ namespace IceRpc.Internal
         }
         public override void EncodeNullableClass(AnyClass? v) =>
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
+
+        public override void EncodeNullableProxy(Proxy? proxy)
+        {
+            if (proxy == null)
+            {
+                ProxyData20 proxyData = default;
+                proxyData.Encode(this);
+            }
+            else
+            {
+                EncodeProxy(proxy);
+            }
+        }
+
+        public override void EncodeProxy(Proxy proxy)
+        {
+            if (proxy.Connection?.IsServer ?? false)
+            {
+                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+            }
+
+            var proxyData = new ProxyData20(
+                   proxy.Path,
+                   protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
+                   encoding: proxy.Encoding == proxy.Protocol.GetEncoding() ? null : proxy.Encoding.ToString(),
+                   endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
+                       endpoint.ToEndpointData() : null,
+                   altEndpoints:
+                        proxy.AltEndpoints.Count == 0 ? null :
+                            proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
+
+            proxyData.Encode(this);
+        }
 
         public override void EncodeSize(int v) => EncodeVarULong((ulong)v);
 
@@ -76,13 +110,6 @@ namespace IceRpc.Internal
 
         internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds) =>
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
-        private protected override void EncodeNullProxy()
-        {
-            ProxyData20 proxyData = default;
-            proxyData.Encode(this);
-        }
 
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             into.EncodeFixedLengthSize20(size);
