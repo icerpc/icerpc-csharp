@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace IceRpc.Internal
 {
-    /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
+    /// <summary>Writes bytes into a non-contiguous byte buffer.</summary>
     internal class BufferWriter
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the

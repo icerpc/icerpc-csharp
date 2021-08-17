@@ -548,7 +548,7 @@ namespace IceRpc.Transports
             BufferWriter.Position start = encoder.StartFixedLengthSize();
             frame.EncodeHeader(encoder);
 
-            int frameSize = encoder.BufferWriter.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
+            int frameSize = bufferWriter.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
 
             if (frameSize > _connection.PeerIncomingFrameMaxSize)
             {
