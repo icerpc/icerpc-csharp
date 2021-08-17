@@ -116,6 +116,42 @@ namespace IceRpc.Internal
             ulongBuf.Slice(0, sizeLength).CopyTo(into);
         }
 
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
+        /// </summary>
+        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
+        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
+        /// </remarks>
+        internal static int GetSizeLength(long size)
+        {
+            Debug.Assert(size >= 0);
+            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
+        }
+
+        /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
+        internal Ice20Encoder(BufferWriter bufferWriter)
+            : base(bufferWriter)
+        {
+        }
+
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength)
+        {
+            Debug.Assert(pos.Offset >= 0);
+            Span<byte> data = stackalloc byte[sizeLength];
+            EncodeFixedLengthSize(size, data);
+            BufferWriter.RewriteByteSpan(data, pos);
+        }
+
+        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
+        {
+            EncodeVarInt(key);
+            BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
+            encodeAction(this, value);
+            EndFixedLengthSize(pos, 2);
+        }
+
+        internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds) =>
+            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
+
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>
@@ -134,42 +170,6 @@ namespace IceRpc.Internal
             BufferWriter.WriteByteSpan(stackalloc byte[sizeLength]); // placeholder for future size
             return pos;
         }
-
-        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength)
-        {
-            Debug.Assert(pos.Offset >= 0);
-            Span<byte> data = stackalloc byte[sizeLength];
-            EncodeFixedLengthSize(size, data);
-            BufferWriter.RewriteByteSpan(data, pos);
-        }
-
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
-        /// </summary>
-        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
-        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
-        /// </remarks>
-        internal static int GetSizeLength(long size)
-        {
-            Debug.Assert(size >= 0);
-            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
-        }
-
-        /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
-        internal Ice20Encoder(BufferWriter bufferWriter)
-            : base(bufferWriter)
-        {
-        }
-
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
-        {
-            EncodeVarInt(key);
-            BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            encodeAction(this, value);
-            EndFixedLengthSize(pos, 2);
-        }
-
-        internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeFixedLengthSize(size, into);

@@ -828,6 +828,20 @@ namespace IceRpc
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
+        /// <summary>Encodes a size on 4 bytes at the specified position.</summary>
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos)
+        {
+            Debug.Assert(pos.Offset >= 0);
+            Span<byte> data = stackalloc byte[4];
+            EncodeFixedLengthSize(size, data);
+            BufferWriter.RewriteByteSpan(data, pos);
+        }
+
+        /// <summary>Encodes sliced-off slices.</summary>
+        /// <param name="slicedData">The sliced-off slices to encode.</param>
+        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
+        internal abstract void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds);
+
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>
         /// <param name="start">The start position.</param>
@@ -843,20 +857,6 @@ namespace IceRpc
             BufferWriter.WriteByteSpan(stackalloc byte[4]); // placeholder for future size
             return pos;
         }
-
-        /// <summary>Encodes a size on 4 bytes at the specified position.</summary>
-        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos)
-        {
-            Debug.Assert(pos.Offset >= 0);
-            Span<byte> data = stackalloc byte[4];
-            EncodeFixedLengthSize(size, data);
-            BufferWriter.RewriteByteSpan(data, pos);
-        }
-
-        /// <summary>Encodes sliced-off slices.</summary>
-        /// <param name="slicedData">The sliced-off slices to encode.</param>
-        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
-        internal abstract void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds);
 
         // Constructs a Ice encoder
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
