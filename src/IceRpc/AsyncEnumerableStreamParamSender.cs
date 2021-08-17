@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 
 namespace IceRpc
@@ -47,7 +48,7 @@ namespace IceRpc
             try
             {
                 asyncEnumerator = asyncEnumerable.GetAsyncEnumerator(cancelationSource.Token);
-                (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) = StartFrame();
+                (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) = StartFrame();
                 do
                 {
                     ValueTask<bool> moveNext = asyncEnumerator.MoveNextAsync();
@@ -59,7 +60,7 @@ namespace IceRpc
                         }
                         else
                         {
-                            if (encoder.Tail != payloadStart)
+                            if (encoder.BufferWriter.Tail != payloadStart)
                             {
                                 await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
                             }
@@ -69,7 +70,7 @@ namespace IceRpc
                     else
                     {
                         // If we already wrote some elements send the frame now and start a new one.
-                        if (encoder.Tail != payloadStart)
+                        if (encoder.BufferWriter.Tail != payloadStart)
                         {
                             await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
                             (encoder, sizeStart, payloadStart) = StartFrame();
@@ -86,7 +87,7 @@ namespace IceRpc
                     }
 
                     // TODO allow to configure the size limit?
-                    if (encoder.Size > 32 * 1024)
+                    if (encoder.BufferWriter.Size > 32 * 1024)
                     {
                         await FinishFrameAndSendAsync(encoder, sizeStart).ConfigureAwait(false);
                         (encoder, sizeStart, payloadStart) = StartFrame();
@@ -119,22 +120,23 @@ namespace IceRpc
                 }
             }
 
-            (IceEncoder encoder, IceEncoder.Position sizeStart, IceEncoder.Position payloadStart) StartFrame()
+            (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartFrame()
             {
-                var encoder = new IceEncoder(encoding);
+                var bufferWriter = new BufferWriter();
+                var encoder = Payload.CreateIceEncoder(encoding, bufferWriter);
                 if (rpcStream.TransportHeader.Length > 0)
                 {
-                    encoder.WriteByteSpan(rpcStream.TransportHeader.Span);
+                    bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
                 }
                 encoder.EncodeByte((byte)Ice2FrameType.BoundedData);
-                IceEncoder.Position sizeStart = encoder.StartFixedLengthSize();
-                return (encoder, sizeStart, encoder.Tail);
+                BufferWriter.Position sizeStart = encoder.StartFixedLengthSize();
+                return (encoder, sizeStart, encoder.BufferWriter.Tail);
             }
 
-            async ValueTask FinishFrameAndSendAsync(IceEncoder encoder, IceEncoder.Position start)
+            async ValueTask FinishFrameAndSendAsync(IceEncoder encoder, BufferWriter.Position start)
             {
                 encoder.EndFixedLengthSize(start);
-                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+                ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.BufferWriter.Finish();
                 await rpcStream.SendAsync(buffers, false, default).ConfigureAwait(false);
             }
         }

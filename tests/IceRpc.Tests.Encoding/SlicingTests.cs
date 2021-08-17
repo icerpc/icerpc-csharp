@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -41,12 +42,12 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public void Slicing_Classes()
         {
-            byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = bufferWriter.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
@@ -106,12 +107,12 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public void Slicing_Classes_WithCompactTypeId()
         {
-            byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyCompactMostDerivedClass("most-derived", "derived", "base");
             encoder.EncodeClass(p1);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = bufferWriter.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
@@ -165,12 +166,12 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public void Slicing_Exceptions()
         {
-            byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p1 = new MyMostDerivedException("most-derived", "derived", "base");
             encoder.EncodeException(p1);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = bufferWriter.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[]
@@ -235,9 +236,10 @@ namespace IceRpc.Tests.Encoding
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
 
             // Marshal the exception again to ensure all Slices are correctly preserved
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
-            data = encoder.Finish().Span[0];
+            data = bufferWriter.Finish().Span[0];
 
             decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
             r = decoder.DecodeException();
@@ -252,13 +254,13 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public void Slicing_PreservedClasses()
         {
-            byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass1("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass1("p1-m1", "p1-m2", p2);
             encoder.EncodeClass(p1);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = bufferWriter.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[] { typeof(MyPreservedDerivedClass1).Assembly });
@@ -277,10 +279,10 @@ namespace IceRpc.Tests.Encoding
             Assert.That(r1.SlicedData, Is.Not.Null);
 
             // Marshal the sliced class
-            buffer = new byte[1024 * 1024];
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
-            data = encoder.Finish().Span[0];
+            data = bufferWriter.Finish().Span[0];
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);
@@ -298,13 +300,13 @@ namespace IceRpc.Tests.Encoding
         [Test]
         public void Slicing_PreservedClasses_WithCompactTypeId()
         {
-            byte[] buffer = new byte[1024 * 1024];
-            var encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            var bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
 
             var p2 = new MyPreservedDerivedClass2("p2-m1", "p2-m2", new MyBaseClass("base"));
             var p1 = new MyPreservedDerivedClass2("p1-m1", "p1-m2", p2);
             encoder.EncodeClass(p1);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = bufferWriter.Finish().Span[0];
 
             // Create a factory that knows about all the types using in this test
             var classFactory = new ClassFactory(new Assembly[] { typeof(MyPreservedDerivedClass2).Assembly });
@@ -321,10 +323,10 @@ namespace IceRpc.Tests.Encoding
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
 
             // Marshal the sliced class
-            buffer = new byte[1024 * 1024];
-            encoder = new IceEncoder(IceRpc.Encoding.Ice11, buffer, classFormat: FormatType.Sliced);
+            bufferWriter = new BufferWriter(new byte[1024 * 1024]);
+            encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeClass(r1);
-            data = encoder.Finish().Span[0];
+            data = bufferWriter.Finish().Span[0];
 
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new IceDecoder(data, IceRpc.Encoding.Ice11, classFactory: classFactory);

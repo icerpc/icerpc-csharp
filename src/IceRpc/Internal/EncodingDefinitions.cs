@@ -30,10 +30,7 @@ namespace IceRpc.Internal
             None = 0,
             String = 1,
             Index = 2,
-            CompactId11 = 3,
-#pragma warning disable CA1069 // Enums values should not be duplicated
-            Sequence20 = 3,
-#pragma warning restore CA1069 // Enums values should not be duplicated
+            CompactId = 3,
         }
 
         /// <summary>Each tagged parameter has a specific tag format. This tag format describes how the data is encoded
@@ -48,7 +45,7 @@ namespace IceRpc.Internal
             Size = 4,
             VSize = 5,
             FSize = 6,
-            Class = 7, // no longer written or accepted as of Ice 4.0
+            Class = 7, // no longer written or accepted as of IceRPC
 
             /// <summary>VInt is a special value that is never marshaled and that means "one of F1, F2, F4 or F8".
             /// </summary>

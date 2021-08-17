@@ -440,7 +440,7 @@ namespace IceRpc.Transports.Internal
 
         internal async Task PrepareAndSendFrameAsync(
             SlicDefinitions.FrameType type,
-            Action<IceEncoder>? encodeAction = null,
+            Action<Ice20Encoder>? encodeAction = null,
             Action<int>? logAction = null,
             SlicStream? stream = null,
             CancellationToken cancel = default)
@@ -449,17 +449,18 @@ namespace IceRpc.Transports.Internal
                 type < SlicDefinitions.FrameType.Stream || type > SlicDefinitions.FrameType.StreamConsumed :
                 type >= SlicDefinitions.FrameType.Stream || type <= SlicDefinitions.FrameType.StreamConsumed);
 
-            var encoder = new IceEncoder(SlicDefinitions.Encoding);
+            var bufferWriter = new BufferWriter();
+            var encoder = new Ice20Encoder(bufferWriter);
             encoder.EncodeByte((byte)type);
-            IceEncoder.Position sizePos = encoder.StartFixedLengthSize(4);
+            BufferWriter.Position sizePos = encoder.StartFixedLengthSize();
             if (stream != null)
             {
                 encoder.EncodeVarULong((ulong)stream.Id);
             }
             encodeAction?.Invoke(encoder);
-            int frameSize = encoder.Tail.Offset - sizePos.Offset - 4;
-            encoder.EndFixedLengthSize(sizePos, 4);
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = encoder.Finish();
+            int frameSize = bufferWriter.Tail.Offset - sizePos.Offset - 4;
+            encoder.EndFixedLengthSize(sizePos);
+            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish();
 
             // Wait for other packets to be sent.
             await _sendSemaphore.EnterAsync(cancel).ConfigureAwait(false);
@@ -608,9 +609,9 @@ namespace IceRpc.Transports.Internal
                 try
                 {
                     // Compute how much space the size and stream ID require to figure out the start of the Slic header.
-                    int streamIdLength = IceEncoder.GetSizeLength20(stream.Id);
+                    int streamIdLength = Ice20Encoder.GetSizeLength(stream.Id);
                     packetSize += streamIdLength;
-                    int sizeLength = IceEncoder.GetSizeLength20(packetSize);
+                    int sizeLength = Ice20Encoder.GetSizeLength(packetSize);
 
                     SlicDefinitions.FrameType frameType =
                         endStream ? SlicDefinitions.FrameType.StreamLast : SlicDefinitions.FrameType.Stream;
@@ -624,8 +625,9 @@ namespace IceRpc.Transports.Internal
                     Memory<byte> headerData = MemoryMarshal.AsMemory(
                         buffers.Span[0][(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..]);
                     headerData.Span[0] = (byte)frameType;
-                    headerData.Span.Slice(1, sizeLength).EncodeFixedLengthSize20(packetSize);
-                    headerData.Span.Slice(1 + sizeLength, streamIdLength).EncodeFixedLengthSize20(stream.Id);
+                    Ice20Encoder.EncodeFixedLengthSize(packetSize, headerData.Span.Slice(1, sizeLength));
+                    Ice20Encoder.EncodeFixedLengthSize(stream.Id,
+                                                       headerData.Span.Slice(1 + sizeLength, streamIdLength));
 
                     // Update the first buffer entry
                     MemoryMarshal.AsMemory(buffers).Span[0] = headerData;
@@ -649,7 +651,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static void WriteParameters(IceEncoder encoder, Dictionary<ParameterKey, ulong> parameters)
+        private static void WriteParameters(Ice20Encoder encoder, Dictionary<ParameterKey, ulong> parameters)
         {
             encoder.EncodeSize(parameters.Count);
             foreach ((ParameterKey key, ulong value) in parameters)

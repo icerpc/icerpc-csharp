@@ -114,9 +114,9 @@ namespace IceRpc
                         encoder.EncodeByte(0);
                         Span<byte> buffer = stackalloc byte[16];
                         activity.TraceId.CopyTo(buffer);
-                        encoder.WriteByteSpan(buffer);
+                        encoder.BufferWriter.WriteByteSpan(buffer);
                         activity.SpanId.CopyTo(buffer[0..8]);
-                        encoder.WriteByteSpan(buffer[0..8]);
+                        encoder.BufferWriter.WriteByteSpan(buffer[0..8]);
                         encoder.EncodeByte((byte)activity.ActivityTraceFlags);
 
                         // Tracestate encoded as an string

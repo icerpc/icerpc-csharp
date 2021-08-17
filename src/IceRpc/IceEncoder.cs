@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,96 +10,11 @@ using System.Runtime.InteropServices;
 namespace IceRpc
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed partial class IceEncoder
+    public abstract class IceEncoder
     {
-        /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
-        /// buffer in the vector and the offset into that buffer.</summary>
-        internal struct Position : IEquatable<Position>
-        {
-            /// <summary>The zero based index of the buffer.</summary>
-            internal int Buffer;
-
-            /// <summary>The offset into the buffer.</summary>
-            internal int Offset;
-
-            /// <summary>Creates a new position from the buffer and offset values.</summary>
-            /// <param name="buffer">The zero based index of the buffer in the buffer vector.</param>
-            /// <param name="offset">The offset into the buffer.</param>
-            internal Position(int buffer, int offset)
-            {
-                Buffer = buffer;
-                Offset = offset;
-            }
-
-            /// <inheritdoc/>
-            public bool Equals(Position other) =>
-                Buffer == other.Buffer &&
-                Offset == other.Offset;
-
-            /// <inheritdoc/>
-            public override bool Equals(object? obj) => obj is SlicedData value && Equals(value);
-
-            /// <inheritdoc/>
-            public override int GetHashCode() =>
-                HashCode.Combine(Buffer, Offset);
-
-            /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
-            public static bool operator ==(Position lhs, Position rhs) => lhs.Equals(rhs);
-
-            /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
-            public static bool operator !=(Position lhs, Position rhs) => !(lhs == rhs);
-        }
-
-        /// <summary>The Ice encoding used by this encoder when encoding data.</summary>
-        /// <value>The encoding.</value>
-        public Encoding Encoding { get; }
-
-        /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
-        /// </summary>
-        internal int Capacity { get; private set; }
-
-        /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
-        /// using this encoder.</summary>
-        /// <value>The current size.</value>
-        internal int Size { get; private set; }
-
-        // Gets the position for the next write operation.
-        internal Position Tail => _tail;
-
-        private const int DefaultBufferSize = 256;
-
-        // The number of bytes we use by default when writing a size on a fixed number of byte with the 2.0 encoding.
-        private const int DefaultSizeLength = 4;
-
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
-        private bool OldEncoding => Encoding == Encoding.Ice11;
-
-        // The current class/exception format, can be either Compact or Sliced.
-        private readonly FormatType _classFormat;
-
-        // Data for the class or exception instance that is currently getting encoded.
-        private InstanceData _current;
-
-        // The buffer currently used by write operations. The tail Position always points to this buffer, and the tail
-        // offset indicates how much of the buffer has been used.
-        private Memory<byte> _currentBuffer;
-
-        // Map of class instance to instance ID, where the instance IDs start at 2.
-        //  - Instance ID = 0 means null.
-        //  - Instance ID = 1 means the instance is encoded inline afterwards.
-        //  - Instance ID > 1 means a reference to a previously encoded instance, found in this map.
-        private Dictionary<AnyClass, int>? _instanceMap;
-
-        // All buffers before the tail buffer are fully used.
-        private Memory<ReadOnlyMemory<byte>> _bufferVector = Memory<ReadOnlyMemory<byte>>.Empty;
-
-        // The position for the next write operation.
-        private Position _tail;
-
-        // Map of type ID string to type ID index.
-        // We assign a type ID index (starting with 1) to each type ID we write, in order.
-        private Dictionary<string, int>? _typeIdMap;
+        internal BufferWriter BufferWriter { get; }
 
         // Encode methods for basic types
 
@@ -108,13 +24,7 @@ namespace IceRpc
 
         /// <summary>Encodes a byte.</summary>
         /// <param name="v">The byte to encode.</param>
-        public void EncodeByte(byte v)
-        {
-            Expand(1);
-            _currentBuffer.Span[_tail.Offset] = v;
-            _tail.Offset++;
-            Size++;
-        }
+        public void EncodeByte(byte v) => BufferWriter.WriteByte(v);
 
         /// <summary>Encodes a double.</summary>
         /// <param name="v">The double to encode.</param>
@@ -136,27 +46,9 @@ namespace IceRpc
         /// <param name="v">The short to encode.</param>
         public void EncodeShort(short v) => EncodeFixedSizeNumeric(v);
 
-        /// <summary>Encodes a size.</summary>
-        /// <param name="v">The size.</param>
-        public void EncodeSize(int v)
-        {
-            if (OldEncoding)
-            {
-                if (v < 255)
-                {
-                    EncodeByte((byte)v);
-                }
-                else
-                {
-                    EncodeByte(255);
-                    EncodeInt(v);
-                }
-            }
-            else
-            {
-                EncodeVarULong((ulong)v);
-            }
-        }
+        /// <summary>Encodes a size on variable number of bytes.</summary>
+        /// <param name="v">The size to encode.</param>
+        public abstract void EncodeSize(int v);
 
         /// <summary>Encodes a string.</summary>
         /// <param name="v">The string to encode.</param>
@@ -171,13 +63,13 @@ namespace IceRpc
                 Span<byte> data = stackalloc byte[_utf8.GetMaxByteCount(v.Length)];
                 int encoded = _utf8.GetBytes(v, data);
                 EncodeSize(encoded);
-                WriteByteSpan(data.Slice(0, encoded));
+                BufferWriter.WriteByteSpan(data.Slice(0, encoded));
             }
             else
             {
                 byte[] data = _utf8.GetBytes(v);
                 EncodeSize(data.Length);
-                WriteByteSpan(data.AsSpan());
+                BufferWriter.WriteByteSpan(data.AsSpan());
             }
         }
 
@@ -197,8 +89,8 @@ namespace IceRpc
         /// <param name="v">The int to encode.</param>
         public void EncodeVarInt(int v) => EncodeVarLong(v);
 
-        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number
-        /// of bytes required by the encoding.</summary>
+        /// <summary>Encodes a long using IceRPC's variable-size integer encoding, with the minimum number of bytes
+        /// required by the encoding.</summary>
         /// <param name="v">The long to encode. It must be in the range [-2^61..2^61 - 1].</param>
         public void EncodeVarLong(long v)
         {
@@ -207,7 +99,7 @@ namespace IceRpc
             v |= (uint)encodedSizeExponent;
             Span<byte> data = stackalloc byte[sizeof(long)];
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
+            BufferWriter.WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
         /// <summary>Encodes a uint using IceRPC's variable-size integer encoding.</summary>
@@ -224,14 +116,18 @@ namespace IceRpc
             v |= (uint)encodedSizeExponent;
             Span<byte> data = stackalloc byte[sizeof(ulong)];
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
+            BufferWriter.WriteByteSpan(data.Slice(0, 1 << encodedSizeExponent));
         }
 
-        // Encode methods for constructed types except class and exception
+        // Encode methods for constructed types
 
         /// <summary>Encodes an array of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The array of numeric values.</param>
         public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
+
+        /// <summary>Encodes a class instance.</summary>
+        /// <param name="v">The class instance to encode.</param>
+        public abstract void EncodeClass(AnyClass v);
 
         /// <summary>Encodes a dictionary.</summary>
         /// <param name="v">The dictionary to encode.</param>
@@ -269,7 +165,7 @@ namespace IceRpc
             {
                 int count = v.Count();
                 EncodeSize(count);
-                BitSequence bitSequence = EncodeBitSequence(count);
+                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
                 int index = 0;
                 foreach ((TKey key, TValue? value) in v)
                 {
@@ -304,7 +200,7 @@ namespace IceRpc
         {
             int count = v.Count();
             EncodeSize(count);
-            BitSequence bitSequence = EncodeBitSequence(count);
+            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
             int index = 0;
             foreach ((TKey key, TValue? value) in v)
             {
@@ -321,39 +217,31 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Encodes a remote exception.</summary>
+        /// <param name="v">The remote exception to encode.</param>
+        public abstract void EncodeException(RemoteException v);
+
+        /// <summary>Encodes a class instance, or null.</summary>
+        /// <param name="v">The class instance to encode, or null.</param>
+        public abstract void EncodeNullableClass(AnyClass? v);
+
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
-        public void EncodeNullableProxy(Proxy? proxy)
-        {
-            if (proxy is Proxy p)
-            {
-                EncodeProxy(p);
-            }
-            else if (OldEncoding)
-            {
-                Identity.Empty.Encode(this);
-            }
-            else
-            {
-                ProxyData20 proxyData = default;
-                proxyData.Encode(this);
-            }
-        }
+        public abstract void EncodeNullableProxy(Proxy? proxy);
 
         /// <summary>Encodes a proxy.</summary>
         /// <param name="proxy">The proxy to encode.</param>
-        public void EncodeProxy(Proxy proxy) => proxy.Encode(this);
+        public abstract void EncodeProxy(Proxy proxy);
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
-        // This method works because (as long as) there is no padding in the memory representation of the
-        // ReadOnlySpan.
+        // This method works because (as long as) there is no padding in the memory representation of the ReadOnlySpan.
         public void EncodeSequence<T>(ReadOnlySpan<T> v) where T : struct
         {
             EncodeSize(v.Length);
             if (!v.IsEmpty)
             {
-                WriteByteSpan(MemoryMarshal.AsBytes(v));
+                BufferWriter.WriteByteSpan(MemoryMarshal.AsBytes(v));
             }
         }
 
@@ -398,7 +286,7 @@ namespace IceRpc
             {
                 int count = v.Count(); // potentially slow Linq Count()
                 EncodeSize(count);
-                BitSequence bitSequence = EncodeBitSequence(count);
+                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
                 int index = 0;
                 foreach (T? item in v)
                 {
@@ -426,7 +314,7 @@ namespace IceRpc
         {
             int count = v.Count(); // potentially slow Linq Count()
             EncodeSize(count);
-            BitSequence bitSequence = EncodeBitSequence(count);
+            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
             int index = 0;
             foreach (T? item in v)
             {
@@ -665,7 +553,7 @@ namespace IceRpc
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -690,7 +578,7 @@ namespace IceRpc
             if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeDictionary(dict, withBitSequence, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -713,7 +601,7 @@ namespace IceRpc
             if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -727,7 +615,7 @@ namespace IceRpc
             if (proxy != null)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeProxy(proxy);
                 EndFixedLengthSize(pos);
             }
@@ -785,7 +673,7 @@ namespace IceRpc
             if (v is IEnumerable<T> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -835,7 +723,7 @@ namespace IceRpc
             if (v is IEnumerable<T?> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeSequence(value, withBitSequence, encodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -851,7 +739,7 @@ namespace IceRpc
             if (v is IEnumerable<T?> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
@@ -881,7 +769,7 @@ namespace IceRpc
             if (v is T value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                Position pos = StartFixedLengthSize();
+                BufferWriter.Position pos = StartFixedLengthSize();
                 encodeAction(this, value);
                 EndFixedLengthSize(pos);
             }
@@ -891,228 +779,114 @@ namespace IceRpc
 
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
-        /// </returns>
-        public BitSequence EncodeBitSequence(int bitSize)
+        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
+        public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
+
+        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
+        /// <param name="size">The size.</param>
+        /// <returns>The minimum number of bytes.</returns>
+        public abstract int GetSizeLength(int size);
+
+        // Logically internal methods that are marked public because they are called by the generated code.
+
+        /// <summary>Marks the end of the encoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndException();
+
+        /// <summary>Marks the end of the encoding of a class slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndSlice(bool lastSlice);
+
+        /// <summary>Marks the end of the encoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndDerivedExceptionSlice();
+
+        /// <summary>Marks the start of the encoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartDerivedExceptionSlice(string typeId, RemoteException exception);
+
+        /// <summary>Marks the start of the encoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartException(string typeId, RemoteException exception);
+
+        /// <summary>Starts encoding the first slice of a class instance.</summary>
+        /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
+        /// most derived to least derived.</param>
+        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
+        /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartFirstSlice(
+            string[] allTypeIds,
+            SlicedData? slicedData = null,
+            int? compactTypeId = null);
+
+        /// <summary>Starts encoding the next (i.e. not first) slice of a class  instance.</summary>
+        /// <param name="typeId">The type ID of this slice.</param>
+        /// <param name="compactId">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartNextSlice(string typeId, int? compactId = null);
+
+        internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+
+        /// <summary>Encodes a size on 4 bytes at the specified position.</summary>
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos)
         {
-            Debug.Assert(bitSize > 0);
-            int size = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0);
-
-            Expand(size);
-
-            int remaining = _currentBuffer.Length - _tail.Offset;
-            if (size <= remaining)
-            {
-                // Expand above ensures _tail.Offset is not _currentBuffer.Count.
-                Span<byte> span = _currentBuffer.Span.Slice(_tail.Offset, size);
-                span.Fill(255);
-                _tail.Offset += size;
-                Size += size;
-                return new BitSequence(span);
-            }
-            else
-            {
-                Span<byte> firstSpan = _currentBuffer.Span[_tail.Offset..];
-                firstSpan.Fill(255);
-                _currentBuffer = GetBuffer(++_tail.Buffer);
-                _tail.Offset = size - remaining;
-                Size += size;
-                Span<byte> secondSpan = _currentBuffer.Span.Slice(0, _tail.Offset);
-                secondSpan.Fill(255);
-                return new BitSequence(firstSpan, secondSpan);
-            }
+            Debug.Assert(pos.Offset >= 0);
+            Span<byte> data = stackalloc byte[4];
+            EncodeFixedLengthSize(size, data);
+            BufferWriter.RewriteByteSpan(data, pos);
         }
 
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
-        /// </summary>
-        /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
-        /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
-        /// </remarks>
-        internal static int GetSizeLength20(long size)
-        {
-            Debug.Assert(size >= 0);
-            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
-        }
-
-        // Constructs a Ice encoder
-        internal IceEncoder(Encoding encoding, Memory<byte> initialBuffer = default, FormatType classFormat = default)
-        {
-            encoding.CheckSupportedIceEncoding();
-            Encoding = encoding;
-            _classFormat = classFormat;
-            _tail = default;
-            Size = 0;
-            _currentBuffer = initialBuffer;
-            if (_currentBuffer.Length > 0)
-            {
-                _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
-            }
-
-            Capacity = _currentBuffer.Length;
-        }
+        /// <summary>Encodes sliced-off slices.</summary>
+        /// <param name="slicedData">The sliced-off slices to encode.</param>
+        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
+        internal abstract void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds);
 
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
-        /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
-        /// </summary>
+        /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>
         /// <param name="start">The start position.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
-        internal void EndFixedLengthSize(Position start, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(start.Offset >= 0);
-            if (OldEncoding)
-            {
-                EncodeFixedLengthSize11(Distance(start) - 4, start);
-            }
-            else
-            {
-                EncodeFixedLengthSize20(Distance(start) - sizeLength, start, sizeLength);
-            }
-        }
+        internal void EndFixedLengthSize(BufferWriter.Position start) =>
+            EncodeFixedLengthSize(BufferWriter.Distance(start) - 4, start);
 
-        /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this Ice encoder after calling Finish, however rewriting previous data (with for example
-        /// <see cref="EndFixedLengthSize"/>) is fine.</summary>
-        /// <returns>The buffers.</returns>
-        internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
-        {
-            if (_bufferVector.Length > 0)
-            {
-                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-            }
-            return _bufferVector;
-        }
-
-        /// <summary>Encodes a size on a fixed number of bytes at the given position.</summary>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="pos">The position to encode to.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size. Can be 1, 2 or 4.</param>
-        internal void EncodeFixedLengthSize20(int size, Position pos, int sizeLength = DefaultSizeLength)
-        {
-            Debug.Assert(pos.Buffer < _bufferVector.Length);
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4);
-
-            Span<byte> data = stackalloc byte[sizeLength];
-            data.EncodeFixedLengthSize20(size);
-            RewriteByteSpan(data, pos);
-        }
-
-        /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
-        /// position must be used to rewrite the size later.</summary>
-        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
+        /// <summary>Returns the current position and writes placeholder for 4 bytes. The position must be used to
+        /// rewrite the size later on 4 bytes.</summary>
         /// <returns>The position before writing the size.</returns>
-        internal Position StartFixedLengthSize(int sizeLength = DefaultSizeLength)
+        internal BufferWriter.Position StartFixedLengthSize()
         {
-            Position pos = _tail;
-            WriteByteSpan(stackalloc byte[OldEncoding ? 4 : sizeLength]); // placeholder for future size
+            BufferWriter.Position pos = BufferWriter.Tail;
+            BufferWriter.WriteByteSpan(stackalloc byte[4]); // placeholder for future size
             return pos;
         }
 
-        /// <summary>Writes a span of bytes. The encoder capacity is expanded if required, the size and tail position are
-        /// increased according to the span length.</summary>
-        /// <param name="span">The data to write as a span of bytes.</param>
-        internal void WriteByteSpan(ReadOnlySpan<byte> span)
+        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
+        /// exponent of 2.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
+        private protected static int GetVarULongEncodedSizeExponent(ulong value)
         {
-            int length = span.Length;
-            if (length > 0)
+            if (value > EncodingDefinitions.VarULongMaxValue)
             {
-                Expand(length);
-                Size += length;
-                int offset = _tail.Offset;
-                int remaining = _currentBuffer.Length - offset;
-                Debug.Assert(remaining > 0); // guaranteed by Expand
-                int sz = Math.Min(length, remaining);
-                if (length > remaining)
-                {
-                    span.Slice(0, remaining).CopyTo(_currentBuffer.Span.Slice(offset, sz));
-                }
-                else
-                {
-                    span.CopyTo(_currentBuffer.Span.Slice(offset, length));
-                }
-                _tail.Offset += sz;
-                length -= sz;
-
-                if (length > 0)
-                {
-                    _currentBuffer = GetBuffer(++_tail.Buffer);
-                    if (remaining == 0)
-                    {
-                        span.CopyTo(_currentBuffer.Span.Slice(0, length));
-                    }
-                    else
-                    {
-                        span.Slice(remaining, length).CopyTo(_currentBuffer.Span.Slice(0, length));
-                    }
-                    _tail.Offset = length;
-                }
-            }
-        }
-
-        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
-        /// <param name="endpoint">The endpoint to encode.</param>
-        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
-        /// the nested encapsulation.</param>
-        /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
-        internal void EncodeEndpoint11(
-            Endpoint endpoint,
-            TransportCode transportCode,
-            EncodeAction<Endpoint> encodeAction)
-        {
-            Debug.Assert(OldEncoding);
-
-            this.EncodeTransportCode(transportCode);
-            Position startPos = _tail;
-
-            (byte encodingMajor, byte encodingMinor) = Encoding.ToMajorMinor();
-
-            EncodeInt(0); // placeholder for future encapsulation size
-            EncodeByte(encodingMajor);
-            EncodeByte(encodingMinor);
-            encodeAction(this, endpoint);
-            EncodeFixedLengthSize11(Distance(startPos), startPos);
-        }
-
-        internal void EncodeField(int key, ReadOnlySpan<byte> value)
-        {
-            EncodeVarInt(key);
-            EncodeSize(value.Length);
-            WriteByteSpan(value);
-        }
-
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
-        {
-            EncodeVarInt(key);
-            Position pos = StartFixedLengthSize(2); // 2-bytes size place holder
-            encodeAction(this, value);
-            EndFixedLengthSize(pos, 2);
-        }
-
-        private static int Distance(ReadOnlyMemory<ReadOnlyMemory<byte>> data, Position start, Position end)
-        {
-            // If both the start and end position are in the same array buffer just
-            // compute the offsets distance.
-            if (start.Buffer == end.Buffer)
-            {
-                return end.Offset - start.Offset;
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
             }
 
-            // If start and end position are in different buffers we need to accumulate the
-            // size from start offset to the end of the start buffer, the size of the intermediary
-            // buffers, and the current offset into the last buffer.
-            ReadOnlyMemory<byte> buffer = data.Span[start.Buffer];
-            int size = buffer.Length - start.Offset;
-            for (int i = start.Buffer + 1; i < end.Buffer; ++i)
+            return (value << 2) switch
             {
-                checked
-                {
-                    size += data.Span[i].Length;
-                }
-            }
-            checked
-            {
-                return size + end.Offset;
-            }
+                ulong b when b <= byte.MaxValue => 0,
+                ulong s when s <= ushort.MaxValue => 1,
+                ulong i when i <= uint.MaxValue => 2,
+                _ => 3
+            };
         }
+
+        // Constructs a Ice encoder
+        private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
+
+        private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
+
+        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
+        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+        /// <param name="format">The tag format.</param>
+        private protected abstract void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
@@ -1134,139 +908,6 @@ namespace IceRpc
             };
         }
 
-        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
-        /// exponent of 2.</summary>
-        /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private static int GetVarULongEncodedSizeExponent(ulong value)
-        {
-            if (value > EncodingDefinitions.VarULongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
-            }
-
-            return (value << 2) switch
-            {
-                ulong b when b <= byte.MaxValue => 0,
-                ulong s when s <= ushort.MaxValue => 1,
-                ulong i when i <= uint.MaxValue => 2,
-                _ => 3
-            };
-        }
-
-        /// <summary>Returns the distance in bytes from start position to the current position.</summary>
-        /// <param name="start">The start position from where to calculate distance to current position.</param>
-        /// <returns>The distance in bytes from the current position to the start position.</returns>
-        private int Distance(Position start)
-        {
-            Debug.Assert(_tail.Buffer > start.Buffer ||
-                        (_tail.Buffer == start.Buffer && _tail.Offset >= start.Offset));
-
-            return Distance(_bufferVector, start, _tail);
-        }
-
-        /// <summary>Expands the encoder's buffer to make room for more data. If the bytes remaining in the buffer are
-        /// not enough to hold the given number of bytes, allocates a new byte array. The caller should then consume the
-        /// new bytes immediately; calling Expand repeatedly is not supported.</summary>
-        /// <param name="n">The number of bytes to accommodate in the buffer.</param>
-        private void Expand(int n)
-        {
-            Debug.Assert(n > 0);
-            int remaining = Capacity - Size;
-            if (n > remaining)
-            {
-                int size = Math.Max(DefaultBufferSize, _currentBuffer.Length * 2);
-                size = Math.Max(n - remaining, size);
-                byte[] buffer = new byte[size];
-
-                if (_bufferVector.Length == 0)
-                {
-                    // First Expand for a new Ice encoder constructed with no buffer.
-                    Debug.Assert(_currentBuffer.Length == 0);
-                    _bufferVector = new ReadOnlyMemory<byte>[] { buffer };
-                    _currentBuffer = buffer;
-                }
-                else
-                {
-                    var newBufferVector = new ReadOnlyMemory<byte>[_bufferVector.Length + 1];
-                    _bufferVector.CopyTo(newBufferVector.AsMemory());
-                    newBufferVector[^1] = buffer;
-                    _bufferVector = newBufferVector;
-
-                    if (remaining == 0)
-                    {
-                        // Patch _tail to point to the first byte in the new buffer.
-                        Debug.Assert(_tail.Offset == _currentBuffer.Length);
-                        _currentBuffer = buffer;
-                        _tail.Buffer++;
-                        _tail.Offset = 0;
-                    }
-                }
-                Capacity += buffer.Length;
-            }
-
-            // Once Expand returns, _tail points to a writeable byte.
-            Debug.Assert(_tail.Offset < _currentBuffer.Length);
-        }
-
-        /// <summary>Returns the buffer at the given index.</summary>
-        private Memory<byte> GetBuffer(int index) => MemoryMarshal.AsMemory(_bufferVector.Span[index]);
-
-        /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the current
-        /// encoding.</summary>
-        /// <param name="size">The size.</param>
-        /// <returns>The minimum number of bytes.</returns>
-        private int GetSizeLength(int size) => OldEncoding ? (size < 255 ? 1 : 5) : GetSizeLength20(size);
-
-        /// <summary>Writes a byte at a given position.</summary>
-        /// <param name="v">The byte value to write.</param>
-        /// <param name="pos">The position to write to.</param>
-        private void RewriteByte(byte v, Position pos)
-        {
-            Memory<byte> buffer = GetBuffer(pos.Buffer);
-
-            if (pos.Offset < buffer.Length)
-            {
-                buffer.Span[pos.Offset] = v;
-            }
-            else
-            {
-                // (segN, segN.Count) points to the same byte as (segN + 1, 0)
-                Debug.Assert(pos.Offset == buffer.Length);
-                buffer = GetBuffer(pos.Buffer + 1);
-                buffer.Span[0] = v;
-            }
-        }
-
-        /// <summary>Encodes a size on 4 bytes at the given position.</summary>
-        /// <param name="size">The size to encode.</param>
-        /// <param name="pos">The position to encode to.</param>
-        internal void EncodeFixedLengthSize11(int size, Position pos)
-        {
-            Debug.Assert(pos.Buffer < _bufferVector.Length);
-
-            Span<byte> data = stackalloc byte[4];
-            MemoryMarshal.Write(data, ref size);
-            RewriteByteSpan(data, pos);
-        }
-
-        private void RewriteByteSpan(Span<byte> data, Position pos)
-        {
-            Memory<byte> buffer = GetBuffer(pos.Buffer);
-
-            int remaining = Math.Min(data.Length, buffer.Length - pos.Offset);
-            if (remaining > 0)
-            {
-                data.Slice(0, remaining).CopyTo(buffer.Span.Slice(pos.Offset, remaining));
-            }
-
-            if (remaining < data.Length)
-            {
-                buffer = GetBuffer(pos.Buffer + 1);
-                data[remaining..].CopyTo(buffer.Span.Slice(0, data.Length - remaining));
-            }
-        }
-
         /// <summary>Encodes a fixed-size numeric value.</summary>
         /// <param name="v">The numeric value to encode.</param>
         private void EncodeFixedSizeNumeric<T>(T v) where T : struct
@@ -1274,32 +915,7 @@ namespace IceRpc
             int elementSize = Unsafe.SizeOf<T>();
             Span<byte> data = stackalloc byte[elementSize];
             MemoryMarshal.Write(data, ref v);
-            WriteByteSpan(data);
-        }
-
-        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
-        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
-        /// <param name="format">The tag format.</param>
-        private void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
-        {
-            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-            if (_current.InstanceType != InstanceType.None)
-            {
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
-            }
+            BufferWriter.WriteByteSpan(data);
         }
     }
 }

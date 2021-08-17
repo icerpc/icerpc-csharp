@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Encoding
@@ -10,11 +11,11 @@ namespace IceRpc.Tests.Encoding
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly Memory<byte> _buffer;
+        private readonly BufferWriter _bufferWriter;
 
         public ProxyTests()
         {
-            _buffer = new byte[256];
+            _bufferWriter = new BufferWriter(new byte[256]);
             _server = new Server
             {
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
@@ -42,11 +43,11 @@ namespace IceRpc.Tests.Encoding
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             var encoding = IceRpc.Encoding.FromString(encodingStr);
-            var encoder = new IceEncoder(encoding, _buffer);
+            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 
             await using var connection = new Connection();
 
@@ -68,9 +69,9 @@ namespace IceRpc.Tests.Encoding
             var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var encoder = new IceEncoder(encoding, _buffer);
+            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
             encoder.EncodeProxy(endpointLess);
-            ReadOnlyMemory<byte> data = encoder.Finish().Span[0];
+            ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
             var decoder = new IceDecoder(data, encoding, _connection);

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -25,7 +26,7 @@ namespace IceRpc.Transports
         /// <summary>Encodes an ice1 endpoint with the Ice 1.1 encoding.</summary>
         /// <param name="endpoint">The ice1 endpoint to encode.</param>
         /// <param name="encoder">The Ice encoder.</param>
-        void EncodeEndpoint(Endpoint endpoint, IceEncoder encoder);
+        internal void EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder);
     }
 
     /// <summary>Composes the <see cref="IEndpointEncoder"/> and <see cref="IEndpointDecoder"/> interfaces.</summary>
@@ -58,7 +59,7 @@ namespace IceRpc.Transports
                 _endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder) ?
                     endpointDecoder.DecodeEndpoint(transportCode, decoder) : null;
 
-            void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+            void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
             {
                 if (_endpointEncoders.TryGetValue(endpoint.Transport, out IEndpointEncoder? endpointEncoder))
                 {
@@ -68,9 +69,10 @@ namespace IceRpc.Transports
                 {
                     (TransportCode transportCode, ReadOnlyMemory<byte> bytes) = endpoint.ParseOpaqueParams();
 
-                    encoder.EncodeEndpoint11(endpoint,
-                                             transportCode,
-                                             (encoder, _) => encoder.WriteByteSpan(bytes.Span));
+                    encoder.EncodeEndpoint(
+                        endpoint,
+                        transportCode,
+                        (encoder, _) => encoder.BufferWriter.WriteByteSpan(bytes.Span));
                 }
                 else
                 {
@@ -149,9 +151,9 @@ namespace IceRpc.Transports
             return null;
         }
 
-        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.Ice11)
+            if (endpoint.Protocol != Protocol.Ice1)
             {
                 throw new InvalidOperationException();
             }
@@ -159,16 +161,17 @@ namespace IceRpc.Transports
             TransportCode transportCode =
                 endpoint.Transport == TransportNames.Ssl ? TransportCode.SSL : TransportCode.TCP;
 
-            encoder.EncodeEndpoint11(endpoint,
-                                     transportCode,
-                                     static (encoder, endpoint) =>
-                                     {
-                                         (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
-                                         encoder.EncodeString(endpoint.Host);
-                                         encoder.EncodeInt(endpoint.Port);
-                                         encoder.EncodeInt(timeout);
-                                         encoder.EncodeBool(compress);
-                                     });
+            encoder.EncodeEndpoint(
+                endpoint,
+                transportCode,
+                static (encoder, endpoint) =>
+                {
+                    (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
+                    encoder.EncodeString(endpoint.Host);
+                    encoder.EncodeInt(endpoint.Port);
+                    encoder.EncodeInt(timeout);
+                    encoder.EncodeBool(compress);
+                });
         }
     }
 
@@ -200,22 +203,23 @@ namespace IceRpc.Transports
             return null;
         }
 
-        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, IceEncoder encoder)
+        void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder.Encoding != Encoding.Ice11)
+            if (endpoint.Protocol != Protocol.Ice1)
             {
                 throw new InvalidOperationException();
             }
 
-            encoder.EncodeEndpoint11(endpoint,
-                                     TransportCode.UDP,
-                                     static (encoder, endpoint) =>
-                                     {
-                                         bool compress = endpoint.ParseUdpParams().Compress;
-                                         encoder.EncodeString(endpoint.Host);
-                                         encoder.EncodeInt(endpoint.Port);
-                                         encoder.EncodeBool(compress);
-                                     });
+            encoder.EncodeEndpoint(
+                endpoint,
+                TransportCode.UDP,
+                static (encoder, endpoint) =>
+                {
+                    bool compress = endpoint.ParseUdpParams().Compress;
+                    encoder.EncodeString(endpoint.Host);
+                    encoder.EncodeInt(endpoint.Port);
+                    encoder.EncodeBool(compress);
+                });
         }
     }
 }

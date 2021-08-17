@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Buffers;
 
@@ -12,16 +13,17 @@ namespace IceRpc.Tests.Encoding
     public class BuiltInTypesSequencesTests
     {
         private readonly IceRpc.Encoding _encoding;
-        private readonly byte[] _buffer;
+        private readonly BufferWriter _bufferWriter;
         private readonly IceEncoder _encoder;
         private readonly IceDecoder _decoder;
 
         public BuiltInTypesSequencesTests(string encoding)
         {
             _encoding = IceRpc.Encoding.FromString(encoding);
-            _buffer = new byte[1024 * 1024];
-            _encoder = new IceEncoder(_encoding, _buffer);
-            _decoder = new IceDecoder(_buffer, _encoding);
+            var buffer = new byte[1024 * 1024];
+            _bufferWriter = new BufferWriter(buffer);
+            _encoder = Payload.CreateIceEncoder(_encoding, _bufferWriter);
+            _decoder = new IceDecoder(buffer, _encoding);
         }
 
         [TestCase(0)]
@@ -33,7 +35,7 @@ namespace IceRpc.Tests.Encoding
             bool[] r1 = _decoder.DecodeArray<bool>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -45,7 +47,7 @@ namespace IceRpc.Tests.Encoding
             byte[] r1 = _decoder.DecodeArray<byte>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -57,7 +59,7 @@ namespace IceRpc.Tests.Encoding
             short[] r1 = _decoder.DecodeArray<short>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -69,7 +71,7 @@ namespace IceRpc.Tests.Encoding
             int[] r1 = _decoder.DecodeArray<int>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -81,7 +83,7 @@ namespace IceRpc.Tests.Encoding
             long[] r1 = _decoder.DecodeArray<long>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -93,7 +95,7 @@ namespace IceRpc.Tests.Encoding
             float[] r1 = _decoder.DecodeArray<float>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -105,7 +107,7 @@ namespace IceRpc.Tests.Encoding
             double[] r1 = _decoder.DecodeArray<double>();
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
 
         [TestCase(0)]
@@ -117,7 +119,7 @@ namespace IceRpc.Tests.Encoding
             IEnumerable<string> r1 = _decoder.DecodeSequence(1, decoder => decoder.DecodeString());
 
             CollectionAssert.AreEqual(p1, r1);
-            Assert.AreEqual(_decoder.Pos, _encoder.Tail.Offset);
+            Assert.AreEqual(_decoder.Pos, _bufferWriter.Tail.Offset);
         }
     }
 }

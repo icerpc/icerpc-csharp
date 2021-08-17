@@ -12,16 +12,17 @@ namespace IceRpc.Tests.Encoding
     public class BuiltInTypesTests
     {
         private readonly IceRpc.Encoding _encoding;
-        private readonly Memory<byte> _buffer;
+        private readonly BufferWriter _bufferWriter;
         private readonly IceEncoder _encoder;
         private readonly IceDecoder _decoder;
 
         public BuiltInTypesTests(string encoding)
         {
             _encoding = IceRpc.Encoding.FromString(encoding);
-            _buffer = new byte[256];
-            _encoder = new IceEncoder(_encoding, _buffer);
-            _decoder = new IceDecoder(_buffer, _encoding);
+            var buffer = new byte[256];
+            _bufferWriter = new BufferWriter(buffer);
+            _encoder = Payload.CreateIceEncoder(_encoding, _bufferWriter);
+            _decoder = new IceDecoder(buffer, _encoding);
         }
 
         [TestCase(true)]
@@ -32,8 +33,8 @@ namespace IceRpc.Tests.Encoding
             bool r1 = _decoder.DecodeBool();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(bool), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(bool), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(bool), _decoder.Pos);
         }
 
@@ -46,8 +47,8 @@ namespace IceRpc.Tests.Encoding
             byte r1 = _decoder.DecodeByte();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(byte), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(byte), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(byte), _decoder.Pos);
         }
 
@@ -60,8 +61,8 @@ namespace IceRpc.Tests.Encoding
             short r1 = _decoder.DecodeShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(short), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(short), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(short), _decoder.Pos);
         }
 
@@ -73,8 +74,8 @@ namespace IceRpc.Tests.Encoding
             ushort r1 = _decoder.DecodeUShort();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(ushort), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(ushort), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(ushort), _decoder.Pos);
         }
 
@@ -87,8 +88,8 @@ namespace IceRpc.Tests.Encoding
             int r1 = _decoder.DecodeInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(int), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(int), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(int), _decoder.Pos);
         }
 
@@ -101,7 +102,7 @@ namespace IceRpc.Tests.Encoding
             uint r1 = _decoder.DecodeUInt();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
         [TestCase(long.MinValue)]
@@ -113,8 +114,8 @@ namespace IceRpc.Tests.Encoding
             long r1 = _decoder.DecodeLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(long), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(long), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(long), _decoder.Pos);
         }
 
@@ -126,7 +127,7 @@ namespace IceRpc.Tests.Encoding
             ulong r1 = _decoder.DecodeULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarULongMinValue)]
@@ -137,7 +138,7 @@ namespace IceRpc.Tests.Encoding
             ulong r1 = _decoder.DecodeVarULong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
         [TestCase(EncodingDefinitions.VarLongMinValue)]
@@ -148,7 +149,7 @@ namespace IceRpc.Tests.Encoding
             long r1 = _decoder.DecodeVarLong();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
         [TestCase(float.MinValue)]
@@ -160,8 +161,8 @@ namespace IceRpc.Tests.Encoding
             float r1 = _decoder.DecodeFloat();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(float), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(float), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(float), _decoder.Pos);
         }
 
@@ -175,8 +176,8 @@ namespace IceRpc.Tests.Encoding
             double r1 = _decoder.DecodeDouble();
 
             Assert.AreEqual(p1, r1);
-            Assert.AreEqual(0, _encoder.Tail.Buffer);
-            Assert.AreEqual(sizeof(double), _encoder.Tail.Offset);
+            Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
+            Assert.AreEqual(sizeof(double), _bufferWriter.Tail.Offset);
             Assert.AreEqual(sizeof(double), _decoder.Pos);
         }
 
