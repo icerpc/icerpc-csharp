@@ -30,6 +30,8 @@ namespace IceRpc
         // The byte buffer we are decoding.
         private protected readonly ReadOnlyMemory<byte> _buffer;
 
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+
         // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
         // buffer size.
         private int _minTotalSeqSize;
@@ -104,7 +106,7 @@ namespace IceRpc
             }
             else
             {
-                string value = _buffer.Slice(Pos, size).Span.DecodeString();
+                string value = DecodeString(_buffer.Slice(Pos, size).Span);
                 Pos += size;
                 return value;
             }
@@ -904,6 +906,34 @@ namespace IceRpc
             Invoker = invoker;
             Pos = 0;
             _buffer = buffer;
+        }
+
+        internal static int DecodeInt(ReadOnlySpan<byte> from) => BitConverter.ToInt32(from);
+        internal static long DecodeLong(ReadOnlySpan<byte> from) => BitConverter.ToInt64(from);
+        internal static short DecodeShort(ReadOnlySpan<byte> from) => BitConverter.ToInt16(from);
+
+        /// <summary>Decodes a string from a UTF-8 byte buffer. The size of the byte buffer corresponds to the number of
+        /// UTF-8 code points in the string.</summary>
+        /// <param name="from">The byte buffer.</param>
+        /// <returns>The string decoded from the buffer.</returns>
+        internal static string DecodeString(ReadOnlySpan<byte> from) => from.IsEmpty ? "" : _utf8.GetString(from);
+
+        internal static ushort DecodeUShort(ReadOnlySpan<byte> from) => BitConverter.ToUInt16(from);
+
+        // Applies to all var type: varlong, varulong etc.
+        internal static int DecodeVarLongLength(byte from) => 1 << (from & 0x03);
+
+        internal static (ulong Value, int ValueLength) DecodeVarULong(ReadOnlySpan<byte> from)
+        {
+            ulong value = (from[0] & 0x03) switch
+            {
+                0 => (uint)from[0] >> 2,
+                1 => (uint)BitConverter.ToUInt16(from) >> 2,
+                2 => BitConverter.ToUInt32(from) >> 2,
+                _ => BitConverter.ToUInt64(from) >> 2
+            };
+
+            return (value, DecodeVarLongLength(from[0]));
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>

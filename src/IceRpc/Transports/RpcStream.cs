@@ -323,7 +323,7 @@ namespace IceRpc.Transports
                     {
                         checked
                         {
-                            _connection.PeerIncomingFrameMaxSize = (int)value.Span.DecodeVarULong().Value;
+                            _connection.PeerIncomingFrameMaxSize = (int)IceDecoder.DecodeVarULong(value.Span).Value;
                         }
 
                         if (_connection.PeerIncomingFrameMaxSize < 1024)
@@ -511,12 +511,12 @@ namespace IceRpc.Transports
             }
 
             // Read the remainder of the size if needed.
-            int sizeLength = buffer.Span[1].DecodeSizeLength20();
+            int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
             if (sizeLength > 1)
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
+            int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
 
             // Read the frame data
             if (size > 0)

@@ -665,7 +665,7 @@ namespace IceRpc.Transports.Internal
             for (int i = 0; i < dictionarySize; ++i)
             {
                 (int key, ReadOnlyMemory<byte> value) = decoder.DecodeField();
-                parameters.Add((ParameterKey)key, value.Span.DecodeVarULong().Value);
+                parameters.Add((ParameterKey)key, IceDecoder.DecodeVarULong(value.Span).Value);
             }
             return parameters;
         }
@@ -770,19 +770,19 @@ namespace IceRpc.Transports.Internal
             // will be the frame type and the second is the first byte of the Slic frame size.
             ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(2, cancel).ConfigureAwait(false);
             var type = (SlicDefinitions.FrameType)buffer.Span[0];
-            int sizeLength = buffer.Span[1].DecodeSizeLength20();
+            int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
             int size;
             if (sizeLength > 1)
             {
                 Received(buffer.Slice(0, 1));
                 _bufferedConnection!.Rewind(1);
                 buffer = await _bufferedConnection!.ReceiveAsync(sizeLength, cancel).ConfigureAwait(false);
-                size = buffer.Span.DecodeSize20().Size;
+                size = Ice20Decoder.DecodeSize(buffer.Span).Size;
                 Received(buffer.Slice(0, sizeLength));
             }
             else
             {
-                size = buffer.Span[1..2].DecodeSize20().Size;
+                size = Ice20Decoder.DecodeSize(buffer.Span[1..2]).Size;
                 Received(buffer.Slice(0, 2));
             }
 
@@ -800,7 +800,7 @@ namespace IceRpc.Transports.Internal
             // too much data.
             int size = Math.Min(frameSize, 8);
             ReadOnlyMemory<byte> buffer = await _bufferedConnection!.ReceiveAsync(size, cancel).ConfigureAwait(false);
-            (ulong streamId, int streamIdLength) = buffer.Span.DecodeVarULong();
+            (ulong streamId, int streamIdLength) = IceDecoder.DecodeVarULong(buffer.Span);
             _bufferedConnection!.Rewind(size - streamIdLength);
             Received(buffer[0..streamIdLength]);
 

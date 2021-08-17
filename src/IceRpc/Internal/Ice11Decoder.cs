@@ -739,9 +739,9 @@ namespace IceRpc.Internal
             // We should never skip an exception's indirection table
             Debug.Assert(_current.InstanceType == InstanceType.Class);
 
-            // We use DecodeSize and not DecodeAndCheckSeqSize here because we don't allocate memory for this sequence, and
-            // since we are skipping this sequence to decode it later, we don't want to double-count its contribution to
-            // _minTotalSeqSize.
+            // We use DecodeSize and not DecodeAndCheckSeqSize here because we don't allocate memory for this sequence,
+            // and since we are skipping this sequence to decode it later, we don't want to double-count its
+            // contribution to _minTotalSeqSize.
             int tableSize = DecodeSize();
             for (int i = 0; i < tableSize; ++i)
             {
