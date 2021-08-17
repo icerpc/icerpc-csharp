@@ -829,6 +829,8 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceStartNextSlice(string typeId, int? compactId = null);
 
+        internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
+
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>

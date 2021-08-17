@@ -109,39 +109,5 @@ namespace IceRpc.Internal
                 return data;
             }
         }
-
-        /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
-        /// <param name="buffer">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
-        /// <param name="size">The size to write.</param>
-        internal static void EncodeFixedLengthSize20(this Span<byte> buffer, long size)
-        {
-            int sizeLength = buffer.Length;
-            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
-
-            (uint encodedSizeExponent, long maxSize) = sizeLength switch
-            {
-                1 => (0x00u, 63), // 2^6 - 1
-                2 => (0x01u, 16_383), // 2^14 - 1
-                4 => (0x02u, 1_073_741_823), // 2^30 - 1
-                _ => (0x03u, (long)EncodingDefinitions.VarULongMaxValue)
-            };
-
-            if (size < 0 || size > maxSize)
-            {
-                throw new ArgumentOutOfRangeException(
-                    $"size '{size}' cannot be encoded on {sizeLength} bytes",
-                    nameof(size));
-            }
-
-            Span<byte> ulongBuf = stackalloc byte[8];
-            ulong v = (ulong)size;
-            v <<= 2;
-
-            v |= encodedSizeExponent;
-            MemoryMarshal.Write(ulongBuf, ref v);
-            ulongBuf.Slice(0, sizeLength).CopyTo(buffer);
-        }
-
-        internal static void EncodeInt(this Span<byte> buffer, int v) => MemoryMarshal.Write(buffer, ref v);
     }
 }

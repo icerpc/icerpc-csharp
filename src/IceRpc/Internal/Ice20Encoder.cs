@@ -84,6 +84,38 @@ namespace IceRpc.Internal
         public override void IceStartNextSlice(string typeId, int? compactId = null) =>
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
+        /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
+        /// <param name="size">The size to encode.</param>
+        /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>
+        internal static void EncodeFixedLengthSize(long size, Span<byte> into)
+        {
+            int sizeLength = into.Length;
+            Debug.Assert(sizeLength == 1 || sizeLength == 2 || sizeLength == 4 || sizeLength == 8);
+
+            (uint encodedSizeExponent, long maxSize) = sizeLength switch
+            {
+                1 => (0x00u, 63), // 2^6 - 1
+                2 => (0x01u, 16_383), // 2^14 - 1
+                4 => (0x02u, 1_073_741_823), // 2^30 - 1
+                _ => (0x03u, (long)EncodingDefinitions.VarULongMaxValue)
+            };
+
+            if (size < 0 || size > maxSize)
+            {
+                throw new ArgumentOutOfRangeException(
+                    $"size '{size}' cannot be encoded on {sizeLength} bytes",
+                    nameof(size));
+            }
+
+            Span<byte> ulongBuf = stackalloc byte[8];
+            ulong v = (ulong)size;
+            v <<= 2;
+
+            v |= encodedSizeExponent;
+            MemoryMarshal.Write(ulongBuf, ref v);
+            ulongBuf.Slice(0, sizeLength).CopyTo(into);
+        }
+
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
@@ -112,7 +144,7 @@ namespace IceRpc.Internal
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
-            into.EncodeFixedLengthSize20(size);
+            Ice20Encoder.EncodeFixedLengthSize(size, into);
 
         private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {

@@ -401,7 +401,7 @@ namespace IceRpc.Internal
             {
                 throw new ArgumentException($"into has {into.Length} bytes");
             }
-            into.EncodeInt(size);
+            IceEncoder.EncodeInt(size, into);
         }
 
         private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
