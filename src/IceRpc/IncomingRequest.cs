@@ -63,10 +63,11 @@ namespace IceRpc
         internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data, bool isOneway)
             : base(protocol)
         {
-            var decoder = new IceDecoder(data, Protocol.GetEncoding());
+            int payloadStart;
 
             if (Protocol == Protocol.Ice1)
             {
+                var decoder = new Ice11Decoder(data);
                 var requestHeader = new Ice1RequestHeader(decoder);
                 if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
                 {
@@ -89,9 +90,11 @@ namespace IceRpc
 
                 Priority = default;
                 Deadline = DateTime.MaxValue;
+                payloadStart = decoder.Pos;
             }
             else
             {
+                var decoder = new Ice20Decoder(data);
                 int headerSize = decoder.DecodeSize();
                 int startPos = decoder.Pos;
 
@@ -135,6 +138,7 @@ namespace IceRpc
                             valueDecodeFunc: decoder => decoder.DecodeString()))
                     });
                 }
+                payloadStart = decoder.Pos;
             }
 
             if (Operation.Length == 0)
@@ -143,7 +147,7 @@ namespace IceRpc
             }
 
             IsOneway = isOneway;
-            Payload = data[decoder.Pos..];
+            Payload = data[payloadStart..];
             if (PayloadSize != Payload.Length)
             {
                 throw new InvalidDataException(

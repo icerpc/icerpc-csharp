@@ -25,7 +25,7 @@ namespace IceRpc
                 }
                 payload = payload[1..];
             }
-            new IceDecoder(payload, dispatch.Encoding).CheckEndOfBuffer(skipTaggedParams: true);
+            CreateIceDecoder(dispatch.Encoding, payload).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
@@ -46,7 +46,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            new IceDecoder(payload, payloadEncoding).CheckEndOfBuffer(skipTaggedParams: true);
+            CreateIceDecoder(payloadEncoding, payload).CheckEndOfBuffer(skipTaggedParams: true);
         }
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
@@ -196,9 +196,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(
-                payload,
+            var decoder = CreateIceDecoder(
                 dispatch.Encoding,
+                payload,
                 dispatch.Connection,
                 dispatch.ProxyInvoker,
                 dispatch.Connection?.ClassFactory);
@@ -236,9 +236,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = new IceDecoder(
-                payload,
+            var decoder = CreateIceDecoder(
                 payloadEncoding,
+                payload,
                 connection,
                 invoker,
                 connection?.ClassFactory);
@@ -246,6 +246,26 @@ namespace IceRpc
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
+
+        /// <summary>Creates an Ice decoder.</summary>
+        /// <param name="encoding">The Ice encoding.</param>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <returns>A new decoder for the specified Ice encoding.</returns>
+        internal static IceDecoder CreateIceDecoder(
+            Encoding encoding,
+            ReadOnlyMemory<byte> buffer,
+            Connection? connection = null,
+            IInvoker? invoker = null,
+            IClassFactory? classFactory = null) =>
+            encoding.Name switch
+            {
+                Encoding.Ice11Name => new Ice11Decoder(buffer, connection, invoker, classFactory),
+                Encoding.Ice20Name => new Ice20Decoder(buffer, connection, invoker, classFactory),
+                _ => throw new NotImplementedException($"cannot create an Ice decoder for encoding {encoding}")
+            };
 
         /// <summary>Creates an Ice encoder.</summary>
         /// <param name="encoding">The Ice encoding.</param>
@@ -340,23 +360,23 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var decoder = new IceDecoder(
-                payload,
+            var decoder = CreateIceDecoder(
                 payloadEncoding,
+                payload,
                 connection,
                 invoker,
                 connection?.ClassFactory);
 
-            if (protocol == Protocol.Ice2 && decoder.Encoding == Encoding.Ice11)
+            if (protocol == Protocol.Ice2 && payloadEncoding == Encoding.Ice11)
             {
                 // Skip reply status byte
                 decoder.Skip(1);
             }
 
             RemoteException exception;
-            if (decoder.Encoding == Encoding.Ice11 && replyStatus != ReplyStatus.UserException)
+            if (payloadEncoding == Encoding.Ice11 && replyStatus != ReplyStatus.UserException)
             {
-                exception = decoder.DecodeIce1SystemException(replyStatus);
+                exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
                 decoder.CheckEndOfBuffer(skipTaggedParams: false);
             }
             else

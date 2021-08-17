@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -12,12 +13,8 @@ using System.Runtime.InteropServices;
 namespace IceRpc
 {
     /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
-    public sealed partial class IceDecoder
+    public abstract class IceDecoder
     {
-        /// <summary>The Ice encoding used by this decoder when decoding its byte buffer.</summary>
-        /// <value>The encoding.</value>
-        public Encoding Encoding { get; }
-
         /// <summary>Connection used when decoding proxies.</summary>
         internal Connection? Connection { get; }
 
@@ -25,60 +22,17 @@ namespace IceRpc
         internal IInvoker? Invoker { get; }
 
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
-        internal int Pos { get; private set; }
+        internal int Pos { get; private protected set; }
 
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
-        internal SlicedData? SlicedData
-        {
-            get
-            {
-                Debug.Assert(_current.InstanceType != InstanceType.None);
-                if (_current.Slices == null)
-                {
-                    return null;
-                }
-                else
-                {
-                    return new SlicedData(Encoding, _current.Slices);
-                }
-            }
-        }
-
-        private bool OldEncoding => Encoding == Encoding.Ice11;
+        internal abstract SlicedData? SlicedData { get; }
 
         // The byte buffer we are decoding.
-        private readonly ReadOnlyMemory<byte> _buffer;
-
-        private readonly IClassFactory _classFactory;
-
-        private readonly int _classGraphMaxDepth;
-
-        // Data for the class or exception instance that is currently getting decoded.
-        private InstanceData _current;
-
-        // The current depth when decoding nested class instances.
-        private int _classGraphDepth;
-
-        // Map of class instance ID to class instance.
-        // When decoding a buffer:
-        //  - Instance ID = 0 means null
-        //  - Instance ID = 1 means the instance is encoded inline afterwards
-        //  - Instance ID > 1 means a reference to a previously decoded instance, found in this map.
-        // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
-        private List<AnyClass>? _instanceMap;
+        private protected readonly ReadOnlyMemory<byte> _buffer;
 
         // The sum of all the minimum sizes (in bytes) of the sequences decoded from this buffer. Must not exceed the
         // buffer size.
         private int _minTotalSeqSize;
-
-        // See DecodeTypeId11.
-        private int _posAfterLatestInsertedTypeId11;
-
-        // Map of type ID index to type ID sequence, used only for classes.
-        // We assign a type ID index (starting with 1) to each type ID (type ID sequence) we decode, in order.
-        // Since this map is a list, we lookup a previously assigned type ID (type ID sequence) with
-        // _typeIdMap[index - 1].
-        private List<string>? _typeIdMap11;
 
         // Decode methods for basic types
 
@@ -135,9 +89,9 @@ namespace IceRpc
             return value;
         }
 
-        /// <summary>Decodes a size. This size's encoding is variable-length.</summary>
+        /// <summary>Decodes a size encoded on a variable number of bytes.</summary>
         /// <returns>The size decoded by this decoder.</returns>
-        public int DecodeSize() => OldEncoding ? DecodeSize11() : DecodeSize20();
+        public abstract int DecodeSize();
 
         /// <summary>Decodes a string.</summary>
         /// <returns>The string decoded by this decoder.</returns>
@@ -243,7 +197,7 @@ namespace IceRpc
                 _ => DecodeULong() >> 2
             };
 
-        // Decode methods for constructed types except class and exception
+        // Decode methods for constructed types
 
         /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
@@ -289,6 +243,10 @@ namespace IceRpc
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
         public T?[] DecodeArray<T>(DecodeFunc<T> decodeFunc) where T : struct => DecodeSequence(decodeFunc).ToArray();
+
+        /// <summary>Decodes a class instance.</summary>
+        /// <returns>The decoded class instance.</returns>
+        public abstract T DecodeClass<T>() where T : AnyClass;
 
         /// <summary>Decodes a dictionary.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -348,9 +306,17 @@ namespace IceRpc
             return DecodeDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyDecodeFunc, valueDecodeFunc);
         }
 
+        /// <summary>Decodes a remote exception.</summary>
+        /// <returns>The remote exception.</returns>
+        public abstract RemoteException DecodeException();
+
+        /// <summary>Decodes a nullable class instance.</summary>
+        /// <returns>The class instance, or null.</returns>
+        public abstract T? DecodeNullableClass<T>() where T : AnyClass;
+
         /// <summary>Decodes a nullable proxy.</summary>
         /// <returns>The decoded proxy, or null.</returns>
-        public Proxy? DecodeNullableProxy() => Proxy.Decode(this);
+        public abstract Proxy? DecodeNullableProxy();
 
         /// <summary>Decodes a proxy.</summary>
         /// <returns>The decoded proxy</returns>
@@ -640,10 +606,18 @@ namespace IceRpc
             DecodeFunc<TValue> valueDecodeFunc)
             where TKey : notnull
         {
-            if (DecodeTaggedParamHeader(tag,
-                    fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(
+                tag,
+                fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: !fixedSize);
+                if (fixedSize)
+                {
+                    SkipSize();
+                }
+                else
+                {
+                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
+                }
                 return DecodeDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -667,7 +641,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeDictionary(minKeySize, withBitSequence, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -690,7 +664,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeDictionary(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -714,12 +688,20 @@ namespace IceRpc
             bool fixedSize,
             DecodeFunc<T> decodeFunc)
         {
-            if (DecodeTaggedParamHeader(tag,
+            if (DecodeTaggedParamHeader(
+                    tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
                 if (!fixedSize || minElementSize > 1) // the size is optimized out for a fixed element size of 1
                 {
-                    SkipSize(fixedLength: !fixedSize);
+                    if (fixedSize)
+                    {
+                        SkipSize();
+                    }
+                    else
+                    {
+                        SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
+                    }
                 }
                 return DecodeSequence(minElementSize, decodeFunc);
             }
@@ -737,7 +719,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeSequence(withBitSequence, decodeFunc);
             }
             else
@@ -755,7 +737,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeSequence(decodeFunc);
             }
             else
@@ -780,10 +762,18 @@ namespace IceRpc
             DecodeFunc<TKey> keyDecodeFunc,
             DecodeFunc<TValue> valueDecodeFunc) where TKey : notnull
         {
-            if (DecodeTaggedParamHeader(tag,
+            if (DecodeTaggedParamHeader(
+                    tag,
                     fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: !fixedSize);
+                if (fixedSize)
+                {
+                    SkipSize();
+                }
+                else
+                {
+                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
+                }
                 return DecodeSortedDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -807,7 +797,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeSortedDictionary(minKeySize, withBitSequence, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -830,7 +820,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return DecodeSortedDictionary(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
@@ -843,10 +833,18 @@ namespace IceRpc
         /// <returns>The struct T decoded by this decoder, or null.</returns>
         public T? DecodeTaggedStruct<T>(int tag, bool fixedSize, DecodeFunc<T> decodeFunc) where T : struct
         {
-            if (DecodeTaggedParamHeader(tag,
-                    fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(
+                tag,
+                fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: !fixedSize);
+                if (fixedSize)
+                {
+                    SkipSize();
+                }
+                else
+                {
+                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
+                }
                 return decodeFunc(this);
             }
             return null;
@@ -865,30 +863,47 @@ namespace IceRpc
             return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
         }
 
+        // Logically internal methods that are marked public because they are called by the generated code.
+
+        /// <summary>Marks the end of the decoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndDerivedExceptionSlice();
+
+        /// <summary>Marks the end of the decoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndException();
+
+        /// <summary>Tells the decoder the end of a class was reached.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndSlice();
+
+        /// <summary>Marks the start of the decoding of a derived exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartDerivedExceptionSlice();
+
+        /// <summary>Marks the start of the decoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartException();
+
+        /// <summary>Starts decoding the first slice of a class.</summary>
+        /// <returns>The sliced-off slices, if any.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract SlicedData? IceStartFirstSlice();
+
+        /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceStartNextSlice();
+
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
-        /// <param name="encoding">The encoding of the buffer.</param>
-        /// <param name="connection">The connection (optional).</param>
+        /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">Optional class factory used to create class and exception instances.</param>
-        internal IceDecoder(
-            ReadOnlyMemory<byte> buffer,
-            Encoding encoding,
-            Connection? connection = null,
-            IInvoker? invoker = null,
-            IClassFactory? classFactory = null)
+        private protected IceDecoder(ReadOnlyMemory<byte> buffer, Connection? connection, IInvoker? invoker)
         {
             Connection = connection;
             Invoker = invoker;
-
-            _classFactory = classFactory ?? ClassFactory.Default;
-            _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
-
             Pos = 0;
             _buffer = buffer;
-
-            encoding.CheckSupportedIceEncoding();
-            Encoding = encoding;
         }
 
         /// <summary>Verifies the Ice decoder has reached the end of its underlying buffer.</summary>
@@ -907,84 +922,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Decodes an endpoint. Only called when the Ice decoder uses the 1.1 encoding.</summary>
-        /// <param name="protocol">The Ice protocol of this endpoint.</param>
-        /// <returns>The endpoint decoded by this decoder.</returns>
-        internal Endpoint DecodeEndpoint11(Protocol protocol)
-        {
-            Debug.Assert(OldEncoding);
-            Debug.Assert(Connection != null);
-
-            Endpoint? endpoint = null;
-            TransportCode transportCode = this.DecodeTransportCode();
-
-            int size = DecodeInt();
-            if (size < 6)
-            {
-                throw new InvalidDataException($"the 1.1 encapsulation's size ({size}) is too small");
-            }
-
-            if (size - 4 > _buffer.Length - Pos)
-            {
-                throw new InvalidDataException(
-                    $"the encapsulation's size ({size}) extends beyond the end of the buffer");
-            }
-
-            // Remove 6 bytes from the encapsulation size (4 for encapsulation size, 2 for encoding).
-            size -= 6;
-
-            var encoding = Encoding.FromMajorMinor(DecodeByte(), DecodeByte());
-
-            if (encoding == Encoding.Ice11 || encoding == Encoding.Ice10)
-            {
-                int oldPos = Pos;
-
-                if (transportCode == TransportCode.Any)
-                {
-                    // Encoded as an endpoint data
-                    endpoint = new EndpointData(this).ToEndpoint();
-                }
-                else if (protocol == Protocol.Ice1)
-                {
-                    endpoint = Connection.EndpointCodex.DecodeEndpoint(transportCode, this);
-
-                    if (endpoint == null)
-                    {
-                        var endpointParams = ImmutableList.Create(
-                            new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
-                            new EndpointParam("-e", encoding.ToString()),
-                            new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
-
-                        endpoint = new Endpoint(
-                            protocol,
-                            TransportNames.Opaque,
-                            Host: "",
-                            Port: 0,
-                            endpointParams);
-
-                        Pos += size;
-                    }
-                }
-
-                if (endpoint != null)
-                {
-                    // Make sure we read the full encapsulation.
-                    if (Pos != oldPos + size)
-                    {
-                        throw new InvalidDataException($"{oldPos + size - Pos} bytes left in endpoint encapsulation");
-                    }
-                }
-            }
-
-            string transportName = endpoint?.Transport ?? transportCode.ToString().ToLowerInvariant();
-
-            return endpoint ??
-                throw new InvalidDataException(
-                    @$"cannot decode endpoint for protocol '{protocol.GetName()}' and transport '{transportName
-                    }' with endpoint encapsulation encoded with encoding '{encoding}'");
-        }
-
-        /// <summary>Decodes a field.</summary>
+         // <summary>Decodes a field.</summary>
         /// <returns>The key and value of the field. The read-only memory for the value is backed by the buffer, the
         /// data is not copied.</returns>
         internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
@@ -1004,7 +942,7 @@ namespace IceRpc
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
-                SkipSize(fixedLength: true);
+                SkipFixedLengthSize();
                 return true;
             }
             else
@@ -1028,7 +966,7 @@ namespace IceRpc
         /// <param name="minElementSize">The minimum encoded size of an element of the sequence, in bytes. This value is
         /// 0 for sequence of nullable types other than mapped Slice classes and proxies.</param>
         /// <returns>The number of elements in the sequence.</returns>
-        private int DecodeAndCheckSeqSize(int minElementSize)
+        private protected int DecodeAndCheckSeqSize(int minElementSize)
         {
             int sz = DecodeSize();
 
@@ -1049,6 +987,100 @@ namespace IceRpc
                 throw new InvalidDataException("invalid sequence size");
             }
             return sz;
+        }
+
+        /// <summary>Determines if a tagged parameter or data member is available.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
+        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
+        private protected virtual bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
+        {
+            int requestedTag = tag;
+
+            while (true)
+            {
+                if (_buffer.Length - Pos <= 0)
+                {
+                    return false; // End of buffer also indicates end of tagged parameters.
+                }
+
+                int savedPos = Pos;
+
+                int v = DecodeByte();
+                if (v == EncodingDefinitions.TaggedEndMarker)
+                {
+                    Pos = savedPos; // rewind
+                    return false;
+                }
+
+                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // First 3 bits.
+                tag = v >> 3;
+                if (tag == 30)
+                {
+                    tag = DecodeSize();
+                }
+
+                if (tag > requestedTag)
+                {
+                    Pos = savedPos; // rewind
+                    return false; // No tagged parameter with the requested tag.
+                }
+                else if (tag < requestedTag)
+                {
+                    SkipTagged(format);
+                }
+                else
+                {
+                    // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
+                    // received does not matter in this case.
+                    if (format != expectedFormat && (expectedFormat != EncodingDefinitions.TagFormat.VInt ||
+                            (int)format > (int)EncodingDefinitions.TagFormat.F8))
+                    {
+                        throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
+                    }
+                    return true;
+                }
+            }
+        }
+
+        private protected int ReadSpan(Span<byte> span)
+        {
+            int length = Math.Min(span.Length, _buffer.Length - Pos);
+            _buffer.Span.Slice(Pos, length).CopyTo(span);
+            Pos += length;
+            return length;
+        }
+
+        /// <summary>Skips over a size value encoded on a fixed number of bytes.</summary>
+        private protected abstract void SkipFixedLengthSize();
+
+        /// <summary>Skips over a size value encoded on a variable number of bytes.</summary>
+        private protected abstract void SkipSize();
+
+        private protected abstract void SkipTagged(EncodingDefinitions.TagFormat format);
+
+        private protected void SkipTaggedParams()
+        {
+            while (true)
+            {
+                if (_buffer.Length - Pos <= 0)
+                {
+                    break;
+                }
+
+                int v = DecodeByte();
+                if (v == EncodingDefinitions.TaggedEndMarker)
+                {
+                    break;
+                }
+
+                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // Read first 3 bits.
+                if ((v >> 3) == 30)
+                {
+                    SkipSize();
+                }
+                SkipTagged(format);
+            }
         }
 
         private ReadOnlyMemory<byte> DecodeBitSequenceMemory(int bitSequenceSize)
@@ -1108,192 +1140,6 @@ namespace IceRpc
                 dict.Add(key, value);
             }
             return dict;
-        }
-
-        private int DecodeSize11()
-        {
-            byte b = DecodeByte();
-            if (b < 255)
-            {
-                return b;
-            }
-
-            int size = DecodeInt();
-            if (size < 0)
-            {
-                throw new InvalidDataException($"decoded invalid size: {size}");
-            }
-            return size;
-        }
-
-        private int DecodeSize20()
-        {
-            checked
-            {
-                return (int)DecodeVarULong();
-            }
-        }
-
-        private int ReadSpan(Span<byte> span)
-        {
-            int length = Math.Min(span.Length, _buffer.Length - Pos);
-            _buffer.Span.Slice(Pos, length).CopyTo(span);
-            Pos += length;
-            return length;
-        }
-
-        /// <summary>Determines if a tagged parameter or data member is available.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
-        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
-        private bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
-        {
-            // The current slice has no tagged parameter.
-            if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)
-            {
-                return false;
-            }
-
-            int requestedTag = tag;
-
-            while (true)
-            {
-                if (_buffer.Length - Pos <= 0)
-                {
-                    return false; // End of buffer also indicates end of tagged parameters.
-                }
-
-                int savedPos = Pos;
-
-                int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
-                {
-                    Pos = savedPos; // rewind
-                    return false;
-                }
-
-                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // First 3 bits.
-                tag = v >> 3;
-                if (tag == 30)
-                {
-                    tag = DecodeSize();
-                }
-
-                if (tag > requestedTag)
-                {
-                    Pos = savedPos; // rewind
-                    return false; // No tagged parameter with the requested tag.
-                }
-                else if (tag < requestedTag)
-                {
-                    SkipTagged(format);
-                }
-                else
-                {
-                    // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
-                    // received does not matter in this case.
-                    if (format != expectedFormat && (expectedFormat != EncodingDefinitions.TagFormat.VInt ||
-                            (int)format > (int)EncodingDefinitions.TagFormat.F8))
-                    {
-                        throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
-                    }
-                    return true;
-                }
-            }
-        }
-
-        /// <summary>Skips over a size value.</summary>
-        /// <param name="fixedLength">When true and the encoding is 1.1, it's a fixed length size encoded on 4 bytes.
-        /// When false, or the encoding is not 1.1, it's a variable-length size.</param>
-        private void SkipSize(bool fixedLength = false)
-        {
-            if (OldEncoding)
-            {
-                if (fixedLength)
-                {
-                    Skip(4);
-                }
-                else
-                {
-                    byte b = DecodeByte();
-                    if (b == 255)
-                    {
-                        Skip(4);
-                    }
-                }
-            }
-            else
-            {
-                Skip(_buffer.Span[Pos].DecodeSizeLength20());
-            }
-        }
-
-        private void SkipTagged(EncodingDefinitions.TagFormat format)
-        {
-            switch (format)
-            {
-                case EncodingDefinitions.TagFormat.F1:
-                    Skip(1);
-                    break;
-                case EncodingDefinitions.TagFormat.F2:
-                    Skip(2);
-                    break;
-                case EncodingDefinitions.TagFormat.F4:
-                    Skip(4);
-                    break;
-                case EncodingDefinitions.TagFormat.F8:
-                    Skip(8);
-                    break;
-                case EncodingDefinitions.TagFormat.Size:
-                    SkipSize();
-                    break;
-                case EncodingDefinitions.TagFormat.VSize:
-                    Skip(DecodeSize());
-                    break;
-                case EncodingDefinitions.TagFormat.FSize:
-                    if (OldEncoding)
-                    {
-                        int size = DecodeInt();
-                        if (size < 0)
-                        {
-                            throw new InvalidDataException("invalid negative fixed-length size");
-                        }
-                        Skip(size);
-                    }
-                    else
-                    {
-                        Skip(DecodeSize20());
-                    }
-                    break;
-                default:
-                    throw new InvalidDataException(
-                        $"cannot skip tagged parameter or data member with tag format '{format}'");
-            }
-        }
-
-        private void SkipTaggedParams()
-        {
-            while (true)
-            {
-                if (_buffer.Length - Pos <= 0)
-                {
-                    break;
-                }
-
-                int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
-                {
-                    break;
-                }
-
-                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // Read first 3 bits.
-                if ((v >> 3) == 30)
-                {
-                    SkipSize();
-                }
-                SkipTagged(format);
-            }
         }
 
         // Helper base class for the concrete collection implementations.

@@ -95,7 +95,7 @@ namespace IceRpc
             }
             else
             {
-                // Need to marshal/unmarshal these fields
+                // Need to encode/decode these fields
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice20Encoder(bufferWriter);
                 EncodeFields(encoder);

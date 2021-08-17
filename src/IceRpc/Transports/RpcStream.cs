@@ -275,7 +275,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new IceDecoder(data, Ice2Definitions.Encoding));
+                var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(data));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -314,7 +314,7 @@ namespace IceRpc.Transports
             else
             {
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var decoder = new IceDecoder(data, Ice2Definitions.Encoding);
+                var decoder = new Ice20Decoder(data);
                 int dictionarySize = decoder.DecodeSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {

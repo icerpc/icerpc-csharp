@@ -178,9 +178,7 @@ namespace IceRpc.Transports.Internal
 
                         await ReceiveDataAsync(_streamConsumedBuffer.Value[0..dataSize], cancel).ConfigureAwait(false);
 
-                        var decoder = new IceDecoder(
-                            _streamConsumedBuffer.Value[0..dataSize],
-                            SlicDefinitions.Encoding);
+                        var decoder = new Ice20Decoder(_streamConsumedBuffer.Value[0..dataSize]);
                         var streamConsumed = new StreamConsumedBody(decoder);
                         if (TryGetStream(streamId, out SlicStream? stream))
                         {
@@ -202,7 +200,7 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                        var decoder = new Ice20Decoder(data);
                         var streamReset = new StreamResetBody(decoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
@@ -228,7 +226,7 @@ namespace IceRpc.Transports.Internal
                         Memory<byte> data = new byte[dataSize];
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
-                        var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                        var decoder = new Ice20Decoder(data);
                         var streamReset = new StreamResetBody(decoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
@@ -271,7 +269,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 // Check that the Slic version is supported (we only support version 1 for now)
-                var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                var decoder = new Ice20Decoder(data);
                 uint version = decoder.DecodeVarUInt();
                 if (version != 1)
                 {
@@ -292,7 +290,7 @@ namespace IceRpc.Transports.Internal
                         throw new InvalidDataException($"unexpected Slic frame with frame type '{type}'");
                     }
 
-                    decoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                    decoder = new Ice20Decoder(data);
                     version = decoder.DecodeVarUInt();
                     if (version != 1)
                     {
@@ -350,7 +348,7 @@ namespace IceRpc.Transports.Internal
                 (SlicDefinitions.FrameType type, ReadOnlyMemory<byte> data) =
                     await ReceiveFrameAsync(cancel).ConfigureAwait(false);
 
-                var decoder = new IceDecoder(data, SlicDefinitions.Encoding);
+                var decoder = new Ice20Decoder(data);
 
                 // If we receive a Version frame, there isn't much we can do as we only support V1 so we throw
                 // with an appropriate message to abort the connection.

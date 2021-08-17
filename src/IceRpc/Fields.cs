@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -14,8 +15,6 @@ namespace IceRpc
         /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
         public static ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary(this IceDecoder decoder)
         {
-            Debug.Assert(decoder.Encoding == Encoding.Ice20);
-
             int size = decoder.DecodeSize();
             if (size == 0)
             {
@@ -48,7 +47,7 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null)
         {
-            var decoder = new IceDecoder(value, Encoding.Ice20, connection, invoker);
+            var decoder = new Ice20Decoder(value, connection, invoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;

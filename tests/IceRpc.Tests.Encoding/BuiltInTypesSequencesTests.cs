@@ -23,7 +23,7 @@ namespace IceRpc.Tests.Encoding
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new BufferWriter(buffer);
             _encoder = Payload.CreateIceEncoder(_encoding, _bufferWriter);
-            _decoder = new IceDecoder(buffer, _encoding);
+            _decoder = Payload.CreateIceDecoder(_encoding, buffer);
         }
 
         [TestCase(0)]
