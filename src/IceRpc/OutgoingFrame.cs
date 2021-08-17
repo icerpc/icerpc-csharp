@@ -116,7 +116,7 @@ namespace IceRpc
             StreamParamSender = streamParamSender;
         }
 
-        private protected void EncodeFields(IceEncoder encoder)
+        private protected void EncodeFields(Ice20Encoder encoder)
         {
             Debug.Assert(Protocol == Protocol.Ice2);
 

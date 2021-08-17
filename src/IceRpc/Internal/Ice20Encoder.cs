@@ -116,6 +116,33 @@ namespace IceRpc.Internal
             ulongBuf.Slice(0, sizeLength).CopyTo(into);
         }
 
+        /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
+        /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
+        /// </summary>
+        /// <param name="start">The start position.</param>
+        /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
+        internal void EndFixedLengthSize(BufferWriter.Position start, int sizeLength) =>
+            EncodeFixedLengthSize(BufferWriter.Distance(start) - sizeLength, start, sizeLength);
+
+        /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
+        /// position must be used to rewrite the size later.</summary>
+        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
+        /// <returns>The position before writing the size.</returns>
+        internal BufferWriter.Position StartFixedLengthSize(int sizeLength)
+        {
+            BufferWriter.Position pos = BufferWriter.Tail;
+            BufferWriter.WriteByteSpan(stackalloc byte[sizeLength]); // placeholder for future size
+            return pos;
+        }
+
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength)
+        {
+            Debug.Assert(pos.Offset >= 0);
+            Span<byte> data = stackalloc byte[sizeLength];
+            EncodeFixedLengthSize(size, data);
+            BufferWriter.RewriteByteSpan(data, pos);
+        }
+
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size with the 2.0 encoding.
         /// </summary>
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed

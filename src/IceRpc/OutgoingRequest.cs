@@ -128,7 +128,9 @@ namespace IceRpc
 
             if (Protocol == Protocol.Ice2)
             {
-                BufferWriter.Position start = encoder.StartFixedLengthSize(2);
+                Ice20Encoder ice20Encoder = (Ice20Encoder)encoder;
+
+                BufferWriter.Position start = ice20Encoder.StartFixedLengthSize(2);
 
                 // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
                 var requestHeaderBody = new Ice2RequestHeaderBody(
@@ -140,7 +142,7 @@ namespace IceRpc
                         (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
                     payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString());
 
-                requestHeaderBody.Encode(encoder);
+                requestHeaderBody.Encode(ice20Encoder);
 
                 if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
                 {
@@ -152,9 +154,9 @@ namespace IceRpc
                 }
                 // else context remains empty (not set)
 
-                EncodeFields(encoder);
-                encoder.EncodeSize(PayloadSize);
-                encoder.EndFixedLengthSize(start, 2);
+                EncodeFields(ice20Encoder);
+                ice20Encoder.EncodeSize(PayloadSize);
+                ice20Encoder.EndFixedLengthSize(start, 2);
             }
             else
             {

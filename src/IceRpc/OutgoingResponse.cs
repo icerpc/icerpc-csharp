@@ -158,13 +158,16 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice2)
             {
-                BufferWriter.Position startPos = encoder.StartFixedLengthSize(2);
+                var ice20Encoder = (Ice20Encoder)encoder;
+
+                BufferWriter.Position startPos = ice20Encoder.StartFixedLengthSize(2);
                 new Ice2ResponseHeaderBody(
                     ResultType,
-                    PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString()).Encode(encoder);
-                EncodeFields(encoder);
-                encoder.EncodeSize(PayloadSize);
-                encoder.EndFixedLengthSize(startPos, 2);
+                    PayloadEncoding == Ice2Definitions.Encoding ? null :
+                        PayloadEncoding.ToString()).Encode(ice20Encoder);
+                EncodeFields(ice20Encoder);
+                ice20Encoder.EncodeSize(PayloadSize);
+                ice20Encoder.EndFixedLengthSize(startPos, 2);
             }
             else
             {

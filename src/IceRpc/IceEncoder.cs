@@ -12,9 +12,6 @@ namespace IceRpc
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
     public abstract class IceEncoder
     {
-        // The number of bytes we use by default when writing a size on a fixed number of bytes.
-        private const int DefaultSizeLength = 4;
-
         private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         internal BufferWriter BufferWriter { get; }
@@ -832,28 +829,26 @@ namespace IceRpc
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
-        /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
-        /// </summary>
+        /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>
         /// <param name="start">The start position.</param>
-        /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
-        internal void EndFixedLengthSize(BufferWriter.Position start, int sizeLength = DefaultSizeLength) =>
-            EncodeFixedLengthSize(BufferWriter.Distance(start) - sizeLength, start, sizeLength);
+        internal void EndFixedLengthSize(BufferWriter.Position start) =>
+            EncodeFixedLengthSize(BufferWriter.Distance(start) - 4, start);
 
-        /// <summary>Returns the current position and writes placeholder for a fixed-length size value. The
-        /// position must be used to rewrite the size later.</summary>
-        /// <param name="sizeLength">The number of bytes reserved to encode the fixed-length size.</param>
+        /// <summary>Returns the current position and writes placeholder for 4 bytes. The position must be used to
+        /// rewrite the size later on 4 bytes.</summary>
         /// <returns>The position before writing the size.</returns>
-        internal BufferWriter.Position StartFixedLengthSize(int sizeLength = DefaultSizeLength)
+        internal BufferWriter.Position StartFixedLengthSize()
         {
             BufferWriter.Position pos = BufferWriter.Tail;
-            BufferWriter.WriteByteSpan(stackalloc byte[sizeLength]); // placeholder for future size
+            BufferWriter.WriteByteSpan(stackalloc byte[4]); // placeholder for future size
             return pos;
         }
 
-        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos, int sizeLength = DefaultSizeLength)
+        /// <summary>Encodes a size on 4 bytes at the specified position.</summary>
+        internal void EncodeFixedLengthSize(int size, BufferWriter.Position pos)
         {
             Debug.Assert(pos.Offset >= 0);
-            Span<byte> data = stackalloc byte[sizeLength];
+            Span<byte> data = stackalloc byte[4];
             EncodeFixedLengthSize(size, data);
             BufferWriter.RewriteByteSpan(data, pos);
         }
