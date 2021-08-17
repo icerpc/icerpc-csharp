@@ -153,7 +153,7 @@ namespace IceRpc.Transports
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
+            if (endpoint.Protocol != Protocol.Ice1)
             {
                 throw new InvalidOperationException();
             }
@@ -205,7 +205,7 @@ namespace IceRpc.Transports
 
         void IEndpointEncoder.EncodeEndpoint(Endpoint endpoint, Ice11Encoder encoder)
         {
-            if (endpoint.Protocol != Protocol.Ice1 || encoder is not Ice11Encoder)
+            if (endpoint.Protocol != Protocol.Ice1)
             {
                 throw new InvalidOperationException();
             }
