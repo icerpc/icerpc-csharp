@@ -593,7 +593,7 @@ namespace IceRpc
         internal Connection(
             MultiStreamConnection connection,
             IDispatcher? dispatcher,
-            ServerConnectionOptions options,
+            ConnectionOptions options,
             ILoggerFactory? loggerFactory)
         {
             UnderlyingConnection = connection;
