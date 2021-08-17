@@ -858,6 +858,26 @@ namespace IceRpc
             return pos;
         }
 
+        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
+        /// exponent of 2.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
+        private protected static int GetVarULongEncodedSizeExponent(ulong value)
+        {
+            if (value > EncodingDefinitions.VarULongMaxValue)
+            {
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+            }
+
+            return (value << 2) switch
+            {
+                ulong b when b <= byte.MaxValue => 0,
+                ulong s when s <= ushort.MaxValue => 1,
+                ulong i when i <= uint.MaxValue => 2,
+                _ => 3
+            };
+        }
+
         // Constructs a Ice encoder
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
 
@@ -884,26 +904,6 @@ namespace IceRpc
                 long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 0,
                 long s when s >= short.MinValue && s <= short.MaxValue => 1,
                 long i when i >= int.MinValue && i <= int.MaxValue => 2,
-                _ => 3
-            };
-        }
-
-        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
-        /// exponent of 2.</summary>
-        /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private protected static int GetVarULongEncodedSizeExponent(ulong value)
-        {
-            if (value > EncodingDefinitions.VarULongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
-            }
-
-            return (value << 2) switch
-            {
-                ulong b when b <= byte.MaxValue => 0,
-                ulong s when s <= ushort.MaxValue => 1,
-                ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
         }
