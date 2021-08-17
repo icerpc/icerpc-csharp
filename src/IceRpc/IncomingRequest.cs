@@ -26,11 +26,7 @@ namespace IceRpc
         public bool IsIdempotent { get; }
 
         /// <summary><c>True</c> for oneway requests, <c>false</c> otherwise.</summary>
-        public bool IsOneway => !IsBidirectional;
-
-        /// <summary>Returns <c>true</c> if the stream that received this request is a bidirectional stream,
-        /// <c>false</c> otherwise.</summary>
-        public bool IsBidirectional => Stream.Id % 4 < 2;
+        public bool IsOneway { get; }
 
         /// <summary>The operation called on the service.</summary>
         public string Operation { get; }
@@ -63,7 +59,8 @@ namespace IceRpc
         /// <summary>Constructs an incoming request frame.</summary>
         /// <param name="protocol">The protocol of the request</param>
         /// <param name="data">The frame data.</param>
-        internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data)
+        /// <param name="isOneway">Specifies if the request is a oneway request.</param>
+        internal IncomingRequest(Protocol protocol, ReadOnlyMemory<byte> data, bool isOneway)
             : base(protocol)
         {
             var decoder = new IceDecoder(data, Protocol.GetEncoding());
@@ -145,6 +142,7 @@ namespace IceRpc
                 throw new InvalidDataException("received request with empty operation name");
             }
 
+            IsOneway = isOneway;
             Payload = data[decoder.Pos..];
             if (PayloadSize != Payload.Length)
             {
@@ -162,6 +160,7 @@ namespace IceRpc
 
             Operation = request.Operation;
             IsIdempotent = request.IsIdempotent;
+            IsOneway = request.IsOneway;
 
             if (Protocol == Protocol.Ice2)
             {
