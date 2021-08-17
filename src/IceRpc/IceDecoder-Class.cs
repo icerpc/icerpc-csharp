@@ -430,7 +430,7 @@ namespace IceRpc
                     }
                     return typeId;
 
-                case EncodingDefinitions.TypeIdKind.CompactId11:
+                case EncodingDefinitions.TypeIdKind.CompactId:
                     return DecodeSize().ToString(CultureInfo.InvariantCulture);
 
                 default:

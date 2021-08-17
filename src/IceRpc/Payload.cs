@@ -54,7 +54,8 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the
+        /// payload.</param>
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
@@ -85,7 +86,8 @@ namespace IceRpc
         /// <typeparam name="T">The type of the operation's return value tuple.</typeparam>
         /// <param name="payloadEncoding">The payload encoding.</param>
         /// <param name="returnValueTuple">The return values to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the payload.</param>
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the
+        /// payload.</param>
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
@@ -285,10 +287,9 @@ namespace IceRpc
 
             var bufferWriter = new BufferWriter();
 
-            IceEncoder encoder;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                encoder = CreateIceEncoder(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
+                var encoder = CreateIceEncoder(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.Ice11)
                 {
@@ -312,7 +313,7 @@ namespace IceRpc
             else
             {
                 Debug.Assert(request.Protocol == Protocol.Ice1 && replyStatus > ReplyStatus.UserException);
-                encoder = new Ice11Encoder(bufferWriter);
+                var encoder = new Ice11Encoder(bufferWriter);
                 encoder.EncodeIce1SystemException(replyStatus, request, exception.Message);
             }
 

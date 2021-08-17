@@ -626,7 +626,8 @@ namespace IceRpc.Transports.Internal
                         buffers.Span[0][(SlicDefinitions.FrameHeader.Length - sizeLength - streamIdLength - 1)..]);
                     headerData.Span[0] = (byte)frameType;
                     Ice20Encoder.EncodeFixedLengthSize(packetSize, headerData.Span.Slice(1, sizeLength));
-                    Ice20Encoder.EncodeFixedLengthSize(stream.Id, headerData.Span.Slice(1 + sizeLength, streamIdLength));
+                    Ice20Encoder.EncodeFixedLengthSize(stream.Id,
+                                                       headerData.Span.Slice(1 + sizeLength, streamIdLength));
 
                     // Update the first buffer entry
                     MemoryMarshal.AsMemory(buffers).Span[0] = headerData;

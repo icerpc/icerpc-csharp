@@ -193,26 +193,9 @@ namespace IceRpc.Internal
 
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
-        public override void IceStartException(string typeId, RemoteException exception)
-        {
-            Debug.Assert(_current.InstanceType == InstanceType.Exception);
-            if (_current.FirstSlice)
-            {
-                _current.FirstSlice = false;
-                IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
-            }
-            else
-            {
-                IceStartNextSlice(typeId);
-            }
-        }
+        public override void IceEndDerivedExceptionSlice() => IceEndSlice(false);
 
         public override void IceEndException() => IceEndSlice(true);
-
-        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
-            IceStartException(typeId, exception);
-
-        public override void IceEndDerivedExceptionSlice() => IceEndSlice(false);
 
         public override void IceEndSlice(bool lastSlice)
         {
@@ -253,6 +236,23 @@ namespace IceRpc.Internal
 
             // Update SliceFlags in case they were updated.
             BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
+        }
+
+        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
+            IceStartException(typeId, exception);
+
+        public override void IceStartException(string typeId, RemoteException exception)
+        {
+            Debug.Assert(_current.InstanceType == InstanceType.Exception);
+            if (_current.FirstSlice)
+            {
+                _current.FirstSlice = false;
+                IceStartFirstSlice(new string[] { typeId }, exception.SlicedData);
+            }
+            else
+            {
+                IceStartNextSlice(typeId);
+            }
         }
 
         public override void IceStartFirstSlice(
@@ -314,11 +314,12 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <summary>Constructs an encoder for the Ice 1.1 encoding.</summary>
         internal Ice11Encoder(BufferWriter bufferWriter, FormatType classFormat = default)
             : base(bufferWriter) =>
             _classFormat = classFormat;
 
-        /// <summary>Encodes an endpoint with the Ice 1.1 encoding in a nested encapsulation.</summary>
+        /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
         /// the nested encapsulation.</param>
@@ -427,25 +428,6 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Registers or looks up a type ID in the the _typeIdMap.</summary>
-        /// <param name="typeId">The type ID to register or lookup.</param>
-        /// <returns>The index in _typeIdMap if this type ID was previously registered; otherwise, -1.</returns>
-        private int RegisterTypeId(string typeId)
-        {
-            _typeIdMap ??= new Dictionary<string, int>();
-
-            if (_typeIdMap.TryGetValue(typeId, out int index))
-            {
-                return index;
-            }
-            else
-            {
-                index = _typeIdMap.Count + 1;
-                _typeIdMap.Add(typeId, index);
-                return -1;
-            }
-        }
-
         /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
         /// ID.</summary>
         /// <param name="v">The class instance.</param>
@@ -494,7 +476,7 @@ namespace IceRpc.Internal
             {
                 if (compactId is int compactIdValue)
                 {
-                    typeIdKind = EncodingDefinitions.TypeIdKind.CompactId11;
+                    typeIdKind = EncodingDefinitions.TypeIdKind.CompactId;
                     EncodeSize(compactIdValue);
                 }
                 else
@@ -515,11 +497,30 @@ namespace IceRpc.Internal
             else
             {
                 Debug.Assert(compactId == null);
-                // With the 1.1 encoding, we always encode a string and don't set a type ID kind in SliceFlags.
+                // We always encode a string and don't set a type ID kind in SliceFlags.
                 EncodeString(typeId);
             }
 
             _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;
+        }
+
+        /// <summary>Registers or looks up a type ID in the the _typeIdMap.</summary>
+        /// <param name="typeId">The type ID to register or lookup.</param>
+        /// <returns>The index in _typeIdMap if this type ID was previously registered; otherwise, -1.</returns>
+        private int RegisterTypeId(string typeId)
+        {
+            _typeIdMap ??= new Dictionary<string, int>();
+
+            if (_typeIdMap.TryGetValue(typeId, out int index))
+            {
+                return index;
+            }
+            else
+            {
+                index = _typeIdMap.Count + 1;
+                _typeIdMap.Add(typeId, index);
+                return -1;
+            }
         }
 
         private struct InstanceData

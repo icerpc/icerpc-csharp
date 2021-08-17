@@ -181,9 +181,7 @@ namespace IceRpc.Internal
                         // ignored, i.e. we'll encode an empty identity + facet
                         identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
                     }
-                    var requestFailed =
-                        new Ice1RequestFailedExceptionData(identityAndFacet, request.Operation);
-
+                    var requestFailed = new Ice1RequestFailedExceptionData(identityAndFacet, request.Operation);
                     requestFailed.Encode(encoder);
                     break;
 

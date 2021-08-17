@@ -64,11 +64,11 @@ namespace IceRpc.Internal
         {
         }
 
-        public override void IceEndSlice(bool lastSlice) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
         public override void IceEndDerivedExceptionSlice() =>
             throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
+
+        public override void IceEndSlice(bool lastSlice) =>
+            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
             throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
@@ -127,6 +127,7 @@ namespace IceRpc.Internal
             return 1 << GetVarULongEncodedSizeExponent((ulong)size);
         }
 
+        /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
         internal Ice20Encoder(BufferWriter bufferWriter)
             : base(bufferWriter)
         {
@@ -148,6 +149,8 @@ namespace IceRpc.Internal
 
         private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
         {
+            // TODO: merge FSize and VSize
+
             Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
 
             int v = (int)format;
