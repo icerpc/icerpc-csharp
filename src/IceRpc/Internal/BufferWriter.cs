@@ -1,25 +1,24 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Internal
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
-    public sealed class BufferWriter
+    internal class BufferWriter
     {
         /// <summary>Represents a position in the underlying buffer vector. This position consists of the index of the
         /// buffer in the vector and the offset into that buffer.</summary>
-        public struct Position : IEquatable<Position>
+        internal struct Position : IEquatable<Position>
         {
             /// <summary>The zero based index of the buffer.</summary>
-            public int Buffer;
+            internal int Buffer;
 
             /// <summary>The offset into the buffer.</summary>
-            public int Offset;
+            internal int Offset;
 
             /// <summary>Creates a new position from the buffer and offset values.</summary>
             /// <param name="buffer">The zero based index of the buffer in the buffer vector.</param>
@@ -51,15 +50,15 @@ namespace IceRpc
 
         /// <summary>The number of bytes that the underlying buffer vector can hold without further allocation.
         /// </summary>
-        public int Capacity { get; private set; }
+        internal int Capacity { get; private set; }
 
         /// <summary>Determines the current size of the buffer. This corresponds to the number of bytes already encoded
         /// using this encoder.</summary>
         /// <value>The current size.</value>
-        public int Size { get; private set; }
+        internal int Size { get; private set; }
 
         /// <summary>Gets the position of the next write.</summary>
-        public Position Tail => _tail;
+        internal Position Tail => _tail;
 
         private const int DefaultBufferSize = 256;
 
@@ -73,10 +72,24 @@ namespace IceRpc
         // The position for the next write operation.
         private Position _tail;
 
+         // Constructs a BufferWriter
+        internal BufferWriter(Memory<byte> initialBuffer = default)
+        {
+            _tail = default;
+            Size = 0;
+            _currentBuffer = initialBuffer;
+            if (_currentBuffer.Length > 0)
+            {
+                _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
+            }
+
+            Capacity = _currentBuffer.Length;
+        }
+
         /// <summary>Returns the distance in bytes from start position to the tail position.</summary>
         /// <param name="start">The start position from where to calculate distance to the tail position.</param>
         /// <returns>The distance in bytes from the start position to the tail position.</returns>
-        public int Distance(Position start)
+        internal int Distance(Position start)
         {
             Debug.Assert(Tail.Buffer > start.Buffer ||
                         (Tail.Buffer == start.Buffer && Tail.Offset >= start.Offset));
@@ -84,10 +97,22 @@ namespace IceRpc
             return Distance(_bufferVector, start, Tail);
         }
 
+        /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
+        /// this buffer after calling Finish, however rewriting previous data is fine.</summary>
+        /// <returns>The buffers.</returns>
+        internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
+        {
+            if (_bufferVector.Length > 0)
+            {
+                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+            }
+            return _bufferVector;
+        }
+
         /// <summary>Rewrites a single byte at a given position.</summary>
         /// <param name="v">The byte value to write.</param>
         /// <param name="pos">The position to write to.</param>
-        public void RewriteByte(byte v, Position pos)
+        internal void RewriteByte(byte v, Position pos)
         {
             Memory<byte> buffer = GetBuffer(pos.Buffer);
 
@@ -109,7 +134,7 @@ namespace IceRpc
         /// <param name="pos">The position to write these bytes.</param>
         /// <remarks>These bytes must have been written with <see cref="WriteByteSpan"/> and as a result can span at
         /// most two segments</remarks>
-        public void RewriteByteSpan(ReadOnlySpan<byte> data, Position pos)
+        internal void RewriteByteSpan(ReadOnlySpan<byte> data, Position pos)
         {
             Memory<byte> buffer = GetBuffer(pos.Buffer);
 
@@ -130,7 +155,7 @@ namespace IceRpc
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.
         /// </returns>
-        public BitSequence WriteBitSequence(int bitSize)
+        internal BitSequence WriteBitSequence(int bitSize)
         {
             Debug.Assert(bitSize > 0);
             int size = (bitSize >> 3) + ((bitSize & 0x07) != 0 ? 1 : 0);
@@ -161,7 +186,7 @@ namespace IceRpc
 
         /// <summary>Writes a byte.</summary>
         /// <param name="v">The byte to write.</param>
-        public void WriteByte(byte v)
+        internal void WriteByte(byte v)
         {
             Expand(1);
             _currentBuffer.Span[_tail.Offset] = v;
@@ -172,7 +197,7 @@ namespace IceRpc
         /// <summary>Writes a span of bytes. The encoder capacity is expanded if required, the size and tail position
         /// are increased according to the span length.</summary>
         /// <param name="span">The data to write as a span of bytes.</param>
-        public void WriteByteSpan(ReadOnlySpan<byte> span)
+        internal void WriteByteSpan(ReadOnlySpan<byte> span)
         {
             int length = span.Length;
             if (length > 0)
@@ -208,32 +233,6 @@ namespace IceRpc
                     _tail.Offset = length;
                 }
             }
-        }
-
-        // Constructs a BufferWriter
-        internal BufferWriter(Memory<byte> initialBuffer = default)
-        {
-            _tail = default;
-            Size = 0;
-            _currentBuffer = initialBuffer;
-            if (_currentBuffer.Length > 0)
-            {
-                _bufferVector = new ReadOnlyMemory<byte>[] { _currentBuffer };
-            }
-
-            Capacity = _currentBuffer.Length;
-        }
-
-        /// <summary>Finishes off the underlying buffer vector and returns it. You should not write additional data to
-        /// this buffer after calling Finish, however rewriting previous data is fine.</summary>
-        /// <returns>The buffers.</returns>
-        internal ReadOnlyMemory<ReadOnlyMemory<byte>> Finish()
-        {
-            if (_bufferVector.Length > 0)
-            {
-                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-            }
-            return _bufferVector;
         }
 
         private static int Distance(ReadOnlyMemory<ReadOnlyMemory<byte>> data, Position start, Position end)

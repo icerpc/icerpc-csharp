@@ -829,14 +829,6 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceStartNextSlice(string typeId, int? compactId = null);
 
-        internal static IceEncoder Create(
-            Encoding encoding,
-            BufferWriter bufferWriter,
-            FormatType classFormat = default) =>
-                encoding == Encoding.Ice20 ? new Ice20Encoder(bufferWriter) :
-                    encoding == Encoding.Ice11 ? new Ice11Encoder(bufferWriter, classFormat) :
-                        throw new NotSupportedException($"cannot create an Ice encoder for encoding {encoding}");
-
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.
         /// </summary>

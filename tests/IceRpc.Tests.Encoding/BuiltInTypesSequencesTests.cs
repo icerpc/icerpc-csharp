@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 using System.Buffers;
 
@@ -21,7 +22,7 @@ namespace IceRpc.Tests.Encoding
             _encoding = IceRpc.Encoding.FromString(encoding);
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new BufferWriter(buffer);
-            _encoder = IceEncoder.Create(_encoding, _bufferWriter);
+            _encoder = Payload.CreateIceEncoder(_encoding, _bufferWriter);
             _decoder = new IceDecoder(buffer, _encoding);
         }
 

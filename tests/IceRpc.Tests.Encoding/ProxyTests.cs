@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Encoding
@@ -42,7 +43,7 @@ namespace IceRpc.Tests.Encoding
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             var encoding = IceRpc.Encoding.FromString(encodingStr);
-            var encoder = IceEncoder.Create(encoding, _bufferWriter);
+            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
@@ -68,7 +69,7 @@ namespace IceRpc.Tests.Encoding
             var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var encoder = IceEncoder.Create(encoding, _bufferWriter);
+            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
             encoder.EncodeProxy(endpointLess);
             ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 

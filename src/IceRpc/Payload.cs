@@ -64,7 +64,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = IceEncoder.Create(proxy.Encoding, bufferWriter, classFormat: classFormat);
+            var encoder = CreateIceEncoder(proxy.Encoding, bufferWriter, classFormat: classFormat);
             if (proxy.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -95,7 +95,7 @@ namespace IceRpc
             FormatType classFormat = default) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = IceEncoder.Create(payloadEncoding, bufferWriter, classFormat: classFormat);
+            var encoder = CreateIceEncoder(payloadEncoding, bufferWriter, classFormat: classFormat);
             if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -121,7 +121,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = IceEncoder.Create(proxy.Encoding, bufferWriter, classFormat: classFormat);
+            var encoder = CreateIceEncoder(proxy.Encoding, bufferWriter, classFormat: classFormat);
             if (proxy.Encoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -147,7 +147,7 @@ namespace IceRpc
             FormatType classFormat = default)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = IceEncoder.Create(payloadEncoding, bufferWriter, classFormat: classFormat);
+            var encoder = CreateIceEncoder(payloadEncoding, bufferWriter, classFormat: classFormat);
             if (payloadEncoding == Encoding.Ice20)
             {
                 encoder.EncodeCompressionFormat(CompressionFormat.NotCompressed);
@@ -245,6 +245,22 @@ namespace IceRpc
             return result;
         }
 
+        /// <summary>Creates an Ice encoder.</summary>
+        /// <param name="encoding">The Ice encoding.</param>
+        /// <param name="bufferWriter">The buffer writer.</param>
+        /// <param name="classFormat">The class format (ignored unless the encoding is 1.1).</param>
+        /// <returns>A new encoder for the specified Ice encoding.</returns>
+        internal static IceEncoder CreateIceEncoder(
+            Encoding encoding,
+            BufferWriter bufferWriter,
+            FormatType classFormat = default) =>
+            encoding.Name switch
+            {
+                Encoding.Ice11Name => new Ice11Encoder(bufferWriter, classFormat),
+                Encoding.Ice20Name => new Ice20Encoder(bufferWriter),
+                _ => throw new NotImplementedException($"cannot create an Ice encoder for encoding {encoding}")
+            };
+
         /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
         /// <param name="request">The incoming request used to create this response payload. </param>
         /// <param name="exception">The exception.</param>
@@ -272,7 +288,7 @@ namespace IceRpc
             IceEncoder encoder;
             if (request.Protocol == Protocol.Ice2 || replyStatus == ReplyStatus.UserException)
             {
-                encoder = IceEncoder.Create(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
+                encoder = CreateIceEncoder(request.PayloadEncoding, bufferWriter, classFormat: FormatType.Sliced);
 
                 if (request.Protocol == Protocol.Ice2 && request.PayloadEncoding == Encoding.Ice11)
                 {

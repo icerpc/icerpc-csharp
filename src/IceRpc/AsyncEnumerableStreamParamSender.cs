@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
 
 namespace IceRpc
@@ -122,7 +123,7 @@ namespace IceRpc
             (IceEncoder encoder, BufferWriter.Position sizeStart, BufferWriter.Position payloadStart) StartFrame()
             {
                 var bufferWriter = new BufferWriter();
-                var encoder = IceEncoder.Create(encoding, bufferWriter);
+                var encoder = Payload.CreateIceEncoder(encoding, bufferWriter);
                 if (rpcStream.TransportHeader.Length > 0)
                 {
                     bufferWriter.WriteByteSpan(rpcStream.TransportHeader.Span);
