@@ -66,8 +66,6 @@ namespace IceRpc.Internal
             _current.InstanceType = InstanceType.Exception;
 
             RemoteException? remoteEx = null;
-            string? errorMessage = null;
-            RemoteExceptionOrigin origin = RemoteExceptionOrigin.Unknown;
 
             // We can decode the indirection table (if there is one) immediately after decoding each slice header
             // because the indirection table cannot reference the exception itself.
@@ -81,7 +79,9 @@ namespace IceRpc.Internal
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+                remoteEx = _classFactory.CreateRemoteException(typeId,
+                                                               message: null,
+                                                               origin: RemoteExceptionOrigin.Unknown);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -89,7 +89,7 @@ namespace IceRpc.Internal
             }
             while (remoteEx == null);
 
-            remoteEx ??= new RemoteException(errorMessage, origin);
+            remoteEx ??= new RemoteException(message: null, origin: RemoteExceptionOrigin.Unknown);
             remoteEx.SlicedData = SlicedData;
 
             _current.FirstSlice = true;
