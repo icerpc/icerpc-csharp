@@ -351,7 +351,7 @@ namespace IceRpc.Transports
         {
             byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
             ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-            return new IncomingRequest(_connection.Protocol, data);
+            return new IncomingRequest(_connection.Protocol, data, isOneway: !IsBidirectional);
         }
 
         internal virtual async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(

@@ -34,7 +34,9 @@ namespace IceRpc
                     _logger.LogReceivedResponse(request.Connection,
                                                 request.Path,
                                                 request.Operation,
-                                                response.ResultType);
+                                                response.ResultType,
+                                                response.PayloadSize,
+                                                response.PayloadEncoding);
                 }
                 return response;
             }
@@ -72,7 +74,9 @@ namespace IceRpc
             Connection? connection,
             string path,
             string operation,
-            ResultType resultType)
+            ResultType resultType,
+            int payloadSize,
+            Encoding payloadEncoding)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
@@ -81,7 +85,9 @@ namespace IceRpc
                     connection?.RemoteEndpoint?.ToString() ?? "undefined",
                     path,
                     operation,
-                    resultType);
+                    resultType,
+                    payloadSize,
+                    payloadEncoding);
             }
         }
 
@@ -124,14 +130,17 @@ namespace IceRpc
             EventName = nameof(LoggerInterceptorEventIds.ReceivedResponse),
             Level = LogLevel.Information,
             Message = "received response (LocalEndpoint={LocalEndpoint}, RemoteEndpoint={RemoteEndpoint}, " +
-                      "Path={Path}, Operation={Operation}, ResultType={ResultType})")]
+                      "Path={Path}, Operation={Operation}, ResultType={ResultType}, PayloadSize={PayloadSize}, " +
+                      "PayloadEncoding={PayloadEncoding})")]
         private static partial void LogReceivedResponse(
             this ILogger logger,
             string localEndpoint,
             string remoteEndpoint,
             string path,
             string operation,
-            ResultType resultType);
+            ResultType resultType,
+            int payloadSize,
+            Encoding payloadEncoding);
 
         [LoggerMessage(
             EventId = (int)LoggerInterceptorEventIds.SendingRequest,
