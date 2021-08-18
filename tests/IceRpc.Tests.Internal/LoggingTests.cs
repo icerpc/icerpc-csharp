@@ -219,13 +219,13 @@ namespace IceRpc.Tests.Internal
 
         private static IncomingRequest CreateIncomingRequest(bool twoway)
         {
-            var request = new IncomingRequest(CreateOutgoingRequest(twoway));
+            var request = CreateOutgoingRequest(twoway).ToIncoming();
             request.Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", true);
             return request;
         }
 
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest outgoingRequest) =>
-            new(CreateOutgoingResponse(new IncomingRequest(outgoingRequest)));
+            CreateOutgoingResponse(outgoingRequest.ToIncoming()).ToIncoming();
 
         private static OutgoingRequest CreateOutgoingRequest(bool twoway)
         {

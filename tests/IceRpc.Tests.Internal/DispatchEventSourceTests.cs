@@ -27,14 +27,13 @@ namespace IceRpc.Tests.Internal
 
             var proxy = Proxy.Parse("ice+tcp://localhost/service");
 
-            var outgoingRequest = new OutgoingRequest(proxy,
-                                                      "ice_id",
-                                                      Payload.FromEmptyArgs(proxy),
-                                                      null,
-                                                      DateTime.MaxValue);
+            var request = new OutgoingRequest(proxy,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(proxy),
+                                              null,
+                                              DateTime.MaxValue);
 
-            var request = new IncomingRequest(outgoingRequest);
-            _eventSource.RequestStart(request);
+            _eventSource.RequestStart(request.ToIncoming());
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -54,14 +53,13 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var proxy = Proxy.Parse("ice+tcp://localhost/service");
-            var outgoingRequest = new OutgoingRequest(proxy,
-                                                      "ice_id",
-                                                      Payload.FromEmptyArgs(proxy),
-                                                      null,
-                                                      DateTime.MaxValue);
+            var request = new OutgoingRequest(proxy,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(proxy),
+                                              null,
+                                              DateTime.MaxValue);
 
-            var request = new IncomingRequest(outgoingRequest);
-            _eventSource.RequestStop(request);
+            _eventSource.RequestStop(request.ToIncoming());
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -81,14 +79,13 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var proxy = Proxy.Parse("ice+tcp://localhost/service");
-            var outgoingRequest = new OutgoingRequest(proxy,
-                                                      "ice_id",
-                                                      Payload.FromEmptyArgs(proxy),
-                                                      null,
-                                                      DateTime.MaxValue);
+            var request = new OutgoingRequest(proxy,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(proxy),
+                                              null,
+                                              DateTime.MaxValue);
 
-            var request = new IncomingRequest(outgoingRequest);
-            _eventSource.RequestCanceled(request);
+            _eventSource.RequestCanceled(request.ToIncoming());
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -108,14 +105,13 @@ namespace IceRpc.Tests.Internal
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
             var proxy = Proxy.Parse("ice+tcp://localhost/service");
-            var outgoingRequest = new OutgoingRequest(proxy,
-                                                      "ice_id",
-                                                      Payload.FromEmptyArgs(proxy),
-                                                      null,
-                                                      DateTime.MaxValue);
+            var request = new OutgoingRequest(proxy,
+                                              "ice_id",
+                                              Payload.FromEmptyArgs(proxy),
+                                              null,
+                                              DateTime.MaxValue);
 
-            var request = new IncomingRequest(outgoingRequest);
-            _eventSource.RequestFailed(request, "IceRpc.RemoteException");
+            _eventSource.RequestFailed(request.ToIncoming(), "IceRpc.RemoteException");
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);

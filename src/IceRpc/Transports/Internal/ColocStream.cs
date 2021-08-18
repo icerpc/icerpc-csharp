@@ -237,7 +237,23 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
+        private protected override ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
+            Ice1FrameType expectedFrameType,
+            CancellationToken cancel) =>
+            ReceiveFrameAsync((byte)expectedFrameType, cancel);
+
+        private protected override ValueTask<ReadOnlyMemory<byte>> ReceiveIce2FrameAsync(
+            Ice2FrameType expectedFrameType,
+            CancellationToken cancel) =>
+            ReceiveFrameAsync((byte)expectedFrameType, cancel);
+
+        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
+            _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
+
+        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
+            _ = _connection.SendFrameAsync(this, frame: _stopSendingFrame, endStream: false, default).AsTask();
+
+        private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
         {
@@ -267,12 +283,6 @@ namespace IceRpc.Transports.Internal
                 return Memory<byte>.Empty;
             }
         }
-
-        private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
-            _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
-
-        private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
-            _ = _connection.SendFrameAsync(this, frame: _stopSendingFrame, endStream: false, default).AsTask();
 
         private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
         {

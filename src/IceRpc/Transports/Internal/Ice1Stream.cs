@@ -57,15 +57,15 @@ namespace IceRpc.Transports.Internal
             SetResult((frameType, frame));
         }
 
-        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            byte expectedFrameType,
+        private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
+            Ice1FrameType expectedFrameType,
             CancellationToken cancel)
         {
             // Wait to be signaled for the reception of a new frame for this stream
             (Ice1FrameType frameType, ReadOnlyMemory<byte> frame) = await WaitAsync(cancel).ConfigureAwait(false);
 
             // If the received frame is not the one we expected, throw.
-            if ((byte)frameType != expectedFrameType)
+            if (frameType != expectedFrameType)
             {
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }

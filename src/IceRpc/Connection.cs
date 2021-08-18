@@ -497,9 +497,22 @@ namespace IceRpc
                 request.IsSent = true;
 
                 // Wait for the reception of the response.
-                IncomingResponse response = request.IsOneway ?
-                    new IncomingResponse(this, request.PayloadEncoding) :
-                    await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                IncomingResponse response;
+                if (request.IsOneway)
+                {
+                    response = new IncomingResponse
+                    {
+                        Protocol = Protocol,
+                        ResultType = ResultType.Success,
+                        ReplyStatus = ReplyStatus.OK,
+                        PayloadEncoding = request.PayloadEncoding,
+                        Payload = Protocol.GetVoidReturnPayload(request.PayloadEncoding)
+                    };
+                }
+                else
+                {
+                    response = await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                }
 
                 _logger.LogReceivedResponseFrame(
                     request.Path,

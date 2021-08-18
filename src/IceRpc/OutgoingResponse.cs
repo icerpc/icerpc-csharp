@@ -140,8 +140,18 @@ namespace IceRpc
             }
         }
 
-        /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
+        /// <summary>Returns a new incoming response built from this outgoing response. This method is
+        /// used for colocated calls.</summary>
+        internal IncomingResponse ToIncoming() =>
+            new()
+            {
+                Protocol = Protocol,
+                Fields = GetAllFields(),
+                ResultType = ResultType,
+                ReplyStatus = ReplyStatus,
+                PayloadEncoding = PayloadEncoding,
+                Payload = Payload.ToSingleBuffer(),
+            };
 
         private OutgoingResponse(
             Protocol protocol,

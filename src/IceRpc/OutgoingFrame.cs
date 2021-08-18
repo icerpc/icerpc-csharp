@@ -83,10 +83,6 @@ namespace IceRpc
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
 
-        /// <summary>Returns a new incoming frame built from this outgoing frame. This method is used for colocated
-        /// calls.</summary>
-        internal abstract IncomingFrame ToIncoming();
-
         /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
         internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
