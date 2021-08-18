@@ -135,7 +135,7 @@ namespace IceRpc
             };
 
             // Copy the context from the request features.
-            IDictionary<string, string> context = request.Features.GetContext();
+            IDictionary<string, string> context = Features.GetContext();
             if (context.Count > 0)
             {
                 request.Features = new FeatureCollection();
