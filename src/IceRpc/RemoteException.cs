@@ -79,7 +79,7 @@ namespace IceRpc
         /// <param name="encoder">The Ice encoder.</param>
         // This implementation is only called on a plain RemoteException.
         protected virtual void IceEncode(Ice11Encoder encoder) =>
-            encoder.EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
+            encoder.EncodeSlicedData(SlicedData!.Value, fullySliced: true);
 
         /// <summary>Encodes a remote exception to an <see cref="Ice20Encoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>

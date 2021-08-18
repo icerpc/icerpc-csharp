@@ -1395,7 +1395,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "encoder.IceStartFirstSlice(_iceAllTypeIds";
+    _out << nl << "encoder.IceStartFirstSlice(_iceAllTypeIds[0]";
     if (preserved || basePreserved)
     {
         _out << ", IceSlicedData";
