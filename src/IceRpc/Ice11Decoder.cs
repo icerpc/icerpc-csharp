@@ -270,7 +270,7 @@ namespace IceRpc
             }
             else
             {
-                DecodeNextSliceHeaderIntoCurrent();
+                _ = DecodeSliceHeaderIntoCurrent();
                 DecodeIndirectionTableIntoCurrent();
             }
         }
@@ -590,15 +590,6 @@ namespace IceRpc
             _current = previousCurrent;
             --_classGraphDepth;
             return instance;
-        }
-
-        /// <summary>Decodes the header of the current slice into _current; this method is used when the current slice
-        /// is not the first (most derived) slice.</summary>
-        private void DecodeNextSliceHeaderIntoCurrent()
-        {
-            // With the 1.1 encoding, each slice header in sliced format contains a type ID - we decode it and
-            // ignore it.
-            _ = DecodeSliceHeaderIntoCurrent();
         }
 
         /// <summary>Decodes the header of the current slice into _current.</summary>
