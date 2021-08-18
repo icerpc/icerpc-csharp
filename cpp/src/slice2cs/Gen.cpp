@@ -1524,11 +1524,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
 
     ExceptionPtr base = p->base();
 
-    if (!base)
-    {
-        _out << nl << "protected override string IceTopTypeId => _iceTypeId;";
-        _out << sp;
-    }
     _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
         << name << "))!;";
 
@@ -1636,23 +1631,18 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
     _out << nl << "decoder.IceStartExceptionSlice();";
+    writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+    _out << nl << "decoder.IceEndSlice();";
     if (base)
     {
-        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << nl << "decoder.IceEndSlice();";
         _out << nl << "base.IceDecode(decoder);";
-    }
-    else
-    {
-        _out << nl << "IceDecodeTopSlice(decoder);";
-        _out << nl << "decoder.IceEndSlice();";
     }
     _out << eb;
 
     if (!base && !dataMembers.empty())
     {
         _out << sp;
-        _out << nl << "protected override void IceDecodeTopSlice(IceRpc.IceDecoder decoder)";
+        _out << nl << "protected override void IceDecode(IceRpc.Ice20Decoder decoder)";
         _out << sb;
         if (!base)
         {
@@ -1666,24 +1656,24 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
     _out << nl << "encoder.IceStartExceptionSlice(_iceTypeId, this);";
+    writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     if (base)
     {
-        writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << nl << "encoder.IceEndSlice(lastSlice: false);"; // the current exception has a parent
+        _out << nl << "encoder.IceEndSlice(lastSlice: false);";
         _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
-        _out << nl << "IceEncodeTopSlice(encoder);";
-        _out << nl << "encoder.IceEndSlice(lastSlice: true);"; // no Slice base exception
+        _out << nl << "encoder.IceEndSlice(lastSlice: true);";
     }
     _out << eb;
 
-    if (!base && !dataMembers.empty())
+    if (!base)
     {
         _out << sp;
-        _out << nl << "protected override void IceEncodeTopSlice(IceRpc.IceEncoder encoder)";
+        _out << nl << "protected override void IceEncode(IceRpc.Ice20Encoder encoder)";
         _out << sb;
+        _out << nl << "encoder.EncodeString(_iceTypeId);";
         writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << eb;
     }

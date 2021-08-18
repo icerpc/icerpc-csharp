@@ -343,7 +343,7 @@ namespace IceRpc
             else
             {
                 exception = decoder.DecodeException();
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
             }
             return exception;
         }
