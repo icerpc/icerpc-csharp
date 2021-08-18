@@ -16,19 +16,12 @@ namespace IceRpc
     public class Ice11Decoder : IceDecoder
     {
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
-        internal SlicedData? SlicedData
+        internal ImmutableList<SliceInfo> UnknownSlices
         {
             get
             {
                 Debug.Assert(_current.InstanceType != InstanceType.None);
-                if (_current.Slices == null)
-                {
-                    return null;
-                }
-                else
-                {
-                    return new SlicedData(Encoding.Ice11, _current.Slices);
-                }
+                return _current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
             }
         }
 
@@ -88,7 +81,7 @@ namespace IceRpc
             while (remoteEx == null);
 
             remoteEx ??= new RemoteException();
-            remoteEx.SlicedData = SlicedData;
+            remoteEx.UnknownSlices = UnknownSlices;
 
             _current.FirstSlice = true;
             remoteEx.Decode(this);
@@ -303,7 +296,7 @@ namespace IceRpc
         /// <summary>Starts decoding the first slice of a class.</summary>
         /// <returns>The sliced-off slices, if any.</returns>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public SlicedData? IceStartFirstSlice() => SlicedData;
+        public ImmutableList<SliceInfo> IceStartFirstSlice() => UnknownSlices;
 
         /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]

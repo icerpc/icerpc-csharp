@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 
@@ -29,12 +30,14 @@ namespace IceRpc
         /// <summary>The remote exception retry policy.</summary>
         public RetryPolicy RetryPolicy { get; }
 
+        /// <summary>Returns the unknown slices if the exception was encoded with Ice 1.1 and has been sliced-off
+        /// during decoding.</summary>
+        public ImmutableList<SliceInfo> UnknownSlices { get; internal set; } = ImmutableList<SliceInfo>.Empty;
+
         /// <summary>When DefaultMessage is not null and the application does not construct the exception with a
         /// constructor that takes a message parameter, Message returns DefaultMessage. This property should be
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
-
-        internal SlicedData? SlicedData { get; set; }
 
         private readonly bool _hasCustomMessage;
 
@@ -79,7 +82,7 @@ namespace IceRpc
         /// <param name="encoder">The Ice encoder.</param>
         // This implementation is only called on a plain RemoteException.
         protected virtual void IceEncode(Ice11Encoder encoder) =>
-            encoder.EncodeSlicedData(SlicedData!.Value, fullySliced: true);
+            encoder.EncodeUnknownSlices(UnknownSlices, fullySliced: true);
 
         /// <summary>Encodes a remote exception to an <see cref="Ice20Encoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>
@@ -89,15 +92,6 @@ namespace IceRpc
         internal void Decode(Ice20Decoder decoder) => IceDecode(decoder);
         internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
         internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
-    }
-
-    /// <summary>Provides public extensions methods for RemoteException instances.</summary>
-    public static class RemoteExceptionExtensions
-    {
-        /// <summary>During unmarshaling, Ice slices off derived slices that it does not know how to read, and preserves
-        /// these "unknown" slices.</summary>
-        /// <returns>A SlicedData value that provides the list of sliced-off slices.</returns>
-        public static SlicedData? GetSlicedData(this RemoteException ex) => ex.SlicedData;
     }
 
     public partial struct RemoteExceptionOrigin

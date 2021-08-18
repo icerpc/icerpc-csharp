@@ -1390,7 +1390,9 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     if(preserved && !basePreserved)
     {
         _out << sp;
-        _out << nl << "protected override IceRpc.SlicedData? IceSlicedData { get; set; }";
+        _out << nl << "protected override global::System.Collections.Immutable.ImmutableList<IceRpc.SliceInfo> "
+            << "IceUnknownSlices { get; set; } = "
+            << "global::System.Collections.Immutable.ImmutableList<IceRpc.SliceInfo>.Empty;";
     }
 
     _out << sp;
@@ -1401,7 +1403,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << nl << "encoder.IceStartFirstSlice(IceTypeId";
     if (preserved || basePreserved)
     {
-        _out << ", IceSlicedData";
+        _out << ", IceUnknownSlices";
     }
     if (p->compactId() >= 0)
     {
@@ -1440,7 +1442,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << sb;
     if (preserved || basePreserved)
     {
-        _out << nl << "IceSlicedData = ";
+        _out << nl << "IceUnknownSlices = ";
     }
     else
     {

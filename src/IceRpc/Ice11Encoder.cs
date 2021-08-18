@@ -226,7 +226,7 @@ namespace IceRpc
                     EncodeInstance(v);
                 }
                 _current.IndirectionTable.Clear();
-                _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding SlicedData.
+                _current.IndirectionMap?.Clear(); // IndirectionMap is null when encoding unknown slices.
             }
 
             // Update SliceFlags in case they were updated.
@@ -241,7 +241,7 @@ namespace IceRpc
             if (_current.FirstSlice)
             {
                 _current.FirstSlice = false;
-                IceStartFirstSlice(typeId, exception.SlicedData);
+                IceStartFirstSlice(typeId, exception.UnknownSlices);
             }
             else
             {
@@ -251,20 +251,23 @@ namespace IceRpc
 
         /// <summary>Starts encoding the first slice of a class instance.</summary>
         /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
+        /// <param name="unknownSlices">The preserved sliced-off slices, if any.</param>
         /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartFirstSlice(string typeId, SlicedData? slicedData = null, int? compactTypeId = null)
+        public void IceStartFirstSlice(
+            string typeId,
+            ImmutableList<SliceInfo>? unknownSlices = null,
+            int? compactTypeId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
-            if (slicedData is SlicedData slicedDataValue)
+            if (unknownSlices is ImmutableList<SliceInfo> unknownSlicesValue && unknownSlicesValue.Count > 0)
             {
                 bool firstSliceWritten = false;
                 try
                 {
-                    // WriteSlicedData calls IceStartFirstSlice.
-                    EncodeSlicedData(slicedDataValue, fullySliced: false);
+                    // EncodeUnknownSlices calls IceStartFirstSlice.
+                    EncodeUnknownSlices(unknownSlicesValue, fullySliced: false);
                     firstSliceWritten = true;
                 }
                 catch (NotSupportedException)
@@ -276,7 +279,7 @@ namespace IceRpc
                     IceStartNextSlice(typeId, compactTypeId);
                     return;
                 }
-                // else keep going, we're still encoding the first slice and we're ignoring slicedData.
+                // else keep going, we're still encoding the first slice and we're ignoring unknownSlices.
             }
 
             if (_classFormat == FormatType.Sliced)
@@ -340,9 +343,9 @@ namespace IceRpc
         }
 
         /// <summary>Encodes sliced-off slices.</summary>
-        /// <param name="slicedData">The sliced-off slices to encode.</param>
+        /// <param name="unknownSlices">The sliced-off slices to encode.</param>
         /// <param name="fullySliced">When true, slicedData holds all the data of this instance.</param>
-        internal void EncodeSlicedData(SlicedData slicedData, bool fullySliced)
+        internal void EncodeUnknownSlices(ImmutableList<SliceInfo> unknownSlices, bool fullySliced)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -352,15 +355,10 @@ namespace IceRpc
             {
                 throw new NotSupportedException($"cannot encode sliced data into payload using {_classFormat} format");
             }
-            if (slicedData.Encoding != Encoding.Ice11)
-            {
-                throw new NotSupportedException(@$"cannot encode sliced data encoded with encoding {slicedData.Encoding
-                    } into payload encoded with Ice 1.1");
-            }
 
-            for (int i = 0; i < slicedData.Slices.Count; ++i)
+            for (int i = 0; i < unknownSlices.Count; ++i)
             {
-                SliceInfo sliceInfo = slicedData.Slices[i];
+                SliceInfo sliceInfo = unknownSlices[i];
 
                 // If TypeId is a compact ID, extract it.
                 int? compactId = null;
@@ -395,7 +393,7 @@ namespace IceRpc
                     Debug.Assert(_current.IndirectionTable.Count == 0);
                     _current.IndirectionTable.AddRange(sliceInfo.Instances);
                 }
-                IceEndSlice(lastSlice: fullySliced && (i == slicedData.Slices.Count - 1));
+                IceEndSlice(lastSlice: fullySliced && (i == unknownSlices.Count - 1));
             }
         }
 
