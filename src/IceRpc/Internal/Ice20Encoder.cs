@@ -155,7 +155,7 @@ namespace IceRpc.Internal
         /// </summary>
         /// <param name="start">The start position.</param>
         /// <param name="sizeLength">The number of bytes used to encode the size 1, 2 or 4.</param>
-        /// <returns>The size of the encoded data.<returns>
+        /// <returns>The size of the encoded data.</returns>
         internal int EndFixedLengthSize(BufferWriter.Position start, int sizeLength)
         {
             int size = BufferWriter.Distance(start) - sizeLength;

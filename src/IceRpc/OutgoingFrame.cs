@@ -13,22 +13,12 @@ namespace IceRpc
         /// <summary>Returns a dictionary used to set the fields of this frame. The full fields are a combination of
         /// these fields plus the <see cref="FieldsDefaults"/>.</summary>
         /// <remarks>The actions set in this dictionary are executed when the frame is sent.</remarks>
-        public Dictionary<int, Action<IceEncoder>> Fields
-        {
-            get
-            {
-                if (FieldsOverrides == null)
-                {
-                    if (Protocol == Protocol.Ice1)
-                    {
-                        throw new NotSupportedException("ice1 does not support header fields");
-                    }
+        public Dictionary<int, Action<IceEncoder>> Fields { get; } = new();
 
-                    FieldsOverrides = new Dictionary<int, Action<IceEncoder>>();
-                }
-                return FieldsOverrides;
-            }
-        }
+        /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
+        /// there is no corresponding entry in <see cref="Fields"/>.</summary>
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
+              ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
@@ -68,14 +58,6 @@ namespace IceRpc
         /// compress a stream parameter or return value.</summary>
         public Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
 
-        /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
-        /// there is no corresponding entry in <see cref="FieldsOverrides"/>.</summary>
-        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
-              ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-
-        /// <summary>Returns the fields set on the frame.</summary>
-        internal Dictionary<int, Action<IceEncoder>>? FieldsOverrides;
-
         /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
         internal IStreamParamSender? StreamParamSender { get; set; }
@@ -87,7 +69,7 @@ namespace IceRpc
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
         internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
         {
-            if (FieldsOverrides == null)
+            if (Fields.Count == 0)
             {
                 return FieldsDefaults;
             }
@@ -96,7 +78,7 @@ namespace IceRpc
                 // Need to marshal/unmarshal these fields
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice20Encoder(bufferWriter);
-                encoder.EncodeFields(FieldsOverrides, FieldsDefaults);
+                encoder.EncodeFields(Fields, FieldsDefaults);
                 return bufferWriter.Finish().ToSingleBuffer().DecodeFieldValue(
                     decoder => decoder.DecodeFieldDictionary());
             }

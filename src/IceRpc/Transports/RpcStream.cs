@@ -732,7 +732,7 @@ namespace IceRpc.Transports
                 }
                 // else context remains empty (not set)
 
-                encoder.EncodeFields(request.FieldsOverrides, request.FieldsDefaults);
+                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
                 encoder.EncodeSize(request.PayloadSize);
 
                 // We're done with the header encoding, write the header size.
@@ -819,7 +819,7 @@ namespace IceRpc.Transports
                     response.PayloadEncoding == Ice2Definitions.Encoding ? null :
                         response.PayloadEncoding.ToString()).Encode(encoder);
 
-                encoder.EncodeFields(response.FieldsOverrides, response.FieldsDefaults);
+                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
                 encoder.EncodeSize(response.PayloadSize);
 
                 // We're done with the header encoding, write the header size.

@@ -98,15 +98,15 @@ namespace IceRpc.Internal
                 WriteByteSpan(buffers.Span[index++].Span);
             }
 
-            // Terminate the last buffer.
-            if (_bufferVector.Length > 0)
-            {
-                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
-            }
-
             // Add remaining buffers if any
             if (index < buffers.Length)
             {
+                // Terminate the last buffer.
+                if (_bufferVector.Length > 0)
+                {
+                    _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+                }
+
                 var newBuffers = new ReadOnlyMemory<byte>[_bufferVector.Length + buffers.Length - index];
                 _bufferVector.CopyTo(newBuffers);
                 foreach (ReadOnlyMemory<byte> memory in buffers.Span[index..])
@@ -116,11 +116,11 @@ namespace IceRpc.Internal
                 }
                 _bufferVector = newBuffers;
                 Capacity = Size;
-            }
 
-            _tail.Buffer = _bufferVector.Length;
-            _tail.Offset = _bufferVector.Span[^1].Length;
-            _currentBuffer = default;
+                _tail.Buffer = _bufferVector.Length;
+                _tail.Offset = _bufferVector.Span[^1].Length;
+                _currentBuffer = default;
+            }
         }
 
         /// <summary>Returns the distance in bytes from start position to the tail position.</summary>
