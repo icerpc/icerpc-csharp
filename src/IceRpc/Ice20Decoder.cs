@@ -1,40 +1,88 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
-    internal class Ice20Decoder : IceDecoder
+    public class Ice20Decoder : IceDecoder
     {
-        internal override SlicedData? SlicedData => null;
-
         private readonly IClassFactory _classFactory;
 
-        public override T DecodeClass<T>() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
+        /// <summary>Decodes a field value.</summary>
+        /// <typeparam name="T">The decoded type.</typeparam>
+        /// <param name="value">The field value as a byte buffer encoded with the Ice 2.0 encoding.</param>
+        /// <param name="decodeFunc">The decode function for this field value.</param>
+        /// <param name="connection">The connection that received this field (used only for proxies).</param>
+        /// <param name="invoker">The invoker of proxies in the decoded type.</param>
+        /// <returns>The decoded value.</returns>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
+        /// </exception>
+        public static T DecodeFieldValue<T>(
+            ReadOnlyMemory<byte> value,
+            Func<Ice20Decoder, T> decodeFunc,
+            Connection? connection = null,
+            IInvoker? invoker = null)
+        {
+            var decoder = new Ice20Decoder(value, connection, invoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return result;
+        }
 
+        /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             string errorMessage = DecodeString();
             var origin = new RemoteExceptionOrigin(this);
             string typeId = DecodeString();
-            RemoteException remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin) ??
-                new RemoteException(errorMessage, origin);
+            RemoteException? remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+            if (remoteEx != null)
+            {
+                remoteEx.Decode(this);
+                SkipTaggedParams();
+            }
+            // else we can't decode this exception so we return a plain RemoteException with the error message and
+            // origin instead of throwing "can't decode remote exception".
 
-            remoteEx.Decode(this);
-            return remoteEx;
+            return remoteEx ?? new RemoteException(errorMessage, origin);
         }
 
+        /// <summary>Decodes fields.</summary>
+        /// <returns>The fields as an immutable dictionary.</returns>
+        /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
+        public ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary()
+        {
+            int size = DecodeSize();
+            if (size == 0)
+            {
+                return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            }
+            else
+            {
+                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
+                for (int i = 0; i < size; ++i)
+                {
+                    (int key, ReadOnlyMemory<byte> value) = DecodeField();
+                    builder.Add(key, value);
+                }
+                return builder.ToImmutable();
+            }
+        }
+
+        /// <inheritdoc/>
         public override T? DecodeNullableClass<T>() where T : class =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
+        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             Debug.Assert(Connection != null);
@@ -84,30 +132,8 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
         public override int DecodeSize() => checked((int)DecodeVarULong());
-
-        public override void IceEndDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
-
-        public override void IceEndException()
-        {
-        }
-
-        public override void IceEndSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
-
-        public override void IceStartDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
-
-        public override void IceStartException()
-        {
-        }
-
-        public override SlicedData? IceStartFirstSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
-
-        public override void IceStartNextSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {

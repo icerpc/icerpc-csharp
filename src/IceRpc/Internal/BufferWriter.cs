@@ -30,16 +30,13 @@ namespace IceRpc.Internal
             }
 
             /// <inheritdoc/>
-            public bool Equals(Position other) =>
-                Buffer == other.Buffer &&
-                Offset == other.Offset;
+            public bool Equals(Position other) => Buffer == other.Buffer && Offset == other.Offset;
 
             /// <inheritdoc/>
-            public override bool Equals(object? obj) => obj is SlicedData value && Equals(value);
+            public override bool Equals(object? obj) => obj is Position value && Equals(value);
 
             /// <inheritdoc/>
-            public override int GetHashCode() =>
-                HashCode.Combine(Buffer, Offset);
+            public override int GetHashCode() => HashCode.Combine(Buffer, Offset);
 
             /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
             public static bool operator ==(Position lhs, Position rhs) => lhs.Equals(rhs);

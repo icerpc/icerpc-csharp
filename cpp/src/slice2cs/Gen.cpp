@@ -1391,7 +1391,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder, bool firstSlice)";
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1431,7 +1431,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder, bool firstSlice)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1522,7 +1522,10 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         }
     }
 
-    _out << nl << "private readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof(" << name << "))!;";
+    ExceptionPtr base = p->base();
+
+    _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
+        << name << "))!;";
 
     // Up to 2 "one-shot" constructors
     for (int i = 0; i < 2; i++)
@@ -1621,57 +1624,60 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << eb;
 
     string scoped = p->scoped();
-    ExceptionPtr base = p->base();
 
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
-    if (base)
-    {
-        _out << nl << "decoder.IceStartDerivedExceptionSlice();";
-    }
-    else
-    {
-        _out << nl << "decoder.IceStartException();";
-        _out << nl << "ConvertToUnhandled = true;";
-    }
+    _out << nl << "decoder.IceStartExceptionSlice();";
     writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+    _out << nl << "decoder.IceEndSlice();";
     if (base)
     {
-        _out << nl << "decoder.IceEndDerivedExceptionSlice();";
         _out << nl << "base.IceDecode(decoder);";
-    }
-    else
-    {
-        _out << nl << "decoder.IceEndException();";
     }
     _out << eb;
 
-    _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder)";
-    _out << sb;
-    if (base)
+    if (!base && !dataMembers.empty())
     {
-        _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceTypeId, this);";
+        _out << sp;
+        _out << nl << "protected override void IceDecode(IceRpc.Ice20Decoder decoder)";
+        _out << sb;
+        if (!base)
+        {
+            _out << nl << "ConvertToUnhandled = true;";
+        }
+        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
     }
-    else
-    {
-        _out << nl << "encoder.IceStartException(_iceTypeId, this);";
-    }
-    writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
 
+    _out << sp;
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
+    _out << sb;
+    _out << nl << "encoder.IceStartExceptionSlice(_iceTypeId, this);";
+    writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     if (base)
     {
-        _out << nl << "encoder.IceEndDerivedExceptionSlice();"; // the current exception has a parent
+        _out << nl << "encoder.IceEndSlice(lastSlice: false);";
         _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
-        _out << nl << "encoder.IceEndException();"; // no Slice base exception
+        _out << nl << "encoder.IceEndSlice(lastSlice: true);";
     }
     _out << eb;
+
+    if (!base)
+    {
+        _out << sp;
+        _out << nl << "protected override void IceEncode(IceRpc.Ice20Encoder encoder)";
+        _out << sb;
+        _out << nl << "encoder.EncodeString(_iceTypeId);";
+        writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
+    }
+
     _out << eb;
 }
 

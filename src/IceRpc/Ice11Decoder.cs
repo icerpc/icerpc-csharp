@@ -1,19 +1,22 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
-    internal class Ice11Decoder : IceDecoder
+    public class Ice11Decoder : IceDecoder
     {
-        internal override SlicedData? SlicedData
+        /// <summary>The sliced-off slices held by the current instance, if any.</summary>
+        internal SlicedData? SlicedData
         {
             get
             {
@@ -56,10 +59,7 @@ namespace IceRpc.Internal
         // _typeIdMap[index - 1].
         private List<string>? _typeIdMap;
 
-        public override T DecodeClass<T>() =>
-            DecodeNullableClass<T>() ??
-                throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
-
+        /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
@@ -98,6 +98,7 @@ namespace IceRpc.Internal
             return remoteEx;
         }
 
+        /// <inheritdoc/>
         public override T? DecodeNullableClass<T>() where T : class
         {
             AnyClass? obj = DecodeAnyClass();
@@ -116,6 +117,7 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             Debug.Assert(Connection != null);
@@ -245,6 +247,7 @@ namespace IceRpc.Internal
             }
         }
 
+        /// <inheritdoc/>
         public override int DecodeSize()
         {
             byte b = DecodeByte();
@@ -261,13 +264,9 @@ namespace IceRpc.Internal
             return size;
         }
 
-        public override void IceEndException() => IceEndSlice();
-
-        public override void IceStartDerivedExceptionSlice() => IceStartException();
-
-        public override void IceEndDerivedExceptionSlice() => IceEndException();
-
-        public override void IceEndSlice()
+        /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceEndSlice()
         {
             // Note that IceEndSlice is not called when we call SkipSlice.
             Debug.Assert(_current.InstanceType != InstanceType.None);
@@ -285,7 +284,9 @@ namespace IceRpc.Internal
             }
         }
 
-        public override void IceStartException()
+        /// <summary>Marks the start of the decoding of an exception slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartExceptionSlice()
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
             if (_current.FirstSlice)
@@ -298,9 +299,14 @@ namespace IceRpc.Internal
             }
         }
 
-        public override SlicedData? IceStartFirstSlice() => SlicedData;
+        /// <summary>Starts decoding the first slice of a class.</summary>
+        /// <returns>The sliced-off slices, if any.</returns>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public SlicedData? IceStartFirstSlice() => SlicedData;
 
-        public override void IceStartNextSlice()
+        /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartNextSlice()
         {
             DecodeNextSliceHeaderIntoCurrent();
             DecodeIndirectionTableIntoCurrent();

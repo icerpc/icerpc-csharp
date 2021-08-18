@@ -131,11 +131,13 @@ namespace IceRpc
                     Features = new FeatureCollection();
                     Features.Set(new Context
                     {
-                        Value = value.DecodeFieldValue(decoder => decoder.DecodeDictionary(
-                            minKeySize: 1,
-                            minValueSize: 1,
-                            keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString()))
+                        Value = Ice20Decoder.DecodeFieldValue(
+                            value,
+                            decoder => decoder.DecodeDictionary(
+                                minKeySize: 1,
+                                minValueSize: 1,
+                                keyDecodeFunc: decoder => decoder.DecodeString(),
+                                valueDecodeFunc: decoder => decoder.DecodeString()))
                     });
                 }
                 payloadStart = decoder.Pos;

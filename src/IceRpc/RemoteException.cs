@@ -66,20 +66,29 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Decodes a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
-        /// called on a plain RemoteException.</summary>
+        /// <summary>Decodes a remote exception from an <see cref="Ice11Decoder"/>.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        protected virtual void IceDecode(IceDecoder decoder) => ConvertToUnhandled = true;
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceDecode(Ice11Decoder decoder) => ConvertToUnhandled = true;
 
-        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
+        /// <summary>Decodes a remote exception from an <see cref="Ice20Decoder"/>.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
+        protected virtual void IceDecode(Ice20Decoder decoder) => ConvertToUnhandled = true;
 
-        /// <summary>Encodes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
-        /// called on a plain RemoteException with IceSlicedData set.</summary>
+        /// <summary>Encodes a remote exception to an <see cref="Ice11Encoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        protected virtual void IceEncode(IceEncoder encoder) =>
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceEncode(Ice11Encoder encoder) =>
             encoder.EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
 
-        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
+        /// <summary>Encodes a remote exception to an <see cref="Ice20Encoder"/>.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        protected virtual void IceEncode(Ice20Encoder encoder) => Debug.Assert(false);
+
+        internal void Decode(Ice11Decoder decoder) => IceDecode(decoder);
+        internal void Decode(Ice20Decoder decoder) => IceDecode(decoder);
+        internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
+        internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>

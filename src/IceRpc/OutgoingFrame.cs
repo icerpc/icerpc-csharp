@@ -99,8 +99,8 @@ namespace IceRpc
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice20Encoder(bufferWriter);
                 EncodeFields(encoder);
-                return bufferWriter.Finish().ToSingleBuffer().DecodeFieldValue(
-                    decoder => decoder.DecodeFieldDictionary());
+                return Ice20Decoder.DecodeFieldValue(bufferWriter.Finish().ToSingleBuffer(),
+                                                     decoder => decoder.DecodeFieldDictionary());
             }
         }
 

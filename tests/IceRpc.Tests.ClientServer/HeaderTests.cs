@@ -48,10 +48,11 @@ namespace IceRpc.Tests.ClientServer
                 new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> buffer))
+                    if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
                     {
                         response.Features = new FeatureCollection();
-                        response.Features.Set<string>(buffer.DecodeFieldValue(decoder => decoder.DecodeString()));
+                        response.Features.Set<string>(
+                            Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeString()));
                     }
                     return response;
                 }));
