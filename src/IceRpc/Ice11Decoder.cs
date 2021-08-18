@@ -81,8 +81,8 @@ namespace IceRpc
             while (remoteEx == null);
 
             remoteEx ??= new RemoteException();
-            remoteEx.UnknownSlices = UnknownSlices;
 
+            remoteEx.UnknownSlices = UnknownSlices;
             _current.FirstSlice = true;
             remoteEx.Decode(this);
             _current = default;
@@ -258,7 +258,7 @@ namespace IceRpc
             return size;
         }
 
-        /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
+        /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
@@ -278,9 +278,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Marks the start of the decoding of an exception slice.</summary>
+        /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartExceptionSlice()
+        public void IceStartSlice()
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
             if (_current.FirstSlice)
@@ -289,16 +289,9 @@ namespace IceRpc
             }
             else
             {
-                IceStartNextSlice();
+                DecodeNextSliceHeaderIntoCurrent();
+                DecodeIndirectionTableIntoCurrent();
             }
-        }
-
-        /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartNextSlice()
-        {
-            DecodeNextSliceHeaderIntoCurrent();
-            DecodeIndirectionTableIntoCurrent();
         }
 
         /// <summary>Constructs a new decoder for the Ice 1.1 encoding.</summary>
@@ -611,6 +604,7 @@ namespace IceRpc
             }
 
             instance.UnknownSlices = UnknownSlices;
+            _current.FirstSlice = true;
             instance.Decode(this);
 
             _current = previousCurrent;
@@ -871,7 +865,7 @@ namespace IceRpc
 
             // Slice fields
 
-            internal bool FirstSlice; // for now, used only for exceptions
+            internal bool FirstSlice;
             internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
             internal int? PosAfterIndirectionTable;
 

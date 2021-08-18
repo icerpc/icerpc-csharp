@@ -1436,19 +1436,14 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder, bool firstSlice)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
-    _out << nl << "if (!firstSlice)";
-    _out << sb;
-    _out << nl << "decoder.IceStartNextSlice();";
-    _out << eb;
-
+    _out << nl << "decoder.IceStartSlice();";
     writeUnmarshalDataMembers(members, ns, 0);
-
     _out << nl << "decoder.IceEndSlice();";
     if (base)
     {
-        _out << nl << "base.IceDecode(decoder, false);";
+        _out << nl << "base.IceDecode(decoder);";
     }
     _out << eb;
 }
@@ -1643,7 +1638,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
-    _out << nl << "decoder.IceStartExceptionSlice();";
+    _out << nl << "decoder.IceStartSlice();";
     writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     _out << nl << "decoder.IceEndSlice();";
     if (base)
