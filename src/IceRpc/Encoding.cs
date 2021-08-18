@@ -97,13 +97,17 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <param name="classFactory">The class factory, used to decode classes and remote exceptions with the Ice 1.1
+        /// encoding.</param>
+        /// <param name="remoteExceptionFactory">The remote exception factory, used to decode remote exceptions with the
+        /// Ice 2.0 encoding.</param>
         /// <returns>A new decoder for the specified Ice encoding.</returns>
         internal virtual IceDecoder CreateIceDecoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IClassFactory? classFactory = null) =>
+            IClassFactory? classFactory = null,
+            IRemoteExceptionFactory? remoteExceptionFactory = null) =>
             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
@@ -165,7 +169,9 @@ namespace IceRpc
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
                 IInvoker? invoker = null,
-                IClassFactory? classFactory = null) => new Ice11Decoder(buffer, connection, invoker, classFactory);
+                IClassFactory? classFactory = null,
+                IRemoteExceptionFactory? remoteExceptionFactory = null) =>
+                new Ice11Decoder(buffer, connection, invoker, classFactory);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
@@ -183,7 +189,9 @@ namespace IceRpc
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
                 IInvoker? invoker = null,
-                IClassFactory? classFactory = null) => new Ice20Decoder(buffer, connection, invoker, classFactory);
+                IClassFactory? classFactory = null,
+                IRemoteExceptionFactory? remoteExceptionFactory = null) =>
+                new Ice20Decoder(buffer, connection, invoker, remoteExceptionFactory);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,

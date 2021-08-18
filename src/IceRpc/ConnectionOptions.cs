@@ -81,6 +81,10 @@ namespace IceRpc
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
 
+        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
+        /// </summary>
+        public IRemoteExceptionFactory? RemoteExceptionFactory { get; set; }
+
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream
         /// will be delayed until an unidirectional stream is closed. Since an unidirectional stream is opened for

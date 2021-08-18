@@ -160,6 +160,9 @@ namespace IceRpc
             }
         }
 
+        /// <summary>Gets the remote exception factory used for instantiating remote exceptions.</summary>
+        public IRemoteExceptionFactory? RemoteExceptionFactory => _options.RemoteExceptionFactory;
+
         /// <summary>The state of the connection.</summary>
         public ConnectionState State
         {

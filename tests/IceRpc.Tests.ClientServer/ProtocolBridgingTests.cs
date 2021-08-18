@@ -24,6 +24,8 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new ClientConnectionOptions()
                 {
                     ClassFactory = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly }),
+                    RemoteExceptionFactory =
+                        new RemoteExceptionFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly })
                 }
             };
         }

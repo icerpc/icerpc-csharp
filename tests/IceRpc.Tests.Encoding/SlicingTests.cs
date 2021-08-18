@@ -23,16 +23,8 @@ namespace IceRpc.Tests.Encoding
                 _slicedTypeIds = slicedTypeIds ?? ImmutableList<string>.Empty;
             }
 
-            object? IClassFactory.Create(string typeId) =>
-                _slicedTypeIds.Contains(typeId) ? null : _classFactory.Create(typeId);
-
-            RemoteException? IClassFactory.CreateRemoteException(
-                string typeId,
-                string message,
-                RemoteExceptionOrigin origin,
-                Ice20Decoder decoder) =>
-                _slicedTypeIds.Contains(typeId) ?
-                    null : _classFactory.CreateRemoteException(typeId, message, origin, decoder);
+            object? IClassFactory.CreateClass(string typeId) =>
+                _slicedTypeIds.Contains(typeId) ? null : _classFactory.CreateClass(typeId);
         }
 
         [Test]

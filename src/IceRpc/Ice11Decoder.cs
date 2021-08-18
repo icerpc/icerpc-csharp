@@ -79,7 +79,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = (RemoteException?)_classFactory.Create(typeId);
+                remoteEx = (RemoteException?)_classFactory.CreateClass(typeId);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -581,7 +581,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = (AnyClass?)_classFactory.Create(typeId);
+                    instance = (AnyClass?)_classFactory.CreateClass(typeId);
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.

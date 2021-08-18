@@ -15,7 +15,7 @@ namespace IceRpc
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
     public class Ice20Decoder : IceDecoder
     {
-        private readonly IClassFactory _classFactory;
+        private readonly IRemoteExceptionFactory _remoteExceptionFactory;
 
         /// <summary>Decodes a field value.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -44,7 +44,9 @@ namespace IceRpc
             string errorMessage = DecodeString();
             var origin = new RemoteExceptionOrigin(this);
             string typeId = DecodeString();
-            RemoteException? remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin, this);
+            RemoteException? remoteEx =
+                _remoteExceptionFactory.CreateRemoteException(typeId, errorMessage, origin, this);
+
             if (remoteEx != null)
             {
                 SkipTaggedParams(); // TODO: revisit
@@ -159,13 +161,14 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode exceptions.</param>
+        /// <param name="remoteExceptionFactory">The remote exception factory, used to decode remote exceptions.</param>
         internal Ice20Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IClassFactory? classFactory = null)
-            : base(buffer, connection, invoker) => _classFactory = classFactory ?? ClassFactory.Default;
+            IRemoteExceptionFactory? remoteExceptionFactory = null)
+            : base(buffer, connection, invoker) =>
+                _remoteExceptionFactory = remoteExceptionFactory ?? RemoteExceptionFactory.Default;
 
         private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
 

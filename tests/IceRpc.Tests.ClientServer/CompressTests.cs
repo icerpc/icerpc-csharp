@@ -75,7 +75,9 @@ namespace IceRpc.Tests.ClientServer
                 RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions()
                 {
-                    ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly })
+                    ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                    RemoteExceptionFactory =
+                        new RemoteExceptionFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
                 }
             };
             var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);

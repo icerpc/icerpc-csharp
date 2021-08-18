@@ -18,13 +18,13 @@ namespace IceRpc.Tests.CodeGeneration
         public Exception(Protocol protocol)
         {
             var classFactory = new ClassFactory(new Assembly[] { typeof(Exception).Assembly });
+            var remoteExceptionFactory = new RemoteExceptionFactory(new Assembly[] { typeof(Exception).Assembly });
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new ExceptionOperations(),
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -32,7 +32,12 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = serverEndpoint,
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint),
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options =
+                    new ClientConnectionOptions()
+                    {
+                        ClassFactory = classFactory,
+                        RemoteExceptionFactory = remoteExceptionFactory
+                    }
             };
             _prx = ExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);

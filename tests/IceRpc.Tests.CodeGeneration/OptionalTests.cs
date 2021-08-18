@@ -16,6 +16,8 @@ namespace IceRpc.Tests.CodeGeneration
         public OptionalTests()
         {
             var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
+            var remoteExceptionFactory = new RemoteExceptionFactory(new Assembly[] { typeof(OptionalTests).Assembly });
+
             _server = new Server()
             {
                 Dispatcher = new OptionalOperations(),
@@ -26,7 +28,12 @@ namespace IceRpc.Tests.CodeGeneration
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options =
+                    new ClientConnectionOptions()
+                    {
+                        ClassFactory = classFactory,
+                        RemoteExceptionFactory = remoteExceptionFactory
+                    }
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);
         }

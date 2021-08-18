@@ -326,7 +326,8 @@ namespace IceRpc
                 payload,
                 connection,
                 invoker,
-                connection?.ClassFactory);
+                connection?.ClassFactory,
+                connection?.RemoteExceptionFactory);
 
             if (protocol == Protocol.Ice2 && payloadEncoding == Encoding.Ice11)
             {

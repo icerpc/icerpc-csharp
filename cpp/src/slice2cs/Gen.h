@@ -44,6 +44,7 @@ protected:
     void emitCompactTypeIdAttribute(int);
     void emitTypeIdAttribute(const std::string&); // the Ice type ID attribute
     void emitClassAttribute(const std::string&);
+    void emitRemoteExceptionAttribute(const std::string&);
 
     std::string writeValue(const TypePtr&, const std::string&);
 
