@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
@@ -8,14 +9,35 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
-    internal class Ice20Decoder : IceDecoder
+    public class Ice20Decoder : IceDecoder
     {
         internal override SlicedData? SlicedData => null;
 
         private readonly IClassFactory _classFactory;
+
+        /// <summary>Decodes a field value.</summary>
+        /// <typeparam name="T">The decoded type.</typeparam>
+        /// <param name="value">The field value as a byte buffer encoded with the Ice 2.0 encoding.</param>
+        /// <param name="decodeFunc">The decode function for this field value.</param>
+        /// <param name="connection">The connection that received this field (used only for proxies).</param>
+        /// <param name="invoker">The invoker of proxies in the decoded type.</param>
+        /// <returns>The decoded value.</returns>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
+        /// </exception>
+        public static T DecodeFieldValue<T>(
+            ReadOnlyMemory<byte> value,
+            Func<Ice20Decoder, T> decodeFunc,
+            Connection? connection = null,
+            IInvoker? invoker = null)
+        {
+            var decoder = new Ice20Decoder(value, connection, invoker);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return result;
+        }
 
         public override T DecodeClass<T>() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
@@ -30,6 +52,28 @@ namespace IceRpc.Internal
 
             remoteEx.Decode(this);
             return remoteEx;
+        }
+
+        /// <summary>Decodes fields.</summary>
+        /// <returns>The fields as an immutable dictionary.</returns>
+        /// <remarks>The values of the dictionary reference memory in the decoder's underlying buffer.</remarks>
+        public ImmutableDictionary<int, ReadOnlyMemory<byte>> DecodeFieldDictionary()
+        {
+            int size = DecodeSize();
+            if (size == 0)
+            {
+                return ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            }
+            else
+            {
+                var builder = ImmutableDictionary.CreateBuilder<int, ReadOnlyMemory<byte>>();
+                for (int i = 0; i < size; ++i)
+                {
+                    (int key, ReadOnlyMemory<byte> value) = DecodeField();
+                    builder.Add(key, value);
+                }
+                return builder.ToImmutable();
+            }
         }
 
         public override T? DecodeNullableClass<T>() where T : class =>

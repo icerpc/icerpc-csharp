@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
@@ -8,10 +9,10 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
-    internal class Ice11Decoder : IceDecoder
+    public class Ice11Decoder : IceDecoder
     {
         internal override SlicedData? SlicedData
         {
