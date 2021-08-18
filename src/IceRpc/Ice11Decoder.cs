@@ -293,11 +293,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts decoding the first slice of a class.</summary>
-        /// <returns>The sliced-off slices, if any.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public ImmutableList<SliceInfo> IceStartFirstSlice() => UnknownSlices;
-
         /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceStartNextSlice()
@@ -615,6 +610,7 @@ namespace IceRpc
                 DecodeIndirectionTableIntoCurrent();
             }
 
+            instance.UnknownSlices = UnknownSlices;
             instance.Decode(this);
 
             _current = previousCurrent;

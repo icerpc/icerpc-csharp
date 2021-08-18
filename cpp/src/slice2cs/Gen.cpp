@@ -1438,19 +1438,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder, bool firstSlice)";
     _out << sb;
-    _out << nl << "if (firstSlice)";
-    _out << sb;
-    if (preserved || basePreserved)
-    {
-        _out << nl << "IceUnknownSlices = ";
-    }
-    else
-    {
-        _out << nl << "_ = ";
-    }
-    _out << "decoder.IceStartFirstSlice();";
-    _out << eb;
-    _out << nl << "else";
+    _out << nl << "if (!firstSlice)";
     _out << sb;
     _out << nl << "decoder.IceStartNextSlice();";
     _out << eb;

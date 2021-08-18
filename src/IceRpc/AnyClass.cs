@@ -20,7 +20,10 @@ namespace IceRpc
         protected virtual ImmutableList<SliceInfo> IceUnknownSlices
         {
             get => ImmutableList<SliceInfo>.Empty;
-            set => Debug.Assert(false);
+            set
+            {
+                // ignored, i.e. we don't store/preserve these unknown slices
+            }
         }
 
         /// <summary>Decodes this instance by decoding its data members from the <see cref="IceDecoder"/>.
