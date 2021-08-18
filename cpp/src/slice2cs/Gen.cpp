@@ -1220,7 +1220,8 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
 
     _out << sp;
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public static " << (hasBaseClass ? "new " : "") << "string IceTypeId => _iceAllTypeIds[0];";
+    _out << nl << "public static " << (hasBaseClass ? "new " : "")
+        << " readonly string IceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("<< name << "))!;";
 
     if (p->compactId() >= 0)
     {
@@ -1228,10 +1229,6 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         _out << nl << "private static readonly int _compactTypeId = IceRpc.TypeExtensions.GetIceCompactTypeId(typeof("
              << name << "))!.Value;";
     }
-
-    _out << sp;
-    _out << nl << "private static readonly string[] _iceAllTypeIds = IceRpc.TypeExtensions.GetAllIceTypeIds(typeof("
-         << name << "));";
 
     if (allDataMembers.empty())
     {
@@ -1395,7 +1392,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
-    _out << nl << "encoder.IceStartFirstSlice(_iceAllTypeIds[0]";
+    _out << nl << "encoder.IceStartFirstSlice(IceTypeId";
     if (preserved || basePreserved)
     {
         _out << ", IceSlicedData";
