@@ -35,7 +35,7 @@ namespace IceRpc.Internal
                 Offset == other.Offset;
 
             /// <inheritdoc/>
-            public override bool Equals(object? obj) => obj is SlicedData value && Equals(value);
+            public override bool Equals(object? obj) => obj is Position value && Equals(value);
 
             /// <inheritdoc/>
             public override int GetHashCode() =>
