@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Configure;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -12,7 +11,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    // [TestFixture("slic")]
+    [TestFixture("slic")]
     [TestFixture("coloc")]
     public sealed class StreamParamTests : IAsyncDisposable
     {
@@ -26,24 +25,19 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         {
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
-
             _servant = new StreamParamOperations(_sendBuffer);
-            var router = new Router();
-            router.Map<IStreamParamOperations>(_servant);
-            router.UseLogger(LogAttributeLoggerFactory.Instance);
+
             _server = new Server
             {
-                Dispatcher = router,
+                Dispatcher = _servant,
                 Endpoint = transport == "coloc" ?
                     TestHelper.GetUniqueColocEndpoint(Protocol.Ice2) :
                     TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
             };
-            _server.Listen();
 
+            _server.Listen();
             _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            var pipeline = new Pipeline();
-            pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
-            _prx = StreamParamOperationsPrx.FromConnection(_connection, invoker: pipeline);
+            _prx = StreamParamOperationsPrx.FromConnection(_connection);
         }
 
         [TearDown]
@@ -261,7 +255,6 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
-        [Log(LogAttributeLevel.Debug)]
         public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);
