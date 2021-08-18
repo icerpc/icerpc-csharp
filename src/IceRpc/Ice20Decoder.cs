@@ -80,10 +80,6 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        public override T? DecodeNullableClass<T>() where T : class =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             if (Connection == null)
@@ -169,6 +165,9 @@ namespace IceRpc
             IRemoteExceptionFactory? remoteExceptionFactory = null)
             : base(buffer, connection, invoker) =>
                 _remoteExceptionFactory = remoteExceptionFactory ?? RemoteExceptionFactory.Default;
+
+        private protected override AnyClass? DecodeAnyClass() =>
+            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
 

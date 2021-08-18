@@ -286,8 +286,10 @@ namespace IceRpc
             Action<Ice11Encoder, Endpoint> encodeAction)
         {
             this.EncodeTransportCode(transportCode);
-            BufferWriter.Position startPos = BufferWriter.Tail;
 
+            // We don't use Start/EndFixedLengthSize because 1.1 encapsulation sizes are special and include the size
+            // itself.
+            BufferWriter.Position startPos = BufferWriter.Tail;
             EncodeInt(0); // placeholder for future encapsulation size
             EncodeByte(1); // encoding version major
             EncodeByte(1); // encoding version minor
