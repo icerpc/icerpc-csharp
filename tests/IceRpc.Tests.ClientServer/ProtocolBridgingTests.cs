@@ -161,10 +161,9 @@ namespace IceRpc.Tests.ClientServer
                 IncomingRequest incomingRequest,
                 CancellationToken cancel)
             {
-                IncomingResponse incomingResponse =
-                    await _target.Invoker!.InvokeAsync(new OutgoingRequest(_target, incomingRequest), cancel);
-
-                return new OutgoingResponse(incomingRequest, incomingResponse);
+                var outgoingRequest = incomingRequest.ToOutgoingRequest(_target);
+                IncomingResponse incomingResponse = await _target.Invoker!.InvokeAsync(outgoingRequest, cancel);
+                return incomingResponse.ToOutgoingResponse(incomingRequest.Protocol);
             }
 
             internal Forwarder(Proxy target) => _target = target;

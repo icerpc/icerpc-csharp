@@ -15,12 +15,16 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected OutgoingRequest DummyRequest =>
-            new(Proxy, "foo", Payload.FromEmptyArgs(Proxy), null, DateTime.MaxValue);
+        protected OutgoingRequest DummyRequest => new()
+        {
+            Operation = "foo",
+            Path="/dummy",
+            PayloadEncoding = Encoding.Ice20
+        };
+
+        protected OutgoingResponse DummyResponse => new() { PayloadEncoding = Encoding.Ice20 };
 
         protected MultiStreamConnection ClientConnection => _clientConnection!;
-
-        protected Proxy Proxy => Proxy.FromPath("/dummy", ClientEndpoint.Protocol);
         protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
         private MultiStreamConnection? _clientConnection;
@@ -54,8 +58,5 @@ namespace IceRpc.Tests.Internal
             _clientConnection?.Dispose();
             _serverConnection?.Dispose();
         }
-
-        protected static OutgoingResponse GetResponseFrame(IncomingRequest request) =>
-            new(request, new UnhandledException(new InvalidOperationException()));
     }
 }

@@ -28,10 +28,10 @@ namespace IceRpc
         /// requests but not with ice1 requests.</summary>
         /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
         /// expected to enforce this deadline.</remarks>
-        public DateTime Deadline { get; set; }
+        public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
         /// <summary>When true, the operation is idempotent.</summary>
-        public bool IsIdempotent { get; }
+        public bool IsIdempotent { get; init; }
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
@@ -42,16 +42,13 @@ namespace IceRpc
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; set; }
+        public string Operation { get; init; } = "";
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; set; }
-
-        /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public string Path { get; init; } = "";
 
         /// <summary>The proxy that is sending this request.</summary>
-        public Proxy Proxy { get; }
+        public Proxy? Proxy { get; init; }
 
         /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
         /// decompress a stream return value.</summary>
@@ -69,53 +66,6 @@ namespace IceRpc
         }
 
         private RpcStream? _stream;
-
-        /// <summary>Constructs an outgoing request from the given incoming request.</summary>
-        /// <param name="proxy">The proxy sending the outgoing request.</param>
-        /// <param name="request">The incoming request from which to create an outgoing request.</param>
-        /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
-        /// fields as defaults for its fields.</param>
-        public OutgoingRequest(
-            Proxy proxy,
-            IncomingRequest request,
-            bool forwardFields = true)
-            // TODO: support stream param forwarding
-            : this(proxy, request.Operation, request.Features, null)
-        {
-            Deadline = request.Deadline;
-            IsIdempotent = request.IsIdempotent;
-            IsOneway = request.IsOneway;
-            PayloadEncoding = request.PayloadEncoding;
-
-            // We forward the payload as is.
-            Payload = new ReadOnlyMemory<byte>[] { request.Payload }; // TODO: temporary
-
-            if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
-            {
-                FieldsDefaults = request.Fields;
-            }
-        }
-
-        /// <summary>Constructs an outgoing request.</summary>
-        internal OutgoingRequest(
-            Proxy proxy,
-            string operation,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> args,
-            IStreamParamSender? streamParamSender,
-            DateTime deadline,
-            Invocation? invocation = null,
-            bool idempotent = false,
-            bool oneway = false)
-            : this(proxy,
-                   operation,
-                   invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                   streamParamSender)
-        {
-            Deadline = deadline;
-            IsOneway = oneway || (invocation?.IsOneway ?? false);
-            IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
-            Payload = args;
-        }
 
         /// <summary>Returns a new incoming request built from this outgoing request. This method is
         /// used for colocated calls.</summary>
@@ -143,24 +93,6 @@ namespace IceRpc
             }
 
             return request;
-        }
-
-        private OutgoingRequest(
-            Proxy proxy,
-            string operation,
-            FeatureCollection features,
-            IStreamParamSender? streamParamSender)
-            : base(proxy.Protocol, features, streamParamSender)
-        {
-            AltEndpoints = proxy.AltEndpoints;
-            Connection = proxy.Connection;
-            Endpoint = proxy.Endpoint;
-            Proxy = proxy;
-
-            Operation = operation;
-            Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding;
-            Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         }
     }
 }

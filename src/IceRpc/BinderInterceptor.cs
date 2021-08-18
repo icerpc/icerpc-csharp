@@ -45,7 +45,7 @@ namespace IceRpc
 
                 if (request.Endpoint == null)
                 {
-                    throw new NoEndpointException(request.Proxy);
+                    throw request.Proxy == null ? new NoEndpointException() : new NoEndpointException(request.Proxy);
                 }
 
                 return PerformAsync(_connectionProvider.GetConnectionAsync(request.Endpoint,
@@ -59,7 +59,7 @@ namespace IceRpc
                 try
                 {
                     request.Connection = await task.ConfigureAwait(false);
-                    if (_cacheConnection)
+                    if (_cacheConnection && request.Proxy != null)
                     {
                         request.Proxy.Connection = request.Connection;
                     }

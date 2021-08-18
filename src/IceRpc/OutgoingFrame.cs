@@ -17,7 +17,7 @@ namespace IceRpc
 
         /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
         /// there is no corresponding entry in <see cref="Fields"/>.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; init; } =
               ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The features of this frame.</summary>
@@ -36,7 +36,7 @@ namespace IceRpc
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public abstract Encoding PayloadEncoding { get; }
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
         /// <summary>Returns the number of bytes in the payload.</summary>
         public int PayloadSize
@@ -52,7 +52,7 @@ namespace IceRpc
         }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
-        public Protocol Protocol { get; }
+        public Protocol Protocol { get; init; }
 
         /// <summary>A stream parameter compressor. Middleware or interceptors can use this property to
         /// compress a stream parameter or return value.</summary>
@@ -60,7 +60,7 @@ namespace IceRpc
 
         /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
-        internal IStreamParamSender? StreamParamSender { get; set; }
+        internal IStreamParamSender? StreamParamSender { get; init; }
 
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
@@ -98,17 +98,6 @@ namespace IceRpc
                     }
                 },
                 default);
-        }
-
-        private protected OutgoingFrame(
-            Protocol protocol,
-            FeatureCollection features,
-            IStreamParamSender? streamParamSender)
-        {
-            Protocol = protocol;
-            Protocol.CheckSupported();
-            Features = features;
-            StreamParamSender = streamParamSender;
         }
     }
 }

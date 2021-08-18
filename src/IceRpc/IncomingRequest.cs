@@ -47,6 +47,43 @@ namespace IceRpc
             set => _stream = value;
         }
 
+        /// <summary>Create an outgoing request from this incoming request. The outgoing request is constructed
+        /// to be forwarded with the given proxy.</summary>
+        /// <param name="proxy">The proxy used to send to the outgoing request.</param>
+        /// <returns>The outgoing request to be forwarded.</returns>
+        public OutgoingRequest ToOutgoingRequest(Proxy proxy)
+        {
+            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
+            if (proxy.Protocol == Protocol && proxy.Protocol == Protocol.Ice2)
+            {
+                fields = Fields;
+            }
+            else
+            {
+                fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+            }
+
+            // TODO: forward stream parameters
+
+            return new OutgoingRequest
+            {
+                AltEndpoints = proxy.AltEndpoints,
+                Connection = Connection,
+                Deadline = Deadline,
+                Endpoint = proxy.Endpoint,
+                Features = Features,
+                FieldsDefaults = fields,
+                IsOneway = IsOneway,
+                IsIdempotent = IsIdempotent,
+                Operation = Operation,
+                Path = proxy.Path,
+                Protocol = proxy.Protocol,
+                Proxy = proxy,
+                PayloadEncoding = PayloadEncoding,
+                Payload = new ReadOnlyMemory<byte>[] { Payload } // TODO: temporary, should use GetPayloadAsync()
+            };
+        }
+
         private RpcStream? _stream;
     }
 }

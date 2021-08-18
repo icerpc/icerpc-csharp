@@ -814,7 +814,9 @@ namespace IceRpc
                 if (Protocol == Protocol.Ice1)
                 {
                     // With Ice1, stream reset is not supported so we raise a DispatchException instead.
-                    response = new OutgoingResponse(request, new DispatchException("dispatch canceled by peer"));
+                    response = OutgoingResponse.ForRemoteException(
+                        request,
+                        new DispatchException("dispatch canceled by peer"));
                 }
                 else
                 {
@@ -828,11 +830,11 @@ namespace IceRpc
                     // Convert the exception to an UnhandledException if needed.
                     if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
                     {
-                        response = new OutgoingResponse(request, new UnhandledException(exception));
+                        response = OutgoingResponse.ForRemoteException(request, new UnhandledException(exception));
                     }
                     else
                     {
-                        response = new OutgoingResponse(request, remoteException);
+                        response = OutgoingResponse.ForRemoteException(request, remoteException);
                     }
                 }
             }
@@ -848,7 +850,7 @@ namespace IceRpc
                 {
                     // Send the exception as the response instead of sending the response from the dispatch
                     // This can occur if the response exceeds the peer's incoming frame max size.
-                    response = new OutgoingResponse(request, ex);
+                    response = OutgoingResponse.ForRemoteException(request, ex);
                     await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                 }
 

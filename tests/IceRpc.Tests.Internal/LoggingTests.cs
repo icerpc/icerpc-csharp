@@ -227,21 +227,22 @@ namespace IceRpc.Tests.Internal
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest outgoingRequest) =>
             CreateOutgoingResponse(outgoingRequest.ToIncoming()).ToIncoming();
 
-        private static OutgoingRequest CreateOutgoingRequest(bool twoway)
-        {
-            var proxy = Proxy.FromPath("/dummy", Protocol.Ice2);
-            var request = new OutgoingRequest(
-                proxy,
-                "foo",
-                Payload.FromEmptyArgs(proxy),
-                null,
-                DateTime.MaxValue,
-                oneway: !twoway);
-            request.Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false);
-            return request;
-        }
+        private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
+            new OutgoingRequest
+            {
+                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false),
+                IsOneway = !twoway,
+                Path = "/dummy",
+                PayloadEncoding = Encoding.Ice20,
+                Operation = "foo",
+            };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest incomingRequest) =>
-            new(incomingRequest, Payload.FromVoidReturnValue(incomingRequest));
+            new OutgoingResponse
+            {
+                PayloadEncoding = Encoding.Ice20,
+                ReplyStatus = ReplyStatus.OK,
+                ResultType = ResultType.Success,
+            };
     }
 }
