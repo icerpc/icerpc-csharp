@@ -24,9 +24,6 @@ namespace IceRpc
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
         internal int Pos { get; private protected set; }
 
-        /// <summary>The sliced-off slices held by the current instance, if any.</summary>
-        internal abstract SlicedData? SlicedData { get; }
-
         // The byte buffer we are decoding.
         private protected readonly ReadOnlyMemory<byte> _buffer;
 
@@ -248,7 +245,9 @@ namespace IceRpc
 
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
-        public abstract T DecodeClass<T>() where T : AnyClass;
+        public T DecodeClass<T>() where T : AnyClass =>
+            DecodeNullableClass<T>() ??
+               throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
 
         /// <summary>Decodes a dictionary.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -875,10 +874,6 @@ namespace IceRpc
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceEndException();
 
-        /// <summary>Tells the decoder the end of a class was reached.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndSlice();
-
         /// <summary>Marks the start of the decoding of a derived exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceStartDerivedExceptionSlice();
@@ -886,15 +881,6 @@ namespace IceRpc
         /// <summary>Marks the start of the decoding of a top-level exception.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceStartException();
-
-        /// <summary>Starts decoding the first slice of a class.</summary>
-        /// <returns>The sliced-off slices, if any.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract SlicedData? IceStartFirstSlice();
-
-        /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartNextSlice();
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>

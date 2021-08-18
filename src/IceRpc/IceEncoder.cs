@@ -127,7 +127,7 @@ namespace IceRpc
 
         /// <summary>Encodes a class instance.</summary>
         /// <param name="v">The class instance to encode.</param>
-        public abstract void EncodeClass(AnyClass v);
+        public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
 
         /// <summary>Encodes a dictionary.</summary>
         /// <param name="v">The dictionary to encode.</param>
@@ -231,7 +231,7 @@ namespace IceRpc
 
         /// <summary>Encodes a proxy.</summary>
         /// <param name="proxy">The proxy to encode.</param>
-        public abstract void EncodeProxy(Proxy proxy);
+        public void EncodeProxy(Proxy proxy) => EncodeNullableProxy(proxy);
 
         /// <summary>Encodes a sequence of fixed-size numeric values, such as int and long,.</summary>
         /// <param name="v">The sequence of numeric values represented by a ReadOnlySpan.</param>
@@ -789,17 +789,13 @@ namespace IceRpc
 
         // Logically internal methods that are marked public because they are called by the generated code.
 
-        /// <summary>Marks the end of the encoding of a top-level exception.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndException();
-
-        /// <summary>Marks the end of the encoding of a class slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndSlice(bool lastSlice);
-
         /// <summary>Marks the end of the encoding of a derived exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceEndDerivedExceptionSlice();
+
+        /// <summary>Marks the end of the encoding of a top-level exception.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public abstract void IceEndException();
 
         /// <summary>Marks the start of the encoding of a derived exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -808,23 +804,6 @@ namespace IceRpc
         /// <summary>Marks the start of the encoding of a top-level exception.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void IceStartException(string typeId, RemoteException exception);
-
-        /// <summary>Starts encoding the first slice of a class instance.</summary>
-        /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
-        /// most derived to least derived.</param>
-        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
-        /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartFirstSlice(
-            string[] allTypeIds,
-            SlicedData? slicedData = null,
-            int? compactTypeId = null);
-
-        /// <summary>Starts encoding the next (i.e. not first) slice of a class  instance.</summary>
-        /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="compactId">The compact ID of this slice, if any.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartNextSlice(string typeId, int? compactId = null);
 
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
@@ -836,11 +815,6 @@ namespace IceRpc
             EncodeFixedLengthSize(size, data);
             BufferWriter.RewriteByteSpan(data, pos);
         }
-
-        /// <summary>Encodes sliced-off slices.</summary>
-        /// <param name="slicedData">The sliced-off slices to encode.</param>
-        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
-        internal abstract void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds);
 
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>

@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -29,33 +30,7 @@ namespace IceRpc
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
-        public override void EncodeClass(AnyClass v)
-        {
-            if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
-            {
-                // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
-                // indirection table.
-                if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
-                {
-                    // Found, index is position in indirection table + 1
-                    Debug.Assert(index > 0);
-                }
-                else
-                {
-                    _current.IndirectionTable ??= new List<AnyClass>();
-                    _current.IndirectionMap ??= new Dictionary<AnyClass, int>();
-                    _current.IndirectionTable.Add(v);
-                    index = _current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
-                    _current.IndirectionMap.Add(v, index);
-                }
-                EncodeSize(index);
-            }
-            else
-            {
-                EncodeInstance(v); // Encodes the instance or a reference if already encoded.
-            }
-        }
-
+        /// <inheritdoc/>
         public override void EncodeException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
@@ -65,6 +40,7 @@ namespace IceRpc
             _current = default;
         }
 
+        /// <inheritdoc/>
         public override void EncodeNullableClass(AnyClass? v)
         {
             if (v == null)
@@ -73,10 +49,33 @@ namespace IceRpc
             }
             else
             {
-                EncodeClass(v);
+                if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
+                {
+                    // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
+                    // indirection table.
+                    if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
+                    {
+                        // Found, index is position in indirection table + 1
+                        Debug.Assert(index > 0);
+                    }
+                    else
+                    {
+                        _current.IndirectionTable ??= new List<AnyClass>();
+                        _current.IndirectionMap ??= new Dictionary<AnyClass, int>();
+                        _current.IndirectionTable.Add(v);
+                        index = _current.IndirectionTable.Count; // Position + 1 (0 is reserved for null)
+                        _current.IndirectionMap.Add(v, index);
+                    }
+                    EncodeSize(index);
+                }
+                else
+                {
+                    EncodeInstance(v); // Encodes the instance or a reference if already encoded.
+                }
             }
         }
 
+        /// <inheritdoc/>
         public override void EncodeNullableProxy(Proxy? proxy)
         {
             if (proxy == null)
@@ -85,100 +84,96 @@ namespace IceRpc
             }
             else
             {
-                EncodeProxy(proxy);
-            }
-        }
-
-        public override void EncodeProxy(Proxy proxy)
-        {
-            if (proxy.Connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-            }
-
-            IdentityAndFacet identityAndFacet;
-
-            try
-            {
-                identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
-            }
-            catch (FormatException ex)
-            {
-                throw new InvalidOperationException(
-                    $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
-                    ex);
-            }
-
-            if (identityAndFacet.Identity.Name.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
-            }
-
-            identityAndFacet.Identity.Encode(this);
-
-            (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
-
-            var proxyData = new ProxyData11(
-                identityAndFacet.OptionalFacet,
-                proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
-                    InvocationMode.Datagram : InvocationMode.Twoway,
-                secure: false,
-                proxy.Protocol,
-                protocolMinor: 0,
-                encodingMajor,
-                encodingMinor);
-            proxyData.Encode(this);
-
-            if (proxy.Endpoint == null)
-            {
-                EncodeSize(0); // 0 endpoints
-                EncodeString(""); // empty adapter ID
-            }
-            else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
-            {
-                EncodeSize(0); // 0 endpoints
-                EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
-            }
-            else
-            {
-                IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == TransportNames.Coloc ?
-                    proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
-
-                if (endpoints.Any())
+                if (proxy.Connection?.IsServer ?? false)
                 {
-                    if (proxy.Protocol == Protocol.Ice1)
-                    {
-                        // Encode sequence by hand
-                        EncodeSize(endpoints.Count());
-
-                        foreach (Endpoint endpoint in endpoints)
-                        {
-                            proxy.EndpointEncoder.EncodeEndpoint(endpoint, this);
-                        }
-                    }
-                    else
-                    {
-                        // Encode sequence by hand
-                        EncodeSize(endpoints.Count());
-
-                        foreach (Endpoint endpoint in endpoints)
-                        {
-                            EncodeEndpoint(endpoint,
-                                           TransportCode.Any,
-                                           static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder));
-
-                        }
-                    }
+                    throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
                 }
-                else // encoded as an endpointless proxy
+
+                IdentityAndFacet identityAndFacet;
+
+                try
+                {
+                    identityAndFacet = IdentityAndFacet.FromPath(proxy.Path);
+                }
+                catch (FormatException ex)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1",
+                        ex);
+                }
+
+                if (identityAndFacet.Identity.Name.Length == 0)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot encode proxy with path '{proxy.Path}' using encoding 1.1");
+                }
+
+                identityAndFacet.Identity.Encode(this);
+
+                (byte encodingMajor, byte encodingMinor) = proxy.Encoding.ToMajorMinor();
+
+                var proxyData = new ProxyData11(
+                    identityAndFacet.OptionalFacet,
+                    proxy.Protocol == Protocol.Ice1 && (proxy.Endpoint?.Transport == TransportNames.Udp) ?
+                        InvocationMode.Datagram : InvocationMode.Twoway,
+                    secure: false,
+                    proxy.Protocol,
+                    protocolMinor: 0,
+                    encodingMajor,
+                    encodingMinor);
+                proxyData.Encode(this);
+
+                if (proxy.Endpoint == null)
                 {
                     EncodeSize(0); // 0 endpoints
                     EncodeString(""); // empty adapter ID
                 }
+                else if (proxy.Protocol == Protocol.Ice1 && proxy.Endpoint.Transport == TransportNames.Loc)
+                {
+                    EncodeSize(0); // 0 endpoints
+                    EncodeString(proxy.Endpoint.Host); // adapter ID unless well-known
+                }
+                else
+                {
+                    IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == TransportNames.Coloc ?
+                        proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
+
+                    if (endpoints.Any())
+                    {
+                        if (proxy.Protocol == Protocol.Ice1)
+                        {
+                            // Encode sequence by hand
+                            EncodeSize(endpoints.Count());
+
+                            foreach (Endpoint endpoint in endpoints)
+                            {
+                                proxy.EndpointEncoder.EncodeEndpoint(endpoint, this);
+                            }
+                        }
+                        else
+                        {
+                            // Encode sequence by hand
+                            EncodeSize(endpoints.Count());
+
+                            foreach (Endpoint endpoint in endpoints)
+                            {
+                                EncodeEndpoint(endpoint,
+                                            TransportCode.Any,
+                                            static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder));
+
+                            }
+                        }
+                    }
+                    else // encoded as an endpointless proxy
+                    {
+                        EncodeSize(0); // 0 endpoints
+                        EncodeString(""); // empty adapter ID
+                    }
+                }
             }
         }
 
+        /// <inheritdoc/>
         public override void EncodeSize(int v)
         {
             if (v < 255)
@@ -192,13 +187,20 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
+        /// <inheritdoc/>.
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceEndDerivedExceptionSlice() => IceEndSlice(false);
 
+        /// <inheritdoc/>.
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceEndException() => IceEndSlice(true);
 
-        public override void IceEndSlice(bool lastSlice)
+        /// <summary>Marks the end of the encoding of a class slice.</summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceEndSlice(bool lastSlice)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -239,9 +241,13 @@ namespace IceRpc
             BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
         }
 
+        /// <inheritdoc/>.
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
             IceStartException(typeId, exception);
 
+        /// <inheritdoc/>.
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceStartException(string typeId, RemoteException exception)
         {
             Debug.Assert(_current.InstanceType == InstanceType.Exception);
@@ -256,7 +262,13 @@ namespace IceRpc
             }
         }
 
-        public override void IceStartFirstSlice(
+        /// <summary>Starts encoding the first slice of a class instance.</summary>
+        /// <param name="allTypeIds">The type IDs of all slices of the instance (excluding sliced-off slices), from
+        /// most derived to least derived.</param>
+        /// <param name="slicedData">The preserved sliced-off slices, if any.</param>
+        /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartFirstSlice(
             string[] allTypeIds,
             SlicedData? slicedData = null,
             int? compactTypeId = null)
@@ -298,7 +310,11 @@ namespace IceRpc
             }
         }
 
-        public override void IceStartNextSlice(string typeId, int? compactId = null)
+        /// <summary>Starts encoding the next (i.e. not first) slice of a class  instance.</summary>
+        /// <param name="typeId">The type ID of this slice.</param>
+        /// <param name="compactId">The compact ID of this slice, if any.</param>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void IceStartNextSlice(string typeId, int? compactId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -340,7 +356,10 @@ namespace IceRpc
             EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
         }
 
-        internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds)
+        /// <summary>Encodes sliced-off slices.</summary>
+        /// <param name="slicedData">The sliced-off slices to encode.</param>
+        /// <param name="baseTypeIds">The type IDs of less derived slices.</param>
+        internal void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 

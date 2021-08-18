@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -14,8 +15,6 @@ namespace IceRpc
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
     public class Ice20Decoder : IceDecoder
     {
-        internal override SlicedData? SlicedData => null;
-
         private readonly IClassFactory _classFactory;
 
         /// <summary>Decodes a field value.</summary>
@@ -38,9 +37,6 @@ namespace IceRpc
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return result;
         }
-
-        public override T DecodeClass<T>() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         public override RemoteException DecodeException()
         {
@@ -130,28 +126,27 @@ namespace IceRpc
 
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
+        /// <inheritdoc/>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceEndDerivedExceptionSlice() =>
             throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
 
+        /// <inheritdoc/>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceEndException()
         {
         }
 
-        public override void IceEndSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
-
+        /// <inheritdoc/>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceStartDerivedExceptionSlice() =>
             throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
 
+        /// <inheritdoc/>
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public override void IceStartException()
         {
         }
-
-        public override SlicedData? IceStartFirstSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
-
-        public override void IceStartNextSlice() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {

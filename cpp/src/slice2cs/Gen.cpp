@@ -1391,7 +1391,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder, bool firstSlice)";
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
@@ -1431,7 +1431,7 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder, bool firstSlice)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder, bool firstSlice)";
     _out << sb;
     _out << nl << "if (firstSlice)";
     _out << sb;
