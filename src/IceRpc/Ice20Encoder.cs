@@ -1,15 +1,16 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Encoder for the Ice 2.0 encoding.</summary>
-    internal class Ice20Encoder : IceEncoder
+    public class Ice20Encoder : IceEncoder
     {
         public override void EncodeClass(AnyClass v) =>
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");

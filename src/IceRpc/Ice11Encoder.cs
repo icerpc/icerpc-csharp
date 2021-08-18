@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -7,10 +8,10 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
-    internal class Ice11Encoder : IceEncoder
+    public class Ice11Encoder : IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
         private readonly FormatType _classFormat;
