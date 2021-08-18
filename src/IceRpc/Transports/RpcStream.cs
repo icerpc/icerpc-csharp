@@ -540,7 +540,7 @@ namespace IceRpc.Transports
                 ReplyStatus replyStatus;
                 if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
                 {
-                    replyStatus = decoder.DecodeReplyStatus(); // first byte of the payload
+                    replyStatus = buffer.Span[decoder.Pos].AsReplyStatus(); // first byte of the payload
                 }
                 else
                 {
