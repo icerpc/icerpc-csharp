@@ -120,7 +120,10 @@ namespace IceRpc
         /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
-            Debug.Assert(Connection != null);
+            if (Connection == null)
+            {
+                throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
+            }
 
             var identity = new Identity(this);
             if (identity.Name.Length == 0) // such identity means received a null proxy with the 1.1 encoding

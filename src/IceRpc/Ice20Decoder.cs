@@ -85,7 +85,10 @@ namespace IceRpc
         /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
-            Debug.Assert(Connection != null);
+            if (Connection == null)
+            {
+                throw new InvalidOperationException("cannot decode a proxy from an decoder with a null Connection");
+            }
 
             var proxyData = new ProxyData20(this);
 
