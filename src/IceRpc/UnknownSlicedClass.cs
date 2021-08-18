@@ -8,17 +8,13 @@ namespace IceRpc
     /// this type or any of its base classes (other than AnyClass).</summary>
     public sealed class UnknownSlicedClass : AnyClass
     {
-        /// <summary>Returns the most derived type ID this class instance.</summary>
-        /// <value>The type ID.</value>
-        public string TypeId => UnknownSlices[0].TypeId;
+        /// <inheritdoc/>
+        protected override ImmutableList<SliceInfo> IceUnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <inheritdoc/>
-        protected override ImmutableList<SliceInfo> IceUnknownSlices { get; set; } =
-            ImmutableList<SliceInfo>.Empty;
-
-        /// <inheritdoc/>
-        protected override void IceDecode(Ice11Decoder decoder, bool firstSlice) =>
-            UnknownSlices = decoder.UnknownSlices;
+        protected override void IceDecode(Ice11Decoder decoder, bool firstSlice)
+        {
+        }
 
         /// <inheritdoc/>
         protected override void IceEncode(Ice11Encoder encoder, bool firstSlice) =>
