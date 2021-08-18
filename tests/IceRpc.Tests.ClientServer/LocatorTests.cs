@@ -202,7 +202,7 @@ namespace IceRpc.Tests.ClientServer
             _pipeline.Use(next => new InlineInvoker(
                 (request, cancel) =>
                 {
-                    if (request.Proxy.Endpoint == null && request.Path == _greeter.Proxy.Path)
+                    if (request.Proxy!.Endpoint == null && request.Path == _greeter.Proxy.Path)
                     {
                         Assert.AreEqual(greeter.Proxy.Endpoint, request.Endpoint);
                         _called = true;

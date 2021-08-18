@@ -95,7 +95,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.DecodeFieldValue(decoder => new RetryPolicy(decoder));
+                retryPolicy = Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder));
             }
             return retryPolicy;
         }

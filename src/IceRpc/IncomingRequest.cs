@@ -1,9 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace IceRpc
 {
@@ -47,14 +46,31 @@ namespace IceRpc
             set => _stream = value;
         }
 
-        /// <summary>Create an outgoing request from this incoming request. The outgoing request is constructed
-        /// to be forwarded with the given proxy.</summary>
-        /// <param name="proxy">The proxy used to send to the outgoing request.</param>
+        private RpcStream? _stream;
+
+        /// <summary>Create an outgoing request from this incoming request. The outgoing request is
+        /// constructed to be forwarded with the given proxy. The <see cref="OutgoingRequest.Path"/> is set to
+        /// the target <see cref="Proxy.Path"/>.</summary>
+        /// <param name="targetProxy">The proxy used to send to the outgoing request.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
-        public OutgoingRequest ToOutgoingRequest(Proxy proxy)
+        public OutgoingRequest ToOutgoingRequest(Proxy targetProxy) =>
+            ToOutgoingRequest(targetProxy.Protocol, targetProxy: targetProxy);
+
+        /// <summary>Create an outgoing request from this incoming request. The outgoing request is
+        /// constructed to be forwarded with the given connection. The <see cref="OutgoingRequest.Path"/> is
+        /// set to <see cref="Path"/>.</summary>
+        /// <param name="targetConnection">The target connection.</param>
+        /// <returns>The outgoing request to be forwarded.</returns>
+        public OutgoingRequest ToOutgoingRequest(Connection targetConnection) =>
+            ToOutgoingRequest(targetConnection.Protocol, targetConnection: targetConnection);
+
+        private OutgoingRequest ToOutgoingRequest(
+            Protocol targetProtocol,
+            Connection? targetConnection = null,
+            Proxy? targetProxy = null)
         {
             IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
-            if (proxy.Protocol == Protocol && proxy.Protocol == Protocol.Ice2)
+            if (targetProtocol == Protocol && targetProtocol == Protocol.Ice2)
             {
                 fields = Fields;
             }
@@ -67,23 +83,21 @@ namespace IceRpc
 
             return new OutgoingRequest
             {
-                AltEndpoints = proxy.AltEndpoints,
-                Connection = Connection,
+                AltEndpoints = targetProxy?.AltEndpoints ?? ImmutableList<Endpoint>.Empty,
+                Connection = targetConnection ?? targetProxy?.Connection,
                 Deadline = Deadline,
-                Endpoint = proxy.Endpoint,
+                Endpoint = targetProxy?.Endpoint,
                 Features = Features,
                 FieldsDefaults = fields,
                 IsOneway = IsOneway,
                 IsIdempotent = IsIdempotent,
                 Operation = Operation,
-                Path = proxy.Path,
-                Protocol = proxy.Protocol,
-                Proxy = proxy,
+                Path = targetProxy?.Path ?? Path,
+                Protocol = targetProtocol,
+                Proxy = targetProxy,
                 PayloadEncoding = PayloadEncoding,
                 Payload = new ReadOnlyMemory<byte>[] { Payload } // TODO: temporary, should use GetPayloadAsync()
             };
         }
-
-        private RpcStream? _stream;
     }
 }

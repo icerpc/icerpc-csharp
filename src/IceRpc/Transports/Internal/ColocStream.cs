@@ -273,7 +273,7 @@ namespace IceRpc.Transports.Internal
                 else
                 {
                     Debug.Assert(expectedFrameType == buffer.Span[0]);
-                    (int size, int sizeLength) = buffer.Span[1..].DecodeSize20();
+                    (int size, int sizeLength) = Ice20Decoder.DecodeSize(buffer.Span[1..]);
                     return buffer.Slice(1 + sizeLength, size);
                 }
             }
