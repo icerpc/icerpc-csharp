@@ -1522,8 +1522,13 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         }
     }
 
-    _out << nl << "protected override string IceTypeId => _iceTypeId;";
-    _out << sp;
+    ExceptionPtr base = p->base();
+
+    if (!base)
+    {
+        _out << nl << "protected override string IceTopTypeId => _iceTypeId;";
+        _out << sp;
+    }
     _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
         << name << "))!;";
 
@@ -1624,7 +1629,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << eb;
 
     string scoped = p->scoped();
-    ExceptionPtr base = p->base();
 
     // Remote exceptions are always "preserved".
 

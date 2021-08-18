@@ -34,12 +34,12 @@ namespace IceRpc
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
-        /// <summary>The Ice type ID of this exception.</summary>
-        protected virtual string IceTypeId => SlicedData?.Slices[0].TypeId ?? "::IceRpc::RemoteException";
+        /// <summary>The Ice type ID of the top-level slice of this exception.</summary>
+        protected virtual string IceTopTypeId => SlicedData?.Slices[^1].TypeId ?? "::IceRpc::RemoteException";
 
         internal SlicedData? SlicedData { get; set; }
 
-        internal string TypeId => IceTypeId;
+        internal string TopTypeId => IceTopTypeId;
 
         private readonly bool _hasCustomMessage;
 

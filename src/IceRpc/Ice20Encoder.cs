@@ -18,7 +18,9 @@ namespace IceRpc
         {
             EncodeString(v.Message);
             v.Origin.Encode(this);
-            EncodeString(v.TypeId);
+
+            // We slice-off the exception to its top Slice if it's a derived exception
+            EncodeString(v.TopTypeId);
             v.EncodeTopSlice(this);
         }
 
