@@ -78,7 +78,6 @@ namespace IceRpc
 
         /// <summary>Decodes the top-level slice of a remote exception.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        // This implementation is only called on a plain RemoteException.
         protected virtual void IceDecodeTopSlice(IceDecoder decoder) => ConvertToUnhandled = true;
 
         /// <summary>Encodes a remote exception to the <see cref="Ice11Encoder"/>.</summary>
@@ -89,7 +88,6 @@ namespace IceRpc
 
         /// <summary>Encodes the top-level slice of a remote exception.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        // This implementation is only called on a plain RemoteException.
         protected virtual void IceEncodeTopSlice(IceEncoder encoder)
         {
         }

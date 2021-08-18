@@ -1646,7 +1646,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     }
     _out << eb;
 
-    if (!base)
+    if (!base && !dataMembers.empty())
     {
         _out << sp;
         _out << nl << "protected override void IceDecodeTopSlice(IceRpc.IceDecoder decoder)";
@@ -1677,7 +1677,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     }
     _out << eb;
 
-    if (!base)
+    if (!base && !dataMembers.empty())
     {
         _out << sp;
         _out << nl << "protected override void IceEncodeTopSlice(IceRpc.IceEncoder encoder)";
