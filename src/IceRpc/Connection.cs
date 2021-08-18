@@ -44,8 +44,7 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new ClientTransport().UseTcp().UseColoc();
 
-        /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
-        /// </summary>
+        /// <summary>Gets the class factory.</summary>
         public IClassFactory? ClassFactory => _options.ClassFactory;
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
@@ -160,7 +159,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Gets the remote exception factory used for instantiating remote exceptions.</summary>
+        /// <summary>Gets the remote exception factory.</summary>
         public IRemoteExceptionFactory? RemoteExceptionFactory => _options.RemoteExceptionFactory;
 
         /// <summary>The state of the connection.</summary>

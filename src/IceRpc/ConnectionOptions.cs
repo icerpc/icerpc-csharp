@@ -23,8 +23,8 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
-        /// </summary>
+        /// <summary>Gets or sets the factory used by <see cref="Ice11Decoder"/> to create classes and remote
+        /// exceptions.</summary>
         public IClassFactory? ClassFactory { get; set; }
 
         /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
@@ -81,8 +81,7 @@ namespace IceRpc
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
 
-        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
-        /// </summary>
+        /// <summary>Gets or sets the factory used by <see cref="Ice20Decoder"/> to create remote exceptions.</summary>
         public IRemoteExceptionFactory? RemoteExceptionFactory { get; set; }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
