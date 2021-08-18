@@ -38,6 +38,7 @@ namespace IceRpc
             return result;
         }
 
+        /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             string errorMessage = DecodeString();
@@ -72,9 +73,11 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         public override T? DecodeNullableClass<T>() where T : class =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
+        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             Debug.Assert(Connection != null);
@@ -124,6 +127,7 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
         /// <inheritdoc/>

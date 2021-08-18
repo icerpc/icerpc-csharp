@@ -59,6 +59,7 @@ namespace IceRpc
         // _typeIdMap[index - 1].
         private List<string>? _typeIdMap;
 
+        /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
@@ -97,6 +98,7 @@ namespace IceRpc
             return remoteEx;
         }
 
+        /// <inheritdoc/>
         public override T? DecodeNullableClass<T>() where T : class
         {
             AnyClass? obj = DecodeAnyClass();
@@ -115,6 +117,7 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
         {
             Debug.Assert(Connection != null);
@@ -244,6 +247,7 @@ namespace IceRpc
             }
         }
 
+        /// <inheritdoc/>
         public override int DecodeSize()
         {
             byte b = DecodeByte();
