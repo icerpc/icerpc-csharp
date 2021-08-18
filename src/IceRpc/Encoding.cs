@@ -1,19 +1,21 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
+
 namespace IceRpc
 {
     /// <summary>Encoding identifies the format (a.k.a. encoding) used to encode data into bytes. With IceRPC, it is
     /// usually the Ice 2.0 encoding named "2.0".</summary>
-    public sealed class Encoding : IEquatable<Encoding>
+    public class Encoding : IEquatable<Encoding>
     {
         /// <summary>Version 1.0 of the Ice encoding, supported by Ice but not by IceRPC.</summary>
         public static readonly Encoding Ice10 = new(Ice10Name);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Encoding Ice11 = new(Ice11Name);
+        public static readonly Encoding Ice11 = new Ice11Encoding();
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Encoding Ice20 = new(Ice20Name);
+        public static readonly Encoding Ice20 = new Ice20Encoding();
 
         /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
         public string Name { get; }
@@ -21,9 +23,9 @@ namespace IceRpc
         /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
         internal static readonly Encoding Unknown = new(UnknownName);
 
-        internal const string Ice11Name = "1.1";
-        internal const string Ice20Name = "2.0";
         private const string Ice10Name = "1.0";
+        private const string Ice11Name = "1.1";
+        private const string Ice20Name = "2.0";
         private const string UnknownName = "unknown";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -91,6 +93,26 @@ namespace IceRpc
                 _ => new Encoding($"{major}.{minor}")
             };
 
+        /// <summary>Creates an Ice decoder for this encoding.</summary>
+        /// <param name="buffer">The byte buffer.</param>
+        /// <param name="connection">The connection.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <returns>A new decoder for the specified Ice encoding.</returns>
+        internal virtual IceDecoder CreateIceDecoder(
+            ReadOnlyMemory<byte> buffer,
+            Connection? connection = null,
+            IInvoker? invoker = null,
+            IClassFactory? classFactory = null) =>
+            throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
+
+        /// <summary>Creates an Ice encoder for this encoding.</summary>
+        /// <param name="bufferWriter">The buffer writer.</param>
+        /// <param name="classFormat">The class format (ignored unless the encoding is 1.1).</param>
+        /// <returns>A new encoder for the specified Ice encoding.</returns>
+        internal virtual IceEncoder CreateIceEncoder(BufferWriter bufferWriter, FormatType classFormat = default) =>
+            throw new NotSupportedException($"cannot create Ice encoder for encoding {this}");
+
         /// <summary>Returns the major and minor byte versions of this encoding.</summary>
         /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
         /// </exception>
@@ -130,7 +152,42 @@ namespace IceRpc
             }
         }
 
-        private Encoding(string name) =>
-            Name = name;
+        private Encoding(string name) => Name = name;
+
+        private class Ice11Encoding : Encoding
+        {
+            internal Ice11Encoding()
+                : base(Ice11Name)
+            {
+            }
+
+            internal override IceDecoder CreateIceDecoder(
+                ReadOnlyMemory<byte> buffer,
+                Connection? connection = null,
+                IInvoker? invoker = null,
+                IClassFactory? classFactory = null) => new Ice11Decoder(buffer, connection, invoker, classFactory);
+
+            internal override IceEncoder CreateIceEncoder(
+                BufferWriter bufferWriter,
+                FormatType classFormat = default) => new Ice11Encoder(bufferWriter, classFormat);
+        }
+
+        private class Ice20Encoding : Encoding
+        {
+            internal Ice20Encoding()
+                : base(Ice20Name)
+            {
+            }
+
+            internal override IceDecoder CreateIceDecoder(
+                ReadOnlyMemory<byte> buffer,
+                Connection? connection = null,
+                IInvoker? invoker = null,
+                IClassFactory? classFactory = null) => new Ice20Decoder(buffer, connection, invoker, classFactory);
+
+            internal override IceEncoder CreateIceEncoder(
+                BufferWriter bufferWriter,
+                FormatType classFormat = default) => new Ice20Encoder(bufferWriter);
+        }
     }
 }
