@@ -47,7 +47,7 @@ namespace IceRpc
             RemoteException remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin) ??
                 new RemoteException(errorMessage, origin);
 
-            remoteEx.Decode(this);
+            remoteEx.DecodeTopSlice(this);
             return remoteEx;
         }
 

@@ -18,7 +18,8 @@ namespace IceRpc
         {
             EncodeString(v.Message);
             v.Origin.Encode(this);
-            v.Encode(this);
+            EncodeString(v.TypeId);
+            v.EncodeTopSlice(this);
         }
 
         /// <inheritdoc/>

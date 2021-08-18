@@ -1522,7 +1522,10 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         }
     }
 
-    _out << nl << "private readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof(" << name << "))!;";
+    _out << nl << "protected override string IceTypeId => _iceTypeId;";
+    _out << sp;
+    _out << nl << "private static readonly string _iceTypeId = IceRpc.TypeExtensions.GetIceTypeId(typeof("
+        << name << "))!;";
 
     // Up to 2 "one-shot" constructors
     for (int i = 0; i < 2; i++)
@@ -1626,52 +1629,63 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     // Remote exceptions are always "preserved".
 
     _out << sp;
-    _out << nl << "protected override void IceDecode(IceRpc.IceDecoder decoder)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
     if (base)
     {
         _out << nl << "decoder.IceStartDerivedExceptionSlice();";
-    }
-    else
-    {
-        _out << nl << "decoder.IceStartException();";
-        _out << nl << "ConvertToUnhandled = true;";
-    }
-    writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-    if (base)
-    {
+        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << nl << "decoder.IceEndDerivedExceptionSlice();";
         _out << nl << "base.IceDecode(decoder);";
     }
     else
     {
+        _out << nl << "decoder.IceStartException();";
+        _out << nl << "IceDecodeTopSlice(decoder);";
         _out << nl << "decoder.IceEndException();";
     }
     _out << eb;
 
+    if (!base)
+    {
+        _out << sp;
+        _out << nl << "protected override void IceDecodeTopSlice(IceRpc.IceDecoder decoder)";
+        _out << sb;
+        if (!base)
+        {
+            _out << nl << "ConvertToUnhandled = true;";
+        }
+        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
+    }
+
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.IceEncoder encoder)";
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
     if (base)
     {
         _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceTypeId, this);";
-    }
-    else
-    {
-        _out << nl << "encoder.IceStartException(_iceTypeId, this);";
-    }
-    writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-
-    if (base)
-    {
+        writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << nl << "encoder.IceEndDerivedExceptionSlice();"; // the current exception has a parent
         _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
+        _out << nl << "encoder.IceStartException(_iceTypeId, this);";
+        _out << nl << "IceEncodeTopSlice(encoder);";
         _out << nl << "encoder.IceEndException();"; // no Slice base exception
     }
     _out << eb;
+
+    if (!base)
+    {
+        _out << sp;
+        _out << nl << "protected override void IceEncodeTopSlice(IceRpc.IceEncoder encoder)";
+        _out << sb;
+        writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
+    }
+
     _out << eb;
 }
 

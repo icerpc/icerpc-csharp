@@ -34,7 +34,12 @@ namespace IceRpc
         /// overridden in derived partial exception classes that provide a custom default message.</summary>
         protected virtual string? DefaultMessage => null;
 
+        /// <summary>The Ice type ID of this exception.</summary>
+        protected virtual string IceTypeId => SlicedData?.Slices[0].TypeId ?? "::IceRpc::RemoteException";
+
         internal SlicedData? SlicedData { get; set; }
+
+        internal string TypeId => IceTypeId;
 
         private readonly bool _hasCustomMessage;
 
@@ -66,21 +71,33 @@ namespace IceRpc
             _hasCustomMessage = message != null;
         }
 
-        /// <summary>Decodes a remote exception from the <see cref="IceDecoder"/>. This base implementation is only
-        /// called on a plain RemoteException.</summary>
+        /// <summary>Decodes a remote exception from the <see cref="Ice11Decoder"/>.</summary>
         /// <param name="decoder">The Ice decoder.</param>
-        protected virtual void IceDecode(IceDecoder decoder) => ConvertToUnhandled = true;
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceDecode(Ice11Decoder decoder) => ConvertToUnhandled = true;
 
-        internal void Decode(IceDecoder decoder) => IceDecode(decoder);
+        /// <summary>Decodes the top-level slice of a remote exception.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceDecodeTopSlice(IceDecoder decoder) => ConvertToUnhandled = true;
 
-        /// <summary>Encodes a remote exception to the <see cref="IceEncoder"/>. This implementation can only be
-        /// called on a plain RemoteException with IceSlicedData set.</summary>
+        /// <summary>Encodes a remote exception to the <see cref="Ice11Encoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        // TODO: fix implementation
-        protected virtual void IceEncode(IceEncoder encoder) =>
-            ((Ice11Encoder)encoder).EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceEncode(Ice11Encoder encoder) =>
+            encoder.EncodeSlicedData(SlicedData!.Value, Array.Empty<string>());
 
-        internal void Encode(IceEncoder encoder) => IceEncode(encoder);
+        /// <summary>Encodes the top-level slice of a remote exception.</summary>
+        /// <param name="encoder">The Ice encoder.</param>
+        // This implementation is only called on a plain RemoteException.
+        protected virtual void IceEncodeTopSlice(IceEncoder encoder)
+        {
+        }
+
+        internal void Decode(Ice11Decoder decoder) => IceDecode(decoder);
+        internal void DecodeTopSlice(IceDecoder decoder) => IceDecodeTopSlice(decoder);
+        internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
+        internal void EncodeTopSlice(IceEncoder encoder) => IceEncodeTopSlice(encoder);
     }
 
     /// <summary>Provides public extensions methods for RemoteException instances.</summary>
