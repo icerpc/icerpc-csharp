@@ -2,19 +2,14 @@
 
 namespace IceRpc
 {
-    /// <summary>A class factory is responsible for creating class an exception instances from IceRPC type IDs and
+    /// <summary>A class factory is responsible for creating class and exception instances from Ice type IDs and
     /// compact IDs.</summary>
     public interface IClassFactory
     {
-        /// <summary>Creates a class instance for the given type ID or compact ID.</summary>
+        /// <summary>Creates a class or exception instance for the given type ID or compact ID.</summary>
         /// <param name="typeId">The type ID or compact ID.</param>
         /// <returns>A new instance or null if the factory doesn't know the type ID/compact ID.</returns>
-        AnyClass? CreateClassInstance(string typeId);
-
-        /// <summary>Creates a remote exception instance for the given type ID.</summary>
-        /// <param name="typeId">The remote exception type ID.</param>
-        /// <returns>A new instance or null if the factory doesn't know the type ID.</returns>
-        RemoteException? CreateRemoteException(string typeId);
+        object? Create(string typeId);
 
         /// <summary>Creates a remote exception instance for the given type ID.</summary>
         /// <param name="typeId">The remote exception type ID.</param>

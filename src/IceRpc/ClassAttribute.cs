@@ -32,15 +32,16 @@ namespace IceRpc
         /// Slice class or exception.</summary>
         public Type Type { get; }
 
-        /// <summary>A <see cref="ClassFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
-        internal Func<AnyClass> ClassFactory
+        /// <summary>A factory delegate to create instances of <see cref="Type"/>.</summary>
+        internal Func<object> Factory
         {
             get
             {
                 // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
-                if (_classFactory == null)
+                if (_factory == null)
                 {
-                    Debug.Assert(typeof(AnyClass).IsAssignableFrom(Type));
+                    Debug.Assert(typeof(AnyClass).IsAssignableFrom(Type) ||
+                                 typeof(RemoteException).IsAssignableFrom(Type));
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
@@ -51,38 +52,10 @@ namespace IceRpc
                         throw new InvalidOperationException($"cannot get 1.1 constructor for '{Type.FullName}'");
                     }
 
-                    _classFactory = Expression.Lambda<Func<AnyClass>>(
+                    _factory = Expression.Lambda<Func<object>>(
                         Expression.New(constructor, Expression.Constant(null, typeof(Ice11Decoder)))).Compile();
                 }
-                return _classFactory;
-            }
-        }
-
-        /// <summary>An exception factory delegate to create instances of <see cref="Type"/>.</summary>
-        internal Func<RemoteException> ExceptionFactory11
-        {
-            get
-            {
-                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
-                if (_exceptionFactory11 == null)
-                {
-                    Debug.Assert(typeof(RemoteException).IsAssignableFrom(Type));
-
-                    ConstructorInfo? constructor = Type.GetConstructor(
-                        BindingFlags.Instance | BindingFlags.Public,
-                        null,
-                        new Type[] { typeof(Ice11Decoder) },
-                        null);
-
-                    if (constructor == null)
-                    {
-                        throw new InvalidOperationException($"cannot get 1.1 constructor for '{Type.FullName}'");
-                    }
-
-                    _exceptionFactory11 = Expression.Lambda<Func<RemoteException>>(
-                        Expression.New(constructor, Expression.Constant(null, typeof(Ice11Decoder)))).Compile();
-                }
-                return _exceptionFactory11;
+                return _factory;
             }
         }
 
@@ -122,8 +95,8 @@ namespace IceRpc
             }
         }
 
-        private Func<AnyClass>? _classFactory;
-        private Func<RemoteException>? _exceptionFactory11;
+        private Func<object>? _factory;
+
         private Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>? _exceptionFactory20;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
