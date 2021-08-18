@@ -1401,10 +1401,6 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     _out << nl << "if (firstSlice)";
     _out << sb;
     _out << nl << "encoder.IceStartFirstSlice(IceTypeId";
-    if (preserved || basePreserved)
-    {
-        _out << ", IceUnknownSlices";
-    }
     if (p->compactId() >= 0)
     {
         _out << ", compactTypeId: _compactTypeId";

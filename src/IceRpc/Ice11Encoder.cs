@@ -36,6 +36,13 @@ namespace IceRpc
             Debug.Assert(_current.InstanceType == InstanceType.None);
             Debug.Assert(_classFormat == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
+            _current.FirstSlice = true;
+
+            if (v.UnknownSlices.Count > 0)
+            {
+                EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
+                _current.FirstSlice = false;
+            }
             v.Encode(this);
             _current = default;
         }
@@ -51,8 +58,8 @@ namespace IceRpc
             {
                 if (_current.InstanceType != InstanceType.None && _classFormat == FormatType.Sliced)
                 {
-                    // If encoding an instance within a slice and using the sliced format, encode an index of that slice's
-                    // indirection table.
+                    // If encoding an instance within a slice and using the sliced format, encode an index of that
+                    // slice's indirection table.
                     if (_current.IndirectionMap != null && _current.IndirectionMap.TryGetValue(v, out int index))
                     {
                         // Found, index is position in indirection table + 1
@@ -241,7 +248,7 @@ namespace IceRpc
             if (_current.FirstSlice)
             {
                 _current.FirstSlice = false;
-                IceStartFirstSlice(typeId, exception.UnknownSlices);
+                IceStartFirstSlice(typeId);
             }
             else
             {
@@ -251,36 +258,13 @@ namespace IceRpc
 
         /// <summary>Starts encoding the first slice of a class instance.</summary>
         /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="unknownSlices">The preserved sliced-off slices, if any.</param>
         /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartFirstSlice(
-            string typeId,
-            ImmutableList<SliceInfo>? unknownSlices = null,
-            int? compactTypeId = null)
+        public void IceStartFirstSlice(string typeId, int? compactTypeId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
-            if (unknownSlices is ImmutableList<SliceInfo> unknownSlicesValue && unknownSlicesValue.Count > 0)
-            {
-                bool firstSliceWritten = false;
-                try
-                {
-                    // EncodeUnknownSlices calls IceStartFirstSlice.
-                    EncodeUnknownSlices(unknownSlicesValue, fullySliced: false);
-                    firstSliceWritten = true;
-                }
-                catch (NotSupportedException)
-                {
-                    // For some reason we could not re-encode the sliced data; firstSliceWritten remains false.
-                }
-                if (firstSliceWritten)
-                {
-                    IceStartNextSlice(typeId, compactTypeId);
-                    return;
-                }
-                // else keep going, we're still encoding the first slice and we're ignoring unknownSlices.
-            }
+            _current.FirstSlice = false;
 
             if (_classFormat == FormatType.Sliced)
             {
@@ -455,7 +439,13 @@ namespace IceRpc
                 InstanceData previousCurrent = _current;
                 _current = default;
                 _current.InstanceType = InstanceType.Class;
+                _current.FirstSlice = true;
 
+                if (v.UnknownSlices.Count > 0 && _classFormat == FormatType.Sliced)
+                {
+                    EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
+                    _current.FirstSlice = false;
+                }
                 v.Encode(this);
 
                 // Restore previous _current.
@@ -532,7 +522,7 @@ namespace IceRpc
 
             // The following fields are used for the current slice:
 
-            internal bool FirstSlice; // for now, used only for exceptions
+            internal bool FirstSlice;
 
             // The indirection map and indirection table are only used for the sliced format.
             internal Dictionary<AnyClass, int>? IndirectionMap;
