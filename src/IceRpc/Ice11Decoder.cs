@@ -79,9 +79,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = _classFactory.CreateRemoteException(typeId,
-                                                               message: null,
-                                                               origin: RemoteExceptionOrigin.Unknown);
+                remoteEx = _classFactory.CreateRemoteException(typeId);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -89,7 +87,7 @@ namespace IceRpc
             }
             while (remoteEx == null);
 
-            remoteEx ??= new RemoteException(message: null, origin: RemoteExceptionOrigin.Unknown);
+            remoteEx ??= new RemoteException();
             remoteEx.SlicedData = SlicedData;
 
             _current.FirstSlice = true;

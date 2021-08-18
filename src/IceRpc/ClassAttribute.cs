@@ -44,55 +44,87 @@ namespace IceRpc
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
-                        new Type[] { typeof(IceDecoder) },
+                        new Type[] { typeof(Ice11Decoder) },
                         null);
                     if (constructor == null)
                     {
-                        throw new InvalidOperationException($"cannot get unmarshal constructor for '{Type.FullName}'");
+                        throw new InvalidOperationException($"cannot get 1.1 constructor for '{Type.FullName}'");
                     }
 
                     _classFactory = Expression.Lambda<Func<AnyClass>>(
-                        Expression.New(constructor, Expression.Constant(null, typeof(IceDecoder)))).Compile();
+                        Expression.New(constructor, Expression.Constant(null, typeof(Ice11Decoder)))).Compile();
                 }
                 return _classFactory;
             }
         }
 
-        /// <summary>A <see cref="ExceptionFactory"/> delegate to create instances of <see cref="Type"/>.</summary>
-        internal Func<string?, RemoteExceptionOrigin, RemoteException> ExceptionFactory
+        /// <summary>An exception factory delegate to create instances of <see cref="Type"/>.</summary>
+        internal Func<RemoteException> ExceptionFactory11
         {
             get
             {
                 // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
-                if (_exceptionFactory == null)
+                if (_exceptionFactory11 == null)
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(Type));
 
                     ConstructorInfo? constructor = Type.GetConstructor(
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
-                        new Type[] { typeof(string), typeof(RemoteExceptionOrigin) },
+                        new Type[] { typeof(Ice11Decoder) },
                         null);
 
                     if (constructor == null)
                     {
-                        throw new InvalidOperationException($"cannot get unmarshal constructor for '{Type.FullName}'");
+                        throw new InvalidOperationException($"cannot get 1.1 constructor for '{Type.FullName}'");
+                    }
+
+                    _exceptionFactory11 = Expression.Lambda<Func<RemoteException>>(
+                        Expression.New(constructor, Expression.Constant(null, typeof(Ice11Decoder)))).Compile();
+                }
+                return _exceptionFactory11;
+            }
+        }
+
+        /// <summary>An exception delegate to create instances of <see cref="Type"/>.</summary>
+        internal Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException> ExceptionFactory20
+        {
+            get
+            {
+                // The factory is lazy initialize to avoid creating a delegate each time the property is accessed
+                if (_exceptionFactory20 == null)
+                {
+                    Debug.Assert(typeof(RemoteException).IsAssignableFrom(Type));
+
+                    ConstructorInfo? constructor = Type.GetConstructor(
+                        BindingFlags.Instance | BindingFlags.Public,
+                        null,
+                        new Type[] { typeof(string), typeof(RemoteExceptionOrigin), typeof(Ice20Decoder) },
+                        null);
+
+                    if (constructor == null)
+                    {
+                        throw new InvalidOperationException($"cannot get 2.0 constructor for '{Type.FullName}'");
                     }
 
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
                     ParameterExpression originParam = Expression.Parameter(typeof(RemoteExceptionOrigin), "origin");
+                    ParameterExpression decoderParam = Expression.Parameter(typeof(Ice20Decoder), "decoder");
 
-                    _exceptionFactory = Expression.Lambda<Func<string?, RemoteExceptionOrigin, RemoteException>>(
-                        Expression.New(constructor, messageParam, originParam),
-                        messageParam,
-                        originParam).Compile();
+                    _exceptionFactory20 =
+                        Expression.Lambda<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>(
+                            Expression.New(constructor, messageParam, originParam, decoderParam),
+                            messageParam,
+                            originParam,
+                            decoderParam).Compile();
                 }
-                return _exceptionFactory;
+                return _exceptionFactory20;
             }
         }
 
         private Func<AnyClass>? _classFactory;
-        private Func<string?, RemoteExceptionOrigin, RemoteException>? _exceptionFactory;
+        private Func<RemoteException>? _exceptionFactory11;
+        private Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>? _exceptionFactory20;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
         /// <param name="type">The type of the concrete class to register.</param>

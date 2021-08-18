@@ -44,11 +44,10 @@ namespace IceRpc
             string errorMessage = DecodeString();
             var origin = new RemoteExceptionOrigin(this);
             string typeId = DecodeString();
-            RemoteException? remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+            RemoteException? remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin, this);
             if (remoteEx != null)
             {
-                remoteEx.Decode(this);
-                SkipTaggedParams();
+                SkipTaggedParams(); // TODO: revisit
             }
             // else we can't decode this exception so we return a plain RemoteException with the error message and
             // origin instead of throwing "can't decode remote exception".

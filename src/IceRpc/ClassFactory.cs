@@ -16,7 +16,8 @@ namespace IceRpc
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
 
         private readonly IReadOnlyDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache;
-        private readonly IReadOnlyDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache;
+        private readonly IReadOnlyDictionary<string, Lazy<Func<RemoteException>>> _typeIdExceptionFactoryCache11;
+        private readonly IReadOnlyDictionary<string, Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>> _typeIdExceptionFactoryCache20;
 
         /// <summary>Constructs a factory for instances of classes with the <see cref="ClassAttribute"/> attribute
         /// provided in the specified <para>assemblies</para>.The types from IceRpc assembly are always implicitly
@@ -28,8 +29,9 @@ namespace IceRpc
             assemblies = assemblies.Concat(new Assembly[] { typeof(ClassFactory).Assembly }).Distinct();
 
             var typeIdClassFactoryCache = new Dictionary<string, Lazy<Func<AnyClass>>>();
-            var typeIdExceptionFactoryCache =
-                new Dictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>>();
+            var typeIdExceptionFactoryCache11 = new Dictionary<string, Lazy<Func<RemoteException>>>();
+            var typeIdExceptionFactoryCache20 =
+                new Dictionary<string, Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>>();
 
             IEnumerable<ClassAttribute> attributes =
                 assemblies.SelectMany(assembly => assembly.GetCustomAttributes<ClassAttribute>());
@@ -47,22 +49,31 @@ namespace IceRpc
                 else
                 {
                     Debug.Assert(typeof(RemoteException).IsAssignableFrom(attribute.Type));
-                    typeIdExceptionFactoryCache.Add(attribute.TypeId, new(() => attribute.ExceptionFactory));
+                    typeIdExceptionFactoryCache11.Add(attribute.TypeId, new(() => attribute.ExceptionFactory11));
+                    typeIdExceptionFactoryCache20.Add(attribute.TypeId, new(() => attribute.ExceptionFactory20));
                 }
             }
             _typeIdClassFactoryCache = typeIdClassFactoryCache;
-            _typeIdExceptionFactoryCache = typeIdExceptionFactoryCache;
+            _typeIdExceptionFactoryCache11 = typeIdExceptionFactoryCache11;
+            _typeIdExceptionFactoryCache20 = typeIdExceptionFactoryCache20;
         }
 
-        /// <inheritdoc/>
-        public AnyClass? CreateClassInstance(string typeId) =>
+        AnyClass? IClassFactory.CreateClassInstance(string typeId) =>
             _typeIdClassFactoryCache.TryGetValue(typeId, out Lazy<Func<AnyClass>>? factory) ? factory.Value() : null;
 
-        /// <inheritdoc/>
-        public RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin) =>
-            _typeIdExceptionFactoryCache.TryGetValue(
+        RemoteException? IClassFactory.CreateRemoteException(string typeId) =>
+            _typeIdExceptionFactoryCache11.TryGetValue(
                 typeId,
-                out Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>? factory) ?
-            factory.Value(message, origin) : null;
+                out Lazy<Func<RemoteException>>? factory) ? factory.Value() : null;
+
+        RemoteException? IClassFactory.CreateRemoteException(
+            string typeId,
+            string message,
+            RemoteExceptionOrigin origin,
+            Ice20Decoder decoder) =>
+            _typeIdExceptionFactoryCache20.TryGetValue(
+                typeId,
+                out Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>? factory) ?
+            factory.Value(message, origin, decoder) : null;
     }
 }

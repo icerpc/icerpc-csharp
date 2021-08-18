@@ -126,22 +126,11 @@ namespace IceRpc.Internal
                         throw new InvalidDataException("received ice1 optionalFacet with too many elements");
                     }
 
-                    if (replyStatus == ReplyStatus.OperationNotExistException)
-                    {
-                        systemException = new OperationNotFoundException(
-                            message: null,
-                            new RemoteExceptionOrigin(
-                                requestFailed.IdentityAndFacet.ToPath(),
-                                requestFailed.Operation));
-                    }
-                    else
-                    {
-                        systemException = new ServiceNotFoundException(
-                            message: null,
-                            new RemoteExceptionOrigin(
-                                requestFailed.IdentityAndFacet.ToPath(),
-                                requestFailed.Operation));
-                    }
+                    systemException = replyStatus == ReplyStatus.OperationNotExistException ?
+                        new OperationNotFoundException() : new ServiceNotFoundException();
+
+                    systemException.Origin = new RemoteExceptionOrigin(requestFailed.IdentityAndFacet.ToPath(),
+                                                                       requestFailed.Operation);
                     break;
 
                 default:

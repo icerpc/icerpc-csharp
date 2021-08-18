@@ -1607,18 +1607,38 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << eb;
     }
 
-    // public constructor used for unmarshaling (always generated).
+    // public constructor used for Ice 1.1 decoding (always generated).
     _out << sp;
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(string? message, IceRpc.RemoteExceptionOrigin origin)";
-    // We call the base class constructor to initialize the base class fields.
-    _out.inc();
-    _out << nl << ": base(message, origin)";
-    _out.dec();
+    _out << nl << "public " << name << "(IceRpc.Ice11Decoder? decoder)";
+    if (base)
+    {
+        _out.inc();
+        _out << nl << ": base(decoder)";
+        _out.dec();
+    }
     _out << sb;
     writeSuppressNonNullableWarnings(dataMembers, Slice::ExceptionType);
     _out << eb;
+
+    if (!base)
+    {
+        // public constructor used for Ice 2.0 decoding
+        _out << sp;
+        _out << nl << "/// <inherit-doc/>";
+        emitEditorBrowsableNeverAttribute();
+        _out << nl << "public " << name
+             << "(string message, IceRpc.RemoteExceptionOrigin origin, IceRpc.Ice20Decoder decoder)";
+        // We call the base class constructor to initialize the base class fields.
+        _out.inc();
+        _out << nl << ": base(message, origin)";
+        _out.dec();
+        _out << sb;
+        _out << nl << "ConvertToUnhandled = true;";
+        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
+    }
 
     string scoped = p->scoped();
 
@@ -1635,19 +1655,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << nl << "base.IceDecode(decoder);";
     }
     _out << eb;
-
-    if (!base && !dataMembers.empty())
-    {
-        _out << sp;
-        _out << nl << "protected override void IceDecode(IceRpc.Ice20Decoder decoder)";
-        _out << sb;
-        if (!base)
-        {
-            _out << nl << "ConvertToUnhandled = true;";
-        }
-        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << eb;
-    }
 
     _out << sp;
     _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";

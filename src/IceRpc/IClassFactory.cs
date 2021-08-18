@@ -13,9 +13,19 @@ namespace IceRpc
 
         /// <summary>Creates a remote exception instance for the given type ID.</summary>
         /// <param name="typeId">The remote exception type ID.</param>
-        /// <param name="origin">The remote exception origin.</param>
-        /// <param name="message">The exception message.</param>
         /// <returns>A new instance or null if the factory doesn't know the type ID.</returns>
-        RemoteException? CreateRemoteException(string typeId, string? message, RemoteExceptionOrigin origin);
+        RemoteException? CreateRemoteException(string typeId);
+
+        /// <summary>Creates a remote exception instance for the given type ID.</summary>
+        /// <param name="typeId">The remote exception type ID.</param>
+        /// <param name="message">The exception message.</param>
+        /// <param name="origin">The remote exception origin.</param>
+        /// <param name="decoder">The Ice decoder.</param>
+        /// <returns>A new instance or null if the factory doesn't know the type ID.</returns>
+        RemoteException? CreateRemoteException(
+            string typeId,
+            string message,
+            RemoteExceptionOrigin origin,
+            Ice20Decoder decoder);
     }
 }

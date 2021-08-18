@@ -40,7 +40,7 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception with the default system message.</summary>
         /// <param name="retryPolicy">The retry policy for the exception.</param>
-        protected RemoteException(RetryPolicy retryPolicy = default) => RetryPolicy = retryPolicy;
+        protected internal RemoteException(RetryPolicy retryPolicy = default) => RetryPolicy = retryPolicy;
 
         /// <summary>Constructs a remote exception with the provided message and inner exception.</summary>
         /// <param name="message">Message that describes the exception.</param>
