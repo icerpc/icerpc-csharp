@@ -293,7 +293,7 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Starts encoding the next (i.e. not first) slice of a class  instance.</summary>
+        /// <summary>Starts encoding the next (i.e. not first) slice of a class instance.</summary>
         /// <param name="typeId">The type ID of this slice.</param>
         /// <param name="compactId">The compact ID of this slice, if any.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
