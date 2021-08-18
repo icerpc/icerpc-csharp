@@ -86,27 +86,32 @@ namespace IceRpc.Internal
             Capacity = _currentBuffer.Length;
         }
 
+        /// <summary>Add memory buffers to the underlying buffer vector. Small buffers are copied to the last
+        /// buffer from the underlying vector if it's not full.</summary>
+        /// <param name="buffers">The buffers to add.</param>
         internal void Add(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
-            // Coalesce small payload buffers at the end of the current buffer
-            int payloadIndex = 0;
-            while (payloadIndex < buffers.Length && buffers.Span[payloadIndex].Length <= Capacity - Size)
+            // Coalesce small buffers at the end of the current buffer
+            int index = 0;
+            while (index < buffers.Length && buffers.Span[index].Length <= Capacity - Size)
             {
-                WriteByteSpan(buffers.Span[payloadIndex++].Span);
+                WriteByteSpan(buffers.Span[index++].Span);
             }
 
+            // Terminate the last buffer.
             if (_bufferVector.Length > 0)
             {
                 _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
             }
 
-            if (payloadIndex < buffers.Length)
+            // Add remaining buffers if any
+            if (index < buffers.Length)
             {
-                var newBuffers = new ReadOnlyMemory<byte>[_bufferVector.Length + buffers.Length - payloadIndex];
+                var newBuffers = new ReadOnlyMemory<byte>[_bufferVector.Length + buffers.Length - index];
                 _bufferVector.CopyTo(newBuffers);
-                foreach (ReadOnlyMemory<byte> memory in buffers.Span[payloadIndex..])
+                foreach (ReadOnlyMemory<byte> memory in buffers.Span[index..])
                 {
-                    newBuffers[_bufferVector.Length + payloadIndex++] = memory;
+                    newBuffers[_bufferVector.Length + index++] = memory;
                     Size += memory.Length;
                 }
                 _bufferVector = newBuffers;
