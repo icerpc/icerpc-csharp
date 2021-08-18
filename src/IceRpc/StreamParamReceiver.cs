@@ -200,12 +200,12 @@ namespace IceRpc
                         }
 
                         // Read the remainder of the size if needed.
-                        int sizeLength = buffer.Span[1].DecodeSizeLength20();
+                        int sizeLength = Ice20Decoder.DecodeSizeLength(buffer.Span[1]);
                         if (sizeLength > 1)
                         {
                             await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), false, cancel).ConfigureAwait(false);
                         }
-                        int size = buffer[1..].AsReadOnlySpan().DecodeSize20().Size;
+                        int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
 
                         if (size > _connection.IncomingFrameMaxSize)
                         {
@@ -225,7 +225,10 @@ namespace IceRpc
                         yield break; // finish iteration
                     }
 
-                    var decoder = new IceDecoder(buffer, _encoding, _connection, _invoker, _connection.ClassFactory);
+                    var decoder = _encoding.CreateIceDecoder(buffer,
+                                                             _connection,
+                                                             _invoker,
+                                                             _connection.ClassFactory);
                     T value = default!;
                     do
                     {

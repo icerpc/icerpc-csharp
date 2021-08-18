@@ -33,9 +33,9 @@ namespace IceRpc
         internal IncomingResponse(Protocol protocol, ReadOnlyMemory<byte> data)
             : base(protocol)
         {
-            var decoder = new IceDecoder(data, Protocol.GetEncoding());
             if (Protocol == Protocol.Ice1)
             {
+                var decoder = new Ice11Decoder(data);
                 ReplyStatus = decoder.DecodeReplyStatus();
                 ResultType = ReplyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
 
@@ -63,6 +63,7 @@ namespace IceRpc
             }
             else
             {
+                var decoder = new Ice20Decoder(data);
                 Debug.Assert(Protocol == Protocol.Ice2);
                 int headerSize = decoder.DecodeSize();
                 int startPos = decoder.Pos;
@@ -144,7 +145,7 @@ namespace IceRpc
             }
             else if (Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
             {
-                retryPolicy = value.DecodeFieldValue(decoder => new RetryPolicy(decoder));
+                retryPolicy = Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder));
             }
             return retryPolicy;
         }

@@ -16,7 +16,7 @@ namespace IceRpc.Transports
         /// <param name="decoder">The Ice decoder.</param>
         /// <returns>The decoded endpoint, or null if this endpoint decoder does not handle this transport code.
         /// </returns>
-        Endpoint? DecodeEndpoint(TransportCode transportCode, IceDecoder decoder);
+        internal Endpoint? DecodeEndpoint(TransportCode transportCode, Ice11Decoder decoder);
     }
 
     /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
@@ -55,7 +55,7 @@ namespace IceRpc.Transports
                     builder.ToDictionary(entry => entry.Key.TransportName, entry => entry.Value as IEndpointEncoder);
             }
 
-            Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder) =>
+            Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, Ice11Decoder decoder) =>
                 _endpointDecoders.TryGetValue(transportCode, out IEndpointDecoder? endpointDecoder) ?
                     endpointDecoder.DecodeEndpoint(transportCode, decoder) : null;
 
@@ -116,13 +116,8 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IEndpointCodex"/> for the tcp transport.</summary>
     public sealed class TcpEndpointCodex : IEndpointCodex
     {
-        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, Ice11Decoder decoder)
         {
-            if (decoder.Encoding != Encoding.Ice11)
-            {
-                throw new InvalidOperationException();
-            }
-
             if (transportCode == TransportCode.TCP || transportCode == TransportCode.SSL)
             {
                 string host = decoder.DecodeString();
@@ -178,13 +173,8 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IEndpointCodex"/> for the udp transport.</summary>
     public sealed class UdpEndpointCodex : IEndpointCodex
     {
-        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, IceDecoder decoder)
+        Endpoint? IEndpointDecoder.DecodeEndpoint(TransportCode transportCode, Ice11Decoder decoder)
         {
-            if (decoder.Encoding != Encoding.Ice11)
-            {
-                throw new InvalidOperationException();
-            }
-
             if (transportCode == TransportCode.UDP)
             {
                 string host = decoder.DecodeString();

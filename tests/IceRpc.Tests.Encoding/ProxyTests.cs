@@ -43,7 +43,7 @@ namespace IceRpc.Tests.Encoding
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
             var encoding = IceRpc.Encoding.FromString(encodingStr);
-            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
+            var encoder = encoding.CreateIceEncoder(_bufferWriter);
 
             var proxy = Proxy.Parse(str);
             encoder.EncodeProxy(proxy);
@@ -51,7 +51,7 @@ namespace IceRpc.Tests.Encoding
 
             await using var connection = new Connection();
 
-            var decoder = new IceDecoder(data, encoding, connection, invoker: null);
+            var decoder = encoding.CreateIceDecoder(data, connection, invoker: null);
             var proxy2 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(proxy, proxy2);
@@ -69,12 +69,12 @@ namespace IceRpc.Tests.Encoding
             var regular = Proxy.FromConnection(_connection, "/bar");
 
             // Marshal the endpointless proxy
-            var encoder = Payload.CreateIceEncoder(encoding, _bufferWriter);
+            var encoder = encoding.CreateIceEncoder(_bufferWriter);
             encoder.EncodeProxy(endpointLess);
             ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 
             // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            var decoder = new IceDecoder(data, encoding, _connection);
+            var decoder = encoding.CreateIceDecoder(data, _connection);
             var proxy1 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
 

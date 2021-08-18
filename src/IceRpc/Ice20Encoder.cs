@@ -1,28 +1,33 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc
 {
     /// <summary>Encoder for the Ice 2.0 encoding.</summary>
-    internal class Ice20Encoder : IceEncoder
+    public class Ice20Encoder : IceEncoder
     {
-        public override void EncodeClass(AnyClass v) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
+        /// <inheritdoc/>
         public override void EncodeException(RemoteException v)
         {
             EncodeString(v.Message);
             v.Origin.Encode(this);
+
+            // We slice-off the exception to its top Slice if it's a derived exception
             v.Encode(this);
         }
+
+        /// <inheritdoc/>
         public override void EncodeNullableClass(AnyClass? v) =>
             throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
+        /// <inheritdoc/>
         public override void EncodeNullableProxy(Proxy? proxy)
         {
             if (proxy == null)
@@ -32,57 +37,30 @@ namespace IceRpc.Internal
             }
             else
             {
-                EncodeProxy(proxy);
+                if (proxy.Connection?.IsServer ?? false)
+                {
+                    throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
+                }
+
+                var proxyData = new ProxyData20(
+                    proxy.Path,
+                    protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
+                    encoding: proxy.Encoding == proxy.Protocol.GetEncoding() ? null : proxy.Encoding.ToString(),
+                    endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
+                        endpoint.ToEndpointData() : null,
+                    altEndpoints:
+                            proxy.AltEndpoints.Count == 0 ? null :
+                                proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
+
+                proxyData.Encode(this);
             }
         }
 
-        public override void EncodeProxy(Proxy proxy)
-        {
-            if (proxy.Connection?.IsServer ?? false)
-            {
-                throw new InvalidOperationException("cannot encode a proxy bound to a server connection");
-            }
-
-            var proxyData = new ProxyData20(
-                   proxy.Path,
-                   protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
-                   encoding: proxy.Encoding == proxy.Protocol.GetEncoding() ? null : proxy.Encoding.ToString(),
-                   endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
-                       endpoint.ToEndpointData() : null,
-                   altEndpoints:
-                        proxy.AltEndpoints.Count == 0 ? null :
-                            proxy.AltEndpoints.Select(e => e.ToEndpointData()).ToArray());
-
-            proxyData.Encode(this);
-        }
-
+        /// <inheritdoc/>
         public override void EncodeSize(int v) => EncodeVarULong((ulong)v);
 
+        /// <inheritdoc/>
         public override int GetSizeLength(int size) => Ice20Encoder.GetSizeLength(size);
-
-        public override void IceEndException()
-        {
-        }
-
-        public override void IceEndDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
-
-        public override void IceEndSlice(bool lastSlice) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
-        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
-            throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
-
-        public override void IceStartException(string typeId, RemoteException exception) => EncodeString(typeId);
-
-        public override void IceStartFirstSlice(
-            string[] allTypeIds,
-            SlicedData? slicedData = null,
-            int? compactTypeId = null) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
-        public override void IceStartNextSlice(string typeId, int? compactId = null) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>
@@ -148,9 +126,6 @@ namespace IceRpc.Internal
             encodeAction(this, value);
             EndFixedLengthSize(pos, 2);
         }
-
-        internal override void EncodeSlicedData(SlicedData slicedData, string[] baseTypeIds) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a fixed-length size). The size does not include its own encoded length.

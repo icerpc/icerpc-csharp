@@ -14,6 +14,7 @@ namespace IceRpc
         /// <seealso cref="Assembly.GetEntryAssembly"/>
         public static ClassFactory Default { get; } = new ClassFactory(
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
+
         private readonly IReadOnlyDictionary<string, Lazy<Func<AnyClass>>> _typeIdClassFactoryCache;
         private readonly IReadOnlyDictionary<string, Lazy<Func<string?, RemoteExceptionOrigin, RemoteException>>> _typeIdExceptionFactoryCache;
 
