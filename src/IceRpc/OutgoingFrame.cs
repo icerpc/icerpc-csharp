@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -16,23 +17,18 @@ namespace IceRpc
         {
             get
             {
-                if (_fields == null)
+                if (FieldsOverrides == null)
                 {
                     if (Protocol == Protocol.Ice1)
                     {
                         throw new NotSupportedException("ice1 does not support header fields");
                     }
 
-                    _fields = new Dictionary<int, Action<IceEncoder>>();
+                    FieldsOverrides = new Dictionary<int, Action<IceEncoder>>();
                 }
-                return _fields;
+                return FieldsOverrides;
             }
         }
-
-        /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
-        /// there is no corresponding entry in <see cref="Fields"/>.</summary>
-        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
-              ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The features of this frame.</summary>
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
@@ -72,11 +68,17 @@ namespace IceRpc
         /// compress a stream parameter or return value.</summary>
         public Func<System.IO.Stream, (CompressionFormat, System.IO.Stream)>? StreamCompressor { get; set; }
 
+        /// <summary>Returns the defaults fields set during construction of this frame. The fields are used only when
+        /// there is no corresponding entry in <see cref="FieldsOverrides"/>.</summary>
+        internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> FieldsDefaults { get; private protected init; } =
+              ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
+
+        /// <summary>Returns the fields set on the frame.</summary>
+        internal Dictionary<int, Action<IceEncoder>>? FieldsOverrides;
+
         /// <summary>The stream param sender, if the request or response has a stream param. The sender is called
         /// after the request or response frame is sent over the stream.</summary>
         internal IStreamParamSender? StreamParamSender { get; set; }
-
-        private Dictionary<int, Action<IceEncoder>>? _fields;
 
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
@@ -89,7 +91,7 @@ namespace IceRpc
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>
         internal IReadOnlyDictionary<int, ReadOnlyMemory<byte>> GetAllFields()
         {
-            if (_fields == null)
+            if (FieldsOverrides == null)
             {
                 return FieldsDefaults;
             }
@@ -98,59 +100,37 @@ namespace IceRpc
                 // Need to marshal/unmarshal these fields
                 var bufferWriter = new BufferWriter();
                 var encoder = new Ice20Encoder(bufferWriter);
-                EncodeFields(encoder);
+                encoder.EncodeFields(FieldsOverrides, FieldsDefaults);
                 return bufferWriter.Finish().ToSingleBuffer().DecodeFieldValue(
                     decoder => decoder.DecodeFieldDictionary());
             }
         }
 
-        /// <summary>Encodes the header of a frame. This header does not include the frame's prologue.</summary>
-        /// <param name="encoder">The Ice encoder.</param>
-        internal abstract void EncodeHeader(IceEncoder encoder);
+        internal void SendStreamParam(RpcStream stream)
+        {
+            Debug.Assert(StreamParamSender != null);
+            _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        StreamParamSender.SendAsync(stream, StreamCompressor);
+                    }
+                    catch
+                    {
+                    }
+                },
+                default);
+        }
 
-        private protected OutgoingFrame(Protocol protocol, FeatureCollection features, IStreamParamSender? streamParamSender)
+        private protected OutgoingFrame(
+            Protocol protocol,
+            FeatureCollection features,
+            IStreamParamSender? streamParamSender)
         {
             Protocol = protocol;
             Protocol.CheckSupported();
             Features = features;
             StreamParamSender = streamParamSender;
-        }
-
-        private protected void EncodeFields(Ice20Encoder encoder)
-        {
-            Debug.Assert(Protocol == Protocol.Ice2);
-
-            // can be larger than necessary, which is fine
-            int sizeLength = Ice20Encoder.GetSizeLength(FieldsDefaults.Count + (_fields?.Count ?? 0));
-
-            BufferWriter.Position start = encoder.StartFixedLengthSize(sizeLength);
-
-            int count = 0; // the number of fields
-
-            // First encode the fields then the remaining FieldsDefaults.
-
-            if (_fields is Dictionary<int, Action<IceEncoder>> fields)
-            {
-                foreach ((int key, Action<IceEncoder> action) in fields)
-                {
-                    encoder.EncodeVarInt(key);
-                    BufferWriter.Position startValue = encoder.StartFixedLengthSize(2);
-                    action(encoder);
-                    encoder.EndFixedLengthSize(startValue, 2);
-                    count++;
-                }
-            }
-            foreach ((int key, ReadOnlyMemory<byte> value) in FieldsDefaults)
-            {
-                if (_fields == null || !_fields.ContainsKey(key))
-                {
-                    encoder.EncodeVarInt(key);
-                    encoder.EncodeSize(value.Length);
-                    encoder.BufferWriter.WriteByteSpan(value.Span);
-                    count++;
-                }
-            }
-            encoder.EncodeFixedLengthSize(count, start, sizeLength);
         }
     }
 }

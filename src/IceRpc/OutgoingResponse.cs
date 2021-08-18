@@ -69,14 +69,10 @@ namespace IceRpc
             ReplyStatus = response.ReplyStatus;
 
             PayloadEncoding = response.PayloadEncoding;
-            var payload = new List<ReadOnlyMemory<byte>>();
-
-            ReadOnlyMemory<byte> incomingResponsePayload = response.Payload; // TODO: temporary
 
             if (Protocol == response.Protocol)
             {
-                payload.Add(incomingResponsePayload);
-
+                Payload = new ReadOnlyMemory<byte>[] { response.Payload };
                 if (Protocol == Protocol.Ice2 && forwardFields)
                 {
                     // Don't forward RetryPolicy
@@ -99,27 +95,22 @@ namespace IceRpc
                         Debug.Assert(response.Protocol == Protocol.Ice2);
 
                         // We slice-off the reply status that is part of the ice2 payload.
-                        payload.Add(incomingResponsePayload[1..]);
+                        Payload = new ReadOnlyMemory<byte>[] { response.Payload[1..] };
                     }
                     else
                     {
                         Debug.Assert(Protocol == Protocol.Ice2);
                         Debug.Assert(response.Protocol == Protocol.Ice1);
-
                         // Prepend a little buffer in front of the ice2 response payload to hold the reply status
                         // TODO: we don't want little buffers!
-                        byte[] buffer = new byte[1];
-                        buffer[0] = (byte)ReplyStatus;
-                        payload.Add(buffer);
-                        payload.Add(incomingResponsePayload);
+                        Payload = new ReadOnlyMemory<byte>[] { new byte[1], response.Payload };
                     }
                 }
                 else
                 {
-                    payload.Add(incomingResponsePayload);
+                    Payload = new ReadOnlyMemory<byte>[] { response.Payload };
                 }
             }
-            Payload = payload.ToArray();
         }
 
         /// <summary>Constructs a response that represents a failure and contains an exception.</summary>
@@ -133,10 +124,9 @@ namespace IceRpc
             PayloadEncoding = request.PayloadEncoding;
             (Payload, ReplyStatus) = IceRpc.Payload.FromRemoteException(request, exception);
 
-            if (Protocol == Protocol.Ice2 && exception.RetryPolicy.Retryable != Retryable.No)
+            RetryPolicy retryPolicy = exception.RetryPolicy;
+            if (retryPolicy.Retryable != Retryable.No && Protocol == Protocol.Ice2)
             {
-                RetryPolicy retryPolicy = exception.RetryPolicy;
-
                 Fields.Add(
                     (int)Ice2FieldKey.RetryPolicy,
                     encoder =>
@@ -152,39 +142,6 @@ namespace IceRpc
 
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingResponse(this);
-
-        /// <inheritdoc/>
-        internal override void EncodeHeader(IceEncoder encoder)
-        {
-            if (Protocol == Protocol.Ice2)
-            {
-                var ice20Encoder = (Ice20Encoder)encoder;
-
-                BufferWriter.Position startPos = ice20Encoder.StartFixedLengthSize(2);
-                new Ice2ResponseHeaderBody(
-                    ResultType,
-                    PayloadEncoding == Ice2Definitions.Encoding ? null :
-                        PayloadEncoding.ToString()).Encode(ice20Encoder);
-                EncodeFields(ice20Encoder);
-                ice20Encoder.EncodeSize(PayloadSize);
-                ice20Encoder.EndFixedLengthSize(startPos, 2);
-            }
-            else
-            {
-                Debug.Assert(Protocol == Protocol.Ice1);
-
-                encoder.EncodeReplyStatus(ReplyStatus);
-                if (ReplyStatus <= ReplyStatus.UserException)
-                {
-                    (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
-
-                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: PayloadSize + 6,
-                                                                encodingMajor,
-                                                                encodingMinor);
-                    responseHeader.Encode(encoder);
-                }
-            }
-        }
 
         private OutgoingResponse(
             Protocol protocol,

@@ -28,9 +28,6 @@ namespace IceRpc.Transports.Internal
             bool endStream,
             CancellationToken cancel)
         {
-            // This method is used for sending validation connection and close connection messages on the control
-            // stream. It's not used for sending requests/responses, SendFrameAsync is used instead.
-            Debug.Assert(IsControl);
             await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
             if (endStream)
             {
@@ -81,51 +78,6 @@ namespace IceRpc.Transports.Internal
             }
 
             return frame;
-        }
-
-        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel)
-        {
-            if (frame.StreamParamSender != null)
-            {
-                throw new NotSupportedException("stream parameters are not supported with ice1");
-            }
-
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter);
-            bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
-            encoder.EncodeIce1FrameType(frame is OutgoingRequest ? Ice1FrameType.Request : Ice1FrameType.Reply);
-            encoder.EncodeByte(0); // compression status
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
-
-            // Note: we don't write the request ID here if the stream ID is not allocated yet. We want to allocate
-            // it from the send queue to ensure requests are sent in the same order as the request ID values.
-            encoder.EncodeInt(IsStarted ? RequestId : 0);
-            frame.EncodeHeader(encoder);
-
-            encoder.EncodeFixedLengthSize(bufferWriter.Size + frame.PayloadSize, start); // frame size
-
-            // Coalesce small payload buffers at the end of the current header buffer
-            int payloadIndex = 0;
-            while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= bufferWriter.Capacity - bufferWriter.Size)
-            {
-                bufferWriter.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
-            }
-
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish(); // only headers so far
-
-            if (payloadIndex < frame.Payload.Length)
-            {
-                // Need to append the remaining payload buffers
-                var newBuffers = new ReadOnlyMemory<byte>[buffers.Length + frame.Payload.Length - payloadIndex];
-                buffers.CopyTo(newBuffers);
-                frame.Payload[payloadIndex..].CopyTo(newBuffers.AsMemory(buffers.Length));
-                buffers = newBuffers;
-            }
-
-            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
-
-            TrySetWriteCompleted();
         }
 
         private protected override Task SendResetFrameAsync(RpcStreamError errorCode) => Task.CompletedTask;

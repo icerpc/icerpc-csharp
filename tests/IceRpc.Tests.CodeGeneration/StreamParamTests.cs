@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Configure;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
@@ -11,7 +12,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [Timeout(30000)]
     [Parallelizable(ParallelScope.All)]
-    [TestFixture("slic")]
+    // [TestFixture("slic")]
     [TestFixture("coloc")]
     public sealed class StreamParamTests : IAsyncDisposable
     {
@@ -25,19 +26,24 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         {
             _sendBuffer = new byte[256];
             new Random().NextBytes(_sendBuffer);
-            _servant = new StreamParamOperations(_sendBuffer);
 
+            _servant = new StreamParamOperations(_sendBuffer);
+            var router = new Router();
+            router.Map<IStreamParamOperations>(_servant);
+            router.UseLogger(LogAttributeLoggerFactory.Instance);
             _server = new Server
             {
-                Dispatcher = _servant,
+                Dispatcher = router,
                 Endpoint = transport == "coloc" ?
                     TestHelper.GetUniqueColocEndpoint(Protocol.Ice2) :
                     TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
             };
-
             _server.Listen();
+
             _connection = new Connection { RemoteEndpoint = _server.Endpoint };
-            _prx = StreamParamOperationsPrx.FromConnection(_connection);
+            var pipeline = new Pipeline();
+            pipeline.UseLogger(LogAttributeLoggerFactory.Instance);
+            _prx = StreamParamOperationsPrx.FromConnection(_connection, invoker: pipeline);
         }
 
         [TearDown]
@@ -151,7 +157,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamMyStructSend0Async(MyStructEnumerable(semaphore, 100, v1));
-            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
@@ -255,6 +261,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
         }
 
         [Test]
+        [Log(LogAttributeLevel.Debug)]
         public async Task StreamParam_Receive_AnotherStruct()
         {
             AnotherStruct v1 = GetAnotherStruct(1);

@@ -207,6 +207,36 @@ namespace IceRpc.Transports.Internal
             return (IncomingResponse)frame;
         }
 
+        internal override async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel)
+        {
+            await _connection.SendFrameAsync(
+                this,
+                request.ToIncoming(),
+                endStream: request.StreamParamSender == null,
+                cancel).ConfigureAwait(false);
+
+            // If there's a stream param sender, we can start sending the data.
+            if (request.StreamParamSender != null)
+            {
+                request.SendStreamParam(this);
+            }
+        }
+
+        internal override async  ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel)
+        {
+            await _connection.SendFrameAsync(
+                this,
+                response.ToIncoming(),
+                endStream: response.StreamParamSender == null,
+                cancel).ConfigureAwait(false);
+
+            // If there's a stream param sender, we can start sending the data.
+            if (response.StreamParamSender != null)
+            {
+                response.SendStreamParam(this);
+            }
+        }
+
         private protected override async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             byte expectedFrameType,
             CancellationToken cancel)
@@ -237,13 +267,6 @@ namespace IceRpc.Transports.Internal
                 return Memory<byte>.Empty;
             }
         }
-
-        private protected override async ValueTask SendFrameAsync(OutgoingFrame frame, CancellationToken cancel) =>
-            await _connection.SendFrameAsync(
-                this,
-                frame.ToIncoming(),
-                endStream: frame.StreamParamSender == null,
-                cancel).ConfigureAwait(false);
 
         private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
             _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();

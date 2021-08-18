@@ -1,10 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace IceRpc
 {
@@ -120,60 +117,6 @@ namespace IceRpc
 
         /// <inheritdoc/>
         internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
-
-        /// <inheritdoc/>
-        internal override void EncodeHeader(IceEncoder encoder)
-        {
-            IDictionary<string, string> context = Features.GetContext();
-
-            if (Protocol == Protocol.Ice2)
-            {
-                Ice20Encoder ice20Encoder = (Ice20Encoder)encoder;
-
-                BufferWriter.Position start = ice20Encoder.StartFixedLengthSize(2);
-
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                var requestHeaderBody = new Ice2RequestHeaderBody(
-                    Path,
-                    Operation,
-                    idempotent: IsIdempotent ? true : null,
-                    priority: null,
-                    deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString());
-
-                requestHeaderBody.Encode(ice20Encoder);
-
-                if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
-                {
-                    // Encodes context
-                    Fields[(int)Ice2FieldKey.Context] =
-                        encoder => encoder.EncodeDictionary(context,
-                                                            (encoder, value) => encoder.EncodeString(value),
-                                                            (encoder, value) => encoder.EncodeString(value));
-                }
-                // else context remains empty (not set)
-
-                EncodeFields(ice20Encoder);
-                ice20Encoder.EncodeSize(PayloadSize);
-                ice20Encoder.EndFixedLengthSize(start, 2);
-            }
-            else
-            {
-                Debug.Assert(Protocol == Protocol.Ice1);
-                (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
-
-                var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(Path),
-                    Operation,
-                    IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    context,
-                    encapsulationSize: PayloadSize + 6,
-                    encodingMajor,
-                    encodingMinor);
-                requestHeader.Encode(encoder);
-            }
-        }
 
         private OutgoingRequest(
             Proxy proxy,

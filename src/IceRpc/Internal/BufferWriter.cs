@@ -86,6 +86,38 @@ namespace IceRpc.Internal
             Capacity = _currentBuffer.Length;
         }
 
+        internal void Add(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        {
+            // Coalesce small payload buffers at the end of the current buffer
+            int payloadIndex = 0;
+            while (payloadIndex < buffers.Length && buffers.Span[payloadIndex].Length <= Capacity - Size)
+            {
+                WriteByteSpan(buffers.Span[payloadIndex++].Span);
+            }
+
+            if (_bufferVector.Length > 0)
+            {
+                _bufferVector.Span[^1] = _bufferVector.Span[^1].Slice(0, _tail.Offset);
+            }
+
+            if (payloadIndex < buffers.Length)
+            {
+                var newBuffers = new ReadOnlyMemory<byte>[_bufferVector.Length + buffers.Length - payloadIndex];
+                _bufferVector.CopyTo(newBuffers);
+                foreach (ReadOnlyMemory<byte> memory in buffers.Span[payloadIndex..])
+                {
+                    newBuffers[_bufferVector.Length + payloadIndex++] = memory;
+                    Size += memory.Length;
+                }
+                _bufferVector = newBuffers;
+                Capacity = Size;
+            }
+
+            _tail.Buffer = _bufferVector.Length;
+            _tail.Offset = _bufferVector.Span[^1].Length;
+            _currentBuffer = default;
+        }
+
         /// <summary>Returns the distance in bytes from start position to the tail position.</summary>
         /// <param name="start">The start position from where to calculate distance to the tail position.</param>
         /// <returns>The distance in bytes from the start position to the tail position.</returns>
