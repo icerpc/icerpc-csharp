@@ -240,51 +240,11 @@ namespace IceRpc
             BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
         }
 
-        /// <summary>Marks the start of the encoding of an exception slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartExceptionSlice(string typeId, RemoteException exception)
-        {
-            Debug.Assert(_current.InstanceType == InstanceType.Exception);
-            if (_current.FirstSlice)
-            {
-                _current.FirstSlice = false;
-                IceStartFirstSlice(typeId);
-            }
-            else
-            {
-                IceStartNextSlice(typeId);
-            }
-        }
-
-        /// <summary>Starts encoding the first slice of a class instance.</summary>
+        /// <summary>Marks the start of the encoding of a class or remote exception slice.</summary>
         /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="compactTypeId ">The compact ID of this slice, if any.</param>
+        /// <param name="compactId ">The compact ID of this slice, if any.</param>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartFirstSlice(string typeId, int? compactTypeId = null)
-        {
-            Debug.Assert(_current.InstanceType != InstanceType.None);
-
-            _current.FirstSlice = false;
-
-            if (_classFormat == FormatType.Sliced)
-            {
-                // With the 1.1 encoding in sliced format, all the slice headers are the same.
-                IceStartNextSlice(typeId, compactTypeId);
-            }
-            else
-            {
-                _current.SliceFlags = default;
-                _current.SliceFlagsPos = BufferWriter.Tail;
-                EncodeByte(0); // Placeholder for the slice flags
-                EncodeTypeId(typeId, compactTypeId);
-            }
-        }
-
-        /// <summary>Starts encoding the next (i.e. not first) slice of a class instance.</summary>
-        /// <param name="typeId">The type ID of this slice.</param>
-        /// <param name="compactId">The compact ID of this slice, if any.</param>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartNextSlice(string typeId, int? compactId = null)
+        public void IceStartSlice(string typeId, int? compactId = null)
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
@@ -298,6 +258,15 @@ namespace IceRpc
                 // Encode the slice size if using the sliced format.
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
                 _current.SliceSizePos = StartFixedLengthSize();
+            }
+            else if (_current.FirstSlice)
+            {
+                EncodeTypeId(typeId, compactId);
+            }
+
+            if (_current.FirstSlice)
+            {
+                _current.FirstSlice = false;
             }
         }
 
@@ -358,8 +327,7 @@ namespace IceRpc
                     }
                 }
 
-                // With the 1.1 encoding in sliced format, IceStartNextSlice is the same as IceStartFirstSlice.
-                IceStartNextSlice(sliceInfo.TypeId, compactId);
+                IceStartSlice(sliceInfo.TypeId, compactId);
 
                 // Writes the bytes associated with this slice.
                 BufferWriter.WriteByteSpan(sliceInfo.Bytes.Span);

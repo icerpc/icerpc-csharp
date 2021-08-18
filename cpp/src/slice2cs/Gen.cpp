@@ -1396,33 +1396,21 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     }
 
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder, bool firstSlice)";
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
-    _out << nl << "if (firstSlice)";
-    _out << sb;
-    _out << nl << "encoder.IceStartFirstSlice(IceTypeId";
-    if (p->compactId() >= 0)
-    {
-        _out << ", compactTypeId: _compactTypeId";
-    }
-    _out << ");";
-    _out << eb;
-    _out << nl << "else";
-    _out << sb;
-    _out << nl << "encoder.IceStartNextSlice(IceTypeId";
+    _out << nl << "encoder.IceStartSlice(IceTypeId";
     if (p->compactId() >= 0)
     {
         _out << ", _compactTypeId";
     }
     _out << ");";
-    _out << eb;
 
     writeMarshalDataMembers(members, ns, 0);
 
     if(base)
     {
         _out << nl << "encoder.IceEndSlice(false);";
-        _out << nl << "base.IceEncode(encoder, false);";
+        _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
@@ -1646,7 +1634,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
-    _out << nl << "encoder.IceStartExceptionSlice(_iceTypeId, this);";
+    _out << nl << "encoder.IceStartSlice(_iceTypeId);";
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     if (base)
     {

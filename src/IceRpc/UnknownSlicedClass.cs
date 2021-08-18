@@ -9,7 +9,6 @@ namespace IceRpc
     public sealed class UnknownSlicedClass : AnyClass
     {
         /// <inheritdoc/>
-        // stores the unknown slices set during decoding
         protected override ImmutableList<SliceInfo> IceUnknownSlices { get; set; } = ImmutableList<SliceInfo>.Empty;
 
         /// <inheritdoc/>
@@ -18,7 +17,7 @@ namespace IceRpc
         }
 
         /// <inheritdoc/>
-        protected override void IceEncode(Ice11Encoder encoder, bool firstSlice) =>
+        protected override void IceEncode(Ice11Encoder encoder) =>
             encoder.EncodeUnknownSlices(UnknownSlices, fullySliced: true);
 
         internal UnknownSlicedClass()
