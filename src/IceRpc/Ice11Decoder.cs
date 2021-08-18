@@ -264,15 +264,7 @@ namespace IceRpc
             return size;
         }
 
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndDerivedExceptionSlice() => IceEndException();
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndException() => IceEndSlice();
-
-        /// <summary>Tells the decoder the end of a class was reached.</summary>
+        /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
@@ -292,13 +284,9 @@ namespace IceRpc
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>Marks the start of the decoding of an exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartDerivedExceptionSlice() => IceStartException();
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartException()
+        public void IceStartExceptionSlice()
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
             if (_current.FirstSlice)

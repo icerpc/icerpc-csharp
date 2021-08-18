@@ -190,15 +190,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
-        /// <inheritdoc/>.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndDerivedExceptionSlice() => IceEndSlice(false);
-
-        /// <inheritdoc/>.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndException() => IceEndSlice(true);
-
-        /// <summary>Marks the end of the encoding of a class slice.</summary>
+        /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice(bool lastSlice)
         {
@@ -241,14 +233,9 @@ namespace IceRpc
             BufferWriter.RewriteByte((byte)_current.SliceFlags, _current.SliceFlagsPos);
         }
 
-        /// <inheritdoc/>.
+        /// <summary>Marks the start of the encoding of an exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
-            IceStartException(typeId, exception);
-
-        /// <inheritdoc/>.
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartException(string typeId, RemoteException exception)
+        public void IceStartExceptionSlice(string typeId, RemoteException exception)
         {
             Debug.Assert(_current.InstanceType == InstanceType.Exception);
             if (_current.FirstSlice)

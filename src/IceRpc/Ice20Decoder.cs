@@ -130,28 +130,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndException()
-        {
-        }
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot decode a derived exception with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartException()
-        {
-        }
-
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
             ulong size = (from[0] & 0x03) switch

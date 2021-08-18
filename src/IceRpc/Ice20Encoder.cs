@@ -61,26 +61,6 @@ namespace IceRpc
         /// <inheritdoc/>
         public override int GetSizeLength(int size) => Ice20Encoder.GetSizeLength(size);
 
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndException()
-        {
-        }
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceEndDerivedExceptionSlice() =>
-            throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartDerivedExceptionSlice(string typeId, RemoteException exception) =>
-            throw new NotSupportedException("cannot encode a derived exception with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public override void IceStartException(string typeId, RemoteException exception) => EncodeString(typeId);
-
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
         /// <param name="size">The size to encode.</param>
         /// <param name="into">The destination byte buffer, which must be 1, 2, 4 or 8 bytes long.</param>

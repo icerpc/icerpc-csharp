@@ -1631,18 +1631,17 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
+    _out << nl << "decoder.IceStartExceptionSlice();";
     if (base)
     {
-        _out << nl << "decoder.IceStartDerivedExceptionSlice();";
         writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << nl << "decoder.IceEndDerivedExceptionSlice();";
+        _out << nl << "decoder.IceEndSlice();";
         _out << nl << "base.IceDecode(decoder);";
     }
     else
     {
-        _out << nl << "decoder.IceStartException();";
         _out << nl << "IceDecodeTopSlice(decoder);";
-        _out << nl << "decoder.IceEndException();";
+        _out << nl << "decoder.IceEndSlice();";
     }
     _out << eb;
 
@@ -1662,18 +1661,17 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
+    _out << nl << "encoder.IceStartExceptionSlice(_iceTypeId, this);";
     if (base)
     {
-        _out << nl << "encoder.IceStartDerivedExceptionSlice(_iceTypeId, this);";
         writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << nl << "encoder.IceEndDerivedExceptionSlice();"; // the current exception has a parent
+        _out << nl << "encoder.IceEndSlice(lastSlice: false);"; // the current exception has a parent
         _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
-        _out << nl << "encoder.IceStartException(_iceTypeId, this);";
         _out << nl << "IceEncodeTopSlice(encoder);";
-        _out << nl << "encoder.IceEndException();"; // no Slice base exception
+        _out << nl << "encoder.IceEndSlice(lastSlice: true);"; // no Slice base exception
     }
     _out << eb;
 

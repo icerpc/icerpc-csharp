@@ -787,24 +787,6 @@ namespace IceRpc
         /// <returns>The minimum number of bytes.</returns>
         public abstract int GetSizeLength(int size);
 
-        // Logically internal methods that are marked public because they are called by the generated code.
-
-        /// <summary>Marks the end of the encoding of a derived exception slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndDerivedExceptionSlice();
-
-        /// <summary>Marks the end of the encoding of a top-level exception.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndException();
-
-        /// <summary>Marks the start of the encoding of a derived exception slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartDerivedExceptionSlice(string typeId, RemoteException exception);
-
-        /// <summary>Marks the start of the encoding of a top-level exception.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartException(string typeId, RemoteException exception);
-
         internal static void EncodeInt(int v, Span<byte> into) => MemoryMarshal.Write(into, ref v);
 
         /// <summary>Encodes a size on 4 bytes at the specified position.</summary>

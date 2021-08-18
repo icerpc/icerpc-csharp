@@ -864,24 +864,6 @@ namespace IceRpc
             return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
         }
 
-        // Logically internal methods that are marked public because they are called by the generated code.
-
-        /// <summary>Marks the end of the decoding of a derived exception slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndDerivedExceptionSlice();
-
-        /// <summary>Marks the end of the decoding of a top-level exception.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceEndException();
-
-        /// <summary>Marks the start of the decoding of a derived exception slice.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartDerivedExceptionSlice();
-
-        /// <summary>Marks the start of the decoding of a top-level exception.</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public abstract void IceStartException();
-
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
