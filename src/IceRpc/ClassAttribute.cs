@@ -40,7 +40,7 @@ namespace IceRpc
                     if (constructor == null)
                     {
                         throw new InvalidOperationException(
-                            $"cannot get constructor for '{Type.FullName}' for Ice 1.1 decoding");
+                            $"cannot get Ice 1.1 decoding constructor for '{Type.FullName}'");
                     }
 
                     _factory = Expression.Lambda<Func<object>>(

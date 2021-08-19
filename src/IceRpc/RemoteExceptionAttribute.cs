@@ -35,7 +35,7 @@ namespace IceRpc
                     if (constructor == null)
                     {
                         throw new InvalidOperationException(
-                            $"cannot get constructor for '{Type.FullName}' for Ice 2.0 decoding");
+                            $"cannot get Ice 2.0 decoding constructor for '{Type.FullName}'");
                     }
 
                     ParameterExpression messageParam = Expression.Parameter(typeof(string), "message");
