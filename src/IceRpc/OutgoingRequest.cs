@@ -67,6 +67,7 @@ namespace IceRpc
 
         private RpcStream? _stream;
 
+        /// <summary>Constructs an outgoing request.</summary>
         public OutgoingRequest(Protocol protocol, string path, string operation)
         {
             Protocol = protocol;

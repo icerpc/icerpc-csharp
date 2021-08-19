@@ -85,10 +85,8 @@ namespace IceRpc
                 }
             }
 
-            return new OutgoingResponse
+            return new OutgoingResponse(targetProtocol, ResultType, ReplyStatus)
             {
-                ResultType = ResultType,
-                ReplyStatus = ReplyStatus,
                 FieldsDefaults = fields ?? ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
                 Payload = payload, // TODO: temporary, should use GetPayloadAsync()
                 PayloadEncoding = PayloadEncoding,

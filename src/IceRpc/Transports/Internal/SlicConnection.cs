@@ -15,7 +15,7 @@ namespace IceRpc.Transports.Internal
         public override TimeSpan IdleTimeout
         {
             get => _idleTimeout;
-            internal set => throw new NotSupportedException("setting IdleTimeout is not supported with Slic");
+            protected set => throw new NotSupportedException("setting IdleTimeout is not supported with Slic");
         }
 
         internal int PacketMaxSize { get; }

@@ -17,7 +17,7 @@ namespace IceRpc.Transports
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
-        public abstract TimeSpan IdleTimeout { get; internal set; }
+        public abstract TimeSpan IdleTimeout { get; protected set; }
 
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }

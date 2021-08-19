@@ -19,6 +19,14 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; init; }
 
+        /// <summary>Constructs an outgoing response.</summary>
+        public OutgoingResponse(Protocol protocol, ResultType resultType, ReplyStatus? replyStatus = null)
+        {
+            Protocol = protocol;
+            ReplyStatus = replyStatus ?? (resultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException);
+            ResultType = resultType;
+        }
+
         /// <summary>Constructs a successful response that contains a payload.</summary>
         /// <param name="request">The incoming request for which this method creates a response.</param>
         /// <param name="payload">The exception to store into the response's payload.</param>
@@ -26,13 +34,10 @@ namespace IceRpc
         public static OutgoingResponse ForPayload(
             IncomingRequest request,
             ReadOnlyMemory<ReadOnlyMemory<byte>> payload) =>
-            new()
+            new(request.Protocol, ResultType.Success)
             {
                 Payload = payload,
                 PayloadEncoding = request.PayloadEncoding,
-                Protocol = request.Protocol,
-                ReplyStatus = ReplyStatus.OK,
-                ResultType = ResultType.Success,
             };
 
         /// <summary>Constructs a failure response that contains an exception.</summary>
@@ -44,13 +49,10 @@ namespace IceRpc
             (ReadOnlyMemory<ReadOnlyMemory<byte>> payload, ReplyStatus replyStatus) =
                 IceRpc.Payload.FromRemoteException(request, exception);
 
-            var response = new OutgoingResponse
+            var response = new OutgoingResponse(request.Protocol, ResultType.Failure, replyStatus)
             {
                 Payload = payload,
                 PayloadEncoding = request.PayloadEncoding,
-                Protocol = request.Protocol,
-                ReplyStatus = replyStatus,
-                ResultType = ResultType.Failure,
             };
 
             RetryPolicy retryPolicy = exception.RetryPolicy;

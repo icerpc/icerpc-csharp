@@ -228,18 +228,18 @@ namespace IceRpc.Tests.Internal
             CreateOutgoingResponse(outgoingRequest.ToIncoming()).ToIncoming();
 
         private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
-            new OutgoingRequest(Protocol.Ice2, path: "/dummy", operation: "foo")
+            new(Protocol.Ice2, path: "/dummy", operation: "foo")
             {
                 Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false),
                 IsOneway = !twoway,
-                Payload = new ReadOnlyMemory[] { new byte[15] },
+                Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
                 PayloadEncoding = Encoding.Ice20
             };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest incomingRequest) =>
-            new OutgoingResponse(Protocol.Ice2, ResultType.Success)
+            new(Protocol.Ice2, ResultType.Success)
             {
-                Payload = new byte[10],
+                Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
                 PayloadEncoding = Encoding.Ice20,
             };
     }

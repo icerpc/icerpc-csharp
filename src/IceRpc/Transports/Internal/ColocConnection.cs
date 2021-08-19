@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
         public override TimeSpan IdleTimeout
         {
             get => Timeout.InfiniteTimeSpan;
-            internal set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
+            protected set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
         }
 
         public override bool IsDatagram => false;
