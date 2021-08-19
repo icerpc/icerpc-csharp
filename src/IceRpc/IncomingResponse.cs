@@ -19,6 +19,22 @@ namespace IceRpc
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
         public ResultType ResultType { get; init; }
 
+        /// <summary>Constructs an incoming frame.</summary>
+        public IncomingResponse(Protocol protocol, ResultType resultType, ReplyStatus? replyStatus = null)
+        {
+            Protocol = protocol;
+            ReplyStatus = replyStatus ?? (resultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException);
+            ResultType = resultType;
+        }
+
+        /// <summary>Constructs an Ice1 incoming frame.</summary>
+        public IncomingResponse(Protocol protocol, ReplyStatus replyStatus)
+        {
+            Protocol = protocol;
+            ReplyStatus = replyStatus;
+            ResultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+        }
+
         /// <summary>Create an outgoing response from this incoming response. The response is constructed to be
         /// forwarded using the given target protocol.</summary>
         /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>

@@ -116,6 +116,10 @@ namespace IceRpc.Internal
 
                 _tail.Buffer = _bufferVector.Length;
                 _tail.Offset = _bufferVector.Span[^1].Length;
+
+                // It's fine to set this to default when there's no space left in the buffer vector. It's only
+                // used by Write methods that always call Expand first. Expand will re-assign _currentBuffer
+                // where there's no space left.
                 _currentBuffer = default;
             }
         }

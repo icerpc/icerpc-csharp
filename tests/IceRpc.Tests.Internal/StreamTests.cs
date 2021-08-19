@@ -172,10 +172,8 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task Stream_SendReceiveRequestAsync(int size)
         {
-            var request = new OutgoingRequest
+            var request = new OutgoingRequest(Protocol.Ice2, path: "/dummy", operation: "op")
             {
-                Operation = "op",
-                Path = "/dummy",
                 Payload = new ReadOnlyMemory<byte>[] { new byte[size] },
                 PayloadEncoding = Encoding.Ice20,
             };

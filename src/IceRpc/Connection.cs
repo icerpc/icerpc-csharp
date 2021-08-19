@@ -500,11 +500,8 @@ namespace IceRpc
                 IncomingResponse response;
                 if (request.IsOneway)
                 {
-                    response = new IncomingResponse
+                    response = new IncomingResponse(Protocol, ResultType.Success)
                     {
-                        Protocol = Protocol,
-                        ResultType = ResultType.Success,
-                        ReplyStatus = ReplyStatus.OK,
                         PayloadEncoding = request.PayloadEncoding,
                         Payload = Protocol.GetVoidReturnPayload(request.PayloadEncoding)
                     };

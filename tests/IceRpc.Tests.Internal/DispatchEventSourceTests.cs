@@ -25,11 +25,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStart(new IncomingRequest
-                {
-                    Operation = "ice_id",
-                    Path = "/service"
-                });
+            _eventSource.RequestStart(new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -48,11 +44,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestStop(new IncomingRequest
-                {
-                    Operation = "ice_id",
-                    Path = "/service"
-                });
+            _eventSource.RequestStop(new IncomingRequest(Protocol.Ice2, path: "/service", "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -71,11 +63,7 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestCanceled(new IncomingRequest
-                {
-                    Operation = "ice_id",
-                    Path = "/service"
-                });
+            _eventSource.RequestCanceled(new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"));
 
             EventWrittenEventArgs? eventData = eventListener.EventData;
             Assert.That(eventData, Is.Not.Null);
@@ -94,11 +82,8 @@ namespace IceRpc.Tests.Internal
             using var eventListener = new TestEventListener(expectedEventId);
             eventListener.EnableEvents(_eventSource, EventLevel.Verbose);
 
-            _eventSource.RequestFailed(new IncomingRequest
-                {
-                    Operation = "ice_id",
-                    Path = "/service"
-                },
+            _eventSource.RequestFailed(
+                new IncomingRequest(Protocol.Ice2, path: "/service", operation: "ice_id"),
                 "IceRpc.RemoteException");
 
             EventWrittenEventArgs? eventData = eventListener.EventData;

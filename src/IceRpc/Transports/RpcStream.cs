@@ -287,7 +287,6 @@ namespace IceRpc.Transports
                     Ice2FrameType.GoAway,
                     CancellationToken.None).ConfigureAwait(false);
 
-
                 var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
@@ -385,16 +384,15 @@ namespace IceRpc.Transports
                     throw new InvalidDataException("received ice1 request with empty identity name");
                 }
 
-                request = new IncomingRequest
+                request = new IncomingRequest(
+                    Protocol.Ice1,
+                    path: requestHeader.IdentityAndFacet.ToPath(),
+                    operation: requestHeader.Operation)
                 {
-                    Protocol = Protocol.Ice1,
-                    Path = requestHeader.IdentityAndFacet.ToPath(),
-                    Operation = requestHeader.Operation,
                     IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
                     IsOneway = !IsBidirectional,
                     PayloadEncoding =
                         Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
-                    Priority = default,
                     Deadline = DateTime.MaxValue,
                     Payload = buffer[decoder.Pos..]
                 };
@@ -433,11 +431,11 @@ namespace IceRpc.Transports
                             decoder.Pos - headerStartPos} bytes");
                 }
 
-                request = new IncomingRequest
+                request = new IncomingRequest(
+                    _connection.Protocol,
+                    path: requestHeaderBody.Path,
+                    operation: requestHeaderBody.Operation)
                 {
-                    Protocol = _connection.Protocol,
-                    Path = requestHeaderBody.Path,
-                    Operation  = requestHeaderBody.Operation,
                     IsIdempotent = requestHeaderBody.Idempotent ?? false,
                     IsOneway = !IsBidirectional,
                     Priority = requestHeaderBody.Priority ?? default,
@@ -507,11 +505,8 @@ namespace IceRpc.Transports
                     payloadEncoding = Encoding.Ice11;
                 }
 
-                response = new IncomingResponse
+                response = new IncomingResponse(Protocol.Ice1, replyStatus)
                 {
-                    Protocol = Protocol.Ice1,
-                    ReplyStatus = replyStatus,
-                    ResultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure,
                     PayloadEncoding = payloadEncoding,
                     Payload = buffer[decoder.Pos..]
                 };
@@ -549,10 +544,8 @@ namespace IceRpc.Transports
                         ReplyStatus.OK : ReplyStatus.UserException;
                 }
 
-                response = new IncomingResponse
+                response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType, replyStatus)
                 {
-                    Protocol = Protocol.Ice2,
-                    ResultType = responseHeaderBody.ResultType,
                     PayloadEncoding = payloadEncoding,
                     Fields = fields,
                     Payload = buffer[decoder.Pos..],

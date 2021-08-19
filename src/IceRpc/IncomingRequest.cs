@@ -24,13 +24,13 @@ namespace IceRpc
         public bool IsOneway { get; init; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; init; } = "";
+        public string Operation { get; init; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; init; } = "";
+        public string Path { get; init; }
 
         /// <summary>The priority of this request.</summary>
-        public Priority Priority { get; set; }
+        public Priority Priority { get; init; }
 
         /// <summary>The invoker assigned to any proxy read from the payload of this request.</summary>
         public IInvoker? ProxyInvoker { get; set; }
@@ -47,6 +47,14 @@ namespace IceRpc
         }
 
         private RpcStream? _stream;
+
+        /// <summary>Constructs a new incoming request.</summary>
+        public IncomingRequest(Protocol protocol, string path, string operation)
+        {
+            Protocol = protocol;
+            Path = path;
+            Operation = operation;
+        }
 
         /// <summary>Create an outgoing request from this incoming request. The outgoing request is
         /// constructed to be forwarded with the given proxy. The <see cref="OutgoingRequest.Path"/> is set to
@@ -81,7 +89,7 @@ namespace IceRpc
 
             // TODO: forward stream parameters
 
-            return new OutgoingRequest
+            return new OutgoingRequest(targetProtocol, path: targetProxy?.Path ?? Path, operation: Operation)
             {
                 AltEndpoints = targetProxy?.AltEndpoints ?? ImmutableList<Endpoint>.Empty,
                 Connection = targetConnection ?? targetProxy?.Connection,
@@ -91,9 +99,6 @@ namespace IceRpc
                 FieldsDefaults = fields,
                 IsOneway = IsOneway,
                 IsIdempotent = IsIdempotent,
-                Operation = Operation,
-                Path = targetProxy?.Path ?? Path,
-                Protocol = targetProtocol,
                 Proxy = targetProxy,
                 PayloadEncoding = PayloadEncoding,
                 Payload = new ReadOnlyMemory<byte>[] { Payload } // TODO: temporary, should use GetPayloadAsync()

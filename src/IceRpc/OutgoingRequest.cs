@@ -35,17 +35,17 @@ namespace IceRpc
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
-        public bool IsOneway { get; set; }
+        public bool IsOneway { get; init; }
 
         /// <summary>Indicates whether or not this request has been sent.</summary>
         /// <value>When <c>true</c>, the request was sent. When <c>false</c> the request was not sent yet.</value>
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; init; } = "";
+        public string Operation { get; init; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; init; } = "";
+        public string Path { get; init; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy? Proxy { get; init; }
@@ -67,15 +67,19 @@ namespace IceRpc
 
         private RpcStream? _stream;
 
+        public OutgoingRequest(Protocol protocol, string path, string operation)
+        {
+            Protocol = protocol;
+            Path = path;
+            Operation = operation;
+        }
+
         /// <summary>Returns a new incoming request built from this outgoing request. This method is
         /// used for colocated calls.</summary>
         internal IncomingRequest ToIncoming()
         {
-            var request = new IncomingRequest
+            var request = new IncomingRequest(Protocol, path: Path, operation: Operation)
             {
-                Protocol = Protocol,
-                Path = Path,
-                Operation = Operation,
                 IsIdempotent = IsIdempotent,
                 IsOneway = IsOneway,
                 Fields = GetAllFields(),

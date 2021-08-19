@@ -74,12 +74,9 @@ namespace IceRpc
         /// <summary>Returns a new incoming response built from this outgoing response. This method is
         /// used for colocated calls.</summary>
         internal IncomingResponse ToIncoming() =>
-            new()
+            new(Protocol, ResultType, ReplyStatus)
             {
-                Protocol = Protocol,
                 Fields = GetAllFields(),
-                ResultType = ResultType,
-                ReplyStatus = ReplyStatus,
                 PayloadEncoding = PayloadEncoding,
                 Payload = Payload.ToSingleBuffer(),
             };
