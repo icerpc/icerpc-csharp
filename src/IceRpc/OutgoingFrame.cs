@@ -52,7 +52,7 @@ namespace IceRpc
         }
 
         /// <summary>Returns the Ice protocol of this frame.</summary>
-        public Protocol Protocol { get; init; }
+        public Protocol Protocol { get; }
 
         /// <summary>A stream parameter compressor. Middleware or interceptors can use this property to
         /// compress a stream parameter or return value.</summary>
@@ -64,6 +64,10 @@ namespace IceRpc
 
         private ReadOnlyMemory<ReadOnlyMemory<byte>> _payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
         private int _payloadSize = -1;
+
+        /// <summary>Constructs an outgoing frame.</summary>
+        /// <param name="protocol">The protocol used to send the frame.</param>
+        protected OutgoingFrame(Protocol protocol) => Protocol = protocol;
 
         /// <summary>Gets or builds a combined fields dictionary using <see cref="Fields"/> and
         /// <see cref="FieldsDefaults"/>. This method is used for colocated calls.</summary>

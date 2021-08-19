@@ -42,10 +42,10 @@ namespace IceRpc
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; init; }
+        public string Operation { get; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; init; }
+        public string Path { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
         public Proxy? Proxy { get; init; }
@@ -68,9 +68,12 @@ namespace IceRpc
         private RpcStream? _stream;
 
         /// <summary>Constructs an outgoing request.</summary>
-        public OutgoingRequest(Protocol protocol, string path, string operation)
+        /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
+        /// <param name="path">The path of the request.</param>
+        /// <param name="operation">The operation of the request.</param>
+        public OutgoingRequest(Protocol protocol, string path, string operation) :
+            base(protocol)
         {
-            Protocol = protocol;
             Path = path;
             Operation = operation;
         }

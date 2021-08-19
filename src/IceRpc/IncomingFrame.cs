@@ -42,12 +42,16 @@ namespace IceRpc
         public int PayloadSize { get; private set; }
 
         /// <summary>The Ice protocol of this frame.</summary>
-        public Protocol Protocol { get; init; }
+        public Protocol Protocol { get; }
 
         private protected bool IsPayloadSet => _payload != null;
 
         private Connection? _connection;
         private ReadOnlyMemory<byte>? _payload;
+
+        /// <summary>Constructs an incoming frame.</summary>
+        /// <param name="protocol">The protocol used to receive the frame.</param>
+        public IncomingFrame(Protocol protocol) => Protocol = protocol;
 
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>

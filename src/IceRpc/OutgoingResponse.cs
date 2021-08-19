@@ -14,15 +14,18 @@ namespace IceRpc
         /// cref="ResultType.Success"/>; otherwise, if <see cref="OutgoingFrame.PayloadEncoding"/> is 1.1, the
         /// value is stored in the response header or payload. For any other payload encoding, the value is
         /// <see cref="ReplyStatus.UserException"/>.</value>
-        public ReplyStatus ReplyStatus { get; init; }
+        public ReplyStatus ReplyStatus { get; }
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
-        public ResultType ResultType { get; init; }
+        public ResultType ResultType { get; }
 
         /// <summary>Constructs an outgoing response.</summary>
-        public OutgoingResponse(Protocol protocol, ResultType resultType, ReplyStatus? replyStatus = null)
+        /// <param name="protocol">The <see cref="Protocol"/> used to send the response.</param>
+        /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
+        /// <param name="replyStatus">The <see cref="ReplyStatus"/> of the response.</param>
+        public OutgoingResponse(Protocol protocol, ResultType resultType, ReplyStatus? replyStatus = null) :
+            base(protocol)
         {
-            Protocol = protocol;
             ReplyStatus = replyStatus ?? (resultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException);
             ResultType = resultType;
         }

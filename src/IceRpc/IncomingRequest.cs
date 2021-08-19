@@ -48,10 +48,13 @@ namespace IceRpc
 
         private RpcStream? _stream;
 
-        /// <summary>Constructs a new incoming request.</summary>
-        public IncomingRequest(Protocol protocol, string path, string operation)
+        /// <summary>Constructs an incoming request.</summary>
+        /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
+        /// <param name="path">The path of the request.</param>
+        /// <param name="operation">The operation of the request.</param>
+        public IncomingRequest(Protocol protocol, string path, string operation) :
+            base(protocol)
         {
-            Protocol = protocol;
             Path = path;
             Operation = operation;
         }

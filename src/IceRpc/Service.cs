@@ -105,7 +105,6 @@ namespace IceRpc
                         Features = dispatch.ResponseFeatures,
                         Payload = responsePayload,
                         PayloadEncoding = request.PayloadEncoding,
-                        Protocol = request.Protocol,
                         StreamParamSender = streamParamSender,
                     };
                 }
