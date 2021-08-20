@@ -25,12 +25,12 @@ namespace IceRpc.Tests.CodeGeneration
                 new InlineDispatcher(
                     (request, cancel) =>
                     {
-                        var response = new OutgoingResponse(
+                        var response = OutgoingResponse.ForPayload(
                             request,
                             Payload.FromSingleReturnValue(
                                 request.PayloadEncoding,
                                 new MyClassAlsoEmpty(),
-                                (encoder, ae) => encoder.EncodeClass(ae)), null);
+                                (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);
                     }));
 

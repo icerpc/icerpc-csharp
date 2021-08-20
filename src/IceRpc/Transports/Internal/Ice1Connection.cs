@@ -13,7 +13,7 @@ namespace IceRpc.Transports.Internal
     /// are translated to connection validation or close connection Ice1 frames.</summary>
     internal class Ice1Connection : NetworkSocketConnection
     {
-        public override TimeSpan IdleTimeout { get; internal set; }
+        public override TimeSpan IdleTimeout { get; protected set; }
 
         internal bool IsValidated { get; private set; }
 

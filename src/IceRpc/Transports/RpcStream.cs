@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
@@ -107,6 +108,9 @@ namespace IceRpc.Transports
 
         /// <summary>Returns true if the stream ID is assigned</summary>
         internal bool IsStarted => _id != -1;
+
+        // TODO: remove when we implement Ice1 with the protocol handler
+        private int RequestId => IsBidirectional ? ((int)(Id >> 2) + 1) : 0;
 
         private readonly MultiStreamConnection _connection;
 
@@ -255,16 +259,20 @@ namespace IceRpc.Transports
         {
             Debug.Assert(IsStarted);
 
-            byte frameType = IsIce1 ? (byte)Ice1FrameType.CloseConnection : (byte)Ice2FrameType.GoAway;
-
-            ReadOnlyMemory<byte> data =
-                await ReceiveFrameAsync(frameType, CancellationToken.None).ConfigureAwait(false);
-
             long lastBidirectionalId;
             long lastUnidirectionalId;
             string message;
             if (IsIce1)
             {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce1FrameAsync(
+                    Ice1FrameType.CloseConnection,
+                    CancellationToken.None).ConfigureAwait(false);
+                if (buffer.Length > 0)
+                {
+                    throw new InvalidDataException(
+                        @$"received an ice1 frame with close connection type and a size of '{buffer.Length}' bytes");
+                }
+
                 // LastResponseStreamId contains the stream ID of the last received response. We make sure to return
                 // this stream ID to ensure the request with this stream ID will complete successfully in case the
                 // close connection message is received shortly after the response and potentially processed before
@@ -275,7 +283,11 @@ namespace IceRpc.Transports
             }
             else
             {
-                var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(data));
+                ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
+                    Ice2FrameType.GoAway,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
                 lastUnidirectionalId = goAwayFrame.LastUnidirectionalStreamId;
                 message = goAwayFrame.Message;
@@ -288,10 +300,14 @@ namespace IceRpc.Transports
         internal async ValueTask ReceiveGoAwayCanceledFrameAsync(CancellationToken cancel)
         {
             Debug.Assert(IsStarted && !IsIce1);
-
-            byte frameType = (byte)Ice2FrameType.GoAwayCanceled;
-            _ = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
+            ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
+                Ice2FrameType.GoAwayCanceled,
+                cancel).ConfigureAwait(false);
+            if (buffer.Length > 0)
+            {
+                throw new InvalidDataException(
+                    @$"received an ice2 frame with go away canceled type and a size of '{buffer.Length}' bytes");
+            }
             _connection.Logger.LogReceivedGoAwayCanceledFrame();
         }
 
@@ -299,22 +315,25 @@ namespace IceRpc.Transports
         {
             Debug.Assert(IsStarted);
 
-            byte frameType = IsIce1 ? (byte)Ice1FrameType.ValidateConnection : (byte)Ice2FrameType.Initialize;
-
-            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-
             if (IsIce1)
             {
-                if (data.Length > 0)
+                ReadOnlyMemory<byte> buffer = await ReceiveIce1FrameAsync(
+                    Ice1FrameType.ValidateConnection,
+                    cancel).ConfigureAwait(false);
+                if (buffer.Length > 0)
                 {
                     throw new InvalidDataException(
-                        @$"received an ice1 frame with validate connection type and a size of '{data.Length}' bytes");
+                        @$"received an ice1 frame with validate connection type and a size of '{buffer.Length}' bytes");
                 }
             }
             else
             {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
+                    Ice2FrameType.Initialize,
+                    cancel).ConfigureAwait(false);
+
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
-                var decoder = new Ice20Decoder(data);
+                var decoder = new Ice20Decoder(buffer);
                 int dictionarySize = decoder.DecodeSize();
                 for (int i = 0; i < dictionarySize; ++i)
                 {
@@ -349,17 +368,199 @@ namespace IceRpc.Transports
 
         internal virtual async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel = default)
         {
-            byte frameType = IsIce1 ? (byte)Ice1FrameType.Request : (byte)Ice2FrameType.Request;
-            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-            return new IncomingRequest(_connection.Protocol, data, isOneway: !IsBidirectional);
+            IncomingRequest request;
+            int payloadSize;
+            if (IsIce1)
+            {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce1FrameAsync(
+                    Ice1FrameType.Request,
+                    cancel).ConfigureAwait(false);
+
+                var decoder = new Ice11Decoder(buffer);
+
+                var requestHeader = new Ice1RequestHeader(decoder);
+                if (requestHeader.IdentityAndFacet.Identity.Name.Length == 0)
+                {
+                    throw new InvalidDataException("received ice1 request with empty identity name");
+                }
+
+                request = new IncomingRequest(
+                    Protocol.Ice1,
+                    path: requestHeader.IdentityAndFacet.ToPath(),
+                    operation: requestHeader.Operation)
+                {
+                    IsIdempotent = requestHeader.OperationMode != OperationMode.Normal,
+                    IsOneway = !IsBidirectional,
+                    PayloadEncoding =
+                        Encoding.FromMajorMinor(requestHeader.PayloadEncodingMajor, requestHeader.PayloadEncodingMinor),
+                    Deadline = DateTime.MaxValue,
+                    Payload = buffer[decoder.Pos..]
+                };
+
+                if (requestHeader.Context.Count > 0)
+                {
+                    request.Features = new FeatureCollection();
+                    request.Features.Set(new Context { Value = requestHeader.Context });
+                }
+
+                // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
+                payloadSize = requestHeader.EncapsulationSize - 6;
+            }
+            else
+            {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
+                    Ice2FrameType.Request,
+                    cancel).ConfigureAwait(false);
+
+                var decoder = new Ice20Decoder(buffer);
+                int headerSize = decoder.DecodeSize();
+                int headerStartPos = decoder.Pos;
+
+                // We use the generated code for the header body and read the rest of the header "by hand".
+                var requestHeaderBody = new Ice2RequestHeaderBody(decoder);
+                if (requestHeaderBody.Deadline < -1 || requestHeaderBody.Deadline == 0)
+                {
+                    throw new InvalidDataException($"received invalid deadline value {requestHeaderBody.Deadline}");
+                }
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
+                payloadSize = decoder.DecodeSize();
+                if (decoder.Pos - headerStartPos != headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"received invalid request header: expected {headerSize} bytes but read {
+                            decoder.Pos - headerStartPos} bytes");
+                }
+
+                request = new IncomingRequest(
+                    _connection.Protocol,
+                    path: requestHeaderBody.Path,
+                    operation: requestHeaderBody.Operation)
+                {
+                    IsIdempotent = requestHeaderBody.Idempotent ?? false,
+                    IsOneway = !IsBidirectional,
+                    Priority = requestHeaderBody.Priority ?? default,
+                    // The infinite deadline is encoded as -1 and converted to DateTime.MaxValue
+                    Deadline = requestHeaderBody.Deadline == -1 ?
+                        DateTime.MaxValue : DateTime.UnixEpoch + TimeSpan.FromMilliseconds(requestHeaderBody.Deadline),
+                    PayloadEncoding = requestHeaderBody.PayloadEncoding is string payloadEncoding ?
+                        Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding,
+                    Fields = fields,
+                    Payload = buffer[decoder.Pos..]
+                };
+
+                // Decode Context from Fields and set corresponding feature.
+                if (request.Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
+                {
+                    request.Features = new FeatureCollection();
+                    request.Features.Set(new Context
+                    {
+                        Value = Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeDictionary(
+                            minKeySize: 1,
+                            minValueSize: 1,
+                            keyDecodeFunc: decoder => decoder.DecodeString(),
+                            valueDecodeFunc: decoder => decoder.DecodeString()))
+                    });
+                }
+            }
+
+            if (payloadSize != request.Payload.Length)
+            {
+                throw new InvalidDataException(
+                    $"request payload size mismatch: expected {payloadSize} bytes, read {request.Payload.Length} bytes");
+            }
+
+            if (request.Operation.Length == 0)
+            {
+                throw new InvalidDataException("received request with empty operation name");
+            }
+
+            return request;
         }
 
         internal virtual async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
             CancellationToken cancel = default)
         {
-            byte frameType = IsIce1 ? (byte)Ice1FrameType.Reply : (byte)Ice2FrameType.Response;
-            ReadOnlyMemory<byte> data = await ReceiveFrameAsync(frameType, cancel).ConfigureAwait(false);
-            return new IncomingResponse(_connection.Protocol, data);
+            IncomingResponse response;
+            int? payloadSize = null;
+            if (IsIce1)
+            {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce1FrameAsync(
+                    Ice1FrameType.Reply,
+                    cancel).ConfigureAwait(false);
+
+                var decoder = new Ice11Decoder(buffer);
+
+                ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+                Encoding payloadEncoding;
+                if (replyStatus <= ReplyStatus.UserException)
+                {
+                    var responseHeader = new Ice1ResponseHeader(decoder);
+                    payloadEncoding = Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor,
+                                                              responseHeader.PayloadEncodingMinor);
+                    payloadSize = responseHeader.EncapsulationSize - 6;
+                }
+                else
+                {
+                    // "special" exception
+                    payloadEncoding = Encoding.Ice11;
+                }
+
+                response = new IncomingResponse(Protocol.Ice1, replyStatus)
+                {
+                    PayloadEncoding = payloadEncoding,
+                    Payload = buffer[decoder.Pos..]
+                };
+            }
+            else
+            {
+                ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
+                    Ice2FrameType.Response,
+                    cancel).ConfigureAwait(false);
+
+                var decoder = new Ice20Decoder(buffer);
+                int headerSize = decoder.DecodeSize();
+                int headerStartPos = decoder.Pos;
+
+                var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
+                IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
+                payloadSize = decoder.DecodeSize();
+                if (decoder.Pos - headerStartPos != headerSize)
+                {
+                    throw new InvalidDataException(
+                        @$"received invalid response header: expected {headerSize} bytes but read {
+                            decoder.Pos - headerStartPos} bytes");
+                }
+
+                Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
+                        Encoding.FromString(encoding) : Ice2Definitions.Encoding;
+                ReplyStatus replyStatus;
+                if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
+                {
+                    replyStatus = buffer.Span[decoder.Pos].AsReplyStatus(); // first byte of the payload
+                }
+                else
+                {
+                    replyStatus = responseHeaderBody.ResultType == ResultType.Success ?
+                        ReplyStatus.OK : ReplyStatus.UserException;
+                }
+
+                response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType, replyStatus)
+                {
+                    PayloadEncoding = payloadEncoding,
+                    Fields = fields,
+                    Payload = buffer[decoder.Pos..],
+                    ReplyStatus = replyStatus,
+                };
+            }
+
+            if (payloadSize != null && payloadSize != response.Payload.Length)
+            {
+                throw new InvalidDataException(
+                    @$"response payload size mismatch: expected {payloadSize} bytes, read
+                        {response.Payload.Length} bytes");
+            }
+
+            return response;
         }
 
         internal virtual async ValueTask SendGoAwayFrameAsync(
@@ -446,66 +647,224 @@ namespace IceRpc.Transports
             _connection.Logger.LogSentInitializeFrame(_connection, _connection.IncomingFrameMaxSize);
         }
 
-        internal async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel = default)
+        internal virtual async ValueTask SendRequestFrameAsync(
+            OutgoingRequest request,
+            CancellationToken cancel = default)
         {
-            // Send the request frame.
-            await SendFrameAsync(request, cancel).ConfigureAwait(false);
-
-            // If there's a stream writer, we can start sending the data.
-            if (request.StreamParamSender is IStreamParamSender streamParamSender)
+            var bufferWriter = new BufferWriter();
+            bufferWriter.WriteByteSpan(TransportHeader.Span);
+            if (IsIce1)
             {
-                _ = Task.Run(() =>
+                if (request.StreamParamSender != null)
                 {
-                    try
-                    {
-                        streamParamSender.SendAsync(this, request.StreamCompressor);
-                    }
-                    catch
-                    {
-                        // TODO log unhandled exception sending stream param
-                    }
-                },
-                default);
+                    throw new NotSupportedException("stream parameters are not supported with ice1");
+                }
+
+                var encoder = new Ice11Encoder(bufferWriter);
+
+                // Write the Ice1 request header.
+
+                bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Request);
+                encoder.EncodeByte(0); // compression status
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+
+                // Note: we don't write the request ID here because the stream ID is not allocated yet. It
+                // will be written once the stream ID is allocated from the send queue to ensure requests are
+                // sent in the same order as the request ID values.
+                encoder.EncodeInt(0);
+
+                (byte encodingMajor, byte encodingMinor) = request.PayloadEncoding.ToMajorMinor();
+
+                var requestHeader = new Ice1RequestHeader(
+                    IdentityAndFacet.FromPath(request.Path),
+                    request.Operation,
+                    request.IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
+                    request.Features.GetContext(),
+                    encapsulationSize: request.PayloadSize + 6,
+                    encodingMajor,
+                    encodingMinor);
+                requestHeader.Encode(encoder);
+
+                encoder.EncodeFixedLengthSize(bufferWriter.Size + request.PayloadSize, frameSizeStart);
+            }
+            else
+            {
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 request header.
+
+                encoder.EncodeIce2FrameType(Ice2FrameType.Request);
+
+                // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size, the
+                // frame header size).
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
+                long deadline = request.Deadline == DateTime.MaxValue ? -1 :
+                        (long)(request.Deadline - DateTime.UnixEpoch).TotalMilliseconds;
+
+                var requestHeaderBody = new Ice2RequestHeaderBody(
+                    request.Path,
+                    request.Operation,
+                    request.IsIdempotent ? true : null,
+                    priority: null,
+                    deadline,
+                    request.PayloadEncoding == Ice2Definitions.Encoding ? null : request.PayloadEncoding.ToString());
+
+                requestHeaderBody.Encode(encoder);
+
+                IDictionary<string, string> context = request.Features.GetContext();
+                if (request.FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
+                {
+                    // Encodes context
+                    request.Fields[(int)Ice2FieldKey.Context] =
+                        encoder => encoder.EncodeDictionary(context,
+                                                            (encoder, value) => encoder.EncodeString(value),
+                                                            (encoder, value) => encoder.EncodeString(value));
+                }
+                // else context remains empty (not set)
+
+                encoder.EncodeFields(request.Fields, request.FieldsDefaults);
+                encoder.EncodeSize(request.PayloadSize);
+
+                // We're done with the header encoding, write the header size.
+                int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // We're done with the frame encoding, write the frame size.
+                int frameSize = headerSize + 2 + request.PayloadSize;
+                encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
+                if (frameSize > _connection.PeerIncomingFrameMaxSize)
+                {
+                    throw new ArgumentException(
+                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameMaxSize ({
+                        _connection.PeerIncomingFrameMaxSize} bytes)",
+                        nameof(request));
+                }
+            }
+
+            // Add the payload to the buffer writer.
+            bufferWriter.Add(request.Payload);
+
+            // Send the request frame.
+            await SendAsync(bufferWriter.Finish(),
+                            endStream: request.StreamParamSender == null,
+                            cancel).ConfigureAwait(false);
+
+            // If there's a stream param sender, we can start sending the data.
+            if (request.StreamParamSender != null)
+            {
+                request.SendStreamParam(this);
             }
         }
 
-        internal async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel = default)
+        internal virtual async ValueTask SendResponseFrameAsync(
+            OutgoingResponse response,
+            CancellationToken cancel = default)
         {
-            // Send the response frame.
-            await SendFrameAsync(response, cancel).ConfigureAwait(false);
-
-            // If there's a stream writer, we can start sending the data.
-            if (response.StreamParamSender is IStreamParamSender streamParamSender)
+            var bufferWriter = new BufferWriter();
+            bufferWriter.WriteByteSpan(TransportHeader.Span);
+            if (IsIce1)
             {
-                _ = Task.Run(() =>
-                    {
-                        try
-                        {
-                            streamParamSender.SendAsync(this, response.StreamCompressor);
-                        }
-                        catch
-                        {
-                            // TODO log unhandled exception sending stream param
-                        }
-                    },
-                    default);
+                if (response.StreamParamSender != null)
+                {
+                    throw new NotSupportedException("stream parameters are not supported with ice1");
+                }
+
+                var encoder = new Ice11Encoder(bufferWriter);
+
+                // Write the Ice1 response header.
+
+                bufferWriter.WriteByteSpan(Ice1Definitions.FramePrologue);
+                encoder.EncodeIce1FrameType(Ice1FrameType.Reply);
+                encoder.EncodeByte(0); // compression status
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+
+                encoder.EncodeInt(RequestId);
+                encoder.EncodeReplyStatus(response.ReplyStatus);
+                if (response.ReplyStatus <= ReplyStatus.UserException)
+                {
+                    (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
+
+                    var responseHeader = new Ice1ResponseHeader(encapsulationSize: response.PayloadSize + 6,
+                                                                encodingMajor,
+                                                                encodingMinor);
+                    responseHeader.Encode(encoder);
+                }
+
+                encoder.EncodeFixedLengthSize(bufferWriter.Size + response.PayloadSize, frameSizeStart);
+            }
+            else
+            {
+                var encoder = new Ice20Encoder(bufferWriter);
+
+                // Write the Ice2 response header.
+
+                encoder.EncodeIce2FrameType(Ice2FrameType.Response);
+
+                // TODO: simplify sizes, we should be able to remove one of the sizes (the frame size or the
+                // frame header size).
+                BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
+                BufferWriter.Position frameHeaderStart = encoder.StartFixedLengthSize(2);
+
+                new Ice2ResponseHeaderBody(
+                    response.ResultType,
+                    response.PayloadEncoding == Ice2Definitions.Encoding ? null :
+                        response.PayloadEncoding.ToString()).Encode(encoder);
+
+                encoder.EncodeFields(response.Fields, response.FieldsDefaults);
+                encoder.EncodeSize(response.PayloadSize);
+
+                // We're done with the header encoding, write the header size.
+                int headerSize = encoder.EndFixedLengthSize(frameHeaderStart, 2);
+
+                // We're done with the frame encoding, write the frame size.
+                int frameSize = headerSize + 2 + response.PayloadSize;
+                encoder.EncodeFixedLengthSize(frameSize, frameSizeStart);
+                if (frameSize > _connection.PeerIncomingFrameMaxSize)
+                {
+                    // Throw a remote exception instead of this response, the Ice connection will catch it and send it
+                    // as the response instead of sending this response which is too large.
+                    throw new DispatchException(
+                    $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
+                        _connection.PeerIncomingFrameMaxSize} bytes)");
+                }
+            }
+
+            // Add the payload to the buffer writer.
+            bufferWriter.Add(response.Payload);
+
+            // Send the request frame.
+            await SendAsync(bufferWriter.Finish(),
+                            endStream: response.StreamParamSender == null,
+                            cancel).ConfigureAwait(false);
+
+            // If there's a stream param sender, we can start sending the data.
+            if (response.StreamParamSender != null)
+            {
+                response.SendStreamParam(this);
             }
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
 
-        private protected virtual async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            byte expectedFrameType,
-            CancellationToken cancel = default)
-        {
-            // The default implementation doesn't support Ice1
-            Debug.Assert(!IsIce1);
+        private protected virtual ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
+            Ice1FrameType expectedFrameType,
+            CancellationToken cancel = default) =>
+            // TODO: temporary until Ice1 protocol handler is implemented
+            throw new NotSupportedException("ice1 protocol not supported by stream");
 
-            // Read the Ice2 protocol header (byte frameType, varulong size)
+        private protected virtual async ValueTask<ReadOnlyMemory<byte>> ReceiveIce2FrameAsync(
+            Ice2FrameType expectedFrameType,
+            CancellationToken cancel)
+        {
             Memory<byte> buffer = new byte[256];
+
+            // Read the frame type and first byte of the size.
             await ReceiveFullAsync(buffer.Slice(0, 2), cancel).ConfigureAwait(false);
             var frameType = (Ice2FrameType)buffer.Span[0];
-            if ((byte)frameType != expectedFrameType)
+            if (frameType != expectedFrameType)
             {
                 throw new InvalidDataException($"received frame type {frameType} but expected {expectedFrameType}");
             }
@@ -516,85 +875,24 @@ namespace IceRpc.Transports
             {
                 await ReceiveFullAsync(buffer.Slice(2, sizeLength - 1), cancel).ConfigureAwait(false);
             }
-            int size = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
 
-            // Read the frame data
-            if (size > 0)
+            int frameSize = Ice20Decoder.DecodeSize(buffer[1..].AsReadOnlySpan()).Size;
+            if (frameSize > _connection.IncomingFrameMaxSize)
             {
-                if (size > _connection.IncomingFrameMaxSize)
-                {
-                    throw new InvalidDataException(
-                        $"frame with {size} bytes exceeds IncomingFrameMaxSize connection option value");
-                }
-                buffer = size > buffer.Length ? new byte[size] : buffer.Slice(0, size);
+                throw new InvalidDataException(
+                    $"frame with {frameSize} bytes exceeds IncomingFrameMaxSize connection option value");
+            }
+
+            if (frameSize > 0)
+            {
+                buffer = frameSize > buffer.Length ? new byte[frameSize] : buffer.Slice(0, frameSize);
                 await ReceiveFullAsync(buffer, cancel).ConfigureAwait(false);
+                return buffer;
             }
-
-            return buffer;
-        }
-
-        private protected virtual async ValueTask SendFrameAsync(
-            OutgoingFrame frame,
-            CancellationToken cancel = default)
-        {
-            // The default implementation doesn't support Ice1
-            Debug.Assert(!IsIce1);
-
-            var bufferWriter = new BufferWriter();
-            bufferWriter.WriteByteSpan(TransportHeader.Span);
-            var encoder = new Ice20Encoder(bufferWriter);
-
-            encoder.EncodeIce2FrameType(frame is OutgoingRequest ? Ice2FrameType.Request : Ice2FrameType.Response);
-            BufferWriter.Position start = encoder.StartFixedLengthSize();
-            frame.EncodeHeader(encoder);
-
-            int frameSize = bufferWriter.Size + frame.PayloadSize - TransportHeader.Length - 1 - 4;
-
-            if (frameSize > _connection.PeerIncomingFrameMaxSize)
+            else
             {
-                if (frame is OutgoingRequest)
-                {
-                    throw new ArgumentException(
-                        $@"the request size ({frameSize} bytes) is larger than the peer's IncomingFrameMaxSize ({
-                        _connection.PeerIncomingFrameMaxSize} bytes)",
-                        nameof(frame));
-                }
-                else
-                {
-                    // Throw a remote exception instead of this response, the Ice connection will catch it and send it
-                    // as the response instead of sending this response which is too large.
-                    throw new DispatchException(
-                        $@"the response size ({frameSize} bytes) is larger than IncomingFrameMaxSize ({
-                        _connection.PeerIncomingFrameMaxSize} bytes)");
-                }
+                return Memory<byte>.Empty;
             }
-
-            encoder.EncodeFixedLengthSize(frameSize, start);
-
-            // Coalesce small payload buffers at the end of the current header buffer
-            int payloadIndex = 0;
-            while (payloadIndex < frame.Payload.Length &&
-                   frame.Payload.Span[payloadIndex].Length <= bufferWriter.Capacity - bufferWriter.Size)
-            {
-                bufferWriter.WriteByteSpan(frame.Payload.Span[payloadIndex++].Span);
-            }
-
-            ReadOnlyMemory<ReadOnlyMemory<byte>> buffers = bufferWriter.Finish(); // only headers so far
-
-            if (payloadIndex < frame.Payload.Length)
-            {
-                // Need to append the remaining payload buffers
-                var newBuffers = new ReadOnlyMemory<byte>[buffers.Length + frame.Payload.Length - payloadIndex];
-                buffers.CopyTo(newBuffers);
-                frame.Payload[payloadIndex..].CopyTo(newBuffers.AsMemory(buffers.Length));
-                buffers = newBuffers;
-            }
-
-            // Since SendAsync writes the transport (e.g. Slic) header, we can't call SendAsync twice, once with the
-            // header buffers and a second time with the remaining payload buffers.
-            await SendAsync(buffers,
-                            endStream: frame.StreamParamSender == null,
-                            cancel).ConfigureAwait(false);
         }
 
         private async ValueTask ReceiveFullAsync(Memory<byte> buffer, CancellationToken cancel = default)

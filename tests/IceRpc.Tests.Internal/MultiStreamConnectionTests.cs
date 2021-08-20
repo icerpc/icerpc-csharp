@@ -83,7 +83,7 @@ namespace IceRpc.Tests.Internal
             RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             IncomingRequest incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
 
-            await serverStream.SendResponseFrameAsync(GetResponseFrame(incomingRequest));
+            await serverStream.SendResponseFrameAsync(DummyResponse);
 
             ClientConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdown, (clientStream.Id, 0));
 
@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Internal
                 await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(
-                new OutgoingResponse(incomingRequest, new UnhandledException(ex)),
+                OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException(ex)),
                 default);
 
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Internal
 
             // Terminate the streams
             await serverStream.SendResponseFrameAsync(
-                new OutgoingResponse(incomingRequest, new UnhandledException(ex)),
+                OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException(ex)),
                 default);
             await clientStream.ReceiveResponseFrameAsync(default);
 
@@ -224,7 +224,7 @@ namespace IceRpc.Tests.Internal
             Assert.That(acceptTask.IsCompleted, Is.False);
 
             // Close one stream by sending the response (which sends the stream EOS) after receiving it.
-            await serverStreams.Last().SendResponseFrameAsync(GetResponseFrame(incomingRequest!));
+            await serverStreams.Last().SendResponseFrameAsync(DummyResponse);
             await clientStreams.Last().ReceiveResponseFrameAsync();
             Assert.That(acceptClientStream.IsCompleted, Is.False);
 
@@ -304,7 +304,7 @@ namespace IceRpc.Tests.Internal
 
                 if (bidirectional)
                 {
-                    await stream.SendResponseFrameAsync(GetResponseFrame(request));
+                    await stream.SendResponseFrameAsync(DummyResponse);
                 }
             }
         }
@@ -454,7 +454,7 @@ namespace IceRpc.Tests.Internal
             IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
             ServerConnection.Dispose();
             Assert.CatchAsync<RpcStreamAbortedException>(
-                async () => await serverStream.SendResponseFrameAsync(GetResponseFrame(request)));
+                async () => await serverStream.SendResponseFrameAsync(DummyResponse));
         }
 
         [Order(1)]
@@ -494,7 +494,7 @@ namespace IceRpc.Tests.Internal
                 {
                     // Releases the stream by sending response.
                     await serverStream.SendResponseFrameAsync(
-                        new OutgoingResponse(incomingRequest, new UnhandledException()));
+                        OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException()));
                     _ = await clientStream.ReceiveResponseFrameAsync(default);
 
                     Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);

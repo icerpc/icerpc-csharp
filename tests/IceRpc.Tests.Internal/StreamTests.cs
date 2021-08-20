@@ -172,12 +172,11 @@ namespace IceRpc.Tests.Internal
         [TestCase(512 * 1024)]
         public async Task Stream_SendReceiveRequestAsync(int size)
         {
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromSingleArg(
-                Proxy,
-                new byte[size],
-                (IceEncoder encoder, ReadOnlyMemory<byte> value) => encoder.EncodeSequence(value.Span));
-
-            var request = new OutgoingRequest(Proxy, "op", requestPayload, null, DateTime.MaxValue);
+            var request = new OutgoingRequest(Protocol.Ice2, path: "/dummy", operation: "op")
+            {
+                Payload = new ReadOnlyMemory<byte>[] { new byte[size] },
+                PayloadEncoding = Encoding.Ice20,
+            };
             ValueTask receiveTask = PerformReceiveAsync();
 
             RpcStream stream = ClientConnection.CreateStream(false);
@@ -216,7 +215,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await serverStream.SendResponseFrameAsync(GetResponseFrame(request), source.Token));
+                async () => await serverStream.SendResponseFrameAsync(DummyResponse, source.Token));
         }
 
         [Test]

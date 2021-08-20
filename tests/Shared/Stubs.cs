@@ -14,7 +14,7 @@ namespace IceRpc.Tests
         public override TimeSpan IdleTimeout
         {
             get => TimeSpan.FromSeconds(60);
-            internal set => throw new NotImplementedException();
+            protected set => throw new NotImplementedException();
         }
 
         public override bool IsDatagram => false;

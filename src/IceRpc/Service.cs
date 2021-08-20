@@ -99,7 +99,14 @@ namespace IceRpc
                 {
                     (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
                         await dispatchMethod(this, requestPayload, dispatch, cancel).ConfigureAwait(false);
-                    return new OutgoingResponse(dispatch, responsePayload, streamParamSender);
+
+                    return new OutgoingResponse(request.Protocol, ResultType.Success)
+                    {
+                        Features = dispatch.ResponseFeatures,
+                        Payload = responsePayload,
+                        PayloadEncoding = request.PayloadEncoding,
+                        StreamParamSender = streamParamSender,
+                    };
                 }
                 else
                 {

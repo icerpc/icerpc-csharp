@@ -4,7 +4,6 @@ using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace IceRpc
 {
@@ -29,30 +28,27 @@ namespace IceRpc
         /// requests but not with ice1 requests.</summary>
         /// <remarks>The source of the cancellation token given to an invoker alongside this outgoing request is
         /// expected to enforce this deadline.</remarks>
-        public DateTime Deadline { get; set; }
+        public DateTime Deadline { get; set; } = DateTime.MaxValue;
 
         /// <summary>When true, the operation is idempotent.</summary>
-        public bool IsIdempotent { get; }
+        public bool IsIdempotent { get; init; }
 
         /// <summary>When true and the operation returns void, the request is sent as a oneway request. Otherwise, the
         /// request is sent as a twoway request.</summary>
-        public bool IsOneway { get; set; }
+        public bool IsOneway { get; init; }
 
         /// <summary>Indicates whether or not this request has been sent.</summary>
         /// <value>When <c>true</c>, the request was sent. When <c>false</c> the request was not sent yet.</value>
         public bool IsSent { get; set; }
 
         /// <summary>The operation called on the service.</summary>
-        public string Operation { get; set; }
+        public string Operation { get; }
 
         /// <summary>The path of the target service.</summary>
-        public string Path { get; set; }
-
-        /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
+        public string Path { get; }
 
         /// <summary>The proxy that is sending this request.</summary>
-        public Proxy Proxy { get; }
+        public Proxy? Proxy { get; init; }
 
         /// <summary>A stream parameter decompressor. Middleware or interceptors can use this property to
         /// decompress a stream return value.</summary>
@@ -71,126 +67,40 @@ namespace IceRpc
 
         private RpcStream? _stream;
 
-        /// <summary>Constructs an outgoing request from the given incoming request.</summary>
-        /// <param name="proxy">The proxy sending the outgoing request.</param>
-        /// <param name="request">The incoming request from which to create an outgoing request.</param>
-        /// <param name="forwardFields">When true (the default), the new outgoing request uses the incoming request's
-        /// fields as defaults for its fields.</param>
-        public OutgoingRequest(
-            Proxy proxy,
-            IncomingRequest request,
-            bool forwardFields = true)
-            // TODO: support stream param forwarding
-            : this(proxy, request.Operation, request.Features, null)
-        {
-            Deadline = request.Deadline;
-            IsIdempotent = request.IsIdempotent;
-            IsOneway = request.IsOneway;
-            PayloadEncoding = request.PayloadEncoding;
-
-            // We forward the payload as is.
-            Payload = new ReadOnlyMemory<byte>[] { request.Payload }; // TODO: temporary
-
-            if (request.Protocol == Protocol && Protocol == Protocol.Ice2 && forwardFields)
-            {
-                FieldsDefaults = request.Fields;
-            }
-        }
-
         /// <summary>Constructs an outgoing request.</summary>
-        internal OutgoingRequest(
-            Proxy proxy,
-            string operation,
-            ReadOnlyMemory<ReadOnlyMemory<byte>> args,
-            IStreamParamSender? streamParamSender,
-            DateTime deadline,
-            Invocation? invocation = null,
-            bool idempotent = false,
-            bool oneway = false)
-            : this(proxy,
-                   operation,
-                   invocation?.RequestFeatures ?? FeatureCollection.Empty,
-                   streamParamSender)
+        /// <param name="protocol">The <see cref="Protocol"/> used to send the request.</param>
+        /// <param name="path">The path of the request.</param>
+        /// <param name="operation">The operation of the request.</param>
+        public OutgoingRequest(Protocol protocol, string path, string operation) :
+            base(protocol)
         {
-            Deadline = deadline;
-            IsOneway = oneway || (invocation?.IsOneway ?? false);
-            IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false);
-            Payload = args;
-        }
-
-        /// <inheritdoc/>
-        internal override IncomingFrame ToIncoming() => new IncomingRequest(this);
-
-        /// <inheritdoc/>
-        internal override void EncodeHeader(IceEncoder encoder)
-        {
-            IDictionary<string, string> context = Features.GetContext();
-
-            if (Protocol == Protocol.Ice2)
-            {
-                Ice20Encoder ice20Encoder = (Ice20Encoder)encoder;
-
-                BufferWriter.Position start = ice20Encoder.StartFixedLengthSize(2);
-
-                // DateTime.MaxValue represents an infinite deadline and it is encoded as -1
-                var requestHeaderBody = new Ice2RequestHeaderBody(
-                    Path,
-                    Operation,
-                    idempotent: IsIdempotent ? true : null,
-                    priority: null,
-                    deadline: Deadline == DateTime.MaxValue ? -1 :
-                        (long)(Deadline - DateTime.UnixEpoch).TotalMilliseconds,
-                    payloadEncoding: PayloadEncoding == Ice2Definitions.Encoding ? null : PayloadEncoding.ToString());
-
-                requestHeaderBody.Encode(ice20Encoder);
-
-                if (FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
-                {
-                    // Encodes context
-                    Fields[(int)Ice2FieldKey.Context] =
-                        encoder => encoder.EncodeDictionary(context,
-                                                            (encoder, value) => encoder.EncodeString(value),
-                                                            (encoder, value) => encoder.EncodeString(value));
-                }
-                // else context remains empty (not set)
-
-                EncodeFields(ice20Encoder);
-                ice20Encoder.EncodeSize(PayloadSize);
-                ice20Encoder.EndFixedLengthSize(start, 2);
-            }
-            else
-            {
-                Debug.Assert(Protocol == Protocol.Ice1);
-                (byte encodingMajor, byte encodingMinor) = PayloadEncoding.ToMajorMinor();
-
-                var requestHeader = new Ice1RequestHeader(
-                    IdentityAndFacet.FromPath(Path),
-                    Operation,
-                    IsIdempotent ? OperationMode.Idempotent : OperationMode.Normal,
-                    context,
-                    encapsulationSize: PayloadSize + 6,
-                    encodingMajor,
-                    encodingMinor);
-                requestHeader.Encode(encoder);
-            }
-        }
-
-        private OutgoingRequest(
-            Proxy proxy,
-            string operation,
-            FeatureCollection features,
-            IStreamParamSender? streamParamSender)
-            : base(proxy.Protocol, features, streamParamSender)
-        {
-            AltEndpoints = proxy.AltEndpoints;
-            Connection = proxy.Connection;
-            Endpoint = proxy.Endpoint;
-            Proxy = proxy;
-
+            Path = path;
             Operation = operation;
-            Path = proxy.Path;
-            PayloadEncoding = proxy.Encoding;
-            Payload = ReadOnlyMemory<ReadOnlyMemory<byte>>.Empty;
+        }
+
+        /// <summary>Returns a new incoming request built from this outgoing request. This method is
+        /// used for colocated calls.</summary>
+        internal IncomingRequest ToIncoming()
+        {
+            var request = new IncomingRequest(Protocol, path: Path, operation: Operation)
+            {
+                IsIdempotent = IsIdempotent,
+                IsOneway = IsOneway,
+                Fields = GetAllFields(),
+                Deadline = Deadline,
+                PayloadEncoding = PayloadEncoding,
+                Payload = Payload.ToSingleBuffer(),
+            };
+
+            // Copy the context from the request features.
+            IDictionary<string, string> context = Features.GetContext();
+            if (context.Count > 0)
+            {
+                request.Features = new FeatureCollection();
+                request.Features.Set(new Context { Value = context.ToImmutableSortedDictionary() }); // clone value
+            }
+
+            return request;
         }
     }
 }

@@ -151,7 +151,7 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
             var semaphore = new SemaphoreSlim(0);
             await _prx.OpStreamMyStructSend0Async(MyStructEnumerable(semaphore, 100, v1));
-            Assert.That(_servant.AnotherStructs.Count, Is.EqualTo(0));
+            Assert.That(_servant.MyStructs.Count, Is.EqualTo(0));
             // Release the semaphore to start streaming elements
             semaphore.Release(1);
             // Wait until the server received all elements
@@ -679,11 +679,11 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
         private static async IAsyncEnumerable<MyStruct> MyStructEnumerable(
             SemaphoreSlim semaphore,
-            int lenght,
+            int length,
             MyStruct value)
         {
             await semaphore.WaitAsync();
-            for (int i = 0; i < lenght; ++i)
+            for (int i = 0; i < length; ++i)
             {
                 yield return value;
             }
@@ -691,11 +691,11 @@ namespace IceRpc.Tests.CodeGeneration.Stream
 
         private static async IAsyncEnumerable<AnotherStruct> AnotherStructEnumerable(
             SemaphoreSlim semaphore,
-            int lenght,
+            int length,
             AnotherStruct value)
         {
             await semaphore.WaitAsync();
-            for (int i = 0; i < lenght; ++i)
+            for (int i = 0; i < length; ++i)
             {
                 yield return value;
             }

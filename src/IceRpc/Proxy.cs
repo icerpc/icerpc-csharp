@@ -438,6 +438,8 @@ namespace IceRpc
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
+            proxy.Protocol.CheckSupported();
+
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
 
@@ -479,14 +481,20 @@ namespace IceRpc
                         nameof(cancel));
                 }
 
-                var request = new OutgoingRequest(proxy,
-                                                  operation,
-                                                  requestPayload,
-                                                  streamParamSender,
-                                                  deadline,
-                                                  invocation,
-                                                  idempotent,
-                                                  oneway);
+                var request = new OutgoingRequest(proxy.Protocol, path: proxy.Path, operation: operation)
+                {
+                    AltEndpoints = proxy.AltEndpoints,
+                    Connection = proxy.Connection,
+                    Deadline = deadline,
+                    Endpoint = proxy.Endpoint,
+                    Features = invocation?.RequestFeatures ?? FeatureCollection.Empty,
+                    IsOneway = oneway || (invocation?.IsOneway ?? false),
+                    IsIdempotent = idempotent || (invocation?.IsIdempotent ?? false),
+                    Proxy = proxy,
+                    PayloadEncoding = proxy.Encoding,
+                    Payload = requestPayload,
+                    StreamParamSender = streamParamSender
+                };
 
                 // We perform as much work as possible in a non async method to throw exceptions synchronously.
                 Task<IncomingResponse> responseTask = (proxy.Invoker ?? NullInvoker).InvokeAsync(request, cancel);

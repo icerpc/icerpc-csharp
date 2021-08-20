@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -10,133 +9,103 @@ namespace IceRpc
     /// <summary>Represents a response protocol frame received by the application.</summary>
     public sealed class IncomingResponse : IncomingFrame
     {
-        /// <inheritdoc/>
-        public override IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; } =
-            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-
-        /// <inheritdoc/>
-        public override Encoding PayloadEncoding { get; }
-
         /// <summary>The <see cref="IceRpc.ReplyStatus"/> of this response.</summary>
-        /// <value><see cref="ReplyStatus.OK"/> when <see cref="ResultType"/> is
-        /// <see cref="ResultType.Success"/>; otherwise, if <see cref="PayloadEncoding"/> is 1.1, the value is
-        /// read from the response header or payload. For any other payload encoding, the value is
+        /// <value><see cref="ReplyStatus.OK"/> when <see cref="ResultType"/> is <see
+        /// cref="ResultType.Success"/>; otherwise, if <see cref="IncomingFrame.PayloadEncoding"/> is 1.1, the
+        /// value is read from the response header or payload. For any other payload encoding, the value is
         /// <see cref="ReplyStatus.UserException"/>.</value>
-        public ReplyStatus ReplyStatus { get; }
+        public ReplyStatus ReplyStatus { get; init; }
 
         /// <summary>The <see cref="IceRpc.ResultType"/> of this response.</summary>
-        public ResultType ResultType { get; }
+        public ResultType ResultType { get; init; }
 
-        /// <summary>Constructs an incoming response frame.</summary>
-        /// <param name="protocol">The protocol of this response</param>
-        /// <param name="data">The frame data.</param>
-        internal IncomingResponse(Protocol protocol, ReadOnlyMemory<byte> data)
-            : base(protocol)
+        /// <summary>Constructs an incoming response.</summary>
+        /// <param name="protocol">The <see cref="Protocol"/> used to receive the response.</param>
+        /// <param name="resultType">The <see cref="ResultType"/> of the response.</param>
+        /// <param name="replyStatus">The <see cref="ReplyStatus"/> of the response.</param>
+        public IncomingResponse(Protocol protocol, ResultType resultType, ReplyStatus? replyStatus = null) :
+            base(protocol)
         {
-            if (Protocol == Protocol.Ice1)
+            ReplyStatus = replyStatus ?? (resultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException);
+            ResultType = resultType;
+        }
+
+        /// <summary>Constructs an Ice1 incoming response.</summary>
+        /// <param name="protocol">The <see cref="Protocol"/> used to receive the response.</param>
+        /// <param name="replyStatus">The <see cref="ReplyStatus"/> of the response.</param>
+        public IncomingResponse(Protocol protocol, ReplyStatus replyStatus) :
+            base(protocol)
+        {
+            ReplyStatus = replyStatus;
+            ResultType = replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
+        }
+
+        /// <summary>Create an outgoing response from this incoming response. The response is constructed to be
+        /// forwarded using the given target protocol.</summary>
+        /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
+        /// <returns>The outgoing response to be forwarded.</returns>
+        public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol)
+        {
+            ReadOnlyMemory<ReadOnlyMemory<byte>> payload;
+            IReadOnlyDictionary<int, ReadOnlyMemory<byte>>? fields = null;
+            if (targetProtocol == Protocol)
             {
-                var decoder = new Ice11Decoder(data);
-                ReplyStatus = decoder.DecodeReplyStatus();
-                ResultType = ReplyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure;
-
-                if (ReplyStatus <= ReplyStatus.UserException)
+                payload = new ReadOnlyMemory<byte>[] { Payload };
+                if (Protocol == Protocol.Ice2)
                 {
-                    var responseHeader = new Ice1ResponseHeader(decoder);
-                    PayloadEncoding = Encoding.FromMajorMinor(responseHeader.PayloadEncodingMajor,
-                                                              responseHeader.PayloadEncodingMinor);
-                    Payload = data[decoder.Pos..];
-
-                    int payloadSize = responseHeader.EncapsulationSize - 6;
-                    if (payloadSize != Payload.Length)
-                    {
-                        throw new InvalidDataException(
-                            @$"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length
-                            } bytes");
-                    }
-                }
-                else
-                {
-                    // "special" exception
-                    PayloadEncoding = Encoding.Ice11;
-                    Payload = data[decoder.Pos..];
+                    // Don't forward RetryPolicy
+                    fields = Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy);
                 }
             }
             else
             {
-                var decoder = new Ice20Decoder(data);
-                Debug.Assert(Protocol == Protocol.Ice2);
-                int headerSize = decoder.DecodeSize();
-                int startPos = decoder.Pos;
-                var responseHeaderBody = new Ice2ResponseHeaderBody(decoder);
-                ResultType = responseHeaderBody.ResultType;
-                PayloadEncoding = responseHeaderBody.PayloadEncoding is string payloadEncoding ?
-                    Encoding.FromString(payloadEncoding) : Ice2Definitions.Encoding;
-
-                Fields = decoder.DecodeFieldDictionary();
-
-                int payloadSize = decoder.DecodeSize();
-                if (decoder.Pos - startPos != headerSize)
-                {
-                    throw new InvalidDataException(
-                        @$"received invalid response header: expected {headerSize} bytes but read {decoder.Pos - startPos
-                        } bytes");
-                }
-                Payload = data[decoder.Pos..];
-                if (payloadSize != Payload.Length)
-                {
-                    throw new InvalidDataException(
-                        $"response payload size mismatch: expected {payloadSize} bytes, read {Payload.Length} bytes");
-                }
-
                 if (ResultType == ResultType.Failure && PayloadEncoding == Encoding.Ice11)
                 {
-                    ReplyStatus = decoder.DecodeReplyStatus(); // first byte of the payload
+                    // When the response carries a failure encoded with 1.1, we need to perform a small adjustment
+                    // between ice1 and ice2 response frames.
+                    // ice1: [failure reply status][payload size, encoding and bytes|special exception]
+                    // ice2: [failure result type][payload encoding][payload size][reply status][payload bytes|
+                    //                                                                          special exception bytes]
+                    // There is no such adjustment with other encoding, or when the response does not carry a failure.
+
+                    if (targetProtocol == Protocol.Ice1)
+                    {
+                        Debug.Assert(Protocol == Protocol.Ice2);
+
+                        // We slice-off the reply status that is part of the ice2 payload.
+                        payload = new ReadOnlyMemory<byte>[] { Payload[1..] };
+                    }
+                    else
+                    {
+                        Debug.Assert(targetProtocol == Protocol.Ice2);
+                        Debug.Assert(Protocol == Protocol.Ice1);
+                        // Prepend a little buffer in front of the ice2 response payload to hold the reply status
+                        // TODO: we don't want little buffers!
+                        payload = new ReadOnlyMemory<byte>[] { new byte[1], Payload };
+                    }
                 }
                 else
                 {
-                    ReplyStatus = ResultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException;
+                    payload = new ReadOnlyMemory<byte>[] { Payload };
                 }
             }
-        }
 
-        /// <summary>Constructs an incoming response frame from an outgoing response frame. Used for colocated calls.
-        /// </summary>
-        /// <param name="response">The outgoing response frame.</param>
-        internal IncomingResponse(OutgoingResponse response)
-            : base(response.Protocol)
-        {
-            if (Protocol == Protocol.Ice2)
+            return new OutgoingResponse(targetProtocol, ResultType, ReplyStatus)
             {
-                Fields = response.GetAllFields();
-            }
-
-            ResultType = response.ResultType;
-            ReplyStatus = response.ReplyStatus;
-
-            PayloadEncoding = response.PayloadEncoding;
-            Payload = response.Payload.ToSingleBuffer();
+                FieldsDefaults = fields ?? ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty,
+                Payload = payload, // TODO: temporary, should use GetPayloadAsync()
+                PayloadEncoding = PayloadEncoding,
+            };
         }
 
-        // Constructor for oneway response pseudo frame.
-        internal IncomingResponse(Connection connection, Encoding encoding)
-            : base(connection.Protocol)
-        {
-            Connection = connection;
-
-            ResultType = ResultType.Success;
-            ReplyStatus = ReplyStatus.OK;
-
-            PayloadEncoding = encoding;
-            Payload = Protocol.GetVoidReturnPayload(PayloadEncoding);
-        }
-
-        internal RetryPolicy GetRetryPolicy(Proxy proxy)
+        internal RetryPolicy GetRetryPolicy(Proxy? proxy)
         {
             RetryPolicy retryPolicy = RetryPolicy.NoRetry;
             if (PayloadEncoding == Encoding.Ice11)
             {
                 // For compatibility with ZeroC Ice
-                if (ReplyStatus == ReplyStatus.ObjectNotExistException &&
+                if (proxy != null &&
+                    ReplyStatus == ReplyStatus.ObjectNotExistException &&
                     proxy.Protocol == Protocol.Ice1 &&
                     (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {

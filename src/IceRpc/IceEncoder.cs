@@ -801,8 +801,13 @@ namespace IceRpc
         /// <summary>Computes the amount of data encoded from the start position to the current position and writes that
         /// size at the start position (as a 4-bytes size). The size does not include its own encoded length.</summary>
         /// <param name="start">The start position.</param>
-        internal void EndFixedLengthSize(BufferWriter.Position start) =>
-            EncodeFixedLengthSize(BufferWriter.Distance(start) - 4, start);
+        /// <returns>The size of the encoded data.</returns>
+        internal int EndFixedLengthSize(BufferWriter.Position start)
+        {
+            int size = BufferWriter.Distance(start) - 4;
+            EncodeFixedLengthSize(size, start);
+            return size;
+        }
 
         /// <summary>Returns the current position and writes placeholder for 4 bytes. The position must be used to
         /// rewrite the size later on 4 bytes.</summary>

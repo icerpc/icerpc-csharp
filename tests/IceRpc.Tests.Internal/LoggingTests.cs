@@ -219,29 +219,28 @@ namespace IceRpc.Tests.Internal
 
         private static IncomingRequest CreateIncomingRequest(bool twoway)
         {
-            var request = new IncomingRequest(CreateOutgoingRequest(twoway));
+            var request = CreateOutgoingRequest(twoway).ToIncoming();
             request.Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", true);
             return request;
         }
 
         private static IncomingResponse CreateIncomingResponse(OutgoingRequest outgoingRequest) =>
-            new(CreateOutgoingResponse(new IncomingRequest(outgoingRequest)));
+            CreateOutgoingResponse(outgoingRequest.ToIncoming()).ToIncoming();
 
-        private static OutgoingRequest CreateOutgoingRequest(bool twoway)
-        {
-            var proxy = Proxy.FromPath("/dummy", Protocol.Ice2);
-            var request = new OutgoingRequest(
-                proxy,
-                "foo",
-                Payload.FromEmptyArgs(proxy),
-                null,
-                DateTime.MaxValue,
-                oneway: !twoway);
-            request.Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false);
-            return request;
-        }
+        private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
+            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            {
+                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", false),
+                IsOneway = !twoway,
+                Payload = new ReadOnlyMemory<byte>[] { new byte[15] },
+                PayloadEncoding = Encoding.Ice20
+            };
 
         private static OutgoingResponse CreateOutgoingResponse(IncomingRequest incomingRequest) =>
-            new(incomingRequest, Payload.FromVoidReturnValue(incomingRequest));
+            new(Protocol.Ice2, ResultType.Success)
+            {
+                Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
+                PayloadEncoding = Encoding.Ice20,
+            };
     }
 }

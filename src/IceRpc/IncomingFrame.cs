@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
+
 namespace IceRpc
 {
     /// <summary>Base class for incoming frames.</summary>
@@ -16,7 +18,8 @@ namespace IceRpc
         public FeatureCollection Features { get; set; } = FeatureCollection.Empty;
 
         /// <summary>Returns the fields of this frame.</summary>
-        public abstract IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; }
+        public IReadOnlyDictionary<int, ReadOnlyMemory<byte>> Fields { get; init; } =
+            ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
 
         /// <summary>The payload of this frame.</summary>
         public ReadOnlyMemory<byte> Payload
@@ -33,10 +36,10 @@ namespace IceRpc
 
         /// <summary>Returns the encoding of the payload of this frame.</summary>
         /// <remarks>The header of the frame is always encoded using the frame protocol's encoding.</remarks>
-        public abstract Encoding PayloadEncoding { get; }
+        public Encoding PayloadEncoding { get; init; } = Encoding.Unknown;
 
         /// <summary>Returns the number of bytes in the payload.</summary>
-        public int PayloadSize { get; private protected set; }
+        public int PayloadSize { get; private set; }
 
         /// <summary>The Ice protocol of this frame.</summary>
         public Protocol Protocol { get; }
@@ -46,14 +49,14 @@ namespace IceRpc
         private Connection? _connection;
         private ReadOnlyMemory<byte>? _payload;
 
+        /// <summary>Constructs an incoming frame.</summary>
+        /// <param name="protocol">The protocol used to receive the frame.</param>
+        public IncomingFrame(Protocol protocol) => Protocol = protocol;
+
         /// <summary>Retrieves the payload of this frame.</summary>
         /// <param name="cancel">The cancellation token.</param>
         /// <returns>The payload.</returns>
         public virtual ValueTask<ReadOnlyMemory<byte>> GetPayloadAsync(CancellationToken cancel = default) =>
             IsPayloadSet ? new(Payload) : throw new NotImplementedException();
-
-        /// <summary>Constructs a new <see cref="IncomingFrame"/>.</summary>
-        /// <param name="protocol">The protocol of this frame.</param>
-        protected IncomingFrame(Protocol protocol) => Protocol = protocol;
     }
 }
