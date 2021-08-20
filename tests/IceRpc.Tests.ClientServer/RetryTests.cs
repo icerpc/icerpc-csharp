@@ -366,7 +366,7 @@ namespace IceRpc.Tests.ClientServer
                     var connectionOptions = new ClientConnectionOptions()
                     {
                         ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
-                        RemoteExceptionFactory =
+                        ObjectFactory20 =
                             new RemoteExceptionFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
                     };
                     await using var connection1 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint, Options = connectionOptions };
@@ -433,7 +433,7 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new ClientConnectionOptions()
                 {
                     ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
-                    RemoteExceptionFactory =
+                    ObjectFactory20 =
                         new RemoteExceptionFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
                 },
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()

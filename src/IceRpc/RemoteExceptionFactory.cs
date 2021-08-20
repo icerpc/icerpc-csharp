@@ -5,9 +5,14 @@ using System.Reflection;
 
 namespace IceRpc
 {
+    public interface IObjectFactory<T> where T : IceDecoder
+    {
+        object? CreateInstance(string typeId, T decoder);
+    }
+
     /// <summary>A class factory implementation that creates instances of types using the
     /// <see cref="RemoteExceptionAttribute"/> attribute.</summary>
-    public class RemoteExceptionFactory : IRemoteExceptionFactory
+    public class RemoteExceptionFactory : IObjectFactory<Ice20Decoder>
     {
         /// <summary>The default class factory instance used when the application doesn't configure one. It looks up
         /// types using the <see cref="RemoteExceptionAttribute"/> attribute in the IceRpc and entry assemblies.
@@ -43,7 +48,7 @@ namespace IceRpc
             _factoryCache = factoryCache;
         }
 
-        RemoteException? IRemoteExceptionFactory.CreateRemoteException(string typeId, Ice20Decoder decoder) =>
+        object? IObjectFactory<Ice20Decoder>.CreateInstance(string typeId, Ice20Decoder decoder) =>
             _factoryCache.TryGetValue(
                 typeId,
                 out Lazy<Func<Ice20Decoder, RemoteException>>? factory) ? factory.Value(decoder) : null;

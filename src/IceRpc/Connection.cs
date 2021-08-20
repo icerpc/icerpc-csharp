@@ -160,7 +160,7 @@ namespace IceRpc
         }
 
         /// <summary>Gets the remote exception factory.</summary>
-        public IRemoteExceptionFactory? RemoteExceptionFactory => _options.RemoteExceptionFactory;
+        public IObjectFactory<Ice20Decoder>? ObjectFactory20 => _options.ObjectFactory20;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State

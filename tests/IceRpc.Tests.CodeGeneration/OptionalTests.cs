@@ -32,7 +32,7 @@ namespace IceRpc.Tests.CodeGeneration
                     new ClientConnectionOptions()
                     {
                         ClassFactory = classFactory,
-                        RemoteExceptionFactory = remoteExceptionFactory
+                        ObjectFactory20 = remoteExceptionFactory
                     }
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);

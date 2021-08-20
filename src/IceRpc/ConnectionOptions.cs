@@ -82,7 +82,7 @@ namespace IceRpc
         public bool KeepAlive { get; set; }
 
         /// <summary>Gets or sets the factory used by <see cref="Ice20Decoder"/> to create remote exceptions.</summary>
-        public IRemoteExceptionFactory? RemoteExceptionFactory { get; set; }
+        public IObjectFactory<Ice20Decoder>? ObjectFactory20 { get; set; }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream

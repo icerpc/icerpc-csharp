@@ -15,7 +15,7 @@ namespace IceRpc
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
     public class Ice20Decoder : IceDecoder
     {
-        private readonly IRemoteExceptionFactory _remoteExceptionFactory;
+        private readonly IObjectFactory<Ice20Decoder> _objectFactory;
 
         /// <summary>Decodes a field value.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -42,7 +42,7 @@ namespace IceRpc
         public override RemoteException DecodeException()
         {
             string typeId = DecodeString();
-            RemoteException? remoteEx = _remoteExceptionFactory.CreateRemoteException(typeId, this);
+            RemoteException? remoteEx = _objectFactory.CreateInstance(typeId, this) as RemoteException;
 
             if (remoteEx != null)
             {
@@ -154,14 +154,13 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="remoteExceptionFactory">The remote exception factory, used to decode remote exceptions.</param>
+        /// <param name="objectFactory">The object factory, used to decode remote exceptions.</param>
         internal Ice20Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IRemoteExceptionFactory? remoteExceptionFactory = null)
-            : base(buffer, connection, invoker) =>
-                _remoteExceptionFactory = remoteExceptionFactory ?? RemoteExceptionFactory.Default;
+            IObjectFactory<Ice20Decoder>? objectFactory = null)
+            : base(buffer, connection, invoker) => _objectFactory = objectFactory ?? RemoteExceptionFactory.Default;
 
         private protected override AnyClass? DecodeAnyClass() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");

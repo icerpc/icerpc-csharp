@@ -39,7 +39,7 @@ namespace IceRpc.Tests.CodeGeneration
                     new ClientConnectionOptions()
                     {
                         ClassFactory = classFactory,
-                        RemoteExceptionFactory = remoteExceptionFactory
+                        ObjectFactory20 = remoteExceptionFactory
                     },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
