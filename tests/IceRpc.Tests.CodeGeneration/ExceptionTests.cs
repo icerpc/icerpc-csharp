@@ -35,7 +35,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Options =
                     new ClientConnectionOptions()
                     {
-                        ClassFactory = classFactory,
+                        ObjectFactory11 = classFactory,
                         ObjectFactory20 = remoteExceptionFactory
                     }
             };

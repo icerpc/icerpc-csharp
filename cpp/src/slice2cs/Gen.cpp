@@ -1586,7 +1586,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceRpc.Ice11Decoder? decoder)";
+    _out << nl << "public " << name << "(IceRpc.Ice11Decoder decoder)";
     _out.inc();
     _out << nl << ": base(decoder)";
     _out.dec();

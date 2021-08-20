@@ -5,11 +5,6 @@ using System.Reflection;
 
 namespace IceRpc
 {
-    public interface IObjectFactory<T> where T : IceDecoder
-    {
-        object? CreateInstance(string typeId, T decoder);
-    }
-
     /// <summary>A class factory implementation that creates instances of types using the
     /// <see cref="RemoteExceptionAttribute"/> attribute.</summary>
     public class RemoteExceptionFactory : IObjectFactory<Ice20Decoder>
@@ -49,8 +44,7 @@ namespace IceRpc
         }
 
         object? IObjectFactory<Ice20Decoder>.CreateInstance(string typeId, Ice20Decoder decoder) =>
-            _factoryCache.TryGetValue(
-                typeId,
-                out Lazy<Func<Ice20Decoder, RemoteException>>? factory) ? factory.Value(decoder) : null;
+            _factoryCache.TryGetValue(typeId, out Lazy<Func<Ice20Decoder, RemoteException>>? factory) ?
+                factory.Value(decoder) : null;
     }
 }

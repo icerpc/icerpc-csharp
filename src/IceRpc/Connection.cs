@@ -45,7 +45,7 @@ namespace IceRpc
             new ClientTransport().UseTcp().UseColoc();
 
         /// <summary>Gets the class factory.</summary>
-        public IClassFactory? ClassFactory => _options.ClassFactory;
+        public IObjectFactory<Ice11Decoder>? ObjectFactory11 => _options.ObjectFactory11;
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
         /// </summary>

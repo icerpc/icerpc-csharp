@@ -75,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
                 RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions()
                 {
-                    ClassFactory = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                    ObjectFactory11 = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
                     ObjectFactory20 =
                         new RemoteExceptionFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
                 }

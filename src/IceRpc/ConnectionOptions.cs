@@ -25,7 +25,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the factory used by <see cref="Ice11Decoder"/> to create classes and remote
         /// exceptions.</summary>
-        public IClassFactory? ClassFactory { get; set; }
+        public IObjectFactory<Ice11Decoder>? ObjectFactory11 { get; set; }
 
         /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
         /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>

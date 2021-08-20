@@ -25,7 +25,7 @@ namespace IceRpc
             }
         }
 
-        private readonly IClassFactory _classFactory;
+        private readonly IObjectFactory<Ice11Decoder> _objectFactory;
 
         private readonly int _classGraphMaxDepth;
 
@@ -75,7 +75,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = (RemoteException?)_classFactory.CreateClass(typeId);
+                remoteEx = (RemoteException?)_objectFactory.CreateInstance(typeId, this);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -287,15 +287,15 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <param name="objectFactory">The class factory, used to decode classes and exceptions.</param>
         internal Ice11Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IClassFactory? classFactory = null)
+            IObjectFactory<Ice11Decoder>? objectFactory = null)
             : base(buffer, connection, invoker)
         {
-            _classFactory = classFactory ?? ClassFactory.Default;
+            _objectFactory = objectFactory ?? ClassFactory.Default;
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
         }
 
@@ -550,7 +550,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = (AnyClass?)_classFactory.CreateClass(typeId);
+                    instance = (AnyClass?)_objectFactory.CreateInstance(typeId, this);
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.

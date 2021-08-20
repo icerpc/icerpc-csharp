@@ -70,7 +70,7 @@ namespace IceRpc
 
         /// <summary>Constructs a remote exception using an Ice 1.1 decoder.</summary>
         /// <param name="decoder">The decoder.</param>
-        public RemoteException(Ice11Decoder? decoder) => ConvertToUnhandled = true;
+        public RemoteException(Ice11Decoder decoder) => ConvertToUnhandled = true;
 
         /// <summary>Constructs a remote exception using an Ice 2.0 decoder.</summary>
         /// <param name="decoder">The decoder.</param>

@@ -20,13 +20,13 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new TaggedOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
+                ConnectionOptions = new ServerConnectionOptions { ObjectFactory11 = classFactory }
             };
             _server.Listen();
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options = new ClientConnectionOptions() { ObjectFactory11 = classFactory }
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
 

@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Encoding
             {
                 Dispatcher = router,
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
+                ConnectionOptions = new ServerConnectionOptions { ObjectFactory11 = classFactory },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Encoding
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory },
+                Options = new ClientConnectionOptions() { ObjectFactory11 = classFactory },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 
@@ -167,7 +167,7 @@ namespace IceRpc.Tests.Encoding
             {
                 ConnectionOptions = new ServerConnectionOptions()
                 {
-                    ClassFactory = classFactory,
+                    ObjectFactory11 = classFactory,
                     ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
                 Dispatcher = new ClassGraphOperations(),
@@ -180,7 +180,7 @@ namespace IceRpc.Tests.Encoding
                 RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions
                 {
-                    ClassFactory = classFactory,
+                    ObjectFactory11 = classFactory,
                     ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }
             };

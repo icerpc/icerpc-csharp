@@ -228,7 +228,7 @@ namespace IceRpc
                     var decoder = _encoding.CreateIceDecoder(buffer,
                                                              _connection,
                                                              _invoker,
-                                                             _connection.ClassFactory);
+                                                             _connection.ObjectFactory11);
                     T value = default!;
                     do
                     {

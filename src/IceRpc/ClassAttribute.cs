@@ -24,7 +24,7 @@ namespace IceRpc
         public Type Type { get; }
 
         /// <summary>A factory delegate to create instances of <see cref="Type"/>.</summary>
-        internal Func<object> Factory
+        internal Func<Ice11Decoder, object> Factory
         {
             get
             {
@@ -43,14 +43,16 @@ namespace IceRpc
                             $"cannot get Ice 1.1 decoding constructor for '{Type.FullName}'");
                     }
 
-                    _factory = Expression.Lambda<Func<object>>(
-                        Expression.New(constructor, Expression.Constant(null, typeof(Ice11Decoder)))).Compile();
+                    ParameterExpression decoderParam = Expression.Parameter(typeof(Ice11Decoder), "decoder");
+
+                    _factory = Expression.Lambda<Func<Ice11Decoder, object>>(
+                        Expression.New(constructor, decoderParam), decoderParam).Compile();
                 }
                 return _factory;
             }
         }
 
-        private Func<object>? _factory;
+        private Func<Ice11Decoder, object>? _factory;
 
         /// <summary>Constructs a new instance of <see cref="ClassAttribute" />.</summary>
         /// <param name="type">The type of the concrete class to register.</param>
