@@ -16,7 +16,7 @@ namespace IceRpc
         public static RemoteExceptionFactory Default { get; } = new RemoteExceptionFactory(
             Assembly.GetEntryAssembly() is Assembly assembly ? new Assembly[] { assembly } : Array.Empty<Assembly>());
 
-        private readonly IReadOnlyDictionary<string, Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>> _factoryCache;
+        private readonly IReadOnlyDictionary<string, Lazy<Func<Ice20Decoder, RemoteException>>> _factoryCache;
 
         /// <summary>Constructs a factory for instances of classes with the <see cref="RemoteExceptionAttribute"/>
         /// attribute provided in the specified <para>assemblies</para>.The types from IceRpc assembly are always
@@ -27,8 +27,7 @@ namespace IceRpc
             // An enumerable of distinct assemblies that always implicitly includes the IceRpc assembly.
             assemblies = assemblies.Concat(new Assembly[] { typeof(RemoteExceptionFactory).Assembly }).Distinct();
 
-            var factoryCache =
-                new Dictionary<string, Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>>();
+            var factoryCache = new Dictionary<string, Lazy<Func<Ice20Decoder, RemoteException>>>();
 
             IEnumerable<RemoteExceptionAttribute> attributes =
                 assemblies.SelectMany(assembly => assembly.GetCustomAttributes<RemoteExceptionAttribute>());
@@ -39,20 +38,14 @@ namespace IceRpc
 
             // Add factory for plain RemoteException
             factoryCache.Add(typeof(RemoteException).GetIceTypeId()!,
-                             new Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>(
-                                (message, origin, _) => new RemoteException(message, origin)));
+                             new Lazy<Func<Ice20Decoder, RemoteException>>(decoder => new RemoteException(decoder)));
 
             _factoryCache = factoryCache;
         }
 
-        RemoteException? IRemoteExceptionFactory.CreateRemoteException(
-            string typeId,
-            string message,
-            RemoteExceptionOrigin origin,
-            Ice20Decoder decoder) =>
+        RemoteException? IRemoteExceptionFactory.CreateRemoteException(string typeId, Ice20Decoder decoder) =>
             _factoryCache.TryGetValue(
                 typeId,
-                out Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>? factory) ?
-            factory.Value(message, origin, decoder) : null;
+                out Lazy<Func<Ice20Decoder, RemoteException>>? factory) ? factory.Value(decoder) : null;
     }
 }

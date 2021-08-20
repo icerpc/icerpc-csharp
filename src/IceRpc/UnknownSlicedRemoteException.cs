@@ -19,16 +19,14 @@ namespace IceRpc
 
         // IceEncode use base class and does not include TypeId.
 
-        /// <summary>Constructs an unknown sliced remote exception with a type ID.</summary>
+        /// <summary>Constructs an unknown sliced remote exception.</summary>
         /// <param name="typeId">The remote exception type ID.</param>
         internal UnknownSlicedRemoteException(string typeId) => TypeId = typeId;
 
-        /// <summary>Constructs an unknown sliced remote exception with the provided message, origin and type ID.
-        /// </summary>
-        /// <param name="message">Message that describes the exception.</param>
-        /// <param name="origin">The remote exception origin.</param>
+        /// <summary>Constructs an unknown sliced remote exception.</summary>
         /// <param name="typeId">The remote exception type ID.</param>
-        internal UnknownSlicedRemoteException(string message, RemoteExceptionOrigin origin, string typeId)
-            : base(message, origin) => TypeId = typeId;
+        /// <param name="decoder">The Ice decoder.</param>
+        internal UnknownSlicedRemoteException(string typeId, Ice20Decoder decoder)
+            : base(decoder) => TypeId = typeId;
     }
 }

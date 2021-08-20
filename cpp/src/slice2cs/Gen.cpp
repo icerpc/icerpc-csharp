@@ -1587,12 +1587,9 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
     _out << nl << "public " << name << "(IceRpc.Ice11Decoder? decoder)";
-    if (base)
-    {
-        _out.inc();
-        _out << nl << ": base(decoder)";
-        _out.dec();
-    }
+    _out.inc();
+    _out << nl << ": base(decoder)";
+    _out.dec();
     _out << sb;
     writeSuppressNonNullableWarnings(dataMembers, Slice::ExceptionType);
     _out << eb;
@@ -1603,14 +1600,11 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << sp;
         _out << nl << "/// <inherit-doc/>";
         emitEditorBrowsableNeverAttribute();
-        _out << nl << "public " << name
-             << "(string message, IceRpc.RemoteExceptionOrigin origin, IceRpc.Ice20Decoder decoder)";
-        // We call the base class constructor to initialize the base class fields.
+        _out << nl << "public " << name << "(IceRpc.Ice20Decoder decoder)";
         _out.inc();
-        _out << nl << ": base(message, origin)";
+        _out << nl << ": base(decoder)";
         _out.dec();
         _out << sb;
-        _out << nl << "ConvertToUnhandled = true;";
         writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << eb;
     }
@@ -1653,6 +1647,8 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << nl << "protected override void IceEncode(IceRpc.Ice20Encoder encoder)";
         _out << sb;
         _out << nl << "encoder.EncodeString(_iceTypeId);";
+        _out << nl << "encoder.EncodeString(Message);";
+        _out << nl << "Origin.Encode(encoder);";
         writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << eb;
     }

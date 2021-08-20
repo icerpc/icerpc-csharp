@@ -14,14 +14,7 @@ namespace IceRpc
     public class Ice20Encoder : IceEncoder
     {
         /// <inheritdoc/>
-        public override void EncodeException(RemoteException v)
-        {
-            EncodeString(v.Message);
-            v.Origin.Encode(this);
-
-            // We slice-off the exception to its top Slice if it's a derived exception
-            v.Encode(this);
-        }
+        public override void EncodeException(RemoteException v) => v.Encode(this);
 
         /// <inheritdoc/>
         public override void EncodeNullableClass(AnyClass? v) =>

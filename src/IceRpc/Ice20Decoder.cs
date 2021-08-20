@@ -41,11 +41,8 @@ namespace IceRpc
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
-            string errorMessage = DecodeString();
-            var origin = new RemoteExceptionOrigin(this);
             string typeId = DecodeString();
-            RemoteException? remoteEx =
-                _remoteExceptionFactory.CreateRemoteException(typeId, errorMessage, origin, this);
+            RemoteException? remoteEx = _remoteExceptionFactory.CreateRemoteException(typeId, this);
 
             if (remoteEx != null)
             {
@@ -54,7 +51,7 @@ namespace IceRpc
             // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
             // throwing "can't decode remote exception".
 
-            return remoteEx ?? new UnknownSlicedRemoteException(errorMessage, origin, typeId);
+            return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
         }
 
         /// <summary>Decodes fields.</summary>
