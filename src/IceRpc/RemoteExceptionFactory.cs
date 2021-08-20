@@ -36,6 +36,12 @@ namespace IceRpc
             {
                 factoryCache.Add(attribute.TypeId, new(() => attribute.Factory));
             }
+
+            // Add factory for plain RemoteException
+            factoryCache.Add(typeof(RemoteException).GetIceTypeId()!,
+                             new Lazy<Func<string, RemoteExceptionOrigin, Ice20Decoder, RemoteException>>(
+                                (message, origin, _) => new RemoteException(message, origin)));
+
             _factoryCache = factoryCache;
         }
 

@@ -37,12 +37,6 @@ namespace IceRpc
             Debug.Assert(_classFormat == FormatType.Sliced);
             _current.InstanceType = InstanceType.Exception;
             _current.FirstSlice = true;
-
-            if (v.UnknownSlices.Count > 0)
-            {
-                EncodeUnknownSlices(v.UnknownSlices, fullySliced: false);
-                _current.FirstSlice = false;
-            }
             v.Encode(this);
             _current = default;
         }

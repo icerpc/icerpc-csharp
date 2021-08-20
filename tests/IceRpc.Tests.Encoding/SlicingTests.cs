@@ -172,7 +172,6 @@ namespace IceRpc.Tests.Encoding
             // First we unmarshal the exception using the factory that knows all the types, no Slicing should occur in this case.
             var decoder = new Ice11Decoder(data, classFactory: classFactory);
             RemoteException r = decoder.DecodeException();
-            Assert.IsEmpty(r.UnknownSlices);
             Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
             var r1 = (MyMostDerivedException)r;
             Assert.AreEqual(p1.M1, r1.M1);
@@ -188,7 +187,6 @@ namespace IceRpc.Tests.Encoding
             decoder = new Ice11Decoder(data, classFactory: slicingClassFactory);
 
             r = decoder.DecodeException();
-            Assert.IsNotEmpty(r.UnknownSlices);
             Assert.That(r, Is.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.Not.InstanceOf<MyMostDerivedException>());
             var r2 = (MyDerivedException)r;
@@ -204,7 +202,6 @@ namespace IceRpc.Tests.Encoding
 
             decoder = new Ice11Decoder(data, classFactory: slicingClassFactory);
             r = decoder.DecodeException();
-            Assert.IsNotEmpty(r.UnknownSlices);
             Assert.That(r, Is.Not.InstanceOf<MyDerivedException>());
             Assert.That(r, Is.InstanceOf<MyBaseException>());
             var r3 = (MyBaseException)r;
@@ -220,10 +217,12 @@ namespace IceRpc.Tests.Encoding
 
             decoder = new Ice11Decoder(data, classFactory: slicingClassFactory);
             r = decoder.DecodeException();
-            Assert.IsNotEmpty(r.UnknownSlices);
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
+            Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
+            Assert.AreEqual("::IceRpc::Tests::Encoding::MyMostDerivedException",
+                            ((UnknownSlicedRemoteException)r).TypeId);
 
-            // Marshal the exception again to ensure all Slices are correctly preserved
+            // Marshal the exception again -- there is no Slice preservation for exceptions
             bufferWriter = new BufferWriter(new byte[1024 * 1024]);
             encoder = new Ice11Encoder(bufferWriter, classFormat: FormatType.Sliced);
             encoder.EncodeException(r);
@@ -231,12 +230,8 @@ namespace IceRpc.Tests.Encoding
 
             decoder = new Ice11Decoder(data, classFactory: classFactory);
             r = decoder.DecodeException();
-             Assert.IsEmpty(r.UnknownSlices);
-            Assert.That(r, Is.InstanceOf<MyMostDerivedException>());
-            r1 = (MyMostDerivedException)r;
-            Assert.AreEqual(p1.M1, r1.M1);
-            Assert.AreEqual(p1.M2, r1.M2);
-            Assert.AreEqual(p1.M3, r1.M3);
+            Assert.That(r, Is.Not.InstanceOf<UnknownSlicedRemoteException>());
+            Assert.That(r, Is.InstanceOf<RemoteException>()); // a plain RemoteException
         }
 
         [Test]

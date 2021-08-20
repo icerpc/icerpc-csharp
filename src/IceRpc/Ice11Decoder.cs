@@ -20,7 +20,7 @@ namespace IceRpc
         {
             get
             {
-                Debug.Assert(_current.InstanceType != InstanceType.None);
+                Debug.Assert(_current.InstanceType == InstanceType.Class);
                 return _current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
             }
         }
@@ -58,17 +58,20 @@ namespace IceRpc
             Debug.Assert(_current.InstanceType == InstanceType.None);
             _current.InstanceType = InstanceType.Exception;
 
-            RemoteException? remoteEx = null;
+            RemoteException? remoteEx;
 
             // We can decode the indirection table (if there is one) immediately after decoding each slice header
             // because the indirection table cannot reference the exception itself.
             // Each slice contains its type ID as a string.
+
+            string? mostDerivedTypeId = null;
 
             do
             {
                 // The type ID is always decoded for an exception and cannot be null.
                 string? typeId = DecodeSliceHeaderIntoCurrent();
                 Debug.Assert(typeId != null);
+                mostDerivedTypeId ??= typeId;
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
@@ -80,11 +83,16 @@ namespace IceRpc
             }
             while (remoteEx == null);
 
-            remoteEx ??= new RemoteException();
+            if (remoteEx != null)
+            {
+                _current.FirstSlice = true;
+                remoteEx.Decode(this);
+            }
+            else
+            {
+                remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
+            }
 
-            remoteEx.UnknownSlices = UnknownSlices;
-            _current.FirstSlice = true;
-            remoteEx.Decode(this);
             _current = default;
             return remoteEx;
         }

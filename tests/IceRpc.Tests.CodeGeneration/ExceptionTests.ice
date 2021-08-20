@@ -20,5 +20,6 @@ module IceRpc::Tests::CodeGeneration
     {
         void throwA(int a);
         void throwAorB(int a);
+        void throwRemoteException();
     }
 }

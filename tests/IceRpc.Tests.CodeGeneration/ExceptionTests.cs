@@ -90,6 +90,15 @@ namespace IceRpc.Tests.CodeGeneration
             MyExceptionB? b = Assert.ThrowsAsync<MyExceptionB>(async () => await _prx.ThrowAorBAsync(0));
             Assert.That(b, Is.Not.Null);
             Assert.AreEqual(0, b.M1);
+
+            RemoteException? remoteEx =
+                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
+
+            Assert.That(remoteEx, Is.Not.Null);
+            if (_connection.Protocol == Protocol.Ice2)
+            {
+                Assert.AreEqual("some message", remoteEx.Message);
+            }
         }
 
         public class ExceptionOperations : Service, IExceptionOperations
@@ -106,6 +115,9 @@ namespace IceRpc.Tests.CodeGeneration
                     throw new MyExceptionB(a);
                 }
             }
+
+            public ValueTask ThrowRemoteExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+                throw new RemoteException("some message");
         }
     }
 }

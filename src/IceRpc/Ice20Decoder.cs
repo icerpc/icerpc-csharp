@@ -51,10 +51,10 @@ namespace IceRpc
             {
                 SkipTaggedParams(); // TODO: revisit
             }
-            // else we can't decode this exception so we return a plain RemoteException with the error message and
-            // origin instead of throwing "can't decode remote exception".
+            // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
+            // throwing "can't decode remote exception".
 
-            return remoteEx ?? new RemoteException(errorMessage, origin);
+            return remoteEx ?? new UnknownSlicedRemoteException(errorMessage, origin, typeId);
         }
 
         /// <summary>Decodes fields.</summary>
