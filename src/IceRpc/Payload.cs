@@ -200,7 +200,7 @@ namespace IceRpc
                 payload,
                 dispatch.Connection,
                 dispatch.ProxyInvoker,
-                dispatch.Connection?.ObjectFactory11);
+                dispatch.Connection?.Activator11);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -239,7 +239,7 @@ namespace IceRpc
                 payload,
                 connection,
                 invoker,
-                connection?.ObjectFactory11);
+                connection?.Activator11);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -326,8 +326,8 @@ namespace IceRpc
                 payload,
                 connection,
                 invoker,
-                connection?.ObjectFactory11,
-                connection?.ObjectFactory20);
+                connection?.Activator11,
+                connection?.Activator20);
 
             if (protocol == Protocol.Ice2 && payloadEncoding == Encoding.Ice11)
             {

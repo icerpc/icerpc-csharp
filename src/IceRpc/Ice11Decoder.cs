@@ -15,6 +15,10 @@ namespace IceRpc
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
     public class Ice11Decoder : IceDecoder
     {
+        private static readonly ActivatorFactory<Ice11Decoder> _activatorFactory =
+            new ActivatorFactory<Ice11Decoder>(
+                type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
+
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal ImmutableList<SliceInfo> UnknownSlices
         {
@@ -25,7 +29,7 @@ namespace IceRpc
             }
         }
 
-        private readonly IObjectFactory<Ice11Decoder> _objectFactory;
+        private readonly IActivator<Ice11Decoder> _Activator;
 
         private readonly int _classGraphMaxDepth;
 
@@ -75,7 +79,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = (RemoteException?)_objectFactory.CreateInstance(typeId, this);
+                remoteEx = (RemoteException?)_Activator.CreateInstance(typeId, this);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -287,15 +291,15 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="objectFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <param name="Activator">The class factory, used to decode classes and exceptions.</param>
         internal Ice11Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IObjectFactory<Ice11Decoder>? objectFactory = null)
+            IActivator<Ice11Decoder>? Activator = null)
             : base(buffer, connection, invoker)
         {
-            _objectFactory = objectFactory ?? ClassFactory.Default;
+            _Activator = Activator ?? ClassFactory.Default;
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
         }
 
@@ -550,7 +554,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = (AnyClass?)_objectFactory.CreateInstance(typeId, this);
+                    instance = (AnyClass?)_Activator.CreateInstance(typeId, this);
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.

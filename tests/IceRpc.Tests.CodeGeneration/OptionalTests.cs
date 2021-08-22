@@ -22,7 +22,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new OptionalOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { ObjectFactory11 = classFactory }
+                ConnectionOptions = new ServerConnectionOptions { Activator11 = classFactory }
             };
             _server.Listen();
             _connection = new Connection
@@ -31,8 +31,8 @@ namespace IceRpc.Tests.CodeGeneration
                 Options =
                     new ClientConnectionOptions()
                     {
-                        ObjectFactory11 = classFactory,
-                        ObjectFactory20 = remoteExceptionFactory
+                        Activator11 = classFactory,
+                        Activator20 = remoteExceptionFactory
                     }
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);

@@ -25,7 +25,7 @@ namespace IceRpc
 
         /// <summary>Gets or sets the factory used by <see cref="Ice11Decoder"/> to create classes and remote
         /// exceptions.</summary>
-        public IObjectFactory<Ice11Decoder>? ObjectFactory11 { get; set; }
+        public IActivator<Ice11Decoder>? Activator11 { get; set; }
 
         /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
         /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
@@ -82,7 +82,7 @@ namespace IceRpc
         public bool KeepAlive { get; set; }
 
         /// <summary>Gets or sets the factory used by <see cref="Ice20Decoder"/> to create remote exceptions.</summary>
-        public IObjectFactory<Ice20Decoder>? ObjectFactory20 { get; set; }
+        public IActivator<Ice20Decoder>? Activator20 { get; set; }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream

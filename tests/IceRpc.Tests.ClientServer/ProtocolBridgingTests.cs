@@ -23,8 +23,8 @@ namespace IceRpc.Tests.ClientServer
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
                 ConnectionOptions = new ClientConnectionOptions()
                 {
-                    ObjectFactory11 = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly }),
-                    ObjectFactory20 =
+                    Activator11 = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly }),
+                    Activator20 =
                         new RemoteExceptionFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly })
                 }
             };

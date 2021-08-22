@@ -30,14 +30,14 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { ObjectFactory11 = classFactory }
+                ConnectionOptions = new ServerConnectionOptions { Activator11 = classFactory }
             };
             _server.Listen();
 
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ObjectFactory11 = classFactory }
+                Options = new ClientConnectionOptions() { Activator11 = classFactory }
             };
             _prx1 = Scope.OperationsPrx.FromConnection(_connection);
             _prx1.Proxy.Encoding = Encoding.Ice11; // TODO: segregate use of classes

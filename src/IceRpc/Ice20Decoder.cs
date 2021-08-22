@@ -7,6 +7,8 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -15,7 +17,11 @@ namespace IceRpc
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
     public class Ice20Decoder : IceDecoder
     {
-        private readonly IObjectFactory<Ice20Decoder> _objectFactory;
+        private static readonly ActivatorFactory<Ice20Decoder> _activatorFactory =
+            new ActivatorFactory<Ice20Decoder>(
+                type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
+
+        private readonly IActivator<Ice20Decoder> _activator;
 
         /// <summary>Decodes a field value.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -38,11 +44,16 @@ namespace IceRpc
             return result;
         }
 
+        public static IActivator<Ice20Decoder> GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
+
+        public static IActivator<Ice20Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
+            Activator<Ice20Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
+
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             string typeId = DecodeString();
-            RemoteException? remoteEx = _objectFactory.CreateInstance(typeId, this) as RemoteException;
+            RemoteException? remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
 
             if (remoteEx != null)
             {
@@ -154,13 +165,13 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="objectFactory">The object factory, used to decode remote exceptions.</param>
+        /// <param name="Activator">The object factory, used to decode remote exceptions.</param>
         internal Ice20Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IObjectFactory<Ice20Decoder>? objectFactory = null)
-            : base(buffer, connection, invoker) => _objectFactory = objectFactory ?? RemoteExceptionFactory.Default;
+            IActivator<Ice20Decoder>? activator = null)
+            : base(buffer, connection, invoker) => _activator = activator ?? RemoteExceptionFactory.Default;
 
         private protected override AnyClass? DecodeAnyClass() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");

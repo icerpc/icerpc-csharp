@@ -45,7 +45,7 @@ namespace IceRpc
             new ClientTransport().UseTcp().UseColoc();
 
         /// <summary>Gets the class factory.</summary>
-        public IObjectFactory<Ice11Decoder>? ObjectFactory11 => _options.ObjectFactory11;
+        public IActivator<Ice11Decoder>? Activator11 => _options.Activator11;
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
         /// </summary>
@@ -160,7 +160,7 @@ namespace IceRpc
         }
 
         /// <summary>Gets the remote exception factory.</summary>
-        public IObjectFactory<Ice20Decoder>? ObjectFactory20 => _options.ObjectFactory20;
+        public IActivator<Ice20Decoder>? Activator20 => _options.Activator20;
 
         /// <summary>The state of the connection.</summary>
         public ConnectionState State

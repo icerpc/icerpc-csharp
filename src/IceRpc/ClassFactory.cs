@@ -7,7 +7,7 @@ namespace IceRpc
 {
     /// <summary>A class factory implementation that creates instances of types using the <see cref="ClassAttribute"/>
     /// attribute.</summary>
-    public class ClassFactory : IObjectFactory<Ice11Decoder>
+    public class ClassFactory : IActivator<Ice11Decoder>
     {
         /// <summary>The default class factory instance used when the application doesn't configure one. It looks up
         /// types using the <see cref="ClassAttribute"/> attribute in the IceRpc and entry assemblies.</summary>
@@ -48,7 +48,7 @@ namespace IceRpc
             _factoryCache = factoryCache;
         }
 
-        object? IObjectFactory<Ice11Decoder>.CreateInstance(string typeId, Ice11Decoder decoder) =>
+        object? IActivator<Ice11Decoder>.CreateInstance(string typeId, Ice11Decoder decoder) =>
             _factoryCache.TryGetValue(typeId, out Lazy<Func<Ice11Decoder, object>>? factory) ?
                 factory.Value(decoder) : null;
     }

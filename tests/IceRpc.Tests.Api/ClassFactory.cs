@@ -11,7 +11,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void ClassFactory_CreateInstance()
         {
-            IceRpc.IObjectFactory<Ice11Decoder> factory = IceRpc.ClassFactory.Default;
+            IceRpc.IActivator<Ice11Decoder> factory = IceRpc.ClassFactory.Default;
 
             Ice11Decoder decoder = null!;
 

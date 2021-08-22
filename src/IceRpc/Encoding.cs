@@ -97,15 +97,15 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="objectFactory11">xxx.</param>
-        /// <param name="objectFactory20">xxx</param>
+        /// <param name="Activator11">xxx.</param>
+        /// <param name="Activator20">xxx</param>
         /// <returns>A new decoder for the specified Ice encoding.</returns>
         internal virtual IceDecoder CreateIceDecoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IObjectFactory<Ice11Decoder>? objectFactory11  = null,
-            IObjectFactory<Ice20Decoder>? objectFactory20 = null) =>
+            IActivator<Ice11Decoder>? Activator11  = null,
+            IActivator<Ice20Decoder>? Activator20 = null) =>
             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
@@ -167,9 +167,9 @@ namespace IceRpc
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
                 IInvoker? invoker = null,
-                IObjectFactory<Ice11Decoder>? objectFactory11 = null,
-                IObjectFactory<Ice20Decoder>? objectFactory20 = null) =>
-                new Ice11Decoder(buffer, connection, invoker, objectFactory11);
+                IActivator<Ice11Decoder>? Activator11 = null,
+                IActivator<Ice20Decoder>? Activator20 = null) =>
+                new Ice11Decoder(buffer, connection, invoker, Activator11);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
@@ -187,9 +187,9 @@ namespace IceRpc
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
                 IInvoker? invoker = null,
-                IObjectFactory<Ice11Decoder>? objectFactory11 = null,
-                IObjectFactory<Ice20Decoder>? objectFactory20 = null) =>
-                new Ice20Decoder(buffer, connection, invoker, objectFactory20);
+                IActivator<Ice11Decoder>? Activator11 = null,
+                IActivator<Ice20Decoder>? Activator20 = null) =>
+                new Ice20Decoder(buffer, connection, invoker, Activator20);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
