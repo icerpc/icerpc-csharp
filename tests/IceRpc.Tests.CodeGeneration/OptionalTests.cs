@@ -16,7 +16,7 @@ namespace IceRpc.Tests.CodeGeneration
         public OptionalTests()
         {
             var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
-            var remoteExceptionFactory = new RemoteExceptionFactory(new Assembly[] { typeof(OptionalTests).Assembly });
+            var activator20 = Ice20Decoder.GetActivator(typeof(OptionalTests).Assembly);
 
             _server = new Server()
             {
@@ -32,7 +32,7 @@ namespace IceRpc.Tests.CodeGeneration
                     new ClientConnectionOptions()
                     {
                         Activator11 = classFactory,
-                        Activator20 = remoteExceptionFactory
+                        Activator20 = activator20
                     }
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);

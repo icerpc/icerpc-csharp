@@ -165,13 +165,14 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="Activator">The object factory, used to decode remote exceptions.</param>
+        /// <param name="activator">The activator used to create remote exceptions from type IDs.</param>
         internal Ice20Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator<Ice20Decoder>? activator = null)
-            : base(buffer, connection, invoker) => _activator = activator ?? RemoteExceptionFactory.Default;
+            // TODO: temporary default
+            : base(buffer, connection, invoker) => _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
 
         private protected override AnyClass? DecodeAnyClass() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");

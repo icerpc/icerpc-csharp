@@ -20,8 +20,7 @@ namespace IceRpc.Tests.CodeGeneration
         public OperationsTests(Protocol protocol)
         {
             var classFactory = new ClassFactory(new Assembly[] { typeof(OperationsTests).Assembly });
-            var remoteExceptionFactory =
-                new RemoteExceptionFactory(new Assembly[] { typeof(OperationsTests).Assembly });
+            var activator20 = Ice20Decoder.GetActivator(typeof(OperationsTests).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
@@ -39,7 +38,7 @@ namespace IceRpc.Tests.CodeGeneration
                     new ClientConnectionOptions()
                     {
                         Activator11 = classFactory,
-                        Activator20 = remoteExceptionFactory
+                        Activator20 = activator20
                     },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };

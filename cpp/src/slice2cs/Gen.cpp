@@ -528,12 +528,6 @@ Slice::CsVisitor::emitCompactTypeIdAttribute(int compactTypeId)
 }
 
 void
-Slice::CsVisitor::emitRemoteExceptionAttribute(const string& className)
-{
-    _out << nl << "[assembly:IceRpc.RemoteException(typeof(" << className << "))]";
-}
-
-void
 Slice::CsVisitor::emitTypeIdAttribute(const string& typeId)
 {
     _out << nl << "[IceRpc.TypeId(\"" << typeId << "\")]";
@@ -3087,11 +3081,6 @@ Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
 bool
 Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
 {
-    if (!p->base())
-    {
-        emitRemoteExceptionAttribute(getNamespace(p) + "." + fixId(p->name()));
-    }
-
     emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
     return false;
 }

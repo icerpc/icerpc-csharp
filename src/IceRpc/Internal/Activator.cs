@@ -72,27 +72,7 @@ namespace IceRpc.Internal
                         {
                             if (type.GetIceTypeId() is string typeId && _typeFilter(type))
                             {
-                                dict.Add(
-                                    typeId,
-                                    new Lazy<Func<T, object>>(decoder =>
-                                    {
-                                        ConstructorInfo? constructor = type.GetConstructor(
-                                            BindingFlags.Instance | BindingFlags.Public,
-                                            null,
-                                            new Type[] { typeof(T) },
-                                            null);
-
-                                        if (constructor == null)
-                                        {
-                                            throw new InvalidOperationException(
-                                                $"cannot get Ice decoding constructor for '{type.FullName}'");
-                                        }
-
-                                        ParameterExpression decoderParam = Expression.Parameter(typeof(T), "decoder");
-
-                                        return Expression.Lambda<Func<T, object>>(
-                                            Expression.New(constructor, decoderParam), decoderParam).Compile();
-                                    }));
+                                dict.Add(typeId, new Lazy<Func<T, object>>(CreateFactory(type)));
                             }
                         }
 
@@ -107,6 +87,26 @@ namespace IceRpc.Internal
             {
                 // We don't cache an assembly with no Slice attribute, and don't load/process its referenced assemblies.
                 return Activator<T>.Empty;
+            }
+
+            static Func<T, object> CreateFactory(Type type)
+            {
+                ConstructorInfo? constructor = type.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public,
+                    null,
+                    new Type[] { typeof(T) },
+                    null);
+
+                    if (constructor == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"cannot get Ice decoding constructor for '{type.FullName}'");
+                    }
+
+                    ParameterExpression decoderParam = Expression.Parameter(typeof(T), "decoder");
+
+                    return Expression.Lambda<Func<T, object>>(
+                        Expression.New(constructor, decoderParam), decoderParam).Compile();
             }
         }
     }

@@ -24,8 +24,7 @@ namespace IceRpc.Tests.ClientServer
                 ConnectionOptions = new ClientConnectionOptions()
                 {
                     Activator11 = new ClassFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly }),
-                    Activator20 =
-                        new RemoteExceptionFactory(new Assembly[] { typeof(ProtocolBridgingException).Assembly })
+                    Activator20 = Ice20Decoder.GetActivator(typeof(ProtocolBridgingException).Assembly)
                 }
             };
         }

@@ -76,8 +76,7 @@ namespace IceRpc.Tests.ClientServer
                 Options = new ClientConnectionOptions()
                 {
                     Activator11 = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
-                    Activator20 =
-                        new RemoteExceptionFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                    Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                 }
             };
             var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
