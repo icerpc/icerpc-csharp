@@ -95,7 +95,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = (RemoteException?)_activator.CreateInstance(typeId, this);
+                remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
