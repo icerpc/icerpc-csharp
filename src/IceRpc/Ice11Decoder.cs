@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -29,7 +30,7 @@ namespace IceRpc
             }
         }
 
-        private readonly IActivator<Ice11Decoder> _Activator;
+        private readonly IActivator<Ice11Decoder> _activator;
 
         private readonly int _classGraphMaxDepth;
 
@@ -56,6 +57,11 @@ namespace IceRpc
         // _typeIdMap[index - 1].
         private List<string>? _typeIdMap;
 
+        public static IActivator<Ice11Decoder> GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
+
+        public static IActivator<Ice11Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
+            Activator<Ice11Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
+
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
@@ -79,7 +85,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = (RemoteException?)_Activator.CreateInstance(typeId, this);
+                remoteEx = (RemoteException?)_activator.CreateInstance(typeId, this);
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -291,15 +297,16 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="Activator">The class factory, used to decode classes and exceptions.</param>
+        /// <param name="activator">The activator.</param>
         internal Ice11Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IActivator<Ice11Decoder>? Activator = null)
+            IActivator<Ice11Decoder>? activator = null)
             : base(buffer, connection, invoker)
         {
-            _Activator = Activator ?? ClassFactory.Default;
+            // TODO: temporary default
+            _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
         }
 
@@ -554,7 +561,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = (AnyClass?)_Activator.CreateInstance(typeId, this);
+                    instance = (AnyClass?)_activator.CreateInstance(typeId, this);
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.

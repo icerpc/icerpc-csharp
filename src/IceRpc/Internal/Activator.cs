@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -73,7 +74,14 @@ namespace IceRpc.Internal
                         {
                             if (type.GetIceTypeId() is string typeId && _typeFilter(type))
                             {
-                                dict.Add(typeId, new Lazy<Func<T, object>>(CreateFactory(type)));
+                                var lazy = new Lazy<Func<T, object>>(CreateFactory(type));
+
+                                dict.Add(typeId, lazy);
+
+                                if (type.GetIceCompactTypeId() is int compactTypeId)
+                                {
+                                    dict.Add(compactTypeId.ToString(CultureInfo.InvariantCulture), lazy);
+                                }
                             }
                         }
 
