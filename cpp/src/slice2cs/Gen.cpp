@@ -1092,6 +1092,8 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#nullable enable";
     _out << nl;
     _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
+    _out << nl;
+    _out << nl << "[assembly:IceRpc.Slice(\"" << fileBase << ".ice\")]";
 }
 
 Slice::Gen::~Gen()

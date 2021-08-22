@@ -61,7 +61,7 @@ namespace IceRpc.Internal
             {
                 return activator;
             }
-            else if (assembly.GetCustomAttributes<ClassAttribute>().Any()) // TODO: switch to new Slice attribute
+            else if (assembly.GetCustomAttributes<SliceAttribute>().Any())
             {
                 return _cache.GetOrAdd(
                     assembly,
