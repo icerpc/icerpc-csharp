@@ -2,7 +2,7 @@
 
 namespace IceRpc
 {
-    /// <summary>The Ice decoders use an activator to create instances of classes and exceptions from Ice type IDs.
+    /// <summary>Ice decoders use activators to create instances of classes and remote exceptions from Ice type IDs.
     /// </summary>
     public interface IActivator<T> where T : IceDecoder
     {

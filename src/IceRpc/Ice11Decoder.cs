@@ -2,24 +2,17 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
-using System.Collections;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace IceRpc
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
     public class Ice11Decoder : IceDecoder
     {
-        private static readonly ActivatorFactory<Ice11Decoder> _activatorFactory =
-            new ActivatorFactory<Ice11Decoder>(
-                type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
-
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal ImmutableList<SliceInfo> UnknownSlices
         {
@@ -29,6 +22,10 @@ namespace IceRpc
                 return _current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
             }
         }
+
+        private static readonly ActivatorFactory<Ice11Decoder> _activatorFactory =
+            new ActivatorFactory<Ice11Decoder>(
+                type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
 
         private readonly IActivator<Ice11Decoder> _activator;
 
@@ -48,7 +45,7 @@ namespace IceRpc
         // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
         private List<AnyClass>? _instanceMap;
 
-          // See DecodeTypeId.
+        // See DecodeTypeId.
         private int _posAfterLatestInsertedTypeId;
 
         // Map of type ID index to type ID sequence, used only for classes.
@@ -57,8 +54,21 @@ namespace IceRpc
         // _typeIdMap[index - 1].
         private List<string>? _typeIdMap;
 
+        /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
+        /// assemblies.</summary>
+        /// <param name="assembly">The assembly.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assembly"/> provided this
+        /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute"/>
+        /// attribute). Types defined in assemblies referenced by <paramref name="assembly"/> are included as well,
+        /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
+        /// considered.</returns>
         public static IActivator<Ice11Decoder> GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
 
+        /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
+        /// referenced assemblies.</summary>
+        /// <param name="assemblies">The assemblies.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies"/> and their
+        /// referenced assemblies. See <see cref="GetActivator(Assembly)"/>.</returns>
         public static IActivator<Ice11Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
             Activator<Ice11Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
 
