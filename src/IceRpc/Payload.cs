@@ -196,11 +196,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = dispatch.Encoding.CreateIceDecoder(
-                payload,
-                dispatch.Connection,
-                dispatch.ProxyInvoker,
-                dispatch.Connection?.Activator11);
+            var decoder = dispatch.Encoding.CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -235,11 +231,7 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = payloadEncoding.CreateIceDecoder(
-                payload,
-                connection,
-                invoker,
-                connection?.Activator11);
+            var decoder = payloadEncoding.CreateIceDecoder(payload, connection, invoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -322,12 +314,7 @@ namespace IceRpc
             }
 
             Protocol protocol = connection.Protocol;
-            var decoder = payloadEncoding.CreateIceDecoder(
-                payload,
-                connection,
-                invoker,
-                connection?.Activator11,
-                connection?.Activator20);
+            var decoder = payloadEncoding.CreateIceDecoder(payload, connection, invoker);
 
             if (protocol == Protocol.Ice2 && payloadEncoding == Encoding.Ice11)
             {

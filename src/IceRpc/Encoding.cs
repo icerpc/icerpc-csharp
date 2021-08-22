@@ -97,15 +97,11 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="Activator11">xxx.</param>
-        /// <param name="Activator20">xxx</param>
         /// <returns>A new decoder for the specified Ice encoding.</returns>
         internal virtual IceDecoder CreateIceDecoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
-            IInvoker? invoker = null,
-            IActivator<Ice11Decoder>? Activator11  = null,
-            IActivator<Ice20Decoder>? Activator20 = null) =>
+            IInvoker? invoker = null) =>
             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
@@ -166,10 +162,8 @@ namespace IceRpc
             internal override IceDecoder CreateIceDecoder(
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
-                IInvoker? invoker = null,
-                IActivator<Ice11Decoder>? Activator11 = null,
-                IActivator<Ice20Decoder>? Activator20 = null) =>
-                new Ice11Decoder(buffer, connection, invoker, Activator11);
+                IInvoker? invoker = null) =>
+                new Ice11Decoder(buffer, connection, invoker, connection?.Activator11);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
@@ -186,10 +180,7 @@ namespace IceRpc
             internal override IceDecoder CreateIceDecoder(
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
-                IInvoker? invoker = null,
-                IActivator<Ice11Decoder>? Activator11 = null,
-                IActivator<Ice20Decoder>? Activator20 = null) =>
-                new Ice20Decoder(buffer, connection, invoker, Activator20);
+                IInvoker? invoker = null) => new Ice20Decoder(buffer, connection, invoker, connection?.Activator20);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,

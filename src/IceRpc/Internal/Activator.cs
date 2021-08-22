@@ -21,6 +21,7 @@ namespace IceRpc.Internal
         object? IActivator<T>.CreateInstance(string typeId, T decoder) =>
             _dict.TryGetValue(typeId, out Lazy<Func<T, object>>? factory) ? factory.Value(decoder) : null;
 
+        /// <summary>Merge activators into a single activator; duplicate entries are ignored.</summary>
         internal static Activator<T> Merge(IEnumerable<Activator<T>> activators)
         {
             if (activators.Count() == 1)

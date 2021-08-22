@@ -225,10 +225,7 @@ namespace IceRpc
                         yield break; // finish iteration
                     }
 
-                    var decoder = _encoding.CreateIceDecoder(buffer,
-                                                             _connection,
-                                                             _invoker,
-                                                             _connection.Activator11);
+                    var decoder = _encoding.CreateIceDecoder(buffer, _connection, _invoker);
                     T value = default!;
                     do
                     {
