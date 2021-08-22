@@ -516,12 +516,6 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 }
 
 void
-Slice::CsVisitor::emitClassAttribute(const string& className)
-{
-    _out << nl << "[assembly:IceRpc.Class(typeof(" << className << "))]";
-}
-
-void
 Slice::CsVisitor::emitCompactTypeIdAttribute(int compactTypeId)
 {
     _out << nl << "[IceRpc.CompactTypeId(" << compactTypeId << ")]";
@@ -1111,9 +1105,6 @@ Slice::Gen::generate(const UnitPtr& p)
 
     UnitVisitor unitVisitor(_out);
     p->visit(&unitVisitor, false);
-
-    ClassAttributeVisitor classAttributeVisitor(_out);
-    p->visit(&classAttributeVisitor, false);
 
     TypesVisitor typesVisitor(_out);
     p->visit(&typesVisitor, false);
@@ -3047,42 +3038,4 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncodeAction(const Operation
         writeMarshal(operation, true);
         _out << eb;
     }
-}
-
-Slice::Gen::ClassAttributeVisitor::ClassAttributeVisitor(IceUtilInternal::Output& out) :
-    CsVisitor(out)
-{
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitUnitStart(const UnitPtr& p)
-{
-    if (p->hasClassDefs() || p->hasExceptions())
-    {
-        _out << sp;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void
-Slice::Gen::ClassAttributeVisitor::visitUnitEnd(const UnitPtr&)
-{
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
-{
-    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
-    return false;
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
-{
-    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
-    return false;
 }
