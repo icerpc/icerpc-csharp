@@ -75,7 +75,7 @@ namespace IceRpc.Tests.ClientServer
                 RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions()
                 {
-                    Activator11 = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                    Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                     Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                 }
             };

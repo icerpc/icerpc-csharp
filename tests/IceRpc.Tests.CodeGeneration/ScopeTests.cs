@@ -25,7 +25,7 @@ namespace IceRpc.Tests.CodeGeneration
             router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
             router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
 
-            var classFactory = new ClassFactory(new Assembly[] { typeof(ScopeTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(ScopeTests).Assembly);
             _server = new Server()
             {
                 Dispatcher = router,

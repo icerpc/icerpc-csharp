@@ -15,7 +15,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OptionalTests()
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(OptionalTests).Assembly);
             var activator20 = Ice20Decoder.GetActivator(typeof(OptionalTests).Assembly);
 
             _server = new Server()

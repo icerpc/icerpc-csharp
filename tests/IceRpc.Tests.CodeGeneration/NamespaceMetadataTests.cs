@@ -17,7 +17,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public NamespaceMetadataTests()
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(NamespaceMetadataTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(NamespaceMetadataTests).Assembly);
             _server = new Server
             {
                 Dispatcher = new NamespaceMDOperations(),

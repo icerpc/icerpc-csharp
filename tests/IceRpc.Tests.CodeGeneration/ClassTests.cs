@@ -34,7 +34,7 @@ namespace IceRpc.Tests.CodeGeneration
                         return new(response);
                     }));
 
-            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(ClassTests).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server

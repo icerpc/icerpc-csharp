@@ -365,7 +365,7 @@ namespace IceRpc.Tests.ClientServer
                     // and the second should fail because the buffer size max.
                     var connectionOptions = new ClientConnectionOptions()
                     {
-                        Activator11 = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                        Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                         Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                     };
                     await using var connection1 = new Connection { RemoteEndpoint = retry.Proxy.Endpoint, Options = connectionOptions };
@@ -431,7 +431,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 ConnectionOptions = new ClientConnectionOptions()
                 {
-                    Activator11 = new ClassFactory(new Assembly[] { typeof(RetrySystemFailure).Assembly }),
+                    Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                     Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                 },
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()

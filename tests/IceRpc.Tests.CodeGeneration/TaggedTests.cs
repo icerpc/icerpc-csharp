@@ -15,7 +15,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public TaggedTests()
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(TaggedTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(TaggedTests).Assembly);
             _server = new Server
             {
                 Dispatcher = new TaggedOperations(),

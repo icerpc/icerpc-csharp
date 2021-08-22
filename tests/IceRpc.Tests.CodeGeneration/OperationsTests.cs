@@ -19,7 +19,7 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OperationsTests(Protocol protocol)
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(OperationsTests).Assembly });
+            var classFactory = Ice11Decoder.GetActivator(typeof(OperationsTests).Assembly);
             var activator20 = Ice20Decoder.GetActivator(typeof(OperationsTests).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
