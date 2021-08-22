@@ -8,6 +8,12 @@ namespace IceRpc
     /// <summary>An options base class for configuring IceRPC connections.</summary>
     public abstract class ConnectionOptions
     {
+        /// <summary>Gets or sets the activator used by <see cref="Ice11Decoder"/>.</summary>
+        public IActivator<Ice11Decoder>? Activator11 { get; set; }
+
+        /// <summary>Gets or sets the activator used by <see cref="Ice20Decoder"/>.</summary>
+        public IActivator<Ice20Decoder>? Activator20 { get; set; }
+
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
         /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
@@ -23,12 +29,8 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>Gets or sets the factory used by <see cref="Ice11Decoder"/> to create classes and remote
-        /// exceptions.</summary>
-        public IActivator<Ice11Decoder>? Activator11 { get; set; }
-
-        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
-        /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
+        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is
+        /// reached, the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
         /// <value>The maximum depth for a graph of Slice class instances to unmarshal.</value>
         public int ClassGraphMaxDepth
         {
@@ -80,9 +82,6 @@ namespace IceRpc
         /// peer's IdleTimeout configuration. The default value is false.</summary>
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
-
-        /// <summary>Gets or sets the factory used by <see cref="Ice20Decoder"/> to create remote exceptions.</summary>
-        public IActivator<Ice20Decoder>? Activator20 { get; set; }
 
         /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream
