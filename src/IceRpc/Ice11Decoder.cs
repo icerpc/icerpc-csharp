@@ -571,7 +571,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = (AnyClass?)_activator.CreateInstance(typeId, this);
+                    instance = _activator.CreateInstance(typeId, this) as AnyClass;
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
