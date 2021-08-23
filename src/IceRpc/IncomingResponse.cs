@@ -33,7 +33,5 @@ namespace IceRpc
         /// <param name="targetProtocol">The protocol used to send to the outgoing response.</param>
         /// <returns>The outgoing response to be forwarded.</returns>
         public OutgoingResponse ToOutgoingResponse(Protocol targetProtocol) => targetProtocol.ToOutgoingResponse(this);
-
-        internal RetryPolicy GetRetryPolicy(Proxy? proxy) => Protocol.GetRetryPolicy(this, proxy);
     }
 }

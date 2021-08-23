@@ -82,23 +82,6 @@ namespace IceRpc.Internal
                 {
                     exception = new DispatchException("dispatch canceled by peer");
                 }
-
-                ReplyStatus replyStatus;
-                if (exception is not RemoteException remoteException ||
-                    remoteException is ServiceNotFoundException ||
-                    remoteException is OperationNotFoundException ||
-                    remoteException.ConvertToUnhandled)
-                {
-                    replyStatus = encoder.EncodeIce1SystemException(exception);
-                }
-                else
-                {
-                    replyStatus = ReplyStatus.UserException;
-                    encoder.EncodeException(remoteException);
-                }
-
-                response.Features = new();
-                response.Features.Set(replyStatus);
             }
             else
             {
@@ -106,42 +89,59 @@ namespace IceRpc.Internal
                 {
                     throw exception; // Rethrow to abort the stream
                 }
+            }
 
-                var remoteException = exception as RemoteException;
-                if (request.PayloadEncoding == Encoding.Ice11 &&
-                    (remoteException == null ||
-                     remoteException is ServiceNotFoundException ||
-                     remoteException is OperationNotFoundException ||
-                     remoteException.ConvertToUnhandled))
+            var remoteException = exception as RemoteException;
+            if (request.PayloadEncoding == Encoding.Ice11 &&
+                (remoteException == null ||
+                 remoteException is ServiceNotFoundException ||
+                 remoteException is OperationNotFoundException ||
+                 remoteException.ConvertToUnhandled))
+            {
+                ReplyStatus replyStatus = encoder.EncodeIce1SystemException(exception);
+                if (protocol == Protocol.Ice1)
                 {
-                    ReplyStatus replyStatus = encoder.EncodeIce1SystemException(exception);
+                    response.Features = new();
+                    response.Features.Set(replyStatus);
+                }
+                else
+                {
                     response.Fields.Add(
                         (int)Ice2FieldKey.ReplyStatus,
                         fieldEncoder => fieldEncoder.EncodeByte((byte)replyStatus));
                 }
-                else
+            }
+            else
+            {
+                if (protocol == Protocol.Ice1)
                 {
-                    if (remoteException == null || remoteException.ConvertToUnhandled)
-                    {
-                        remoteException = new UnhandledException(exception);
-                    }
-                    encoder.EncodeException(remoteException);
+                    response.Features = new();
+                    response.Features.Set(ReplyStatus.UserException);
                 }
 
-                if (remoteException?.RetryPolicy is RetryPolicy retryPolicy && retryPolicy.Retryable != Retryable.No)
+                if (remoteException == null || remoteException.ConvertToUnhandled)
                 {
-                    response.Fields.Add(
-                        (int)Ice2FieldKey.RetryPolicy,
-                        fieldEncoder =>
-                        {
-                            fieldEncoder.EncodeRetryable(retryPolicy.Retryable);
-                            if (retryPolicy.Retryable == Retryable.AfterDelay)
-                            {
-                                fieldEncoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
-                            }
-                        });
+                    remoteException = new UnhandledException(exception);
                 }
+                encoder.EncodeException(remoteException);
             }
+
+            if (protocol == Protocol.Ice2 &&
+                remoteException?.RetryPolicy is RetryPolicy retryPolicy &&
+                retryPolicy.Retryable != Retryable.No)
+            {
+                response.Fields.Add(
+                    (int)Ice2FieldKey.RetryPolicy,
+                    fieldEncoder =>
+                    {
+                        fieldEncoder.EncodeRetryable(retryPolicy.Retryable);
+                        if (retryPolicy.Retryable == Retryable.AfterDelay)
+                        {
+                            fieldEncoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
+                        }
+                    });
+            }
+
             response.Payload = bufferWriter.Finish();
         }
 
@@ -186,29 +186,6 @@ namespace IceRpc.Internal
             }
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return exception;
-        }
-
-        internal static RetryPolicy GetRetryPolicy(this Protocol protocol, IncomingResponse response, Proxy? proxy)
-        {
-            RetryPolicy retryPolicy = RetryPolicy.NoRetry;
-            if (protocol == Protocol.Ice1)
-            {
-                // For compatibility with ZeroC Ice
-                if (proxy != null &&
-                    response.Features.Get<ReplyStatus>() == ReplyStatus.ObjectNotExistException &&
-                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
-                {
-                    retryPolicy = RetryPolicy.OtherReplica;
-                }
-            }
-            else
-            {
-                if (response.Fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
-                {
-                    retryPolicy = Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder));
-                }
-            }
-            return retryPolicy;
         }
 
         internal static OutgoingRequest ToOutgoingRequest(

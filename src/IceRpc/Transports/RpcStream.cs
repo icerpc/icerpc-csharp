@@ -478,6 +478,7 @@ namespace IceRpc.Transports
         }
 
         internal virtual async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
+            OutgoingRequest request,
             CancellationToken cancel = default)
         {
             IncomingResponse response;
@@ -491,8 +492,10 @@ namespace IceRpc.Transports
                 var decoder = new Ice11Decoder(buffer);
 
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+
                 var features = new FeatureCollection();
                 features.Set(replyStatus);
+
                 Encoding payloadEncoding;
                 if (replyStatus <= ReplyStatus.UserException)
                 {
@@ -504,6 +507,14 @@ namespace IceRpc.Transports
                 else
                 {
                     payloadEncoding = Encoding.Ice11;
+                }
+
+                // For compatibility with ZeroC Ice
+                if (request.Proxy is Proxy proxy &&
+                    replyStatus == ReplyStatus.ObjectNotExistException &&
+                    (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
+                {
+                    features.Set(RetryPolicy.OtherReplica);
                 }
 
                 response = new IncomingResponse(
@@ -538,8 +549,16 @@ namespace IceRpc.Transports
                 Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
                         Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
+                FeatureCollection features = FeatureCollection.Empty;
+                if (fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
+                {
+                    features = new();
+                    features.Set(Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder)));
+                }
+
                 response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType)
                 {
+                    Features = features,
                     Fields = fields,
                     PayloadEncoding = payloadEncoding,
                     Payload = buffer[decoder.Pos..],

@@ -236,7 +236,7 @@ namespace IceRpc.Tests.Internal
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReceiveResponseFrameAsync(source.Token));
+                async () => await stream.ReceiveResponseFrameAsync(DummyRequest, source.Token));
         }
 
         [Test]
@@ -254,7 +254,7 @@ namespace IceRpc.Tests.Internal
             serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
 
             using var source = new CancellationTokenSource();
-            ValueTask<IncomingResponse> responseTask = stream.ReceiveResponseFrameAsync(source.Token);
+            ValueTask<IncomingResponse> responseTask = stream.ReceiveResponseFrameAsync(DummyRequest, source.Token);
             source.Cancel();
 
             Assert.CatchAsync<OperationCanceledException>(async () => await responseTask);

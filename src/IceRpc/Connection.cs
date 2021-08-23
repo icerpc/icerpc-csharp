@@ -508,7 +508,7 @@ namespace IceRpc
                 }
                 else
                 {
-                    response = await request.Stream.ReceiveResponseFrameAsync(cancel).ConfigureAwait(false);
+                    response = await request.Stream.ReceiveResponseFrameAsync(request, cancel).ConfigureAwait(false);
                 }
 
                 _logger.LogReceivedResponseFrame(
