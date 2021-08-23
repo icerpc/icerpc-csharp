@@ -74,7 +74,7 @@ namespace IceRpc.Internal
                         {
                             if (type.GetIceTypeId() is string typeId && _typeFilter(type))
                             {
-                                var lazy = new Lazy<Func<T, object>>(CreateFactory(type));
+                                var lazy = new Lazy<Func<T, object>>(() => CreateFactory(type));
 
                                 dict.Add(typeId, lazy);
 
