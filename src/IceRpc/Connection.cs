@@ -44,9 +44,11 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new ClientTransport().UseTcp().UseColoc();
 
-        /// <summary>Gets the class factory used for instantiating classes decoded from requests or responses.
-        /// </summary>
-        public IClassFactory? ClassFactory => _options.ClassFactory;
+        /// <summary>Gets the activator used by <see cref="Ice11Decoder"/>.</summary>
+        public IActivator<Ice11Decoder>? Activator11 => _options.Activator11;
+
+        /// <summary>Gets the activator used by <see cref="Ice20Decoder"/>.</summary>
+        public IActivator<Ice20Decoder>? Activator20 => _options.Activator20;
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
         /// </summary>

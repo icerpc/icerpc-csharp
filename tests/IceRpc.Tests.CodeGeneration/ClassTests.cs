@@ -34,14 +34,14 @@ namespace IceRpc.Tests.CodeGeneration
                         return new(response);
                     }));
 
-            var classFactory = new ClassFactory(new Assembly[] { typeof(ClassTests).Assembly });
+            var activator11 = Ice11Decoder.GetActivator(typeof(ClassTests).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = router,
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
+                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -49,7 +49,7 @@ namespace IceRpc.Tests.CodeGeneration
             _connection = new Connection
             {
                 RemoteEndpoint = serverEndpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory },
+                Options = new ClientConnectionOptions() { Activator11 = activator11 },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 

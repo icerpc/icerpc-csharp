@@ -8,6 +8,12 @@ namespace IceRpc
     /// <summary>An options base class for configuring IceRPC connections.</summary>
     public abstract class ConnectionOptions
     {
+        /// <summary>Gets or sets the activator used by <see cref="Ice11Decoder"/>.</summary>
+        public IActivator<Ice11Decoder>? Activator11 { get; set; }
+
+        /// <summary>Gets or sets the activator used by <see cref="Ice20Decoder"/>.</summary>
+        public IActivator<Ice20Decoder>? Activator20 { get; set; }
+
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
         /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
@@ -23,12 +29,8 @@ namespace IceRpc
                     nameof(value));
         }
 
-        /// <summary>Gets or sets the class factory used for instantiating classes decoded from requests or responses.
-        /// </summary>
-        public IClassFactory? ClassFactory { get; set; }
-
-        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is reached,
-        /// the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
+        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is
+        /// reached, the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
         /// <value>The maximum depth for a graph of Slice class instances to unmarshal.</value>
         public int ClassGraphMaxDepth
         {

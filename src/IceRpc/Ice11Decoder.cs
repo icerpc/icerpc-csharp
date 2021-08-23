@@ -2,13 +2,11 @@
 
 using IceRpc.Internal;
 using IceRpc.Transports.Internal;
-using System.Collections;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Reflection;
 
 namespace IceRpc
 {
@@ -16,23 +14,20 @@ namespace IceRpc
     public class Ice11Decoder : IceDecoder
     {
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
-        internal SlicedData? SlicedData
+        internal ImmutableList<SliceInfo> UnknownSlices
         {
             get
             {
-                Debug.Assert(_current.InstanceType != InstanceType.None);
-                if (_current.Slices == null)
-                {
-                    return null;
-                }
-                else
-                {
-                    return new SlicedData(Encoding.Ice11, _current.Slices);
-                }
+                Debug.Assert(_current.InstanceType == InstanceType.Class);
+                return _current.Slices?.ToImmutableList() ?? ImmutableList<SliceInfo>.Empty;
             }
         }
 
-        private readonly IClassFactory _classFactory;
+        private static readonly ActivatorFactory<Ice11Decoder> _activatorFactory =
+            new ActivatorFactory<Ice11Decoder>(
+                type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
+
+        private readonly IActivator<Ice11Decoder> _activator;
 
         private readonly int _classGraphMaxDepth;
 
@@ -50,7 +45,7 @@ namespace IceRpc
         // Since the map is actually a list, we use instance ID - 2 to lookup an instance.
         private List<AnyClass>? _instanceMap;
 
-          // See DecodeTypeId.
+        // See DecodeTypeId.
         private int _posAfterLatestInsertedTypeId;
 
         // Map of type ID index to type ID sequence, used only for classes.
@@ -59,29 +54,48 @@ namespace IceRpc
         // _typeIdMap[index - 1].
         private List<string>? _typeIdMap;
 
+        /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
+        /// assemblies.</summary>
+        /// <param name="assembly">The assembly.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assembly"/> provided this
+        /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute"/>
+        /// attribute). Types defined in assemblies referenced by <paramref name="assembly"/> are included as well,
+        /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
+        /// considered.</returns>
+        public static IActivator<Ice11Decoder> GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
+
+        /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
+        /// referenced assemblies.</summary>
+        /// <param name="assemblies">The assemblies.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies"/> and their
+        /// referenced assemblies. See <see cref="GetActivator(Assembly)"/>.</returns>
+        public static IActivator<Ice11Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
+            Activator<Ice11Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
+
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
             _current.InstanceType = InstanceType.Exception;
 
-            RemoteException? remoteEx = null;
+            RemoteException? remoteEx;
 
             // We can decode the indirection table (if there is one) immediately after decoding each slice header
             // because the indirection table cannot reference the exception itself.
             // Each slice contains its type ID as a string.
+
+            string? mostDerivedTypeId = null;
 
             do
             {
                 // The type ID is always decoded for an exception and cannot be null.
                 string? typeId = DecodeSliceHeaderIntoCurrent();
                 Debug.Assert(typeId != null);
+                mostDerivedTypeId ??= typeId;
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = _classFactory.CreateRemoteException(typeId,
-                                                               message: null,
-                                                               origin: RemoteExceptionOrigin.Unknown);
+                remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -89,32 +103,18 @@ namespace IceRpc
             }
             while (remoteEx == null);
 
-            remoteEx ??= new RemoteException(message: null, origin: RemoteExceptionOrigin.Unknown);
-            remoteEx.SlicedData = SlicedData;
-
-            _current.FirstSlice = true;
-            remoteEx.Decode(this);
-            _current = default;
-            return remoteEx;
-        }
-
-        /// <inheritdoc/>
-        public override T? DecodeNullableClass<T>() where T : class
-        {
-            AnyClass? obj = DecodeAnyClass();
-            if (obj is T result)
+            if (remoteEx != null)
             {
-                return result;
-            }
-            else if (obj == null)
-            {
-                return null;
+                _current.FirstSlice = true;
+                remoteEx.Decode(this);
             }
             else
             {
-                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
-                    }' but expected instance of type '{typeof(T).FullName}'");
+                remoteEx = new UnknownSlicedRemoteException(mostDerivedTypeId);
             }
+
+            _current = default;
+            return remoteEx;
         }
 
         /// <inheritdoc/>
@@ -267,7 +267,7 @@ namespace IceRpc
             return size;
         }
 
-        /// <summary>Tells the decoder the end of a class or exception slice was reached.</summary>
+        /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
         {
@@ -287,9 +287,9 @@ namespace IceRpc
             }
         }
 
-        /// <summary>Marks the start of the decoding of an exception slice.</summary>
+        /// <summary>Marks the start of the decoding of a class or remote exception slice.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartExceptionSlice()
+        public void IceStartSlice()
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
             if (_current.FirstSlice)
@@ -298,37 +298,60 @@ namespace IceRpc
             }
             else
             {
-                IceStartNextSlice();
+                _ = DecodeSliceHeaderIntoCurrent();
+                DecodeIndirectionTableIntoCurrent();
             }
-        }
-
-        /// <summary>Starts decoding the first slice of a class.</summary>
-        /// <returns>The sliced-off slices, if any.</returns>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public SlicedData? IceStartFirstSlice() => SlicedData;
-
-        /// <summary>Starts decoding a base slice of a class instance (any slice except the first slice).</summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public void IceStartNextSlice()
-        {
-            DecodeNextSliceHeaderIntoCurrent();
-            DecodeIndirectionTableIntoCurrent();
         }
 
         /// <summary>Constructs a new decoder for the Ice 1.1 encoding.</summary>
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
+        /// <param name="activator">The activator.</param>
         internal Ice11Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IClassFactory? classFactory = null)
+            IActivator<Ice11Decoder>? activator = null)
             : base(buffer, connection, invoker)
         {
-            _classFactory = classFactory ?? ClassFactory.Default;
+            // TODO: temporary default
+            _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
             _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
+        }
+
+        /// <inheritdoc/>
+        private protected override AnyClass? DecodeAnyClass()
+        {
+            int index = DecodeSize();
+            if (index < 0)
+            {
+                throw new InvalidDataException($"invalid index {index} while decoding a class");
+            }
+            else if (index == 0)
+            {
+                return null;
+            }
+            else if (_current.InstanceType != InstanceType.None &&
+                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+            {
+                // When decoding an instance within a slice and there is an indirection table, we have an index within
+                // this indirection table.
+                // We need to decrement index since position 0 in the indirection table corresponds to index 1.
+                index--;
+                if (index < _current.IndirectionTable?.Length)
+                {
+                    return _current.IndirectionTable[index];
+                }
+                else
+                {
+                    throw new InvalidDataException("index too big for indirection table");
+                }
+            }
+            else
+            {
+                return DecodeInstance(index);
+            }
         }
 
         private protected override bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
@@ -387,41 +410,6 @@ namespace IceRpc
                 default:
                     throw new InvalidDataException(
                         $"cannot skip tagged parameter or data member with tag format '{format}'");
-            }
-        }
-
-        /// <summary>Decodes a class instance.</summary>
-        /// <returns>The class instance. Can be null.</returns>
-        private AnyClass? DecodeAnyClass()
-        {
-            int index = DecodeSize();
-            if (index < 0)
-            {
-                throw new InvalidDataException($"invalid index {index} while decoding a class");
-            }
-            else if (index == 0)
-            {
-                return null;
-            }
-            else if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
-            {
-                // When decoding an instance within a slice and there is an indirection table, we have an index within
-                // this indirection table.
-                // We need to decrement index since position 0 in the indirection table corresponds to index 1.
-                index--;
-                if (index < _current.IndirectionTable?.Length)
-                {
-                    return _current.IndirectionTable[index];
-                }
-                else
-                {
-                    throw new InvalidDataException("index too big for indirection table");
-                }
-            }
-            else
-            {
-                return DecodeInstance(index);
             }
         }
 
@@ -583,7 +571,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = _classFactory.CreateClassInstance(typeId);
+                    instance = _activator.CreateInstance(typeId, this) as AnyClass;
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.
@@ -624,20 +612,13 @@ namespace IceRpc
                 DecodeIndirectionTableIntoCurrent();
             }
 
+            instance.UnknownSlices = UnknownSlices;
+            _current.FirstSlice = true;
             instance.Decode(this);
 
             _current = previousCurrent;
             --_classGraphDepth;
             return instance;
-        }
-
-        /// <summary>Decodes the header of the current slice into _current; this method is used when the current slice
-        /// is not the first (most derived) slice.</summary>
-        private void DecodeNextSliceHeaderIntoCurrent()
-        {
-            // With the 1.1 encoding, each slice header in sliced format contains a type ID - we decode it and
-            // ignore it.
-            _ = DecodeSliceHeaderIntoCurrent();
         }
 
         /// <summary>Decodes the header of the current slice into _current.</summary>
@@ -884,7 +865,7 @@ namespace IceRpc
 
             // Slice fields
 
-            internal bool FirstSlice; // for now, used only for exceptions
+            internal bool FirstSlice;
             internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
             internal int? PosAfterIndirectionTable;
 

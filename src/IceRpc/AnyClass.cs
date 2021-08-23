@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace IceRpc
@@ -7,41 +8,34 @@ namespace IceRpc
     /// <summary>The base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
-        /// <summary>Returns the sliced data if the class has a preserved-slice base class and has been sliced during
-        /// unmarshaling, otherwise <c>null</c>.</summary>
-        protected virtual SlicedData? IceSlicedData
+        /// <summary>Returns the unknown slices if the class has a preserved-slice base class and has been sliced-off
+        /// during decoding.</summary>
+        public ImmutableList<SliceInfo> UnknownSlices
         {
-            get => null;
-            set => Debug.Assert(false);
+            get => IceUnknownSlices;
+            internal set => IceUnknownSlices = value;
         }
 
-        internal SlicedData? SlicedData
+        /// <summary>The implementation of <see cref="UnknownSlices"/>.</summary>
+        protected virtual ImmutableList<SliceInfo> IceUnknownSlices
         {
-            get => IceSlicedData;
-            set => IceSlicedData = value;
+            get => ImmutableList<SliceInfo>.Empty;
+            set
+            {
+                // ignored, i.e. we don't store/preserve these unknown slices
+            }
         }
 
         /// <summary>Decodes this instance by decoding its data members from the <see cref="IceDecoder"/>.
         /// </summary>
         /// <param name="decoder">The Ice decoder.</param>
-        /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceDecode(Ice11Decoder decoder, bool firstSlice);
-        internal void Decode(Ice11Decoder decoder) => IceDecode(decoder, true);
+        protected abstract void IceDecode(Ice11Decoder decoder);
 
         /// <summary>Encodes this instance by encoding its data to the <see cref="IceEncoder"/>.</summary>
         /// <param name="encoder">The Ice encoder.</param>
-        /// <param name="firstSlice"><c>True</c> if this is the first Slice otherwise<c>False</c>.</param>
-        protected abstract void IceEncode(Ice11Encoder encoder, bool firstSlice);
-        internal void Encode(Ice11Encoder encoder) => IceEncode(encoder, true);
-    }
+        protected abstract void IceEncode(Ice11Encoder encoder);
 
-    /// <summary>Provides public extensions methods for AnyClass instances.</summary>
-    public static class AnyClassExtensions
-    {
-        /// <summary>During unmarshaling, Ice can slice off derived slices that it does not know how to read, and it can
-        /// optionally preserve those "unknown" slices. See the Slice preserve metadata directive and class
-        /// <see cref="UnknownSlicedClass"/>.</summary>
-        /// <returns>A SlicedData value that provides the list of sliced-off slices.</returns>
-        public static SlicedData? GetSlicedData(this AnyClass obj) => obj.SlicedData;
+        internal void Decode(Ice11Decoder decoder) => IceDecode(decoder);
+        internal void Encode(Ice11Encoder encoder) => IceEncode(encoder);
     }
 }

@@ -97,13 +97,11 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode classes and exceptions.</param>
         /// <returns>A new decoder for the specified Ice encoding.</returns>
         internal virtual IceDecoder CreateIceDecoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
-            IInvoker? invoker = null,
-            IClassFactory? classFactory = null) =>
+            IInvoker? invoker = null) =>
             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
@@ -164,8 +162,8 @@ namespace IceRpc
             internal override IceDecoder CreateIceDecoder(
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
-                IInvoker? invoker = null,
-                IClassFactory? classFactory = null) => new Ice11Decoder(buffer, connection, invoker, classFactory);
+                IInvoker? invoker = null) =>
+                new Ice11Decoder(buffer, connection, invoker, connection?.Activator11);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
@@ -182,8 +180,7 @@ namespace IceRpc
             internal override IceDecoder CreateIceDecoder(
                 ReadOnlyMemory<byte> buffer,
                 Connection? connection = null,
-                IInvoker? invoker = null,
-                IClassFactory? classFactory = null) => new Ice20Decoder(buffer, connection, invoker, classFactory);
+                IInvoker? invoker = null) => new Ice20Decoder(buffer, connection, invoker, connection?.Activator20);
 
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,

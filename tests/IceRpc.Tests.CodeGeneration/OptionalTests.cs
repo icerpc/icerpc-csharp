@@ -15,18 +15,25 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OptionalTests()
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(OptionalTests).Assembly });
+            var activator11 = Ice11Decoder.GetActivator(typeof(OptionalTests).Assembly);
+            var activator20 = Ice20Decoder.GetActivator(typeof(OptionalTests).Assembly);
+
             _server = new Server()
             {
                 Dispatcher = new OptionalOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
+                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
             };
             _server.Listen();
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options =
+                    new ClientConnectionOptions()
+                    {
+                        Activator11 = activator11,
+                        Activator20 = activator20
+                    }
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);
         }
