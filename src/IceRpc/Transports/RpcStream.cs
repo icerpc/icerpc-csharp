@@ -491,6 +491,8 @@ namespace IceRpc.Transports
                 var decoder = new Ice11Decoder(buffer);
 
                 ReplyStatus replyStatus = decoder.DecodeReplyStatus();
+                var features = new FeatureCollection();
+                features.Set(replyStatus);
                 Encoding payloadEncoding;
                 if (replyStatus <= ReplyStatus.UserException)
                 {
@@ -501,12 +503,14 @@ namespace IceRpc.Transports
                 }
                 else
                 {
-                    // "special" exception
                     payloadEncoding = Encoding.Ice11;
                 }
 
-                response = new IncomingResponse(Protocol.Ice1, replyStatus)
+                response = new IncomingResponse(
+                    Protocol.Ice1,
+                    replyStatus == ReplyStatus.OK ? ResultType.Success : ResultType.Failure)
                 {
+                    Features = features,
                     PayloadEncoding = payloadEncoding,
                     Payload = buffer[decoder.Pos..]
                 };
@@ -533,23 +537,12 @@ namespace IceRpc.Transports
 
                 Encoding payloadEncoding = responseHeaderBody.PayloadEncoding is string encoding ?
                         Encoding.FromString(encoding) : Ice2Definitions.Encoding;
-                ReplyStatus replyStatus;
-                if (responseHeaderBody.ResultType == ResultType.Failure && payloadEncoding == Encoding.Ice11)
-                {
-                    replyStatus = buffer.Span[decoder.Pos].AsReplyStatus(); // first byte of the payload
-                }
-                else
-                {
-                    replyStatus = responseHeaderBody.ResultType == ResultType.Success ?
-                        ReplyStatus.OK : ReplyStatus.UserException;
-                }
 
-                response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType, replyStatus)
+                response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType)
                 {
-                    PayloadEncoding = payloadEncoding,
                     Fields = fields,
+                    PayloadEncoding = payloadEncoding,
                     Payload = buffer[decoder.Pos..],
-                    ReplyStatus = replyStatus,
                 };
             }
 
@@ -781,9 +774,10 @@ namespace IceRpc.Transports
                 encoder.EncodeByte(0); // compression status
                 BufferWriter.Position frameSizeStart = encoder.StartFixedLengthSize();
 
+                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
                 encoder.EncodeInt(RequestId);
-                encoder.EncodeReplyStatus(response.ReplyStatus);
-                if (response.ReplyStatus <= ReplyStatus.UserException)
+                encoder.EncodeReplyStatus(replyStatus);
+                if (replyStatus <= ReplyStatus.UserException)
                 {
                     (byte encodingMajor, byte encodingMinor) = response.PayloadEncoding.ToMajorMinor();
 

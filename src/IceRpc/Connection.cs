@@ -770,6 +770,10 @@ namespace IceRpc
                 {
                     await ProcessIncomingStreamAsync(stream).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException)
+                {
+                    stream.Abort(RpcStreamError.DispatchCanceled);
+                }
                 catch (RpcStreamAbortedException ex)
                 {
                     stream.Abort(ex.ErrorCode);
@@ -806,37 +810,14 @@ namespace IceRpc
                     request,
                     cancel).ConfigureAwait(false);
             }
-            catch (OperationCanceledException)
-            {
-                if (Protocol == Protocol.Ice1)
-                {
-                    // With Ice1, stream reset is not supported so we raise a DispatchException instead.
-                    response = OutgoingResponse.ForRemoteException(
-                        request,
-                        new DispatchException("dispatch canceled by peer"));
-                }
-                else
-                {
-                    stream.Abort(RpcStreamError.DispatchCanceled);
-                }
-            }
             catch (Exception exception)
             {
                 if (!request.IsOneway)
                 {
-                    // Convert the exception to an UnhandledException if needed.
-                    if (exception is not RemoteException remoteException || remoteException.ConvertToUnhandled)
-                    {
-                        response = OutgoingResponse.ForRemoteException(request, new UnhandledException(exception));
-                    }
-                    else
-                    {
-                        response = OutgoingResponse.ForRemoteException(request, remoteException);
-                    }
+                    response = OutgoingResponse.ForException(request, exception);
                 }
             }
 
-            // Send the response if the stream is bidirectional.
             if (response != null && !request.IsOneway)
             {
                 try
@@ -847,7 +828,7 @@ namespace IceRpc
                 {
                     // Send the exception as the response instead of sending the response from the dispatch
                     // This can occur if the response exceeds the peer's incoming frame max size.
-                    response = OutgoingResponse.ForRemoteException(request, ex);
+                    response = OutgoingResponse.ForException(request, ex);
                     await stream.SendResponseFrameAsync(response).ConfigureAwait(false);
                 }
 

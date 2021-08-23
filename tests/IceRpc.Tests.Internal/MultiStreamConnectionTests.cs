@@ -112,7 +112,7 @@ namespace IceRpc.Tests.Internal
                 await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(
-                OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException(ex)),
+                OutgoingResponse.ForException(incomingRequest, new UnhandledException(ex)),
                 default);
 
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
@@ -133,7 +133,7 @@ namespace IceRpc.Tests.Internal
 
             // Terminate the streams
             await serverStream.SendResponseFrameAsync(
-                OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException(ex)),
+                OutgoingResponse.ForException(incomingRequest, new UnhandledException(ex)),
                 default);
             await clientStream.ReceiveResponseFrameAsync(default);
 
@@ -494,7 +494,7 @@ namespace IceRpc.Tests.Internal
                 {
                     // Releases the stream by sending response.
                     await serverStream.SendResponseFrameAsync(
-                        OutgoingResponse.ForRemoteException(incomingRequest, new UnhandledException()));
+                        OutgoingResponse.ForException(incomingRequest, new UnhandledException()));
                     _ = await clientStream.ReceiveResponseFrameAsync(default);
 
                     Assert.AreEqual(expectedCount - 1, connection.OutgoingStreamCount);
