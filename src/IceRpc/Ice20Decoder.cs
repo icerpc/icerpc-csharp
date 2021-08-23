@@ -1,21 +1,20 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Transports.Internal;
-using System.Collections;
 using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Linq;
+using System.Reflection;
 
 namespace IceRpc
 {
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
     public class Ice20Decoder : IceDecoder
     {
-        private readonly IClassFactory _classFactory;
+        private static readonly ActivatorFactory<Ice20Decoder> _activatorFactory =
+            new ActivatorFactory<Ice20Decoder>(
+                type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
+
+        private readonly IActivator<Ice20Decoder> _activator;
 
         /// <summary>Decodes a field value.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -38,22 +37,38 @@ namespace IceRpc
             return result;
         }
 
+        /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
+        /// assemblies.</summary>
+        /// <param name="assembly">The assembly.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assembly"/> provided this
+        /// assembly contains generated code (as determined by the presence of the <see cref="SliceAttribute"/>
+        /// attribute). Types defined in assemblies referenced by <paramref name="assembly"/> are included as well,
+        /// recursively. The types defined in the referenced assemblies of an assembly with no generated code are not
+        /// considered.</returns>
+        public static IActivator<Ice20Decoder> GetActivator(Assembly assembly) => _activatorFactory.Get(assembly);
+
+        /// <summary>Gets or creates an activator for the Slice types defined in the specified assemblies and their
+        /// referenced assemblies.</summary>
+        /// <param name="assemblies">The assemblies.</param>
+        /// <returns>An activator that activates the Slice types defined in <paramref name="assemblies"/> and their
+        /// referenced assemblies. See <see cref="GetActivator(Assembly)"/>.</returns>
+        public static IActivator<Ice20Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
+            Activator<Ice20Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
+
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
-            string errorMessage = DecodeString();
-            var origin = new RemoteExceptionOrigin(this);
             string typeId = DecodeString();
-            RemoteException? remoteEx = _classFactory.CreateRemoteException(typeId, errorMessage, origin);
+            RemoteException? remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
+
             if (remoteEx != null)
             {
-                remoteEx.Decode(this);
-                SkipTaggedParams();
+                SkipTaggedParams(); // TODO: revisit
             }
-            // else we can't decode this exception so we return a plain RemoteException with the error message and
-            // origin instead of throwing "can't decode remote exception".
+            // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
+            // throwing "can't decode remote exception".
 
-            return remoteEx ?? new RemoteException(errorMessage, origin);
+            return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
         }
 
         /// <summary>Decodes fields.</summary>
@@ -77,10 +92,6 @@ namespace IceRpc
                 return builder.ToImmutable();
             }
         }
-
-        /// <inheritdoc/>
-        public override T? DecodeNullableClass<T>() where T : class =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         /// <inheritdoc/>
         public override Proxy? DecodeNullableProxy()
@@ -160,13 +171,17 @@ namespace IceRpc
         /// <param name="buffer">The byte buffer.</param>
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="classFactory">The class factory, used to decode exceptions.</param>
+        /// <param name="activator">The activator used to create remote exceptions from type IDs.</param>
         internal Ice20Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IClassFactory? classFactory = null)
-            : base(buffer, connection, invoker) => _classFactory = classFactory ?? ClassFactory.Default;
+            IActivator<Ice20Decoder>? activator = null)
+            // TODO: temporary default
+            : base(buffer, connection, invoker) => _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
+
+        private protected override AnyClass? DecodeAnyClass() =>
+            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
 

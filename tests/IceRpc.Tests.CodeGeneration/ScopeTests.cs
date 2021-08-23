@@ -25,19 +25,19 @@ namespace IceRpc.Tests.CodeGeneration
             router.Map<Scope.Inner.Inner2.IOperations>(new Scope.Inner.Inner2.Operations());
             router.Map<Scope.Inner.Test.Inner2.IOperations>(new Scope.Inner.Test.Inner2.Operations());
 
-            var classFactory = new ClassFactory(new Assembly[] { typeof(ScopeTests).Assembly });
+            var activator11 = Ice11Decoder.GetActivator(typeof(ScopeTests).Assembly);
             _server = new Server()
             {
                 Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory }
+                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
             };
             _server.Listen();
 
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options = new ClientConnectionOptions() { Activator11 = activator11 }
             };
             _prx1 = Scope.OperationsPrx.FromConnection(_connection);
             _prx1.Proxy.Encoding = Encoding.Ice11; // TODO: segregate use of classes

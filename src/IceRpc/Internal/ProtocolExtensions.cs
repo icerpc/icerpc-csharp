@@ -153,8 +153,7 @@ namespace IceRpc.Internal
             IceDecoder decoder = response.PayloadEncoding.CreateIceDecoder(
                 response.Payload,
                 response.Connection,
-                invoker,
-                response.Connection?.ClassFactory);
+                invoker);
 
             RemoteException exception;
             if (protocol == Protocol.Ice1)

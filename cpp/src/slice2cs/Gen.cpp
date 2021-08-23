@@ -516,12 +516,6 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 }
 
 void
-Slice::CsVisitor::emitClassAttribute(const string& className)
-{
-    _out << nl << "[assembly:IceRpc.Class(typeof(" << className << "))]";
-}
-
-void
 Slice::CsVisitor::emitCompactTypeIdAttribute(int compactTypeId)
 {
     _out << nl << "[IceRpc.CompactTypeId(" << compactTypeId << ")]";
@@ -1092,6 +1086,8 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#nullable enable";
     _out << nl;
     _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
+    _out << nl;
+    _out << nl << "[assembly:IceRpc.Slice(\"" << fileBase << ".ice\")]";
 }
 
 Slice::Gen::~Gen()
@@ -1109,9 +1105,6 @@ Slice::Gen::generate(const UnitPtr& p)
 
     UnitVisitor unitVisitor(_out);
     p->visit(&unitVisitor, false);
-
-    ClassAttributeVisitor classAttributeVisitor(_out);
-    p->visit(&classAttributeVisitor, false);
 
     TypesVisitor typesVisitor(_out);
     p->visit(&typesVisitor, false);
@@ -1384,41 +1377,27 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     if(preserved && !basePreserved)
     {
         _out << sp;
-        _out << nl << "protected override IceRpc.SlicedData? IceSlicedData { get; set; }";
+        _out << nl << "protected override global::System.Collections.Immutable.ImmutableList<IceRpc.SliceInfo> "
+            << "IceUnknownSlices { get; set; } = "
+            << "global::System.Collections.Immutable.ImmutableList<IceRpc.SliceInfo>.Empty;";
     }
 
     _out << sp;
-    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder, bool firstSlice)";
+    _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
-    _out << nl << "if (firstSlice)";
-    _out << sb;
-    _out << nl << "encoder.IceStartFirstSlice(IceTypeId";
-    if (preserved || basePreserved)
-    {
-        _out << ", IceSlicedData";
-    }
-    if (p->compactId() >= 0)
-    {
-        _out << ", compactTypeId: _compactTypeId";
-    }
-    _out << ");";
-    _out << eb;
-    _out << nl << "else";
-    _out << sb;
-    _out << nl << "encoder.IceStartNextSlice(IceTypeId";
+    _out << nl << "encoder.IceStartSlice(IceTypeId";
     if (p->compactId() >= 0)
     {
         _out << ", _compactTypeId";
     }
     _out << ");";
-    _out << eb;
 
     writeMarshalDataMembers(members, ns, 0);
 
     if(base)
     {
         _out << nl << "encoder.IceEndSlice(false);";
-        _out << nl << "base.IceEncode(encoder, false);";
+        _out << nl << "base.IceEncode(encoder);";
     }
     else
     {
@@ -1428,31 +1407,14 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
 
     _out << sp;
 
-    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder, bool firstSlice)";
+    _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
-    _out << nl << "if (firstSlice)";
-    _out << sb;
-    if (preserved || basePreserved)
-    {
-        _out << nl << "IceSlicedData = ";
-    }
-    else
-    {
-        _out << nl << "_ = ";
-    }
-    _out << "decoder.IceStartFirstSlice();";
-    _out << eb;
-    _out << nl << "else";
-    _out << sb;
-    _out << nl << "decoder.IceStartNextSlice();";
-    _out << eb;
-
+    _out << nl << "decoder.IceStartSlice();";
     writeUnmarshalDataMembers(members, ns, 0);
-
     _out << nl << "decoder.IceEndSlice();";
     if (base)
     {
-        _out << nl << "base.IceDecode(decoder, false);";
+        _out << nl << "base.IceDecode(decoder);";
     }
     _out << eb;
 }
@@ -1607,18 +1569,32 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << eb;
     }
 
-    // public constructor used for unmarshaling (always generated).
+    // public constructor used for Ice 1.1 decoding (always generated).
     _out << sp;
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(string? message, IceRpc.RemoteExceptionOrigin origin)";
-    // We call the base class constructor to initialize the base class fields.
+    _out << nl << "public " << name << "(IceRpc.Ice11Decoder decoder)";
     _out.inc();
-    _out << nl << ": base(message, origin)";
+    _out << nl << ": base(decoder)";
     _out.dec();
     _out << sb;
     writeSuppressNonNullableWarnings(dataMembers, Slice::ExceptionType);
     _out << eb;
+
+    if (!base)
+    {
+        // public constructor used for Ice 2.0 decoding
+        _out << sp;
+        _out << nl << "/// <inherit-doc/>";
+        emitEditorBrowsableNeverAttribute();
+        _out << nl << "public " << name << "(IceRpc.Ice20Decoder decoder)";
+        _out.inc();
+        _out << nl << ": base(decoder)";
+        _out.dec();
+        _out << sb;
+        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
+        _out << eb;
+    }
 
     string scoped = p->scoped();
 
@@ -1627,7 +1603,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     _out << sp;
     _out << nl << "protected override void IceDecode(IceRpc.Ice11Decoder decoder)";
     _out << sb;
-    _out << nl << "decoder.IceStartExceptionSlice();";
+    _out << nl << "decoder.IceStartSlice();";
     writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     _out << nl << "decoder.IceEndSlice();";
     if (base)
@@ -1636,23 +1612,10 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     }
     _out << eb;
 
-    if (!base && !dataMembers.empty())
-    {
-        _out << sp;
-        _out << nl << "protected override void IceDecode(IceRpc.Ice20Decoder decoder)";
-        _out << sb;
-        if (!base)
-        {
-            _out << nl << "ConvertToUnhandled = true;";
-        }
-        writeUnmarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
-        _out << eb;
-    }
-
     _out << sp;
     _out << nl << "protected override void IceEncode(IceRpc.Ice11Encoder encoder)";
     _out << sb;
-    _out << nl << "encoder.IceStartExceptionSlice(_iceTypeId, this);";
+    _out << nl << "encoder.IceStartSlice(_iceTypeId);";
     writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
     if (base)
     {
@@ -1671,6 +1634,8 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << nl << "protected override void IceEncode(IceRpc.Ice20Encoder encoder)";
         _out << sb;
         _out << nl << "encoder.EncodeString(_iceTypeId);";
+        _out << nl << "encoder.EncodeString(Message);";
+        _out << nl << "Origin.Encode(encoder);";
         writeMarshalDataMembers(dataMembers, ns, Slice::ExceptionType);
         _out << eb;
     }
@@ -3073,42 +3038,4 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncodeAction(const Operation
         writeMarshal(operation, true);
         _out << eb;
     }
-}
-
-Slice::Gen::ClassAttributeVisitor::ClassAttributeVisitor(IceUtilInternal::Output& out) :
-    CsVisitor(out)
-{
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitUnitStart(const UnitPtr& p)
-{
-    if (p->hasClassDefs() || p->hasExceptions())
-    {
-        _out << sp;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-void
-Slice::Gen::ClassAttributeVisitor::visitUnitEnd(const UnitPtr&)
-{
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitClassDefStart(const ClassDefPtr& p)
-{
-    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
-    return false;
-}
-
-bool
-Slice::Gen::ClassAttributeVisitor::visitExceptionStart(const ExceptionPtr& p)
-{
-    emitClassAttribute(getNamespace(p) + "." + fixId(p->name()));
-    return false;
 }

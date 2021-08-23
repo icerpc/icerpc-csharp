@@ -43,7 +43,6 @@ protected:
     void emitCustomAttributes(const ContainedPtr&); // attributes specified through metadata
     void emitCompactTypeIdAttribute(int);
     void emitTypeIdAttribute(const std::string&); // the Ice type ID attribute
-    void emitClassAttribute(const std::string&);
 
     std::string writeValue(const TypePtr&, const std::string&);
 
@@ -157,17 +156,6 @@ private:
 
         void writeIncomingRequestDecodeFunc(const OperationPtr&);
         void writeOutgoingResponseEncodeAction(const OperationPtr&);
-    };
-
-    class ClassAttributeVisitor : public CsVisitor
-    {
-    public:
-
-        ClassAttributeVisitor(IceUtilInternal::Output&);
-        bool visitUnitStart(const UnitPtr&) override;
-        void visitUnitEnd(const UnitPtr&) override;
-        bool visitClassDefStart(const ClassDefPtr&) override;
-        bool visitExceptionStart(const ExceptionPtr&) override;
     };
 };
 

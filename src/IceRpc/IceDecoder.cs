@@ -313,7 +313,23 @@ namespace IceRpc
 
         /// <summary>Decodes a nullable class instance.</summary>
         /// <returns>The class instance, or null.</returns>
-        public abstract T? DecodeNullableClass<T>() where T : AnyClass;
+        public T? DecodeNullableClass<T>() where T : class
+        {
+            AnyClass? obj = DecodeAnyClass();
+            if (obj is T result)
+            {
+                return result;
+            }
+            else if (obj == null)
+            {
+                return null;
+            }
+            else
+            {
+                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
+                    }' but expected instance of type '{typeof(T).FullName}'");
+            }
+        }
 
         /// <summary>Decodes a nullable proxy.</summary>
         /// <returns>The decoded proxy, or null.</returns>
@@ -986,6 +1002,10 @@ namespace IceRpc
             }
             return sz;
         }
+
+        /// <summary>Decodes a class instance.</summary>
+        /// <returns>The class instance. Can be null.</returns>
+        private protected abstract AnyClass? DecodeAnyClass();
 
         /// <summary>Determines if a tagged parameter or data member is available.</summary>
         /// <param name="tag">The tag.</param>

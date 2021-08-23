@@ -17,14 +17,14 @@ namespace IceRpc.Tests.CodeGeneration
 
         public Exception(Protocol protocol)
         {
-            var classFactory = new ClassFactory(new Assembly[] { typeof(Exception).Assembly });
+            var activator11 = Ice11Decoder.GetActivator(typeof(Exception).Assembly);
+            var activator20 = Ice20Decoder.GetActivator(typeof(Exception).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new ExceptionOperations(),
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { ClassFactory = classFactory },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -32,7 +32,12 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = serverEndpoint,
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint),
-                Options = new ClientConnectionOptions() { ClassFactory = classFactory }
+                Options =
+                    new ClientConnectionOptions()
+                    {
+                        Activator11 = activator11,
+                        Activator20 = activator20
+                    }
             };
             _prx = ExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);
@@ -85,6 +90,15 @@ namespace IceRpc.Tests.CodeGeneration
             MyExceptionB? b = Assert.ThrowsAsync<MyExceptionB>(async () => await _prx.ThrowAorBAsync(0));
             Assert.That(b, Is.Not.Null);
             Assert.AreEqual(0, b.M1);
+
+            RemoteException? remoteEx =
+                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
+
+            Assert.That(remoteEx, Is.Not.Null);
+            if (_connection.Protocol == Protocol.Ice2)
+            {
+                Assert.AreEqual("some message", remoteEx.Message);
+            }
         }
 
         public class ExceptionOperations : Service, IExceptionOperations
@@ -101,6 +115,9 @@ namespace IceRpc.Tests.CodeGeneration
                     throw new MyExceptionB(a);
                 }
             }
+
+            public ValueTask ThrowRemoteExceptionAsync(Dispatch dispatch, CancellationToken cancel) =>
+                throw new RemoteException("some message");
         }
     }
 }
