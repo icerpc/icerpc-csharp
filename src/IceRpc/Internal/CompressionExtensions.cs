@@ -25,36 +25,19 @@ namespace IceRpc.Internal
         /// Compressed payloads are only supported with the 2.0 encoding.</summary>
         /// <returns>A <see cref="CompressionResult"/> value indicating the result of the compression operation.
         /// </returns>
-        internal static (CompressionResult, ReadOnlyMemory<byte>) Compress(
+        internal static (CompressionResult, CompressionFormat format, ReadOnlyMemory<byte>) Compress(
             this ReadOnlyMemory<ReadOnlyMemory<byte>> payload,
             int payloadSize,
             CompressionLevel compressionLevel,
             int compressionMinSize)
         {
-            var payloadCompressionFormat = (CompressionFormat)payload.Span[0].Span[0];
-
-            if (payloadCompressionFormat != CompressionFormat.NotCompressed)
-            {
-                throw new InvalidOperationException("the payload is already compressed");
-            }
-
             if (payloadSize < compressionMinSize)
             {
-                return (CompressionResult.PayloadTooSmall, default);
+                return (CompressionResult.PayloadTooSmall, CompressionFormat.NotCompressed, default);
             }
             // Reserve memory for the compressed data, this should never be greater than the uncompressed data
             // otherwise we will just send the uncompressed data.
-            byte[] compressedData = new byte[payloadSize];
-
-            int offset = 0;
-            // Set the compression status byte to Deflate compressed
-            compressedData[offset++] = (byte)CompressionFormat.Deflate;
-            // Write the size of the uncompressed data
-            int sizeLength = Ice20Encoder.GetSizeLength(payloadSize);
-            Ice20Encoder.EncodeFixedLengthSize(payloadSize, compressedData.AsSpan(offset, sizeLength));
-            offset += sizeLength;
-
-            using var memoryStream = new MemoryStream(compressedData, offset, compressedData.Length - offset);
+            using var memoryStream = new MemoryStream(payloadSize);
             using var deflateStream = new DeflateStream(
                 memoryStream,
                 compressionLevel == CompressionLevel.Fastest ?
@@ -62,13 +45,7 @@ namespace IceRpc.Internal
                     System.IO.Compression.CompressionLevel.Optimal);
             try
             {
-                // The data to compress starts after the compression status byte
-                if (payload.Span[0].Length > 1)
-                {
-                    deflateStream.Write(payload.Span[0][1..].Span);
-                }
-
-                for (int i = 1; i < payload.Length; ++i) // skip first buffer that was written above
+                for (int i = 0; i < payload.Length; ++i)
                 {
                     deflateStream.Write(payload.Span[i].Span);
                 }
@@ -78,12 +55,35 @@ namespace IceRpc.Internal
             {
                 // If the data doesn't fit in the memory stream NotSupportedException is thrown when DeflateStream
                 // try to expand the fixed size MemoryStream.
-                return (CompressionResult.PayloadNotCompressible, default);
+                return (CompressionResult.PayloadNotCompressible, CompressionFormat.NotCompressed, default);
             }
 
-            offset += (int)memoryStream.Position;
-            var compressedPayload = new ReadOnlyMemory<byte>(compressedData, 0, offset);
-            return (CompressionResult.Success, compressedPayload);
+            Memory<byte> compressedData = memoryStream.GetBuffer();
+            compressedData = compressedData.Slice(0, (int)memoryStream.Position);
+            return (CompressionResult.Success, CompressionFormat.Deflate, compressedData);
+        }
+
+        internal static void CompressPayload(this OutgoingFrame frame, Configure.CompressOptions options)
+        {
+            if (frame.PayloadEncoding != Encoding.Ice20)
+            {
+                return;
+            }
+            else if (frame.Fields.ContainsKey((int)Ice2FieldKey.CompressionPolicy))
+            {
+                throw new InvalidOperationException("the payload is already compressed");
+            }
+
+            (CompressionResult result, CompressionFormat format, ReadOnlyMemory<byte> compressedPayload) =
+                frame.Payload.Compress(frame.PayloadSize,
+                                        options.CompressionLevel,
+                                        options.CompressionMinSize);
+            if (result == CompressionResult.Success)
+            {
+                var header = new CompressionPolicyField(format, (ulong)frame.PayloadSize);
+                frame.Fields.Add((int)Ice2FieldKey.CompressionPolicy, encoder => header.Encode(encoder));
+                frame.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
+            }
         }
 
         internal static (CompressionFormat, Stream) CompressStream(
@@ -97,16 +97,12 @@ namespace IceRpc.Internal
 
         /// <summary>Decompresses the payload if it is compressed. Compressed payloads are only supported with the 2.0
         /// encoding.</summary>
-        internal static ReadOnlyMemory<byte> Decompress(this ReadOnlyMemory<byte> payload, int maxSize)
+        internal static ReadOnlyMemory<byte> Decompress(
+            this ReadOnlyMemory<byte> payload,
+            CompressionFormat payloadCompressionFormat,
+            int decompressedSize,
+            int maxSize)
         {
-            ReadOnlySpan<byte> buffer = payload.Span;
-
-            var payloadCompressionFormat = (CompressionFormat)buffer[0];
-            if (payloadCompressionFormat == CompressionFormat.NotCompressed)
-            {
-                throw new InvalidOperationException("the payload is not compressed");
-            }
-
             if (payloadCompressionFormat != CompressionFormat.Deflate)
             {
                 throw new NotSupportedException($"cannot decompress compression format '{payloadCompressionFormat}'");
@@ -114,8 +110,6 @@ namespace IceRpc.Internal
 
             // Read the decompressed size that is written after the compression format byte when the payload is
             // compressed
-            (int decompressedSize, int decompressedSizeLength) = Ice20Decoder.DecodeSize(buffer[1..]);
-
             if (decompressedSize > maxSize)
             {
                 throw new InvalidDataException(
@@ -125,26 +119,14 @@ namespace IceRpc.Internal
 
             // We are going to replace the payload with a new payload segment/array that contains a decompressed
             // payload.
-            byte[] decompressedPayload = new byte[decompressedSize];
-
-            int decompressedIndex = 0;
-
-            // Set the payload's compression format to NotCompressed.
-            decompressedPayload[decompressedIndex++] = (byte)CompressionFormat.NotCompressed;
-
-            using var decompressedStream = new MemoryStream(decompressedPayload,
-                                                            decompressedIndex,
-                                                            decompressedPayload.Length - decompressedIndex);
-
-            // Skip compression status and decompressed size in compressed payload.
-            int compressedIndex = 1 + decompressedSizeLength;
+            using var decompressedStream = new MemoryStream(decompressedSize);
 
             Stream compressedByteStream;
             if (MemoryMarshal.TryGetArray(payload, out ArraySegment<byte> segment))
             {
                 compressedByteStream = new MemoryStream(segment.Array!,
-                                                        segment.Offset + compressedIndex,
-                                                        segment.Count - compressedIndex,
+                                                        segment.Offset,
+                                                        segment.Count,
                                                         writable: false);
             }
             else
@@ -155,15 +137,31 @@ namespace IceRpc.Internal
             using var compressed = new DeflateStream(compressedByteStream, CompressionMode.Decompress);
             compressed.CopyTo(decompressedStream);
 
-            // "1" corresponds to the compress format that is in the decompressed size but is not compressed
-            if (decompressedStream.Position + 1 != decompressedSize)
+            Memory<byte> decompressedData = decompressedStream.GetBuffer();
+            decompressedData = decompressedData.Slice(0, (int)decompressedStream.Position);
+            if (decompressedData.Length != decompressedSize)
             {
                 throw new InvalidDataException(
-                    @$"received Deflate compressed payload with a decompressed size of only {decompressedStream.
-                    Position + 1} bytes; expected {decompressedSize} bytes");
+                    @$"received Deflate compressed payload with a decompressed size of only {decompressedData.
+                    Length} bytes; expected {decompressedSize} bytes");
             }
 
-            return decompressedPayload;
+            return decompressedData;
+        }
+
+        internal static void DecompressPayload(this IncomingFrame frame)
+        {
+            if (frame.PayloadEncoding == Encoding.Ice20 &&
+                frame.Fields.TryGetValue((int)Ice2FieldKey.CompressionPolicy,
+                                         out ReadOnlyMemory<byte> CompressionPolicyField))
+            {
+                var decoder = new Ice20Decoder(CompressionPolicyField);
+                var compressionPolicy = new CompressionPolicyField(decoder);
+                frame.Payload = frame.Payload.Decompress(
+                    compressionPolicy.Format,
+                    (int)compressionPolicy.UncompressedSize,
+                    frame.Connection.IncomingFrameMaxSize);
+            }
         }
 
         internal static Stream DecompressStream(this Stream stream, CompressionFormat compressionFormat)

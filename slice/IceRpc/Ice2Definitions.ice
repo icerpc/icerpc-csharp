@@ -35,6 +35,9 @@ module IceRpc
 
         /// The W3C Trace Context field.
         TraceContext = -2,
+
+        /// The compression policy of the payload.
+        CompressionPolicy = -4
     }
 
     /// Keys of reserved ice2 connection parameters.

@@ -48,19 +48,5 @@ namespace IceRpc.Internal
                     }' is not supported by this IceRPC runtime ({typeof(Protocol).Assembly.GetName().Version})");
             }
         }
-
-        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding)
-        {
-            CheckSupported(protocol);
-            return protocol == Protocol.Ice1 ? Ice1Definitions.GetEmptyArgsPayload(encoding) :
-                Ice2Definitions.GetEmptyArgsPayload(encoding);
-        }
-
-        internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding)
-        {
-            CheckSupported(protocol);
-            return protocol == Protocol.Ice1 ? Ice1Definitions.GetVoidReturnValuePayload(encoding) :
-                Ice2Definitions.GetVoidReturnValuePayload(encoding);
-        }
     }
 }

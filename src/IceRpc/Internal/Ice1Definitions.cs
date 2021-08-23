@@ -58,11 +58,6 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload11 = ReadOnlyMemory<byte>.Empty;
-
-        // The single byte corresponds to the compression format.
-        private static readonly ReadOnlyMemory<byte> _voidReturnValuePayload20 = new byte[] { 0 };
-
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
         {
@@ -86,21 +81,6 @@ namespace IceRpc.Internal
                 throw new InvalidDataException(
                     $"received ice1 protocol frame with protocol encoding set to {header[2]}.{header[3]}");
             }
-        }
-
-        /// <summary>Returns the payload of an ice1 request frame for an operation with no argument.</summary>
-        /// <param name="encoding">The encoding of this empty args payload.</param>
-        /// <returns>The payload.</returns>
-        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(Encoding encoding) =>
-            GetVoidReturnValuePayload(encoding);
-
-        /// <summary>Returns the payload of an ice1 response frame for an operation returning void.</summary>
-        /// <param name="encoding">The encoding of this void return.</param>
-        /// <returns>The payload.</returns>
-        internal static ReadOnlyMemory<byte> GetVoidReturnValuePayload(Encoding encoding)
-        {
-            encoding.CheckSupportedIceEncoding();
-            return encoding == Encoding.Ice11 ? _voidReturnValuePayload11 : _voidReturnValuePayload20;
         }
 
         /// <summary>Decodes an ice1 system exception.</summary>
