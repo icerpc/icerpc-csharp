@@ -67,6 +67,13 @@ namespace IceRpc.Internal
                 Ice2Definitions.GetVoidReturnValuePayload(encoding);
         }
 
+        /// <summary>Encode an exception into the given response. The encoding of an exception is protocol and
+        /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs to be encoded
+        /// either as a user or system exception. If the 1.1 encoded exception is sent with the Ice1 protocol,
+        /// this method also sets the <see cref="ReplyStatus"/> feature to allow figure it out when encoding
+        /// the Ice1 response frame. If it's the sent with the Ice2 protocol, the reply status is sent with
+        /// the <see cref="Ice2FieldKey.ReplyStatus"/>. This method also sets the <see
+        /// cref="Ice2FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
         internal static void EncodeResponseException(
             this Protocol protocol,
             IncomingRequest request,
@@ -101,7 +108,11 @@ namespace IceRpc.Internal
                 ReplyStatus replyStatus = encoder.EncodeIce1SystemException(exception);
                 if (protocol == Protocol.Ice1)
                 {
-                    response.Features = new();
+                    if (response.Features.IsReadOnly)
+                    {
+                        response.Features = new();
+                    }
+                    // Set the reply status feature. This is used when the response is encoded.
                     response.Features.Set(replyStatus);
                 }
                 else
@@ -115,7 +126,11 @@ namespace IceRpc.Internal
             {
                 if (protocol == Protocol.Ice1)
                 {
-                    response.Features = new();
+                    if (response.Features.IsReadOnly)
+                    {
+                        response.Features = new();
+                    }
+                    // Set the reply status feature. This is used when the response is encoded.
                     response.Features.Set(ReplyStatus.UserException);
                 }
 
@@ -145,6 +160,12 @@ namespace IceRpc.Internal
             response.Payload = bufferWriter.Finish();
         }
 
+        /// <summary>Decode an exception from the given response. The decoding of an exception is protocol and
+        /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs is encoded
+        /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
+        /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
+        /// system exception. If it's the received with the Ice2 protocol, the reply status is obtained from
+        /// the <see cref="Ice2FieldKey.ReplyStatus"/>.</summary>
         internal static Exception DecodeResponseException(
             this Protocol protocol,
             IncomingResponse response,
@@ -170,13 +191,13 @@ namespace IceRpc.Internal
             }
             else
             {
-                if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> replyStatus))
+                if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
                 {
                     if (response.PayloadEncoding != Encoding.Ice11)
                     {
                         throw new InvalidDataException($"unexpected {nameof(Ice2FieldKey.ReplyStatus)} field");
                     }
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)replyStatus.Span[0]);
+                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)value.Span[0]);
                 }
                 else
                 {
@@ -240,9 +261,9 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> replyStatus))
+                    if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
                     {
-                        outgoingResponse.Features.Set((ReplyStatus)replyStatus.Span[0]);
+                        outgoingResponse.Features.Set((ReplyStatus)value.Span[0]);
                     }
                     else
                     {
