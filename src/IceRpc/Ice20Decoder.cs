@@ -59,7 +59,7 @@ namespace IceRpc
         public override RemoteException DecodeException()
         {
             string typeId = DecodeString();
-            RemoteException? remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
+            var remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
 
             if (remoteEx != null)
             {

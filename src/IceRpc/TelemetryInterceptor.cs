@@ -28,7 +28,7 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            if (request.Protocol == Protocol.Ice2)
+            if (request.Protocol.HasFieldSupport())
             {
                 Activity? activity = _options.ActivitySource?.CreateActivity(
                     $"{request.Path}/{request.Operation}",
@@ -68,7 +68,6 @@ namespace IceRpc
 
         private static void WriteActivityContext(OutgoingRequest request)
         {
-            Debug.Assert(request.Protocol == Protocol.Ice2);
             if (Activity.Current is Activity activity && activity.Id != null)
             {
                 if (activity.IdFormat != ActivityIdFormat.W3C)
@@ -106,7 +105,7 @@ namespace IceRpc
                 // }
 
                 request.Fields.Add(
-                    (int)Ice2FieldKey.TraceContext,
+                    (int)FieldKey.TraceContext,
                     encoder =>
                     {
                         // W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,

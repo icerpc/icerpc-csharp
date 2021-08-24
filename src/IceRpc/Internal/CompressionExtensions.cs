@@ -115,11 +115,12 @@ namespace IceRpc.Internal
 
         internal static void CompressPayload(this OutgoingFrame frame, Configure.CompressOptions options)
         {
-            if (frame.Protocol != Protocol.Ice2)
+            if (!frame.Protocol.HasFieldSupport())
             {
+                // Don't compress the payload if the protocol doesn't support fields.
                 return;
             }
-            else if (frame.Fields.ContainsKey((int)Ice2FieldKey.Compression))
+            else if (frame.Fields.ContainsKey((int)FieldKey.Compression))
             {
                 throw new InvalidOperationException("the payload is already compressed");
             }
@@ -131,15 +132,15 @@ namespace IceRpc.Internal
             if (format != null)
             {
                 var header = new CompressionField(format.Value, (ulong)frame.PayloadSize);
-                frame.Fields.Add((int)Ice2FieldKey.Compression, encoder => header.Encode(encoder));
+                frame.Fields.Add((int)FieldKey.Compression, encoder => header.Encode(encoder));
                 frame.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
             }
         }
 
         internal static void DecompressPayload(this IncomingFrame frame)
         {
-            if (frame.Protocol == Protocol.Ice2 &&
-                frame.Fields.TryGetValue((int)Ice2FieldKey.Compression, out ReadOnlyMemory<byte> value))
+            if (frame.Protocol.HasFieldSupport() &&
+                frame.Fields.TryGetValue((int)FieldKey.Compression, out ReadOnlyMemory<byte> value))
             {
                 var decoder = new Ice20Decoder(value);
                 var compressionField = new CompressionField(decoder);
