@@ -39,9 +39,9 @@ namespace IceRpc.Tests.ClientServer
                     try
                     {
                         compressedRequestSize = request.PayloadSize;
-                        compressedRequest = request.Fields.ContainsKey((int)Ice2FieldKey.CompressionPolicy);
+                        compressedRequest = request.Fields.ContainsKey((int)Ice2FieldKey.Compression);
                         OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                        compressedResponse = response.Fields.ContainsKey((int)Ice2FieldKey.CompressionPolicy);
+                        compressedResponse = response.Fields.ContainsKey((int)Ice2FieldKey.Compression);
                         compressedResponseSize = response.PayloadSize;
                         return response;
                     }

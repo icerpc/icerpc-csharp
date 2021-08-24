@@ -6,21 +6,25 @@
 
 module IceRpc
 {
-    /// With the Ice 2.0 encoding, the payload of some frames such a Request and "Success" Response can be compressed.
+    /// The compression format of the Request or "Success" Response frame payload.
     unchecked enum CompressionFormat : byte
     {
         /// The payload is not compressed and can be read directly.
+        // TODO: Remove NotCompressed once data frames suppport fields
         NotCompressed = 0,
 
         /// The payload is compressed using the deflate format.
         Deflate = 1,
     }
 
-    /// The compression policy field.
+    /// The compression field of the payload carried by a frame.
     [cs:readonly]
-    struct CompressionPolicyField
+    struct CompressionField
     {
+        /// The compression format.
         CompressionFormat format;
+
+        /// The uncompressed size.
         varulong uncompressedSize;
     }
 }
