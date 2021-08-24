@@ -11,14 +11,29 @@ namespace IceRpc
         /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
-        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
-            dispatch.Encoding.CreateIceDecoder(payload).CheckEndOfBuffer(skipTaggedParams: true);
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        public static void CheckEmptyArgs(
+            this ReadOnlyMemory<byte> payload,
+            Dispatch dispatch,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+            GetIceDecoderFactory(dispatch.Encoding, dispatch.RequestFeatures, defaultIceDecoderFactories).
+                CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker).
+                    CheckEndOfBuffer(skipTaggedParams: true);
 
         /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding) =>
-            payloadEncoding.CreateIceDecoder(payload).CheckEndOfBuffer(skipTaggedParams: true);
+        /// <param name="features">The response's features.</param>
+        /// <param name="connection">The connection that received this response.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        public static void CheckVoidReturnValue(
+            this ReadOnlyMemory<byte> payload,
+            Encoding payloadEncoding,
+            FeatureCollection features,
+            Connection connection,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+            GetIceDecoderFactory(payloadEncoding, features, defaultIceDecoderFactories).
+                CreateIceDecoder(payload, connection, invoker: null).CheckEndOfBuffer(skipTaggedParams: true);
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
@@ -126,6 +141,7 @@ namespace IceRpc
         /// <paramtype name="T">The type of the request parameters.</paramtype>
         /// <param name="payload">The request payload.</param>
         /// <param name="dispatch">The dispatch properties.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
         /// <returns>The request arguments.</returns>
         public static T ToArgs<T>(
@@ -145,9 +161,11 @@ namespace IceRpc
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="payload">The response payload.</param>
         /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="decodeFunc">The decode function for the return value.</param>
+        /// <param name="features">The response's features.</param>
         /// <param name="connection">The connection that received this response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <returns>The return value.</returns>
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,

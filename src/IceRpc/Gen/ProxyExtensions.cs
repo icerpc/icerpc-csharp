@@ -78,6 +78,7 @@ namespace IceRpc.Gen
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
         /// <param name="requestPayload">The payload of the request.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
         /// <param name="compress">When true, the request payload should be compressed.</param>
@@ -93,6 +94,7 @@ namespace IceRpc.Gen
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
             IStreamParamSender? streamParamSender,
             Invocation? invocation,
             bool compress = false,
@@ -116,10 +118,10 @@ namespace IceRpc.Gen
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, _, _) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, FeatureCollection features, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
-                payload.CheckVoidReturnValue(payloadEncoding);
+                payload.CheckVoidReturnValue(payloadEncoding, features, connection, defaultIceDecoderFactories);
             }
         }
     }

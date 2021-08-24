@@ -2107,8 +2107,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static class Response";
         _out << sb;
-        _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
-            << " new(typeof(Response).Assembly);";
 
         for (const auto& operation : p->operations())
         {
@@ -2148,6 +2146,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         << "</c>.</summary>";
     _out << nl << "public static readonly string DefaultPath = IceRpc.TypeExtensions.GetDefaultPath(typeof("
         << prxImpl << "));";
+
+    _out << sp;
+    _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
+            << " new(typeof(" << prxImpl << ").Assembly);";
 
     // Non-static properties and fields
     _out << sp;
@@ -2391,6 +2393,10 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         // can't use 'in' for tuple as it's an expression
         _out << nl << "Request." << name << "(this, " << toTuple(params) << "),";
     }
+    if (voidOp && !streamReturnParam)
+    {
+        _out << nl << "_defaultIceDecoderFactories,";
+    }
     if (streamParam)
     {
         TypePtr streamT = streamParam->type();
@@ -2597,9 +2603,6 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << nl << "public static" << (bases.empty() ? "" : " new") << " class Request";
         _out << sb;
 
-        _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
-            << " new(typeof(Request).Assembly);";
-
         for (auto operation : operationList)
         {
             auto params = operation->params();
@@ -2701,6 +2704,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << eb;
         _out << sp;
     }
+
+    _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
+        << " new(typeof(" << fixId(name) << ").Assembly);";
+
     for (const auto& op : p->operations())
     {
         writeReturnValueStruct(op);
@@ -2860,7 +2867,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch);";
+        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch, _defaultIceDecoderFactories);";
     }
 
     if (params.size() == 1 && streamParam)

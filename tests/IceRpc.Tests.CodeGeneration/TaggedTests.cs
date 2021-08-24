@@ -203,10 +203,14 @@ namespace IceRpc.Tests.CodeGeneration
                     encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
-            (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, FeatureCollection _, Connection connection) =
+            (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, FeatureCollection features, Connection connection) =
                 await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
 
-            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
+            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(
+                payloadEncoding,
+                features,
+                connection,
+                new DefaultIceDecoderFactories(typeof(TaggedTests).Assembly)));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.That(b.MInt2.HasValue, Is.False);
