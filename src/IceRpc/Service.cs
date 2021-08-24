@@ -14,7 +14,7 @@ namespace IceRpc
         /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
         private delegate ValueTask<(ReadOnlyMemory<ReadOnlyMemory<byte>>, IStreamParamSender?)> IceDMethod(
             object target,
-            ReadOnlyMemory<byte> payload,
+            IncomingRequest request,
             Dispatch dispatch,
             CancellationToken cancel);
 
@@ -33,7 +33,7 @@ namespace IceRpc
             (_dispatchMethods, _typeIds) = _cache.GetOrAdd(GetType(), type =>
                 {
                     ParameterExpression targetParam = Expression.Parameter(typeof(object));
-                    ParameterExpression payloadParam = Expression.Parameter(typeof(ReadOnlyMemory<byte>));
+                    ParameterExpression requestParam = Expression.Parameter(typeof(IncomingRequest));
                     ParameterExpression dispatchParam = Expression.Parameter(typeof(Dispatch));
                     ParameterExpression cancelParam = Expression.Parameter(typeof(CancellationToken));
 
@@ -54,11 +54,11 @@ namespace IceRpc
                                         Expression.Call(
                                             method,
                                             Expression.Convert(targetParam, type),
-                                            payloadParam,
+                                            requestParam,
                                             dispatchParam,
                                             cancelParam),
                                         targetParam,
-                                        payloadParam,
+                                        requestParam,
                                         dispatchParam,
                                         cancelParam).Compile());
                             }
@@ -91,14 +91,14 @@ namespace IceRpc
         /// <inheritdoc/>
         public async ValueTask<OutgoingResponse> DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
+            // We need dispatch here to extract its features and set them on remote exception below.
             var dispatch = new Dispatch(request);
             try
             {
-                ReadOnlyMemory<byte> requestPayload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
                 if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
                 {
                     (ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
-                        await dispatchMethod(this, requestPayload, dispatch, cancel).ConfigureAwait(false);
+                        await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
                     return new OutgoingResponse(request.Protocol, ResultType.Success)
                     {

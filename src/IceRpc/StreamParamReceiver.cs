@@ -15,22 +15,22 @@ namespace IceRpc
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// request.</summary>
-        /// <param name="dispatch">The request dispatch.</param>
+        /// <param name="request">The incoming request.</param>
         /// <param name="decodeAction">The action used to decode the streamed param.</param>
         /// <returns>The <see cref="IAsyncEnumerable{T}"/> to receive the streamed param.</returns>
-        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(Dispatch dispatch, Func<IceDecoder, T> decodeAction) =>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(IncomingRequest request, Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(
-                dispatch.IncomingRequest.Stream,
-                dispatch.Connection,
-                dispatch.ProxyInvoker,
-                dispatch.Encoding,
+                request.Stream,
+                request.Connection,
+                request.ProxyInvoker,
+                request.PayloadEncoding,
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
         /// incoming request.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
-        public static System.IO.Stream ToByteStream(Dispatch dispatch) =>
-            new ByteStreamParamReceiver(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
+        public static System.IO.Stream ToByteStream(IncomingRequest request) =>
+            new ByteStreamParamReceiver(request.Stream, request.StreamDecompressor);
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// response.</summary>

@@ -280,7 +280,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 }
                 else
                 {
-                    _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
+                    _out << " = IceRpc.StreamParamReceiver.ToByteStream(request);";
                 }
             }
             else
@@ -300,7 +300,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                     _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns)
                          << ">(";
                     _out.inc();
-                    _out << nl << "dispatch,"
+                    _out << nl << "request,"
                          << nl << decodeFunc(streamParam->type(), ns) << ");";
                     _out.dec();
                 }
@@ -2610,12 +2610,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << "of operation " << propertyName << ".</summary>";
 
                 _out << nl << "public static " << toTupleType(params, ns, false) << ' ' << fixId(operationName(operation));
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.Dispatch dispatch) =>";
+                _out << "(IceRpc.IncomingRequest request) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToArgs(";
                 _out.inc();
-                _out << nl << "payload,";
-                _out << nl << "dispatch,";
+                _out << nl << "request,";
                 _out << nl << "_defaultIceDecoderFactories,";
                 _out << nl;
                 writeIncomingRequestDecodeFunc(operation);
@@ -2839,9 +2838,9 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << fixId(interfaceName(interface)) << " target,"
-         << nl << "global::System.ReadOnlyMemory<byte> payload,"
-         << nl << "IceRpc.Dispatch dispatch,"
-         << nl << "global::System.Threading.CancellationToken cancel)";
+        << nl << "IceRpc.IncomingRequest request,"
+        << nl << "IceRpc.Dispatch dispatch,"
+        << nl << "global::System.Threading.CancellationToken cancel)";
     _out.dec();
     _out << sb;
 
@@ -2863,7 +2862,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "IceRpc.Payload.CheckEmptyArgs(payload, dispatch, _defaultIceDecoderFactories);";
+        _out << nl << "IceRpc.Payload.CheckEmptyArgs(request, _defaultIceDecoderFactories);";
     }
 
     if (params.size() == 1 && streamParam)
@@ -2872,13 +2871,13 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         if (auto builtin = BuiltinPtr::dynamicCast(streamParam->type());
             builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << " = IceRpc.StreamParamReceiver.ToByteStream(dispatch);";
+            _out << " = IceRpc.StreamParamReceiver.ToByteStream(request);";
         }
         else
         {
             _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
             _out.inc();
-            _out << nl << "dispatch,"
+            _out << nl << "request,"
                  << nl << decodeFunc(streamParam->type(), ns) << ");";
             _out.dec();
         }
@@ -2886,7 +2885,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     else if (params.size() >= 1)
     {
         _out << nl << "var " << (params.size() == 1 ? paramName(params.front(), "iceP_") : "args")
-             << " = Request." << fixId(opName) << "(payload, dispatch);";
+             << " = Request." << fixId(opName) << "(request);";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, decoder etc.)
@@ -2965,7 +2964,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             names.pop_back();
             _out << nl << "return (";
             _out.inc();
-            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "), ";
 
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                 builtin && builtin->kind() == Builtin::KindByte)
