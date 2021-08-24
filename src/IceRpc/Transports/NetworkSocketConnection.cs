@@ -13,23 +13,23 @@ namespace IceRpc.Transports
         public override bool IsDatagram => NetworkSocket.IsDatagram;
 
         /// <inheritdoc/>
-        public override bool? IsSecure => NetworkSocket.IsSecure;
+        public override bool IsSecure => NetworkSocket.SslStream != null;
 
         /// <summary>Creates a network socket connection from a network socket.</summary>
         /// <param name="networkSocket">The network socket.</param>
         /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="options">The transport options.</param>
         /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
             Endpoint endpoint,
             bool isServer,
-            TcpOptions tcpOptions) =>
+            MultiStreamOptions options) =>
             endpoint.Protocol == Protocol.Ice1 ?
-                new Ice1Connection(networkSocket, endpoint, isServer, tcpOptions) :
-                new SlicConnection(networkSocket, endpoint, isServer, tcpOptions);
+                new Ice1Connection(networkSocket, endpoint, isServer, options) :
+                new SlicConnection(networkSocket, endpoint, isServer, options);
 
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }

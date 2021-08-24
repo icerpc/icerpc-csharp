@@ -17,7 +17,7 @@ namespace IceRpc.Transports
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
-        public abstract TimeSpan IdleTimeout { get; set; }
+        public TimeSpan IdleTimeout { get; set; }
 
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }
@@ -26,7 +26,7 @@ namespace IceRpc.Transports
         /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport
         /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
         /// is never null once the connection is established.</value>
-        public abstract bool? IsSecure { get; }
+        public abstract bool IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
@@ -47,7 +47,9 @@ namespace IceRpc.Transports
         /// <summary>The name of the transport.</summary>
         public string Transport => _endpoint.Transport;
 
-        internal int IncomingFrameMaxSize { get; set; }
+        // TODO: refactor once we add a protocol abstraction. This setting has nothing to do here. It's there
+        // for not because RpcStream implements protocol framing.
+        internal int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
 
         internal int IncomingStreamCount
         {

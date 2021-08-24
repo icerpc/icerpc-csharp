@@ -18,7 +18,7 @@ namespace IceRpc.Transports
         /// <param name="options">The transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(
-            TcpOptions? options,
+            TcpOptions? options = null,
             SslServerAuthenticationOptions? authenticationOptions = null)
         {
             _options = options ?? new();

@@ -72,7 +72,7 @@ namespace IceRpc.Tests.ClientServer
             await using var connection = new Connection
             {
                 RemoteEndpoint = server.Endpoint,
-                Options = new ClientConnectionOptions()
+                Options = new ConnectionOptions()
                 {
                     Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                     Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),

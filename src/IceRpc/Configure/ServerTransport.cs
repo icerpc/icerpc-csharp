@@ -52,7 +52,16 @@ namespace IceRpc.Configure
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ServerTransport UseColoc(this ServerTransport serverTransport) =>
-            serverTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocServerTransport());
+            serverTransport.UseColoc(new());
+
+        /// <summary>Adds the coloc server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="options">The transport options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseColoc(
+            this ServerTransport serverTransport,
+            MultiStreamOptions options) =>
+            serverTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocServerTransport(options));
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>

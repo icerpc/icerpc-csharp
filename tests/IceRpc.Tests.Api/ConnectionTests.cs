@@ -10,38 +10,12 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Connection_Options_ArgumentException()
         {
-            var options = new ClientConnectionOptions();
-            Assert.Throws<ArgumentException>(() => options.BidirectionalStreamMaxCount = 0);
+            var options = new ConnectionOptions();
             Assert.Throws<ArgumentException>(() => options.CloseTimeout = TimeSpan.Zero);
             Assert.Throws<ArgumentException>(() => options.IdleTimeout = TimeSpan.Zero);
             Assert.Throws<ArgumentException>(() => options.IncomingFrameMaxSize = 512);
-            Assert.Throws<ArgumentException>(() => options.UnidirectionalStreamMaxCount = 0);
 
             Assert.Throws<ArgumentException>(() => options.ConnectTimeout = TimeSpan.Zero);
-
-            var incoming = new ServerConnectionOptions();
-            Assert.Throws<ArgumentException>(() => incoming.AcceptTimeout = TimeSpan.Zero);
-        }
-
-        [Test]
-        public void Connection_Options_Clone()
-        {
-            var options = new ClientConnectionOptions
-            {
-                AuthenticationOptions = new System.Net.Security.SslClientAuthenticationOptions()
-            };
-
-            ClientConnectionOptions clonedOptions = options.Clone();
-            Assert.AreNotSame(clonedOptions, options);
-            Assert.AreNotSame(clonedOptions.AuthenticationOptions, options.AuthenticationOptions);
-
-            var incoming = new ServerConnectionOptions()
-            {
-                AuthenticationOptions = new()
-            };
-
-            ServerConnectionOptions clonedIncoming = incoming.Clone();
-            Assert.AreNotSame(clonedIncoming.AuthenticationOptions, incoming.AuthenticationOptions);
         }
 
         [Test]

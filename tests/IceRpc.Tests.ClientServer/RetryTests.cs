@@ -363,7 +363,7 @@ namespace IceRpc.Tests.ClientServer
                     byte[] data = Enumerable.Range(0, 1024).Select(i => (byte)i).ToArray();
                     // Use two connections to simulate two concurrent requests, the first should succeed
                     // and the second should fail because the buffer size max.
-                    var connectionOptions = new ClientConnectionOptions()
+                    var connectionOptions = new ConnectionOptions()
                     {
                         Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                         Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
@@ -429,7 +429,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ConnectionOptions = new ClientConnectionOptions()
+                ConnectionOptions = new ConnectionOptions()
                 {
                     Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
                     Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),

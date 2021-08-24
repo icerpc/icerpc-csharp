@@ -17,7 +17,7 @@ namespace IceRpc
         public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
 
         /// <summary>The connection options.</summary>
-        public ClientConnectionOptions? ConnectionOptions { get; set; }
+        public ConnectionOptions ConnectionOptions { get; init; } = ConnectionOptions.Default;
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
         /// its logger using <see cref="NullLoggerFactory.Instance"/>.</summary>
@@ -80,10 +80,9 @@ namespace IceRpc
 
             async ValueTask<Connection> CreateConnectionAsync()
             {
-                ClientConnectionOptions connectionOptions = ConnectionOptions ?? ClientConnectionOptions.Default;
                 try
                 {
-                    return await ConnectAsync(endpoint, connectionOptions, cancel).ConfigureAwait(false);
+                    return await ConnectAsync(endpoint, cancel).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -93,7 +92,7 @@ namespace IceRpc
                     {
                         try
                         {
-                            return await ConnectAsync(altEndpoint, connectionOptions, cancel).ConfigureAwait(false);
+                            return await ConnectAsync(altEndpoint, cancel).ConfigureAwait(false);
                         }
                         catch (UnknownTransportException)
                         {
@@ -182,12 +181,8 @@ namespace IceRpc
             }
         }
 
-        private async ValueTask<Connection> ConnectAsync(
-            Endpoint endpoint,
-            ClientConnectionOptions options,
-            CancellationToken cancel)
+        private async ValueTask<Connection> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            Task? connectTask;
             Connection? connection = null;
             lock (_mutex)
             {
@@ -209,11 +204,9 @@ namespace IceRpc
                     {
                         return connection;
                     }
-                    connectTask = connection.ConnectAsync(default);
                 }
                 else
                 {
-                    Debug.Assert(options.ConnectTimeout > TimeSpan.Zero);
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                     connection = new Connection
@@ -221,7 +214,7 @@ namespace IceRpc
                         RemoteEndpoint = endpoint,
                         LoggerFactory = LoggerFactory,
                         ClientTransport = ClientTransport,
-                        Options = options
+                        Options = ConnectionOptions
                     };
 #pragma warning restore CA2000
                     if (!_connections.TryGetValue(endpoint, out connections))
@@ -232,29 +225,10 @@ namespace IceRpc
                     connections.Add(connection);
                     // Set the callback used to remove the connection from the pool.
                     connection.Remove = connection => Remove(connection);
-                    connectTask = PerformConnectAsync(connection);
                 }
             }
-            await connectTask.WaitAsync(cancel).ConfigureAwait(false);
-
+            await connection.ConnectAsync(cancel).ConfigureAwait(false);
             return connection;
-
-            async Task PerformConnectAsync(Connection connection)
-            {
-                // Use the connect timeout and the cancellation token for the cancellation.
-                using var source = new CancellationTokenSource(options.ConnectTimeout);
-                using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(source.Token, cancel);
-
-                try
-                {
-                    // Connect the connection (handshake, protocol initialization, ...)
-                    await connection.ConnectAsync(linkedSource.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (source.IsCancellationRequested)
-                {
-                    throw new ConnectTimeoutException();
-                }
-            }
         }
 
         private void Remove(Connection connection)

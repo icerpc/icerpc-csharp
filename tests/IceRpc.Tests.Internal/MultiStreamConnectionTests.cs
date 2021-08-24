@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Internal
         public MultiStreamConnectionTests(MultiStreamConnectionType type)
             : base(type)
         {
-            ServerConnectionOptions.BidirectionalStreamMaxCount = 15;
-            ServerConnectionOptions.UnidirectionalStreamMaxCount = 10;
-            ServerConnectionOptions.IncomingFrameMaxSize = 512 * 1024;
+            ServerTransportOptions ??= new();
+            ServerTransportOptions.BidirectionalStreamMaxCount = 15;
+            ServerTransportOptions.UnidirectionalStreamMaxCount = 10;
         }
 
         [Test]
@@ -81,7 +81,7 @@ namespace IceRpc.Tests.Internal
             await clientStream.SendRequestFrameAsync(DummyRequest);
 
             RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            IncomingRequest incomingRequest = await serverStream.ReceiveRequestFrameAsync(default);
+            _ = await serverStream.ReceiveRequestFrameAsync(default);
 
             await serverStream.SendResponseFrameAsync(DummyResponse);
 
@@ -195,7 +195,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<RpcStream>();
             var serverStreams = new List<RpcStream>();
             IncomingRequest? incomingRequest = null;
-            for (int i = 0; i < ServerConnectionOptions.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerTransportOptions!.BidirectionalStreamMaxCount; ++i)
             {
                 RpcStream stream = ClientConnection.CreateStream(true);
                 clientStreams.Add(stream);
@@ -238,8 +238,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                ServerConnectionOptions.BidirectionalStreamMaxCount :
-                ServerConnectionOptions.UnidirectionalStreamMaxCount;
+                ServerTransportOptions!.BidirectionalStreamMaxCount :
+                ServerTransportOptions!.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -295,7 +295,7 @@ namespace IceRpc.Tests.Internal
                     Interlocked.Decrement(ref streamCount);
                 }
 
-                var request = await stream.ReceiveRequestFrameAsync();
+                _ = await stream.ReceiveRequestFrameAsync();
 
                 if (bidirectional)
                 {
@@ -313,7 +313,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<RpcStream>();
-            for (int i = 0; i < ServerConnectionOptions.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerTransportOptions!.UnidirectionalStreamMaxCount; ++i)
             {
                 RpcStream stream = ClientConnection.CreateStream(false);
                 clientStreams.Add(stream);
@@ -328,7 +328,7 @@ namespace IceRpc.Tests.Internal
 
             // Accept a new unidirectional stream. This shouldn't allow the new stream send request to
             // complete since the request wasn't read yet on the stream.
-            var serverStream = await ServerConnection.AcceptStreamAsync(default);
+            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
 
             await Task.Delay(200);
 
@@ -415,7 +415,6 @@ namespace IceRpc.Tests.Internal
             static void Test(MultiStreamConnection connection)
             {
                 Assert.That(connection.LocalEndpoint, Is.Not.Null);
-                Assert.AreNotEqual(connection.IdleTimeout, TimeSpan.Zero);
                 Assert.That(connection.IncomingFrameMaxSize, Is.GreaterThan(0));
                 if (connection.Protocol != Protocol.Ice1)
                 {
@@ -431,9 +430,6 @@ namespace IceRpc.Tests.Internal
                 Assert.AreEqual(0, connection.IncomingStreamCount);
                 Assert.AreEqual(0, connection.OutgoingStreamCount);
             }
-
-            Assert.AreEqual(512 * 1024, ServerConnection.IncomingFrameMaxSize);
-            Assert.AreEqual(1024 * 1024, ClientConnection.IncomingFrameMaxSize);
         }
 
         [Test]
@@ -468,8 +464,8 @@ namespace IceRpc.Tests.Internal
 
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
 
-            var release1 = await TestAsync(ClientConnection, ServerConnection, 1);
-            var release2 = await TestAsync(ClientConnection, ServerConnection, 2);
+            Func<ValueTask> release1 = await TestAsync(ClientConnection, ServerConnection, 1);
+            Func<ValueTask> release2 = await TestAsync(ClientConnection, ServerConnection, 2);
 
             await release2();
             await release1();

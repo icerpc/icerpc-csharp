@@ -22,13 +22,13 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new NamespaceMDOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
+                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 }
             };
             _server.Listen();
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { Activator11 = activator11 }
+                Options = new ConnectionOptions() { Activator11 = activator11 }
             };
             _prx = NamespaceMDOperationsPrx.FromConnection(_connection);
             _prx.Proxy.Encoding = Encoding.Ice11; // because we use classes for this test

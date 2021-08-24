@@ -33,14 +33,11 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptNetworkSocketConnection_Listener_AcceptAsync()
         {
             using IListener listener = CreateListener();
-            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
+            ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
-            using NetworkSocket clientConnection = CreateClientConnection();
-            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
-                ClientEndpoint,
-                ClientAuthenticationOptions,
-                default);
-            using NetworkSocket serverConnection = await acceptTask;
+            using NetworkSocket clientSocket = CreateClientNetworkSocket();
+            ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(ClientEndpoint, default);
+            using NetworkSocket serverSocket = await acceptTask;
         }
 
         [Test]
@@ -54,31 +51,24 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptNetworkSocketConnection_AcceptAsync()
         {
             using IListener listener = CreateListener();
-            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
+            ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
-            using NetworkSocket clientConnection = CreateClientConnection();
-            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
-                ClientEndpoint,
-                ClientAuthenticationOptions,
-                default);
+            using NetworkSocket clientSocket = CreateClientNetworkSocket();
+            ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(ClientEndpoint, default);
 
-            using NetworkSocket serverConnection = await acceptTask;
-
-            ValueTask<Endpoint?> acceptTask2 = serverConnection.AcceptAsync(
-                ServerEndpoint,
-                ServerAuthenticationOptions,
-                default);
+            using NetworkSocket serverSocket = await acceptTask;
+            ValueTask<Endpoint> acceptTask2 = serverSocket.ConnectAsync(ServerEndpoint, default);
 
             await connectTask;
 
             if (ClientEndpoint.Protocol == Protocol.Ice2 && TransportName == "tcp")
             {
-                await clientConnection.SendAsync(new byte[1], default);
+                await clientSocket.SendAsync(new byte[1], default);
             }
 
             await acceptTask2;
 
-            Assert.That(serverConnection, Is.InstanceOf<TcpSocket>());
+            Assert.That(serverSocket, Is.InstanceOf<TcpSocket>());
         }
 
         // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
@@ -87,35 +77,29 @@ namespace IceRpc.Tests.Internal
         public async Task AcceptNetworkSocketConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
             using IListener listener = CreateListener();
-            ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
+            ValueTask<NetworkSocket> acceptTask = CreateServerNetworkSocketAsync(listener);
 
-            NetworkSocket clientConnection = CreateClientConnection();
+            NetworkSocket clientSocket = CreateClientNetworkSocket();
 
-            // We don't use clientConnection.ConnectAsync() here as this would start the TLS handshake for secure
+            // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
             // connections and AcceptAsync would sometime succeed.
-            await clientConnection.Socket!.ConnectAsync(
+            await clientSocket.Socket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
-            using NetworkSocket serverConnection = await acceptTask;
+            using NetworkSocket serverSocket = await acceptTask;
 
-            clientConnection.Dispose();
+            clientSocket.Dispose();
 
             AsyncTestDelegate testDelegate;
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
                 // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
-                await serverConnection.AcceptAsync(
-                    ServerEndpoint,
-                    ServerAuthenticationOptions,
-                    default);
-                testDelegate = async () => await serverConnection.ReceiveAsync(new byte[1], default);
+                await serverSocket.ConnectAsync(ServerEndpoint, default);
+                testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
             }
             else
             {
-                testDelegate = async () => await serverConnection.AcceptAsync(
-                    ServerEndpoint,
-                    ServerAuthenticationOptions,
-                    default);
+                testDelegate = async () => await serverSocket.ConnectAsync(ServerEndpoint, default);
             }
             Assert.ThrowsAsync<ConnectionLostException>(testDelegate);
         }
@@ -132,7 +116,6 @@ namespace IceRpc.Tests.Internal
                 IServerTransport serverTransport = TestHelper.CreateServerTransport(serverEndpoint);
                 listener = serverTransport.Listen(
                     serverEndpoint,
-                    ServerConnectionOptions,
                     LogAttributeLoggerFactory.Instance).Listener!;
             }
             else
@@ -151,7 +134,6 @@ namespace IceRpc.Tests.Internal
                     Assert.DoesNotThrow(
                         () => serverTransport.Listen(
                             serverEndpoint,
-                            ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
                 }
                 else
@@ -159,7 +141,6 @@ namespace IceRpc.Tests.Internal
                     Assert.Catch<TransportException>(
                         () => serverTransport.Listen(
                             serverEndpoint,
-                            ServerConnectionOptions,
                             LogAttributeLoggerFactory.Instance).Listener!.Dispose());
                 }
             }
@@ -185,20 +166,14 @@ namespace IceRpc.Tests.Internal
         {
             using IListener listener = CreateListener();
 
-            using NetworkSocket clientConnection = CreateClientConnection();
-            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
-                ClientEndpoint,
-                ClientAuthenticationOptions,
-                default);
+            using NetworkSocket clientSocket = CreateClientNetworkSocket();
+            ValueTask<Endpoint> connectTask = clientSocket.ConnectAsync(ClientEndpoint, default);
 
-            using NetworkSocket serverConnection = await CreateServerConnectionAsync(listener);
+            using NetworkSocket serverSocket = await CreateServerNetworkSocketAsync(listener);
 
             using var source = new CancellationTokenSource();
             source.Cancel();
-            ValueTask<Endpoint?> acceptTask = serverConnection.AcceptAsync(
-                    ServerEndpoint,
-                    ServerAuthenticationOptions,
-                    source.Token);
+            ValueTask<Endpoint> acceptTask = serverSocket.ConnectAsync(ServerEndpoint, source.Token);
 
             if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
             {
@@ -211,13 +186,10 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        private NetworkSocket CreateClientConnection() =>
-            (TestHelper.CreateClientTransport(ClientEndpoint).CreateConnection(
-                ClientEndpoint,
-                ClientConnectionOptions,
-                LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
+        private NetworkSocket CreateClientNetworkSocket() =>
+            ((NetworkSocketConnection)CreateClientConnection()).NetworkSocket;
 
-        private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
-            (await listener.AcceptAsync() as NetworkSocketConnection)!.NetworkSocket;
+        private static async ValueTask<NetworkSocket> CreateServerNetworkSocketAsync(IListener listener) =>
+            ((NetworkSocketConnection)await listener.AcceptAsync()).NetworkSocket;
     }
 }

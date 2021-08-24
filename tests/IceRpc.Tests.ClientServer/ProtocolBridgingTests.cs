@@ -21,7 +21,7 @@ namespace IceRpc.Tests.ClientServer
             _pool = new ConnectionPool
             {
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
-                ConnectionOptions = new ClientConnectionOptions()
+                ConnectionOptions = new ConnectionOptions()
                 {
                     Activator11 = Ice11Decoder.GetActivator(typeof(ProtocolBridgingException).Assembly),
                     Activator20 = Ice20Decoder.GetActivator(typeof(ProtocolBridgingException).Assembly)

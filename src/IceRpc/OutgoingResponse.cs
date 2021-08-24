@@ -40,7 +40,9 @@ namespace IceRpc
                 PayloadEncoding = request.PayloadEncoding,
             };
 
-            if (exception is RemoteException remoteException)
+            if (exception is RemoteException remoteException &&
+                !remoteException.ConvertToUnhandled &&
+                remoteException.Origin == RemoteExceptionOrigin.Unknown)
             {
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }

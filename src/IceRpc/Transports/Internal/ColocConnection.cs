@@ -10,14 +10,8 @@ namespace IceRpc.Transports.Internal
     /// <summary>The MultiStreamConnection class for the colocated transport.</summary>
     internal class ColocConnection : MultiStreamConnection
     {
-        public override TimeSpan IdleTimeout
-        {
-            get => Timeout.InfiniteTimeSpan;
-            protected set => throw new NotSupportedException("IdleTimeout is not supported with colocated connections");
-        }
-
         public override bool IsDatagram => false;
-        public override bool? IsSecure => true;
+        public override bool IsSecure => true;
 
         internal long Id { get; }
 
@@ -32,10 +26,6 @@ namespace IceRpc.Transports.Internal
         private readonly int _unidirectionalStreamMaxCount;
         private AsyncSemaphore? _unidirectionalStreamSemaphore;
         private readonly ChannelWriter<(long, object, bool)> _writer;
-
-        public override ValueTask AcceptAsync(
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => default;
 
         public override async ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel)
         {
@@ -104,9 +94,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask ConnectAsync(
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => default;
+        public override ValueTask ConnectAsync(CancellationToken cancel) => default;
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
@@ -191,9 +179,10 @@ namespace IceRpc.Transports.Internal
             long id,
             ChannelWriter<(long, object, bool)> writer,
             ChannelReader<(long, object, bool)> reader,
-            ConnectionOptions options,
+            bool isServer,
+            MultiStreamOptions options,
             ILogger logger)
-            : base(endpoint, options, logger)
+            : base(endpoint, isServer, logger)
         {
             LocalEndpoint = endpoint;
             RemoteEndpoint = endpoint;

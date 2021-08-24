@@ -18,7 +18,7 @@ namespace IceRpc.Transports
         /// <param name="options">The transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpClientTransport(
-            TcpOptions? options,
+            TcpOptions? options = null,
             SslClientAuthenticationOptions? authenticationOptions = null)
         {
             _options = options ?? new();
@@ -27,23 +27,6 @@ namespace IceRpc.Transports
 
         MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
-            // First verify all parameters:
-            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
-
-            if (remoteEndpoint.Protocol == Protocol.Ice1)
-            {
-                tls = remoteEndpoint.Transport == TransportNames.Ssl;
-            }
-            else if (tls == null)
-            {
-                // TODO: add ability to override this default tls=true through some options
-                tls = true;
-                remoteEndpoint = remoteEndpoint with
-                {
-                    Params = remoteEndpoint.Params.Add(new EndpointParam("tls", "true"))
-                };
-            }
-
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
@@ -80,8 +63,8 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpSocket(socket, logger, tls ? _authenticationOptions : null, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, _options);
+            var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _options);
         }
     }
 }

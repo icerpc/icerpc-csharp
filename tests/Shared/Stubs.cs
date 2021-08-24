@@ -11,36 +11,24 @@ namespace IceRpc.Tests
     /// properties for a connection.</summary>
     public class MultiStreamConnectionStub : MultiStreamConnection
     {
-        public override TimeSpan IdleTimeout
-        {
-            get => TimeSpan.FromSeconds(60);
-            protected set => throw new NotImplementedException();
-        }
-
         public override bool IsDatagram => false;
 
-        public override bool? IsSecure => false;
+        public override bool IsSecure => false;
 
         public MultiStreamConnectionStub(
             Endpoint localEndpoint,
             Endpoint remoteEndpoint,
-            ConnectionOptions options,
+            bool isServer,
             ILogger logger) :
-            base(remoteEndpoint, options, logger)
+            base(remoteEndpoint, isServer, logger)
         {
             LocalEndpoint = localEndpoint;
             RemoteEndpoint = remoteEndpoint;
         }
 
-        public override ValueTask AcceptAsync(
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new();
-
         public override ValueTask<RpcStream> AcceptStreamAsync(CancellationToken cancel) =>
             throw new NotImplementedException();
-        public override ValueTask ConnectAsync(
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new();
+        public override ValueTask ConnectAsync(CancellationToken cancel) => default;
 
         public override RpcStream CreateStream(bool bidirectional) =>
             throw new NotImplementedException();
@@ -58,15 +46,14 @@ namespace IceRpc.Tests
         /// connection.</summary>
         public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer)
         {
-            ConnectionOptions options = isServer ? new ServerConnectionOptions() : new ClientConnectionOptions();
             return new Connection(
                 new MultiStreamConnectionStub(
                     localEndpoint,
                     remoteEndpoint,
-                    options,
+                    isServer,
                     NullLogger.Instance),
                 dispatcher: null,
-                options,
+                new(),
                 loggerFactory: null);
         }
     }

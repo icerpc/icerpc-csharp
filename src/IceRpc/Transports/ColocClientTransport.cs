@@ -10,10 +10,9 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the coloc transport.</summary>
     public class ColocClientTransport : IClientTransport
     {
-        MultiStreamConnection IClientTransport.CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        private readonly MultiStreamOptions _multiStreamOptions;
+
+        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {
@@ -25,12 +24,23 @@ namespace IceRpc.Transports
             {
                 ILogger logger = loggerFactory.CreateLogger("IceRpc");
                 (ColocChannelReader reader, ColocChannelWriter writer, long id) = listener.NewClientConnection();
-                return new ColocConnection(remoteEndpoint, id, writer, reader, connectionOptions, logger);
+                return new ColocConnection(
+                    remoteEndpoint,
+                    id,
+                    writer,
+                    reader,
+                    isServer: false,
+                    _multiStreamOptions,
+                    logger);
             }
             else
             {
                 throw new ConnectionRefusedException();
             }
         }
+
+        /// <summary>Construct a colocated server transport.</summary>
+        /// <param name="options">The transport options.</param>
+        public ColocClientTransport(MultiStreamOptions options) => _multiStreamOptions = options;
     }
 }

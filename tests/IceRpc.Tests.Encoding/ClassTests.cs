@@ -32,7 +32,7 @@ namespace IceRpc.Tests.Encoding
             {
                 Dispatcher = router,
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 },
+                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -40,7 +40,7 @@ namespace IceRpc.Tests.Encoding
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { Activator11 = activator11 },
+                Options = new ConnectionOptions() { Activator11 = activator11 },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 
@@ -165,7 +165,7 @@ namespace IceRpc.Tests.Encoding
 
             await using var server = new Server
             {
-                ConnectionOptions = new ServerConnectionOptions()
+                ConnectionOptions = new ConnectionOptions()
                 {
                     Activator11 = activator11,
                     ClassGraphMaxDepth = serverClassGraphMaxDepth
@@ -178,7 +178,7 @@ namespace IceRpc.Tests.Encoding
             await using var connection = new Connection
             {
                 RemoteEndpoint = server.Endpoint,
-                Options = new ClientConnectionOptions
+                Options = new ConnectionOptions
                 {
                     Activator11 = activator11,
                     ClassGraphMaxDepth = clientClassGraphMaxDepth

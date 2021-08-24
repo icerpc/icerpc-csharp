@@ -2,6 +2,7 @@
 
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
+using System.Net.Security;
 
 namespace IceRpc.Configure
 {
@@ -12,7 +13,16 @@ namespace IceRpc.Configure
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseInteropColoc(this ClientTransport clientTransport) =>
-            clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, new ColocClientTransport());
+            clientTransport.UseInteropColoc(new());
+
+        /// <summary>Adds the interop coloc client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="options">The transport options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseInteropColoc(
+            this ClientTransport clientTransport,
+            MultiStreamOptions options) =>
+            clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, new ColocClientTransport(options));
 
         /// <summary>Adds the interop ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>

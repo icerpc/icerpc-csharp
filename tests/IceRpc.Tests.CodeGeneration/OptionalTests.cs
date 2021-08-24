@@ -22,14 +22,14 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new OptionalOperations(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
+                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 }
             };
             _server.Listen();
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
                 Options =
-                    new ClientConnectionOptions()
+                    new ConnectionOptions()
                     {
                         Activator11 = activator11,
                         Activator20 = activator20

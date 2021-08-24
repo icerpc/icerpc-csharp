@@ -22,10 +22,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpClientTransport(UdpOptions options) => _options = options;
 
-        MultiStreamConnection IClientTransport.CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions clientOptions,
-            ILoggerFactory loggerFactory)
+        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -99,7 +96,7 @@ namespace IceRpc.Transports
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
-            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, clientOptions);
+            return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, isServer: false, new());
         }
     }
 }

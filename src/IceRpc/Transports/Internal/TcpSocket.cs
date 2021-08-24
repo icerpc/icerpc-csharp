@@ -16,9 +16,6 @@ namespace IceRpc.Transports.Internal
     internal abstract class TcpSocket : NetworkSocket
     {
         public override bool IsDatagram => false;
-        public override bool? IsSecure => SslStream != null;
-
-        public override SslStream? SslStream { get; protected set; }
 
         protected internal override Socket Socket { get; }
 
@@ -31,7 +28,7 @@ namespace IceRpc.Transports.Internal
 
             // A remote endpoint with no tls parameter is compatible with an established connection no matter its tls
             // disposition.
-            return tls == null || tls == IsSecure;
+            return tls == null || tls == (SslStream != null);
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)

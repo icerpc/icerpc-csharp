@@ -56,6 +56,7 @@ namespace IceRpc.Transports.Internal
             _tcpOptions = tcpOptions;
             _socket = socket;
 
+            // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
             _ = endpoint.ParseTcpParams();
         }
     }

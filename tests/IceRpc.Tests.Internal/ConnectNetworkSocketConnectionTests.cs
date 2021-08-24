@@ -29,12 +29,9 @@ namespace IceRpc.Tests.Internal
         [Test]
         public void ConnectNetworkSocketConnection_ConnectAsync_ConnectionRefusedException()
         {
-            using NetworkSocket clientConnection = CreateClientConnection();
+            using NetworkSocket clientSocket = CreateNetworkSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
-                async () => await clientConnection.ConnectAsync(
-                    ClientEndpoint,
-                    ClientAuthenticationOptions,
-                    default));
+                async () => await clientSocket.ConnectAsync(ClientEndpoint, default));
         }
 
         [Test]
@@ -49,30 +46,21 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                using NetworkSocket clientConnection = CreateClientConnection();
+                using NetworkSocket clientSocket = CreateNetworkSocket();
                 ValueTask<Endpoint> connectTask =
-                    clientConnection.ConnectAsync(
-                        ClientEndpoint,
-                        ClientAuthenticationOptions,
-                        source.Token);
+                    clientSocket.ConnectAsync(ClientEndpoint, source.Token);
                 source.Cancel();
                 Assert.CatchAsync<OperationCanceledException>(async () => await connectTask);
             }
 
             using var source2 = new CancellationTokenSource();
             source2.Cancel();
-            using NetworkSocket clientConnection2 = CreateClientConnection();
+            using NetworkSocket clientSocket2 = CreateNetworkSocket();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await clientConnection2.ConnectAsync(
-                    ClientEndpoint,
-                    ClientAuthenticationOptions,
-                    source2.Token));
+                async () => await clientSocket2.ConnectAsync(ClientEndpoint, source2.Token));
         }
 
-        private NetworkSocket CreateClientConnection() =>
-           (TestHelper.CreateClientTransport(ClientEndpoint).CreateConnection(
-                ClientEndpoint,
-                ClientConnectionOptions,
-                LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
+        private NetworkSocket CreateNetworkSocket() =>
+           ((NetworkSocketConnection)CreateClientConnection()).NetworkSocket;
     }
 }

@@ -27,7 +27,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 Dispatcher = new Operations(),
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 },
+                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -35,7 +35,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = serverEndpoint,
                 Options =
-                    new ClientConnectionOptions()
+                    new ConnectionOptions()
                     {
                         Activator11 = activator11,
                         Activator20 = activator20

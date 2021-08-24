@@ -31,8 +31,6 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            public ClientConnectionOptions ClientConnectionOptions { get; }
-
             public Endpoint Endpoint { get; }
 
             public Connection ServerConnection
@@ -61,33 +59,33 @@ namespace IceRpc.Tests.Internal
 
             private Connection? _cachedClientConnection;
             private Connection? _cachedServerConnection;
-            private readonly Server _server;
+            private readonly SslClientAuthenticationOptions? _clientAuthenticationOptions;
+            private readonly ConnectionOptions _clientConnectionOptions;
+            private readonly IDispatcher? _dispatcher;
+            private readonly SslServerAuthenticationOptions? _serverAuthenticationOptions;
+            private readonly ConnectionOptions _serverConnectionOptions;
 
             public async Task<(Connection, Connection)> AcceptAndConnectAsync()
             {
                 Connection clientConnection;
                 Connection serverConnection;
 
-                IServerTransport serverTransport = TestHelper.CreateServerTransport(Endpoint);
+                IServerTransport serverTransport = TestHelper.CreateServerTransport(
+                    Endpoint,
+                    authenticationOptions: _serverAuthenticationOptions);
                 if (Endpoint.Transport == "udp")
                 {
                     serverConnection = new Connection(
-                        serverTransport.Listen(
-                            Endpoint,
-                            _server.ConnectionOptions,
-                            LogAttributeLoggerFactory.Instance).Connection!,
-                        _server.Dispatcher,
-                        _server.ConnectionOptions,
+                        serverTransport.Listen(Endpoint, LogAttributeLoggerFactory.Instance).Connection!,
+                        _dispatcher,
+                        _serverConnectionOptions,
                         LogAttributeLoggerFactory.Instance);
-
-                    _ = serverConnection.ConnectAsync(default);
-                    clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
+                  clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
                     using IListener listener = serverTransport.Listen(
                         Endpoint,
-                        _server.ConnectionOptions,
                         LogAttributeLoggerFactory.Instance).Listener!;
                     Task<Connection> serverTask = AcceptAsync(listener);
                     Task<Connection> clientTask = ConnectAsync(listener.Endpoint);
@@ -100,8 +98,8 @@ namespace IceRpc.Tests.Internal
                 async Task<Connection> AcceptAsync(IListener listener)
                 {
                     var connection = new Connection(await listener.AcceptAsync(),
-                                                    _server.Dispatcher,
-                                                    _server.ConnectionOptions,
+                                                    _dispatcher,
+                                                    _serverConnectionOptions,
                                                     LogAttributeLoggerFactory.Instance);
                     await connection.ConnectAsync(default);
                     return connection;
@@ -112,8 +110,10 @@ namespace IceRpc.Tests.Internal
                     var connection = new Connection
                     {
                         RemoteEndpoint = endpoint,
-                        Options = ClientConnectionOptions,
-                        ClientTransport = TestHelper.CreateClientTransport(endpoint)
+                        ClientTransport = TestHelper.CreateClientTransport(
+                            endpoint,
+                            authenticationOptions: _clientAuthenticationOptions),
+                        Options = _clientConnectionOptions,
                     };
                     await connection.ConnectAsync(default);
                     return connection;
@@ -127,21 +127,21 @@ namespace IceRpc.Tests.Internal
                     await _cachedClientConnection.DisposeAsync();
                     await _cachedServerConnection!.DisposeAsync();
                 }
-                await _server.DisposeAsync();
             }
 
             public ConnectionFactory(
                 string transport = "coloc",
                 Protocol protocol = Protocol.Ice2,
                 bool secure = false,
-                ClientConnectionOptions? clientConnectionOptions = null,
-                ServerConnectionOptions? serverConnectionOptions = null,
+                ConnectionOptions? clientConnectionOptions = null,
+                ConnectionOptions? serverConnectionOptions = null,
                 IDispatcher? dispatcher = null)
             {
+                _clientConnectionOptions = clientConnectionOptions ?? ConnectionOptions.Default;
+                _serverConnectionOptions = serverConnectionOptions ?? ConnectionOptions.Default;
                 if (secure)
                 {
-                    clientConnectionOptions ??= new();
-                    clientConnectionOptions.AuthenticationOptions = new()
+                    _clientAuthenticationOptions = new()
                     {
                         RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
@@ -151,15 +151,12 @@ namespace IceRpc.Tests.Internal
                                 })
                     };
 
-                    serverConnectionOptions ??= new();
-                    serverConnectionOptions.AuthenticationOptions = new()
+                    _serverAuthenticationOptions = new()
                     {
                         ClientCertificateRequired = false,
                         ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
                     };
                 }
-
-                ClientConnectionOptions = clientConnectionOptions ?? new();
 
                 if (transport == "coloc")
                 {
@@ -187,17 +184,10 @@ namespace IceRpc.Tests.Internal
 
                 if (dispatcher != null)
                 {
-                    var router = new Router().UseLogger(LogAttributeLoggerFactory.Instance);
+                    Router router = new Router().UseLogger(LogAttributeLoggerFactory.Instance);
                     router.Mount("/", dispatcher);
-                    dispatcher = router;
+                    _dispatcher = router;
                 }
-
-                _server = new Server
-                {
-                    ConnectionOptions = serverConnectionOptions ?? new(),
-                    Dispatcher = dispatcher,
-                    ServerTransport = TestHelper.CreateServerTransport(Endpoint)
-                };
             }
         }
 
@@ -285,15 +275,12 @@ namespace IceRpc.Tests.Internal
 
         [TestCase(Protocol.Ice1)]
         [TestCase(Protocol.Ice2)]
-        public async Task Connection_ConnectTimeoutAsyncXXXX(Protocol protocol)
+        public async Task Connection_ConnectTimeoutAsync(Protocol protocol)
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
             IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 });
-            using IListener listener = transport.Listen(
-                factory.Endpoint,
-                new ServerConnectionOptions(),
-                LogAttributeLoggerFactory.Instance).Listener!;
+            using IListener listener = transport.Listen(factory.Endpoint, LogAttributeLoggerFactory.Instance).Listener!;
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout
             // is handled by the client connection factory.

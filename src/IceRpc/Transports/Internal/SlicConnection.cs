@@ -12,8 +12,6 @@ namespace IceRpc.Transports.Internal
     /// supports the same set of features as Quic.</summary>
     internal class SlicConnection : NetworkSocketConnection
     {
-        public override TimeSpan IdleTimeout { get; set; }
-
         internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
@@ -394,13 +392,16 @@ namespace IceRpc.Transports.Internal
             NetworkSocket networkSocket,
             Endpoint endpoint,
             bool isServer,
-            SlicOptions options)
+            MultiStreamOptions options)
             : base(networkSocket, endpoint, isServer)
         {
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = options.SlicPacketMaxSize;
-            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
+            if (options is SlicOptions slicOptions)
+            {
+                PacketMaxSize = slicOptions.SlicPacketMaxSize;
+                StreamBufferMaxSize = slicOptions.SlicStreamBufferMaxSize;
+            }
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.

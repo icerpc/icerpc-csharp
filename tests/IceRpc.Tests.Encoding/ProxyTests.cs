@@ -22,11 +22,7 @@ namespace IceRpc.Tests.Encoding
             };
             _server.Listen();
 
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint,
-                Options = ClientConnectionOptions.Default // TODO: it's required due to a bug in the Connection code
-            };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
         }
 
         [TearDown]

@@ -218,6 +218,7 @@ namespace IceRpc
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
+        private CancellationTokenSource? _connectTimeoutCancellationSource;
         // The control stream is assigned on the connection initialization and is immutable once the connection reaches
         // the Active state.
         private RpcStream? _controlStream;
@@ -261,6 +262,7 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
+            CancellationToken connectTimeoutToken;
             lock (_mutex)
             {
                 if (_state == ConnectionState.Active)
@@ -272,42 +274,47 @@ namespace IceRpc
                     // TODO: resume the connection if it's resumable
                     throw new ConnectionClosedException();
                 }
-                else if (_state == ConnectionState.Connecting)
+                else  if (_state == ConnectionState.NotConnected)
                 {
-                    return _connectTask!;
-                }
-                Debug.Assert(_state == ConnectionState.NotConnected);
-
-                if (!IsServer)
-                {
-                    Debug.Assert(UnderlyingConnection == null);
-
-                    if (_remoteEndpoint == null)
+                    if (!IsServer)
                     {
-                        throw new InvalidOperationException("client connection has no remote endpoint set");
+                        Debug.Assert(UnderlyingConnection == null);
+
+                        if (_remoteEndpoint == null)
+                        {
+                            throw new InvalidOperationException("client connection has no remote endpoint set");
+                        }
+                        UnderlyingConnection = ClientTransport.CreateConnection(
+                            _remoteEndpoint,
+                            _loggerFactory ?? NullLoggerFactory.Instance);
                     }
-                    UnderlyingConnection = ClientTransport.CreateConnection(
-                        _remoteEndpoint,
-                        _loggerFactory ?? NullLoggerFactory.Instance);
+
+                    Debug.Assert(UnderlyingConnection != null);
+                    _state = ConnectionState.Connecting;
+
+                    // Set underlying ACM and protocol options.
+                    UnderlyingConnection.IdleTimeout = _options.IdleTimeout;
+                    UnderlyingConnection.IncomingFrameMaxSize = _options.IncomingFrameMaxSize;
+
+                    // Perform connection establishment.
+                    _connectTimeoutCancellationSource = new(_options.ConnectTimeout);
+                    _connectTask = PerformConnectAsync(UnderlyingConnection, _connectTimeoutCancellationSource.Token);
                 }
 
-                Debug.Assert(UnderlyingConnection != null);
-                _state = ConnectionState.Connecting;
-
-                // Set underlying ACM and protocol options.
-                UnderlyingConnection.IdleTimeout = _options.IdleTimeout;
-                UnderlyingConnection.IncomingFrameMaxSize = _options.IncomingFrameMaxSize;
-
-                // Initialize the connection after it's connected.
-                _connectTask = PerformInitializeAsync(UnderlyingConnection);
+                Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
+                connectTimeoutToken = _connectTimeoutCancellationSource!.Token;
             }
 
-            return _connectTask;
+            // Use the connect timeout and the cancellation token for the wait cancellation.
+            using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancel, connectTimeoutToken);
+            return _connectTask.WaitAsync(linkedSource.Token);
 
-            async Task PerformInitializeAsync(MultiStreamConnection connection)
+            async Task PerformConnectAsync(MultiStreamConnection connection, CancellationToken cancel)
             {
                 try
                 {
+                    await Task.Yield();
+
                     // Wait for the underlying connection to be connected.
                     await UnderlyingConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
@@ -351,13 +358,20 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
+                    if (exception is OperationCanceledException)
+                    {
+                        exception = new ConnectTimeoutException();
+                    }
                     using IDisposable? scope = _logger.StartConnectionScope(this);
                     await AbortAsync(exception).ConfigureAwait(false);
-                    throw;
+                    _connectTimeoutCancellationSource.Dispose();
+                    throw exception;
                 }
 
                 lock (_mutex)
                 {
+                    _connectTimeoutCancellationSource.Dispose();
+
                     if (_state == ConnectionState.Closed)
                     {
                         // This can occur if the connection is disposed while the connection is being initialized.
