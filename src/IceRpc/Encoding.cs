@@ -23,10 +23,9 @@ namespace IceRpc
         /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
         internal static readonly Encoding Unknown = new(UnknownName);
 
-        internal const string Ice11Name = "1.1";
-        internal const string Ice20Name = "2.0";
-
         private const string Ice10Name = "1.0";
+        private const string Ice11Name = "1.1";
+        private const string Ice20Name = "2.0";
         private const string UnknownName = "unknown";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
