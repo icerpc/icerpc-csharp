@@ -424,11 +424,6 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ConnectionOptions = new ClientConnectionOptions()
-                {
-                    Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
-                    Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
-                },
                 ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()
             };
             return pool;

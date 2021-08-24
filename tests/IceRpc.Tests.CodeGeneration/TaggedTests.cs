@@ -15,18 +15,15 @@ namespace IceRpc.Tests.CodeGeneration
 
         public TaggedTests()
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(TaggedTests).Assembly);
             _server = new Server
             {
                 Dispatcher = new TaggedOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
             _connection = new Connection
             {
-                RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { Activator11 = activator11 }
+                RemoteEndpoint = _server.Endpoint
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
 
