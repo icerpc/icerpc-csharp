@@ -505,7 +505,7 @@ namespace IceRpc
                     response = new IncomingResponse(Protocol, ResultType.Success)
                     {
                         PayloadEncoding = request.PayloadEncoding,
-                        Payload = Protocol.GetVoidReturnPayload(request.PayloadEncoding)
+                        Payload = default
                     };
                 }
                 else

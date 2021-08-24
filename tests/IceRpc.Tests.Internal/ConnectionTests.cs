@@ -215,7 +215,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, Payload.FromVoidReturnValue(request));
+                    return OutgoingResponse.ForPayload(request, default);
                 }),
                 protocol: protocol);
 
@@ -497,7 +497,7 @@ namespace IceRpc.Tests.Internal
                 dispatcher: new InlineDispatcher(async (request, cancel) =>
                 {
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, Payload.FromVoidReturnValue(request));
+                    return OutgoingResponse.ForPayload(request, default);
                 }));
 
             // Perform an invocation
@@ -531,7 +531,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await dispatchSemaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, Payload.FromVoidReturnValue(request));
+                    return OutgoingResponse.ForPayload(request, default);
                 }));
 
             // Perform an invocation.
@@ -588,7 +588,7 @@ namespace IceRpc.Tests.Internal
                     {
                     }
                     Assert.Fail();
-                    return OutgoingResponse.ForPayload(request, Payload.FromVoidReturnValue(request));
+                    return OutgoingResponse.ForPayload(request, default);
                 }));
 
             // Perform an invocation
@@ -670,7 +670,7 @@ namespace IceRpc.Tests.Internal
                 {
                     waitForDispatchSemaphore.Release();
                     await semaphore.WaitAsync(cancel);
-                    return OutgoingResponse.ForPayload(request, Payload.FromVoidReturnValue(request));
+                    return OutgoingResponse.ForPayload(request, default);
                 }));
 
             // Perform an invocation

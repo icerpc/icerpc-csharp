@@ -53,20 +53,6 @@ namespace IceRpc.Internal
             }
         }
 
-        internal static ReadOnlyMemory<byte> GetEmptyArgsPayload(this Protocol protocol, Encoding encoding)
-        {
-            CheckSupported(protocol);
-            return protocol == Protocol.Ice1 ? Ice1Definitions.GetEmptyArgsPayload(encoding) :
-                Ice2Definitions.GetEmptyArgsPayload(encoding);
-        }
-
-        internal static ReadOnlyMemory<byte> GetVoidReturnPayload(this Protocol protocol, Encoding encoding)
-        {
-            CheckSupported(protocol);
-            return protocol == Protocol.Ice1 ? Ice1Definitions.GetVoidReturnValuePayload(encoding) :
-                Ice2Definitions.GetVoidReturnValuePayload(encoding);
-        }
-
         /// <summary>Encode an exception into the given response. The encoding of an exception is protocol and
         /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs to be encoded
         /// either as a user or system exception. If the 1.1 encoded exception is sent with the Ice1 protocol,

@@ -22,26 +22,13 @@ namespace IceRpc
 
         async Task<IncomingResponse> IInvoker.InvokeAsync(OutgoingRequest request, CancellationToken cancel)
         {
-            // TODO: rename CompressRequestPayload to CompressRequest or add CompressStreamParam?
+            // TODO: rename CompressPayload to CompressRequest or add CompressStreamParam?
             if (_options.CompressPayload &&
-                request.PayloadEncoding == Encoding.Ice20 &&
                 request.Features[typeof(Features.CompressPayload)] == Features.CompressPayload.Yes)
             {
-                if (request.PayloadSize >= 1 &&
-                    request.Payload.Span[0].Span[0] == (byte)CompressionFormat.NotCompressed)
-                {
-                    (CompressionResult result, ReadOnlyMemory<byte> compressedPayload) =
-                        request.Payload.Compress(request.PayloadSize,
-                                                 _options.CompressionLevel,
-                                                 _options.CompressionMinSize);
-                    if (result == CompressionResult.Success)
-                    {
-                        request.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
-                    }
-                }
+                request.CompressPayload(_options);
 
-                request.StreamCompressor =
-                    outputStream => outputStream.CompressStream(_options.CompressionLevel);
+                request.StreamCompressor = outputStream => outputStream.CompressStream(_options.CompressionLevel);
             }
 
             // TODO: rename DecompressPayload to DecompressResponse or add DecompressStreamParam?
@@ -56,16 +43,9 @@ namespace IceRpc
 
             if (_options.DecompressPayload &&
                 response.ResultType == ResultType.Success &&
-                response.PayloadEncoding == Encoding.Ice20 &&
                 response.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
-                ReadOnlyMemory<byte> payload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
-
-                if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
-                {
-                    response.Payload = payload.Decompress(
-                        maxSize: request.Connection!.IncomingFrameMaxSize);
-                }
+                response.DecompressPayload();
             }
 
             return response;
