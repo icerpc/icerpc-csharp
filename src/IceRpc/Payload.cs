@@ -180,6 +180,7 @@ namespace IceRpc
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<T> decodeFunc)
         {
             if (dispatch.Encoding == Encoding.Ice20)
@@ -196,7 +197,9 @@ namespace IceRpc
                 payload = payload[1..];
             }
 
-            var decoder = dispatch.Encoding.CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
+            var decoder = GetIceDecoderFactory(dispatch.Encoding, dispatch.RequestFeatures, defaultIceDecoderFactories).
+                CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
+
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -236,6 +239,19 @@ namespace IceRpc
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
+
+        internal static IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+            Encoding encoding,
+            FeatureCollection features,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+            encoding.Name switch
+            {
+                Encoding.Ice11Name => features.Get<IIceDecoderFactory<Ice11Decoder>>() ??
+                    defaultIceDecoderFactories.Ice11DecoderFactory,
+                Encoding.Ice20Name => features.Get<IIceDecoderFactory<Ice20Decoder>>() ??
+                    defaultIceDecoderFactories.Ice20DecoderFactory,
+                _ => throw new NotSupportedException($"cannot create Ice decoder for encoding {encoding}")
+            };
 
         /// <summary>Creates a response payload from a <see cref="RemoteException"/>.</summary>
         /// <param name="request">The incoming request used to create this response payload. </param>
