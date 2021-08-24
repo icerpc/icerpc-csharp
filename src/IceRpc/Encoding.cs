@@ -96,7 +96,7 @@ namespace IceRpc
         internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
+            throw new NotSupportedException($"cannot create an Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
