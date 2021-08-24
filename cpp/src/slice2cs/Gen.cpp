@@ -289,9 +289,9 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 {
                     _out << " = streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
                     _out.inc();
-                    _out << nl << "connection,"
+                    _out << nl << "response.Connection,"
                          << nl << "invoker,"
-                         << nl << "payloadEncoding,"
+                         << nl << "response.PayloadEncoding,"
                          << nl << decodeFunc(streamParam->type(), ns) << ");";
                     _out.dec();
                 }
@@ -2118,16 +2118,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
-                _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamParamReceiver, ";
-                _out << "IceRpc.Encoding payloadEncoding, IceRpc.FeatureCollection features, ";
-                _out << "IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
+                _out << "(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, ";
+                _out << "IceRpc.StreamParamReceiver? streamParamReceiver) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
                 _out.inc();
-                _out << nl << "payload,";
-                _out << nl << "payloadEncoding,";
-                _out << nl << "features,";
-                _out << nl << "connection,";
+                _out << nl << "response,";
                 _out << nl << "invoker,";
                 _out << nl << "_defaultIceDecoderFactories,";
                 _out << nl;
@@ -2427,7 +2423,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << nl << "(payload, streamParamReceiver, payloadEncoding, features, connection, invoker) =>";
+        _out << nl << "(response, invoker, streamParamReceiver) =>";
 
         _out.inc();
         if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
@@ -2439,9 +2435,9 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << nl << "streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamReturnParam->type(), ns) << ">(";
             _out.inc();
-            _out << nl << "connection,"
+            _out << nl << "response.Connection,"
                  << nl << "invoker,"
-                 << nl << "payloadEncoding,"
+                 << nl << "response.PayloadEncoding,"
                  << nl << decodeFunc(streamReturnParam->type(), ns) << "),";
             _out.dec();
         }

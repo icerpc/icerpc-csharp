@@ -2,23 +2,17 @@
 
 namespace IceRpc.Gen
 {
-    /// <summary>A function that decodes the return value from an Ice-encoded response payload.</summary>
+    /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>
-    /// <param name="payload">The response payload.</param>
-    /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
-    /// <param name="payloadEncoding">The encoding of the response payload.</param>
-    /// <param name="features">The features of this response.</param>
-    /// <param name="connection">The connection that received this response.</param>
+    /// <param name="response">The incoming response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
+    /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
     /// <returns>The response return value.</returns>
     /// <exception cref="RemoteException">Thrown when the response payload carries a failure.</exception>
     public delegate T ResponseDecodeFunc<T>(
-        ReadOnlyMemory<byte> payload,
-        StreamParamReceiver? streamParamReceiver,
-        Encoding payloadEncoding,
-        FeatureCollection features,
-        Connection connection,
-        IInvoker? invoker);
+        IncomingResponse response,
+        IInvoker? invoker,
+        StreamParamReceiver? streamParamReceiver);
 
     /// <summary>Provides extension methods for class Proxy.</summary>
     public static class ProxyExtensions
@@ -51,7 +45,7 @@ namespace IceRpc.Gen
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, FeatureCollection, Connection)> responseTask =
+            Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
                 proxy.InvokeAsync(
                     operation,
                     requestPayload,
@@ -67,10 +61,10 @@ namespace IceRpc.Gen
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamParamReceiver, Encoding payloadEncoding, FeatureCollection features, Connection connection) =
+                (IncomingResponse response, StreamParamReceiver? streamParamReceiver) =
                     await responseTask.ConfigureAwait(false);
 
-                return responseDecodeFunc(payload, streamParamReceiver, payloadEncoding, features, connection, proxy.Invoker);
+                return responseDecodeFunc(response, proxy.Invoker, streamParamReceiver);
             }
         }
 
@@ -102,7 +96,7 @@ namespace IceRpc.Gen
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, FeatureCollection, Connection)> responseTask =
+            Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
                 proxy.InvokeAsync(
                     operation,
                     requestPayload,
@@ -118,10 +112,9 @@ namespace IceRpc.Gen
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, FeatureCollection features, Connection connection) =
-                    await responseTask.ConfigureAwait(false);
+                (IncomingResponse response, StreamParamReceiver? _) = await responseTask.ConfigureAwait(false);
 
-                payload.CheckVoidReturnValue(payloadEncoding, features, connection, defaultIceDecoderFactories);
+                response.CheckVoidReturnValue(proxy.Invoker, defaultIceDecoderFactories);
             }
         }
     }

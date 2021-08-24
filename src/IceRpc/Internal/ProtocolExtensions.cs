@@ -62,13 +62,8 @@ namespace IceRpc.Internal
         internal static Exception DecodeResponseException(
             this Protocol protocol,
             IncomingResponse response,
-            IInvoker? invoker)
+            IceDecoder decoder)
         {
-            IceDecoder decoder = response.PayloadEncoding.CreateIceDecoder(
-                response.Payload,
-                response.Connection,
-                invoker);
-
             RemoteException exception;
             if (protocol == Protocol.Ice1)
             {

@@ -421,12 +421,11 @@ namespace IceRpc
         /// after sending the request.</param>
         /// <param name="returnStreamParamReceiver">When true, a stream param receiver will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, the optional stream reader, its encoding, the response features and the
-        /// connection that received the response.</returns>
+        /// <returns>The response and the optional stream reader.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, FeatureCollection, Connection)> InvokeAsync(
+        public static Task<(IncomingResponse, StreamParamReceiver?)> InvokeAsync(
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
@@ -509,7 +508,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, StreamParamReceiver?, Encoding PayloadEncoding, FeatureCollection Features, Connection Connection)> ConvertResponseAsync(
+            async Task<(IncomingResponse, StreamParamReceiver?)> ConvertResponseAsync(
                 OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
@@ -524,18 +523,15 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    if (response.ResultType == ResultType.Failure)
-                    {
-                        throw response.ToException(proxy.Invoker);
-                    }
+                    // TODO: temporary
+                    _ = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
-                    ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
                     StreamParamReceiver? streamParamReceiver = null;
                     if (returnStreamParamReceiver)
                     {
                         streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }
-                    return (responsePayload, streamParamReceiver, response.PayloadEncoding, response.Features, response.Connection);
+                    return (response, streamParamReceiver);
                 }
                 finally
                 {

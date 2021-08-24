@@ -275,13 +275,11 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
-            (ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? _, Encoding payloadEncoding, FeatureCollection features, _) =
+            (IncomingResponse response, IceRpc.StreamParamReceiver? _) =
                 await proxy.InvokeAsync("SayHello", requestPayload: default);
 
-            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(
-                payloadEncoding,
-                features,
-                connection,
+            Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
+                proxy.Invoker,
                 new DefaultIceDecoderFactories(typeof(ProxyTests).Assembly)));
         }
 
