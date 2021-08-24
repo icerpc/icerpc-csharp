@@ -53,8 +53,8 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Decode an exception from the given response. The decoding of an exception is protocol and
-        /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs is encoded
+        /// <summary>Decodes an exception from the given response. The decoding of an exception is protocol and
+        /// encoding specific. If the encoded exception contains a 1.1 payload, the exception needs is encoded
         /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
         /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
         /// system exception. If it's the received with the Ice2 protocol, the reply status is obtained from
@@ -101,7 +101,7 @@ namespace IceRpc.Internal
             return exception;
         }
 
-        /// <summary>Encode an exception into the given response. The encoding of an exception is protocol and
+        /// <summary>Encodes an exception into the given response. The encoding of an exception is protocol and
         /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs to be encoded
         /// either as a user or system exception. If the 1.1 encoded exception is sent with the Ice1 protocol,
         /// this method also sets the <see cref="ReplyStatus"/> feature to allow figure it out when encoding
