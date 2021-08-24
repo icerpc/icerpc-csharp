@@ -214,17 +214,11 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions = null;
             if (tls == true)
             {
-                // If the endpoint is secure, connect with the SSL client authentication options.
-                if (_authenticationOptions == null)
-                {
-                    throw new InvalidOperationException(
-                        "cannot establish TLS connection: no TLS authentication options configured");
-                }
-                authenticationOptions = _authenticationOptions.Clone();
+                authenticationOptions = _authenticationOptions?.Clone() ?? new();
                 authenticationOptions.TargetHost ??= endpoint.Host;
                 authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                    new SslApplicationProtocol(endpoint.Protocol.GetName())
-                };
+                        new SslApplicationProtocol(endpoint.Protocol.GetName())
+                    };
             }
 
             try

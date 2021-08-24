@@ -64,11 +64,21 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
+            SslServerAuthenticationOptions? authenticationOptions = null;
+            if (_authenticationOptions is SslServerAuthenticationOptions)
+            {
+                authenticationOptions = _authenticationOptions.Clone();
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                    {
+                        new SslApplicationProtocol(endpoint.Protocol.GetName())
+                    };
+            }
+
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
                                              logger,
                                              _options,
-                                             _authenticationOptions),
+                                             authenticationOptions),
                     null);
         }
     }
