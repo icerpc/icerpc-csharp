@@ -314,11 +314,11 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator<Ice11Decoder>? activator = null,
-            int classGraphDepthMax = 100)
+            int classGraphMaxDepth = 100)
             : base(buffer, connection, invoker)
         {
             _activator = activator;
-            _classGraphMaxDepth = classGraphDepthMax;
+            _classGraphMaxDepth = classGraphMaxDepth;
         }
 
         /// <inheritdoc/>

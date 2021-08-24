@@ -38,9 +38,9 @@ namespace IceRpc
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// response.</summary>
-        /// <param name="connection">The connection used to construct the <see cref="IceDecoder"/>.</param>
-        /// <param name="invoker">The invoker used to construct the <see cref="IceDecoder"/>.</param>
-        /// <param name="encoding">The encoding.</param>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="decodeAction">The action used to decode the streamed params.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>

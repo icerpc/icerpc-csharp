@@ -84,7 +84,6 @@ namespace IceRpc
         }
 
         private int _bidirectionalStreamMaxCount = 100;
-        private int _classGraphMaxDepth = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _incomingFrameMaxSize = 1024 * 1024;
