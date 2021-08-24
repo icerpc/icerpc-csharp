@@ -158,6 +158,9 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
+            // We overwrite the default value for class graph max depth through a middleware (server side) and
+            // an interceptor (client side).
+
             var router = new Router();
             router.Map<IClassGraphOperations>(new ClassGraphOperations());
             router.Use(next => new InlineDispatcher(
