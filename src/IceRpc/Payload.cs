@@ -131,9 +131,11 @@ namespace IceRpc
         public static T ToArgs<T>(
             this ReadOnlyMemory<byte> payload,
             Dispatch dispatch,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<T> decodeFunc)
         {
-            var decoder = dispatch.Encoding.CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
+            var decoder = GetIceDecoderFactory(dispatch.Encoding, dispatch.RequestFeatures, defaultIceDecoderFactories).
+                CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
@@ -150,14 +152,30 @@ namespace IceRpc
         public static T ToReturnValue<T>(
             this ReadOnlyMemory<byte> payload,
             Encoding payloadEncoding,
-            DecodeFunc<T> decodeFunc,
+            FeatureCollection features,
             Connection connection,
-            IInvoker? invoker)
+            IInvoker? invoker,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
+            DecodeFunc<T> decodeFunc)
         {
-            var decoder = payloadEncoding.CreateIceDecoder(payload, connection, invoker);
+            var decoder = GetIceDecoderFactory(payloadEncoding, features, defaultIceDecoderFactories).
+                CreateIceDecoder(payload, connection, invoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
         }
+
+        internal static IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+            Encoding encoding,
+            FeatureCollection features,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+            encoding.Name switch
+            {
+                Encoding.Ice11Name => features.Get<IIceDecoderFactory<Ice11Decoder>>() ??
+                    defaultIceDecoderFactories.Ice11DecoderFactory,
+                Encoding.Ice20Name => features.Get<IIceDecoderFactory<Ice20Decoder>>() ??
+                    defaultIceDecoderFactories.Ice20DecoderFactory,
+                _ => throw new NotSupportedException($"cannot create Ice decoder for encoding {encoding}")
+            };
     }
 }

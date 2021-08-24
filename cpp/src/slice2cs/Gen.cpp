@@ -2107,6 +2107,9 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static class Response";
         _out << sb;
+        _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
+            << " new(typeof(Response).Assembly);";
+
         for (const auto& operation : p->operations())
         {
             auto returns = operation->returnType();
@@ -2118,17 +2121,20 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
                 _out << "(global::System.ReadOnlyMemory<byte> payload, IceRpc.StreamParamReceiver? streamParamReceiver, ";
-                _out << "IceRpc.Encoding payloadEncoding, IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
+                _out << "IceRpc.Encoding payloadEncoding, IceRpc.FeatureCollection features, ";
+                _out << "IceRpc.Connection connection, IceRpc.IInvoker? invoker) =>";
                 _out.inc();
                 _out << nl << "IceRpc.Payload.ToReturnValue(";
                 _out.inc();
                 _out << nl << "payload,";
-                _out << nl << "payloadEncoding, ";
+                _out << nl << "payloadEncoding,";
+                _out << nl << "features,";
+                _out << nl << "connection,";
+                _out << nl << "invoker,";
+                _out << nl << "_defaultIceDecoderFactories,";
                 _out << nl;
                 writeIncomingResponseDecodeFunc(operation);
-                _out << ",";
-                _out << nl << "connection,";
-                _out << nl << "invoker);";
+                _out << ");";
                 _out.dec();
                 _out.dec();
             }
@@ -2415,7 +2421,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     else if (streamReturnParam)
     {
-        _out << nl << "(payload, streamParamReceiver, payloadEncoding, connection, invoker) =>";
+        _out << nl << "(payload, streamParamReceiver, payloadEncoding, features, connection, invoker) =>";
 
         _out.inc();
         if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
@@ -2591,6 +2597,9 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
         _out << nl << "public static" << (bases.empty() ? "" : " new") << " class Request";
         _out << sb;
 
+        _out << nl << "private static readonly IceRpc.DefaultIceDecoderFactories _defaultIceDecoderFactories ="
+            << " new(typeof(Request).Assembly);";
+
         for (auto operation : operationList)
         {
             auto params = operation->params();
@@ -2608,6 +2617,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out.inc();
                 _out << nl << "payload,";
                 _out << nl << "dispatch,";
+                _out << nl << "_defaultIceDecoderFactories,";
                 _out << nl;
                 writeIncomingRequestDecodeFunc(operation);
                 _out << ");";

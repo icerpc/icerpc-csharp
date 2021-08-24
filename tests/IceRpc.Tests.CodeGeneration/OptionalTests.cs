@@ -15,25 +15,15 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OptionalTests()
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(OptionalTests).Assembly);
-            var activator20 = Ice20Decoder.GetActivator(typeof(OptionalTests).Assembly);
-
             _server = new Server()
             {
                 Dispatcher = new OptionalOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 }
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
             _connection = new Connection
             {
-                RemoteEndpoint = _server.Endpoint,
-                Options =
-                    new ClientConnectionOptions()
-                    {
-                        Activator11 = activator11,
-                        Activator20 = activator20
-                    }
+                RemoteEndpoint = _server.Endpoint
             };
             _prx = OptionalOperationsPrx.FromConnection(_connection);
         }

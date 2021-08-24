@@ -19,27 +19,17 @@ namespace IceRpc.Tests.CodeGeneration
 
         public OperationsTests(Protocol protocol)
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(OperationsTests).Assembly);
-            var activator20 = Ice20Decoder.GetActivator(typeof(OperationsTests).Assembly);
-
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = new Operations(),
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
             _connection = new Connection
             {
                 RemoteEndpoint = serverEndpoint,
-                Options =
-                    new ClientConnectionOptions()
-                    {
-                        Activator11 = activator11,
-                        Activator20 = activator20
-                    },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
             _prx = OperationsPrx.FromConnection(_connection);

@@ -7,6 +7,7 @@ namespace IceRpc.Gen
     /// <param name="payload">The response payload.</param>
     /// <param name="streamParamReceiver">The stream param receiver from the response.</param>
     /// <param name="payloadEncoding">The encoding of the response payload.</param>
+    /// <param name="features">The features of this response.</param>
     /// <param name="connection">The connection that received this response.</param>
     /// <param name="invoker">The invoker of the proxy used to send this request.</param>
     /// <returns>The response return value.</returns>
@@ -15,6 +16,7 @@ namespace IceRpc.Gen
         ReadOnlyMemory<byte> payload,
         StreamParamReceiver? streamParamReceiver,
         Encoding payloadEncoding,
+        FeatureCollection features,
         Connection connection,
         IInvoker? invoker);
 
@@ -49,25 +51,26 @@ namespace IceRpc.Gen
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
-                operation,
-                requestPayload,
-                streamParamSender,
-                invocation,
-                compress,
-                idempotent,
-                oneway: false,
-                returnStreamParamReceiver: returnStreamParamReceiver,
-                cancel);
+            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, FeatureCollection, Connection)> responseTask =
+                proxy.InvokeAsync(
+                    operation,
+                    requestPayload,
+                    streamParamSender,
+                    invocation,
+                    compress,
+                    idempotent,
+                    oneway: false,
+                    returnStreamParamReceiver: returnStreamParamReceiver,
+                    cancel);
 
             return ReadResponseAsync();
 
             async Task<T> ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamParamReceiver, Encoding payloadEncoding, Connection connection) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? streamParamReceiver, Encoding payloadEncoding, FeatureCollection features, Connection connection) =
                     await responseTask.ConfigureAwait(false);
 
-                return responseDecodeFunc(payload, streamParamReceiver, payloadEncoding, connection, proxy.Invoker);
+                return responseDecodeFunc(payload, streamParamReceiver, payloadEncoding, features, connection, proxy.Invoker);
             }
         }
 
@@ -97,22 +100,23 @@ namespace IceRpc.Gen
             bool oneway = false,
             CancellationToken cancel = default)
         {
-            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> responseTask = proxy.InvokeAsync(
-                operation,
-                requestPayload,
-                streamParamSender,
-                invocation,
-                compress,
-                idempotent,
-                oneway,
-                returnStreamParamReceiver: false,
-                cancel);
+            Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, FeatureCollection, Connection)> responseTask =
+                proxy.InvokeAsync(
+                    operation,
+                    requestPayload,
+                    streamParamSender,
+                    invocation,
+                    compress,
+                    idempotent,
+                    oneway,
+                    returnStreamParamReceiver: false,
+                    cancel);
 
             return ReadResponseAsync();
 
             async Task ReadResponseAsync()
             {
-                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, _) =
+                (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, _, _) =
                     await responseTask.ConfigureAwait(false);
 
                 payload.CheckVoidReturnValue(payloadEncoding);

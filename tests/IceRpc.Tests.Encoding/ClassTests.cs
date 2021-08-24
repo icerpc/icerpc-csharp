@@ -26,13 +26,11 @@ namespace IceRpc.Tests.Encoding
             router.Map<ICompactFormatOperations>(new CompactFormatOperations());
             router.Map<IClassFormatOperations>(new ClassFormatOperations());
 
-            var activator11 = Ice11Decoder.GetActivator(typeof(ClassTests).Assembly);
             var serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server()
             {
                 Dispatcher = router,
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ServerConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -40,7 +38,6 @@ namespace IceRpc.Tests.Encoding
             _connection = new Connection
             {
                 RemoteEndpoint = _server.Endpoint,
-                Options = new ClientConnectionOptions() { Activator11 = activator11 },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 
@@ -161,13 +158,10 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(ClassTests).Assembly);
-
             await using var server = new Server
             {
                 ConnectionOptions = new ServerConnectionOptions()
                 {
-                    Activator11 = activator11,
                     ClassGraphMaxDepth = serverClassGraphMaxDepth
                 },
                 Dispatcher = new ClassGraphOperations(),
@@ -180,7 +174,6 @@ namespace IceRpc.Tests.Encoding
                 RemoteEndpoint = server.Endpoint,
                 Options = new ClientConnectionOptions
                 {
-                    Activator11 = activator11,
                     ClassGraphMaxDepth = clientClassGraphMaxDepth
                 }
             };
