@@ -5,6 +5,7 @@
 [[suppress-warning(reserved-identifier)]]
 
 #include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/Fields.ice>
 
 module IceRpc
 {
@@ -20,27 +21,6 @@ module IceRpc
         UnboundedData = 4,
         GoAway = 5,
         GoAwayCanceled = 6
-    }
-
-    dictionary<varint, ByteSeq> Fields;
-
-    /// Keys of reserved fields in ice2 request and response headers.
-    unchecked enum Ice2FieldKey : int
-    {
-        /// The string-string dictionary field (for request headers).
-        Context = 0,
-
-        /// The retry policy field (for response headers).
-        RetryPolicy = -1,
-
-        /// The W3C Trace Context field.
-        TraceContext = -2,
-
-        /// The Ice1 reply status when bridging an Ice1 response.
-        ReplyStatus = -3,
-
-        /// The payload compression field.
-        Compression = -4
     }
 
     /// Keys of reserved ice2 connection parameters.

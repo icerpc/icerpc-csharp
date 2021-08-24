@@ -18,5 +18,14 @@ namespace IceRpc
         /// <summary>Returns the name of this protocol in lowercase, e.g. "ice1" or "ice2".</summary>
         public static string GetName(this Protocol protocol) =>
             protocol.ToString().ToLowerInvariant();
+
+        /// <summary>Returns <c>true</c> if the protocol support fields with protocol frame headers.</summary>
+        public static bool HasFieldSupport(this Protocol protocol) =>
+            protocol switch
+            {
+                Protocol.Ice1 => false,
+                Protocol.Ice2 => true,
+                _ => false
+            };
     }
 }
