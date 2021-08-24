@@ -96,11 +96,12 @@ namespace IceRpc.Transports
             }
 
             var udpSocket = new UdpSocket(socket, logger, isServer: true, multicastAddress);
-            return (null, NetworkSocketConnection.FromNetworkSocket(
-                udpSocket,
-                endpoint with { Port = port },
-                isServer: true,
-                new()));
+            return (null,
+                    NetworkSocketConnection.FromNetworkSocket(
+                        udpSocket,
+                        endpoint with { Port = port },
+                        isServer: true,
+                        new()));
         }
     }
 }
