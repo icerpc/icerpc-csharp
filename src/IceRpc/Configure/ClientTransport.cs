@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Configure
 {
@@ -28,17 +29,14 @@ namespace IceRpc.Configure
             return this;
         }
 
-        MultiStreamConnection IClientTransport.CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(
                 (remoteEndpoint.Transport, remoteEndpoint.Protocol),
                 out IClientTransport? clientTransport))
             {
-                return clientTransport.CreateConnection(remoteEndpoint, connectionOptions, loggerFactory);
+                return clientTransport.CreateConnection(remoteEndpoint, loggerFactory);
             }
             else
             {
@@ -62,11 +60,33 @@ namespace IceRpc.Configure
         public static ClientTransport UseTcp(this ClientTransport clientTransport) =>
             clientTransport.UseTcp(new TcpOptions());
 
+        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseTcp(
+            this ClientTransport clientTransport,
+            SslClientAuthenticationOptions authenticationOptions) =>
+            clientTransport.UseTcp(new TcpOptions(), authenticationOptions);
+
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseTcp(this ClientTransport clientTransport, TcpOptions options) =>
             clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpClientTransport(options));
+
+        /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="options">The transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseTcp(
+            this ClientTransport clientTransport,
+            TcpOptions options,
+            SslClientAuthenticationOptions authenticationOptions) =>
+            clientTransport.Add(TransportNames.Tcp,
+                                Protocol.Ice2,
+                                new TcpClientTransport(options, authenticationOptions));
     }
 }

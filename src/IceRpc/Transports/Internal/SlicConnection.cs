@@ -12,11 +12,7 @@ namespace IceRpc.Transports.Internal
     /// supports the same set of features as Quic.</summary>
     internal class SlicConnection : NetworkSocketConnection
     {
-        public override TimeSpan IdleTimeout
-        {
-            get => _idleTimeout;
-            protected set => throw new NotSupportedException("setting IdleTimeout is not supported with Slic");
-        }
+        public override TimeSpan IdleTimeout { get; set; }
 
         internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
@@ -25,7 +21,6 @@ namespace IceRpc.Transports.Internal
 
         private int _bidirectionalStreamCount;
         private AsyncSemaphore? _bidirectionalStreamSemaphore;
-        private TimeSpan _idleTimeout;
         private readonly int _bidirectionalMaxStreams;
         private readonly int _unidirectionalMaxStreams;
         private long _nextBidirectionalId;
@@ -398,15 +393,14 @@ namespace IceRpc.Transports.Internal
         internal SlicConnection(
             NetworkSocket networkSocket,
             Endpoint endpoint,
-            ConnectionOptions connectionOptions,
-            SlicOptions slicOptions)
-            : base(networkSocket, endpoint, connectionOptions)
+            bool isServer,
+            SlicOptions options)
+            : base(networkSocket, endpoint, isServer)
         {
-            _idleTimeout = connectionOptions.IdleTimeout;
             _receiveStreamCompletionTaskSource.SetResult(0);
 
-            PacketMaxSize = slicOptions.SlicPacketMaxSize;
-            StreamBufferMaxSize = slicOptions.SlicStreamBufferMaxSize;
+            PacketMaxSize = options.SlicPacketMaxSize;
+            StreamBufferMaxSize = options.SlicStreamBufferMaxSize;
 
             // Initially set the peer packet max size to the local max size to ensure we can receive the first
             // initialize frame.
@@ -414,8 +408,8 @@ namespace IceRpc.Transports.Internal
             PeerStreamBufferMaxSize = StreamBufferMaxSize;
 
             // Configure the maximum stream counts to ensure the peer won't open more than one stream.
-            _bidirectionalMaxStreams = connectionOptions.BidirectionalStreamMaxCount;
-            _unidirectionalMaxStreams = connectionOptions.UnidirectionalStreamMaxCount;
+            _bidirectionalMaxStreams = options.BidirectionalStreamMaxCount;
+            _unidirectionalMaxStreams = options.UnidirectionalStreamMaxCount;
 
             // We use the same stream ID numbering scheme as Quic
             if (IsServer)
@@ -675,7 +669,7 @@ namespace IceRpc.Transports.Internal
             {
                 { ParameterKey.MaxBidirectionalStreams, (ulong)_bidirectionalMaxStreams },
                 { ParameterKey.MaxUnidirectionalStreams, (ulong)_unidirectionalMaxStreams },
-                { ParameterKey.IdleTimeout, (ulong)_idleTimeout.TotalMilliseconds },
+                { ParameterKey.IdleTimeout, (ulong)IdleTimeout.TotalMilliseconds },
                 { ParameterKey.PacketMaxSize, (ulong)PacketMaxSize },
                 { ParameterKey.StreamBufferMaxSize, (ulong)StreamBufferMaxSize }
             };
@@ -705,7 +699,7 @@ namespace IceRpc.Transports.Internal
                     peerIdleTimeout = TimeSpan.FromMilliseconds(value);
                     if (peerIdleTimeout < IdleTimeout)
                     {
-                        _idleTimeout = peerIdleTimeout.Value;
+                        IdleTimeout = peerIdleTimeout.Value;
                     }
                 }
                 else if (key == ParameterKey.PacketMaxSize)

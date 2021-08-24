@@ -133,12 +133,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The client connection options. This property can be used to initialize the client connection options.</summary>
+        /// <summary>The connection options. This property can be used to initialize the connection options.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Design",
             "CA1044:Properties should not be write only",
-            Justification = "Used for initializing the client options")]
-        public ClientConnectionOptions Options
+            Justification = "Used for initializing the options")]
+        public ConnectionOptions Options
         {
             init => _options = value;
         }
@@ -241,7 +241,7 @@ namespace IceRpc
         public Connection()
         {
             _logger = NullLogger.Instance;
-            _options = ClientConnectionOptions.Default;
+            _options = ConnectionOptions.Default;
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to
@@ -278,28 +278,8 @@ namespace IceRpc
                 }
                 Debug.Assert(_state == ConnectionState.NotConnected);
 
-                ValueTask connectTask;
-                if (IsServer)
+                if (!IsServer)
                 {
-                    var serverOptions = (ServerConnectionOptions)_options;
-                    Debug.Assert(UnderlyingConnection != null);
-
-                    // If the underlying connection is secure, accept with the SSL server authentication options.
-                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
-                    if (UnderlyingConnection.IsSecure ?? true)
-                    {
-                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
-                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
-                        {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
-                    }
-
-                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
-                }
-                else
-                {
-                    var clientOptions = (ClientConnectionOptions)_options;
                     Debug.Assert(UnderlyingConnection == null);
 
                     if (_remoteEndpoint == null)
@@ -308,52 +288,43 @@ namespace IceRpc
                     }
                     UnderlyingConnection = ClientTransport.CreateConnection(
                         _remoteEndpoint,
-                        clientOptions,
                         _loggerFactory ?? NullLoggerFactory.Instance);
-
-                    // If the endpoint is secure, connect with the SSL client authentication options.
-                    SslClientAuthenticationOptions? clientAuthenticationOptions = null;
-                    if (UnderlyingConnection.IsSecure ?? true)
-                    {
-                        clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
-                        clientAuthenticationOptions.TargetHost ??= _remoteEndpoint.Host;
-                        clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
-                    }
-
-                    connectTask = UnderlyingConnection.ConnectAsync(clientAuthenticationOptions, cancel);
                 }
 
                 Debug.Assert(UnderlyingConnection != null);
                 _state = ConnectionState.Connecting;
 
+                // Set underlying ACM and protocol options.
+                UnderlyingConnection.IdleTimeout = _options.IdleTimeout;
+                UnderlyingConnection.IncomingFrameMaxSize = _options.IncomingFrameMaxSize;
+
                 // Initialize the connection after it's connected.
-                _connectTask = PerformInitializeAsync(UnderlyingConnection, connectTask);
+                _connectTask = PerformInitializeAsync(UnderlyingConnection);
             }
 
             return _connectTask;
 
-            async Task PerformInitializeAsync(MultiStreamConnection connection, ValueTask connectTask)
+            async Task PerformInitializeAsync(MultiStreamConnection connection)
             {
                 try
                 {
-                    // Wait for the connection to be connected or accepted.
-                    await connectTask.ConfigureAwait(false);
+                    // Wait for the underlying connection to be connected.
+                    await UnderlyingConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-                    // Start the scope only once the connection is connected/accepted to ensure that the .NET connection
-                    // endpoints are available.
+                    // Start the scope only once the connection is connected/accepted to ensure that the .NET
+                    // connection endpoints are available.
                     using IDisposable? scope = _logger.StartConnectionScope(this);
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
                         {
-                            // This can occur if the connection is disposed while the connection is being initialized.
+                            // This can occur if the connection is disposed while the connection is being
+                            // initialized.
                             throw new ConnectionClosedException();
                         }
 
-                        // Set _connected to true to ensure that if AbortAsync is called concurrently, AbortAsync will
-                        // trace the correct message.
+                        // Set _connected to true to ensure that if AbortAsync is called concurrently,
+                        // AbortAsync will trace the correct message.
                         _connected = true;
 
                         Action logSuccess = (IsServer, connection.IsDatagram) switch

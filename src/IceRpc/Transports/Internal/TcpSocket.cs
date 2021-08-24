@@ -13,130 +13,25 @@ using System.Text;
 
 namespace IceRpc.Transports.Internal
 {
-    internal class TcpSocket : NetworkSocket
+    internal abstract class TcpSocket : NetworkSocket
     {
         public override bool IsDatagram => false;
-        public override bool? IsSecure => _tls;
+        public override bool? IsSecure => SslStream != null;
 
-        public override SslStream? SslStream => _sslStream;
+        public override SslStream? SslStream { get; protected set; }
 
-        protected internal override Socket? Socket => _socket;
+        protected internal override Socket Socket { get; }
 
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
-
-        // See https://tools.ietf.org/html/rfc5246#appendix-A.4
-        private const byte TlsHandshakeRecord = 0x16;
-
-        private readonly EndPoint? _addr;
-        private readonly Socket _socket;
-        private SslStream? _sslStream;
-        private bool? _tls;
-
-        public override async ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            try
-            {
-                // On the server side, when accepting a new connection for Ice2 endpoint, the TCP socket checks
-                // the first byte sent by the peer to figure out if the peer tries to establish a TLS connection.
-                bool secure = false;
-                if (endpoint.Protocol == Protocol.Ice2)
-                {
-                    // Peek one byte into the tcp stream to see if it contains the TLS handshake record
-                    Memory<byte> buffer = new byte[1];
-                    int received = await _socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
-                    if (received == 0)
-                    {
-                        throw new ConnectionLostException();
-                    }
-                    Debug.Assert(received == 1);
-                    secure = buffer.Span[0] == TlsHandshakeRecord;
-                }
-
-                // If a secure connection is needed, a new SslConnection is created and returned from this method.
-                // The caller is responsible for using the returned SslConnection in place of this TcpConnection.
-                if (_tls ?? secure)
-                {
-                    if (authenticationOptions == null)
-                    {
-                        throw new InvalidOperationException(
-                            "cannot accept TLS connection: no TLS authentication configured");
-                    }
-                    await AuthenticateAsync(sslStream =>
-                        sslStream.AuthenticateAsServerAsync(authenticationOptions, cancel)).ConfigureAwait(false);
-                }
-
-                ImmutableList<EndpointParam> endpointParams = endpoint.Params;
-                if (_tls == null && endpoint.Protocol == Protocol.Ice2)
-                {
-                    // the accepted endpoint gets a tls parameter
-                    endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));
-                }
-
-                var ipEndPoint = (IPEndPoint)_socket.RemoteEndPoint!;
-                return endpoint with
-                {
-                    Host = ipEndPoint.Address.ToString(),
-                    Port = checked((ushort)ipEndPoint.Port),
-                    Params = endpointParams
-                };
-            }
-            catch (Exception ex)
-            {
-                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
-            }
-        }
-
-        public override async ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
-        {
-            Debug.Assert(_addr != null);
-            Debug.Assert(_tls != null);
-
-            try
-            {
-                // Connect to the peer.
-                await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-
-                if (authenticationOptions != null)
-                {
-                    await AuthenticateAsync(sslStream =>
-                        sslStream.AuthenticateAsClientAsync(authenticationOptions, cancel)).ConfigureAwait(false);
-                }
-
-                var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
-                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
-            }
-            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-            {
-                throw new ConnectionRefusedException(ex);
-            }
-            catch (SocketException ex)
-            {
-                throw new ConnectFailedException(ex);
-            }
-            catch (Exception ex) when (cancel.IsCancellationRequested)
-            {
-                throw new OperationCanceledException(null, ex, cancel);
-            }
-            catch (Exception ex)
-            {
-                throw new TransportException(ex);
-            }
-        }
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint)
         {
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;
 
-            // A remote endpoint with no _tls parameter is compatible with an established connection no matter its tls
+            // A remote endpoint with no tls parameter is compatible with an established connection no matter its tls
             // disposition.
-            return tls == null || tls == _tls;
+            return tls == null || tls == IsSecure;
         }
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
@@ -155,7 +50,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    received = await _socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    received = await Socket.ReceiveAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -186,7 +81,7 @@ namespace IceRpc.Transports.Internal
                 }
                 else
                 {
-                    await _socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
+                    await Socket.SendAsync(buffer, SocketFlags.None, cancel).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -217,7 +112,7 @@ namespace IceRpc.Transports.Internal
                 {
                     try
                     {
-                        await _socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
+                        await Socket.SendAsync(buffers.ToSegmentList(), SocketFlags.None).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -275,8 +170,8 @@ namespace IceRpc.Transports.Internal
 
         protected override void Dispose(bool disposing)
         {
-            _socket.Dispose();
-            _sslStream?.Dispose();
+            Socket.Dispose();
+            SslStream?.Dispose();
         }
 
         protected override bool PrintMembers(StringBuilder builder)
@@ -285,42 +180,207 @@ namespace IceRpc.Transports.Internal
             {
                 builder.Append(", ");
             }
-            builder.Append("LocalEndPoint = ").Append(_socket.LocalEndPoint).Append(", ");
-            builder.Append("RemoteEndPoint = ").Append(_socket.RemoteEndPoint);
+            builder.Append("LocalEndPoint = ").Append(Socket.LocalEndPoint).Append(", ");
+            builder.Append("RemoteEndPoint = ").Append(Socket.RemoteEndPoint);
             return true;
         }
 
-        internal TcpSocket(Socket fd, ILogger logger, bool? tls, EndPoint? addr = null)
-            : base(logger)
-        {
-            _addr = addr;
-
+        internal TcpSocket(Socket fd, ILogger logger)
+            : base(logger) =>
             // The socket is not connected if a client socket, it's connected otherwise.
-            _socket = fd;
-            _tls = tls;
-        }
+            Socket = fd;
+    }
 
-        private async Task AuthenticateAsync(Func<SslStream, Task> authenticate)
+    internal class TcpClientSocket : TcpSocket
+    {
+        private readonly EndPoint _addr;
+        private readonly SslClientAuthenticationOptions? _authenticationOptions;
+
+        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            // This can only be created with a connected socket.
-            _sslStream = new SslStream(new NetworkStream(_socket, false), false);
-            _tls = true;
+            // First verify all parameters:
+            bool? tls = endpoint.ParseTcpParams().Tls;
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                tls = endpoint.Transport == TransportNames.Ssl;
+            }
+            else if (tls == null)
+            {
+                // TODO: add ability to override this default tls=true through some options
+                tls = true;
+                endpoint = endpoint with
+                {
+                    Params = endpoint.Params.Add(new EndpointParam("tls", "true"))
+                };
+            }
+
+            SslClientAuthenticationOptions? authenticationOptions = null;
+            if (tls == true)
+            {
+                // If the endpoint is secure, connect with the SSL client authentication options.
+                if (_authenticationOptions == null)
+                {
+                    throw new InvalidOperationException(
+                        "cannot establish TLS connection: no TLS authentication options configured");
+                }
+                authenticationOptions = _authenticationOptions.Clone();
+                authenticationOptions.TargetHost ??= endpoint.Host;
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                    new SslApplicationProtocol(endpoint.Protocol.GetName())
+                };
+            }
 
             try
             {
-                await authenticate(_sslStream).ConfigureAwait(false);
+                Debug.Assert(Socket != null);
+
+                // Connect to the peer.
+                await Socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+
+                if (tls == true)
+                {
+                    // This can only be created with a connected socket.
+                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    try
+                    {
+                        await SslStream.AuthenticateAsClientAsync(authenticationOptions!, cancel).ConfigureAwait(false);
+                    }
+                    catch (AuthenticationException ex)
+                    {
+                        Logger.LogTlsAuthenticationFailed(ex);
+                        throw new TransportException(ex);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ExceptionUtil.Throw(ex.ToTransportException(default));
+                    }
+
+                    Logger.LogTlsAuthenticationSucceeded(SslStream);
+                }
+
+                var ipEndPoint = (IPEndPoint)Socket.LocalEndPoint!;
+                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
             }
-            catch (AuthenticationException ex)
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
-                Logger.LogTlsAuthenticationFailed(ex);
-                throw new TransportException(ex);
+                throw new ConnectionRefusedException(ex);
+            }
+            catch (SocketException ex)
+            {
+                throw new ConnectFailedException(ex);
+            }
+            catch (Exception ex) when (cancel.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(null, ex, cancel);
             }
             catch (Exception ex)
             {
-                throw ExceptionUtil.Throw(ex.ToTransportException(default));
+                throw new TransportException(ex);
+            }
+        }
+
+        internal TcpClientSocket(
+            Socket fd,
+            ILogger logger,
+            SslClientAuthenticationOptions? authenticationOptions,
+            EndPoint addr)
+           : base(fd, logger)
+        {
+            _authenticationOptions = authenticationOptions;
+            _addr = addr;
+        }
+    }
+
+    internal class TcpServerSocket : TcpSocket
+    {
+        // See https://tools.ietf.org/html/rfc5246#appendix-A.4
+        private const byte TlsHandshakeRecord = 0x16;
+
+        private readonly SslServerAuthenticationOptions? _authenticationOptions;
+
+        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
+        {
+            bool? tls = endpoint.ParseTcpParams().Tls;
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                tls = endpoint.Transport == TransportNames.Ssl;
             }
 
-            Logger.LogTlsAuthenticationSucceeded(_sslStream);
+            try
+            {
+                // On the server side, when accepting a new connection for Ice2 endpoint, the TCP socket checks
+                // the first byte sent by the peer to figure out if the peer tries to establish a TLS connection.
+                bool secure = false;
+                if (endpoint.Protocol == Protocol.Ice2)
+                {
+                    // Peek one byte into the tcp stream to see if it contains the TLS handshake record
+                    Memory<byte> buffer = new byte[1];
+                    int received = await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
+                    if (received == 0)
+                    {
+                        throw new ConnectionLostException();
+                    }
+                    Debug.Assert(received == 1);
+                    secure = buffer.Span[0] == TlsHandshakeRecord;
+                }
+                else
+                {
+                    secure = _authenticationOptions != null;
+                }
+
+                // If a secure connection is needed, create and authentication the SslStream.
+                if (tls ?? secure)
+                {
+                    if (_authenticationOptions == null)
+                    {
+                        throw new InvalidOperationException(
+                            "cannot establish TLS connection: no TLS authentication options configured");
+                    }
+
+                    // This can only be created with a connected socket.
+                    SslStream = new SslStream(new NetworkStream(Socket, false), false);
+                    try
+                    {
+                        await SslStream.AuthenticateAsServerAsync(_authenticationOptions, cancel).ConfigureAwait(false);
+                    }
+                    catch (AuthenticationException ex)
+                    {
+                        Logger.LogTlsAuthenticationFailed(ex);
+                        throw new TransportException(ex);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ExceptionUtil.Throw(ex.ToTransportException(default));
+                    }
+
+                    Logger.LogTlsAuthenticationSucceeded(SslStream);
+                }
+
+                ImmutableList<EndpointParam> endpointParams = endpoint.Params;
+                if (tls == null && endpoint.Protocol == Protocol.Ice2)
+                {
+                    // the accepted endpoint gets a tls parameter
+                    endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));
+                }
+
+                var ipEndPoint = (IPEndPoint)Socket.RemoteEndPoint!;
+                return endpoint with
+                {
+                    Host = ipEndPoint.Address.ToString(),
+                    Port = checked((ushort)ipEndPoint.Port),
+                    Params = endpointParams
+                };
+            }
+            catch (Exception ex)
+            {
+                throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
+            }
         }
+
+        internal TcpServerSocket(
+            Socket fd,
+            ILogger logger,
+            SslServerAuthenticationOptions? authenticationOptions)
+           : base(fd, logger) => _authenticationOptions = authenticationOptions;
     }
 }

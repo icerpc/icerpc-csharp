@@ -16,15 +16,29 @@ namespace IceRpc.Configure
 
         /// <summary>Adds the interop ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ClientTransport UseInteropSsl(this ClientTransport clientTransport) =>
-            clientTransport.UseInteropSsl(new TcpOptions());
+        public static ClientTransport UseInteropSsl(
+            this ClientTransport clientTransport,
+            SslClientAuthenticationOptions authenticationOptions) =>
+            clientTransport.UseInteropSsl(new TcpOptions(), authenticationOptions);
 
         /// <summary>Adds the interop ssl client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <param name="options">The transport options.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseInteropSsl(this ClientTransport clientTransport, TcpOptions options) =>
+            clientTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpClientTransport(options));
+
+        /// <summary>Adds the interop ssl client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="options">The transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseInteropSsl(
+            this ClientTransport clientTransport,
+            TcpOptions options,
+            SslClientAuthenticationOptions authenticationOptions) =>
             clientTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpClientTransport(options));
 
         /// <summary>Adds the interop tcp client transport to this composite client transport.</summary>

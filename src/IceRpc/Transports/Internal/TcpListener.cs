@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace IceRpc.Transports.Internal
 {
@@ -11,18 +12,20 @@ namespace IceRpc.Transports.Internal
     {
         public Endpoint Endpoint { get; }
 
+        private readonly SslServerAuthenticationOptions? _authenticationOptions;
         private readonly ILogger _logger;
-        private readonly ServerConnectionOptions _connectionOptions;
         private readonly Socket _socket;
         private readonly TcpOptions _tcpOptions;
-        private readonly bool? _tls;
 
         public async ValueTask<MultiStreamConnection> AcceptAsync()
         {
             TcpSocket tcpSocket;
             try
             {
-                tcpSocket = new TcpSocket(await _socket.AcceptAsync().ConfigureAwait(false), _logger, _tls);
+                tcpSocket = new TcpServerSocket(
+                    await _socket.AcceptAsync().ConfigureAwait(false),
+                    _logger,
+                    _authenticationOptions);
             }
             catch (Exception ex)
             {
@@ -32,7 +35,7 @@ namespace IceRpc.Transports.Internal
             return NetworkSocketConnection.FromNetworkSocket(
                 tcpSocket,
                 Endpoint,
-                _connectionOptions,
+                isServer: true,
                 _tcpOptions);
         }
 
@@ -44,23 +47,16 @@ namespace IceRpc.Transports.Internal
             Socket socket,
             Endpoint endpoint,
             ILogger logger,
-            ServerConnectionOptions connectionOptions,
-            TcpOptions tcpOptions)
+            TcpOptions tcpOptions,
+            SslServerAuthenticationOptions? authenticationOptions)
         {
             Endpoint = endpoint;
+            _authenticationOptions = authenticationOptions;
             _logger = logger;
-            _connectionOptions = connectionOptions;
             _tcpOptions = tcpOptions;
             _socket = socket;
 
-            // We always call ParseTcpParams to make sure the params are ok, even when Protocol is ice1.
-
-            _tls = endpoint.ParseTcpParams().Tls;
-
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                _tls = endpoint.Transport == TransportNames.Ssl;
-            }
+            _ = endpoint.ParseTcpParams();
         }
     }
 }

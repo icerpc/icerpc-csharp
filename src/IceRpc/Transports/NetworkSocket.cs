@@ -32,27 +32,12 @@ namespace IceRpc.Transports
 
         internal ILogger Logger { get; }
 
-        /// <summary>Accepts a new connection. This is called after the listener accepted a new connection to perform
-        /// socket level initialization (TLS handshake, etc).</summary>
-        /// <param name="endpoint">The endpoint used to create the connection.</param>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        /// <returns>The endpoint.</returns>
-        public abstract ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
-
-        /// <summary>Connects a new client socket. This is called after the endpoint created a new socket to establish
+        /// <summary>Connects a new socket. This is called after the endpoint created a new socket to establish
         /// the connection and perform socket level initialization (TLS handshake, etc).</summary>
         /// <param name="endpoint">The endpoint used to create the connection.</param>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <returns>The endpoint.</returns>
-        public abstract ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
+        public abstract ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel);
 
         /// <summary>Releases the resources used by the socket.</summary>
         public void Dispose()

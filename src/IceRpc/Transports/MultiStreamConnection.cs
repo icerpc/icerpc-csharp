@@ -17,7 +17,7 @@ namespace IceRpc.Transports
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
-        public abstract TimeSpan IdleTimeout { get; protected set; }
+        public abstract TimeSpan IdleTimeout { get; set; }
 
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }
@@ -47,7 +47,7 @@ namespace IceRpc.Transports
         /// <summary>The name of the transport.</summary>
         public string Transport => _endpoint.Transport;
 
-        internal int IncomingFrameMaxSize { get; }
+        internal int IncomingFrameMaxSize { get; set; }
 
         internal int IncomingStreamCount
         {
@@ -94,14 +94,6 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new server connection. This is called after the listener accepted a new connection
-        /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask AcceptAsync(
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
-
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
@@ -110,11 +102,8 @@ namespace IceRpc.Transports
         /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
         /// </summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask ConnectAsync(
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
+        public abstract ValueTask ConnectAsync(CancellationToken cancel);
 
         /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
         /// be immediately available after the stream creation. It will be available after the first successful send
@@ -161,18 +150,17 @@ namespace IceRpc.Transports
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>
-        /// <param name="options">The connection options.</param>
+        /// <param name="isServer">The connection is a server connection.</param>
         /// <param name="logger">The logger.</param>
         protected MultiStreamConnection(
             Endpoint endpoint,
-            ConnectionOptions options,
+            bool isServer,
             ILogger logger)
         {
             _endpoint = endpoint;
-            IsServer = options is ServerConnectionOptions;
+            IsServer = isServer;
             LocalEndpoint = IsServer ? _endpoint : null;
             RemoteEndpoint = IsServer ? null : _endpoint;
-            IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;
         }

@@ -7,6 +7,21 @@ namespace IceRpc.Transports
     /// <summary>An options class for configuring TCP based transports.</summary>
     public sealed class TcpOptions : SlicOptions
     {
+        /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
+        /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
+        /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
+        /// each two-way proxy invocation, the sending of the two-way invocation will be delayed until another two-way
+        /// invocation on the connection completes. It can't be less than 1 and the default value is 100.</summary>
+        /// <value>The bidirectional stream maximum count.</value>
+        public int BidirectionalStreamMaxCount
+        {
+            get => _bidirectionalStreamMaxCount;
+            set => _bidirectionalStreamMaxCount = value > 0 ? value :
+                throw new ArgumentException(
+                    $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
+                    nameof(value));
+        }
+
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
@@ -51,5 +66,6 @@ namespace IceRpc.Transports
         private int _listenerBackLog = 511;
         private int? _receiveBufferSize;
         private int? _sendBufferSize;
+        private int _unidirectionalStreamMaxCount = 100;
     }
 }

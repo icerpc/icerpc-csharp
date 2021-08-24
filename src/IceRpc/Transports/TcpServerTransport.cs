@@ -4,6 +4,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -11,19 +12,20 @@ namespace IceRpc.Transports
     public class TcpServerTransport : IServerTransport
     {
         private readonly TcpOptions _options;
+        private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
-        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the default <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpServerTransport() => _options = new TcpOptions();
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        /// <param name="options">The transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
+        public TcpServerTransport(
+            TcpOptions? options,
+            SslServerAuthenticationOptions? authenticationOptions = null)
+        {
+            _options = options ?? new();
+            _authenticationOptions = authenticationOptions;
+        }
 
-        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the given <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpServerTransport(TcpOptions options) => _options = options;
-
-        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
-            Endpoint endpoint,
-            ServerConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -65,8 +67,8 @@ namespace IceRpc.Transports
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
                                              logger,
-                                             connectionOptions,
-                                             _options),
+                                             _options,
+                                             _authenticationOptions),
                     null);
         }
     }

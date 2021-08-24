@@ -4,6 +4,7 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -11,19 +12,20 @@ namespace IceRpc.Transports
     public class TcpClientTransport : IClientTransport
     {
         private readonly TcpOptions _options;
+        private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
-        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the default <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpClientTransport() => _options = new TcpOptions();
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        /// <param name="options">The transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
+        public TcpClientTransport(
+            TcpOptions? options,
+            SslClientAuthenticationOptions? authenticationOptions = null)
+        {
+            _options = options ?? new();
+            _authenticationOptions = authenticationOptions;
+        }
 
-        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the given <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpClientTransport(TcpOptions options) => _options = options;
-
-        MultiStreamConnection IClientTransport.CreateConnection(
-             Endpoint remoteEndpoint,
-             ClientConnectionOptions connectionOptions,
-             ILoggerFactory loggerFactory)
+        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             // First verify all parameters:
             bool? tls = remoteEndpoint.ParseTcpParams().Tls;
@@ -78,8 +80,8 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpSocket(socket, logger, tls, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, connectionOptions, _options);
+            var tcpSocket = new TcpSocket(socket, logger, tls ? _authenticationOptions : null, netEndPoint);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, _options);
         }
     }
 }
