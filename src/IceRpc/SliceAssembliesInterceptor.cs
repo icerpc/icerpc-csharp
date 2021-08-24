@@ -11,7 +11,7 @@ namespace IceRpc
         private readonly IIceDecoderFactory<Ice20Decoder> _decoderFactory20;
         private readonly IInvoker _next;
 
-        /// <summary>Constructs a new interceptor.</summary>
+        /// <summary>Constructs a new Slice assemblies interceptor.</summary>
         /// <param name="next">The next interceptor in the invocation pipeline.</param>
         /// <param name="assemblies">The assemblies that contain Slice types.</param>
         public SliceAssembliesInterceptor(IInvoker next, params Assembly[] assemblies)
