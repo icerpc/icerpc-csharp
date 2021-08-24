@@ -1,11 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using System.Diagnostics;
 
 namespace IceRpc
 {
-    /// <summary>Extension methods to decode incoming responses with payloads encoded with the Ice encoding.</summary>
+    /// <summary>Extension methods to decode the payloads of incoming responses when such payloads are encoded with the
+    /// Ice encoding.</summary>
     public static class IncomingResponseExtensions
     {
         /// <summary>Decodes a response when the corresponding operation returns void.</summary>

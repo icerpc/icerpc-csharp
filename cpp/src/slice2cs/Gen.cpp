@@ -2612,7 +2612,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "public static " << toTupleType(params, ns, false) << ' ' << fixId(operationName(operation));
                 _out << "(IceRpc.IncomingRequest request) =>";
                 _out.inc();
-                _out << nl << "IceRpc.Payload.ToArgs(";
+                _out << nl << "IceRpc.IncomingRequestExtensions.ToArgs(";
                 _out.inc();
                 _out << nl << "request,";
                 _out << nl << "_defaultIceDecoderFactories,";
@@ -2862,7 +2862,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     // that we skip).
     if (params.empty())
     {
-        _out << nl << "IceRpc.Payload.CheckEmptyArgs(request, _defaultIceDecoderFactories);";
+        _out << nl << "IceRpc.IncomingRequestExtensions.CheckEmptyArgs(request, _defaultIceDecoderFactories);";
     }
 
     if (params.size() == 1 && streamParam)
