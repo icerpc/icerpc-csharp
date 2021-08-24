@@ -36,6 +36,9 @@ module IceRpc
         /// The W3C Trace Context field.
         TraceContext = -2,
 
+        /// The Ice1 reply status when bridging an Ice1 response.
+        ReplyStatus = -3,
+
         /// The payload compression field.
         Compression = -4
     }

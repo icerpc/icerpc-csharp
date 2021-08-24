@@ -1,8 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Internal;
 using IceRpc.Transports;
-using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace IceRpc
 {
@@ -65,7 +64,7 @@ namespace IceRpc
         /// <param name="targetProxy">The proxy used to send to the outgoing request.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
         public OutgoingRequest ToOutgoingRequest(Proxy targetProxy) =>
-            ToOutgoingRequest(targetProxy.Protocol, targetProxy: targetProxy);
+            targetProxy.Protocol.ToOutgoingRequest(this, targetProxy: targetProxy);
 
         /// <summary>Create an outgoing request from this incoming request. The outgoing request is
         /// constructed to be forwarded with the given connection. The <see cref="OutgoingRequest.Path"/> is
@@ -73,39 +72,6 @@ namespace IceRpc
         /// <param name="targetConnection">The target connection.</param>
         /// <returns>The outgoing request to be forwarded.</returns>
         public OutgoingRequest ToOutgoingRequest(Connection targetConnection) =>
-            ToOutgoingRequest(targetConnection.Protocol, targetConnection: targetConnection);
-
-        private OutgoingRequest ToOutgoingRequest(
-            Protocol targetProtocol,
-            Connection? targetConnection = null,
-            Proxy? targetProxy = null)
-        {
-            IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields;
-            if (targetProtocol == Protocol && targetProtocol == Protocol.Ice2)
-            {
-                fields = Fields;
-            }
-            else
-            {
-                fields = ImmutableDictionary<int, ReadOnlyMemory<byte>>.Empty;
-            }
-
-            // TODO: forward stream parameters
-
-            return new OutgoingRequest(targetProtocol, path: targetProxy?.Path ?? Path, operation: Operation)
-            {
-                AltEndpoints = targetProxy?.AltEndpoints ?? ImmutableList<Endpoint>.Empty,
-                Connection = targetConnection ?? targetProxy?.Connection,
-                Deadline = Deadline,
-                Endpoint = targetProxy?.Endpoint,
-                Features = Features,
-                FieldsDefaults = fields,
-                IsOneway = IsOneway,
-                IsIdempotent = IsIdempotent,
-                Proxy = targetProxy,
-                PayloadEncoding = PayloadEncoding,
-                Payload = new ReadOnlyMemory<byte>[] { Payload } // TODO: temporary, should use GetPayloadAsync()
-            };
-        }
+            targetConnection.Protocol.ToOutgoingRequest(this, targetConnection: targetConnection);
     }
 }

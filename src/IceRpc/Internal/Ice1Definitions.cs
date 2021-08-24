@@ -124,43 +124,42 @@ namespace IceRpc.Internal
 
         /// <summary>Encodes an ice1 system exception.</summary>
         /// <param name="encoder">This Ice encoder.</param>
-        /// <param name="replyStatus">The reply status.</param>
-        /// <param name="request">The request for which we write the exception.</param>
-        /// <param name="message">The message carried by the exception.</param>
-        /// <remarks>The reply status itself is part of the response header and is not written by this method.</remarks>
-        internal static void EncodeIce1SystemException(
-            this IceEncoder encoder,
-            ReplyStatus replyStatus,
-            IncomingRequest request,
-            string message)
+        /// <param name="exception">The exception.</param>
+        internal static ReplyStatus EncodeIce1SystemException(this IceEncoder encoder, Exception exception)
         {
+            ReplyStatus replyStatus = exception switch
+            {
+                ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
+                OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
+                _ => ReplyStatus.UnknownLocalException,
+            };
+
             switch (replyStatus)
             {
                 case ReplyStatus.ObjectNotExistException:
                 case ReplyStatus.OperationNotExistException:
-
+                    var remoteException = (RemoteException)exception;
                     IdentityAndFacet identityAndFacet;
                     try
                     {
-                        identityAndFacet = IdentityAndFacet.FromPath(request.Path);
+                        identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
                     }
                     catch (FormatException)
                     {
                         // ignored, i.e. we'll encode an empty identity + facet
                         identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
                     }
-                    var requestFailed = new Ice1RequestFailedExceptionData(identityAndFacet, request.Operation);
+                    var requestFailed = new Ice1RequestFailedExceptionData(
+                        identityAndFacet,
+                        remoteException.Origin.Operation);
                     requestFailed.Encode(encoder);
                     break;
 
-                case ReplyStatus.UnknownLocalException:
-                    encoder.EncodeString(message);
-                    break;
-
                 default:
-                    Debug.Assert(false);
+                    encoder.EncodeString(exception.Message);
                     break;
             }
+            return replyStatus;
         }
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());
