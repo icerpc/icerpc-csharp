@@ -289,10 +289,10 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 {
                     _out << " = streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
                     _out.inc();
-                    _out << nl << "response.Connection,"
-                         << nl << "invoker,"
-                         << nl << "response.PayloadEncoding,"
-                         << nl << decodeFunc(streamParam->type(), ns) << ");";
+                    _out << nl << "response,"
+                        << nl << "invoker,"
+                        << nl << "_defaultIceDecoderFactories,"
+                        << nl << decodeFunc(streamParam->type(), ns) << ");";
                     _out.dec();
                 }
                 else
@@ -301,7 +301,8 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                          << ">(";
                     _out.inc();
                     _out << nl << "request,"
-                         << nl << decodeFunc(streamParam->type(), ns) << ");";
+                        << nl << "_defaultIceDecoderFactories,"
+                        << nl << decodeFunc(streamParam->type(), ns) << ");";
                     _out.dec();
                 }
             }
@@ -2435,9 +2436,9 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << nl << "streamParamReceiver!.ToAsyncEnumerable<" << typeToString(streamReturnParam->type(), ns) << ">(";
             _out.inc();
-            _out << nl << "response.Connection,"
+            _out << nl << "response,"
                  << nl << "invoker,"
-                 << nl << "response.PayloadEncoding,"
+                 << nl << "_defaultIceDecoderFactories,"
                  << nl << decodeFunc(streamReturnParam->type(), ns) << "),";
             _out.dec();
         }
@@ -2878,7 +2879,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << " = IceRpc.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
             _out.inc();
             _out << nl << "request,"
-                 << nl << decodeFunc(streamParam->type(), ns) << ");";
+                << "_defaultIceDecoderFactories,"
+                << nl << decodeFunc(streamParam->type(), ns) << ");";
             _out.dec();
         }
     }
