@@ -201,7 +201,9 @@ namespace IceRpc.Transports.Internal
             return (IncomingRequest)frame;
         }
 
-        internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(CancellationToken cancel)
+        internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
+            OutgoingRequest request,
+            CancellationToken cancel)
         {
             (object frame, bool _) = await WaitFrameAsync(cancel).ConfigureAwait(false);
             return (IncomingResponse)frame;
