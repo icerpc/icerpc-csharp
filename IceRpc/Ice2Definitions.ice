@@ -38,6 +38,9 @@ module IceRpc
 
         /// The Ice1 reply status when bridging an Ice1 response.
         ReplyStatus = -3,
+
+        /// The payload compression field.
+        Compression = -4
     }
 
     /// Keys of reserved ice2 connection parameters.
