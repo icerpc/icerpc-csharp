@@ -105,6 +105,11 @@ namespace IceRpc
             IInvoker? invoker = null) =>
             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
 
+        internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+            FeatureCollection features,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+             throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
+
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
         /// <param name="classFormat">The class format (ignored unless the encoding is 1.1).</param>
@@ -169,6 +174,12 @@ namespace IceRpc
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
                 FormatType classFormat = default) => new Ice11Encoder(bufferWriter, classFormat);
+
+            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+                FeatureCollection features,
+                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+                features.Get<IIceDecoderFactory<Ice11Decoder>>() ?? defaultIceDecoderFactories.Ice11DecoderFactory;
+
         }
 
         private class Ice20Encoding : Encoding
@@ -186,6 +197,11 @@ namespace IceRpc
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
                 FormatType classFormat = default) => new Ice20Encoder(bufferWriter);
+
+            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+                FeatureCollection features,
+                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+                features.Get<IIceDecoderFactory<Ice20Decoder>>() ?? defaultIceDecoderFactories.Ice20DecoderFactory;
         }
     }
 }

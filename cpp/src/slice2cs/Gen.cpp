@@ -2121,7 +2121,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << "(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, ";
                 _out << "IceRpc.StreamParamReceiver? streamParamReceiver) =>";
                 _out.inc();
-                _out << nl << "IceRpc.Payload.ToReturnValue(";
+                _out << nl << "IceRpc.IncomingResponseExtensions.ToReturnValue(";
                 _out.inc();
                 _out << nl << "response,";
                 _out << nl << "invoker,";

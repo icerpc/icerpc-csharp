@@ -20,28 +20,6 @@ namespace IceRpc
                 CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker).
                     CheckEndOfBuffer(skipTaggedParams: true);
 
-        /// <summary>Reads a response and ensures it carries a void return value.</summary>
-        /// <param name="response">The incoming response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        public static void CheckVoidReturnValue(
-            this IncomingResponse response,
-            IInvoker? invoker,
-            DefaultIceDecoderFactories defaultIceDecoderFactories)
-        {
-            var decoder = GetIceDecoderFactory(response.PayloadEncoding, response.Features, defaultIceDecoderFactories).
-                CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
-            {
-                throw response.Protocol.DecodeResponseException(response, decoder);
-            }
-            else
-            {
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            }
-        }
-
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -162,34 +140,6 @@ namespace IceRpc
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
-        }
-
-        /// <summary>Reads a response and decodes its payload into a return value.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="response">The incoming response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <returns>The return value.</returns>
-        public static T ToReturnValue<T>(
-            this IncomingResponse response,
-            IInvoker? invoker,
-            DefaultIceDecoderFactories defaultIceDecoderFactories,
-            DecodeFunc<T> decodeFunc)
-        {
-            var decoder = GetIceDecoderFactory(response.PayloadEncoding, response.Features, defaultIceDecoderFactories).
-                CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
-            {
-                throw response.Protocol.DecodeResponseException(response, decoder);
-            }
-            else
-            {
-                T result = decodeFunc(decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                return result;
-            }
         }
 
         internal static IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
