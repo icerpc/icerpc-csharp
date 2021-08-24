@@ -14,7 +14,7 @@ namespace IceRpc
             new ActivatorFactory<Ice20Decoder>(
                 type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
 
-        private readonly IActivator<Ice20Decoder> _activator;
+        private readonly IActivator<Ice20Decoder>? _activator;
 
         /// <summary>Decodes a field value.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
@@ -59,7 +59,7 @@ namespace IceRpc
         public override RemoteException DecodeException()
         {
             string typeId = DecodeString();
-            var remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
+            var remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
 
             if (remoteEx != null)
             {
@@ -177,8 +177,7 @@ namespace IceRpc
             Connection? connection = null,
             IInvoker? invoker = null,
             IActivator<Ice20Decoder>? activator = null)
-            // TODO: temporary default
-            : base(buffer, connection, invoker) => _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
+            : base(buffer, connection, invoker) => _activator = activator;
 
         private protected override AnyClass? DecodeAnyClass() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");

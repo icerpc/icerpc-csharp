@@ -158,30 +158,48 @@ namespace IceRpc.Tests.Encoding
         [TestCase(50, 10, 200)]
         public async Task Class_ClassGraphMaxDepth(int graphSize, int clientClassGraphMaxDepth, int serverClassGraphMaxDepth)
         {
+            var router = new Router();
+            router.Map<IClassGraphOperations>(new ClassGraphOperations());
+            router.Use(next => new InlineDispatcher(
+                (request, cancel) =>
+                {
+                    request.Features = new FeatureCollection(request.Features);
+                    request.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
+                        new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
+                                                serverClassGraphMaxDepth));
+                    return next.DispatchAsync(request, cancel);
+                }));
+
             await using var server = new Server
             {
-                ConnectionOptions = new ServerConnectionOptions()
-                {
-                    ClassGraphMaxDepth = serverClassGraphMaxDepth
-                },
-                Dispatcher = new ClassGraphOperations(),
+                Dispatcher = router,
                 Endpoint = TestHelper.GetUniqueColocEndpoint(),
             };
             server.Listen();
 
             await using var connection = new Connection
             {
-                RemoteEndpoint = server.Endpoint,
-                Options = new ClientConnectionOptions
-                {
-                    ClassGraphMaxDepth = clientClassGraphMaxDepth
-                }
+                RemoteEndpoint = server.Endpoint
             };
 
             var prx = ClassGraphOperationsPrx.FromConnection(connection);
             prx.Proxy.Encoding = IceRpc.Encoding.Ice11;
+
+            var pipeline = new Pipeline();
+            pipeline.Use(next => new InlineInvoker(
+                async (request, cancel) =>
+                {
+                   IncomingResponse response = await next.InvokeAsync(request, cancel);
+                   response.Features = new FeatureCollection(response.Features);
+                   response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
+                        new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
+                                                clientClassGraphMaxDepth));
+
+                    return response;
+                }));
+            prx.Proxy.Invoker = pipeline;
+
             await prx.IcePingAsync();
-            Assert.AreEqual(clientClassGraphMaxDepth, connection.ClassGraphMaxDepth);
             if (graphSize > clientClassGraphMaxDepth)
             {
                 Assert.ThrowsAsync<InvalidDataException>(async () => await prx.ReceiveClassGraphAsync(graphSize));

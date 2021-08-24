@@ -23,7 +23,7 @@ namespace IceRpc
         Ice11Decoder IIceDecoderFactory<Ice11Decoder>.CreateIceDecoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection,
-            IInvoker? invoker) => new(buffer, connection, invoker, _activator); // TODO: classGraphMaxDepth
+            IInvoker? invoker) => new(buffer, connection, invoker, _activator, _classGraphMaxDepth);
     }
 
     public class Ice20DecoderFactory : IIceDecoderFactory<Ice20Decoder>
