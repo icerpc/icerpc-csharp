@@ -68,7 +68,7 @@ namespace IceRpc
         /// <summary>Gets the requested feature. If the feature is not set, returns null.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>
         /// <returns>The requested feature.</returns>
-        public TFeature? Get<TFeature>() => (TFeature?)this[typeof(TFeature)];
+        public TFeature? Get<TFeature>() => this[typeof(TFeature)] is object value ? (TFeature)value : default;
 
         /// <summary>Sets a new feature. Setting null removes the feature.</summary>
         /// <typeparam name="TFeature">The feature key.</typeparam>

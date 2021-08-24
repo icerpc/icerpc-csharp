@@ -519,8 +519,6 @@ namespace IceRpc
                 {
                     IncomingResponse response = await responseTask.ConfigureAwait(false);
 
-                    ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
-
                     if (invocation != null)
                     {
                         invocation.ResponseFeatures = response.Features;
@@ -528,13 +526,10 @@ namespace IceRpc
 
                     if (response.ResultType == ResultType.Failure)
                     {
-                        throw Payload.ToRemoteException(responsePayload,
-                                                        response.PayloadEncoding,
-                                                        response.ReplyStatus,
-                                                        response.Connection,
-                                                        proxy.Invoker);
+                        throw response.ToException(proxy.Invoker);
                     }
 
+                    ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
                     StreamParamReceiver? streamParamReceiver = null;
                     if (returnStreamParamReceiver)
                     {

@@ -23,18 +23,12 @@ namespace IceRpc
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
             if (_options.DecompressPayload &&
-                request.PayloadEncoding == Encoding.Ice20 &&
                 request.Features[typeof(Features.DecompressPayload)] != Features.DecompressPayload.No)
             {
-                ReadOnlyMemory<byte> payload = await request.GetPayloadAsync(cancel).ConfigureAwait(false);
-
-                if (payload.Length >= 1 && payload.Span[0] == (byte)CompressionFormat.Deflate)
-                {
-                    request.Payload = payload.Decompress(maxSize: request.Connection.IncomingFrameMaxSize);
-                }
+                request.DecompressPayload();
             }
 
-            // TODO: rename DecompressRequestPayload to DecompressRequest or add DecompressStreamParam?
+            // TODO: rename DecompressPayload to DecompressRequest or add DecompressStreamParam?
             if (_options.DecompressPayload)
             {
                 // TODO: check for request Features.DecompressPayload?
@@ -44,27 +38,14 @@ namespace IceRpc
 
             OutgoingResponse response = await _next.DispatchAsync(request, cancel).ConfigureAwait(false);
 
-            // TODO: rename CompressResponsePayload to CompressResponse or add CompressStreamParam?
+            // TODO: rename CompressPayload to CompressResponse or add CompressStreamParam?
             if (_options.CompressPayload &&
-                response.PayloadEncoding == Encoding.Ice20 &&
                 response.ResultType == ResultType.Success &&
                 response.Features.Get<Features.CompressPayload>() == Features.CompressPayload.Yes)
             {
-                if (response.PayloadSize >= 1 &&
-                    response.Payload.Span[0].Span[0] == (byte)CompressionFormat.NotCompressed)
-                {
-                    (CompressionResult result, ReadOnlyMemory<byte> compressedPayload) =
-                        response.Payload.Compress(response.PayloadSize,
-                                                  _options.CompressionLevel,
-                                                  _options.CompressionMinSize);
-                    if (result == CompressionResult.Success)
-                    {
-                        response.Payload = new ReadOnlyMemory<byte>[] { compressedPayload };
-                    }
-                }
+                response.CompressPayload(_options);
 
-                response.StreamCompressor =
-                    outputStream => outputStream.CompressStream(_options.CompressionLevel);
+                response.StreamCompressor = outputStream => outputStream.CompressStream(_options.CompressionLevel);
             }
 
             return response;
