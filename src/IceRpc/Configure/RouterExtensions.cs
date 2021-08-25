@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace IceRpc.Configure
 {
@@ -42,6 +43,15 @@ namespace IceRpc.Configure
         /// <returns>The router being configured.</returns>
         public static Router UseProxyInvoker(this Router router, IInvoker invoker) =>
             router.Use(next => new ProxyInvokerMiddleware(next, invoker));
+
+        /// <summary>Adds a <see cref="SliceAssembliesMiddleware"/> to the router. This middleware overwrites the
+        /// assemblies that IceRPC uses to decode types received "over the wire".</summary>
+        /// <param name="router">The router being configured.</param>
+        /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
+        /// <returns>The router being configured.</returns>
+        /// <seealso cref="IActivator{T}"/>
+        public static Router UseSliceAssemblies(this Router router, params Assembly[] assemblies)  =>
+            router.Use(next => new SliceAssembliesMiddleware(next, assemblies));
 
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to
         /// the router.</summary>

@@ -22,7 +22,7 @@ namespace IceRpc.Tests.Encoding
             var buffer = new byte[256];
             _bufferWriter = new BufferWriter(buffer);
             _encoder = _encoding.CreateIceEncoder(_bufferWriter);
-            _decoder = _encoding.CreateIceDecoder(buffer);
+            _decoder = _encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
         }
 
         [TestCase(true)]

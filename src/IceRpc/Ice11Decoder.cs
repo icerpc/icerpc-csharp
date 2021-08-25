@@ -27,7 +27,7 @@ namespace IceRpc
             new ActivatorFactory<Ice11Decoder>(
                 type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
 
-        private readonly IActivator<Ice11Decoder> _activator;
+        private readonly IActivator<Ice11Decoder>? _activator;
 
         private readonly int _classGraphMaxDepth;
 
@@ -95,7 +95,7 @@ namespace IceRpc
 
                 DecodeIndirectionTableIntoCurrent(); // we decode the indirection table immediately.
 
-                remoteEx = _activator.CreateInstance(typeId, this) as RemoteException;
+                remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
                 if (remoteEx == null && SkipSlice(typeId)) // Slice off what we don't understand.
                 {
                     break;
@@ -308,16 +308,17 @@ namespace IceRpc
         /// <param name="connection">The connection.</param>
         /// <param name="invoker">The invoker.</param>
         /// <param name="activator">The activator.</param>
+        /// <param name="classGraphMaxDepth">The maximum depth for a graph of Slice class instances.</param>
         internal Ice11Decoder(
             ReadOnlyMemory<byte> buffer,
             Connection? connection = null,
             IInvoker? invoker = null,
-            IActivator<Ice11Decoder>? activator = null)
+            IActivator<Ice11Decoder>? activator = null,
+            int classGraphMaxDepth = 100)
             : base(buffer, connection, invoker)
         {
-            // TODO: temporary default
-            _activator = activator ?? GetActivator(typeof(Ice20Decoder).Assembly);
-            _classGraphMaxDepth = connection?.ClassGraphMaxDepth ?? 100;
+            _activator = activator;
+            _classGraphMaxDepth = classGraphMaxDepth;
         }
 
         /// <inheritdoc/>
@@ -571,7 +572,7 @@ namespace IceRpc
                 // not created yet.
                 if (typeId != null)
                 {
-                    instance = _activator.CreateInstance(typeId, this) as AnyClass;
+                    instance = _activator?.CreateInstance(typeId, this) as AnyClass;
                 }
 
                 if (instance == null && SkipSlice(typeId)) // Slice off what we don't understand.

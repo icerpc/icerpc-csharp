@@ -8,12 +8,6 @@ namespace IceRpc
     /// <summary>An options base class for configuring IceRPC connections.</summary>
     public abstract class ConnectionOptions
     {
-        /// <summary>Gets or sets the activator used by <see cref="Ice11Decoder"/>.</summary>
-        public IActivator<Ice11Decoder>? Activator11 { get; set; }
-
-        /// <summary>Gets or sets the activator used by <see cref="Ice20Decoder"/>.</summary>
-        public IActivator<Ice20Decoder>? Activator20 { get; set; }
-
         /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
         /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
         /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
@@ -27,15 +21,6 @@ namespace IceRpc
                 throw new ArgumentException(
                     $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
                     nameof(value));
-        }
-
-        /// <summary>Configures the maximum depth for a graph of Slice class instances to unmarshal. When the limit is
-        /// reached, the IceRpc run time throws <see cref="InvalidDataException"/>.</summary>
-        /// <value>The maximum depth for a graph of Slice class instances to unmarshal.</value>
-        public int ClassGraphMaxDepth
-        {
-            get => _classGraphMaxDepth;
-            set => _classGraphMaxDepth = value < 1 ? int.MaxValue : value;
         }
 
         /// <summary>The connection close timeout. This timeout is used when gracefully closing a connection to
@@ -99,7 +84,6 @@ namespace IceRpc
         }
 
         private int _bidirectionalStreamMaxCount = 100;
-        private int _classGraphMaxDepth = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _incomingFrameMaxSize = 1024 * 1024;

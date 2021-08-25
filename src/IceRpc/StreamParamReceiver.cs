@@ -15,37 +15,46 @@ namespace IceRpc
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// request.</summary>
-        /// <param name="dispatch">The request dispatch.</param>
+        /// <param name="request">The incoming request.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="decodeAction">The action used to decode the streamed param.</param>
         /// <returns>The <see cref="IAsyncEnumerable{T}"/> to receive the streamed param.</returns>
-        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(Dispatch dispatch, Func<IceDecoder, T> decodeAction) =>
+        public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+            IncomingRequest request,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
+            Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(
-                dispatch.IncomingRequest.Stream,
-                dispatch.Connection,
-                dispatch.ProxyInvoker,
-                dispatch.Encoding,
+                request.Stream,
+                request.Connection,
+                request.ProxyInvoker,
+                request.PayloadEncoding.GetIceDecoderFactory(request.Features, defaultIceDecoderFactories),
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
         /// incoming request.</summary>
         /// <returns>The read-only <see cref="System.IO.Stream"/> to receive the streamed param.</returns>
-        public static System.IO.Stream ToByteStream(Dispatch dispatch) =>
-            new ByteStreamParamReceiver(dispatch.IncomingRequest.Stream, dispatch.IncomingRequest.StreamDecompressor);
+        public static System.IO.Stream ToByteStream(IncomingRequest request) =>
+            new ByteStreamParamReceiver(request.Stream, request.StreamDecompressor);
 
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// response.</summary>
-        /// <param name="connection">The connection used to construct the <see cref="IceDecoder"/>.</param>
-        /// <param name="invoker">The invoker used to construct the <see cref="IceDecoder"/>.</param>
-        /// <param name="encoding">The encoding.</param>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="invoker">The invoker.</param>
+        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="decodeAction">The action used to decode the streamed params.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
-            Connection connection,
+            IncomingResponse response,
             IInvoker? invoker,
-            Encoding encoding,
+            DefaultIceDecoderFactories defaultIceDecoderFactories,
             Func<IceDecoder, T> decodeAction) =>
-            new AsyncEnumerableStreamParamReceiver<T>(_stream, connection, invoker, encoding, decodeAction).ReadAsync();
+            new AsyncEnumerableStreamParamReceiver<T>(
+                _stream,
+                response.Connection,
+                invoker,
+                response.PayloadEncoding.GetIceDecoderFactory(response.Features, defaultIceDecoderFactories),
+                decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
         /// incoming response.</summary>
@@ -159,7 +168,7 @@ namespace IceRpc
         {
             private readonly Connection _connection;
             private readonly Func<IceDecoder, T> _decodeAction;
-            private readonly Encoding _encoding;
+            private readonly IIceDecoderFactory<IceDecoder> _decoderFactory;
             private readonly IInvoker? _invoker;
             private readonly RpcStream _rpcStream;
 
@@ -167,13 +176,13 @@ namespace IceRpc
                 RpcStream rpcStream,
                 Connection connection,
                 IInvoker? invoker,
-                Encoding encoding,
+                IIceDecoderFactory<IceDecoder> decoderFactory,
                 Func<IceDecoder, T> decodeAction)
             {
                 _rpcStream = rpcStream;
                 _connection = connection;
                 _invoker = invoker;
-                _encoding = encoding;
+                _decoderFactory = decoderFactory;
                 _decodeAction = decodeAction;
             }
 
@@ -225,7 +234,7 @@ namespace IceRpc
                         yield break; // finish iteration
                     }
 
-                    var decoder = _encoding.CreateIceDecoder(buffer, _connection, _invoker);
+                    var decoder = _decoderFactory.CreateIceDecoder(buffer, _connection, _invoker);
                     T value = default!;
                     do
                     {

@@ -44,14 +44,7 @@ namespace IceRpc
         public static IClientTransport DefaultClientTransport { get; } =
             new ClientTransport().UseTcp().UseColoc();
 
-        /// <summary>Gets the activator used by <see cref="Ice11Decoder"/>.</summary>
-        public IActivator<Ice11Decoder>? Activator11 => _options.Activator11;
-
-        /// <summary>Gets the activator used by <see cref="Ice20Decoder"/>.</summary>
-        public IActivator<Ice20Decoder>? Activator20 => _options.Activator20;
-
-        /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.
-        /// </summary>
+        /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.</summary>
         public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;
 
         /// <summary>This event is raised when the connection is closed. The connection object is passed as the
@@ -184,8 +177,6 @@ namespace IceRpc
             "CA2213:Disposable fields should be disposed",
             Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
-
-        internal int ClassGraphMaxDepth => _options.ClassGraphMaxDepth;
 
         /// <summary>The endpoint codex is used when encoding or decoding an ice1 endpoint (typically inside a proxy)
         /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is

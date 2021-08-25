@@ -8,18 +8,6 @@ namespace IceRpc
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
     {
-        /// <summary>Verifies that a request payload carries no argument or only unknown tagged arguments.</summary>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties.</param>
-        public static void CheckEmptyArgs(this ReadOnlyMemory<byte> payload, Dispatch dispatch) =>
-            dispatch.Encoding.CreateIceDecoder(payload).CheckEndOfBuffer(skipTaggedParams: true);
-
-        /// <summary>Reads a response payload and ensures it carries a void return value.</summary>
-        /// <param name="payload">The response payload.</param>
-        /// <param name="payloadEncoding">The response's payload encoding.</param>
-        public static void CheckVoidReturnValue(this ReadOnlyMemory<byte> payload, Encoding payloadEncoding) =>
-            payloadEncoding.CreateIceDecoder(payload).CheckEndOfBuffer(skipTaggedParams: true);
-
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -120,44 +108,6 @@ namespace IceRpc
         {
             dispatch.IncomingRequest.PayloadEncoding.CheckSupportedIceEncoding();
             return default;
-        }
-
-        /// <summary>Reads a request payload and decodes this payload into a list of arguments.</summary>
-        /// <paramtype name="T">The type of the request parameters.</paramtype>
-        /// <param name="payload">The request payload.</param>
-        /// <param name="dispatch">The dispatch properties.</param>
-        /// <param name="decodeFunc">The decode function for the arguments from the payload.</param>
-        /// <returns>The request arguments.</returns>
-        public static T ToArgs<T>(
-            this ReadOnlyMemory<byte> payload,
-            Dispatch dispatch,
-            DecodeFunc<T> decodeFunc)
-        {
-            var decoder = dispatch.Encoding.CreateIceDecoder(payload, dispatch.Connection, dispatch.ProxyInvoker);
-            T result = decodeFunc(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
-        }
-
-        /// <summary>Reads a response payload and decodes this payload into a return value.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="payload">The response payload.</param>
-        /// <param name="payloadEncoding">The response's payload encoding.</param>
-        /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <param name="connection">The connection that received this response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <returns>The return value.</returns>
-        public static T ToReturnValue<T>(
-            this ReadOnlyMemory<byte> payload,
-            Encoding payloadEncoding,
-            DecodeFunc<T> decodeFunc,
-            Connection connection,
-            IInvoker? invoker)
-        {
-            var decoder = payloadEncoding.CreateIceDecoder(payload, connection, invoker);
-            T result = decodeFunc(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
         }
     }
 }

@@ -93,16 +93,10 @@ namespace IceRpc
                 _ => new Encoding($"{major}.{minor}")
             };
 
-        /// <summary>Creates an Ice decoder for this encoding.</summary>
-        /// <param name="buffer">The byte buffer.</param>
-        /// <param name="connection">The connection.</param>
-        /// <param name="invoker">The invoker.</param>
-        /// <returns>A new decoder for the specified Ice encoding.</returns>
-        internal virtual IceDecoder CreateIceDecoder(
-            ReadOnlyMemory<byte> buffer,
-            Connection? connection = null,
-            IInvoker? invoker = null) =>
-            throw new NotSupportedException($"cannot create Ice decoder for encoding {this}");
+        internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+            FeatureCollection features,
+            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+            throw new NotSupportedException($"cannot create an Ice decoder for encoding {this}");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
@@ -159,15 +153,15 @@ namespace IceRpc
             {
             }
 
-            internal override IceDecoder CreateIceDecoder(
-                ReadOnlyMemory<byte> buffer,
-                Connection? connection = null,
-                IInvoker? invoker = null) =>
-                new Ice11Decoder(buffer, connection, invoker, connection?.Activator11);
-
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
                 FormatType classFormat = default) => new Ice11Encoder(bufferWriter, classFormat);
+
+            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+                FeatureCollection features,
+                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+                features.Get<IIceDecoderFactory<Ice11Decoder>>() ?? defaultIceDecoderFactories.Ice11DecoderFactory;
+
         }
 
         private class Ice20Encoding : Encoding
@@ -177,14 +171,14 @@ namespace IceRpc
             {
             }
 
-            internal override IceDecoder CreateIceDecoder(
-                ReadOnlyMemory<byte> buffer,
-                Connection? connection = null,
-                IInvoker? invoker = null) => new Ice20Decoder(buffer, connection, invoker, connection?.Activator20);
-
             internal override IceEncoder CreateIceEncoder(
                 BufferWriter bufferWriter,
                 FormatType classFormat = default) => new Ice20Encoder(bufferWriter);
+
+            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
+                FeatureCollection features,
+                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
+                features.Get<IIceDecoderFactory<Ice20Decoder>>() ?? defaultIceDecoderFactories.Ice20DecoderFactory;
         }
     }
 }

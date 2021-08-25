@@ -17,9 +17,6 @@ namespace IceRpc.Tests.CodeGeneration
 
         public Exception(Protocol protocol)
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(Exception).Assembly);
-            var activator20 = Ice20Decoder.GetActivator(typeof(Exception).Assembly);
-
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
@@ -31,13 +28,7 @@ namespace IceRpc.Tests.CodeGeneration
             _connection = new Connection
             {
                 RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint),
-                Options =
-                    new ClientConnectionOptions()
-                    {
-                        Activator11 = activator11,
-                        Activator20 = activator20
-                    }
+                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
             _prx = ExceptionOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);
