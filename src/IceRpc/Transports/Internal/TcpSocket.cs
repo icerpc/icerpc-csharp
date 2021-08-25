@@ -22,15 +22,6 @@ namespace IceRpc.Transports.Internal
         // The MaxDataSize of the SSL implementation.
         private const int MaxSslDataSize = 16 * 1024;
 
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
-        {
-            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
-
-            // A remote endpoint with no tls parameter is compatible with an established connection no matter its tls
-            // disposition.
-            return tls == null || tls == (SslStream != null);
-        }
-
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
             if (buffer.Length == 0)
@@ -214,9 +205,12 @@ namespace IceRpc.Transports.Internal
             SslClientAuthenticationOptions? authenticationOptions = null;
             if (tls == true)
             {
+                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
+                // TargetHost to the endpoint host.
                 authenticationOptions = _authenticationOptions?.Clone() ?? new();
                 authenticationOptions.TargetHost ??= endpoint.Host;
-                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                    {
                         new SslApplicationProtocol(endpoint.Protocol.GetName())
                     };
             }
@@ -270,6 +264,15 @@ namespace IceRpc.Transports.Internal
             }
         }
 
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint)
+        {
+            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
+
+            // A remote endpoint with no tls parameter is compatible with an established connection no matter
+            // its tls disposition.
+            return tls == null || tls == (SslStream != null);
+        }
+
         internal TcpClientSocket(
             Socket fd,
             ILogger logger,
@@ -299,34 +302,45 @@ namespace IceRpc.Transports.Internal
 
             try
             {
-                // On the server side, when accepting a new connection for Ice2 endpoint, the TCP socket checks
-                // the first byte sent by the peer to figure out if the peer tries to establish a TLS connection.
-                bool secure = false;
-                if (endpoint.Protocol == Protocol.Ice2)
+                bool secure;
+                if (tls == false)
                 {
-                    // Peek one byte into the tcp stream to see if it contains the TLS handshake record
-                    Memory<byte> buffer = new byte[1];
-                    int received = await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false);
-                    if (received == 0)
+                    // Don't establish a secure connection is the tls param is explicitly set to false.
+                    secure = false;
+                }
+                else if (_authenticationOptions != null)
+                {
+                    // On the server side, when accepting a new connection for an Ice2 endpoint and the tls
+                    // parameter is not set, the TCP socket checks the first byte sent by the peer to figure
+                    // out if the peer tries to establish a TLS connection.
+                    if (tls == null && endpoint.Protocol == Protocol.Ice2)
                     {
-                        throw new ConnectionLostException();
+                        // Peek one byte into the tcp stream to see if it contains the TLS handshake record
+                        Memory<byte> buffer = new byte[1];
+                        if (await Socket.ReceiveAsync(buffer, SocketFlags.Peek, cancel).ConfigureAwait(false) == 0)
+                        {
+                            throw new ConnectionLostException();
+                        }
+                        secure = buffer.Span[0] == TlsHandshakeRecord;
                     }
-                    Debug.Assert(received == 1);
-                    secure = buffer.Span[0] == TlsHandshakeRecord;
+                    else
+                    {
+                        // Otherwise, assume a secure connection.
+                        secure = true;
+                    }
                 }
                 else
                 {
-                    secure = _authenticationOptions != null;
+                    // Authentication options are not set and the tls param is not explicitly set to false, we
+                    // throw because we can't establish a secure connection without authentication options.
+                    throw new InvalidOperationException(
+                        "cannot establish TLS connection: no TLS authentication options configured");
                 }
 
                 // If a secure connection is needed, create and authentication the SslStream.
-                if (tls ?? secure)
+                if (secure)
                 {
-                    if (_authenticationOptions == null)
-                    {
-                        throw new InvalidOperationException(
-                            "cannot establish TLS connection: no TLS authentication options configured");
-                    }
+                    Debug.Assert (_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
                     SslStream = new SslStream(new NetworkStream(Socket, false), false);
@@ -367,6 +381,9 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(cancel));
             }
         }
+
+        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+            throw new NotSupportedException($"{nameof(HasCompatibleParams)} is only supported by client sockets.");
 
         internal TcpServerSocket(
             Socket fd,

@@ -11,17 +11,34 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
     public class TcpServerTransport : IServerTransport
     {
-        private readonly TcpOptions _options;
+        private readonly TcpOptions _tcpOptions;
+        private readonly SlicOptions _slicOptions;
         private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
-        /// <param name="options">The transport options.</param>
+        public TcpServerTransport() :
+            this(new(), new(), null)
+        {
+        }
+
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
+        public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
+            this(new(), new(), authenticationOptions)
+        {
+        }
+
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(
-            TcpOptions? options = null,
-            SslServerAuthenticationOptions? authenticationOptions = null)
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions,
+            SslServerAuthenticationOptions? authenticationOptions)
         {
-            _options = options ?? new();
+            _tcpOptions = tcpOptions;
+            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
@@ -44,19 +61,19 @@ namespace IceRpc.Transports
             {
                 if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !_options.IsIPv6Only;
+                    socket.DualMode = !_tcpOptions.IsIPv6Only;
                 }
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
+                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
+                                     _tcpOptions.SendBufferSize,
                                      endpoint.Transport,
                                      logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(_options.ListenerBackLog);
+                socket.Listen(_tcpOptions.ListenerBackLog);
             }
             catch (SocketException ex)
             {
@@ -65,8 +82,9 @@ namespace IceRpc.Transports
             }
 
             SslServerAuthenticationOptions? authenticationOptions = null;
-            if (_authenticationOptions is SslServerAuthenticationOptions)
+            if (_authenticationOptions != null)
             {
+                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
                 authenticationOptions = _authenticationOptions.Clone();
                 authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
                     {
@@ -77,7 +95,7 @@ namespace IceRpc.Transports
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
                                              logger,
-                                             _options,
+                                             _slicOptions,
                                              authenticationOptions),
                     null);
         }

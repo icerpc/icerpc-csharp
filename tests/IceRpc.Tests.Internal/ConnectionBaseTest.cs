@@ -24,7 +24,7 @@ namespace IceRpc.Tests.Internal
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
         private protected Endpoint ServerEndpoint { get; }
-        private protected TcpOptions? ServerTransportOptions { get; set; }
+        private protected MultiStreamOptions? ServerMultiStreamOptions { get; set; }
         private protected string TransportName { get; }
 
         private IListener? _listener;
@@ -195,7 +195,8 @@ namespace IceRpc.Tests.Internal
         protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
             TestHelper.CreateServerTransport(
                 serverEndpoint ?? ServerEndpoint,
-                options ?? ServerTransportOptions,
+                options: options,
+                ServerMultiStreamOptions ?? null,
                 _serverAuthenticationOptions).Listen(
                     serverEndpoint ?? ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
@@ -203,7 +204,8 @@ namespace IceRpc.Tests.Internal
         protected MultiStreamConnection CreateServerConnection() =>
             TestHelper.CreateServerTransport(
                 ServerEndpoint,
-                ServerTransportOptions,
+                options: null,
+                ServerMultiStreamOptions ?? null,
                 authenticationOptions: _serverAuthenticationOptions).Listen(
                     ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Connection!;
@@ -212,6 +214,7 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateClientTransport(
                 ClientEndpoint,
                 options: null,
+                multiStreamOptions: null,
                 _clientAuthenticationOptions).CreateConnection(
                     ClientEndpoint,
                     LogAttributeLoggerFactory.Instance);

@@ -71,8 +71,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(serverSocket, Is.InstanceOf<TcpSocket>());
         }
 
-        // We eventually retry this test if it fails. The AcceptAsync can indeed not always fail if for
-        // example the server SSL handshake completes before the RST is received.
         [Test]
         public async Task AcceptNetworkSocketConnection_AcceptAsync_ConnectionLostExceptionAsync()
         {
@@ -82,7 +80,7 @@ namespace IceRpc.Tests.Internal
             NetworkSocket clientSocket = CreateClientNetworkSocket();
 
             // We don't use clientSocket.ConnectAsync() here as this would start the TLS handshake for secure
-            // connections and AcceptAsync would sometime succeed.
+            // connections
             await clientSocket.Socket!.ConnectAsync(
                 new DnsEndPoint(ClientEndpoint.Host, ClientEndpoint.Port)).ConfigureAwait(false);
 
@@ -91,9 +89,9 @@ namespace IceRpc.Tests.Internal
             clientSocket.Dispose();
 
             AsyncTestDelegate testDelegate;
-            if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
+            if (!IsSecure && TransportName == "tcp")
             {
-                // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
+                // Server side ConnectAsync is a no-op for non secure TCP connections so it won't throw.
                 await serverSocket.ConnectAsync(ServerEndpoint, default);
                 testDelegate = async () => await serverSocket.ReceiveAsync(new byte[1], default);
             }
@@ -175,9 +173,9 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
             ValueTask<Endpoint> acceptTask = serverSocket.ConnectAsync(ServerEndpoint, source.Token);
 
-            if (!IsSecure && ClientEndpoint.Protocol == Protocol.Ice1 && TransportName == "tcp")
+            if (!IsSecure && TransportName == "tcp")
             {
-                // AcceptAsync is a no-op for Ice1 non-secure TCP connections so it won't throw.
+                // Server-side ConnectionAsync is a no-op for non-secure TCP connections so it won't throw.
                 await acceptTask;
             }
             else

@@ -25,6 +25,12 @@ namespace IceRpc.Tests.Api
             Assert.Throws<ArgumentException>(() => options.ListenerBackLog = 0);
             Assert.Throws<ArgumentException>(() => options.SendBufferSize = 512);
             Assert.Throws<ArgumentException>(() => options.ReceiveBufferSize = 512);
+        }
+
+        [Test]
+        public void Connection_SlicTransportOptions_ArgumentException()
+        {
+            var options = new Transports.SlicOptions();
             Assert.Throws<ArgumentException>(() => options.SlicPacketMaxSize = 512);
             Assert.Throws<ArgumentException>(() => options.SlicStreamBufferMaxSize = 512);
         }

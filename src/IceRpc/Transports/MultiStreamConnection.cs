@@ -23,9 +23,8 @@ namespace IceRpc.Transports
         public abstract bool IsDatagram { get; }
 
         /// <summary>Indicates whether or not this connection's transport is secure.</summary>
-        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport
-        /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
-        /// is never null once the connection is established.</value>
+        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's
+        /// transport is not secure. If the connection is not established, secure is always <c>false</c>.</value>
         public abstract bool IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
@@ -48,7 +47,7 @@ namespace IceRpc.Transports
         public string Transport => _endpoint.Transport;
 
         // TODO: refactor once we add a protocol abstraction. This setting has nothing to do here. It's there
-        // for not because RpcStream implements protocol framing.
+        // for now because the RpcStream class implements protocol framing.
         internal int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
 
         internal int IncomingStreamCount

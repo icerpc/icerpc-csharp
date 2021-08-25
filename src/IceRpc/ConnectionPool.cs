@@ -17,7 +17,7 @@ namespace IceRpc
         public IClientTransport ClientTransport { get; init; } = Connection.DefaultClientTransport;
 
         /// <summary>The connection options.</summary>
-        public ConnectionOptions ConnectionOptions { get; init; } = ConnectionOptions.Default;
+        public ConnectionOptions ConnectionOptions { get; init; } = new();
 
         /// <summary>Gets or sets the logger factory of this connection pool. When null, the connection pool creates
         /// its logger using <see cref="NullLoggerFactory.Instance"/>.</summary>

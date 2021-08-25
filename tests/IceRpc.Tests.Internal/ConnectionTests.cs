@@ -80,7 +80,7 @@ namespace IceRpc.Tests.Internal
                         _dispatcher,
                         _serverConnectionOptions,
                         LogAttributeLoggerFactory.Instance);
-                  clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
+                    clientConnection = await ConnectAsync(serverConnection.LocalEndpoint!);
                 }
                 else
                 {
@@ -137,8 +137,8 @@ namespace IceRpc.Tests.Internal
                 ConnectionOptions? serverConnectionOptions = null,
                 IDispatcher? dispatcher = null)
             {
-                _clientConnectionOptions = clientConnectionOptions ?? ConnectionOptions.Default;
-                _serverConnectionOptions = serverConnectionOptions ?? ConnectionOptions.Default;
+                _clientConnectionOptions = clientConnectionOptions ?? new();
+                _serverConnectionOptions = serverConnectionOptions ?? new();
                 if (secure)
                 {
                     _clientAuthenticationOptions = new()
@@ -279,7 +279,7 @@ namespace IceRpc.Tests.Internal
         {
             await using var factory = new ConnectionFactory("tcp", protocol: protocol);
 
-            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 });
+            IServerTransport transport = new TcpServerTransport(new TcpOptions { ListenerBackLog = 1 }, new(), null);
             using IListener listener = transport.Listen(factory.Endpoint, LogAttributeLoggerFactory.Instance).Listener!;
 
             // TODO: add test once it's possible to create a connection directly. Right now, the connect timeout

@@ -74,8 +74,6 @@ namespace IceRpc
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
 
-        internal static ConnectionOptions Default = new();
-
         private int _classGraphMaxDepth = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);

@@ -11,17 +11,34 @@ namespace IceRpc.Transports
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
     public class TcpClientTransport : IClientTransport
     {
-        private readonly TcpOptions _options;
+        private readonly TcpOptions _tcpOptions;
+        private readonly SlicOptions _slicOptions;
         private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
         /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
-        /// <param name="options">The transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
-        public TcpClientTransport(
-            TcpOptions? options = null,
-            SslClientAuthenticationOptions? authenticationOptions = null)
+        public TcpClientTransport() :
+            this(new(), new(), null)
         {
-            _options = options ?? new();
+        }
+
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        public TcpClientTransport(SslClientAuthenticationOptions authenticationOptions) :
+            this(new(), new(), authenticationOptions)
+        {
+        }
+
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        public TcpClientTransport(
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions,
+            SslClientAuthenticationOptions? authenticationOptions)
+        {
+            _tcpOptions = tcpOptions;
+            _slicOptions = slicOptions;
             _authenticationOptions = authenticationOptions;
         }
 
@@ -43,16 +60,16 @@ namespace IceRpc.Transports
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !_options.IsIPv6Only;
+                    socket.DualMode = !_tcpOptions.IsIPv6Only;
                 }
 
-                if (_options.LocalEndPoint is IPEndPoint localEndPoint)
+                if (_tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     socket.Bind(localEndPoint);
                 }
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
+                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
+                                     _tcpOptions.SendBufferSize,
                                      remoteEndpoint.Transport,
                                      logger);
                 socket.NoDelay = true;
@@ -64,7 +81,7 @@ namespace IceRpc.Transports
             }
 
             var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _options);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _slicOptions);
         }
     }
 }

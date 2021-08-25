@@ -13,7 +13,7 @@ namespace IceRpc.Transports
         (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory) =>
             (new ColocListener(endpoint, _multiStreamOptions, loggerFactory.CreateLogger("IceRpc")), null);
 
-        /// <summary>Construct a colocated server transport.</summary>
+        /// <summary>Constructs a colocated server transport.</summary>
         /// <param name="options">The transport options.</param>
         public ColocServerTransport(MultiStreamOptions options) => _multiStreamOptions = options;
     }

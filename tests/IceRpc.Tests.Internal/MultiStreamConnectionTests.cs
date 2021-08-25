@@ -15,9 +15,11 @@ namespace IceRpc.Tests.Internal
         public MultiStreamConnectionTests(MultiStreamConnectionType type)
             : base(type)
         {
-            ServerTransportOptions ??= new();
-            ServerTransportOptions.BidirectionalStreamMaxCount = 15;
-            ServerTransportOptions.UnidirectionalStreamMaxCount = 10;
+            ServerMultiStreamOptions = type == MultiStreamConnectionType.Coloc ?
+                 new MultiStreamOptions() :
+                 new SlicOptions();
+            ServerMultiStreamOptions.BidirectionalStreamMaxCount = 15;
+            ServerMultiStreamOptions.UnidirectionalStreamMaxCount = 10;
         }
 
         [Test]
@@ -195,7 +197,7 @@ namespace IceRpc.Tests.Internal
             var clientStreams = new List<RpcStream>();
             var serverStreams = new List<RpcStream>();
             IncomingRequest? incomingRequest = null;
-            for (int i = 0; i < ServerTransportOptions!.BidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerMultiStreamOptions!.BidirectionalStreamMaxCount; ++i)
             {
                 RpcStream stream = ClientConnection.CreateStream(true);
                 clientStreams.Add(stream);
@@ -238,8 +240,8 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_StressTestAsync(bool bidirectional)
         {
             int maxCount = bidirectional ?
-                ServerTransportOptions!.BidirectionalStreamMaxCount :
-                ServerTransportOptions!.UnidirectionalStreamMaxCount;
+                ServerMultiStreamOptions!.BidirectionalStreamMaxCount :
+                ServerMultiStreamOptions!.UnidirectionalStreamMaxCount;
             int streamCount = 0;
 
             // Ensure the client side accepts streams to receive responses.
@@ -313,7 +315,7 @@ namespace IceRpc.Tests.Internal
         public async Task MultiStreamConnection_StreamMaxCount_UnidirectionalAsync()
         {
             var clientStreams = new List<RpcStream>();
-            for (int i = 0; i < ServerTransportOptions!.UnidirectionalStreamMaxCount; ++i)
+            for (int i = 0; i < ServerMultiStreamOptions!.UnidirectionalStreamMaxCount; ++i)
             {
                 RpcStream stream = ClientConnection.CreateStream(false);
                 clientStreams.Add(stream);

@@ -242,7 +242,7 @@ namespace IceRpc
         public Connection()
         {
             _logger = NullLogger.Instance;
-            _options = ConnectionOptions.Default;
+            _options = new();
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to
