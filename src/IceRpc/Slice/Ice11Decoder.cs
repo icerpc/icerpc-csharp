@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
     public class Ice11Decoder : IceDecoder

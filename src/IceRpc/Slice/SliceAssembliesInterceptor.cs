@@ -2,7 +2,7 @@
 
 using System.Reflection;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>An interceptor that overwrites which assemblies contain Slice types.</summary>
     public class SliceAssembliesInterceptor : IInvoker

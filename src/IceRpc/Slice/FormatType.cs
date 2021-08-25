@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>This enumeration describes the possible formats for classes and exceptions. With IceRpc exceptions
     /// are always marshaled using the Sliced format, but can be received in the Compact format for compatibility with

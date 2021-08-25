@@ -3,7 +3,7 @@
 using IceRpc.Transports;
 using System.Buffers;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A stream param sender that encapsulates a <see cref="System.IO.Stream"/> and it is used to send
     /// <c>stream byte</c> params using a <see cref="Ice2FrameType.UnboundedData"/> frame.</summary>

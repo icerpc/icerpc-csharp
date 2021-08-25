@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -27,8 +28,7 @@ namespace IceRpc.Tests.CodeGeneration
                     {
                         var response = OutgoingResponse.ForPayload(
                             request,
-                            Payload.FromSingleReturnValue(
-                                request.PayloadEncoding,
+                            request.PayloadEncoding.FromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
                                 (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);

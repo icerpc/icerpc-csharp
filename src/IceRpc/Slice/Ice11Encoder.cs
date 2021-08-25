@@ -9,7 +9,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
     public class Ice11Encoder : IceEncoder

@@ -10,7 +10,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Decodes a byte buffer encoded using the Ice encoding.</summary>
     public abstract class IceDecoder

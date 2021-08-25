@@ -4,6 +4,7 @@ using IceRpc.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using IceRpc.Slice;
 
 namespace IceRpc
 {

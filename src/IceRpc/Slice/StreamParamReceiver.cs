@@ -5,7 +5,7 @@ using IceRpc.Transports;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A stream param receiver to receive stream param over a <see cref="RpcStream"/>.</summary>
     public sealed class StreamParamReceiver

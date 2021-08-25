@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using NUnit.Framework;
 using Multiplier = System.Int32;
 

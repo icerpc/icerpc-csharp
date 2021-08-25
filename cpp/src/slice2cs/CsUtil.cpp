@@ -826,7 +826,7 @@ Slice::CsGenerator::decodeFunc(const TypePtr& type, const string& scope)
         }
         else
         {
-            out << "decoder => IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << name << ">(decoder)";
+            out << "decoder => decoder.DecodeNullablePrx<" << name << ">()";
         }
     }
     else if (type->isClassType())
@@ -913,8 +913,7 @@ Slice::CsGenerator::writeUnmarshalCode(
         if (underlying->isInterfaceType())
         {
             // does not use bit sequence
-            out << "IceRpc.IceDecoderPrxExtensions.DecodeNullablePrx<" << typeToString(underlying, scope)
-                << ">(decoder);";
+            out << "decoder.DecodeNullablePrx<" << typeToString(underlying, scope) << ">();";
             return;
         }
         else if (underlying->isClassType())
@@ -1110,8 +1109,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     }
     else if (type->isInterfaceType())
     {
-        out << "IceRpc.IceDecoderPrxExtensions.DecodeTaggedPrx<"<< typeToString(type, scope) << ">(decoder, "
-            << tag << ");";
+        out << "decoder.DecodeTaggedPrx<"<< typeToString(type, scope) << ">(" << tag << ");";
     }
     else if (builtin)
     {

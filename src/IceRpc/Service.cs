@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -70,7 +71,7 @@ namespace IceRpc
 
                     foreach (Type interfaceType in type.GetInterfaces())
                     {
-                        typeIds.UnionWith(TypeExtensions.GetAllIceTypeIds(interfaceType));
+                        typeIds.UnionWith(interfaceType.GetAllIceTypeIds());
                     }
 
                     return (methods, typeIds);

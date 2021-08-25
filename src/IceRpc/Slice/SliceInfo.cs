@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>SliceInfo encapsulates the details of a slice for an unknown class or remote exception encoded with
     /// the Ice 1.1 encoding.</summary>

@@ -2,7 +2,7 @@
 
 using System.Reflection;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A middleware that overwrites which assemblies contain Slice types.</summary>
     public class SliceAssembliesMiddleware : IDispatcher

@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>This attribute class is used by the generated code to assign a type ID to C# classes, interfaces and
     /// structs mapped from Slice interfaces, classes and exceptions. </summary>

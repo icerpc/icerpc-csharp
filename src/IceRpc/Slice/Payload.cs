@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Methods to read and write the payloads of requests and responses.</summary>
     public static class Payload
@@ -18,7 +18,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case any parameter is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromArgs<T>(
-            Proxy proxy,
+            this Proxy proxy,
             in T args,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -32,7 +32,7 @@ namespace IceRpc
         /// <summary>Creates the payload of a request without parameter.</summary>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(Proxy proxy)
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromEmptyArgs(this Proxy proxy)
         {
             proxy.Encoding.CheckSupportedIceEncoding();
             return default;
@@ -48,7 +48,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromReturnValueTuple<T>(
-            Encoding payloadEncoding,
+            this Encoding payloadEncoding,
             in T returnValueTuple,
             TupleEncodeAction<T> encodeAction,
             FormatType classFormat = default) where T : struct
@@ -69,7 +69,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleArg<T>(
-            Proxy proxy,
+            this Proxy proxy,
             T arg,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
@@ -90,7 +90,7 @@ namespace IceRpc
         /// <param name="classFormat">The class format in case T is a class.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromSingleReturnValue<T>(
-            Encoding payloadEncoding,
+            this Encoding payloadEncoding,
             T returnValue,
             EncodeAction<T> encodeAction,
             FormatType classFormat = default)
@@ -102,11 +102,11 @@ namespace IceRpc
         }
 
         /// <summary>Creates a payload representing a void return value.</summary>
-        /// <param name="dispatch">The request's dispatch properties.</param>
+        /// <param name="payloadEncoding">The payload encoding.</param>
         /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(Dispatch dispatch)
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> FromVoidReturnValue(this Encoding payloadEncoding)
         {
-            dispatch.IncomingRequest.PayloadEncoding.CheckSupportedIceEncoding();
+            payloadEncoding.CheckSupportedIceEncoding();
             return default;
         }
     }

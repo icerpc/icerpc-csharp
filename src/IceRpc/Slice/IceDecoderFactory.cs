@@ -2,7 +2,7 @@
 
 using System.Reflection;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A factory for Ice decoders.</summary>
     /// <paramtype name="T">The Ice decoder class.</paramtype>

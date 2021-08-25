@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Ice decoders use activators to create instances of classes and remote exceptions from Ice type IDs.
     /// </summary>

@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
     public abstract class IceEncoder

@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
 

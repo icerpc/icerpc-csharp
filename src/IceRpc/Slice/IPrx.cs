@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>The common interface of all concrete typed proxies. It gives access to an untyped proxy object that can
     /// send requests to a remote IceRPC service.</summary>

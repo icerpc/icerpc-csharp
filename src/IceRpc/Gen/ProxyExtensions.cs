@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+
 namespace IceRpc.Gen
 {
     /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>

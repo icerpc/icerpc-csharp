@@ -1,6 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>This attribute class is used by the generated code to mark operations that can be called from
     /// Service.DispatchAsync.</summary>

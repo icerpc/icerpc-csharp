@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A remote exception that was fully sliced during decoding.</summary>
     public sealed class UnknownSlicedRemoteException : RemoteException

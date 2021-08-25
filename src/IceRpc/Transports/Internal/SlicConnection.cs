@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slic;
+using IceRpc.Slice;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

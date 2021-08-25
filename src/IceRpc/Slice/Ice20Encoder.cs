@@ -5,7 +5,7 @@ using IceRpc.Transports.Internal;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 2.0 encoding.</summary>
     public class Ice20Encoder : IceEncoder

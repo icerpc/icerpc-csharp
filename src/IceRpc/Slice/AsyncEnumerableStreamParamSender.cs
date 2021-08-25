@@ -3,7 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Transports;
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>A stream parameter sender that encapsulates an<see cref="IAsyncEnumerable{T}"/> used to send a
     /// <c> stream T</c> parameter using one or more <see cref="Ice2FrameType.BoundedData"/> frames.</summary>

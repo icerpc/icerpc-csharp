@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc
+namespace IceRpc.Slice
 {
     /// <summary>An assembly attribute for assemblies that contain slicec generated code.</summary>
     [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
