@@ -1,12 +1,12 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slice;
+using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Globalization;
 
-namespace IceRpc.Transports
+namespace IceRpc.Slice
 {
     /// <summary>The encoding of ice1 endpoints with the Ice 1.1 encoding is transport-specific. This interface provides
     /// an abstraction to plug-in decoders for such endpoints.</summary>
