@@ -4,25 +4,11 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/BuiltinSequences.ice>
+#include <IceRpc/EndpointParam.ice>
 #include <IceRpc/Protocol.ice>
 
-module IceRpc
+module IceRpc::Slice
 {
-    /// An endpoint parameter.
-    [cs:readonly]
-    struct EndpointParam
-    {
-        /// The parameter name.
-        string name;
-
-        /// The parameter value.
-        string value;
-    }
-
-    // temporary
-    sequence<EndpointParam> EndpointParamSeq;
-
     /// The "on-the-wire" representation of an endpoint when using the Ice 2.0 encoding.
     [cs:readonly]
     struct EndpointData
