@@ -11,7 +11,7 @@ namespace IceRpc
         /// <summary>Creates an Ice decoder.</summary>
         /// <param name="buffer">The buffer to decode.</param>
         /// <param name="connection">The connection that received this buffer.</param>
-        /// <param name="invoker">The invoker to set in proxies decoder by this decoder.</param>
+        /// <param name="invoker">The invoker of proxies decoded by this decoder.</param>
         /// <returns>A new Ice decoder.</returns>
         T CreateIceDecoder(ReadOnlyMemory<byte> buffer, Connection? connection, IInvoker? invoker);
     }

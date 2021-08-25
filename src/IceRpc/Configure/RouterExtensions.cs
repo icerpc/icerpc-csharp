@@ -44,7 +44,7 @@ namespace IceRpc.Configure
         public static Router UseProxyInvoker(this Router router, IInvoker invoker) =>
             router.Use(next => new ProxyInvokerMiddleware(next, invoker));
 
-        /// <summary>Adds a <see cref="SliceAssembliesMiddleware"/> to the router. This router overwrites the
+        /// <summary>Adds a <see cref="SliceAssembliesMiddleware"/> to the router. This middleware overwrites the
         /// assemblies that IceRPC uses to decode types received "over the wire".</summary>
         /// <param name="router">The router being configured.</param>
         /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>

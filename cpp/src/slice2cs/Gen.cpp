@@ -2966,7 +2966,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             names.pop_back();
             _out << nl << "return (";
             _out.inc();
-            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "), ";
+            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
 
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                 builtin && builtin->kind() == Builtin::KindByte)

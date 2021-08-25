@@ -69,13 +69,12 @@ namespace IceRpc.Tests.Encoding
 
             var regular = Proxy.FromConnection(_connection, "/bar");
 
-            // Marshal the endpointless proxy
+            // Encodes the endpointless proxy
             var encoder = encoding.CreateIceEncoder(_bufferWriter);
             encoder.EncodeProxy(endpointLess);
             ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 
             // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-
             IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(data, _connection) :
                 new Ice20Decoder(data, _connection);
 
