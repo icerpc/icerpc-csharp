@@ -1,10 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using IceRpc.Slice;
 
 namespace IceRpc
 {

@@ -8,8 +8,7 @@ using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>Base class for exceptions that can be transmitted in responses to Ice requests. The derived exception
-    /// classes are generated from exceptions defined in Slice.</summary>
+    /// <summary>Base class for exceptions defined in Slice.</summary>
     [TypeId("::IceRpc::RemoteException")]
     public class RemoteException : Exception
     {
