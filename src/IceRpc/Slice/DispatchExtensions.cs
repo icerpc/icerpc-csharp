@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
+using IceRpc;
 
-namespace IceRpc.Gen
+namespace IceRpc.Slice
 {
     /// <summary>Extensions methods called by the generated code.</summary>
     public static class DispatchExtensions

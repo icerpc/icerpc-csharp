@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
-
-namespace IceRpc.Gen
+namespace IceRpc.Slice
 {
     /// <summary>A function that decodes the return value from an Ice-encoded response.</summary>
     /// <typeparam name="T">The type of the return value to read.</typeparam>

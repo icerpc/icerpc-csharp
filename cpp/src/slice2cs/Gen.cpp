@@ -2103,7 +2103,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     if (generateResponseClass)
     {
         _out << sp;
-        _out << nl << "/// <summary>Holds a <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for each non-void "
+        _out << nl << "/// <summary>Holds a <see cref=\"ResponseDecodeFunc{T}\"/> for each non-void "
                 << "remote operation defined in <see cref=\"" << interfaceName(p) << "Prx\"/>.</summary>";
         _out << nl << "public static class Response";
         _out << sb;
@@ -2115,7 +2115,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             {
                 _out << sp;
                 string opName = fixId(operationName(operation));
-                _out << nl << "/// <summary>The <see cref=\"IceRpc.Gen.ResponseDecodeFunc{T}\"/> for the return value "
+                _out << nl << "/// <summary>The <see cref=\"ResponseDecodeFunc{T}\"/> for the return value "
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
                 _out << "(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, ";
@@ -2374,9 +2374,8 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
-    _out << nl << "IceRpc.Gen.ProxyExtensions.InvokeAsync(";
+    _out << nl << "Proxy.InvokeAsync(";
     _out.inc();
-    _out << nl << "Proxy,";
     _out << nl << "\"" << operation->name() << "\",";
     if (params.size() == 0)
     {
@@ -2842,11 +2841,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (!streamParam)
     {
-        _out << nl << "IceRpc.Gen.DispatchExtensions.StreamReadingComplete(dispatch);";
+        _out << nl << "dispatch.StreamReadingComplete();";
     }
     if (!isIdempotent(operation))
     {
-         _out << nl << "IceRpc.Gen.DispatchExtensions.CheckNonIdempotent(dispatch);";
+         _out << nl << "dispatch.CheckNonIdempotent();";
     }
 
     if (opCompressReturn(operation))
