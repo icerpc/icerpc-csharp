@@ -5,7 +5,7 @@
 [[suppress-warning(reserved-identifier)]]
 
 // These definitions help with the encoding of Slic frames.
-module IceRpc::Slic
+module IceRpc::Transports::Slic
 {
     /// The keys for supported Slic connection parameters.
     unchecked enum ParameterKey : int

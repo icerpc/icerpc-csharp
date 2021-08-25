@@ -1,9 +1,9 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slic;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
+using IceRpc.Transports.Slic;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

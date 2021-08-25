@@ -1,8 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
-using IceRpc.Slic;
 using IceRpc.Slice.Internal;
+using IceRpc.Transports.Slic;
 using System.Diagnostics;
 
 namespace IceRpc.Transports.Internal
