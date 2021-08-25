@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 
 namespace IceRpc
 {

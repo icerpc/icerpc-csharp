@@ -3,6 +3,7 @@
 using IceRpc.Internal;
 using IceRpc.Slic;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

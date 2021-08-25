@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using System.Collections.Immutable;
 using System.Diagnostics;

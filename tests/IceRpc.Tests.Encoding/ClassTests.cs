@@ -3,6 +3,7 @@
 using IceRpc.Configure;
 using IceRpc.Internal;
 using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Reflection;
 

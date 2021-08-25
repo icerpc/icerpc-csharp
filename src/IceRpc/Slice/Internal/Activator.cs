@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace IceRpc.Internal
+namespace IceRpc.Slice.Internal
 {
     /// <summary>The default implementation of <see cref="IActivator{T}"/>, which uses a dictionary.</summary>
     internal class Activator<T> : IActivator<T> where T : IceDecoder

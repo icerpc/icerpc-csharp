@@ -1,6 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 
 namespace IceRpc.Slice

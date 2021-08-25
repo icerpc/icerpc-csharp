@@ -1,12 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace IceRpc.Internal
+namespace IceRpc.Slice.Internal
 {
     /// <summary>Writes bytes into a non-contiguous byte buffer.</summary>
     internal class BufferWriter

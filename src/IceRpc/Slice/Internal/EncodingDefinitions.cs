@@ -1,6 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-namespace IceRpc.Internal
+namespace IceRpc.Slice.Internal
 {
     internal static class EncodingDefinitions
     {
