@@ -349,18 +349,14 @@ namespace IceRpc.Slice
             // Ice11Decoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
             // EndpointData like Ice 2.0.
 
-            TransportCode transportCode = TransportCode.Any;
-
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                transportCode = endpoint.Transport switch
+            TransportCode transportCode = endpoint.Protocol == Protocol.Ice1 ?
+                endpoint.Transport switch
                 {
                     TransportNames.Tcp => TransportCode.TCP,
                     TransportNames.Ssl => TransportCode.SSL,
                     TransportNames.Udp => TransportCode.UDP,
                     _ => TransportCode.Any
-                };
-            }
+                } : TransportCode.Any;
 
             this.EncodeTransportCode(transportCode);
 
