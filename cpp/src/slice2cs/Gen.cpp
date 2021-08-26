@@ -69,7 +69,7 @@ opFormatTypeToString(const OperationPtr& op)
         case CompactFormat:
             return "default"; // same as Compact
         case SlicedFormat:
-            return "FormatType.Sliced";
+            return "IceRpc.Slice.FormatType.Sliced";
         default:
             assert(false);
     }
@@ -280,7 +280,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 }
                 else
                 {
-                    _out << " = StreamParamReceiver.ToByteStream(request);";
+                    _out << " = IceRpc.Slice.StreamParamReceiver.ToByteStream(request);";
                 }
             }
             else
@@ -297,7 +297,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                 }
                 else
                 {
-                    _out << " = StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns)
+                    _out << " = IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns)
                          << ">(";
                     _out.inc();
                     _out << nl << "request,"
@@ -519,13 +519,13 @@ Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 void
 Slice::CsVisitor::emitCompactTypeIdAttribute(int compactTypeId)
 {
-    _out << nl << "[CompactTypeId(" << compactTypeId << ")]";
+    _out << nl << "[IceRpc.Slice.CompactTypeId(" << compactTypeId << ")]";
 }
 
 void
 Slice::CsVisitor::emitTypeIdAttribute(const string& typeId)
 {
-    _out << nl << "[TypeId(\"" << typeId << "\")]";
+    _out << nl << "[IceRpc.Slice.TypeId(\"" << typeId << "\")]";
 }
 
 string
@@ -1089,7 +1089,7 @@ Slice::Gen::Gen(const string& base, const vector<string>& includePaths, const st
     _out << nl << "#pragma warning disable 1591 // Missing XML Comment";
     _out << nl << "using IceRpc.Slice;";
     _out << nl;
-    _out << nl << "[assembly:Slice(\"" << fileBase << ".ice\")]";
+    _out << nl << "[assembly:IceRpc.Slice.Slice(\"" << fileBase << ".ice\")]";
 }
 
 Slice::Gen::~Gen()
@@ -2119,7 +2119,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                         << "type of operation " << operation->name() << ".</summary>";
                 _out << nl << "public static " << toTupleType(returns, ns, false) << ' ' << opName;
                 _out << "(IceRpc.IncomingResponse response, IceRpc.IInvoker? invoker, ";
-                _out << "StreamParamReceiver? streamParamReceiver) =>";
+                _out << "IceRpc.Slice.StreamParamReceiver? streamParamReceiver) =>";
                 _out.inc();
                 _out << nl << "response.ToReturnValue(";
                 _out.inc();
@@ -2397,11 +2397,11 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
 
         if (builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << nl << "new ByteStreamParamSender(" << paramName(streamParam) << "),";
+            _out << nl << "new IceRpc.Slice.ByteStreamParamSender(" << paramName(streamParam) << "),";
         }
         else
         {
-            _out << nl << "new AsyncEnumerableStreamParamSender";
+            _out << nl << "new IceRpc.Slice.AsyncEnumerableStreamParamSender";
             _out << "<" << typeToString(streamT, ns) << ">(";
             _out.inc();
             _out << nl << paramName(streamParam) << ","
@@ -2826,7 +2826,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     _out << sp;
-    _out << nl << "[Operation(\"" << operation->name() << "\")]";
+    _out << nl << "[IceRpc.Slice.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected static ";
     _out << "async ";
     _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IStreamParamSender?)>";
@@ -2866,11 +2866,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         if (auto builtin = BuiltinPtr::dynamicCast(streamParam->type());
             builtin && builtin->kind() == Builtin::KindByte)
         {
-            _out << " = StreamParamReceiver.ToByteStream(request);";
+            _out << " = IceRpc.Slice.StreamParamReceiver.ToByteStream(request);";
         }
         else
         {
-            _out << " = StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
+            _out << " = IceRpc.Slice.StreamParamReceiver.ToAsyncEnumerable<" << typeToString(streamParam->type(), ns) << ">(";
             _out.inc();
             _out << nl << "request,"
                 << "_defaultIceDecoderFactories,"
@@ -2933,11 +2933,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                     builtin && builtin->kind() == Builtin::KindByte)
                 {
-                    _out << nl << "new ByteStreamParamSender(returnValue)";
+                    _out << nl << "new IceRpc.Slice.ByteStreamParamSender(returnValue)";
                 }
                 else
                 {
-                    _out << nl << "new AsyncEnumerableStreamParamSender";
+                    _out << nl << "new IceRpc.Slice.AsyncEnumerableStreamParamSender";
                     _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
                     _out.inc();
                     _out << nl << "returnValue,"
@@ -2965,11 +2965,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                 builtin && builtin->kind() == Builtin::KindByte)
             {
-                _out << nl << "new ByteStreamParamSender(" << streamName << ")";
+                _out << nl << "new IceRpc.Slice.ByteStreamParamSender(" << streamName << ")";
             }
             else
             {
-                _out << nl << "new AsyncEnumerableStreamParamSender";
+                _out << nl << "new IceRpc.Slice.AsyncEnumerableStreamParamSender";
                 _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
                 _out.inc();
                 _out << nl << streamName << ","
