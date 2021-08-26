@@ -2077,11 +2077,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out.inc();
                 if (params.size() == 1)
                 {
-                    _out << nl << "prx.Proxy.FromSingleArg(";
+                    _out << nl << "prx.Proxy.CreatePayloadFromSingleArg(";
                 }
                 else
                 {
-                    _out << nl << "prx.Proxy.FromArgs(";
+                    _out << nl << "prx.Proxy.CreatePayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
@@ -2379,7 +2379,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "\"" << operation->name() << "\",";
     if (params.size() == 0)
     {
-        _out << nl << "Proxy.FromEmptyArgs(),";
+        _out << nl << "Proxy.CreateEmptyPayload(),";
     }
     else
     {
@@ -2669,11 +2669,11 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out.inc();
                 if (returns.size() == 1)
                 {
-                    _out << nl << "dispatch.Encoding.FromSingleReturnValue(";
+                    _out << nl << "dispatch.Encoding.CreatePayloadFromSingleReturnValue(";
                 }
                 else
                 {
-                    _out << nl << "dispatch.Encoding.FromReturnValueTuple(";
+                    _out << nl << "dispatch.Encoding.CreatePayloadFromReturnValueTuple(";
                 }
 
                 _out.inc();
@@ -2742,11 +2742,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << getEscapedParamName(operation, "dispatch") << ".Encoding.";
         if (returnType.size() == 1)
         {
-            _out << "FromSingleReturnValue(";
+            _out << "CreatePayloadFromSingleReturnValue(";
         }
         else
         {
-            _out << "FromReturnValueTuple(";
+            _out << "CreatePayloadFromReturnValueTuple(";
         }
         _out.inc();
         _out << nl << toTuple(returnType) << ",";
@@ -2928,7 +2928,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             {
                 _out << nl << "return (";
                 _out.inc();
-                _out << nl << "dispatch.Encoding.FromVoidReturnValue(),";
+                _out << nl << "dispatch.Encoding.CreatePayloadFromVoidReturnValue(),";
 
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                     builtin && builtin->kind() == Builtin::KindByte)
@@ -2950,7 +2950,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             }
             else
             {
-                _out << nl << "return (dispatch.Encoding.FromVoidReturnValue(), null);";
+                _out << nl << "return (dispatch.Encoding.CreatePayloadFromVoidReturnValue(), null);";
             }
         }
         else if (streamReturnParam)
