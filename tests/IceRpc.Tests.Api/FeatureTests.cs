@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using NUnit.Framework;
 using Multiplier = System.Int32;
 
@@ -58,9 +57,8 @@ namespace IceRpc.Tests.Api
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
-                    if (request.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
+                    if (request.Fields.GetValue(1, decoder => decoder.DecodeInt()) is int multiplier)
                     {
-                        Multiplier multiplier = Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeInt());
                         if (request.Features.IsReadOnly)
                         {
                             request.Features = new FeatureCollection(request.Features);

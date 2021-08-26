@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
-using IceRpc.Slice;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.ClientServer
@@ -49,11 +48,10 @@ namespace IceRpc.Tests.ClientServer
                 new InlineInvoker(async (request, cancel) =>
                 {
                     IncomingResponse response = await next.InvokeAsync(request, cancel);
-                    if (response.Fields.TryGetValue(1, out ReadOnlyMemory<byte> value))
+                    if (response.Fields.Get(1, decoder => decoder.DecodeString()) is string stringValue)
                     {
                         response.Features = new FeatureCollection();
-                        response.Features.Set<string>(
-                            Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeString()));
+                        response.Features.Set<string>(stringValue);
                     }
                     return response;
                 }));

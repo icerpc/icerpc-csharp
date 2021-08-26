@@ -660,7 +660,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        private static Dictionary<ParameterKey, ulong> ReadParameters(IceDecoder decoder)
+        private static Dictionary<ParameterKey, ulong> ReadParameters(Ice20Decoder decoder)
         {
             int dictionarySize = decoder.DecodeSize();
             var parameters = new Dictionary<ParameterKey, ulong>();

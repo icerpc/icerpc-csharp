@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 
@@ -141,10 +140,9 @@ namespace IceRpc.Internal
         internal static void DecompressPayload(this IncomingFrame frame)
         {
             if (frame.Protocol.HasFieldSupport() &&
-                frame.Fields.TryGetValue((int)FieldKey.Compression, out ReadOnlyMemory<byte> value))
+                frame.Fields.GetValue((int)FieldKey.Compression,
+                                      decoder => new CompressionField(decoder)) is CompressionField compressionField)
             {
-                var decoder = new Ice20Decoder(value);
-                var compressionField = new CompressionField(decoder);
                 frame.Payload = frame.Payload.Decompress(
                     compressionField.Format,
                     (int)compressionField.UncompressedSize,

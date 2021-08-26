@@ -936,18 +936,6 @@ namespace IceRpc.Slice
             }
         }
 
-         // <summary>Decodes a field.</summary>
-        /// <returns>The key and value of the field. The read-only memory for the value is backed by the buffer, the
-        /// data is not copied.</returns>
-        internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
-        {
-            int key = DecodeVarInt();
-            int entrySize = DecodeSize();
-            ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
-            Pos += entrySize;
-            return (key, value);
-        }
-
         /// <summary>Checks if the decoder holds a tagged proxy for the given tag, and when it does, skips the size
         /// of this proxy.</summary>
         /// <param name="tag">The tag.</param>

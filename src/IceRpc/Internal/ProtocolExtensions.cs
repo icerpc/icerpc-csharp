@@ -81,13 +81,14 @@ namespace IceRpc.Internal
             }
             else
             {
-                if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
+                if (response.Fields.GetValue((int)FieldKey.ReplyStatus,
+                                             decoder => decoder.DecodeReplyStatus()) is ReplyStatus replyStatus)
                 {
                     if (response.PayloadEncoding != Encoding.Ice11)
                     {
                         throw new InvalidDataException($"unexpected {nameof(FieldKey.ReplyStatus)} field");
                     }
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)value.Span[0]);
+                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
                 }
                 else
                 {
@@ -244,9 +245,10 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
+                    if (response.Fields.GetValue(
+                        (int)FieldKey.ReplyStatus, decoder => decoder.DecodeReplyStatus()) is ReplyStatus replyStatus)
                     {
-                        outgoingResponse.Features.Set((ReplyStatus)value.Span[0]);
+                        outgoingResponse.Features.Set(replyStatus);
                     }
                     else
                     {

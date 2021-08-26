@@ -335,6 +335,7 @@ namespace IceRpc.Transports
                     cancel).ConfigureAwait(false);
 
                 // Read the protocol parameters which are encoded as IceRpc.Fields.
+
                 var decoder = new Ice20Decoder(buffer);
                 int dictionarySize = decoder.DecodeSize();
                 for (int i = 0; i < dictionarySize; ++i)
@@ -454,15 +455,15 @@ namespace IceRpc.Transports
                 };
 
                 // Decode Context from Fields and set corresponding feature.
-                if (request.Fields.TryGetValue((int)FieldKey.Context, out ReadOnlyMemory<byte> value))
-                {
-                    request.Features = request.Features.WithContext(
-                        Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeDictionary(
+                if (request.Fields.Get(
+                        (int)FieldKey.Context,
+                        decoder => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
                             keyDecodeFunc: decoder => decoder.DecodeString(),
-                            valueDecodeFunc: decoder => decoder.DecodeString()))
-                    );
+                            valueDecodeFunc: decoder => decoder.DecodeString())) is Dictionary<string, string> context)
+                {
+                    request.Features = request.Features.WithContext(context);
                 }
             }
 
@@ -553,10 +554,12 @@ namespace IceRpc.Transports
                         Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
                 FeatureCollection features = FeatureCollection.Empty;
-                if (fields.TryGetValue((int)FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
+                if (fields.GetValue(
+                        (int)FieldKey.RetryPolicy,
+                        decoder => new RetryPolicy(decoder)) is RetryPolicy retryPolicy)
                 {
                     features = new();
-                    features.Set(Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder)));
+                    features.Set(retryPolicy);
                 }
 
                 response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType)
