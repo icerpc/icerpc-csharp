@@ -2,10 +2,11 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using IceRpc.Slice;
 
 namespace IceRpc
 {
-    /// <summary>The base class for classes defined in Slice.</summary>
+    /// <summary>Base class for classes defined in Slice.</summary>
     public abstract class AnyClass
     {
         /// <summary>Returns the unknown slices if the class has a preserved-slice base class and has been sliced-off

@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -7,7 +8,7 @@ using System.Reflection;
 
 namespace IceRpc
 {
-    /// <summary>Base class of all service implementations.</summary>
+    /// <summary>Base class of all services that implement Slice-defined interfaces.</summary>
     public class Service : IService, IDispatcher
     {
         /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
@@ -70,7 +71,7 @@ namespace IceRpc
 
                     foreach (Type interfaceType in type.GetInterfaces())
                     {
-                        typeIds.UnionWith(TypeExtensions.GetAllIceTypeIds(interfaceType));
+                        typeIds.UnionWith(interfaceType.GetAllIceTypeIds());
                     }
 
                     return (methods, typeIds);

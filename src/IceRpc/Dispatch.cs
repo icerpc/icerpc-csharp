@@ -4,8 +4,8 @@ using IceRpc.Features;
 
 namespace IceRpc
 {
-    /// <summary>Holds properties that describe the request being dispatched. You can also set
-    /// <see cref="ResponseFeatures"/> to communicate with middleware "on the way back".</summary>
+    /// <summary>Holds properties that describe the request being dispatched. You can also set entries in
+    /// <see cref="ResponseFeatures"/> to communicate with a middleware "on the way back".</summary>
     public sealed class Dispatch
     {
         /// <summary>The <see cref="Connection"/> over which the request was dispatched.</summary>

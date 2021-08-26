@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Reflection;

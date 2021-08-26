@@ -1,5 +1,6 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -11,7 +12,7 @@ namespace IceRpc.Tests.Api
         [Test]
         public void Activator_CreateInstance()
         {
-            IceRpc.IActivator<Ice11Decoder> activator = Ice11Decoder.GetActivator(typeof(Ice11Decoder).Assembly);
+            IActivator<Ice11Decoder> activator = Ice11Decoder.GetActivator(typeof(Ice11Decoder).Assembly);
 
             Ice11Decoder decoder = null!;
 

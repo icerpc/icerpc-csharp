@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using IceRpc.Transports;
 using NUnit.Framework;
 using System.IO.Compression;

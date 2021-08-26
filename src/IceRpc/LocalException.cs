@@ -143,8 +143,8 @@ namespace IceRpc
     /// <summary>This exception reports that data (bytes) received are not in an expected format.</summary>
     public class InvalidDataException : Exception
     {
-        /// <summary>Constructs a new instance of the <see cref="InvalidDataException"/> class with a specified error message.
-        /// </summary>
+        /// <summary>Constructs a new instance of the <see cref="InvalidDataException"/> class with a specified error
+        /// message.</summary>
         /// <param name="message">The message that describes the error.</param>
         public InvalidDataException(string message)
             : base(message)

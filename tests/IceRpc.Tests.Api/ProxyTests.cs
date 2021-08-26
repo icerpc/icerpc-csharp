@@ -2,6 +2,7 @@
 
 using IceRpc.Configure;
 using IceRpc.Features;
+using IceRpc.Slice;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Api
@@ -275,7 +276,7 @@ namespace IceRpc.Tests.Api
             await using var connection = new Connection { RemoteEndpoint = server.Endpoint };
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
-            (IncomingResponse response, IceRpc.StreamParamReceiver? _) =
+            (IncomingResponse response, StreamParamReceiver? _) =
                 await proxy.InvokeAsync("SayHello", requestPayload: default);
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
