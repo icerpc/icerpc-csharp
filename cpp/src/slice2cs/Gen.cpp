@@ -1379,9 +1379,9 @@ Slice::Gen::TypesVisitor::writeMarshaling(const ClassDefPtr& p)
     if(preserved && !basePreserved)
     {
         _out << sp;
-        _out << nl << "protected override global::System.Collections.Immutable.ImmutableList<SliceInfo> "
+        _out << nl << "protected override global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo> "
             << "IceUnknownSlices { get; set; } = "
-            << "global::System.Collections.Immutable.ImmutableList<SliceInfo>.Empty;";
+            << "global::System.Collections.Immutable.ImmutableList<IceRpc.Slice.SliceInfo>.Empty;";
     }
 
     _out << sp;
