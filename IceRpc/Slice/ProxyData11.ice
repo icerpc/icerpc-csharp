@@ -7,7 +7,7 @@
 #include <IceRpc/BuiltinSequences.ice>
 #include <IceRpc/Protocol.ice>
 
-module IceRpc
+module IceRpc::Slice
 {
     // These definitions help with the encoding of proxies with the Ice 1.1 encoding.
 

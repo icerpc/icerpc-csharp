@@ -4,10 +4,10 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-#include <IceRpc/Endpoint.ice>
+#include <IceRpc/Slice/EndpointData.ice>
 #include <IceRpc/Protocol.ice>
 
-module IceRpc
+module IceRpc::Slice
 {
     // These definitions help with the encoding of proxies with the Ice 2.0 encoding.
 
