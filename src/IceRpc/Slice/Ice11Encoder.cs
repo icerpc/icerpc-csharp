@@ -255,85 +255,6 @@ namespace IceRpc.Slice
             : base(bufferWriter) =>
             _classFormat = classFormat;
 
-        /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
-        /// <param name="endpoint">The endpoint to encode.</param>
-        /// <param name="transportCode">The <see cref="TransportCode"/> used to encode the endpoint's transport before
-        /// the nested encapsulation.</param>
-        /// <param name="encodeAction">A delegate that encodes the body of this endpoint.</param>
-        internal void EncodeEndpoint(
-            Endpoint endpoint,
-            TransportCode transportCode,
-            Action<Ice11Encoder, Endpoint> encodeAction)
-        {
-            this.EncodeTransportCode(transportCode);
-
-            // We don't use Start/EndFixedLengthSize because 1.1 encapsulation sizes are special and include the size
-            // itself.
-            BufferWriter.Position startPos = BufferWriter.Tail;
-            EncodeInt(0); // placeholder for future encapsulation size
-            EncodeByte(1); // encoding version major
-            EncodeByte(1); // encoding version minor
-            encodeAction(this, endpoint);
-            EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
-        }
-
-        private void EncodeEndpoint(Endpoint endpoint)
-        {
-            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
-            // Ice11Decoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
-            // EndpointData like Ice 2.0.
-
-            TransportCode transportCode = TransportCode.Any;
-
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                transportCode = endpoint.Transport switch
-                {
-                    TransportNames.Tcp => TransportCode.TCP,
-                    TransportNames.Ssl => TransportCode.SSL,
-                    TransportNames.Udp => TransportCode.UDP,
-                    _ => TransportCode.Any
-                };
-            }
-
-            this.EncodeTransportCode(transportCode);
-
-            BufferWriter.Position startPos = BufferWriter.Tail;
-            EncodeInt(0); // placeholder for encapsulation size written by EncodeFixedLengthSize below
-            EncodeByte(1); // encoding version major
-            EncodeByte(1); // encoding version minor
-
-            switch (transportCode)
-            {
-                case TransportCode.TCP:
-                case TransportCode.SSL:
-                {
-                    (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
-                    EncodeString(endpoint.Host);
-                    EncodeInt(endpoint.Port);
-                    EncodeInt(timeout);
-                    EncodeBool(compress);
-                    break;
-                }
-
-                case TransportCode.UDP:
-                {
-                    bool compress = endpoint.ParseUdpParams().Compress;
-                    EncodeString(endpoint.Host);
-                    EncodeInt(endpoint.Port);
-                    EncodeBool(compress);
-                    break;
-                }
-
-                default:
-                    Debug.Assert(transportCode == TransportCode.Any);
-                    endpoint.ToEndpointData().Encode(this);
-                    break;
-            }
-
-            EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
-        }
-
         /// <summary>Encodes sliced-off slices.</summary>
         /// <param name="unknownSlices">The sliced-off slices to encode.</param>
         /// <param name="fullySliced">When true, slicedData holds all the data of this instance.</param>
@@ -418,6 +339,65 @@ namespace IceRpc.Slice
             {
                 _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
             }
+        }
+
+        /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
+        /// <param name="endpoint">The endpoint to encode.</param>
+        private void EncodeEndpoint(Endpoint endpoint)
+        {
+            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
+            // Ice11Decoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
+            // EndpointData like Ice 2.0.
+
+            TransportCode transportCode = TransportCode.Any;
+
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                transportCode = endpoint.Transport switch
+                {
+                    TransportNames.Tcp => TransportCode.TCP,
+                    TransportNames.Ssl => TransportCode.SSL,
+                    TransportNames.Udp => TransportCode.UDP,
+                    _ => TransportCode.Any
+                };
+            }
+
+            this.EncodeTransportCode(transportCode);
+
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            EncodeInt(0); // placeholder for encapsulation size written by EncodeFixedLengthSize below
+            EncodeByte(1); // encoding version major
+            EncodeByte(1); // encoding version minor
+
+            switch (transportCode)
+            {
+                case TransportCode.TCP:
+                case TransportCode.SSL:
+                {
+                    (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
+                    EncodeString(endpoint.Host);
+                    EncodeInt(endpoint.Port);
+                    EncodeInt(timeout);
+                    EncodeBool(compress);
+                    break;
+                }
+
+                case TransportCode.UDP:
+                {
+                    bool compress = endpoint.ParseUdpParams().Compress;
+                    EncodeString(endpoint.Host);
+                    EncodeInt(endpoint.Port);
+                    EncodeBool(compress);
+                    break;
+                }
+
+                default:
+                    Debug.Assert(transportCode == TransportCode.Any);
+                    endpoint.ToEndpointData().Encode(this);
+                    break;
+            }
+
+            EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
         }
 
         /// <summary>Encodes this class instance inline if not previously encoded, otherwise just encode its instance
