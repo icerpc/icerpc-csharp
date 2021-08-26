@@ -137,12 +137,6 @@ namespace IceRpc
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The endpoint encoder is used when encoding ice1 endpoint (typically inside a proxy)
-        /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
-        /// transport-dependent.</summary>
-        /// <seealso cref="Connection.EndpointCodex"/>
-        // TODO: provide public API to get/set this encoder.
-        internal IEndpointEncoder EndpointEncoder { get; set; } = Connection.DefaultEndpointCodex;
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
@@ -274,10 +268,6 @@ namespace IceRpc
                 return false;
             }
             if (Protocol != other.Protocol)
-            {
-                return false;
-            }
-            if (EndpointEncoder != other.EndpointEncoder)
             {
                 return false;
             }

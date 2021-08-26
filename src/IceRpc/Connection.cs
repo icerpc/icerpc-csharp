@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -168,22 +167,12 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The default value for <see cref="EndpointCodex"/>.</summary>
-        internal static IEndpointCodex DefaultEndpointCodex { get; } =
-            new EndpointCodexBuilder().AddTcp().AddSsl().AddUdp().Build();
-
         /// <summary>The underlying multi-stream connection.</summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
             "CA2213:Disposable fields should be disposed",
             Justification = "Disposed by AbortAsync")]
         public MultiStreamConnection? UnderlyingConnection { get; private set; }
-
-        /// <summary>The endpoint codex is used when encoding or decoding an ice1 endpoint (typically inside a proxy)
-        /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
-        /// transport-dependent.</summary>
-        // TODO: provide public API to get/set this codex.
-        internal IEndpointCodex EndpointCodex { get; set; } = DefaultEndpointCodex;
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
