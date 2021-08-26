@@ -138,32 +138,17 @@ namespace IceRpc.Slice
                 else
                 {
                     IEnumerable<Endpoint> endpoints = proxy.Endpoint.Transport == TransportNames.Coloc ?
-                        proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(proxy.AltEndpoints);
+                        proxy.AltEndpoints : Enumerable.Empty<Endpoint>().Append(proxy.Endpoint).Concat(
+                            proxy.AltEndpoints);
 
                     if (endpoints.Any())
                     {
-                        if (proxy.Protocol == Protocol.Ice1)
+                        // Encode sequence by hand
+                        EncodeSize(endpoints.Count());
+
+                        foreach (Endpoint endpoint in endpoints)
                         {
-                            // Encode sequence by hand
-                            EncodeSize(endpoints.Count());
-
-                            foreach (Endpoint endpoint in endpoints)
-                            {
-                                proxy.EndpointEncoder.EncodeEndpoint(endpoint, this);
-                            }
-                        }
-                        else
-                        {
-                            // Encode sequence by hand
-                            EncodeSize(endpoints.Count());
-
-                            foreach (Endpoint endpoint in endpoints)
-                            {
-                                EncodeEndpoint(endpoint,
-                                            TransportCode.Any,
-                                            static (encoder, endpoint) => endpoint.ToEndpointData().Encode(encoder));
-
-                            }
+                            EncodeEndpoint(endpoint);
                         }
                     }
                     else // encoded as an endpointless proxy
@@ -289,6 +274,63 @@ namespace IceRpc.Slice
             EncodeByte(1); // encoding version major
             EncodeByte(1); // encoding version minor
             encodeAction(this, endpoint);
+            EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
+        }
+
+        private void EncodeEndpoint(Endpoint endpoint)
+        {
+            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
+            // Ice11Decoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
+            // EndpointData like Ice 2.0.
+
+            TransportCode transportCode = TransportCode.Any;
+
+            if (endpoint.Protocol == Protocol.Ice1)
+            {
+                transportCode = endpoint.Transport switch
+                {
+                    TransportNames.Tcp => TransportCode.TCP,
+                    TransportNames.Ssl => TransportCode.SSL,
+                    TransportNames.Udp => TransportCode.UDP,
+                    _ => TransportCode.Any
+                };
+            }
+
+            this.EncodeTransportCode(transportCode);
+
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            EncodeInt(0); // placeholder for encapsulation size written by EncodeFixedLengthSize below
+            EncodeByte(1); // encoding version major
+            EncodeByte(1); // encoding version minor
+
+            switch (transportCode)
+            {
+                case TransportCode.TCP:
+                case TransportCode.SSL:
+                {
+                    (bool compress, int timeout, bool? _) = endpoint.ParseTcpParams();
+                    EncodeString(endpoint.Host);
+                    EncodeInt(endpoint.Port);
+                    EncodeInt(timeout);
+                    EncodeBool(compress);
+                    break;
+                }
+
+                case TransportCode.UDP:
+                {
+                    bool compress = endpoint.ParseUdpParams().Compress;
+                    EncodeString(endpoint.Host);
+                    EncodeInt(endpoint.Port);
+                    EncodeBool(compress);
+                    break;
+                }
+
+                default:
+                    Debug.Assert(transportCode == TransportCode.Any);
+                    endpoint.ToEndpointData().Encode(this);
+                    break;
+            }
+
             EncodeFixedLengthSize(BufferWriter.Distance(startPos), startPos);
         }
 
