@@ -420,6 +420,10 @@ namespace IceRpc.Slice
         /// <returns>The endpoint decoded by this decoder.</returns>
         private Endpoint DecodeEndpoint(Protocol protocol)
         {
+            // The Ice 1.1 encoding of ice1 endpoints is transport-specific, and hard-coded here and in the
+            // Ice11Encoder. The preferred and fallback encoding for new transports is TransportCode.Any, which uses an
+            // EndpointData like Ice 2.0.
+
             Debug.Assert(Connection != null);
 
             Endpoint? endpoint = null;
@@ -446,31 +450,83 @@ namespace IceRpc.Slice
             {
                 int oldPos = Pos;
 
-                if (transportCode == TransportCode.Any)
+                switch (transportCode)
                 {
-                    // Encoded as an endpoint data
-                    endpoint = new EndpointData(this).ToEndpoint();
-                }
-                else if (protocol == Protocol.Ice1)
-                {
-                    endpoint = Connection.EndpointCodex.DecodeEndpoint(transportCode, this);
+                    case TransportCode.TCP:
+                    case TransportCode.SSL:
+                        if (protocol == Protocol.Ice1)
+                        {
+                            string host = DecodeString();
+                            ushort port = checked((ushort)DecodeInt());
+                            int timeout = DecodeInt();
+                            bool compress = DecodeBool();
 
-                    if (endpoint == null)
-                    {
-                        var endpointParams = ImmutableList.Create(
+                            var endpointParams = ImmutableList<EndpointParam>.Empty;
+
+                            if (timeout != EndpointParseExtensions.DefaultTcpTimeout)
+                            {
+                                endpointParams = endpointParams.Add(
+                                    new EndpointParam("-t", timeout.ToString(CultureInfo.InvariantCulture)));
+                            }
+                            if (compress)
+                            {
+                                endpointParams = endpointParams.Add(new EndpointParam("-z", ""));
+                            }
+
+                            return new Endpoint(protocol,
+                                                transportCode == TransportCode.SSL ?
+                                                    TransportNames.Ssl : TransportNames.Tcp,
+                                                host,
+                                                port,
+                                                endpointParams);
+                        }
+                        // else endpoint remains null and we throw below
+                        break;
+
+                    case TransportCode.UDP:
+                        if (protocol == Protocol.Ice1)
+                        {
+                            string host = DecodeString();
+                            ushort port = checked((ushort)DecodeInt());
+                            bool compress = DecodeBool();
+
+                            var endpointParams = compress ? ImmutableList.Create(new EndpointParam("-z", "")) :
+                                ImmutableList<EndpointParam>.Empty;
+
+                            return new Endpoint(protocol,
+                                                TransportNames.Udp,
+                                                host,
+                                                port,
+                                                endpointParams);
+                        }
+                        // else endpoint remains null and we throw below
+                        break;
+
+                    case TransportCode.Any:
+                        endpoint = new EndpointData(this).ToEndpoint();
+                        break;
+
+                    default:
+                        break;
+                }
+
+                if (endpoint == null && protocol == Protocol.Ice1)
+                {
+                    // Create an endpoint for transport opaque
+
+                    var endpointParams = ImmutableList.Create(
                             new EndpointParam("-t", ((short)transportCode).ToString(CultureInfo.InvariantCulture)),
                             new EndpointParam("-e", encoding.ToString()),
                             new EndpointParam("-v", Convert.ToBase64String(_buffer.Slice(Pos, size).Span)));
 
-                        endpoint = new Endpoint(
-                            protocol,
-                            TransportNames.Opaque,
-                            Host: "",
-                            Port: 0,
-                            endpointParams);
+                    Pos += size;
 
-                        Pos += size;
-                    }
+                    endpoint = new Endpoint(
+                        protocol,
+                        TransportNames.Opaque,
+                        Host: "",
+                        Port: 0,
+                        endpointParams);
                 }
 
                 if (endpoint != null)
