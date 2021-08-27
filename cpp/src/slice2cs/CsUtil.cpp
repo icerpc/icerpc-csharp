@@ -670,42 +670,40 @@ Slice::toTupleType(const MemberList& params, const string& ns, bool readOnly)
 string
 Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool readOnly, bool param)
 {
+    ostringstream out;
+
     string value = "value";
     TypePtr underlying = type;
 
-    ostringstream out;
-    if (auto optional = OptionalPtr::dynamicCast(type))
+    auto optional = OptionalPtr::dynamicCast(type);
+
+    if (optional)
     {
-        // Expected for proxy and class types.
         underlying = optional->underlying();
-        if (underlying->isClassType())
-        {
-            out << "(encoder, value) => encoder.EncodeNullableClass(value)";
-            return out.str();
-        }
-        else if (type->isInterfaceType())
-        {
-            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)";
-            return out.str();
-        }
-        else if (isValueType(underlying))
-        {
-            value = "value!.Value";
-        }
-        else
-        {
-            value = "value!";
-        }
-        // and keep going with underlying
+        value = isValueType(underlying) ? "value!.Value" : "value!";
     }
 
     if (underlying->isClassType())
     {
-        out << "(encoder, value) => encoder.EncodeClass(value)";
+        if (optional)
+        {
+            out << "(encoder, value) => encoder.EncodeNullableClass(value)"; // null value ok
+        }
+        else
+        {
+            out << "(encoder, value) => encoder.EncodeClass(value)";
+        }
     }
     else if (underlying->isInterfaceType())
     {
-        out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
+        if (optional)
+        {
+            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)"; // null value ok
+        }
+        else
+        {
+            out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
+        }
     }
     else if (auto builtin = BuiltinPtr::dynamicCast(underlying))
     {
