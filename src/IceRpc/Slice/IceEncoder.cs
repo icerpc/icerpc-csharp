@@ -264,6 +264,8 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence.</summary>
+        /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
+        /// proxy types.</paramtype>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public void EncodeSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
@@ -275,64 +277,11 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a sequence. The elements of the sequence are reference types.</summary>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
-            where T : class
-        {
-            if (withBitSequence)
-            {
-                int count = v.Count(); // potentially slow Linq Count()
-                EncodeSize(count);
-                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-                int index = 0;
-                foreach (T? item in v)
-                {
-                    if (item is T value)
-                    {
-                        encodeAction(this, value);
-                    }
-                    else
-                    {
-                        bitSequence[index] = false;
-                    }
-                    index++;
-                }
-            }
-            else
-            {
-                EncodeSequence((IEnumerable<T>)v, encodeAction);
-            }
-        }
-
         /// <summary>Encodes a sequence of nullable values.</summary>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for the non-null values.</param>
-        public void EncodeSequence<T>(IEnumerable<T?> v, EncodeAction<T> encodeAction) where T : struct
-        {
-            int count = v.Count(); // potentially slow Linq Count()
-            EncodeSize(count);
-            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-            int index = 0;
-            foreach (T? item in v)
-            {
-                if (item is T value)
-                {
-                    encodeAction(this, value);
-                }
-                else
-                {
-                    bitSequence[index] = false;
-                }
-                index++;
-            }
-        }
-
-        /// <summary>Encodes a sequence of nullable values.</summary>
+        /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
+        /// <remarks>This method always encodes a bit sequence.</remarks>
         public void EncodeSequenceOfNullable<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
         {
             int count = v.Count(); // potentially slow Linq Count()
@@ -728,43 +677,6 @@ namespace IceRpc.Slice
                 {
                     encodeAction(this, item);
                 }
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of nullable elements.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedSequence<T>(
-            int tag,
-            IEnumerable<T?>? v,
-            bool withBitSequence,
-            EncodeAction<T> encodeAction)
-            where T : class
-        {
-            if (v is IEnumerable<T?> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequence(value, withBitSequence, encodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of nullable values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
-            where T : struct
-        {
-            if (v is IEnumerable<T?> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequence(value, encodeAction);
-                EndFixedLengthSize(pos);
             }
         }
 
