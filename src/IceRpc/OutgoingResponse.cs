@@ -33,21 +33,8 @@ namespace IceRpc
         /// <param name="request">The incoming request for which this method creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <returns>The outgoing response.</returns>
-        public static OutgoingResponse ForException(IncomingRequest request, Exception exception)
-        {
-            var response = new OutgoingResponse(request.Protocol, ResultType.Failure)
-            {
-                PayloadEncoding = request.PayloadEncoding,
-            };
-
-            if (exception is RemoteException remoteException)
-            {
-                remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-            }
-
-            response.Protocol.EncodeResponseException(request, response, exception);
-            return response;
-        }
+        public static OutgoingResponse ForException(IncomingRequest request, Exception exception) =>
+            request.Protocol.CreateResponseFromException(exception, request);
 
         /// <summary>Returns a new incoming response built from this outgoing response. This method is
         /// used for colocated calls.</summary>

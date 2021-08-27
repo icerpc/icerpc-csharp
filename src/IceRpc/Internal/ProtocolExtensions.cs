@@ -81,39 +81,20 @@ namespace IceRpc.Internal
             }
             else
             {
-                if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
-                {
-                    if (response.PayloadEncoding != Encoding.Ice11)
-                    {
-                        throw new InvalidDataException($"unexpected {nameof(FieldKey.ReplyStatus)} field");
-                    }
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)value.Span[0]);
-                }
-                else
-                {
-                    exception = decoder.DecodeException();
-                }
+                exception = decoder.DecodeException();
             }
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             return exception;
         }
 
-        /// <summary>Encodes an exception into the given response. The encoding of an exception is protocol and
-        /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs to be encoded
-        /// either as a user or system exception. If the 1.1 encoded exception is sent with the Ice1 protocol,
-        /// this method also sets the <see cref="ReplyStatus"/> feature to allow figure it out when encoding
-        /// the Ice1 response frame. If it's the sent with the Ice2 protocol, the reply status is sent with
-        /// the <see cref="FieldKey.ReplyStatus"/>. This method also sets the <see
-        /// cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
-        internal static void EncodeResponseException(
+        /// <summary>Creates an outgoing response with the exception. If a 1.1 encoded exception is sent with the ice1
+        /// protocol, this method also the <see cref="ReplyStatus"/> feature. This method also sets the
+        /// <see cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
+        internal static OutgoingResponse CreateResponseFromException(
             this Protocol protocol,
-            IncomingRequest request,
-            OutgoingResponse response,
-            Exception exception)
+            Exception exception,
+            IncomingRequest request)
         {
-            var bufferWriter = new BufferWriter();
-            IceEncoder encoder = request.PayloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
-
             if (protocol == Protocol.Ice1)
             {
                 if (exception is OperationCanceledException)
@@ -129,48 +110,61 @@ namespace IceRpc.Internal
                 }
             }
 
-            var remoteException = exception as RemoteException;
-            if (request.PayloadEncoding == Encoding.Ice11 &&
-                (remoteException == null ||
-                 remoteException is ServiceNotFoundException ||
-                 remoteException is OperationNotFoundException ||
-                 remoteException.ConvertToUnhandled))
+            RemoteException? remoteException = exception as RemoteException;
+            if (remoteException == null || remoteException.ConvertToUnhandled)
             {
-                ReplyStatus replyStatus = encoder.EncodeIce1SystemException(exception);
-                if (protocol == Protocol.Ice1)
-                {
-                    if (response.Features.IsReadOnly)
-                    {
-                        response.Features = new();
-                    }
-                    // Set the reply status feature. This is used when the response is encoded.
-                    response.Features.Set(replyStatus);
-                }
-                else
-                {
-                    response.Fields.Add(
-                        (int)FieldKey.ReplyStatus,
-                        fieldEncoder => fieldEncoder.EncodeByte((byte)replyStatus));
-                }
+                remoteException = new UnhandledException(exception);
+            }
+
+            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
+            {
+                remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
+            }
+
+            Encoding payloadEncoding = request.PayloadEncoding;
+
+            bool isIce1SystemException = payloadEncoding == Encoding.Ice11 &&
+                (remoteException is ServiceNotFoundException ||
+                 remoteException is OperationNotFoundException ||
+                 remoteException is UnhandledException);
+
+            if (protocol == Protocol.Ice2 && isIce1SystemException)
+            {
+                // An ice1 system exception is always encoded as a regular Ice 2.0 exception when sent over ice2.
+                payloadEncoding = Encoding.Ice20;
+                isIce1SystemException = false;
+            }
+
+            var bufferWriter = new BufferWriter();
+            IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+
+            FeatureCollection features = protocol == Protocol.Ice1 ? new FeatureCollection() : FeatureCollection.Empty;
+
+            if (isIce1SystemException)
+            {
+                Debug.Assert(protocol == Protocol.Ice1);
+
+                ReplyStatus replyStatus = encoder.EncodeIce1SystemException(remoteException);
+
+                // Set the reply status feature. It's used when the response header is encoded.
+                features.Set(replyStatus);
             }
             else
             {
+                encoder.EncodeException(remoteException);
+
                 if (protocol == Protocol.Ice1)
                 {
-                    if (response.Features.IsReadOnly)
-                    {
-                        response.Features = new();
-                    }
-                    // Set the reply status feature. This is used when the response is encoded.
-                    response.Features.Set(ReplyStatus.UserException);
+                    features.Set(ReplyStatus.UserException);
                 }
-
-                if (remoteException == null || remoteException.ConvertToUnhandled)
-                {
-                    remoteException = new UnhandledException(exception);
-                }
-                encoder.EncodeException(remoteException);
             }
+
+            var response = new OutgoingResponse(protocol, ResultType.Failure)
+            {
+                Features = features,
+                Payload = bufferWriter.Finish(),
+                PayloadEncoding = payloadEncoding
+            };
 
             if (protocol == Protocol.Ice2 &&
                 remoteException?.RetryPolicy is RetryPolicy retryPolicy &&
@@ -188,7 +182,7 @@ namespace IceRpc.Internal
                     });
             }
 
-            response.Payload = bufferWriter.Finish();
+            return response;
         }
 
         internal static OutgoingRequest ToOutgoingRequest(
