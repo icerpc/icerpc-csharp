@@ -953,6 +953,15 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Reads size bytes from the underlying buffer.</summary>
+        internal ReadOnlyMemory<byte> ReadBytes(int size)
+        {
+            Debug.Assert(size > 0);
+            var result = _buffer.Slice(Pos, size);
+            Pos += size;
+            return result;
+        }
+
         internal void Skip(int size)
         {
             if (size < 0 || size > _buffer.Length - Pos)
