@@ -223,26 +223,6 @@ namespace IceRpc.Slice
             return value;
         }
 
-        /// <summary>Decodes a sequence and returns an array.</summary>
-        /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
-            DecodeSequence(minElementSize, decodeFunc).ToArray();
-
-        /// <summary>Decodes a sequence of nullable elements and returns an array.</summary>
-        /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
-        /// </param>
-        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T?[] DecodeArray<T>(bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
-            DecodeSequence(withBitSequence, decodeFunc).ToArray();
-
-        /// <summary>Decodes a sequence of nullable values and returns an array.</summary>
-        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T?[] DecodeArray<T>(DecodeFunc<T> decodeFunc) where T : struct => DecodeSequence(decodeFunc).ToArray();
-
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
         public T DecodeClass<T>() where T : AnyClass =>
@@ -371,6 +351,15 @@ namespace IceRpc.Slice
         /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
         public ICollection<T?> DecodeSequence<T>(DecodeFunc<T> decodeFunc) where T : struct =>
             new NullableValueCollection<T>(this, decodeFunc);
+
+        /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
+        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
+        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
+        /// the buffer. The returned collection does not fully implement ICollection{T}, in particular you can only
+        /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
+        /// List{T} or some other generic collection that can be constructed from an IEnumerable{T}.</returns>
+        public ICollection<T> DecodeSequenceWithBitSequence<T>(DecodeFunc<T> decodeFunc) =>
+            new CollectionWithBitSequence<T>(this, decodeFunc);
 
         /// <summary>Decodes a sorted dictionary.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -756,6 +745,23 @@ namespace IceRpc.Slice
             {
                 SkipFixedLengthSize();
                 return DecodeSequence(decodeFunc);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        /// <summary>Decodes a tagged sequence that encodes null values using a bit sequence.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="decodeFunc">The decode function for each non-null value of the sequence.</param>
+        /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
+        public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<T> decodeFunc)
+        {
+            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            {
+                SkipFixedLengthSize();
+                return DecodeSequenceWithBitSequence(decodeFunc);
             }
             else
             {
@@ -1274,6 +1280,27 @@ namespace IceRpc.Slice
             {
                 Debug.Assert(pos < Count);
                 return _decodeFunc(IceDecoder);
+            }
+        }
+
+        // A collection that encodes nulls with a bit sequence.
+        private sealed class CollectionWithBitSequence<T> : CollectionBase<T>
+        {
+            private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
+            readonly DecodeFunc<T> _decodeFunc;
+
+            internal CollectionWithBitSequence(IceDecoder decoder, DecodeFunc<T> decodeFunc)
+                : base(decoder, 0)
+            {
+                _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
+                _decodeFunc = decodeFunc;
+            }
+
+            private protected override T Decode(int pos)
+            {
+                Debug.Assert(pos < Count);
+                var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
+                return bitSequence[pos] ? _decodeFunc(IceDecoder) : default!;
             }
         }
 
