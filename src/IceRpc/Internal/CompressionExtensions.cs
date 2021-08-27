@@ -139,14 +139,18 @@ namespace IceRpc.Internal
 
         internal static void DecompressPayload(this IncomingFrame frame)
         {
-            if (frame.Protocol.HasFieldSupport() &&
-                frame.Fields.GetValue((int)FieldKey.Compression,
-                                      decoder => new CompressionField(decoder)) is CompressionField compressionField)
+            if (frame.Protocol.HasFieldSupport())
             {
-                frame.Payload = frame.Payload.Decompress(
-                    compressionField.Format,
-                    (int)compressionField.UncompressedSize,
-                    frame.Connection.IncomingFrameMaxSize);
+                // TODO: switch to class for CompressionField?
+                CompressionField compressionField = frame.Fields.Get((int)FieldKey.Compression,
+                                                                     decoder => new CompressionField(decoder));
+
+                if (compressionField != default) // default means not set
+                {
+                    frame.Payload = frame.Payload.Decompress(compressionField.Format,
+                                                             (int)compressionField.UncompressedSize,
+                                                             frame.Connection.IncomingFrameMaxSize);
+                }
             }
         }
 

@@ -57,7 +57,8 @@ namespace IceRpc.Tests.Api
             router.Use(next => new InlineDispatcher(
                 async (request, cancel) =>
                 {
-                    if (request.Fields.GetValue(1, decoder => decoder.DecodeInt()) is int multiplier)
+                    int multiplier = request.Fields.Get(1, decoder => decoder.DecodeInt());
+                    if (multiplier != 0) // 0 == default(int)
                     {
                         if (request.Features.IsReadOnly)
                         {

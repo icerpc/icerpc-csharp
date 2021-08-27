@@ -81,18 +81,20 @@ namespace IceRpc.Internal
             }
             else
             {
-                if (response.Fields.GetValue((int)FieldKey.ReplyStatus,
-                                             decoder => decoder.DecodeReplyStatus()) is ReplyStatus replyStatus)
+                ReplyStatus replyStatus = response.Fields.Get((int)FieldKey.ReplyStatus,
+                                                              decoder => decoder.DecodeReplyStatus());
+
+                if (replyStatus == default) // not set
+                {
+                    exception = decoder.DecodeException();
+                }
+                else
                 {
                     if (response.PayloadEncoding != Encoding.Ice11)
                     {
                         throw new InvalidDataException($"unexpected {nameof(FieldKey.ReplyStatus)} field");
                     }
                     exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
-                }
-                else
-                {
-                    exception = decoder.DecodeException();
                 }
             }
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
@@ -239,21 +241,24 @@ namespace IceRpc.Internal
                     Payload = new ReadOnlyMemory<byte>[] { response.Payload },
                     PayloadEncoding = response.PayloadEncoding,
                 };
+
                 if (response.Protocol == Protocol.Ice1)
                 {
                     outgoingResponse.Features.Set(response.Features.Get<ReplyStatus>());
                 }
                 else
                 {
-                    if (response.Fields.GetValue(
-                        (int)FieldKey.ReplyStatus, decoder => decoder.DecodeReplyStatus()) is ReplyStatus replyStatus)
+                    ReplyStatus replyStatus = response.Fields.Get((int)FieldKey.ReplyStatus,
+                                                                  decoder => decoder.DecodeReplyStatus());
+
+                    if (replyStatus == default) // not set
                     {
-                        outgoingResponse.Features.Set(replyStatus);
+                        outgoingResponse.Features.Set(
+                            response.ResultType == ResultType.Success ? ReplyStatus.OK : ReplyStatus.UserException);
                     }
                     else
                     {
-                        outgoingResponse.Features.Set(response.ResultType == ResultType.Success ?
-                            ReplyStatus.OK : ReplyStatus.UserException);
+                        outgoingResponse.Features.Set(replyStatus);
                     }
                 }
                 return outgoingResponse;
@@ -267,11 +272,12 @@ namespace IceRpc.Internal
                     Payload = new ReadOnlyMemory<byte>[] { response.Payload },
                     PayloadEncoding = response.PayloadEncoding,
                 };
+
                 if (response.Protocol == Protocol.Ice1 && response.PayloadEncoding == Encoding.Ice11)
                 {
                     outgoingResponse.Fields.Add(
                         (int)FieldKey.ReplyStatus,
-                        encoder => encoder.EncodeByte((byte)response.Features.Get<ReplyStatus>()));
+                        encoder => encoder.EncodeReplyStatus(response.Features.Get<ReplyStatus>()));
                 }
                 return outgoingResponse;
             }

@@ -554,9 +554,10 @@ namespace IceRpc.Transports
                         Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
                 FeatureCollection features = FeatureCollection.Empty;
-                if (fields.GetValue(
-                        (int)FieldKey.RetryPolicy,
-                        decoder => new RetryPolicy(decoder)) is RetryPolicy retryPolicy)
+                RetryPolicy retryPolicy = fields.Get((int)FieldKey.RetryPolicy,
+                                                     decoder => new RetryPolicy(decoder));
+
+                if (retryPolicy != default)
                 {
                     features = new();
                     features.Set(retryPolicy);
