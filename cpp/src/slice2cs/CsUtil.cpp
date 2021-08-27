@@ -719,13 +719,13 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else if (auto dict = DictionaryPtr::dynamicCast(underlying))
     {
-        out << "(encoder, dictionary) => " << dictionaryMarshalCode(dict, scope, "dictionary");
+        out << "(encoder, value) => " << dictionaryMarshalCode(dict, scope, value);
     }
     else if (auto seq = SequencePtr::dynamicCast(underlying))
     {
         // We generate the sequence encoder inline, so this function must not be called when the top-level object is
         // not cached.
-        out << "(encoder, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, param);
+        out << "(encoder, value) => " << sequenceMarshalCode(seq, scope, value, readOnly, param);
     }
     else
     {
