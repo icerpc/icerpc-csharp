@@ -421,6 +421,22 @@ namespace IceRpc.Slice
                 keyDecodeFunc,
                 valueDecodeFunc);
 
+        /// <summary>Decodes a sorted dictionary.</summary>
+        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
+        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
+        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
+        /// <returns>The sorted dictionary decoded by this decoder.</returns>
+        public SortedDictionary<TKey, TValue?> DecodeSortedDictionaryWithBitSequence<TKey, TValue>(
+            int minKeySize,
+            DecodeFunc<TKey> keyDecodeFunc,
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TKey : notnull =>
+            DecodeDictionaryWithBitSequence(
+                new SortedDictionary<TKey, TValue?>(),
+                DecodeAndCheckSeqSize(minKeySize),
+                keyDecodeFunc,
+                valueDecodeFunc);
+
         // Decode methods for tagged basic types
 
         /// <summary>Decodes a tagged bool.</summary>
@@ -647,6 +663,27 @@ namespace IceRpc.Slice
             return null;
         }
 
+        /// <summary>Decodes a tagged dictionary with null values encoded using a bit sequence.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
+        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
+        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
+        /// <returns>The dictionary decoded by this decoder, or null.</returns>
+        public Dictionary<TKey, TValue?>? DecodeTaggedDictionaryWithBitSequence<TKey, TValue>(
+            int tag,
+            int minKeySize,
+            DecodeFunc<TKey> keyDecodeFunc,
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TKey : notnull
+        {
+            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            {
+                SkipFixedLengthSize();
+                return DecodeDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
+            }
+            return null;
+        }
+
         /// <summary>Decodes a tagged proxy.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The decoded proxy (can be null).</returns>
@@ -778,6 +815,27 @@ namespace IceRpc.Slice
             {
                 SkipFixedLengthSize();
                 return DecodeSortedDictionary(minKeySize, keyDecodeFunc, valueDecodeFunc);
+            }
+            return null;
+        }
+
+        /// <summary>Decodes a tagged sorted dictionary with null values encoded using a bit sequence.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
+        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
+        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
+        /// <returns>The dictionary decoded by this decoder, or null.</returns>
+        public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionaryWithBitSequence<TKey, TValue>(
+            int tag,
+            int minKeySize,
+            DecodeFunc<TKey> keyDecodeFunc,
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TKey : notnull
+        {
+            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            {
+                SkipFixedLengthSize();
+                return DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
         }

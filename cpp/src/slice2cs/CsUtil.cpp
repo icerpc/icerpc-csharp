@@ -1215,29 +1215,22 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
         assert(d);
         TypePtr keyType = d->keyType();
         TypePtr valueType = d->valueType();
-        bool withBitSequence = false;
 
+        bool withBitSequence = false;
         if (auto optional = OptionalPtr::dynamicCast(valueType); optional && optional->encodedUsingBitSequence())
         {
             withBitSequence = true;
-            valueType = optional->underlying();
         }
 
         bool fixedSize = !keyType->isVariableLength() && !valueType->isVariableLength();
         bool sorted = d->findMetadataWithPrefix("cs:generic:") == "SortedDictionary";
 
-        out << "decoder.DecodeTagged" << (sorted ? "Sorted" : "") << "Dictionary(" << tag
-            << ", minKeySize: " << keyType->minWireSize();
+        out << "decoder.DecodeTagged" << (sorted ? "Sorted" : "") << "Dictionary"
+            << (withBitSequence ? "WithBitSequence" : "") << "(" << tag << ", minKeySize: " << keyType->minWireSize();
+
         if (!withBitSequence)
         {
             out << ", minValueSize: " << valueType->minWireSize();
-        }
-        if (withBitSequence && isReferenceType(valueType))
-        {
-            out << ", withBitSequence: true";
-        }
-        if (!withBitSequence)
-        {
             out << ", fixedSize: " << (fixedSize ? "true" : "false");
         }
         out << ", " << decodeFunc(keyType, scope) << ", " << decodeFunc(valueType, scope) << ")";
@@ -1385,20 +1378,16 @@ Slice::CsGenerator::dictionaryUnmarshalCode(const DictionaryPtr& dict, const str
     if (auto optional = OptionalPtr::dynamicCast(value); optional && optional->encodedUsingBitSequence())
     {
         withBitSequence = true;
-        value = optional->underlying();
     }
 
     ostringstream out;
     out << "decoder.";
-    out << (generic == "SortedDictionary" ? "DecodeSortedDictionary(" : "DecodeDictionary(");
+    out << (generic == "SortedDictionary" ? "DecodeSortedDictionary" : "DecodeDictionary");
+    out << (withBitSequence ? "WithBitSequence" : "") << "(";
     out << "minKeySize: " << key->minWireSize() << ", ";
     if (!withBitSequence)
     {
         out << "minValueSize: " << value->minWireSize() << ", ";
-    }
-    if (withBitSequence && isReferenceType(value))
-    {
-        out << "withBitSequence: true, ";
     }
     out << decodeFunc(key, scope) << ", " << decodeFunc(value, scope);
     if (SequencePtr::dynamicCast(value) || DictionaryPtr::dynamicCast(value))
