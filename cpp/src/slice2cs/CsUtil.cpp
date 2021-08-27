@@ -1047,7 +1047,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
         {
-            out << nl << "encoder.EncodeTaggedSequenceOfNullable(" << tag << ", " << param << ", " <<
+            out << nl << "encoder.EncodeTaggedSequenceWithBitSequence(" << tag << ", " << param << ", " <<
                 encodeAction(optional, scope, !isDataMember) << ");";
         }
         else if (elementType->isVariableLength())
@@ -1260,7 +1260,8 @@ Slice::CsGenerator::sequenceMarshalCode(
     }
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
     {
-        out << "encoder.EncodeSequenceOfNullable(" << value << ", " << encodeAction(optional, scope, readOnly) << ")";
+        out << "encoder.EncodeSequenceWithBitSequence(" << value << ", "
+            << encodeAction(optional, scope, readOnly) << ")";
     }
     else
     {
