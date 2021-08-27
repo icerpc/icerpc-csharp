@@ -147,71 +147,30 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a dictionary. The dictionary's value type is reference type.</summary>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
-        /// false.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeDictionary<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            bool withBitSequence,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (withBitSequence)
-            {
-                int count = v.Count();
-                EncodeSize(count);
-                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-                int index = 0;
-                foreach ((TKey key, TValue? value) in v)
-                {
-                    keyEncodeAction(this, key);
-                    if (value != null)
-                    {
-                        valueEncodeAction(this, value);
-                    }
-                    else
-                    {
-                        bitSequence[index] = false;
-                    }
-                    index++;
-                }
-            }
-            else
-            {
-                EncodeDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)v, keyEncodeAction, valueEncodeAction);
-            }
-        }
-
-        /// <summary>Encodes a dictionary. The dictionary's value type is a nullable value type.</summary>
+        /// <summary>Encodes a dictionary using a bit sequence to efficiently encode null values.</summary>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeDictionary<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue?>> v,
+        public void EncodeDictionaryWithBitSequence<TKey, TValue>(
+            IEnumerable<KeyValuePair<TKey, TValue>> v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
-            where TValue : struct
         {
             int count = v.Count();
             EncodeSize(count);
             BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
             int index = 0;
-            foreach ((TKey key, TValue? value) in v)
+            foreach ((TKey key, TValue value) in v)
             {
                 keyEncodeAction(this, key);
-                if (value is TValue actualValue)
+                if (value == null)
                 {
-                    valueEncodeAction(this, actualValue);
+                    bitSequence[index] = false;
                 }
                 else
                 {
-                    bitSequence[index] = false;
+                    valueEncodeAction(this, value);
                 }
                 index++;
             }
@@ -531,50 +490,23 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
-        /// false.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            bool withBitSequence,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionary(dict, withBitSequence, keyEncodeAction, valueEncodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged dictionary. The dictionary's value type is a nullable value type.
-        /// </summary>
+        /// <summary>Encodes a tagged dictionary using a bit sequence to efficiently encode null values.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
+        public void EncodeTaggedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
-            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
+            IEnumerable<KeyValuePair<TKey, TValue>>? v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
-            where TValue : struct
         {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
+                EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }

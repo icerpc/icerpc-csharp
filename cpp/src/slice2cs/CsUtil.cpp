@@ -1075,22 +1075,18 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         if (auto optional = OptionalPtr::dynamicCast(valueType); optional && optional->encodedUsingBitSequence())
         {
             withBitSequence = true;
-            valueType = optional->underlying();
         }
 
-        out << nl << "encoder.EncodeTaggedDictionary(" << tag << ", " << param;
+        out << nl << "encoder.EncodeTaggedDictionary" << (withBitSequence ? "WithBitSequence" : "") << "("
+            << tag << ", " << param;
 
         if (!withBitSequence && !keyType->isVariableLength() && !valueType->isVariableLength())
         {
             // Both are fixed size
             out << ", entrySize: " << (keyType->minWireSize() + valueType->minWireSize());
         }
-        if (withBitSequence && isReferenceType(valueType))
-        {
-            out << ", withBitSequence: true";
-        }
-        out << ", " << encodeAction(keyType, scope)
-            << ", " << encodeAction(valueType, scope) << ");";
+
+        out << ", " << encodeAction(keyType, scope) << ", " << encodeAction(valueType, scope) << ");";
     }
 }
 
@@ -1356,16 +1352,10 @@ Slice::CsGenerator::dictionaryMarshalCode(const DictionaryPtr& dict, const strin
     if (auto optional = OptionalPtr::dynamicCast(value); optional && optional->encodedUsingBitSequence())
     {
         withBitSequence = true;
-        value = optional->underlying();
     }
 
     ostringstream out;
-
-    out << "encoder.EncodeDictionary(" << param;
-    if (withBitSequence && isReferenceType(value))
-    {
-        out << ", withBitSequence: true";
-    }
+    out << "encoder.EncodeDictionary" << (withBitSequence ? "WithBitSequence" : "") << "(" << param;
     out << ", " << encodeAction(key, scope)
         << ", " << encodeAction(value, scope) << ")";
     return out.str();
