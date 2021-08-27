@@ -330,6 +330,29 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Encodes a sequence of nullable values.</summary>
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for a non-null value.</param>
+        public void EncodeSequenceOfNullable<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
+        {
+            int count = v.Count(); // potentially slow Linq Count()
+            EncodeSize(count);
+            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
+            int index = 0;
+            foreach (T item in v)
+            {
+                if (item == null)
+                {
+                    bitSequence[index] = false;
+                }
+                else
+                {
+                    encodeAction(this, item);
+                }
+                index++;
+            }
+        }
+
         // Encode methods for tagged basic types
 
         /// <summary>Encodes a tagged boolean.</summary>
@@ -741,6 +764,21 @@ namespace IceRpc.Slice
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeSequence(value, encodeAction);
+                EndFixedLengthSize(pos);
+            }
+        }
+
+        /// <summary>Encodes a tagged sequence of nullable values.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="v">The sequence to encode.</param>
+        /// <param name="encodeAction">The encode action for a non-null value.</param>
+        public void EncodeTaggedSequenceOfNullable<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
+        {
+            if (v is IEnumerable<T> value)
+            {
+                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                BufferWriter.Position pos = StartFixedLengthSize();
+                EncodeSequenceOfNullable(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }

@@ -670,42 +670,58 @@ Slice::toTupleType(const MemberList& params, const string& ns, bool readOnly)
 string
 Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool readOnly, bool param)
 {
+    string value = "value";
+    TypePtr underlying = type;
+
     ostringstream out;
     if (auto optional = OptionalPtr::dynamicCast(type))
     {
         // Expected for proxy and class types.
-        TypePtr underlying = optional->underlying();
+        underlying = optional->underlying();
         if (underlying->isClassType())
         {
             out << "(encoder, value) => encoder.EncodeNullableClass(value)";
+            return out.str();
+        }
+        else if (type->isInterfaceType())
+        {
+            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)";
+            return out.str();
+        }
+        else if (isValueType(underlying))
+        {
+            value = "value!.Value";
         }
         else
         {
-            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)";
+            value = "value!";
         }
+        // and keep going with underlying
     }
-    else if (type->isClassType())
+
+    if (underlying->isClassType())
     {
         out << "(encoder, value) => encoder.EncodeClass(value)";
     }
-    else if (type->isInterfaceType())
+    else if (underlying->isInterfaceType())
     {
         out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
     }
-    else if (auto builtin = BuiltinPtr::dynamicCast(type))
+    else if (auto builtin = BuiltinPtr::dynamicCast(underlying))
     {
-        out << "(encoder, value) => encoder.Encode" << builtinSuffixTable[builtin->kind()] << "(value)";
+        out << "(encoder, value) => encoder.Encode" << builtinSuffixTable[builtin->kind()] << "(" << value << ")";
     }
-    else if (EnumPtr::dynamicCast(type))
+    else if (EnumPtr::dynamicCast(underlying))
     {
-        auto contained = EnumPtr::dynamicCast(type);
-        out << "(encoder, value) => " << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, value)";
+        auto contained = EnumPtr::dynamicCast(underlying);
+        out << "(encoder, value) => " << helperName(underlying, scope) << ".Encode" << contained->name()
+            << "(encoder, " << value << ")";
     }
-    else if (auto dict = DictionaryPtr::dynamicCast(type))
+    else if (auto dict = DictionaryPtr::dynamicCast(underlying))
     {
         out << "(encoder, dictionary) => " << dictionaryMarshalCode(dict, scope, "dictionary");
     }
-    else if (auto seq = SequencePtr::dynamicCast(type))
+    else if (auto seq = SequencePtr::dynamicCast(underlying))
     {
         // We generate the sequence encoder inline, so this function must not be called when the top-level object is
         // not cached.
@@ -713,8 +729,8 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
     }
     else
     {
-        assert(StructPtr::dynamicCast(type));
-        out << "(encoder, value) => value.Encode(encoder)";
+        assert(StructPtr::dynamicCast(underlying));
+        out << "(encoder, value) => " << value << ".Encode(encoder)";
     }
     return out.str();
 }
@@ -1252,12 +1268,14 @@ Slice::CsGenerator::sequenceMarshalCode(
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
     {
         TypePtr underlying = optional->underlying();
-        out << "encoder.EncodeSequence(" << value;
+        out << "encoder.EncodeSequenceOfNullable(" << value;
+        /*
         if (isReferenceType(underlying))
         {
             out << ", withBitSequence: true";
         }
-        out << ", " << encodeAction(underlying, scope, readOnly) << ")";
+        */
+        out << ", " << encodeAction(optional, scope, readOnly) << ")";
     }
     else
     {
