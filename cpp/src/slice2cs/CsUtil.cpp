@@ -671,50 +671,64 @@ string
 Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool readOnly, bool param)
 {
     ostringstream out;
-    if (auto optional = OptionalPtr::dynamicCast(type))
+
+    string value = "value";
+    TypePtr underlying = type;
+
+    auto optional = OptionalPtr::dynamicCast(type);
+
+    if (optional)
     {
-        // Expected for proxy and class types.
-        TypePtr underlying = optional->underlying();
-        if (underlying->isClassType())
+        underlying = optional->underlying();
+        value = isValueType(underlying) ? "value!.Value" : "value!";
+    }
+
+    if (underlying->isClassType())
+    {
+        if (optional)
         {
-            out << "(encoder, value) => encoder.EncodeNullableClass(value)";
+            out << "(encoder, value) => encoder.EncodeNullableClass(value)"; // null value ok
         }
         else
         {
-            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)";
+            out << "(encoder, value) => encoder.EncodeClass(value)";
         }
     }
-    else if (type->isClassType())
+    else if (underlying->isInterfaceType())
     {
-        out << "(encoder, value) => encoder.EncodeClass(value)";
+        if (optional)
+        {
+            out << "(encoder, value) => encoder.EncodeNullableProxy(value?.Proxy)"; // null value ok
+        }
+        else
+        {
+            out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
+        }
     }
-    else if (type->isInterfaceType())
+    else if (auto builtin = BuiltinPtr::dynamicCast(underlying))
     {
-        out << "(encoder, value) => encoder.EncodeProxy(value.Proxy)";
+        out << "(encoder, value) => encoder.Encode" << builtinSuffixTable[builtin->kind()] << "(" << value << ")";
     }
-    else if (auto builtin = BuiltinPtr::dynamicCast(type))
+    else if (EnumPtr::dynamicCast(underlying))
     {
-        out << "(encoder, value) => encoder.Encode" << builtinSuffixTable[builtin->kind()] << "(value)";
+        auto contained = EnumPtr::dynamicCast(underlying);
+        out << "(encoder, value) => " << helperName(underlying, scope) << ".Encode" << contained->name()
+            << "(encoder, " << value << ")";
     }
-    else if (EnumPtr::dynamicCast(type))
+    else if (auto dict = DictionaryPtr::dynamicCast(underlying))
     {
-        auto contained = EnumPtr::dynamicCast(type);
-        out << "(encoder, value) => " << helperName(type, scope) << ".Encode" << contained->name() << "(encoder, value)";
+        out << "(encoder, value) => " << dictionaryMarshalCode(dict, scope, value);
     }
-    else if (auto dict = DictionaryPtr::dynamicCast(type))
-    {
-        out << "(encoder, dictionary) => " << dictionaryMarshalCode(dict, scope, "dictionary");
-    }
-    else if (auto seq = SequencePtr::dynamicCast(type))
+    else if (auto seq = SequencePtr::dynamicCast(underlying))
     {
         // We generate the sequence encoder inline, so this function must not be called when the top-level object is
         // not cached.
-        out << "(encoder, sequence) => " << sequenceMarshalCode(seq, scope, "sequence", readOnly, param);
+        out << "(encoder, value) => " << sequenceMarshalCode(seq, scope, value, readOnly, param);
     }
     else
     {
-        assert(StructPtr::dynamicCast(type));
-        out << "(encoder, value) => value.Encode(encoder)";
+        assert(StructPtr::dynamicCast(underlying));
+        out << "(encoder, value) => " << value << ".Encode(encoder)";
     }
     return out.str();
 }
@@ -1033,13 +1047,8 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
         {
-            TypePtr underlying = optional->underlying();
-            out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param;
-            if (isReferenceType(underlying))
-            {
-                out << ", withBitSequence: true";
-            }
-            out << ", " << encodeAction(underlying, scope, !isDataMember) << ");";
+            out << nl << "encoder.EncodeTaggedSequenceWithBitSequence(" << tag << ", " << param << ", " <<
+                encodeAction(optional, scope, !isDataMember) << ");";
         }
         else if (elementType->isVariableLength())
         {
@@ -1251,13 +1260,8 @@ Slice::CsGenerator::sequenceMarshalCode(
     }
     else if (auto optional = OptionalPtr::dynamicCast(type); optional && optional->encodedUsingBitSequence())
     {
-        TypePtr underlying = optional->underlying();
-        out << "encoder.EncodeSequence(" << value;
-        if (isReferenceType(underlying))
-        {
-            out << ", withBitSequence: true";
-        }
-        out << ", " << encodeAction(underlying, scope, readOnly) << ")";
+        out << "encoder.EncodeSequenceWithBitSequence(" << value << ", "
+            << encodeAction(optional, scope, readOnly) << ")";
     }
     else
     {
