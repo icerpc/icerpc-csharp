@@ -147,7 +147,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a dictionary using a bit sequence to efficiently encode null values.</summary>
+        /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
@@ -236,7 +236,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a sequence of nullable values using a bit sequence to efficiently encode nulls.</summary>
+        /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
         /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
@@ -490,7 +490,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged dictionary using a bit sequence to efficiently encode null values.</summary>
+        /// <summary>Encodes a tagged dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
@@ -612,8 +612,7 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged sequence of nullable values using a bit sequence to efficiently encode nulls.
-        /// </summary>
+        /// <summary>Encodes a tagged sequence with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
