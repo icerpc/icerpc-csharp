@@ -287,6 +287,25 @@ namespace IceRpc.Slice
             return DecodeDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyDecodeFunc, valueDecodeFunc);
         }
 
+        /// <summary>Decodes a dictionary with null values encoded using a bit sequence.</summary>
+        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
+        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
+        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
+        /// <returns>The dictionary decoded by this decoder.</returns>
+        public Dictionary<TKey, TValue?> DecodeDictionaryWithBitSequence<TKey, TValue>(
+            int minKeySize,
+            DecodeFunc<TKey> keyDecodeFunc,
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TKey : notnull
+        {
+            int sz = DecodeAndCheckSeqSize(minKeySize);
+            return DecodeDictionaryWithBitSequence(
+                new Dictionary<TKey, TValue?>(sz),
+                sz,
+                keyDecodeFunc,
+                valueDecodeFunc);
+        }
+
         /// <summary>Decodes a remote exception.</summary>
         /// <returns>The remote exception.</returns>
         public abstract RemoteException DecodeException();
@@ -1075,6 +1094,24 @@ namespace IceRpc.Slice
             {
                 TKey key = keyDecodeFunc(this);
                 TValue? value = bitSequence[i] ? valueDecodeFunc(this) : (TValue?)null;
+                dict.Add(key, value);
+            }
+            return dict;
+        }
+
+        private TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
+            TDict dict,
+            int size,
+            DecodeFunc<TKey> keyDecodeFunc,
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TDict : IDictionary<TKey, TValue?>
+            where TKey : notnull
+        {
+            ReadOnlyBitSequence bitSequence = DecodeBitSequence(size);
+            for (int i = 0; i < size; ++i)
+            {
+                TKey key = keyDecodeFunc(this);
+                TValue? value = bitSequence[i] ? valueDecodeFunc(this) : default(TValue?);
                 dict.Add(key, value);
             }
             return dict;
