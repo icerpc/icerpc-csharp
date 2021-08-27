@@ -59,10 +59,17 @@ namespace IceRpc
                 PayloadEncoding = PayloadEncoding,
                 Payload = Payload.ToSingleBuffer(),
             };
+
             if (Protocol == Protocol.Ice1)
             {
-                response.Features = new();
-                response.Features.Set(Features.Get<ReplyStatus>());
+                var replyStatus = Features.Get<ReplyStatus>();
+
+                // default == ReplyStatus.OK, and that's what we get when ReplyStatus is not set in Features
+                if (replyStatus != default)
+                {
+                    response.Features = new();
+                    response.Features.Set(replyStatus);
+                }
             }
             return response;
         }
