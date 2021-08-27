@@ -199,27 +199,24 @@ namespace IceRpc.Slice
         // Decode methods for constructed types
 
         /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>() where T : struct
+        public T[] DecodeArray<T>(Action<T>? checkElement = null) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
             var value = new T[DecodeAndCheckSeqSize(elementSize)];
             int byteCount = elementSize * value.Length;
             _buffer.Span.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
             Pos += byteCount;
-            return value;
-        }
 
-        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
-        /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>(Action<T> checkElement) where T : struct
-        {
-            T[] value = DecodeArray<T>();
-            foreach (T e in value)
+            if (checkElement != null)
             {
-                checkElement(e);
+                foreach (T e in value)
+                {
+                    checkElement(e);
+                }
             }
+
             return value;
         }
 
@@ -466,8 +463,9 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a tagged array of a fixed-size numeric type.</summary>
         /// <param name="tag">The tag.</param>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag) where T : struct
+        public T[]? DecodeTaggedArray<T>(int tag, Action<T>? checkElement = null) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize))
@@ -478,30 +476,7 @@ namespace IceRpc.Slice
                     // parameter) that we skip.
                     SkipSize();
                 }
-                return DecodeArray<T>();
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Decodes a tagged array of a fixed-size numeric type.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag, Action<T> checkElement) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize))
-            {
-                if (elementSize > 1)
-                {
-                    // For elements with size > 1, the encoding includes a size (number of bytes in the tagged
-                    // parameter) that we skip.
-                    SkipSize();
-                }
-                return DecodeArray(checkElement);
+                return DecodeArray<T>(checkElement);
             }
             else
             {
