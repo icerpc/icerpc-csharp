@@ -59,8 +59,7 @@ namespace IceRpc.Internal
         /// encoding specific. If the encoded exception contains a 1.1 payload, the exception needs is encoded
         /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
         /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
-        /// system exception. If it's the received with the Ice2 protocol, the reply status is obtained from
-        /// the <see cref="FieldKey.ReplyStatus"/>.</summary>
+        /// system exception.</summary>
         internal static Exception DecodeResponseException(
             this Protocol protocol,
             IncomingResponse response,
@@ -232,21 +231,17 @@ namespace IceRpc.Internal
                     Payload = new ReadOnlyMemory<byte>[] { response.Payload },
                     PayloadEncoding = response.PayloadEncoding,
                 };
+
                 if (response.Protocol == Protocol.Ice1)
                 {
                     outgoingResponse.Features.Set(response.Features.Get<ReplyStatus>());
                 }
                 else
                 {
-                    if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
-                    {
-                        outgoingResponse.Features.Set((ReplyStatus)value.Span[0]);
-                    }
-                    else
-                    {
-                        outgoingResponse.Features.Set(response.ResultType == ResultType.Success ?
+                    // TODO: ice1 system exception transcoding when incomingResponse.PayloadEncoding is 2.0
+
+                    outgoingResponse.Features.Set(response.ResultType == ResultType.Success ?
                             ReplyStatus.OK : ReplyStatus.UserException);
-                    }
                 }
                 return outgoingResponse;
             }
@@ -259,12 +254,7 @@ namespace IceRpc.Internal
                     Payload = new ReadOnlyMemory<byte>[] { response.Payload },
                     PayloadEncoding = response.PayloadEncoding,
                 };
-                if (response.Protocol == Protocol.Ice1 && response.PayloadEncoding == Encoding.Ice11)
-                {
-                    outgoingResponse.Fields.Add(
-                        (int)FieldKey.ReplyStatus,
-                        encoder => encoder.EncodeByte((byte)response.Features.Get<ReplyStatus>()));
-                }
+
                 return outgoingResponse;
             }
         }
