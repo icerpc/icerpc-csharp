@@ -1203,9 +1203,9 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
             }
             else
             {
-                out << "decoder.DecodeTaggedArray(" << tag << ", minElementSize: " << elementType->minWireSize()
+                out << "decoder.DecodeTaggedSequence(" << tag << ", minElementSize: " << elementType->minWireSize()
                     << ", fixedSize: " << (elementType->isVariableLength() ? "false" : "true")
-                    << ", " << decodeFunc(elementType, scope) << ")";
+                    << ", " << decodeFunc(elementType, scope) << ")?.ToArray()";
             }
         }
     }
