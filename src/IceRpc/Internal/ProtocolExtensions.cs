@@ -55,73 +55,14 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Decodes an exception from the given response. The decoding of an exception is protocol and
-        /// encoding specific. If the encoded exception contains a 1.1 payload, the exception needs is encoded
-        /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
-        /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
-        /// system exception.</summary>
-        internal static Exception DecodeResponseException(
-            this Protocol protocol,
-            IncomingResponse response,
-            IceDecoder decoder)
-        {
-            RemoteException exception;
-            if (protocol == Protocol.Ice1)
-            {
-                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
-                if (replyStatus == ReplyStatus.UserException)
-                {
-                    exception = decoder.DecodeException();
-                }
-                else
-                {
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
-                }
-            }
-            else
-            {
-                exception = decoder.DecodeException();
-            }
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return exception;
-        }
-
         /// <summary>Creates an outgoing response with the exception. If a 1.1 encoded exception is sent with the ice1
         /// protocol, this method also the <see cref="ReplyStatus"/> feature. This method also sets the
         /// <see cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
-        internal static OutgoingResponse CreateResponseFromException(
+        internal static OutgoingResponse CreateResponseFromRemoteException(
             this Protocol protocol,
-            Exception exception,
-            IncomingRequest request)
+            RemoteException remoteException,
+            Encoding payloadEncoding)
         {
-            if (protocol == Protocol.Ice1)
-            {
-                if (exception is OperationCanceledException)
-                {
-                    exception = new DispatchException("dispatch canceled by peer");
-                }
-            }
-            else
-            {
-                if (exception is OperationCanceledException)
-                {
-                    throw exception; // Rethrow to abort the stream
-                }
-            }
-
-            RemoteException? remoteException = exception as RemoteException;
-            if (remoteException == null || remoteException.ConvertToUnhandled)
-            {
-                remoteException = new UnhandledException(exception);
-            }
-
-            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
-            {
-                remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-            }
-
-            Encoding payloadEncoding = request.PayloadEncoding;
-
             bool isIce1SystemException = payloadEncoding == Encoding.Ice11 &&
                 (remoteException is ServiceNotFoundException ||
                  remoteException is OperationNotFoundException ||
@@ -221,41 +162,76 @@ namespace IceRpc.Internal
             };
         }
 
-        internal static OutgoingResponse ToOutgoingResponse(this Protocol targetProtocol, IncomingResponse response)
+        internal static OutgoingResponse ToOutgoingResponse(
+            this Protocol targetProtocol,
+            IncomingResponse incomingResponse)
         {
-            if (targetProtocol == Protocol.Ice1)
+            if (incomingResponse.ResultType == ResultType.Success)
             {
-                var outgoingResponse = new OutgoingResponse(targetProtocol, response.ResultType)
+                return new OutgoingResponse(targetProtocol, ResultType.Success)
                 {
-                    Features = new(),
-                    Payload = new ReadOnlyMemory<byte>[] { response.Payload },
-                    PayloadEncoding = response.PayloadEncoding,
+                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary(),
+                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
+                    PayloadEncoding = incomingResponse.PayloadEncoding
                 };
-
-                if (response.Protocol == Protocol.Ice1)
+            }
+            else if (targetProtocol == Protocol.Ice1)
+            {
+                if (incomingResponse.Protocol == Protocol.Ice2 && incomingResponse.PayloadEncoding == Encoding.Ice20)
                 {
-                    outgoingResponse.Features.Set(response.Features.Get<ReplyStatus>());
-                }
-                else
-                {
-                    // TODO: ice1 system exception transcoding when incomingResponse.PayloadEncoding is 2.0
+                    // We may need to transcode an ice1 system exception
+                    var decoder =
+                        new Ice20Decoder(incomingResponse.Payload,
+                                         activator: Ice20Decoder.GetActivator(typeof(RemoteException).Assembly));
 
-                    outgoingResponse.Features.Set(response.ResultType == ResultType.Success ?
-                            ReplyStatus.OK : ReplyStatus.UserException);
+                    string typeId = decoder.DecodeString();
+                    if (typeId == typeof(ServiceNotFoundException).GetIceTypeId() ||
+                        typeId == typeof(OperationNotFoundException).GetIceTypeId() ||
+                        typeId == typeof(UnhandledException).GetIceTypeId())
+                    {
+                        decoder.Pos = 0;
+                        RemoteException systemException = decoder.DecodeException();
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
+                    }
                 }
-                return outgoingResponse;
+
+                var features = new FeatureCollection();
+                features.Set(incomingResponse.Protocol == Protocol.Ice1 ?
+                    incomingResponse.Features.Get<ReplyStatus>() : ReplyStatus.UserException);
+
+                return new OutgoingResponse(Protocol.Ice1, ResultType.Failure)
+                {
+                    Features = features,
+                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
+                    PayloadEncoding = incomingResponse.PayloadEncoding,
+                };
             }
             else
             {
-                var outgoingResponse = new OutgoingResponse(targetProtocol, response.ResultType)
+                Debug.Assert(targetProtocol == Protocol.Ice2);
+
+                if (incomingResponse.Protocol == Protocol.Ice1)
+                {
+                    // We may need to transcode an ice1 system exception
+                    ReplyStatus replyStatus = incomingResponse.Features.Get<ReplyStatus>();
+
+                    if (replyStatus > ReplyStatus.UserException)
+                    {
+                        RemoteException systemException = Ice1Definitions.DecodeIce1SystemException(
+                            new Ice11Decoder(incomingResponse.Payload),
+                            replyStatus);
+
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
+                    }
+                }
+
+                return new OutgoingResponse(targetProtocol, ResultType.Failure)
                 {
                     // Don't forward RetryPolicy
-                    FieldsDefaults = response.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    Payload = new ReadOnlyMemory<byte>[] { response.Payload },
-                    PayloadEncoding = response.PayloadEncoding,
+                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
+                    PayloadEncoding = incomingResponse.PayloadEncoding,
                 };
-
-                return outgoingResponse;
             }
         }
     }

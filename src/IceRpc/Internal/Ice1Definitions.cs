@@ -85,11 +85,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Decodes an ice1 system exception.</summary>
-        /// <param name="decoder">The Ice decoder.</param>
+        /// <param name="decoder">The decoder.</param>
         /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception read from the buffer.</returns>
-        internal static RemoteException DecodeIce1SystemException(this Ice11Decoder decoder, ReplyStatus replyStatus)
+        /// <returns>The exception decoded using the decoder.</returns>
+        internal static RemoteException DecodeIce1SystemException(IceDecoder decoder, ReplyStatus replyStatus)
         {
+            Debug.Assert(decoder is Ice11Decoder);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;

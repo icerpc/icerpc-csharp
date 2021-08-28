@@ -17,13 +17,13 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             DefaultIceDecoderFactories defaultIceDecoderFactories)
         {
-            var decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
-                throw response.Protocol.DecodeResponseException(response, decoder);
+                throw response.ToRemoteException(decoder);
             }
             else
             {
@@ -44,13 +44,13 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<T> decodeFunc)
         {
-            var decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
-                throw response.Protocol.DecodeResponseException(response, decoder);
+                throw response.ToRemoteException(decoder);
             }
             else
             {
@@ -58,6 +58,28 @@ namespace IceRpc.Slice
                 decoder.CheckEndOfBuffer(skipTaggedParams: true);
                 return result;
             }
+        }
+
+        /// <summary>Decodes a remote exception carried by a response. This decoding is special for 1.1-encoded ice1
+        /// responses, because the response can carry an ice1 system exception; for other responses, it simply calls
+        /// <see cref="IceDecoder.DecodeException"/>.</summary>
+        private static RemoteException ToRemoteException(this IncomingResponse response, IceDecoder decoder)
+        {
+            RemoteException? exception = null;
+
+            if (response.Protocol == Protocol.Ice1 && response.PayloadEncoding == Encoding.Ice11)
+            {
+                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
+
+                if (replyStatus > ReplyStatus.UserException)
+                {
+                    exception = Ice1Definitions.DecodeIce1SystemException(decoder, replyStatus);
+                }
+            }
+
+            exception ??= decoder.DecodeException();
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return exception;
         }
     }
 }
