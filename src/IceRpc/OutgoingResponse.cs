@@ -33,37 +33,8 @@ namespace IceRpc
         /// <param name="request">The incoming request for which this method creates a response.</param>
         /// <param name="exception">The exception to store into the response's payload.</param>
         /// <returns>The outgoing response.</returns>
-        public static OutgoingResponse ForException(IncomingRequest request, Exception exception)
-        {
-            if (request.Protocol == Protocol.Ice1)
-            {
-                if (exception is OperationCanceledException)
-                {
-                    exception = new DispatchException("dispatch canceled by peer");
-                }
-            }
-            else
-            {
-                if (exception is OperationCanceledException)
-                {
-                    throw exception; // Rethrow to abort the stream
-                }
-            }
-
-            RemoteException? remoteException = exception as RemoteException;
-            if (remoteException == null || remoteException.ConvertToUnhandled)
-            {
-                remoteException = new UnhandledException(exception);
-            }
-
-            if (remoteException.Origin == RemoteExceptionOrigin.Unknown)
-            {
-                remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
-            }
-
-            return request.Protocol.CreateResponseFromRemoteException(remoteException,
-                                                                      request.PayloadEncoding);
-        }
+        public static OutgoingResponse ForException(IncomingRequest request, Exception exception) =>
+            request.Protocol.CreateResponseFromException(exception, request);
 
         /// <summary>Returns a new incoming response built from this outgoing response. This method is
         /// used for colocated calls.</summary>
