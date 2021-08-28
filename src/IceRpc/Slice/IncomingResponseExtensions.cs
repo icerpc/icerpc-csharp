@@ -18,8 +18,8 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories)
         {
             IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                    response.Features,
-                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+                response.Features,
+                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
@@ -45,8 +45,8 @@ namespace IceRpc.Slice
             DecodeFunc<T> decodeFunc)
         {
             IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                    response.Features,
-                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+                response.Features,
+                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
@@ -73,7 +73,7 @@ namespace IceRpc.Slice
 
                 if (replyStatus > ReplyStatus.UserException)
                 {
-                    exception = Ice1Definitions.DecodeIce1SystemException(decoder, replyStatus);
+                    exception = decoder.DecodeIce1SystemException(replyStatus);
                 }
             }
 

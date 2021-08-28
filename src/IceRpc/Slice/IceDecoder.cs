@@ -22,7 +22,7 @@ namespace IceRpc.Slice
         internal IInvoker? Invoker { get; }
 
         /// <summary>The 0-based position (index) in the underlying buffer.</summary>
-        internal int Pos { get; set; }
+        internal int Pos { get; private protected set; }
 
         // The byte buffer we are decoding.
         private protected readonly ReadOnlyMemory<byte> _buffer;

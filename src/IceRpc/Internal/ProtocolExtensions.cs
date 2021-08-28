@@ -42,15 +42,8 @@ namespace IceRpc.Internal
     /// <summary>Provides extensions methods for <see cref="Protocol"/>.</summary>
     internal static class ProtocolExtensions
     {
-        private static readonly IActivator<Ice20Decoder> _defaultActivator =
-            Ice20Decoder.GetActivator(typeof(ProtocolExtensions).Assembly);
-
-        private static readonly HashSet<string> _ice1SystemExceptionTypeIds = new HashSet<string>
-        {
-            typeof(ServiceNotFoundException).GetIceTypeId()!,
-            typeof(OperationNotFoundException).GetIceTypeId()!,
-            typeof(UnhandledException).GetIceTypeId()!
-        };
+        private static readonly IActivator<Ice20Decoder> _activator20 =
+            Ice20Decoder.GetActivator(typeof(RemoteException).Assembly);
 
         /// <summary>Checks if this protocol is supported by the IceRPC runtime. If not supported, throws
         /// <see cref="NotSupportedException"/>.</summary>
@@ -73,14 +66,11 @@ namespace IceRpc.Internal
             RemoteException remoteException,
             Encoding payloadEncoding)
         {
-            bool isIce1SystemException = payloadEncoding == Encoding.Ice11 &&
-                (remoteException is ServiceNotFoundException ||
-                 remoteException is OperationNotFoundException ||
-                 remoteException is UnhandledException);
+            bool isIce1SystemException = payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException();
 
             if (protocol == Protocol.Ice2 && isIce1SystemException)
             {
-                // An ice1 system exception is always encoded as a regular Ice 2.0 exception when sent over ice2.
+                // An ice1 system exception is always encoded using the protocol's encoding.
                 payloadEncoding = Encoding.Ice20;
                 isIce1SystemException = false;
             }
@@ -189,16 +179,16 @@ namespace IceRpc.Internal
             {
                 if (incomingResponse.Protocol == Protocol.Ice2 && incomingResponse.PayloadEncoding == Encoding.Ice20)
                 {
-                    // We may need to transcode an ice1 system exception
-                    var decoder = new Ice20Decoder(incomingResponse.Payload, activator: _defaultActivator);
+                    // ice1 system exceptions must be encoded with the target protocol's encoding, so we need to
+                    // transcode this exception if it's an ice1 system exception.
+                    var decoder = new Ice20Decoder(incomingResponse.Payload);
 
                     string typeId = decoder.DecodeString();
-                    if (_ice1SystemExceptionTypeIds.Contains(typeId))
+                    if (typeId.IsIce1SystemExceptionTypeId())
                     {
-                        decoder.Pos = 0;
-                        RemoteException systemException = decoder.DecodeException();
+                        var systemException = (RemoteException)_activator20.CreateInstance(typeId, decoder)!;
                         decoder.CheckEndOfBuffer(skipTaggedParams: false);
-                        return Protocol.Ice1.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
                     }
                 }
 
@@ -217,18 +207,18 @@ namespace IceRpc.Internal
             {
                 Debug.Assert(targetProtocol == Protocol.Ice2);
 
-                if (incomingResponse.Protocol == Protocol.Ice1)
+                if (incomingResponse.Protocol == Protocol.Ice1 && incomingResponse.PayloadEncoding == Encoding.Ice11)
                 {
-                    // We may need to transcode an ice1 system exception
+                    // ice1 system exceptions must be encoded with the target protocol's encoding, so we need to
+                    // transcode this exception if it's an ice1 system exception.
                     ReplyStatus replyStatus = incomingResponse.Features.Get<ReplyStatus>();
 
                     if (replyStatus > ReplyStatus.UserException)
                     {
-                        RemoteException systemException = Ice1Definitions.DecodeIce1SystemException(
-                            new Ice11Decoder(incomingResponse.Payload),
-                            replyStatus);
+                        RemoteException systemException =
+                            new Ice11Decoder(incomingResponse.Payload).DecodeIce1SystemException(replyStatus);
 
-                        return Protocol.Ice2.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
+                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
                     }
                 }
 
