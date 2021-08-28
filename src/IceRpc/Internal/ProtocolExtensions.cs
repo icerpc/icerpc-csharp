@@ -224,7 +224,7 @@ namespace IceRpc.Internal
             else
             {
                 Debug.Assert(protocol == Protocol.Ice2);
-                if (remoteException.IsIce1SystemException() && payloadEncoding == Encoding.Ice11)
+                if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
                 {
                     // We switch to the 2.0 encoding because the 1.1 encoding is lossy for system exceptions.
                     payloadEncoding = Encoding.Ice20;
