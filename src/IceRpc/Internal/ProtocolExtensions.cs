@@ -42,6 +42,16 @@ namespace IceRpc.Internal
     /// <summary>Provides extensions methods for <see cref="Protocol"/>.</summary>
     internal static class ProtocolExtensions
     {
+        private static readonly IActivator<Ice20Decoder> _defaultActivator =
+            Ice20Decoder.GetActivator(typeof(ProtocolExtensions).Assembly);
+
+        private static readonly HashSet<string> _ice1SystemExceptionTypeIds = new HashSet<string>
+        {
+            typeof(ServiceNotFoundException).GetIceTypeId()!,
+            typeof(OperationNotFoundException).GetIceTypeId()!,
+            typeof(UnhandledException).GetIceTypeId()!
+        };
+
         /// <summary>Checks if this protocol is supported by the IceRPC runtime. If not supported, throws
         /// <see cref="NotSupportedException"/>.</summary>
         /// <param name="protocol">The protocol.</param>
@@ -180,18 +190,15 @@ namespace IceRpc.Internal
                 if (incomingResponse.Protocol == Protocol.Ice2 && incomingResponse.PayloadEncoding == Encoding.Ice20)
                 {
                     // We may need to transcode an ice1 system exception
-                    var decoder =
-                        new Ice20Decoder(incomingResponse.Payload,
-                                         activator: Ice20Decoder.GetActivator(typeof(RemoteException).Assembly));
+                    var decoder = new Ice20Decoder(incomingResponse.Payload, activator: _defaultActivator);
 
                     string typeId = decoder.DecodeString();
-                    if (typeId == typeof(ServiceNotFoundException).GetIceTypeId() ||
-                        typeId == typeof(OperationNotFoundException).GetIceTypeId() ||
-                        typeId == typeof(UnhandledException).GetIceTypeId())
+                    if (_ice1SystemExceptionTypeIds.Contains(typeId))
                     {
                         decoder.Pos = 0;
                         RemoteException systemException = decoder.DecodeException();
-                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
+                        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+                        return Protocol.Ice1.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
                     }
                 }
 
@@ -221,11 +228,11 @@ namespace IceRpc.Internal
                             new Ice11Decoder(incomingResponse.Payload),
                             replyStatus);
 
-                        return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
+                        return Protocol.Ice2.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
                     }
                 }
 
-                return new OutgoingResponse(targetProtocol, ResultType.Failure)
+                return new OutgoingResponse(Protocol.Ice2, ResultType.Failure)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
