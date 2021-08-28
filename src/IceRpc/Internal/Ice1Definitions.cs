@@ -138,8 +138,8 @@ namespace IceRpc.Internal
         {
             ReplyStatus replyStatus = exception switch
             {
-                ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
-                OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
+                ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
+                OperationNotFoundException => ReplyStatus.OperationNotExistException,
                 _ => ReplyStatus.UnknownLocalException,
             };
 
@@ -153,7 +153,7 @@ namespace IceRpc.Internal
                     {
                         identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
                     }
-                    catch (FormatException)
+                    catch
                     {
                         // ignored, i.e. we'll encode an empty identity + facet
                         identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
