@@ -58,45 +58,46 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Creates an outgoing response with the exception. If a 1.1 encoded exception is sent with the ice1
-        /// protocol, this method also the <see cref="ReplyStatus"/> feature. This method also sets the
-        /// <see cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
+        /// <summary>Creates an outgoing response with the exception. With the ice1 protocol, this method sets the
+        /// <see cref="ReplyStatus"/> feature. This method also sets the <see cref="FieldKey.RetryPolicy"/> if an
+        /// exception retry policy is set.</summary>
         internal static OutgoingResponse CreateResponseFromRemoteException(
             this Protocol protocol,
             RemoteException remoteException,
             Encoding payloadEncoding)
         {
-            bool isIce1SystemException = payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException();
-
-            if (protocol == Protocol.Ice2 && isIce1SystemException)
-            {
-                // An ice1 system exception is always encoded using the protocol's encoding.
-                payloadEncoding = Encoding.Ice20;
-                isIce1SystemException = false;
-            }
-
+            FeatureCollection features = FeatureCollection.Empty;
             var bufferWriter = new BufferWriter();
-            IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
 
-            FeatureCollection features = protocol == Protocol.Ice1 ? new FeatureCollection() : FeatureCollection.Empty;
-
-            if (isIce1SystemException)
+            if (protocol == Protocol.Ice1)
             {
-                Debug.Assert(protocol == Protocol.Ice1);
+                features = new FeatureCollection();
 
-                ReplyStatus replyStatus = encoder.EncodeIce1SystemException(remoteException);
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
 
-                // Set the reply status feature. It's used when the response header is encoded.
-                features.Set(replyStatus);
+                if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
+                {
+                    ReplyStatus replyStatus = encoder.EncodeIce1SystemException(remoteException);
+                    // Set the reply status feature. It's used when the response header is encoded.
+                    features.Set(replyStatus);
+                }
+                else
+                {
+                    encoder.EncodeException(remoteException);
+                    features.Set(ReplyStatus.UserException);
+                }
             }
             else
             {
-                encoder.EncodeException(remoteException);
-
-                if (protocol == Protocol.Ice1)
+                Debug.Assert(protocol == Protocol.Ice2);
+                if (remoteException.IsIce1SystemException() && payloadEncoding == Encoding.Ice11)
                 {
-                    features.Set(ReplyStatus.UserException);
+                    // We switch to the 2.0 encoding because the 1.1 encoding is lossy for system exceptions.
+                    payloadEncoding = Encoding.Ice20;
                 }
+
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+                encoder.EncodeException(remoteException);
             }
 
             var response = new OutgoingResponse(protocol, ResultType.Failure)
@@ -166,21 +167,15 @@ namespace IceRpc.Internal
             this Protocol targetProtocol,
             IncomingResponse incomingResponse)
         {
-            if (incomingResponse.ResultType == ResultType.Success)
-            {
-                return new OutgoingResponse(targetProtocol, ResultType.Success)
-                {
-                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary(),
-                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
-                    PayloadEncoding = incomingResponse.PayloadEncoding
-                };
-            }
-            else if (targetProtocol == Protocol.Ice1)
+            if (incomingResponse.ResultType == ResultType.Failure && incomingResponse.Protocol != targetProtocol)
             {
                 if (incomingResponse.Protocol == Protocol.Ice2 && incomingResponse.PayloadEncoding == Encoding.Ice20)
                 {
-                    // ice1 system exceptions must be encoded with the target protocol's encoding, so we need to
-                    // transcode this exception if it's an ice1 system exception.
+                    Debug.Assert(targetProtocol == Protocol.Ice1);
+
+                    // ice1 system exceptions must be encoded with 1.1 when forwarded from ice2 to ice1, so we check if
+                    // we have a system exception.
+
                     var decoder = new Ice20Decoder(incomingResponse.Payload);
 
                     string typeId = decoder.DecodeString();
@@ -191,26 +186,14 @@ namespace IceRpc.Internal
                         return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
                     }
                 }
-
-                var features = new FeatureCollection();
-                features.Set(incomingResponse.Protocol == Protocol.Ice1 ?
-                    incomingResponse.Features.Get<ReplyStatus>() : ReplyStatus.UserException);
-
-                return new OutgoingResponse(targetProtocol, ResultType.Failure)
+                else if (incomingResponse.Protocol == Protocol.Ice1 &&
+                         incomingResponse.PayloadEncoding == Encoding.Ice11)
                 {
-                    Features = features,
-                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
-                    PayloadEncoding = incomingResponse.PayloadEncoding,
-                };
-            }
-            else
-            {
-                Debug.Assert(targetProtocol == Protocol.Ice2);
+                    Debug.Assert(targetProtocol == Protocol.Ice2);
 
-                if (incomingResponse.Protocol == Protocol.Ice1 && incomingResponse.PayloadEncoding == Encoding.Ice11)
-                {
-                    // ice1 system exceptions must be encoded with the target protocol's encoding, so we need to
-                    // transcode this exception if it's an ice1 system exception.
+                    // ice1 system exceptions must be encoded with 2.0 when forwarded from ice1 to ice2, so we check if
+                    // we have a system exception.
+
                     ReplyStatus replyStatus = incomingResponse.Features.Get<ReplyStatus>();
 
                     if (replyStatus > ReplyStatus.UserException)
@@ -221,15 +204,26 @@ namespace IceRpc.Internal
                         return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice20);
                     }
                 }
-
-                return new OutgoingResponse(targetProtocol, ResultType.Failure)
-                {
-                    // Don't forward RetryPolicy
-                    FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
-                    Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
-                    PayloadEncoding = incomingResponse.PayloadEncoding,
-                };
             }
+
+            // Normal situation:
+
+            FeatureCollection features = FeatureCollection.Empty;
+            if (incomingResponse.ResultType == ResultType.Failure && targetProtocol == Protocol.Ice1)
+            {
+                features = new FeatureCollection();
+                features.Set(incomingResponse.Protocol == Protocol.Ice1 ?
+                    incomingResponse.Features.Get<ReplyStatus>() : ReplyStatus.UserException);
+            }
+
+            return new OutgoingResponse(targetProtocol, incomingResponse.ResultType)
+            {
+                Features = features,
+                // Don't forward RetryPolicy
+                FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
+                Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
+                PayloadEncoding = incomingResponse.PayloadEncoding,
+            };
         }
     }
 }
