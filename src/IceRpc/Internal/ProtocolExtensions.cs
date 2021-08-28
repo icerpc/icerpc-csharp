@@ -196,7 +196,7 @@ namespace IceRpc.Internal
                 features.Set(incomingResponse.Protocol == Protocol.Ice1 ?
                     incomingResponse.Features.Get<ReplyStatus>() : ReplyStatus.UserException);
 
-                return new OutgoingResponse(Protocol.Ice1, ResultType.Failure)
+                return new OutgoingResponse(targetProtocol, ResultType.Failure)
                 {
                     Features = features,
                     Payload = new ReadOnlyMemory<byte>[] { incomingResponse.Payload },
@@ -222,7 +222,7 @@ namespace IceRpc.Internal
                     }
                 }
 
-                return new OutgoingResponse(Protocol.Ice2, ResultType.Failure)
+                return new OutgoingResponse(targetProtocol, ResultType.Failure)
                 {
                     // Don't forward RetryPolicy
                     FieldsDefaults = incomingResponse.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
