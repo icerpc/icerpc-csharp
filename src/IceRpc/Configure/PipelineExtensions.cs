@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace IceRpc.Configure
 {
@@ -67,6 +69,15 @@ namespace IceRpc.Configure
         /// <returns>The pipeline being configured.</returns>
         public static Pipeline UseRetry(this Pipeline pipeline, RetryOptions options) =>
             pipeline.Use(next => new RetryInterceptor(next, options));
+
+        /// <summary>Adds a <see cref="SliceAssembliesInterceptor"/> to the pipeline. This interceptor overwrites the
+        /// assemblies that IceRPC uses to decode types received "over the wire".</summary>
+        /// <param name="pipeline">The pipeline being configured.</param>
+        /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
+        /// <returns>The pipeline being configured.</returns>
+        /// <seealso cref="IActivator{T}"/>
+        public static Pipeline UseSliceAssemblies(this Pipeline pipeline, params Assembly[] assemblies)  =>
+            pipeline.Use(next => new SliceAssembliesInterceptor(next, assemblies));
 
         /// <summary>Adds the <see cref="TelemetryInterceptor"/> to the pipeline.</summary>
         /// <param name="pipeline">The pipeline being configured.</param>

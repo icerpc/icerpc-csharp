@@ -39,9 +39,9 @@ namespace IceRpc.Tests.ClientServer
                     try
                     {
                         compressedRequestSize = request.PayloadSize;
-                        compressedRequest = request.Fields.ContainsKey((int)Ice2FieldKey.Compression);
+                        compressedRequest = request.Fields.ContainsKey((int)FieldKey.Compression);
                         OutgoingResponse response = await next.DispatchAsync(request, cancel);
-                        compressedResponse = response.Fields.ContainsKey((int)Ice2FieldKey.Compression);
+                        compressedResponse = response.Fields.ContainsKey((int)FieldKey.Compression);
                         compressedResponseSize = response.PayloadSize;
                         return response;
                     }
@@ -71,12 +71,7 @@ namespace IceRpc.Tests.ClientServer
             router.Map<ICompressTest>(new CompressTest());
             await using var connection = new Connection
             {
-                RemoteEndpoint = server.Endpoint,
-                Options = new ConnectionOptions()
-                {
-                    Activator11 = Ice11Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
-                    Activator20 = Ice20Decoder.GetActivator(typeof(RetrySystemFailure).Assembly),
-                }
+                RemoteEndpoint = server.Endpoint
             };
             var prx = CompressTestPrx.FromConnection(connection, invoker: pipeline);
 

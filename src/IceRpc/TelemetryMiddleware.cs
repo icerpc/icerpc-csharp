@@ -1,6 +1,7 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
@@ -29,7 +30,7 @@ namespace IceRpc
 
         async ValueTask<OutgoingResponse> IDispatcher.DispatchAsync(IncomingRequest request, CancellationToken cancel)
         {
-            if (request.Protocol != Protocol.Ice1)
+            if (request.Protocol.HasFieldSupport())
             {
                 Activity? activity = _options.ActivitySource?.CreateActivity(
                     $"{request.Path}/{request.Operation}",
@@ -68,8 +69,7 @@ namespace IceRpc
 
         private static void RestoreActivityContext(IncomingRequest request, Activity activity)
         {
-            Debug.Assert(request.Protocol != Protocol.Ice1);
-            if (request.Fields.TryGetValue((int)Ice2FieldKey.TraceContext, out ReadOnlyMemory<byte> buffer))
+            if (request.Fields.TryGetValue((int)FieldKey.TraceContext, out ReadOnlyMemory<byte> buffer))
             {
                 // Read W3C traceparent binary encoding (1 byte version, 16 bytes trace Id, 8 bytes span Id,
                 // 1 byte flags) https://www.w3.org/TR/trace-context/#traceparent-header-field-values

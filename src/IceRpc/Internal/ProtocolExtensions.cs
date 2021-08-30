@@ -1,5 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -53,13 +55,56 @@ namespace IceRpc.Internal
             }
         }
 
-        /// <summary>Encode an exception into the given response. The encoding of an exception is protocol and
+        /// <summary>Decodes an exception from the given response. The decoding of an exception is protocol and
+        /// encoding specific. If the encoded exception contains a 1.1 payload, the exception needs is encoded
+        /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
+        /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
+        /// system exception. If it's the received with the Ice2 protocol, the reply status is obtained from
+        /// the <see cref="FieldKey.ReplyStatus"/>.</summary>
+        internal static Exception DecodeResponseException(
+            this Protocol protocol,
+            IncomingResponse response,
+            IceDecoder decoder)
+        {
+            RemoteException exception;
+            if (protocol == Protocol.Ice1)
+            {
+                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
+                if (replyStatus == ReplyStatus.UserException)
+                {
+                    exception = decoder.DecodeException();
+                }
+                else
+                {
+                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
+                }
+            }
+            else
+            {
+                if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
+                {
+                    if (response.PayloadEncoding != Encoding.Ice11)
+                    {
+                        throw new InvalidDataException($"unexpected {nameof(FieldKey.ReplyStatus)} field");
+                    }
+                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)value.Span[0]);
+                }
+                else
+                {
+                    exception = decoder.DecodeException();
+                }
+            }
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return exception;
+        }
+
+        /// <summary>Encodes an exception into the given response. The encoding of an exception is protocol and
         /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs to be encoded
         /// either as a user or system exception. If the 1.1 encoded exception is sent with the Ice1 protocol,
         /// this method also sets the <see cref="ReplyStatus"/> feature to allow figure it out when encoding
         /// the Ice1 response frame. If it's the sent with the Ice2 protocol, the reply status is sent with
-        /// the <see cref="Ice2FieldKey.ReplyStatus"/>. This method also sets the <see
-        /// cref="Ice2FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
+        /// the <see cref="FieldKey.ReplyStatus"/>. This method also sets the <see
+        /// cref="FieldKey.RetryPolicy"/> if an exception retry policy is set.</summary>
         internal static void EncodeResponseException(
             this Protocol protocol,
             IncomingRequest request,
@@ -104,7 +149,7 @@ namespace IceRpc.Internal
                 else
                 {
                     response.Fields.Add(
-                        (int)Ice2FieldKey.ReplyStatus,
+                        (int)FieldKey.ReplyStatus,
                         fieldEncoder => fieldEncoder.EncodeByte((byte)replyStatus));
                 }
             }
@@ -132,7 +177,7 @@ namespace IceRpc.Internal
                 retryPolicy.Retryable != Retryable.No)
             {
                 response.Fields.Add(
-                    (int)Ice2FieldKey.RetryPolicy,
+                    (int)FieldKey.RetryPolicy,
                     fieldEncoder =>
                     {
                         fieldEncoder.EncodeRetryable(retryPolicy.Retryable);
@@ -144,54 +189,6 @@ namespace IceRpc.Internal
             }
 
             response.Payload = bufferWriter.Finish();
-        }
-
-        /// <summary>Decode an exception from the given response. The decoding of an exception is protocol and
-        /// encoding specific. If the exception is encoded is a 1.1 payload, the exception needs is encoded
-        /// either as a user or system exception. If the 1.1 encoded exception is received with the Ice1 protocol,
-        /// this method gets the <see cref="ReplyStatus"/> feature to figure out if it should decode a user or
-        /// system exception. If it's the received with the Ice2 protocol, the reply status is obtained from
-        /// the <see cref="Ice2FieldKey.ReplyStatus"/>.</summary>
-        internal static Exception DecodeResponseException(
-            this Protocol protocol,
-            IncomingResponse response,
-            IInvoker? invoker)
-        {
-            IceDecoder decoder = response.PayloadEncoding.CreateIceDecoder(
-                response.Payload,
-                response.Connection,
-                invoker);
-
-            RemoteException exception;
-            if (protocol == Protocol.Ice1)
-            {
-                ReplyStatus replyStatus = response.Features.Get<ReplyStatus>();
-                if (replyStatus == ReplyStatus.UserException)
-                {
-                    exception = decoder.DecodeException();
-                }
-                else
-                {
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException(replyStatus);
-                }
-            }
-            else
-            {
-                if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
-                {
-                    if (response.PayloadEncoding != Encoding.Ice11)
-                    {
-                        throw new InvalidDataException($"unexpected {nameof(Ice2FieldKey.ReplyStatus)} field");
-                    }
-                    exception = ((Ice11Decoder)decoder).DecodeIce1SystemException((ReplyStatus)value.Span[0]);
-                }
-                else
-                {
-                    exception = decoder.DecodeException();
-                }
-            }
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return exception;
         }
 
         internal static OutgoingRequest ToOutgoingRequest(
@@ -247,7 +244,7 @@ namespace IceRpc.Internal
                 }
                 else
                 {
-                    if (response.Fields.TryGetValue((int)Ice2FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
+                    if (response.Fields.TryGetValue((int)FieldKey.ReplyStatus, out ReadOnlyMemory<byte> value))
                     {
                         outgoingResponse.Features.Set((ReplyStatus)value.Span[0]);
                     }
@@ -264,14 +261,14 @@ namespace IceRpc.Internal
                 var outgoingResponse = new OutgoingResponse(targetProtocol, response.ResultType)
                 {
                     // Don't forward RetryPolicy
-                    FieldsDefaults = response.Fields.ToImmutableDictionary().Remove((int)Ice2FieldKey.RetryPolicy),
+                    FieldsDefaults = response.Fields.ToImmutableDictionary().Remove((int)FieldKey.RetryPolicy),
                     Payload = new ReadOnlyMemory<byte>[] { response.Payload },
                     PayloadEncoding = response.PayloadEncoding,
                 };
                 if (response.Protocol == Protocol.Ice1 && response.PayloadEncoding == Encoding.Ice11)
                 {
                     outgoingResponse.Fields.Add(
-                        (int)Ice2FieldKey.ReplyStatus,
+                        (int)FieldKey.ReplyStatus,
                         encoder => encoder.EncodeByte((byte)response.Features.Get<ReplyStatus>()));
                 }
                 return outgoingResponse;

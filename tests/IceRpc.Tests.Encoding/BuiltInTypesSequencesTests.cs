@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 using System.Buffers;
 
@@ -23,7 +25,7 @@ namespace IceRpc.Tests.Encoding
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new BufferWriter(buffer);
             _encoder = _encoding.CreateIceEncoder(_bufferWriter);
-            _decoder = _encoding.CreateIceDecoder(buffer);
+            _decoder = _encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(buffer) : new Ice20Decoder(buffer);
         }
 
         [TestCase(0)]

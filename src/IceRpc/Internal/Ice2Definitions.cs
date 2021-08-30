@@ -1,5 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
+
 namespace IceRpc.Internal
 {
     // Definitions for the ice2 protocol.

@@ -1,12 +1,13 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
 using System.Diagnostics;
 using System.Text;
 
 namespace IceRpc
 {
-    /// <summary>The retry policy that can be specified when constructing a remote exception.</summary>
+    /// <summary>The retry policy that can be specified when constructing a <see cref="RemoteException"/>.</summary>
     public readonly struct RetryPolicy : IEquatable<RetryPolicy>
     {
         /// <summary>The retry policy ability for retrying.</summary>

@@ -2,6 +2,8 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Diagnostics;
 
@@ -399,8 +401,7 @@ namespace IceRpc.Transports
 
                 if (requestHeader.Context.Count > 0)
                 {
-                    request.Features = new FeatureCollection();
-                    request.Features.Set(new Context { Value = requestHeader.Context });
+                    request.Features = request.Features.WithContext(requestHeader.Context);
                 }
 
                 // The payload size is the encapsulation size less the 6 bytes of the encapsulation header.
@@ -422,7 +423,11 @@ namespace IceRpc.Transports
                 {
                     throw new InvalidDataException($"received invalid deadline value {requestHeaderBody.Deadline}");
                 }
+
+                // Read the fields.
                 IReadOnlyDictionary<int, ReadOnlyMemory<byte>> fields = decoder.DecodeFieldDictionary();
+
+                // Ensure the payload data matches the payload size from the frame.
                 payloadSize = decoder.DecodeSize();
                 if (decoder.Pos - headerStartPos != headerSize)
                 {
@@ -449,17 +454,15 @@ namespace IceRpc.Transports
                 };
 
                 // Decode Context from Fields and set corresponding feature.
-                if (request.Fields.TryGetValue((int)Ice2FieldKey.Context, out ReadOnlyMemory<byte> value))
+                if (request.Fields.TryGetValue((int)FieldKey.Context, out ReadOnlyMemory<byte> value))
                 {
-                    request.Features = new FeatureCollection();
-                    request.Features.Set(new Context
-                    {
-                        Value = Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeDictionary(
+                    request.Features = request.Features.WithContext(
+                        Ice20Decoder.DecodeFieldValue(value, decoder => decoder.DecodeDictionary(
                             minKeySize: 1,
                             minValueSize: 1,
                             keyDecodeFunc: decoder => decoder.DecodeString(),
                             valueDecodeFunc: decoder => decoder.DecodeString()))
-                    });
+                    );
                 }
             }
 
@@ -550,7 +553,7 @@ namespace IceRpc.Transports
                         Encoding.FromString(encoding) : Ice2Definitions.Encoding;
 
                 FeatureCollection features = FeatureCollection.Empty;
-                if (fields.TryGetValue((int)Ice2FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
+                if (fields.TryGetValue((int)FieldKey.RetryPolicy, out ReadOnlyMemory<byte> value))
                 {
                     features = new();
                     features.Set(Ice20Decoder.DecodeFieldValue(value, decoder => new RetryPolicy(decoder)));
@@ -648,8 +651,8 @@ namespace IceRpc.Transports
                 // Transmit out local incoming frame maximum size
                 Debug.Assert(_connection.IncomingFrameMaxSize > 0);
                 encoder.EncodeField((int)Ice2ParameterKey.IncomingFrameMaxSize,
-                                (ulong)_connection.IncomingFrameMaxSize,
-                                (encoder, value) => encoder.EncodeVarULong(value));
+                                    (ulong)_connection.IncomingFrameMaxSize,
+                                    (encoder, value) => encoder.EncodeVarULong(value));
 
                 encoder.EndFixedLengthSize(sizePos);
 
@@ -670,6 +673,10 @@ namespace IceRpc.Transports
                 if (request.StreamParamSender != null)
                 {
                     throw new NotSupportedException("stream parameters are not supported with ice1");
+                }
+                if (request.Fields.Count > 0 || request.FieldsDefaults.Count > 0)
+                {
+                    throw new NotSupportedException($"{nameof(Protocol.Ice1)} doesn't support fields");
                 }
 
                 var encoder = new Ice11Encoder(bufferWriter);
@@ -728,10 +735,10 @@ namespace IceRpc.Transports
                 requestHeaderBody.Encode(encoder);
 
                 IDictionary<string, string> context = request.Features.GetContext();
-                if (request.FieldsDefaults.ContainsKey((int)Ice2FieldKey.Context) || context.Count > 0)
+                if (request.FieldsDefaults.ContainsKey((int)FieldKey.Context) || context.Count > 0)
                 {
                     // Encodes context
-                    request.Fields[(int)Ice2FieldKey.Context] =
+                    request.Fields[(int)FieldKey.Context] =
                         encoder => encoder.EncodeDictionary(context,
                                                             (encoder, value) => encoder.EncodeString(value),
                                                             (encoder, value) => encoder.EncodeString(value));

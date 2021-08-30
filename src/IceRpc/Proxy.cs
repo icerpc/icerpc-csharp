@@ -2,6 +2,7 @@
 
 using IceRpc.Features;
 using IceRpc.Internal;
+using IceRpc.Slice;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
@@ -136,12 +137,6 @@ namespace IceRpc
         /// <summary>The Ice protocol of this proxy. Requests sent with this proxy use only this Ice protocol.</summary>
         public Protocol Protocol { get; }
 
-        /// <summary>The endpoint encoder is used when encoding ice1 endpoint (typically inside a proxy)
-        /// with the Ice 1.1 encoding. We need such an encoder/decoder because the Ice 1.1 encoding of endpoints is
-        /// transport-dependent.</summary>
-        /// <seealso cref="Connection.EndpointCodex"/>
-        // TODO: provide public API to get/set this encoder.
-        internal IEndpointEncoder EndpointEncoder { get; set; } = Connection.DefaultEndpointCodex;
         private ImmutableList<Endpoint> _altEndpoints = ImmutableList<Endpoint>.Empty;
         private volatile Connection? _connection;
         private Endpoint? _endpoint;
@@ -273,10 +268,6 @@ namespace IceRpc
                 return false;
             }
             if (Protocol != other.Protocol)
-            {
-                return false;
-            }
-            if (EndpointEncoder != other.EndpointEncoder)
             {
                 return false;
             }
@@ -421,12 +412,11 @@ namespace IceRpc
         /// after sending the request.</param>
         /// <param name="returnStreamParamReceiver">When true, a stream param receiver will be returned.</param>
         /// <param name="cancel">The cancellation token.</param>
-        /// <returns>The response payload, the optional stream reader, its encoding and the connection that received
-        /// the response.</returns>
+        /// <returns>The response and the optional stream reader.</returns>
         /// <exception cref="RemoteException">Thrown if the response carries a failure.</exception>
         /// <remarks>This method stores the response features into the invocation's response features when invocation is
         /// not null.</remarks>
-        public static Task<(ReadOnlyMemory<byte>, StreamParamReceiver?, Encoding, Connection)> InvokeAsync(
+        public static Task<(IncomingResponse, StreamParamReceiver?)> InvokeAsync(
             this Proxy proxy,
             string operation,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
@@ -509,7 +499,7 @@ namespace IceRpc
                 // If there is no synchronous exception, ConvertResponseAsync disposes these cancellation sources.
             }
 
-            async Task<(ReadOnlyMemory<byte> Payload, StreamParamReceiver?, Encoding PayloadEncoding, Connection Connection)> ConvertResponseAsync(
+            async Task<(IncomingResponse, StreamParamReceiver?)> ConvertResponseAsync(
                 OutgoingRequest request,
                 Task<IncomingResponse> responseTask,
                 CancellationTokenSource? timeoutSource,
@@ -524,18 +514,15 @@ namespace IceRpc
                         invocation.ResponseFeatures = response.Features;
                     }
 
-                    if (response.ResultType == ResultType.Failure)
-                    {
-                        throw response.ToException(proxy.Invoker);
-                    }
+                    // TODO: temporary
+                    _ = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
 
-                    ReadOnlyMemory<byte> responsePayload = await response.GetPayloadAsync(cancel).ConfigureAwait(false);
                     StreamParamReceiver? streamParamReceiver = null;
                     if (returnStreamParamReceiver)
                     {
                         streamParamReceiver = new StreamParamReceiver(request.Stream, request.StreamDecompressor);
                     }
-                    return (responsePayload, streamParamReceiver, response.PayloadEncoding, response.Connection);
+                    return (response, streamParamReceiver);
                 }
                 finally
                 {

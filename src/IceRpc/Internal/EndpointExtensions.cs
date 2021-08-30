@@ -87,27 +87,5 @@ namespace IceRpc.Internal
                 }
             }
         }
-
-        /// <summary>Converts this endpoint into an endpoint data. This method is called when encoding an endpoint.
-        /// </summary>
-        /// <param name="endpoint">The endpoint.</param>
-        /// <returns>An endpoint data with all the properties of this endpoint.</returns>
-        internal static EndpointData ToEndpointData(this Endpoint endpoint) =>
-            new(endpoint.Protocol, endpoint.Transport, endpoint.Host, endpoint.Port, endpoint.Params);
-    }
-
-    /// <summary>This class provides extension methods for <see cref="EndpointData"/>.</summary>
-    internal static class EndpointDataExtensions
-    {
-        /// <summary>Converts an endpoint data into an endpoint. This method is used when decoding an endpoint.
-        /// </summary>
-        /// <param name="endpointData">The endpoint data struct.</param>
-        /// <returns>The new endpoint.</returns>
-        internal static Endpoint ToEndpoint(this in EndpointData endpointData) =>
-            new(endpointData.Protocol,
-                string.IsInterned(endpointData.Transport) ?? endpointData.Transport,
-                endpointData.Host,
-                endpointData.Port,
-                endpointData.Params.ToImmutableList());
     }
 }

@@ -1,5 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
+using IceRpc.Slice;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -15,18 +16,15 @@ namespace IceRpc.Tests.CodeGeneration
 
         public TaggedTests()
         {
-            var activator11 = Ice11Decoder.GetActivator(typeof(TaggedTests).Assembly);
             _server = new Server
             {
                 Dispatcher = new TaggedOperations(),
-                Endpoint = TestHelper.GetUniqueColocEndpoint(),
-                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 }
+                Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
             _connection = new Connection
             {
-                RemoteEndpoint = _server.Endpoint,
-                Options = new ConnectionOptions() { Activator11 = activator11 }
+                RemoteEndpoint = _server.Endpoint
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
 
@@ -194,8 +192,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(multiTagged1.MAnotherStructDict, Is.Null);
 
             // Build a request payload with 2 tagged values
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = Payload.FromArgs(
-                _prx.Proxy,
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = _prx.Proxy.CreatePayloadFromArgs(
                 (15, "test"),
                 (IceEncoder encoder, in (int n, string s) value) =>
                 {
@@ -203,10 +200,12 @@ namespace IceRpc.Tests.CodeGeneration
                     encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
                 });
 
-            (ReadOnlyMemory<byte> payload, StreamParamReceiver? _, Encoding payloadEncoding, Connection connection) =
+            (IncomingResponse response, StreamParamReceiver? _) =
                 await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
 
-            Assert.DoesNotThrow(() => payload.CheckVoidReturnValue(payloadEncoding));
+            Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
+                _prx.Proxy.Invoker,
+                new DefaultIceDecoderFactories(typeof(TaggedTests).Assembly)));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.That(b.MInt2.HasValue, Is.False);

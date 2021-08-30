@@ -107,13 +107,12 @@ namespace IceRpc.Tests.Internal
 
                 async Task<Connection> ConnectAsync(Endpoint endpoint)
                 {
-                    var connection = new Connection
+                    var connection = new Connection(_clientConnectionOptions)
                     {
                         RemoteEndpoint = endpoint,
                         ClientTransport = TestHelper.CreateClientTransport(
                             endpoint,
                             authenticationOptions: _clientAuthenticationOptions),
-                        Options = _clientConnectionOptions,
                     };
                     await connection.ConnectAsync(default);
                     return connection;

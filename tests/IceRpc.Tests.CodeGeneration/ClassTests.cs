@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Configure;
+using IceRpc.Slice;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -27,21 +28,17 @@ namespace IceRpc.Tests.CodeGeneration
                     {
                         var response = OutgoingResponse.ForPayload(
                             request,
-                            Payload.FromSingleReturnValue(
-                                request.PayloadEncoding,
+                            request.PayloadEncoding.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
                                 (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);
                     }));
-
-            var activator11 = Ice11Decoder.GetActivator(typeof(ClassTests).Assembly);
 
             Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint(protocol);
             _server = new Server
             {
                 Dispatcher = router,
                 Endpoint = serverEndpoint,
-                ConnectionOptions = new ConnectionOptions { Activator11 = activator11 },
                 ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
             };
             _server.Listen();
@@ -49,7 +46,6 @@ namespace IceRpc.Tests.CodeGeneration
             _connection = new Connection
             {
                 RemoteEndpoint = serverEndpoint,
-                Options = new ConnectionOptions() { Activator11 = activator11 },
                 ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
             };
 

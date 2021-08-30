@@ -1,6 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Internal;
+using IceRpc.Slice;
+using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
 namespace IceRpc.Tests.Encoding
@@ -47,7 +49,8 @@ namespace IceRpc.Tests.Encoding
 
             await using var connection = new Connection();
 
-            var decoder = encoding.CreateIceDecoder(data, connection, invoker: null);
+            IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(data, connection) :
+                new Ice20Decoder(data, connection);
             var proxy2 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
             Assert.AreEqual(proxy, proxy2);
@@ -64,13 +67,15 @@ namespace IceRpc.Tests.Encoding
 
             var regular = Proxy.FromConnection(_connection, "/bar");
 
-            // Marshal the endpointless proxy
+            // Encodes the endpointless proxy
             var encoder = encoding.CreateIceEncoder(_bufferWriter);
             encoder.EncodeProxy(endpointLess);
             ReadOnlyMemory<byte> data = _bufferWriter.Finish().Span[0];
 
-            // Unmarshals the endpointless proxy using the client connection. We get back a 1-endpoint proxy
-            var decoder = encoding.CreateIceDecoder(data, _connection);
+            // Decodes the endpointless proxy using the client connection. We get back a 1-endpoint proxy
+            IceDecoder decoder = encoding == IceRpc.Encoding.Ice11 ? new Ice11Decoder(data, _connection) :
+                new Ice20Decoder(data, _connection);
+
             var proxy1 = decoder.DecodeProxy();
             decoder.CheckEndOfBuffer(skipTaggedParams: false);
 
