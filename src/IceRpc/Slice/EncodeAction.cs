@@ -7,7 +7,7 @@ namespace IceRpc.Slice
     /// <typeparam name="T">The type of the value to encode.</typeparam>
     /// <param name="encoder">The Ice encoder.</param>
     /// <param name="value">The value to encode with the encoder.</param>
-    public delegate void EncodeAction<TEncoder, in T>(IceEncoder encoder, T value) where TEncoder : IceEncoder;
+    public delegate void EncodeAction<TEncoder, in T>(TEncoder encoder, T value) where TEncoder : IceEncoder;
 
     /// <summary>A delegate that encodes a tuple passed as in-reference with an Ice encoder.</summary>
     /// <typeparam name="TEncoder">The type of the Ice encoder.</typeparam>

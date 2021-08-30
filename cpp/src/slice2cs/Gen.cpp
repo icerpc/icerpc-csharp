@@ -1582,7 +1582,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     writeSuppressNonNullableWarnings(dataMembers, Slice::ExceptionType);
     _out << eb;
 
-    if (!base)
+    if (!base && !p->usesClasses(true))
     {
         // public constructor used for Ice 2.0 decoding
         _out << sp;
@@ -1629,7 +1629,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     }
     _out << eb;
 
-    if (!base)
+    if (!base && !p->usesClasses(true))
     {
         _out << sp;
         _out << nl << "protected override void IceEncode(Ice20Encoder encoder)";
@@ -1759,7 +1759,15 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Encodes the fields of this struct.</summary>";
-    _out << nl << "public readonly void Encode(IceEncoder encoder)";
+
+    if (p->usesClasses())
+    {
+        _out << nl << "public readonly void Encode(Ice11Encoder encoder)";
+    }
+    else
+    {
+        _out << nl << "public readonly void Encode(IceEncoder encoder)";
+    }
     _out << sb;
     writeMarshalDataMembers(dataMembers, ns, 0);
     _out << eb;

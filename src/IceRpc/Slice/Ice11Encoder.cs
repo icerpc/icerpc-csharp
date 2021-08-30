@@ -28,6 +28,10 @@ namespace IceRpc.Slice
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
+        /// <summary>Encodes a class instance.</summary>
+        /// <param name="v">The class instance to encode.</param>
+        public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
+
         /// <inheritdoc/>
         public override void EncodeException(RemoteException v)
         {
@@ -40,8 +44,9 @@ namespace IceRpc.Slice
             _current = default;
         }
 
-        /// <inheritdoc/>
-        public override void EncodeNullableClass(AnyClass? v)
+        /// <summary>Encodes a class instance, or null.</summary>
+        /// <param name="v">The class instance to encode, or null.</param>
+        public void EncodeNullableClass(AnyClass? v)
         {
             if (v == null)
             {

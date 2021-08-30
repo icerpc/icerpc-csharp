@@ -14,10 +14,6 @@ namespace IceRpc.Slice
         public override void EncodeException(RemoteException v) => v.Encode(this);
 
         /// <inheritdoc/>
-        public override void EncodeNullableClass(AnyClass? v) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
-
-        /// <inheritdoc/>
         public override void EncodeNullableProxy(Proxy? proxy)
         {
             if (proxy == null)
