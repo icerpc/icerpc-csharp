@@ -206,7 +206,10 @@ namespace IceRpc.Transports.Internal
             if (tls == true)
             {
                 // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN) and set the
-                // TargetHost to the endpoint host.
+                // TargetHost to the endpoint host. On the client side, the application doesn't necessarily
+                // need to provide authentication options if it relies on system certificates and doesn't
+                // specific specific certificate validation so it's fine for _authenticationOptions to be
+                // null.
                 authenticationOptions = _authenticationOptions?.Clone() ?? new();
                 authenticationOptions.TargetHost ??= endpoint.Host;
                 authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>

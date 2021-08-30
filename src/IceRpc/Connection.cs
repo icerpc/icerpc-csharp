@@ -133,16 +133,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The connection options. This property can be used to initialize the connection options.</summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Design",
-            "CA1044:Properties should not be write only",
-            Justification = "Used for initializing the options")]
-        public ConnectionOptions Options
-        {
-            init => _options = value;
-        }
-
         /// <summary>This event is raised when the connection receives a ping frame. The connection object is
         /// passed as the event sender argument.</summary>
         public event EventHandler? PingReceived;
@@ -239,10 +229,17 @@ namespace IceRpc
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection()
+        public Connection() :
+            this(options: new())
+        {
+        }
+
+        /// <summary>Constructs a new client connection with specific options.</summary>
+        /// <param name="options">The connection options</param>
+        public Connection(ConnectionOptions options)
         {
             _logger = NullLogger.Instance;
-            _options = new();
+            _options = options;
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to

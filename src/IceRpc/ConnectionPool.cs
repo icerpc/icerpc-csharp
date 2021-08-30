@@ -209,12 +209,11 @@ namespace IceRpc
                 {
                     // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
-                    connection = new Connection
+                    connection = new Connection(ConnectionOptions)
                     {
                         RemoteEndpoint = endpoint,
                         LoggerFactory = LoggerFactory,
                         ClientTransport = ClientTransport,
-                        Options = ConnectionOptions
                     };
 #pragma warning restore CA2000
                     if (!_connections.TryGetValue(endpoint, out connections))

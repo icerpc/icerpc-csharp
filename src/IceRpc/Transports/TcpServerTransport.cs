@@ -17,14 +17,14 @@ namespace IceRpc.Transports
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         public TcpServerTransport() :
-            this(new(), new(), null)
+            this(tcpOptions: new(), slicOptions: new(), null)
         {
         }
 
         /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
         /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
         public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
-            this(new(), new(), authenticationOptions)
+            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
         {
         }
 

@@ -589,7 +589,7 @@ namespace IceRpc.Tests.Internal
                 cancelSource.Cancel();
 
                 // Ensure that dispatch is canceled (with Ice1 it's canceled on receive of the CloseConnection
-                // frame and the GoAwayCanceled frame for Ice2.
+                // frame and the GoAwayCanceled frame for Ice2).
                 dispatchSemaphore.Wait();
 
                 // The invocation on the connection has been canceled by the shutdown cancellation
