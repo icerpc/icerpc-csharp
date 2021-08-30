@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace IceRpc.Tests.ClientServer
 {
@@ -49,6 +48,9 @@ namespace IceRpc.Tests.ClientServer
 
             ProtocolBridgingTestPrx forwarderService =
                 SetupForwarderServer(forwarderProtocol, targetProtocol, colocated, pipeline);
+
+            // TODO: test with the other encoding; currently, the encoding is always the encoding of
+            // forwardService.Proxy.Protocol
 
             ProtocolBridgingTestPrx newPrx = await TestProxyAsync(forwarderService, direct: false);
 

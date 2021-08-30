@@ -51,7 +51,7 @@ namespace IceRpc.Configure
         /// <param name="assemblies">One or more assemblies that contain Slice generated code.</param>
         /// <returns>The router being configured.</returns>
         /// <seealso cref="IActivator{T}"/>
-        public static Router UseSliceAssemblies(this Router router, params Assembly[] assemblies)  =>
+        public static Router UseSliceAssemblies(this Router router, params Assembly[] assemblies) =>
             router.Use(next => new SliceAssembliesMiddleware(next, assemblies));
 
         /// <summary>Adds a <see cref="TelemetryMiddleware"/> that uses the default <see cref="TelemetryOptions"/> to

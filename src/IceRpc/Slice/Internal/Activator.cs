@@ -1,11 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Diagnostics;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -106,16 +103,16 @@ namespace IceRpc.Slice.Internal
                     new Type[] { typeof(T) },
                     null);
 
-                    if (constructor == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"cannot get Ice decoding constructor for '{type.FullName}'");
-                    }
+                if (constructor == null)
+                {
+                    throw new InvalidOperationException(
+                        $"cannot get Ice decoding constructor for '{type.FullName}'");
+                }
 
-                    ParameterExpression decoderParam = Expression.Parameter(typeof(T), "decoder");
+                ParameterExpression decoderParam = Expression.Parameter(typeof(T), "decoder");
 
-                    return Expression.Lambda<Func<T, object>>(
-                        Expression.New(constructor, decoderParam), decoderParam).Compile();
+                return Expression.Lambda<Func<T, object>>(
+                    Expression.New(constructor, decoderParam), decoderParam).Compile();
             }
         }
     }

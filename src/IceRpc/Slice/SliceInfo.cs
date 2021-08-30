@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Diagnostics;
-
 namespace IceRpc.Slice
 {
     /// <summary>SliceInfo encapsulates the details of a slice for an unknown class or remote exception encoded with
