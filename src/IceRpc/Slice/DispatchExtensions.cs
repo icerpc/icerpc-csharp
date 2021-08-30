@@ -1,7 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc;
-
 namespace IceRpc.Slice
 {
     /// <summary>Extensions methods called by the generated code.</summary>

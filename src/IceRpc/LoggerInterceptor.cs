@@ -1,4 +1,5 @@
-﻿using IceRpc.Internal;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
 using Microsoft.Extensions.Logging;
 
 namespace IceRpc

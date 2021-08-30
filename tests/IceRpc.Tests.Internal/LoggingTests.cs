@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc;
 using IceRpc.Configure;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -32,7 +31,7 @@ namespace IceRpc.Tests.Internal
                     throw exception;
                 }));
 
-            Assert.CatchAsync<ConnectFailedException>(async() => await pipeline.InvokeAsync(request, default));
+            Assert.CatchAsync<ConnectFailedException>(async () => await pipeline.InvokeAsync(request, default));
 
             Assert.That(loggerFactory.Logger!.Category, Is.EqualTo("IceRpc"));
             Assert.That(loggerFactory.Logger!.Entries.Count, Is.EqualTo(2));

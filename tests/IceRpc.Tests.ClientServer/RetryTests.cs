@@ -3,7 +3,6 @@
 using IceRpc.Configure;
 using NUnit.Framework;
 using System.Collections.Immutable;
-using System.Reflection;
 
 namespace IceRpc.Tests.ClientServer
 {

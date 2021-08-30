@@ -4,7 +4,6 @@ using IceRpc.Tests.CodeGeneration.NamespaceMD.M1.M2.M3;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace;
 using IceRpc.Tests.CodeGeneration.NamespaceMD.WithNamespace.N1.N2;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace IceRpc.Tests.CodeGeneration
 {

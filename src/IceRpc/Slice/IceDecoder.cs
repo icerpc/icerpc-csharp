@@ -1,12 +1,8 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using IceRpc.Transports.Internal;
 using System.Collections;
-using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -741,7 +737,7 @@ namespace IceRpc.Slice
             }
         }
 
-         // <summary>Decodes a field.</summary>
+        /// <summary>Decodes a field.</summary>
         /// <returns>The key and value of the field. The read-only memory for the value is backed by the buffer, the
         /// data is not copied.</returns>
         internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
