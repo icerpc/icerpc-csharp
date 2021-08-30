@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Slice.Internal;
-using System.Diagnostics;
 
 namespace IceRpc.Slice
 {
@@ -50,7 +49,7 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
-         /// <summary>Creates a payload representing a void return value.</summary>
+        /// <summary>Creates a payload representing a void return value.</summary>
         /// <param name="payloadEncoding">The payload encoding.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromVoidReturnValue(

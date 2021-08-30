@@ -2,8 +2,6 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
-using System.Diagnostics;
-using System.Text;
 
 namespace IceRpc
 {

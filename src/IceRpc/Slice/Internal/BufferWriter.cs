@@ -1,8 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice.Internal
@@ -69,7 +67,7 @@ namespace IceRpc.Slice.Internal
         // The position for the next write operation.
         private Position _tail;
 
-         // Constructs a BufferWriter
+        // Constructs a BufferWriter
         internal BufferWriter(Memory<byte> initialBuffer = default)
         {
             _tail = default;

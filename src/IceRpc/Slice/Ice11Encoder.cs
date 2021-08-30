@@ -1,14 +1,11 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports.Internal;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace IceRpc.Slice
 {
