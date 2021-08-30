@@ -199,49 +199,26 @@ namespace IceRpc.Slice
         // Decode methods for constructed types
 
         /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>() where T : struct
+        public T[] DecodeArray<T>(Action<T>? checkElement = null) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
             var value = new T[DecodeAndCheckSeqSize(elementSize)];
             int byteCount = elementSize * value.Length;
             _buffer.Span.Slice(Pos, byteCount).CopyTo(MemoryMarshal.Cast<T, byte>(value));
             Pos += byteCount;
-            return value;
-        }
 
-        /// <summary>Decodes a sequence of fixed-size numeric values and returns an array.</summary>
-        /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>(Action<T> checkElement) where T : struct
-        {
-            T[] value = DecodeArray<T>();
-            foreach (T e in value)
+            if (checkElement != null)
             {
-                checkElement(e);
+                foreach (T e in value)
+                {
+                    checkElement(e);
+                }
             }
+
             return value;
         }
-
-        /// <summary>Decodes a sequence and returns an array.</summary>
-        /// <param name="minElementSize">The minimum size of each element of the sequence, in bytes.</param>
-        /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T[] DecodeArray<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
-            DecodeSequence(minElementSize, decodeFunc).ToArray();
-
-        /// <summary>Decodes a sequence of nullable elements and returns an array.</summary>
-        /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
-        /// </param>
-        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T?[] DecodeArray<T>(bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
-            DecodeSequence(withBitSequence, decodeFunc).ToArray();
-
-        /// <summary>Decodes a sequence of nullable values and returns an array.</summary>
-        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder, as an array.</returns>
-        public T?[] DecodeArray<T>(DecodeFunc<T> decodeFunc) where T : struct => DecodeSequence(decodeFunc).ToArray();
 
         /// <summary>Decodes a class instance.</summary>
         /// <returns>The decoded class instance.</returns>
@@ -273,38 +250,23 @@ namespace IceRpc.Slice
             return dict;
         }
 
-        /// <summary>Decodes a dictionary.</summary>
-        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder.</returns>
-        public Dictionary<TKey, TValue?> DecodeDictionary<TKey, TValue>(
-            int minKeySize,
-            bool withBitSequence,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
-            where TValue : class
-        {
-            int sz = DecodeAndCheckSeqSize(minKeySize);
-            return DecodeDictionary(new Dictionary<TKey, TValue?>(sz), sz, withBitSequence, keyDecodeFunc, valueDecodeFunc);
-        }
-
-        /// <summary>Decodes a dictionary.</summary>
+        /// <summary>Decodes a dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The dictionary decoded by this decoder.</returns>
-        public Dictionary<TKey, TValue?> DecodeDictionary<TKey, TValue>(
+        public Dictionary<TKey, TValue?> DecodeDictionaryWithBitSequence<TKey, TValue>(
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<TValue?> valueDecodeFunc)
             where TKey : notnull
-            where TValue : struct
         {
             int sz = DecodeAndCheckSeqSize(minKeySize);
-            return DecodeDictionary(new Dictionary<TKey, TValue?>(sz), sz, keyDecodeFunc, valueDecodeFunc);
+            return DecodeDictionaryWithBitSequence(
+                new Dictionary<TKey, TValue?>(sz),
+                sz,
+                keyDecodeFunc,
+                valueDecodeFunc);
         }
 
         /// <summary>Decodes a remote exception.</summary>
@@ -350,27 +312,14 @@ namespace IceRpc.Slice
         public ICollection<T> DecodeSequence<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
             new Collection<T>(this, minElementSize, decodeFunc);
 
-        /// <summary>Decodes a sequence of nullable elements. The element type is a reference type.
-        /// </summary>
-        /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
-        /// </param>
+        /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
         /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
         /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
-        /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
+        /// the buffer. The returned collection does not fully implement ICollection{T}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
-        /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
-        public ICollection<T?> DecodeSequence<T>(bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
-            withBitSequence ? new NullableCollection<T>(this, decodeFunc) : (ICollection<T?>)DecodeSequence(1, decodeFunc);
-
-        /// <summary>Decodes a sequence of nullable values.</summary>
-        /// <param name="decodeFunc">The decode function for each non-null element (value) of the sequence.
-        /// </param>
-        /// <returns>A collection that provides the size of the sequence and allows you to decode the sequence from the
-        /// the buffer. The returned collection does not fully implement ICollection{T?}, in particular you can only
-        /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
-        /// List{T?} or some other generic collection that can be constructed from an IEnumerable{T?}.</returns>
-        public ICollection<T?> DecodeSequence<T>(DecodeFunc<T> decodeFunc) where T : struct =>
-            new NullableValueCollection<T>(this, decodeFunc);
+        /// List{T} or some other generic collection that can be constructed from an IEnumerable{T}.</returns>
+        public ICollection<T> DecodeSequenceWithBitSequence<T>(DecodeFunc<T> decodeFunc) =>
+            new CollectionWithBitSequence<T>(this, decodeFunc);
 
         /// <summary>Decodes a sorted dictionary.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
@@ -398,38 +347,15 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a sorted dictionary.</summary>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
-        /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.
-        /// </param>
-        /// <returns>The sorted dictionary decoded by this decoder.</returns>
-        public SortedDictionary<TKey, TValue?> DecodeSortedDictionary<TKey, TValue>(
-            int minKeySize,
-            bool withBitSequence,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
-            where TValue : class =>
-            DecodeDictionary(
-                new SortedDictionary<TKey, TValue?>(),
-                DecodeAndCheckSeqSize(minKeySize),
-                withBitSequence,
-                keyDecodeFunc,
-                valueDecodeFunc);
-
-        /// <summary>Decodes a sorted dictionary. The dictionary's value type is a nullable value type.
-        /// </summary>
-        /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The sorted dictionary decoded by this decoder.</returns>
-        public SortedDictionary<TKey, TValue?> DecodeSortedDictionary<TKey, TValue>(
+        public SortedDictionary<TKey, TValue?> DecodeSortedDictionaryWithBitSequence<TKey, TValue>(
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
-            where TValue : struct =>
-            DecodeDictionary(
+            DecodeFunc<TValue?> valueDecodeFunc)
+            where TKey : notnull =>
+            DecodeDictionaryWithBitSequence(
                 new SortedDictionary<TKey, TValue?>(),
                 DecodeAndCheckSeqSize(minKeySize),
                 keyDecodeFunc,
@@ -537,8 +463,9 @@ namespace IceRpc.Slice
 
         /// <summary>Decodes a tagged array of a fixed-size numeric type.</summary>
         /// <param name="tag">The tag.</param>
+        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
         /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag) where T : struct
+        public T[]? DecodeTaggedArray<T>(int tag, Action<T>? checkElement = null) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize))
@@ -549,62 +476,13 @@ namespace IceRpc.Slice
                     // parameter) that we skip.
                     SkipSize();
                 }
-                return DecodeArray<T>();
+                return DecodeArray<T>(checkElement);
             }
             else
             {
                 return null;
             }
         }
-
-        /// <summary>Decodes a tagged array of a fixed-size numeric type.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="checkElement">A delegate use to checks each element of the array.</param>
-        /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag, Action<T> checkElement) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize))
-            {
-                if (elementSize > 1)
-                {
-                    // For elements with size > 1, the encoding includes a size (number of bytes in the tagged
-                    // parameter) that we skip.
-                    SkipSize();
-                }
-                return DecodeArray(checkElement);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Decodes a tagged array. The element type can be nullable only if it corresponds to
-        /// a proxy class or mapped Slice class.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
-        /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag, int minElementSize, bool fixedSize, DecodeFunc<T> decodeFunc) =>
-            DecodeTaggedSequence(tag, minElementSize, fixedSize, decodeFunc)?.ToArray();
-
-        /// <summary>Decodes a tagged array of nullable elements.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
-        /// </param>
-        /// <param name="decodeFunc">The decode function for each non-null element of the array.</param>
-        /// <returns>The array decoded by this decoder, or null.</returns>
-        public T?[]? DecodeTaggedArray<T>(int tag, bool withBitSequence, DecodeFunc<T> decodeFunc) where T : class =>
-            DecodeTaggedSequence(tag, withBitSequence, decodeFunc)?.ToArray();
-
-        /// <summary>Decodes a tagged array of nullable values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="decodeFunc">The decode function for each non-null value of the array.</param>
-        /// <returns>The array decoded by this decoder, or null.</returns>
-        public T?[]? DecodeTaggedArray<T>(int tag, DecodeFunc<T> decodeFunc) where T : struct =>
-            DecodeTaggedSequence(tag, decodeFunc)?.ToArray();
 
         /// <summary>Decodes a tagged dictionary.</summary>
         /// <param name="tag">The tag.</param>
@@ -640,49 +518,23 @@ namespace IceRpc.Slice
             return null;
         }
 
-        /// <summary>Decodes a tagged dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public Dictionary<TKey, TValue?>? DecodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            bool withBitSequence,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return DecodeDictionary(minKeySize, withBitSequence, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged dictionary. The dictionary's value type is a nullable value type.
-        /// </summary>
+        /// <summary>Decodes a tagged dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public Dictionary<TKey, TValue?>? DecodeTaggedDictionary<TKey, TValue>(
+        public Dictionary<TKey, TValue?>? DecodeTaggedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<TValue?> valueDecodeFunc)
             where TKey : notnull
-            where TValue : struct
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipFixedLengthSize();
-                return DecodeDictionary(minKeySize, keyDecodeFunc, valueDecodeFunc);
+                return DecodeDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
         }
@@ -725,37 +577,16 @@ namespace IceRpc.Slice
             return null;
         }
 
-        /// <summary>Decodes a tagged sequence of nullable elements.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="withBitSequence">True when null elements are encoded using a bit sequence; otherwise, false.
-        /// </param>
-        /// <param name="decodeFunc">The decode function for each non-null element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder as an ICollection{T?}, or null.</returns>
-        public ICollection<T?>? DecodeTaggedSequence<T>(int tag, bool withBitSequence, DecodeFunc<T> decodeFunc)
-            where T : class
-        {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return DecodeSequence(withBitSequence, decodeFunc);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Decodes a tagged sequence of nullable values.</summary>
+        /// <summary>Decodes a tagged sequence that encodes null values using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">The decode function for each non-null value of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder as an ICollection{T?}, or null.</returns>
-        public ICollection<T?>? DecodeTaggedSequence<T>(int tag, DecodeFunc<T> decodeFunc)
-            where T : struct
+        /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
+        public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<T> decodeFunc)
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipFixedLengthSize();
-                return DecodeSequence(decodeFunc);
+                return DecodeSequenceWithBitSequence(decodeFunc);
             }
             else
             {
@@ -796,49 +627,23 @@ namespace IceRpc.Slice
             return null;
         }
 
-        /// <summary>Decodes a tagged sorted dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="withBitSequence">When true, null dictionary values are encoded using a bit sequence.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionary<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            bool withBitSequence,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return DecodeSortedDictionary(minKeySize, withBitSequence, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged sorted dictionary. The dictionary's value type is a nullable value
-        /// type.</summary>
+        /// <summary>Decodes a tagged sorted dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
         /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionary<TKey, TValue>(
+        public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
             int minKeySize,
             DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<TValue?> valueDecodeFunc)
             where TKey : notnull
-            where TValue : struct
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipFixedLengthSize();
-                return DecodeSortedDictionary(minKeySize, keyDecodeFunc, valueDecodeFunc);
+                return DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
         }
@@ -1106,52 +911,19 @@ namespace IceRpc.Slice
             return _buffer.Slice(startPos, size);
         }
 
-        private TDict DecodeDictionary<TDict, TKey, TValue>(
-            TDict dict,
-            int size,
-            bool withBitSequence,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
-            where TDict : IDictionary<TKey, TValue?>
-            where TKey : notnull
-            where TValue : class
-        {
-            if (withBitSequence)
-            {
-                ReadOnlyBitSequence bitSequence = DecodeBitSequence(size);
-                for (int i = 0; i < size; ++i)
-                {
-                    TKey key = keyDecodeFunc(this);
-                    TValue? value = bitSequence[i] ? valueDecodeFunc(this) : (TValue?)null;
-                    dict.Add(key, value);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < size; ++i)
-                {
-                    TKey key = keyDecodeFunc(this);
-                    TValue value = valueDecodeFunc(this);
-                    dict.Add(key, value);
-                }
-            }
-            return dict;
-        }
-
-        private TDict DecodeDictionary<TDict, TKey, TValue>(
+        private TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
             TDict dict,
             int size,
             DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<TValue?> valueDecodeFunc)
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
-            where TValue : struct
         {
             ReadOnlyBitSequence bitSequence = DecodeBitSequence(size);
             for (int i = 0; i < size; ++i)
             {
                 TKey key = keyDecodeFunc(this);
-                TValue? value = bitSequence[i] ? valueDecodeFunc(this) : (TValue?)null;
+                TValue? value = bitSequence[i] ? valueDecodeFunc(this) : default(TValue?);
                 dict.Add(key, value);
             }
             return dict;
@@ -1274,46 +1046,24 @@ namespace IceRpc.Slice
             }
         }
 
-        // Similar to Collection<T>, except we are decoding a sequence<T?> where T is a reference type. T here must not
-        // correspond to a mapped Slice class or to a proxy class.
-        private sealed class NullableCollection<T> : CollectionBase<T?> where T : class
+        // A collection that encodes nulls with a bit sequence.
+        private sealed class CollectionWithBitSequence<T> : CollectionBase<T>
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
             readonly DecodeFunc<T> _decodeFunc;
 
-            internal NullableCollection(IceDecoder decoder, DecodeFunc<T> decodeFunc)
+            internal CollectionWithBitSequence(IceDecoder decoder, DecodeFunc<T> decodeFunc)
                 : base(decoder, 0)
             {
                 _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
                 _decodeFunc = decodeFunc;
             }
 
-            private protected override T? Decode(int pos)
+            private protected override T Decode(int pos)
             {
                 Debug.Assert(pos < Count);
                 var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decodeFunc(IceDecoder) : null;
-            }
-        }
-
-        // Similar to Collection<T>, except we are decoding a sequence<T?> where T is a value type.
-        private sealed class NullableValueCollection<T> : CollectionBase<T?> where T : struct
-        {
-            private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            private readonly DecodeFunc<T> _decodeFunc;
-
-            internal NullableValueCollection(IceDecoder decoder, DecodeFunc<T> decodeFunc)
-                : base(decoder, 0)
-            {
-                _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
-                _decodeFunc = decodeFunc;
-            }
-
-            private protected override T? Decode(int pos)
-            {
-                Debug.Assert(pos < Count);
-                var bitSequence = new ReadOnlyBitSequence(_bitSequenceMemory.Span);
-                return bitSequence[pos] ? _decodeFunc(IceDecoder) : null;
+                return bitSequence[pos] ? _decodeFunc(IceDecoder) : default!;
             }
         }
     }

@@ -147,71 +147,30 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a dictionary. The dictionary's value type is reference type.</summary>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
-        /// false.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeDictionary<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue?>> v,
-            bool withBitSequence,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (withBitSequence)
-            {
-                int count = v.Count();
-                EncodeSize(count);
-                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-                int index = 0;
-                foreach ((TKey key, TValue? value) in v)
-                {
-                    keyEncodeAction(this, key);
-                    if (value != null)
-                    {
-                        valueEncodeAction(this, value);
-                    }
-                    else
-                    {
-                        bitSequence[index] = false;
-                    }
-                    index++;
-                }
-            }
-            else
-            {
-                EncodeDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)v, keyEncodeAction, valueEncodeAction);
-            }
-        }
-
-        /// <summary>Encodes a dictionary. The dictionary's value type is a nullable value type.</summary>
+        /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeDictionary<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue?>> v,
+        public void EncodeDictionaryWithBitSequence<TKey, TValue>(
+            IEnumerable<KeyValuePair<TKey, TValue>> v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
-            where TValue : struct
         {
             int count = v.Count();
             EncodeSize(count);
             BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
             int index = 0;
-            foreach ((TKey key, TValue? value) in v)
+            foreach ((TKey key, TValue value) in v)
             {
                 keyEncodeAction(this, key);
-                if (value is TValue actualValue)
+                if (value == null)
                 {
-                    valueEncodeAction(this, actualValue);
+                    bitSequence[index] = false;
                 }
                 else
                 {
-                    bitSequence[index] = false;
+                    valueEncodeAction(this, value);
                 }
                 index++;
             }
@@ -264,6 +223,8 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Encodes a sequence.</summary>
+        /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
+        /// proxy types.</paramtype>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
         public void EncodeSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
@@ -275,56 +236,26 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a sequence. The elements of the sequence are reference types.</summary>
+        /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
+        /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
         /// <param name="v">The sequence to encode.</param>
-        /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeSequence<T>(IEnumerable<T?> v, bool withBitSequence, EncodeAction<T> encodeAction)
-            where T : class
-        {
-            if (withBitSequence)
-            {
-                int count = v.Count(); // potentially slow Linq Count()
-                EncodeSize(count);
-                BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-                int index = 0;
-                foreach (T? item in v)
-                {
-                    if (item is T value)
-                    {
-                        encodeAction(this, value);
-                    }
-                    else
-                    {
-                        bitSequence[index] = false;
-                    }
-                    index++;
-                }
-            }
-            else
-            {
-                EncodeSequence((IEnumerable<T>)v, encodeAction);
-            }
-        }
-
-        /// <summary>Encodes a sequence of nullable values.</summary>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for the non-null values.</param>
-        public void EncodeSequence<T>(IEnumerable<T?> v, EncodeAction<T> encodeAction) where T : struct
+        /// <param name="encodeAction">The encode action for a non-null value.</param>
+        /// <remarks>This method always encodes a bit sequence.</remarks>
+        public void EncodeSequenceWithBitSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
         {
             int count = v.Count(); // potentially slow Linq Count()
             EncodeSize(count);
             BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
             int index = 0;
-            foreach (T? item in v)
+            foreach (T item in v)
             {
-                if (item is T value)
+                if (item == null)
                 {
-                    encodeAction(this, value);
+                    bitSequence[index] = false;
                 }
                 else
                 {
-                    bitSequence[index] = false;
+                    encodeAction(this, item);
                 }
                 index++;
             }
@@ -559,50 +490,23 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="withBitSequence">When true, encodes entries with a null value using a bit sequence; otherwise,
-        /// false.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
-            bool withBitSequence,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-            where TValue : class
-        {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionary(dict, withBitSequence, keyEncodeAction, valueEncodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged dictionary. The dictionary's value type is a nullable value type.
-        /// </summary>
+        /// <summary>Encodes a tagged dictionary with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The dictionary to encode.</param>
         /// <param name="keyEncodeAction">The encode action for the keys.</param>
         /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
+        public void EncodeTaggedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
-            IEnumerable<KeyValuePair<TKey, TValue?>>? v,
+            IEnumerable<KeyValuePair<TKey, TValue>>? v,
             EncodeAction<TKey> keyEncodeAction,
             EncodeAction<TValue> valueEncodeAction)
             where TKey : notnull
-            where TValue : struct
         {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue?>> dict)
+            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
+                EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -708,39 +612,17 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged sequence of nullable elements.</summary>
+        /// <summary>Encodes a tagged sequence with null values encoded using a bit sequence.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
-        /// <param name="withBitSequence">True to encode null elements using a bit sequence; otherwise, false.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedSequence<T>(
-            int tag,
-            IEnumerable<T?>? v,
-            bool withBitSequence,
-            EncodeAction<T> encodeAction)
-            where T : class
+        /// <param name="encodeAction">The encode action for a non-null value.</param>
+        public void EncodeTaggedSequenceWithBitSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
         {
-            if (v is IEnumerable<T?> value)
+            if (v is IEnumerable<T> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequence(value, withBitSequence, encodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of nullable values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T?>? v, EncodeAction<T> encodeAction)
-            where T : struct
-        {
-            if (v is IEnumerable<T?> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequence(value, encodeAction);
+                EncodeSequenceWithBitSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }

@@ -59,6 +59,13 @@ namespace IceRpc.Internal
                 }
             };
 
+        private static readonly HashSet<string> _systemExceptionTypeIds = new HashSet<string>
+        {
+            typeof(ServiceNotFoundException).GetIceTypeId()!,
+            typeof(OperationNotFoundException).GetIceTypeId()!,
+            typeof(UnhandledException).GetIceTypeId()!
+        };
+
         // Verify that the first 8 bytes correspond to Magic + ProtocolBytes
         internal static void CheckHeader(ReadOnlySpan<byte> header)
         {
@@ -85,11 +92,12 @@ namespace IceRpc.Internal
         }
 
         /// <summary>Decodes an ice1 system exception.</summary>
-        /// <param name="decoder">The Ice decoder.</param>
+        /// <param name="decoder">The decoder.</param>
         /// <param name="replyStatus">The reply status.</param>
-        /// <returns>The exception read from the buffer.</returns>
-        internal static RemoteException DecodeIce1SystemException(this Ice11Decoder decoder, ReplyStatus replyStatus)
+        /// <returns>The exception decoded using the decoder.</returns>
+        internal static RemoteException DecodeIce1SystemException(this IceDecoder decoder, ReplyStatus replyStatus)
         {
+            Debug.Assert(decoder is Ice11Decoder);
             Debug.Assert(replyStatus > ReplyStatus.UserException);
 
             RemoteException systemException;
@@ -130,8 +138,8 @@ namespace IceRpc.Internal
         {
             ReplyStatus replyStatus = exception switch
             {
-                ServiceNotFoundException _ => ReplyStatus.ObjectNotExistException,
-                OperationNotFoundException _ => ReplyStatus.OperationNotExistException,
+                ServiceNotFoundException => ReplyStatus.ObjectNotExistException,
+                OperationNotFoundException => ReplyStatus.OperationNotExistException,
                 _ => ReplyStatus.UnknownLocalException,
             };
 
@@ -145,7 +153,7 @@ namespace IceRpc.Internal
                     {
                         identityAndFacet = IdentityAndFacet.FromPath(remoteException.Origin.Path);
                     }
-                    catch (FormatException)
+                    catch
                     {
                         // ignored, i.e. we'll encode an empty identity + facet
                         identityAndFacet = new IdentityAndFacet(Identity.Empty, "");
@@ -162,6 +170,14 @@ namespace IceRpc.Internal
             }
             return replyStatus;
         }
+
+        internal static bool IsIce1SystemException(this RemoteException remoteException) =>
+            remoteException is ServiceNotFoundException ||
+            remoteException is OperationNotFoundException ||
+            remoteException is UnhandledException;
+
+        internal static bool IsIce1SystemExceptionTypeId(this string typeId) =>
+            _systemExceptionTypeIds.Contains(typeId);
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());
     }
