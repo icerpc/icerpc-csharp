@@ -1064,6 +1064,9 @@ namespace IceRpc
 
                     // Cancel the dispatch if the peer canceled the shutdown.
                     UnderlyingConnection!.CancelDispatch();
+
+                    // Wait for the peer control stream to be shutdown.
+                    await _peerControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
                 }
                 catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
                 {

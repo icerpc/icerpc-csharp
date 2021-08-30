@@ -869,6 +869,11 @@ namespace IceRpc.Transports
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
 
+        /// <summary>Wait for the stream to be shutdown. This should only be called once no more data is expected
+        /// over the stream. It will return when the peer closes the stream by either sending EOS, a stream reset
+        /// or by closing the connection.</summary>
+        internal abstract Task WaitForShutdownAsync(CancellationToken cancel);
+
         private protected virtual ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
             Ice1FrameType expectedFrameType,
             CancellationToken cancel = default) =>
