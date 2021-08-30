@@ -5,7 +5,6 @@
         <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.ruleset</CodeAnalysisRuleSet>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
-
     </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/stylecop.json" Link="stylecop.json" />
