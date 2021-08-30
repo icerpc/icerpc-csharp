@@ -2127,7 +2127,14 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << nl << "response.ToReturnValue(";
                 _out.inc();
                 _out << nl << "invoker,";
-                _out << nl << "_defaultIceDecoderFactories,";
+                 if (operation->returnsClasses(true))
+                {
+                    _out << nl << "_defaultIceDecoderFactories.Ice11DecoderFactory,";
+                }
+                else
+                {
+                    _out << nl << "_defaultIceDecoderFactories,";
+                }
                 _out << nl;
                 writeIncomingResponseDecodeFunc(operation);
                 _out << ");";
@@ -2616,7 +2623,14 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out.inc();
                 _out << nl << "request.ToArgs(";
                 _out.inc();
-                _out << nl << "_defaultIceDecoderFactories,";
+                if (operation->sendsClasses(true))
+                {
+                    _out << nl << "_defaultIceDecoderFactories.Ice11DecoderFactory,";
+                }
+                else
+                {
+                    _out << nl << "_defaultIceDecoderFactories,";
+                }
                 _out << nl;
                 writeIncomingRequestDecodeFunc(operation);
                 _out << ");";

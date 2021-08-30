@@ -231,8 +231,8 @@ namespace IceRpc.Slice
         public Dictionary<TKey, TValue> DecodeDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue> valueDecodeFunc)
             where TKey : notnull
         {
             int sz = DecodeAndCheckSeqSize(minKeySize + minValueSize);
@@ -253,8 +253,8 @@ namespace IceRpc.Slice
         /// <returns>The dictionary decoded by this decoder.</returns>
         public Dictionary<TKey, TValue?> DecodeDictionaryWithBitSequence<TKey, TValue>(
             int minKeySize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull
         {
             int sz = DecodeAndCheckSeqSize(minKeySize);
@@ -305,7 +305,7 @@ namespace IceRpc.Slice
         /// the buffer. The return value does not fully implement ICollection{T}, in particular you can only call
         /// GetEnumerator() once on this collection. You would typically use this collection to construct a List{T} or
         /// some other generic collection that can be constructed from an IEnumerable{T}.</returns>
-        public ICollection<T> DecodeSequence<T>(int minElementSize, DecodeFunc<T> decodeFunc) =>
+        public ICollection<T> DecodeSequence<T>(int minElementSize, DecodeFunc<IceDecoder, T> decodeFunc) =>
             new Collection<T>(this, minElementSize, decodeFunc);
 
         /// <summary>Decodes a sequence that encodes null values using a bit sequence.</summary>
@@ -314,7 +314,7 @@ namespace IceRpc.Slice
         /// the buffer. The returned collection does not fully implement ICollection{T}, in particular you can only
         /// call GetEnumerator() once on this collection. You would typically use this collection to construct a
         /// List{T} or some other generic collection that can be constructed from an IEnumerable{T}.</returns>
-        public ICollection<T> DecodeSequenceWithBitSequence<T>(DecodeFunc<T> decodeFunc) =>
+        public ICollection<T> DecodeSequenceWithBitSequence<T>(DecodeFunc<IceDecoder, T> decodeFunc) =>
             new CollectionWithBitSequence<T>(this, decodeFunc);
 
         /// <summary>Decodes a sorted dictionary.</summary>
@@ -326,8 +326,8 @@ namespace IceRpc.Slice
         public SortedDictionary<TKey, TValue> DecodeSortedDictionary<TKey, TValue>(
             int minKeySize,
             int minValueSize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue> valueDecodeFunc)
             where TKey : notnull
         {
             int sz = DecodeAndCheckSeqSize(minKeySize + minValueSize);
@@ -348,8 +348,8 @@ namespace IceRpc.Slice
         /// <returns>The sorted dictionary decoded by this decoder.</returns>
         public SortedDictionary<TKey, TValue?> DecodeSortedDictionaryWithBitSequence<TKey, TValue>(
             int minKeySize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull =>
             DecodeDictionaryWithBitSequence(
                 new SortedDictionary<TKey, TValue?>(),
@@ -493,8 +493,8 @@ namespace IceRpc.Slice
             int minKeySize,
             int minValueSize,
             bool fixedSize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue> valueDecodeFunc)
             where TKey : notnull
         {
             if (DecodeTaggedParamHeader(
@@ -523,8 +523,8 @@ namespace IceRpc.Slice
         public Dictionary<TKey, TValue?>? DecodeTaggedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
             int minKeySize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
@@ -551,7 +551,7 @@ namespace IceRpc.Slice
             int tag,
             int minElementSize,
             bool fixedSize,
-            DecodeFunc<T> decodeFunc)
+            DecodeFunc<IceDecoder, T> decodeFunc)
         {
             if (DecodeTaggedParamHeader(
                     tag,
@@ -577,7 +577,7 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <param name="decodeFunc">The decode function for each non-null value of the sequence.</param>
         /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
-        public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<T> decodeFunc)
+        public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<IceDecoder, T> decodeFunc)
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
@@ -603,8 +603,8 @@ namespace IceRpc.Slice
             int minKeySize,
             int minValueSize,
             bool fixedSize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue> valueDecodeFunc) where TKey : notnull
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue> valueDecodeFunc) where TKey : notnull
         {
             if (DecodeTaggedParamHeader(
                     tag,
@@ -632,8 +632,8 @@ namespace IceRpc.Slice
         public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
             int minKeySize,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull
         {
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
@@ -649,7 +649,7 @@ namespace IceRpc.Slice
         /// <param name="fixedSize">True when the struct has a fixed size on the wire; otherwise, false.</param>
         /// <param name="decodeFunc">The decode function used to create and decode the struct.</param>
         /// <returns>The struct T decoded by this decoder, or null.</returns>
-        public T? DecodeTaggedStruct<T>(int tag, bool fixedSize, DecodeFunc<T> decodeFunc) where T : struct
+        public T? DecodeTaggedStruct<T>(int tag, bool fixedSize, DecodeFunc<IceDecoder, T> decodeFunc) where T : struct
         {
             if (DecodeTaggedParamHeader(
                 tag,
@@ -910,8 +910,8 @@ namespace IceRpc.Slice
         private TDict DecodeDictionaryWithBitSequence<TDict, TKey, TValue>(
             TDict dict,
             int size,
-            DecodeFunc<TKey> keyDecodeFunc,
-            DecodeFunc<TValue?> valueDecodeFunc)
+            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
+            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TDict : IDictionary<TKey, TValue?>
             where TKey : notnull
         {
@@ -1031,8 +1031,8 @@ namespace IceRpc.Slice
         // it's not resettable: you can't use it to decode the same bytes multiple times.
         private sealed class Collection<T> : CollectionBase<T>
         {
-            private readonly DecodeFunc<T> _decodeFunc;
-            internal Collection(IceDecoder decoder, int minElementSize, DecodeFunc<T> decodeFunc)
+            private readonly DecodeFunc<IceDecoder, T> _decodeFunc;
+            internal Collection(IceDecoder decoder, int minElementSize, DecodeFunc<IceDecoder, T> decodeFunc)
                 : base(decoder, minElementSize) => _decodeFunc = decodeFunc;
 
             private protected override T Decode(int pos)
@@ -1046,9 +1046,9 @@ namespace IceRpc.Slice
         private sealed class CollectionWithBitSequence<T> : CollectionBase<T>
         {
             private readonly ReadOnlyMemory<byte> _bitSequenceMemory;
-            readonly DecodeFunc<T> _decodeFunc;
+            readonly DecodeFunc<IceDecoder, T> _decodeFunc;
 
-            internal CollectionWithBitSequence(IceDecoder decoder, DecodeFunc<T> decodeFunc)
+            internal CollectionWithBitSequence(IceDecoder decoder, DecodeFunc<IceDecoder, T> decodeFunc)
                 : base(decoder, 0)
             {
                 _bitSequenceMemory = decoder.DecodeBitSequenceMemory(Count);
