@@ -15,27 +15,6 @@ namespace IceRpc.Slice
 
         private readonly IActivator<Ice20Decoder>? _activator;
 
-        /// <summary>Decodes a field value.</summary>
-        /// <typeparam name="T">The decoded type.</typeparam>
-        /// <param name="value">The field value as a byte buffer encoded with the Ice 2.0 encoding.</param>
-        /// <param name="decodeFunc">The decode function for this field value.</param>
-        /// <param name="connection">The connection that received this field (used only for proxies).</param>
-        /// <param name="invoker">The invoker of proxies in the decoded type.</param>
-        /// <returns>The decoded value.</returns>
-        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
-        /// </exception>
-        public static T DecodeFieldValue<T>(
-            ReadOnlyMemory<byte> value,
-            Func<Ice20Decoder, T> decodeFunc,
-            Connection? connection = null,
-            IInvoker? invoker = null)
-        {
-            var decoder = new Ice20Decoder(value, connection, invoker);
-            T result = decodeFunc(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
-            return result;
-        }
-
         /// <summary>Gets or creates an activator for the Slice types in the specified assembly and its referenced
         /// assemblies.</summary>
         /// <param name="assembly">The assembly.</param>
@@ -148,6 +127,21 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
+        /// <summary>Decodes a buffer.</summary>
+        /// <typeparam name="T">The decoded type.</typeparam>
+        /// <param name="buffer">The byte buffer encoded with the Ice 2.0 encoding.</param>
+        /// <param name="decodeFunc">The decode function for buffer.</param>
+        /// <returns>The decoded value.</returns>
+        /// <exception cref="InvalidDataException">Thrown when <paramref name="decodeFunc"/> finds invalid data.
+        /// </exception>
+        internal static T DecodeBuffer<T>(ReadOnlyMemory<byte> buffer, Func<Ice20Decoder, T> decodeFunc)
+        {
+            var decoder = new Ice20Decoder(buffer);
+            T result = decodeFunc(decoder);
+            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            return result;
+        }
+
         internal static (int Size, int SizeLength) DecodeSize(ReadOnlySpan<byte> from)
         {
             ulong size = (from[0] & 0x03) switch
@@ -177,6 +171,18 @@ namespace IceRpc.Slice
             IInvoker? invoker = null,
             IActivator<Ice20Decoder>? activator = null)
             : base(buffer, connection, invoker) => _activator = activator;
+
+        /// <summary>Decodes a field.</summary>
+        /// <returns>The key and value of the field. The read-only memory for the value is backed by the buffer, the
+        /// data is not copied.</returns>
+        internal (int Key, ReadOnlyMemory<byte> Value) DecodeField()
+        {
+            int key = DecodeVarInt();
+            int entrySize = DecodeSize();
+            ReadOnlyMemory<byte> value = _buffer.Slice(Pos, entrySize);
+            Pos += entrySize;
+            return (key, value);
+        }
 
         private protected override AnyClass? DecodeAnyClass() =>
             throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
