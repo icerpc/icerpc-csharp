@@ -1,6 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Internal;
 using IceRpc.Slice;
 using System.Diagnostics;
 
@@ -225,7 +224,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override async  ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel)
+        internal override async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel)
         {
             await _connection.SendFrameAsync(
                 this,

@@ -2,7 +2,6 @@
 
 using IceRpc.Slice;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace IceRpc.Tests.CodeGeneration
 {

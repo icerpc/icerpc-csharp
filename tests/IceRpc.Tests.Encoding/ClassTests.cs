@@ -5,7 +5,6 @@ using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
-using System.Reflection;
 
 namespace IceRpc.Tests.Encoding
 {
@@ -194,11 +193,11 @@ namespace IceRpc.Tests.Encoding
             pipeline.Use(next => new InlineInvoker(
                 async (request, cancel) =>
                 {
-                   IncomingResponse response = await next.InvokeAsync(request, cancel);
-                   response.Features = new FeatureCollection(response.Features);
-                   response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
-                        new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
-                                                clientClassGraphMaxDepth));
+                    IncomingResponse response = await next.InvokeAsync(request, cancel);
+                    response.Features = new FeatureCollection(response.Features);
+                    response.Features.Set<IIceDecoderFactory<Ice11Decoder>>(
+                         new Ice11DecoderFactory(Ice11Decoder.GetActivator(typeof(ClassTests).Assembly),
+                                                 clientClassGraphMaxDepth));
 
                     return response;
                 }));

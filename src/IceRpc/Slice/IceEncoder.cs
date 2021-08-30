@@ -2,7 +2,6 @@
 
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
