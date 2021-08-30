@@ -33,18 +33,17 @@ namespace IceRpc.Slice
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="EncodeAction{T}"/> that encodes the argument into the payload.
-        /// </param>
-        /// <param name="classFormat">The class format in case T is a class.</param>
-        /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+        /// <param name="encodeAction">A delegate that encodes the argument into the payload.</param>
+        /// <param name="classFormat">The class format.</param>
+        /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateIce11PayloadFromSingleArg<T>(
             this Proxy proxy,
             T arg,
-            EncodeAction<T> encodeAction,
+            Action<Ice11Encoder, T> encodeAction,
             FormatType classFormat = default)
         {
             var bufferWriter = new BufferWriter();
-            var encoder = proxy.Encoding.CreateIceEncoder(bufferWriter, classFormat: classFormat);
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
             encodeAction(encoder, arg);
             return bufferWriter.Finish();
         }
@@ -54,18 +53,56 @@ namespace IceRpc.Slice
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
         /// <param name="proxy">A proxy to the target service.</param>
         /// <param name="args">The arguments to write into the payload.</param>
-        /// <param name="encodeAction">The <see cref="TupleEncodeAction{T}"/> that encodes the arguments into the
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// the payload.</param>
+        /// <param name="classFormat">The class format.</param>
+        /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateIce11PayloadFromArgs<T>(
+            this Proxy proxy,
+            in T args,
+            TupleEncodeAction<Ice11Encoder, T> encodeAction,
+            FormatType classFormat = default) where T : struct
+        {
+            var bufferWriter = new BufferWriter();
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            encodeAction(encoder, in args);
+            return bufferWriter.Finish();
+        }
+
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
+        /// takes a single parameter.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="proxy">A proxy to the target service.</param>
+        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="encodeAction">The <see cref="EncodeAction{TEncoder, T}"/> that encodes the argument into the
         /// payload.</param>
-        /// <param name="classFormat">The class format in case any parameter is a class.</param>
+        /// <returns>A new payload.</returns>
+        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+            this Proxy proxy,
+            T arg,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            var bufferWriter = new BufferWriter();
+            var encoder = proxy.Encoding.CreateIceEncoder(bufferWriter);
+            encodeAction(encoder, arg);
+            return bufferWriter.Finish();
+        }
+
+        /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
+        /// with multiple parameters.</summary>
+        /// <typeparam name="T">The type of the operation's parameters.</typeparam>
+        /// <param name="proxy">A proxy to the target service.</param>
+        /// <param name="args">The arguments to write into the payload.</param>
+        /// <param name="encodeAction">The <see cref="TupleEncodeAction{TEncoder, T}"/> that encodes the arguments into
+        /// the payload.</param>
         /// <returns>A new payload.</returns>
         public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromArgs<T>(
             this Proxy proxy,
             in T args,
-            TupleEncodeAction<T> encodeAction,
-            FormatType classFormat = default) where T : struct
+            TupleEncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
             var bufferWriter = new BufferWriter();
-            var encoder = proxy.Encoding.CreateIceEncoder(bufferWriter, classFormat: classFormat);
+            var encoder = proxy.Encoding.CreateIceEncoder(bufferWriter);
             encodeAction(encoder, in args);
             return bufferWriter.Finish();
         }

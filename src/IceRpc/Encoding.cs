@@ -101,9 +101,8 @@ namespace IceRpc
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
-        /// <param name="classFormat">The class format (ignored unless the encoding is 1.1).</param>
         /// <returns>A new encoder for the specified Ice encoding.</returns>
-        internal virtual IceEncoder CreateIceEncoder(BufferWriter bufferWriter, FormatType classFormat = default) =>
+        internal virtual IceEncoder CreateIceEncoder(BufferWriter bufferWriter) =>
             throw new NotSupportedException($"cannot create Ice encoder for encoding {this}");
 
         /// <summary>Returns the major and minor byte versions of this encoding.</summary>
@@ -154,9 +153,7 @@ namespace IceRpc
             {
             }
 
-            internal override IceEncoder CreateIceEncoder(
-                BufferWriter bufferWriter,
-                FormatType classFormat = default) => new Ice11Encoder(bufferWriter, classFormat);
+            internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 
             internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
                 FeatureCollection features,
@@ -172,9 +169,7 @@ namespace IceRpc
             {
             }
 
-            internal override IceEncoder CreateIceEncoder(
-                BufferWriter bufferWriter,
-                FormatType classFormat = default) => new Ice20Encoder(bufferWriter);
+            internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
 
             internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
                 FeatureCollection features,

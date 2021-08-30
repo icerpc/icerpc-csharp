@@ -128,7 +128,8 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual("a3", ex!.A3!.Name);
             Assert.AreEqual("a4", ex!.A4!.Name);
 
-            (MyClassE e1, MyClassE e2) = await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()));
+            (MyClassE e1, MyClassE e2) =
+                await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);
             Assert.That(e1, Is.Not.Null);
             Assert.That(e1.TheB, Is.InstanceOf<MyClassB>());
             Assert.That(e1.TheC, Is.InstanceOf<MyClassC>());
@@ -307,6 +308,7 @@ namespace IceRpc.Tests.CodeGeneration
                 CancellationToken cancel) => new((p1, p1));
             public ValueTask<(MyClassE R1, MyClassE R2)> OpEAsync(
                 MyClassE p1,
+                int p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 

@@ -206,7 +206,7 @@ namespace IceRpc.Internal
             {
                 features = new FeatureCollection();
 
-                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
                 if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
                 {
@@ -229,7 +229,7 @@ namespace IceRpc.Internal
                     payloadEncoding = Encoding.Ice20;
                 }
 
-                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
                 encoder.EncodeException(remoteException);
             }
 

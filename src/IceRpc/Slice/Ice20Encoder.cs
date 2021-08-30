@@ -109,7 +109,7 @@ namespace IceRpc.Slice
             BufferWriter.RewriteByteSpan(data, pos);
         }
 
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
+        internal void EncodeField<T>(int key, T value, EncodeAction<Ice20Encoder, T> encodeAction)
         {
             EncodeVarInt(key);
             BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

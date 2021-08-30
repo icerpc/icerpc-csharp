@@ -2075,13 +2075,16 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     _out << "in " << toTupleType(params, ns, true) << " args) =>";
                 }
                 _out.inc();
+
+                string ice11 = operation->sendsClasses(true) ? "Ice11" : "";
+
                 if (params.size() == 1)
                 {
-                    _out << nl << "prx.Proxy.CreatePayloadFromSingleArg(";
+                    _out << nl << "prx.Proxy.Create" << ice11 << "PayloadFromSingleArg(";
                 }
                 else
                 {
-                    _out << nl << "prx.Proxy.CreatePayloadFromArgs(";
+                    _out << nl << "prx.Proxy.Create" << ice11 << "PayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
@@ -2493,7 +2496,9 @@ Slice::Gen::ProxyVisitor::writeOutgoingRequestEncodeAction(const OperationPtr& o
     }
     else
     {
-        _out << "(IceEncoder encoder, ";
+        string encoderClass = operation->sendsClasses(true) ? "Ice11Encoder" : "IceEncoder";
+
+        _out << "(" << encoderClass << " encoder, ";
         string inValue = params.size() > 1 ? "in " : "";
         _out << inValue << toTupleType(params, ns, true) << " value) =>";
         _out << sb;
@@ -2667,13 +2672,16 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
 
                 _out.inc();
+
+                string ice11 = operation->returnsClasses(true) ? "Ice11" : "";
+
                 if (returns.size() == 1)
                 {
-                    _out << nl << "dispatch.Encoding.CreatePayloadFromSingleReturnValue(";
+                    _out << nl << "dispatch.Encoding.Create" << ice11 << "PayloadFromSingleReturnValue(";
                 }
                 else
                 {
-                    _out << nl << "dispatch.Encoding.CreatePayloadFromReturnValueTuple(";
+                    _out << nl << "dispatch.Encoding.Create" << ice11 << "PayloadFromReturnValueTuple(";
                 }
 
                 _out.inc();
@@ -3039,7 +3047,9 @@ Slice::Gen::DispatcherVisitor::writeOutgoingResponseEncodeAction(const Operation
     }
     else
     {
-        _out << "(IceEncoder encoder, ";
+        string encoderClass = operation->returnsClasses(true) ? "Ice11Encoder" : "IceEncoder";
+
+        _out << "(" << encoderClass << " encoder, ";
         _out << (returns.size() > 1 ? "in " : "") << toTupleType(returns, ns, true) << " value";
         _out << ") =>";
         _out << sb;

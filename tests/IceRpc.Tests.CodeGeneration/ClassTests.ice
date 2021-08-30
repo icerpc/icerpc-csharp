@@ -141,7 +141,7 @@ module IceRpc::Tests::CodeGeneration
         MyCompactClass getCompact();
 
         (MyClassM r1, MyClassM r2) opM(MyClassM p1);
-        (MyClassE r1, MyClassE r2) opE(MyClassE p1);
+        (MyClassE r1, MyClassE r2) opE(MyClassE p1, int p2);
 
         MyDerivedClass1 getMyDerivedClass1();
         MyDerivedClass2 getMyDerivedClass2();

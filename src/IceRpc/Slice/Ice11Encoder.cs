@@ -13,7 +13,7 @@ namespace IceRpc.Slice
     public class Ice11Encoder : IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
-        private readonly FormatType _classFormat;
+        private FormatType _classFormat;
 
         // Data for the class or exception instance that is currently getting encoded.
         private InstanceData _current;
@@ -32,7 +32,8 @@ namespace IceRpc.Slice
         public override void EncodeException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
-            Debug.Assert(_classFormat == FormatType.Sliced);
+
+            _classFormat = FormatType.Sliced; // always encode exceptions in sliced format
             _current.InstanceType = InstanceType.Exception;
             _current.FirstSlice = true;
             v.Encode(this);
