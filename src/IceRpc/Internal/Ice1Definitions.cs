@@ -59,7 +59,7 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly HashSet<string> _ice1SystemExceptionTypeIds = new HashSet<string>
+        private static readonly HashSet<string> _systemExceptionTypeIds = new HashSet<string>
         {
             typeof(ServiceNotFoundException).GetIceTypeId()!,
             typeof(OperationNotFoundException).GetIceTypeId()!,
@@ -177,7 +177,7 @@ namespace IceRpc.Internal
             remoteException is UnhandledException;
 
         internal static bool IsIce1SystemExceptionTypeId(this string typeId) =>
-            _ice1SystemExceptionTypeIds.Contains(typeId);
+            _systemExceptionTypeIds.Contains(typeId);
 
         private static string BytesToString(ReadOnlySpan<byte> bytes) => BitConverter.ToString(bytes.ToArray());
     }
