@@ -108,7 +108,7 @@ namespace IceRpc.Tests.CodeGeneration
             MyClassK? k = await _prx.GetKAsync();
             var l = k!.Value as MyClassL;
             Assert.That(l, Is.Not.Null);
-            Assert.AreEqual("l", l.Data);
+            Assert.AreEqual("l", l!.Data);
 
             MyClassD1? d1 = await _prx.GetD1Async(
                 new MyClassD1(

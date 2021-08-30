@@ -71,15 +71,15 @@ namespace IceRpc.Tests.CodeGeneration
         {
             MyExceptionA? a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAAsync(10));
             Assert.That(a, Is.Not.Null);
-            Assert.AreEqual(10, a.M1);
+            Assert.AreEqual(10, a!.M1);
 
             a = Assert.ThrowsAsync<MyExceptionA>(async () => await _prx.ThrowAorBAsync(10));
             Assert.That(a, Is.Not.Null);
-            Assert.AreEqual(10, a.M1);
+            Assert.AreEqual(10, a!.M1);
 
             MyExceptionB? b = Assert.ThrowsAsync<MyExceptionB>(async () => await _prx.ThrowAorBAsync(0));
             Assert.That(b, Is.Not.Null);
-            Assert.AreEqual(0, b.M1);
+            Assert.AreEqual(0, b!.M1);
 
             RemoteException? remoteEx =
                 Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowRemoteExceptionAsync());
@@ -87,7 +87,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(remoteEx, Is.Not.Null);
             if (_connection.Protocol == Protocol.Ice2)
             {
-                Assert.AreEqual("some message", remoteEx.Message);
+                Assert.AreEqual("some message", remoteEx!.Message);
             }
         }
 

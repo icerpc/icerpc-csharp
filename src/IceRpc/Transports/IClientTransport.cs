@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
@@ -9,15 +10,11 @@ namespace IceRpc.Transports
     {
         /// <summary>Creates a new multi-stream connection to the remote endpoint.</summary>
         /// <param name="remoteEndpoint">The remote endpoint.</param>
-        /// <param name="connectionOptions">The connection options.</param>
         /// <param name="loggerFactory">The logger factory, the transport can use this factory to create its own logger.
         /// </param>
         /// <returns>The new connection. This connection is not yet connected.</returns>
         /// <exception name="UnknownTransportException">Thrown if this client transport does not support the remote
         /// endpoint's transport.</exception>
-        MultiStreamConnection CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory);
+        MultiStreamConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory);
     }
 }

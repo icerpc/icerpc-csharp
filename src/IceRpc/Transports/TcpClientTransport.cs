@@ -4,44 +4,46 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IClientTransport"/> for the tcp and ssl transports.</summary>
     public class TcpClientTransport : IClientTransport
     {
-        private readonly TcpOptions _options;
+        private readonly TcpOptions _tcpOptions;
+        private readonly SlicOptions _slicOptions;
+        private readonly SslClientAuthenticationOptions? _authenticationOptions;
 
-        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the default <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpClientTransport() => _options = new TcpOptions();
-
-        /// <summary>Constructs a <see cref="TcpClientTransport"/> that use the given <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpClientTransport(TcpOptions options) => _options = options;
-
-        MultiStreamConnection IClientTransport.CreateConnection(
-             Endpoint remoteEndpoint,
-             ClientConnectionOptions connectionOptions,
-             ILoggerFactory loggerFactory)
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        public TcpClientTransport() :
+            this(tcpOptions: new(), slicOptions: new(), null)
         {
-            // First verify all parameters:
-            bool? tls = remoteEndpoint.ParseTcpParams().Tls;
+        }
 
-            if (remoteEndpoint.Protocol == Protocol.Ice1)
-            {
-                tls = remoteEndpoint.Transport == TransportNames.Ssl;
-            }
-            else if (tls == null)
-            {
-                // TODO: add ability to override this default tls=true through some options
-                tls = true;
-                remoteEndpoint = remoteEndpoint with
-                {
-                    Params = remoteEndpoint.Params.Add(new EndpointParam("tls", "true"))
-                };
-            }
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        public TcpClientTransport(SslClientAuthenticationOptions authenticationOptions) :
+            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
+        {
+        }
 
+        /// <summary>Constructs a <see cref="TcpClientTransport"/>.</summary>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        public TcpClientTransport(
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions,
+            SslClientAuthenticationOptions? authenticationOptions)
+        {
+            _tcpOptions = tcpOptions;
+            _slicOptions = slicOptions;
+            _authenticationOptions = authenticationOptions;
+        }
+
+        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
             EndPoint netEndPoint = IPAddress.TryParse(remoteEndpoint.Host, out IPAddress? ipAddress) ?
@@ -58,16 +60,16 @@ namespace IceRpc.Transports
             {
                 if (ipAddress?.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !_options.IsIPv6Only;
+                    socket.DualMode = !_tcpOptions.IsIPv6Only;
                 }
 
-                if (_options.LocalEndPoint is IPEndPoint localEndPoint)
+                if (_tcpOptions.LocalEndPoint is IPEndPoint localEndPoint)
                 {
                     socket.Bind(localEndPoint);
                 }
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
+                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
+                                     _tcpOptions.SendBufferSize,
                                      remoteEndpoint.Transport,
                                      logger);
                 socket.NoDelay = true;
@@ -78,8 +80,8 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
-            var tcpSocket = new TcpSocket(socket, logger, tls, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, connectionOptions, _options);
+            var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
+            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _slicOptions);
         }
     }
 }

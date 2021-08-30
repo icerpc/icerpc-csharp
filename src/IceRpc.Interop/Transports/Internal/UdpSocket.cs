@@ -15,7 +15,6 @@ namespace IceRpc.Transports.Internal
     {
         public override int DatagramMaxReceiveSize { get; }
         public override bool IsDatagram => true;
-        public override bool? IsSecure => false;
         protected internal override Socket? Socket => _socket;
 
         // The maximum IP datagram size is 65535. Subtract 20 bytes for the IP header and 8 bytes for the UDP header
@@ -30,27 +29,29 @@ namespace IceRpc.Transports.Internal
         private readonly Socket _socket;
         private readonly int _ttl;
 
-        public override ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) => new(null as Endpoint);
-
-        public override async ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
+        public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            Debug.Assert(_addr != null);
-            try
+            if (_isServer)
             {
-                await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
-
-                var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
-                return endpoint with { Host = ipEndPoint.Address.ToString(), Port = checked((ushort)ipEndPoint.Port) };
+                throw new NotSupportedException($"{nameof(UdpSocket)} doesn't support accepting server connections");
             }
-            catch (Exception ex)
+            else
             {
-                throw new ConnectFailedException(ex);
+                Debug.Assert(_addr != null);
+                try
+                {
+                    await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
+                    var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
+                    return endpoint with
+                        {
+                            Host = ipEndPoint.Address.ToString(),
+                            Port = checked((ushort)ipEndPoint.Port)
+                        };
+                }
+                catch (Exception ex)
+                {
+                    throw new ConnectFailedException(ex);
+                }
             }
         }
 

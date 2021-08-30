@@ -4,26 +4,45 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace IceRpc.Transports
 {
     /// <summary>Implements <see cref="IServerTransport"/> for the tcp and ssl transports.</summary>
     public class TcpServerTransport : IServerTransport
     {
-        private readonly TcpOptions _options;
+        private readonly TcpOptions _tcpOptions;
+        private readonly SlicOptions _slicOptions;
+        private readonly SslServerAuthenticationOptions? _authenticationOptions;
 
-        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the default <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpServerTransport() => _options = new TcpOptions();
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        public TcpServerTransport() :
+            this(tcpOptions: new(), slicOptions: new(), null)
+        {
+        }
 
-        /// <summary>Constructs a <see cref="TcpServerTransport"/> that use the given <see cref="TcpOptions"/>.
-        /// </summary>
-        public TcpServerTransport(TcpOptions options) => _options = options;
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
+        public TcpServerTransport(SslServerAuthenticationOptions authenticationOptions) :
+            this(tcpOptions: new(), slicOptions: new(), authenticationOptions)
+        {
+        }
 
-        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
-            Endpoint endpoint,
-            ServerConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        /// <summary>Constructs a <see cref="TcpServerTransport"/>.</summary>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options. If not set, ssl is disabled.</param>
+        public TcpServerTransport(
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions,
+            SslServerAuthenticationOptions? authenticationOptions)
+        {
+            _tcpOptions = tcpOptions;
+            _slicOptions = slicOptions;
+            _authenticationOptions = authenticationOptions;
+        }
+
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.
@@ -42,19 +61,19 @@ namespace IceRpc.Transports
             {
                 if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
                 {
-                    socket.DualMode = !_options.IsIPv6Only;
+                    socket.DualMode = !_tcpOptions.IsIPv6Only;
                 }
 
                 socket.ExclusiveAddressUse = true;
 
-                socket.SetBufferSize(_options.ReceiveBufferSize,
-                                     _options.SendBufferSize,
+                socket.SetBufferSize(_tcpOptions.ReceiveBufferSize,
+                                     _tcpOptions.SendBufferSize,
                                      endpoint.Transport,
                                      logger);
 
                 socket.Bind(address);
                 address = (IPEndPoint)socket.LocalEndPoint!;
-                socket.Listen(_options.ListenerBackLog);
+                socket.Listen(_tcpOptions.ListenerBackLog);
             }
             catch (SocketException ex)
             {
@@ -62,11 +81,22 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
+            SslServerAuthenticationOptions? authenticationOptions = null;
+            if (_authenticationOptions != null)
+            {
+                // Add the endpoint protocol to the SSL application protocols (used by TLS ALPN)
+                authenticationOptions = _authenticationOptions.Clone();
+                authenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                    {
+                        new SslApplicationProtocol(endpoint.Protocol.GetName())
+                    };
+            }
+
             return (new Internal.TcpListener(socket,
                                              endpoint: endpoint with { Port = (ushort)address.Port },
                                              logger,
-                                             connectionOptions,
-                                             _options),
+                                             _slicOptions,
+                                             authenticationOptions),
                     null);
         }
     }

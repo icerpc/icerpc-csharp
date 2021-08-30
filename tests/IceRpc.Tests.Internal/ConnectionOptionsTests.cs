@@ -97,10 +97,7 @@ namespace IceRpc.Tests.Internal
             });
             ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
             using NetworkSocket clientConnection = CreateClientConnection();
-            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(
-                ClientEndpoint,
-                ClientAuthenticationOptions,
-                default);
+            ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(ClientEndpoint, default);
             using NetworkSocket serverConnection = await acceptTask;
 
             // The OS might allocate more space than the requested size.
@@ -138,13 +135,9 @@ namespace IceRpc.Tests.Internal
             if (IsIPv6)
             {
                 // Create a server endpoint for ::0 instead of loopback
-                ServerConnectionOptions connectionOptions = ServerConnectionOptions.Clone();
-
                 Endpoint serverEndpoint = ServerEndpoint with { Host = "::0" };
 
-                using IListener listener = CreateListener(
-                    new TcpOptions() { IsIPv6Only = ipv6Only },
-                    serverEndpoint);
+                using IListener listener = CreateListener(new TcpOptions() { IsIPv6Only = ipv6Only }, serverEndpoint);
 
                 ValueTask<NetworkSocket> acceptTask = CreateServerConnectionAsync(listener);
 
@@ -153,7 +146,7 @@ namespace IceRpc.Tests.Internal
 
                 using NetworkSocket clientConnection = CreateClientConnection(endpoint: clientEndpoint);
 
-                ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(clientEndpoint, null, default);
+                ValueTask<Endpoint> connectTask = clientConnection.ConnectAsync(clientEndpoint, default);
 
                 if (ipv6Only)
                 {
@@ -163,7 +156,7 @@ namespace IceRpc.Tests.Internal
                 else
                 {
                     using NetworkSocket serverConnection = await acceptTask;
-                    ValueTask<Endpoint?> task = serverConnection.AcceptAsync(serverEndpoint, null, default);
+                    ValueTask<Endpoint> task = serverConnection.ConnectAsync(serverEndpoint, default);
 
                     // This should succeed, the server accepts IPv4 and IPv6 connections
                     Assert.DoesNotThrowAsync(async () => await connectTask);
@@ -190,7 +183,7 @@ namespace IceRpc.Tests.Internal
                     NetworkSocket clientConnection = CreateClientConnection();
                     try
                     {
-                        await clientConnection.ConnectAsync(ClientEndpoint, ClientAuthenticationOptions, source.Token);
+                        await clientConnection.ConnectAsync(ClientEndpoint, source.Token);
                         connections.Add(clientConnection);
                     }
                     catch (OperationCanceledException)
@@ -214,7 +207,6 @@ namespace IceRpc.Tests.Internal
 
             (TestHelper.CreateClientTransport(endpoint ?? ClientEndpoint, options).CreateConnection(
                 endpoint ?? ClientEndpoint,
-                ClientConnectionOptions.Clone(),
                 LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>

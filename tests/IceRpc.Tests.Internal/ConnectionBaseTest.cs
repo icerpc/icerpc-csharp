@@ -19,23 +19,21 @@ namespace IceRpc.Tests.Internal
     {
         protected static readonly byte[] OneBSendBuffer = new byte[1];
         protected static readonly byte[] OneMBSendBuffer = new byte[1024 * 1024];
-        private protected SslClientAuthenticationOptions? ClientAuthenticationOptions =>
-            IsSecure ? ClientConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
-        protected ServerConnectionOptions ServerConnectionOptions { get; }
         private protected bool IsIPv6 { get; }
         private protected bool IsSecure { get; }
-        protected ClientConnectionOptions ClientConnectionOptions { get; }
-        private protected SslServerAuthenticationOptions? ServerAuthenticationOptions =>
-            IsSecure ? ServerConnectionOptions.AuthenticationOptions : null;
         private protected Endpoint ServerEndpoint { get; }
+        private protected MultiStreamOptions? ServerMultiStreamOptions { get; set; }
         private protected string TransportName { get; }
 
         private IListener? _listener;
         private readonly AsyncSemaphore _acceptSemaphore = new(1);
+        private readonly SslClientAuthenticationOptions _clientAuthenticationOptions;
         // Protects the _listener data member
         private readonly object _mutex = new();
+        private readonly SslServerAuthenticationOptions _serverAuthenticationOptions;
+
         private static int _nextBasePort;
 
         public ConnectionBaseTest(
@@ -58,9 +56,7 @@ namespace IceRpc.Tests.Internal
             IsSecure = tls;
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
-            ClientConnectionOptions = new ClientConnectionOptions
-            {
-                AuthenticationOptions = new()
+            _clientAuthenticationOptions = new()
                 {
                     RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
@@ -69,17 +65,13 @@ namespace IceRpc.Tests.Internal
                                     new X509Certificate2("../../../certs/cacert.pem")
                                 }),
                     TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
-                }
-            };
+                };
 
-            ServerConnectionOptions = new ServerConnectionOptions()
-            {
-                AuthenticationOptions = new()
+            _serverAuthenticationOptions = new()
                 {
                     ClientCertificateRequired = false,
                     ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                }
-            };
+                };
 
             Logger = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
 
@@ -138,8 +130,8 @@ namespace IceRpc.Tests.Internal
             {
                 MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
                 Debug.Assert(multiStreamConnection.Transport == TransportName);
-                await multiStreamConnection.AcceptAsync(ServerAuthenticationOptions, default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure!.Value)
+                await multiStreamConnection.ConnectAsync(default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
@@ -162,7 +154,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamConnection> ConnectAsync(ClientConnectionOptions? connectionOptions = null)
+        protected async Task<MultiStreamConnection> ConnectAsync()
         {
             if (ClientEndpoint.Transport != "udp")
             {
@@ -172,13 +164,14 @@ namespace IceRpc.Tests.Internal
                 }
             }
 
-            IClientTransport clientTransport = TestHelper.CreateClientTransport(ClientEndpoint);
+            IClientTransport clientTransport = TestHelper.CreateClientTransport(
+                ClientEndpoint,
+                authenticationOptions: _clientAuthenticationOptions);
 
             MultiStreamConnection multiStreamConnection = clientTransport.CreateConnection(
                     ClientEndpoint,
-                    connectionOptions ?? ClientConnectionOptions,
                     LogAttributeLoggerFactory.Instance);
-            await multiStreamConnection.ConnectAsync(ClientAuthenticationOptions, default);
+            await multiStreamConnection.ConnectAsync(default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
@@ -200,15 +193,30 @@ namespace IceRpc.Tests.Internal
         }
 
         protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
-            TestHelper.CreateServerTransport(serverEndpoint ?? ServerEndpoint, options).Listen(
+            TestHelper.CreateServerTransport(
                 serverEndpoint ?? ServerEndpoint,
-                ServerConnectionOptions,
-                LogAttributeLoggerFactory.Instance).Listener!;
+                options: options,
+                ServerMultiStreamOptions ?? null,
+                _serverAuthenticationOptions).Listen(
+                    serverEndpoint ?? ServerEndpoint,
+                    LogAttributeLoggerFactory.Instance).Listener!;
 
         protected MultiStreamConnection CreateServerConnection() =>
-            TestHelper.CreateServerTransport(ServerEndpoint).Listen(
+            TestHelper.CreateServerTransport(
                 ServerEndpoint,
-                ServerConnectionOptions,
-                LogAttributeLoggerFactory.Instance).Connection!;
+                options: null,
+                ServerMultiStreamOptions ?? null,
+                authenticationOptions: _serverAuthenticationOptions).Listen(
+                    ServerEndpoint,
+                    LogAttributeLoggerFactory.Instance).Connection!;
+
+        protected MultiStreamConnection CreateClientConnection() =>
+            TestHelper.CreateClientTransport(
+                ClientEndpoint,
+                options: null,
+                multiStreamOptions: null,
+                _clientAuthenticationOptions).CreateConnection(
+                    ClientEndpoint,
+                    LogAttributeLoggerFactory.Instance);
     }
 }

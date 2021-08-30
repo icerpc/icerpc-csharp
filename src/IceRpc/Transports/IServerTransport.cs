@@ -9,16 +9,15 @@ namespace IceRpc.Transports
     {
         /// <summary>Starts listening on an endpoint.</summary>
         /// <param name="endpoint">The endpoint.</param>
-        /// <param name="connectionOptions">The connection options.</param>
-        /// <param name="loggerFactory">The logger factory, the transport can use this factory to create its own logger.
+        /// <param name="loggerFactory">The logger factory, the transport can use this factory to create its
+        /// own logger.
         /// </param>
-        /// <returns>Either a new listener or a server connection, depending on the transport of
-        /// <paramref name="endpoint"/>.</returns>
-        /// <exception name="UnknownTransportException">Thrown if this server transport does not support the endpoint's
-        /// transport.</exception>
+        /// <returns>Either a new listener or a server connection, depending on the transport of <paramref
+        /// name="endpoint"/>.</returns>
+        /// <exception name="UnknownTransportException">Thrown if this server transport does not support the
+        /// endpoint's transport.</exception>
         (IListener? Listener, MultiStreamConnection? Connection) Listen(
             Endpoint endpoint,
-            ServerConnectionOptions connectionOptions,
             ILoggerFactory loggerFactory);
     }
 }

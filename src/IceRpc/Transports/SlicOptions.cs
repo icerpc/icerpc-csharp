@@ -3,7 +3,7 @@
 namespace IceRpc.Transports
 {
     /// <summary>An options class for configuring Slic based transports.</summary>
-    public class SlicOptions
+    public class SlicOptions : MultiStreamOptions
     {
         /// <summary>The Slic packet maximum size in bytes. It can't be less than 1KB and the default value is 32KB.
         /// Slic is only used for the Ice2 protocol, this setting is ignored when using the Ice1 protocol.</summary>

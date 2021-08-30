@@ -3,6 +3,7 @@
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
+using System.Net.Security;
 
 namespace IceRpc.Configure
 {
@@ -28,17 +29,14 @@ namespace IceRpc.Configure
             return this;
         }
 
-        (IListener?, MultiStreamConnection?) IServerTransport.Listen(
-            Endpoint endpoint,
-            ServerConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(
                 (endpoint.Transport, endpoint.Protocol),
                 out IServerTransport? serverTransport))
             {
-                return serverTransport.Listen(endpoint, connectionOptions, loggerFactory);
+                return serverTransport.Listen(endpoint, loggerFactory);
             }
             else
             {
@@ -54,19 +52,58 @@ namespace IceRpc.Configure
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ServerTransport UseColoc(this ServerTransport serverTransport) =>
-            serverTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocServerTransport());
+            serverTransport.UseColoc(new());
+
+        /// <summary>Adds the coloc server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="options">The transport options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseColoc(
+            this ServerTransport serverTransport,
+            MultiStreamOptions options) =>
+            serverTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocServerTransport(options));
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ServerTransport UseTcp(this ServerTransport serverTransport) =>
-            serverTransport.UseTcp(new TcpOptions());
+            serverTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpServerTransport());
 
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="options">The transport options.</param>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
         /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseTcp(this ServerTransport serverTransport, TcpOptions options) =>
-            serverTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpServerTransport(options));
+        public static ServerTransport UseTcp(
+            this ServerTransport serverTransport,
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions) =>
+            serverTransport.Add(TransportNames.Tcp,
+                                Protocol.Ice2,
+                                new TcpServerTransport(tcpOptions, slicOptions, null));
+
+        /// <summary>Adds the tcp server transport with ssl support to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseTcp(
+            this ServerTransport serverTransport,
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpServerTransport(authenticationOptions));
+
+        /// <summary>Adds the tcp server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="slicOptions">The Slic transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseTcp(
+            this ServerTransport serverTransport,
+            TcpOptions tcpOptions,
+            SlicOptions slicOptions,
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(TransportNames.Tcp,
+                                Protocol.Ice2,
+                                new TcpServerTransport(tcpOptions, slicOptions, authenticationOptions));
     }
 }

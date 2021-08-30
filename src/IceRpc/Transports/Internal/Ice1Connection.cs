@@ -14,8 +14,6 @@ namespace IceRpc.Transports.Internal
     /// are translated to connection validation or close connection Ice1 frames.</summary>
     internal class Ice1Connection : NetworkSocketConnection
     {
-        public override TimeSpan IdleTimeout { get; protected set; }
-
         internal bool IsValidated { get; private set; }
 
         private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
@@ -202,11 +200,10 @@ namespace IceRpc.Transports.Internal
         internal Ice1Connection(
             NetworkSocket networkSocket,
             Endpoint endpoint,
-            ConnectionOptions options)
-            : base(networkSocket, endpoint, options)
+            bool isServer,
+            MultiStreamOptions options)
+            : base(networkSocket, endpoint, isServer)
         {
-            IdleTimeout = options.IdleTimeout;
-
             // Create semaphore to limit the number of concurrent dispatch per connection on the server-side.
             _bidirectionalStreamSemaphore = new AsyncSemaphore(options.BidirectionalStreamMaxCount);
             _unidirectionalStreamSemaphore = new AsyncSemaphore(options.UnidirectionalStreamMaxCount);

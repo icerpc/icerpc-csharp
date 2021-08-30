@@ -5,15 +5,16 @@ using System.Net;
 namespace IceRpc.Transports
 {
     /// <summary>An options class for configuring TCP based transports.</summary>
-    public sealed class TcpOptions : SlicOptions
+    public sealed class TcpOptions
     {
         /// <summary>Configures an IPv6 socket to only support IPv6. The socket won't support IPv4 mapped addresses
         /// when this property is set to true. The default value is false.</summary>
         /// <value>The boolean value to enable or disable IPv6-only support.</value>
         public bool IsIPv6Only { get; set; }
 
-        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If specified the
-        /// client socket will bind to this address and port before connection establishment.</summary>
+        /// <summary>The address and port represented by a .NET IPEndPoint to use for a client socket. If
+        /// specified the client socket will bind to this address and port before connection
+        /// establishment.</summary>
         /// <value>The address and port to bind the socket to.</value>
         public IPEndPoint? LocalEndPoint { get; set; }
 

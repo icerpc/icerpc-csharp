@@ -10,10 +10,7 @@ namespace IceRpc.Tests.ClientServer
     {
         private readonly IClientTransport _transport = new TcpClientTransport();
 
-        public MultiStreamConnection CreateConnection(
-            Endpoint remoteEndpoint,
-            ClientConnectionOptions connectionOptions,
-            ILoggerFactory loggerFactory)
+        public MultiStreamConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Transport == "custom")
             {
@@ -22,7 +19,7 @@ namespace IceRpc.Tests.ClientServer
                     Params = remoteEndpoint.Params.RemoveAll(
                         p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.CreateConnection(newEndpoint, connectionOptions, loggerFactory);
+                return _transport.CreateConnection(newEndpoint, loggerFactory);
             }
             else
             {
@@ -37,7 +34,6 @@ namespace IceRpc.Tests.ClientServer
 
         public (IListener? Listener, MultiStreamConnection? Connection) Listen(
             Endpoint endpoint,
-            ServerConnectionOptions connectionOptions,
             ILoggerFactory loggerFactory)
         {
             if (endpoint.Transport == "custom")
@@ -46,7 +42,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Params = endpoint.Params.RemoveAll(p => p.Name.StartsWith("custom-", StringComparison.Ordinal))
                 };
-                return _transport.Listen(newEndpoint, connectionOptions, loggerFactory);
+                return _transport.Listen(newEndpoint, loggerFactory);
             }
             else
             {

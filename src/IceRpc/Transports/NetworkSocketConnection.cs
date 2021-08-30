@@ -13,66 +13,39 @@ namespace IceRpc.Transports
         public override bool IsDatagram => NetworkSocket.IsDatagram;
 
         /// <inheritdoc/>
-        public override bool? IsSecure => NetworkSocket.IsSecure;
+        public override bool IsSecure => NetworkSocket.SslStream != null;
 
         /// <summary>Creates a network socket connection from a network socket.</summary>
         /// <param name="networkSocket">The network socket.</param>
+        /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
-        /// <param name="connectionOptions">The connection options.</param>
+        /// <param name="options">The transport options.</param>
         /// <returns>A new network socket connection.</returns>
         public static NetworkSocketConnection FromNetworkSocket(
             NetworkSocket networkSocket,
             Endpoint endpoint,
-            ConnectionOptions connectionOptions)
-        {
-            Debug.Assert(endpoint.Protocol == Protocol.Ice1);
-            return new Ice1Connection(networkSocket, endpoint, connectionOptions);
-        }
-
-        /// <summary>Creates a network socket connection from a network socket.</summary>
-        /// <param name="networkSocket">The network socket.</param>
-        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
-        /// the server is listening on.</param>
-        /// <param name="connectionOptions">The connection options.</param>
-        /// <param name="slicOptions">The Slic transport options.</param>
-        /// <returns>A new network socket connection.</returns>
-        public static NetworkSocketConnection FromNetworkSocket(
-            NetworkSocket networkSocket,
-            Endpoint endpoint,
-            ConnectionOptions connectionOptions,
-            TcpOptions slicOptions) =>
+            bool isServer,
+            MultiStreamOptions options) =>
             endpoint.Protocol == Protocol.Ice1 ?
-                new Ice1Connection(networkSocket, endpoint, connectionOptions) :
-                new SlicConnection(networkSocket, endpoint, connectionOptions, slicOptions!);
+                new Ice1Connection(networkSocket, endpoint, isServer, options) :
+                new SlicConnection(networkSocket, endpoint, isServer, options);
 
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 
         /// <inheritdoc/>
-        public override async ValueTask AcceptAsync(
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel)
+        public override async ValueTask ConnectAsync(CancellationToken cancel)
         {
-            Endpoint? remoteEndpoint = await NetworkSocket.AcceptAsync(
-                LocalEndpoint!,
-                authenticationOptions,
-                cancel).ConfigureAwait(false);
-
-            if (remoteEndpoint != null)
+            if (IsServer)
             {
-                RemoteEndpoint = remoteEndpoint;
+                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+            }
+            else
+            {
+                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
         }
-
-        /// <inheritdoc/>
-        public override async ValueTask ConnectAsync(
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) =>
-            LocalEndpoint = await NetworkSocket.ConnectAsync(
-                RemoteEndpoint!,
-                authenticationOptions,
-                cancel).ConfigureAwait(false);
 
         /// <inheritdoc/>
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
@@ -85,12 +58,12 @@ namespace IceRpc.Transports
         /// resulting connection will be likewise a client or server connection.</param>
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
-        /// <param name="options">The connection options.</param>
+        /// <param name="isServer">The connection is a server connection.</param>
         protected NetworkSocketConnection(
             NetworkSocket networkSocket,
             Endpoint endpoint,
-            ConnectionOptions options)
-            : base(endpoint, options, networkSocket.Logger) => NetworkSocket = networkSocket;
+            bool isServer)
+            : base(endpoint, isServer, networkSocket.Logger) => NetworkSocket = networkSocket;
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)

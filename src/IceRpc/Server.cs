@@ -20,7 +20,7 @@ namespace IceRpc
             new ServerTransport().UseTcp().UseColoc();
 
         /// <summary>Gets or sets the options of server connections created by this server.</summary>
-        public ServerConnectionOptions ConnectionOptions { get; set; } = new();
+        public ConnectionOptions ConnectionOptions { get; set; } = new();
 
         /// <summary>Gets or sets the dispatcher of this server.</summary>
         /// <value>The dispatcher of this server.</value>
@@ -115,7 +115,6 @@ namespace IceRpc
                 MultiStreamConnection? multiStreamConnection;
                 (_listener, multiStreamConnection) = ServerTransport.Listen(
                     _endpoint,
-                    ConnectionOptions,
                     _loggerFactory ?? NullLoggerFactory.Instance);
 
                 if (_listener != null)
@@ -273,40 +272,25 @@ namespace IceRpc
                         return;
                     }
 
+                    // Add the connection to _connections and setup the callback to remove it when it's closed.
                     _connections.Add(connection);
-
-                    // We don't wait for the connection to be activated. This could take a while for some transports
-                    // such as TLS based transports where the handshake requires few round trips between the client
-                    // and server. Waiting could also cause a security issue if the client doesn't respond to the
-                    // connection initialization as we wouldn't be able to accept new connections in the meantime.
-                    _ = AcceptConnectionAsync(connection);
-                }
-
-                // Set the callback used to remove the connection from the factory.
-                connection.Remove = connection =>
-                {
-                    lock (_mutex)
+                    connection.Remove = connection =>
                     {
-                        if (_shutdownTask == null)
+                        lock (_mutex)
                         {
-                            _connections.Remove(connection);
+                            if (_shutdownTask == null)
+                            {
+                                _connections.Remove(connection);
+                            }
                         }
-                    }
-                };
-            }
+                    };
+                }
 
-            async Task AcceptConnectionAsync(Connection connection)
-            {
-                using var source = new CancellationTokenSource(ConnectionOptions.AcceptTimeout);
-                CancellationToken cancel = source.Token;
-                try
-                {
-                    // Connect the connection (handshake, protocol initialization, ...)
-                    await connection.ConnectAsync(cancel).ConfigureAwait(false);
-                }
-                catch
-                {
-                }
+                // We don't wait for the connection to be activated. This could take a while for some transports
+                // such as TLS based transports where the handshake requires few round trips between the client
+                // and server. Waiting could also cause a security issue if the client doesn't respond to the
+                // connection initialization as we wouldn't be able to accept new connections in the meantime.
+                _ = connection.ConnectAsync(default);
             }
         }
     }

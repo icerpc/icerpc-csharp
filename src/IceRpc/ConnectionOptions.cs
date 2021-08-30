@@ -1,28 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
-using System.Net.Security;
-
 namespace IceRpc
 {
     /// <summary>An options base class for configuring IceRPC connections.</summary>
-    public abstract class ConnectionOptions
+    public class ConnectionOptions
     {
-        /// <summary>Configures the bidirectional stream maximum count to limit the number of concurrent bidirectional
-        /// streams opened on a connection. When this limit is reached, trying to open a new bidirectional stream
-        /// will be delayed until an bidirectional stream is closed. Since an bidirectional stream is opened for
-        /// each two-way proxy invocation, the sending of the two-way invocation will be delayed until another two-way
-        /// invocation on the connection completes. It can't be less than 1 and the default value is 100.</summary>
-        /// <value>The bidirectional stream maximum count.</value>
-        public int BidirectionalStreamMaxCount
-        {
-            get => _bidirectionalStreamMaxCount;
-            set => _bidirectionalStreamMaxCount = value > 0 ? value :
-                throw new ArgumentException(
-                    $"{nameof(BidirectionalStreamMaxCount)} can't be less than 1",
-                    nameof(value));
-        }
-
         /// <summary>The connection close timeout. This timeout is used when gracefully closing a connection to
         /// wait for the peer connection closure. If the peer doesn't close its side of the connection within the
         /// timeout timeframe, the connection is forcefully closed. It can't be 0 and the default value is 10s.
@@ -33,6 +15,15 @@ namespace IceRpc
             get => _closeTimeout;
             set => _closeTimeout = value != TimeSpan.Zero ? value :
                 throw new ArgumentException($"0 is not a valid value for {nameof(CloseTimeout)}", nameof(value));
+        }
+
+        /// <summary>The connection establishment timeout. It can't be 0 and the default value is 10s.</summary>
+        /// <value>The connection establishment timeout value.</value>
+        public TimeSpan ConnectTimeout
+        {
+            get => _connectTimeout;
+            set => _connectTimeout = value != TimeSpan.Zero ? value :
+                throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
         }
 
         /// <summary>The features of the connection.</summary>
@@ -68,98 +59,9 @@ namespace IceRpc
         /// <value>Enables connection keep alive.</value>
         public bool KeepAlive { get; set; }
 
-        /// <summary>Configures the unidirectional stream maximum count to limit the number of concurrent unidirectional
-        /// streams opened on a connection. When this limit is reached, trying to open a new unidirectional stream
-        /// will be delayed until an unidirectional stream is closed. Since an unidirectional stream is opened for
-        /// each one-way proxy invocation, the sending of the one-way invocation will be delayed until another one-way
-        /// invocation on the connection completes. It can't be less than 1 and the default value is 100.</summary>
-        /// <value>The unidirectional stream maximum count.</value>
-        public int UnidirectionalStreamMaxCount
-        {
-            get => _unidirectionalStreamMaxCount;
-            set => _unidirectionalStreamMaxCount = value > 0 ? value :
-                throw new ArgumentException(
-                    $"{nameof(UnidirectionalStreamMaxCount)} can't be less than 1",
-                    nameof(value));
-        }
-
-        private int _bidirectionalStreamMaxCount = 100;
         private TimeSpan _closeTimeout = TimeSpan.FromSeconds(10);
+        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
         private TimeSpan _idleTimeout = TimeSpan.FromSeconds(60);
         private int _incomingFrameMaxSize = 1024 * 1024;
-        private int _unidirectionalStreamMaxCount = 100;
-
-        /// <inheritdoc/>
-        protected internal ConnectionOptions Clone() => (ConnectionOptions)MemberwiseClone();
-    }
-
-    /// <summary>An options class for configuring outgoing IceRPC connections.</summary>
-    public sealed class ClientConnectionOptions : ConnectionOptions
-    {
-        /// <summary>The SSL authentication options to configure TLS client connections.</summary>
-        /// <value>The SSL authentication options.</value>
-        public SslClientAuthenticationOptions? AuthenticationOptions
-        {
-            get => _authenticationOptions;
-            set => _authenticationOptions = value?.Clone();
-        }
-
-        /// <summary>The connection establishment timeout. It can't be 0 and the default value is 10s.</summary>
-        /// <value>The connection establishment timeout value.</value>
-        public TimeSpan ConnectTimeout
-        {
-            get => _connectTimeout;
-            set => _connectTimeout = value != TimeSpan.Zero ? value :
-                throw new ArgumentException($"0 is not a valid value for {nameof(ConnectTimeout)}", nameof(value));
-        }
-
-        internal static ClientConnectionOptions Default = new();
-
-        private SslClientAuthenticationOptions? _authenticationOptions;
-        private TimeSpan _connectTimeout = TimeSpan.FromSeconds(10);
-
-        /// <inheritdoc/>
-        public new ClientConnectionOptions Clone()
-        {
-            var options = (ClientConnectionOptions)base.Clone();
-            options.AuthenticationOptions = AuthenticationOptions;
-            return options;
-        }
-    }
-
-    /// <summary>An options class for configuring incoming IceRPC connections.</summary>
-    public sealed class ServerConnectionOptions : ConnectionOptions
-    {
-        /// <summary>The SSL authentication options to configure TLS server connections.</summary>
-        /// <value>The SSL authentication options.</value>
-        public SslServerAuthenticationOptions? AuthenticationOptions
-        {
-            get => _authenticationOptions;
-            set => _authenticationOptions = value?.Clone();
-        }
-
-        /// <summary>The connection accept timeout. If a new server connection takes longer than the accept timeout to
-        /// be initialized, the server will abandon and close the connection. It can't be 0 and the default value is
-        /// 10s.</summary>
-        /// <value>The connection accept timeout value.</value>
-        public TimeSpan AcceptTimeout
-        {
-            get => _acceptTimeout;
-            set => _acceptTimeout = value != TimeSpan.Zero ? value :
-                throw new ArgumentException($"0 is not a valid value for {nameof(AcceptTimeout)}", nameof(value));
-        }
-
-        internal static ServerConnectionOptions Default = new();
-
-        private TimeSpan _acceptTimeout = TimeSpan.FromSeconds(10);
-        private SslServerAuthenticationOptions? _authenticationOptions;
-
-        /// <inheritdoc/>
-        public new ServerConnectionOptions Clone()
-        {
-            var options = (ServerConnectionOptions)base.Clone();
-            options.AuthenticationOptions = AuthenticationOptions;
-            return options;
-        }
     }
 }

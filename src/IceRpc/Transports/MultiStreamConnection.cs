@@ -17,16 +17,15 @@ namespace IceRpc.Transports
     public abstract class MultiStreamConnection : IDisposable
     {
         /// <summary>Gets or set the idle timeout.</summary>
-        public abstract TimeSpan IdleTimeout { get; protected set; }
+        public TimeSpan IdleTimeout { get; set; }
 
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }
 
         /// <summary>Indicates whether or not this connection's transport is secure.</summary>
-        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's transport
-        /// is not secure. And null means whether or not the transport is secure is not determined yet. This value
-        /// is never null once the connection is established.</value>
-        public abstract bool? IsSecure { get; }
+        /// <value><c>true</c> means the connection's transport is secure. <c>false</c> means the connection's
+        /// transport is not secure. If the connection is not established, secure is always <c>false</c>.</value>
+        public abstract bool IsSecure { get; }
 
         /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
         /// by a server-side listener while a client connection is created from the endpoint by the client-side.
@@ -47,7 +46,9 @@ namespace IceRpc.Transports
         /// <summary>The name of the transport.</summary>
         public string Transport => _endpoint.Transport;
 
-        internal int IncomingFrameMaxSize { get; }
+        // TODO: refactor once we add a protocol abstraction. This setting has nothing to do here. It's there
+        // for now because the RpcStream class implements protocol framing.
+        internal int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
 
         internal int IncomingStreamCount
         {
@@ -94,14 +95,6 @@ namespace IceRpc.Transports
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
 
-        /// <summary>Accept a new server connection. This is called after the listener accepted a new connection
-        /// to perform blocking socket level initialization (TLS handshake, etc).</summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask AcceptAsync(
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
-
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
         /// <return>The accepted stream.</return>
@@ -110,11 +103,8 @@ namespace IceRpc.Transports
         /// <summary>Connects a new client connection. This is called after the endpoint created a new connection
         /// to establish the connection and perform blocking socket level initialization (TLS handshake, etc).
         /// </summary>
-        /// <param name="authenticationOptions">The SSL authentication options for secure connections.</param>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask ConnectAsync(
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel);
+        public abstract ValueTask ConnectAsync(CancellationToken cancel);
 
         /// <summary>Creates an outgoing stream. Depending on the transport implementation, the stream ID might not
         /// be immediately available after the stream creation. It will be available after the first successful send
@@ -161,18 +151,17 @@ namespace IceRpc.Transports
 
         /// <summary>The MultiStreamConnection constructor.</summary>
         /// <param name="endpoint">The endpoint that created the connection.</param>
-        /// <param name="options">The connection options.</param>
+        /// <param name="isServer">The connection is a server connection.</param>
         /// <param name="logger">The logger.</param>
         protected MultiStreamConnection(
             Endpoint endpoint,
-            ConnectionOptions options,
+            bool isServer,
             ILogger logger)
         {
             _endpoint = endpoint;
-            IsServer = options is ServerConnectionOptions;
+            IsServer = isServer;
             LocalEndpoint = IsServer ? _endpoint : null;
             RemoteEndpoint = IsServer ? null : _endpoint;
-            IncomingFrameMaxSize = options.IncomingFrameMaxSize;
             LastActivity = Time.Elapsed;
             Logger = logger;
         }

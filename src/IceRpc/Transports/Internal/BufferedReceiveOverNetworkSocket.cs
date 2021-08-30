@@ -12,9 +12,6 @@ namespace IceRpc.Transports.Internal
     internal class BufferedReceiveOverNetworkSocket : NetworkSocket
     {
         public override bool IsDatagram => Underlying.IsDatagram;
-        public override bool? IsSecure => Underlying.IsSecure;
-
-        public override SslStream? SslStream => Underlying.SslStream;
 
         protected internal override System.Net.Sockets.Socket? Socket => Underlying.Socket;
 
@@ -23,17 +20,8 @@ namespace IceRpc.Transports.Internal
         // The buffered data.
         private ArraySegment<byte> _buffer;
 
-        public override ValueTask<Endpoint?> AcceptAsync(
-            Endpoint endpoint,
-            SslServerAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) =>
-            Underlying.AcceptAsync(endpoint, authenticationOptions, cancel);
-
-        public override ValueTask<Endpoint> ConnectAsync(
-            Endpoint endpoint,
-            SslClientAuthenticationOptions? authenticationOptions,
-            CancellationToken cancel) =>
-            Underlying.ConnectAsync(endpoint, authenticationOptions, cancel);
+        public override ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel) =>
+            Underlying.ConnectAsync(endpoint, cancel);
 
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             Underlying.HasCompatibleParams(remoteEndpoint);

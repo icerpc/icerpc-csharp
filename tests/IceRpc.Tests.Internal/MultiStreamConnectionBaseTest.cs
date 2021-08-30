@@ -15,12 +15,12 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected OutgoingRequest DummyRequest => new(Protocol.Ice2, path: "/dummy", operation: "foo")
+        protected static OutgoingRequest DummyRequest => new(Protocol.Ice2, path: "/dummy", operation: "foo")
         {
             PayloadEncoding = Encoding.Ice20
         };
 
-        protected OutgoingResponse DummyResponse => new(Protocol.Ice2, ResultType.Success)
+        protected static OutgoingResponse DummyResponse => new(Protocol.Ice2, ResultType.Success)
         {
             PayloadEncoding = Encoding.Ice20
         };

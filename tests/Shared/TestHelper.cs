@@ -1,6 +1,7 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Transports;
+using System.Net.Security;
 
 namespace IceRpc.Tests
 {
@@ -64,23 +65,43 @@ namespace IceRpc.Tests
             protocol == Protocol.Ice2 ? $"ice+coloc://test.{Interlocked.Increment(ref _counter)}" :
                 $"coloc -h test.{Interlocked.Increment(ref _counter)}";
 
-        public static IServerTransport CreateServerTransport(Endpoint endpoint, object? options = null) =>
+        public static IServerTransport CreateServerTransport(
+            Endpoint endpoint,
+            object? options = null,
+            MultiStreamOptions? multiStreamOptions = null,
+            SslServerAuthenticationOptions? authenticationOptions = null) =>
             endpoint.Transport switch
             {
-                "tcp" => new TcpServerTransport((TcpOptions?)options ?? new TcpOptions()),
-                "ssl" => new TcpServerTransport((TcpOptions?)options ?? new TcpOptions()),
-                "udp" => new UdpServerTransport((UdpOptions?)options ?? new UdpOptions()),
-                "coloc" => new ColocServerTransport(),
+                "tcp" => new TcpServerTransport(
+                    (TcpOptions?)options ?? new(),
+                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                    authenticationOptions),
+                "ssl" => new TcpServerTransport(
+                    (TcpOptions?)options ?? new(),
+                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                    authenticationOptions),
+                "udp" => new UdpServerTransport((UdpOptions?)options ?? new()),
+                "coloc" => new ColocServerTransport(multiStreamOptions ?? new()),
                 _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
             };
 
-        public static IClientTransport CreateClientTransport(Endpoint endpoint, object? options = null) =>
+        public static IClientTransport CreateClientTransport(
+            Endpoint endpoint,
+            object? options = null,
+            MultiStreamOptions? multiStreamOptions = null,
+            SslClientAuthenticationOptions ? authenticationOptions = null) =>
             endpoint.Transport switch
             {
-                "tcp" => new TcpClientTransport((TcpOptions?)options ?? new TcpOptions()),
-                "ssl" => new TcpClientTransport((TcpOptions?)options ?? new TcpOptions()),
-                "udp" => new UdpClientTransport((UdpOptions?)options ?? new UdpOptions()),
-                "coloc" => new ColocClientTransport(),
+                "tcp" => new TcpClientTransport(
+                    (TcpOptions?)options ?? new(),
+                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                    authenticationOptions),
+                "ssl" => new TcpClientTransport(
+                    (TcpOptions?)options ?? new(),
+                    (SlicOptions?)multiStreamOptions ?? new SlicOptions(),
+                    authenticationOptions),
+                "udp" => new UdpClientTransport((UdpOptions?)options ?? new()),
+                "coloc" => new ColocClientTransport(multiStreamOptions ?? new()),
                 _ => throw new UnknownTransportException(endpoint.Transport, endpoint.Protocol)
             };
     }

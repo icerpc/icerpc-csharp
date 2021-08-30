@@ -126,16 +126,6 @@ namespace IceRpc
             }
         }
 
-        /// <summary>The client connection options. This property can be used to initialize the client connection options.</summary>
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Design",
-            "CA1044:Properties should not be write only",
-            Justification = "Used for initializing the client options")]
-        public ClientConnectionOptions Options
-        {
-            init => _options = value;
-        }
-
         /// <summary>This event is raised when the connection receives a ping frame. The connection object is
         /// passed as the event sender argument.</summary>
         public event EventHandler? PingReceived;
@@ -199,6 +189,7 @@ namespace IceRpc
         private TaskCompletionSource? _cancelGoAwaySource;
         private bool _connected;
         private Task? _connectTask;
+        private CancellationTokenSource? _connectTimeoutCancellationSource;
         // The control stream is assigned on the connection initialization and is immutable once the connection reaches
         // the Active state.
         private RpcStream? _controlStream;
@@ -219,10 +210,17 @@ namespace IceRpc
         private Timer? _timer;
 
         /// <summary>Constructs a new client connection.</summary>
-        public Connection()
+        public Connection() :
+            this(options: new())
+        {
+        }
+
+        /// <summary>Constructs a new client connection with specific options.</summary>
+        /// <param name="options">The connection options</param>
+        public Connection(ConnectionOptions options)
         {
             _logger = NullLogger.Instance;
-            _options = ClientConnectionOptions.Default;
+            _options = options;
         }
 
         /// <summary>Aborts the connection. This methods switches the connection state to
@@ -242,6 +240,7 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if <see cref="RemoteEndpoint"/> is not set.</exception>
         public Task ConnectAsync(CancellationToken cancel = default)
         {
+            CancellationToken connectTimeoutToken;
             lock (_mutex)
             {
                 if (_state == ConnectionState.Active)
@@ -253,88 +252,64 @@ namespace IceRpc
                     // TODO: resume the connection if it's resumable
                     throw new ConnectionClosedException();
                 }
-                else if (_state == ConnectionState.Connecting)
+                else  if (_state == ConnectionState.NotConnected)
                 {
-                    return _connectTask!;
-                }
-                Debug.Assert(_state == ConnectionState.NotConnected);
-
-                ValueTask connectTask;
-                if (IsServer)
-                {
-                    var serverOptions = (ServerConnectionOptions)_options;
-                    Debug.Assert(UnderlyingConnection != null);
-
-                    // If the underlying connection is secure, accept with the SSL server authentication options.
-                    SslServerAuthenticationOptions? serverAuthenticationOptions = null;
-                    if (UnderlyingConnection.IsSecure ?? true)
+                    if (!IsServer)
                     {
-                        serverAuthenticationOptions = serverOptions.AuthenticationOptions?.Clone() ?? new();
-                        serverAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol>
+                        Debug.Assert(UnderlyingConnection == null);
+
+                        if (_remoteEndpoint == null)
                         {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
+                            throw new InvalidOperationException("client connection has no remote endpoint set");
+                        }
+                        UnderlyingConnection = ClientTransport.CreateConnection(
+                            _remoteEndpoint,
+                            _loggerFactory ?? NullLoggerFactory.Instance);
                     }
 
-                    connectTask = UnderlyingConnection.AcceptAsync(serverAuthenticationOptions, cancel);
-                }
-                else
-                {
-                    var clientOptions = (ClientConnectionOptions)_options;
-                    Debug.Assert(UnderlyingConnection == null);
+                    Debug.Assert(UnderlyingConnection != null);
+                    _state = ConnectionState.Connecting;
 
-                    if (_remoteEndpoint == null)
-                    {
-                        throw new InvalidOperationException("client connection has no remote endpoint set");
-                    }
-                    UnderlyingConnection = ClientTransport.CreateConnection(
-                        _remoteEndpoint,
-                        clientOptions,
-                        _loggerFactory ?? NullLoggerFactory.Instance);
+                    // Set underlying ACM and protocol options.
+                    UnderlyingConnection.IdleTimeout = _options.IdleTimeout;
+                    UnderlyingConnection.IncomingFrameMaxSize = _options.IncomingFrameMaxSize;
 
-                    // If the endpoint is secure, connect with the SSL client authentication options.
-                    SslClientAuthenticationOptions? clientAuthenticationOptions = null;
-                    if (UnderlyingConnection.IsSecure ?? true)
-                    {
-                        clientAuthenticationOptions = clientOptions.AuthenticationOptions?.Clone() ?? new();
-                        clientAuthenticationOptions.TargetHost ??= _remoteEndpoint.Host;
-                        clientAuthenticationOptions.ApplicationProtocols ??= new List<SslApplicationProtocol> {
-                            new SslApplicationProtocol(Protocol.GetName())
-                        };
-                    }
-
-                    connectTask = UnderlyingConnection.ConnectAsync(clientAuthenticationOptions, cancel);
+                    // Perform connection establishment.
+                    _connectTimeoutCancellationSource = new(_options.ConnectTimeout);
+                    _connectTask = PerformConnectAsync(UnderlyingConnection, _connectTimeoutCancellationSource.Token);
                 }
 
-                Debug.Assert(UnderlyingConnection != null);
-                _state = ConnectionState.Connecting;
-
-                // Initialize the connection after it's connected.
-                _connectTask = PerformInitializeAsync(UnderlyingConnection, connectTask);
+                Debug.Assert(_state == ConnectionState.Connecting && _connectTask != null);
+                connectTimeoutToken = _connectTimeoutCancellationSource!.Token;
             }
 
-            return _connectTask;
+            // Use the connect timeout and the cancellation token for the wait cancellation.
+            using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancel, connectTimeoutToken);
+            return _connectTask.WaitAsync(linkedSource.Token);
 
-            async Task PerformInitializeAsync(MultiStreamConnection connection, ValueTask connectTask)
+            async Task PerformConnectAsync(MultiStreamConnection connection, CancellationToken cancel)
             {
                 try
                 {
-                    // Wait for the connection to be connected or accepted.
-                    await connectTask.ConfigureAwait(false);
+                    await Task.Yield();
 
-                    // Start the scope only once the connection is connected/accepted to ensure that the .NET connection
-                    // endpoints are available.
+                    // Wait for the underlying connection to be connected.
+                    await UnderlyingConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
+                    // Start the scope only once the connection is connected/accepted to ensure that the .NET
+                    // connection endpoints are available.
                     using IDisposable? scope = _logger.StartConnectionScope(this);
                     lock (_mutex)
                     {
                         if (_state == ConnectionState.Closed)
                         {
-                            // This can occur if the connection is disposed while the connection is being initialized.
+                            // This can occur if the connection is disposed while the connection is being
+                            // initialized.
                             throw new ConnectionClosedException();
                         }
 
-                        // Set _connected to true to ensure that if AbortAsync is called concurrently, AbortAsync will
-                        // trace the correct message.
+                        // Set _connected to true to ensure that if AbortAsync is called concurrently,
+                        // AbortAsync will trace the correct message.
                         _connected = true;
 
                         Action logSuccess = (IsServer, connection.IsDatagram) switch
@@ -361,13 +336,20 @@ namespace IceRpc
                 }
                 catch (Exception exception)
                 {
+                    if (exception is OperationCanceledException)
+                    {
+                        exception = new ConnectTimeoutException();
+                    }
                     using IDisposable? scope = _logger.StartConnectionScope(this);
                     await AbortAsync(exception).ConfigureAwait(false);
-                    throw;
+                    _connectTimeoutCancellationSource.Dispose();
+                    throw exception;
                 }
 
                 lock (_mutex)
                 {
+                    _connectTimeoutCancellationSource.Dispose();
+
                     if (_state == ConnectionState.Closed)
                     {
                         // This can occur if the connection is disposed while the connection is being initialized.
