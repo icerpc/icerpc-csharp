@@ -44,7 +44,7 @@ namespace IceRpc.Slice
                 SkipTaggedParams(); // TODO: revisit
             }
             // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
-            // throwing "can't decode remote exception".
+            // "can't decode remote exception".
 
             return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
         }
@@ -183,9 +183,6 @@ namespace IceRpc.Slice
             Pos += entrySize;
             return (key, value);
         }
-
-        private protected override AnyClass? DecodeAnyClass() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
 
