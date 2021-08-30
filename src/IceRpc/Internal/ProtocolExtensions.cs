@@ -3,6 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace IceRpc.Internal
 {
