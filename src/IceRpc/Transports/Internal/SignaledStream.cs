@@ -262,9 +262,9 @@ namespace IceRpc.Transports.Internal
             return new ValueTask<T>(this, _source.Version);
         }
 
-        internal override async Task WaitForShutdownAsync(CancellationToken cancel) =>
+        internal override Task WaitForShutdownAsync(CancellationToken cancel) =>
             // Ignore the result, no result is expected when this is called, only an exception.
-            _ = await WaitAsync(cancel).ConfigureAwait(false);
+            WaitAsync(cancel).AsTask();
 
         private protected abstract Task SendResetFrameAsync(RpcStreamError errorCode);
 

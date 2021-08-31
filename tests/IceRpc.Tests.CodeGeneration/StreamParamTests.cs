@@ -33,10 +33,15 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 Endpoint = transport == "coloc" ?
                     TestHelper.GetUniqueColocEndpoint(Protocol.Ice2) :
                     TestHelper.GetTestEndpoint(protocol: Protocol.Ice2),
+                LoggerFactory = LogAttributeLoggerFactory.Instance
             };
 
             _server.Listen();
-            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
+            _connection = new Connection
+            {
+                RemoteEndpoint = _server.Endpoint,
+                LoggerFactory = LogAttributeLoggerFactory.Instance
+            };
             _prx = StreamParamOperationsPrx.FromConnection(_connection);
         }
 
@@ -413,6 +418,8 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 byte[] buffer = new byte[512];
                 Assert.That(p1.Read(buffer, 0, 512), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(p1.ReadByte(), Is.EqualTo(-1));
+                p1.Dispose();
                 return default;
             }
 
@@ -425,6 +432,8 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 byte[] buffer = new byte[512];
                 Assert.That(p2.Read(buffer, 0, 512), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(p2.ReadByte(), Is.EqualTo(-1));
+                p2.Dispose();
                 return default;
             }
 
@@ -438,6 +447,8 @@ namespace IceRpc.Tests.CodeGeneration.Stream
                 byte[] buffer = new byte[512];
                 Assert.That(p3.Read(buffer, 0, 512), Is.EqualTo(256));
                 Assert.That(buffer[..256], Is.EqualTo(_sendBuffer));
+                Assert.That(p3.ReadByte(), Is.EqualTo(-1));
+                p3.Dispose();
                 return default;
             }
 
