@@ -7,7 +7,6 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Diagnostics;
-using System.Net.Security;
 
 namespace IceRpc
 {
@@ -202,7 +201,7 @@ namespace IceRpc
         private ILoggerFactory? _loggerFactory;
         // The mutex protects mutable data members and ensures the logic for some operations is performed atomically.
         private readonly object _mutex = new();
-        private ConnectionOptions _options;
+        private readonly ConnectionOptions _options;
         private RpcStream? _peerControlStream;
         private Endpoint? _remoteEndpoint;
         private Action<Connection>? _remove;
