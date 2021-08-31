@@ -2,7 +2,7 @@
 
 using IceRpc.Transports;
 
-namespace IceRpc.Slice
+namespace IceRpc
 {
     /// <summary>An interface that encapsulates a stream param and knows how to encode and send the param over a
     /// <see cref="RpcStream"/>.</summary>
