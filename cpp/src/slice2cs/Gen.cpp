@@ -2064,7 +2064,8 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     params.pop_back();
                 }
 
-                string encodingType = operation->sendsClasses(true) ? "Ice11Encoding" : "IceEncoding";
+                bool sendsClasses = operation->sendsClasses(true);
+                string encoding = sendsClasses ? "IceRpc.Encoding.Ice11" : "encoding";
 
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
@@ -2078,10 +2079,21 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 {
                     _out << nl << "/// <param name=\"args\">The request arguments.</param>";
                 }
-                _out << nl << "/// <returns>The payload encoded with <paramref name=\"encoding\"/>.</returns>";
+                if (sendsClasses)
+                {
+                    _out << nl << "/// <returns>The payload encoded with encoding 1.1.</returns>";
+                }
+                else
+                {
+                    _out << nl << "/// <returns>The payload encoded with <paramref name=\"encoding\"/>.</returns>";
+                }
 
                 _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
-                    << fixId(operationName(operation)) << "(" << encodingType << " encoding, ";
+                    << fixId(operationName(operation)) << "(";
+                if (!sendsClasses)
+                {
+                    _out << "IceEncoding encoding, ";
+                }
 
                 if (params.size() == 1)
                 {
@@ -2095,11 +2107,11 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (params.size() == 1)
                 {
-                    _out << nl << "encoding.CreatePayloadFromSingleArg(";
+                    _out << nl << encoding << ".CreatePayloadFromSingleArg(";
                 }
                 else
                 {
-                    _out << nl << "encoding.CreatePayloadFromArgs(";
+                    _out << nl << encoding << ".CreatePayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
@@ -2399,8 +2411,9 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar;
     _out << sb;
 
+    bool sendsClasses = operation->sendsClasses(true);
     string payloadEncoding;
-    if (operation->sendsClasses(true))
+    if (sendsClasses)
     {
         payloadEncoding = "IceRpc.Encoding.Ice11";
     }
@@ -2421,7 +2434,12 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     else
     {
         // can't use 'in' for tuple as it's an expression
-        _out << nl << "Request." << name << "(" << payloadEncoding << ", " << toTuple(params) << "),";
+        _out << nl << "Request." << name << "(";
+        if (!sendsClasses)
+        {
+            _out << payloadEncoding << ", ";
+        }
+        _out << toTuple(params) << "),";
     }
     if (voidOp && !streamReturnParam)
     {
@@ -2684,12 +2702,15 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     returns.pop_back();
                 }
 
-                string encodingClass = operation->returnsClasses(true) ? "Ice11Encoding" : "IceEncoding";
+                bool returnsClasses = operation->returnsClasses(true);
 
                 _out << sp;
                 _out << nl << "/// <summary>Creates a response payload for operation "
                      << fixId(operationName(operation)) << ".</summary>";
-                _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
+                if (!returnsClasses)
+                {
+                    _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
+                }
                 if (returns.size() == 1)
                 {
                     _out << nl << "/// <param name=\"returnValue\">The return value to write into the new response payload.</param>";
@@ -2703,7 +2724,10 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << fixId(operationName(operation))
                      << "(";
                 _out.inc();
-                _out << nl << encodingClass << " encoding,";
+                if (!returnsClasses)
+                {
+                    _out << nl << "IceEncoding encoding,";
+                }
 
                 if (returns.size() == 1)
                 {
@@ -2716,13 +2740,22 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 _out.inc();
 
-                if (returns.size() == 1)
+                if (returnsClasses)
                 {
-                    _out << nl << "encoding.CreatePayloadFromSingleReturnValue(";
+                    _out << nl << "IceRpc.Encoding.Ice11";
                 }
                 else
                 {
-                    _out << nl << "encoding.CreatePayloadFromReturnValueTuple(";
+                    _out << nl << "encoding";
+                }
+
+                if (returns.size() == 1)
+                {
+                    _out << ".CreatePayloadFromSingleReturnValue(";
+                }
+                else
+                {
+                    _out << ".CreatePayloadFromReturnValueTuple(";
                 }
 
                 _out.inc();
@@ -2945,15 +2978,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     }
 
     string encoding;
-    if (operation->returnsClasses(true))
-    {
-        encoding = "IceRpc.Encoding.Ice11";
-    }
-    else
-    {
-        encoding = "payloadEncoding";
-        _out << nl << "var " << encoding << " = request.GetIceEncoding();";
-    }
+    bool returnsClasses = operation->returnsClasses(true);
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, decoder etc.)
     if (operation->hasMarshaledResult())
@@ -2969,9 +2994,18 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         {
             _out << paramName(params.front(), "iceP_");
         }
-        _out << "dispatch"
-             << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return (" << encoding << ", returnValue.Payload, null);";
+        _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
+
+        _out << nl << "return (";
+        if (returnsClasses)
+        {
+            _out << "IceRpc.Encoding.Ice11";
+        }
+        else
+        {
+            _out << "request.GetIceEncoding()";
+        }
+        _out << ", returnValue.Payload, null);";
         _out << eb;
     }
     else
@@ -2992,6 +3026,16 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << paramName(params.front(), "iceP_");
         }
         _out << "dispatch" << "cancel" << epar << ".ConfigureAwait(false);";
+
+        if (returnsClasses)
+        {
+            encoding = "IceRpc.Encoding.Ice11";
+        }
+        else
+        {
+            encoding = "payloadEncoding";
+            _out << nl << "var " << encoding << " = request.GetIceEncoding();";
+        }
 
         if (returnType.size() == 0 || (returnType.size() == 1 && streamReturnParam))
         {
@@ -3034,7 +3078,12 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             _out << nl << "return (";
             _out.inc();
             _out << nl << encoding << ",";
-            _out << nl << "Response." << fixId(opName) << "(" << encoding << ", " << spar << names << epar << "),";
+            _out << nl << "Response." << fixId(opName) << "(";
+            if (!returnsClasses)
+            {
+                _out << encoding << ", ";
+            }
+            _out << spar << names << epar << "),";
 
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                 builtin && builtin->kind() == Builtin::KindByte)
@@ -3056,8 +3105,12 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         else
         {
-            _out << nl << "return (" << encoding << ", Response." << fixId(opName)
-                << "(" << encoding << ", returnValue), null);";
+            _out << nl << "return (" << encoding << ", Response." << fixId(opName) << "(";
+            if (!returnsClasses)
+            {
+                _out << encoding << ", ";
+            }
+            _out << "returnValue), null);";
         }
         _out << eb;
     }
