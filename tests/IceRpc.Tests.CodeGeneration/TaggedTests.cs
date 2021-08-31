@@ -26,9 +26,6 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.Endpoint
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
-
-            // TODO: should test without classes too
-            _prx.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]
