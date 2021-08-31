@@ -128,7 +128,12 @@ namespace IceRpc.Tests.CodeGeneration
                 Assert.AreEqual("a3", ex!.A3!.Name);
                 Assert.AreEqual("a4", ex!.A4!.Name);
             }
-            // TODO: can we encode this exception with 1.1 when the request is encoded with 2.0?
+            else if (_prx.Proxy.Encoding == Encoding.Ice20)
+            {
+                // The method throws an exception with classes that gets sliced to the first 2.0-encodable base class,
+                // RemoteException.
+                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowMyDerivedExceptionAsync());
+            }
 
             (MyClassE e1, MyClassE e2) =
                 await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);
