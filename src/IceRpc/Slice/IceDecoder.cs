@@ -490,7 +490,7 @@ namespace IceRpc.Slice
                 {
                     SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
                 }
-                return DecodeSortedDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
+                return this.DecodeSortedDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
         }
@@ -511,7 +511,7 @@ namespace IceRpc.Slice
             if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
             {
                 SkipFixedLengthSize();
-                return DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
+                return this.DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
             }
             return null;
         }

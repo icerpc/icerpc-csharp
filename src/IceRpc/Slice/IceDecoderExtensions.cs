@@ -87,6 +87,7 @@ namespace IceRpc.Slice
             new CollectionWithBitSequence<TDecoder, T>(decoder, decodeFunc);
 
         /// <summary>Decodes a sorted dictionary.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="minValueSize">The minimum size of each value of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
@@ -98,6 +99,7 @@ namespace IceRpc.Slice
             int minValueSize,
             DecodeFunc<TDecoder, TKey> keyDecodeFunc,
             DecodeFunc<TDecoder, TValue> valueDecodeFunc)
+            where TDecoder : IceDecoder
             where TKey : notnull
         {
             int sz = decoder.DecodeAndCheckSeqSize(minKeySize + minValueSize);
@@ -112,6 +114,7 @@ namespace IceRpc.Slice
         }
 
         /// <summary>Decodes a sorted dictionary.</summary>
+        /// <param name="decoder">The Ice decoder.</param>
         /// <param name="minKeySize">The minimum size of each key of the dictionary, in bytes.</param>
         /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
         /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
@@ -121,10 +124,11 @@ namespace IceRpc.Slice
             int minKeySize,
             DecodeFunc<TDecoder, TKey> keyDecodeFunc,
             DecodeFunc<TDecoder, TValue?> valueDecodeFunc)
+            where TDecoder : IceDecoder
             where TKey : notnull =>
-            this.DecodeDictionaryWithBitSequence(
+            decoder.DecodeDictionaryWithBitSequence(
                 new SortedDictionary<TKey, TValue?>(),
-                DecodeAndCheckSeqSize(minKeySize),
+                decoder.DecodeAndCheckSeqSize(minKeySize),
                 keyDecodeFunc,
                 valueDecodeFunc);
 

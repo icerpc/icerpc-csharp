@@ -1703,7 +1703,17 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/> from a decoder.</summary>";
-    _out << nl << "public " << name << "(IceDecoder decoder)";
+    _out << nl << "public " << name;
+
+    if (p->usesClasses())
+    {
+        _out << "(Ice11Decoder decoder)";
+    }
+    else
+    {
+        _out << "(IceDecoder decoder)";
+    }
+
     _out << sb;
     writeUnmarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
