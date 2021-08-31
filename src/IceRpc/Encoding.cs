@@ -94,6 +94,9 @@ namespace IceRpc
                 _ => new Encoding($"{major}.{minor}")
             };
 
+        internal virtual void CheckSupportedIceEncoding() =>
+            throw new NotSupportedException($"encoding {this} is not a supported by this IceRPC runtime");
+
         internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories) =>

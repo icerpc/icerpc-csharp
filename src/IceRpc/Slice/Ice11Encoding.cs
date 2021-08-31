@@ -85,6 +85,11 @@ namespace IceRpc.Slice
             return bufferWriter.Finish();
         }
 
+        internal override void CheckSupportedIceEncoding()
+        {
+            // supported
+        }
+
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
 
         internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
