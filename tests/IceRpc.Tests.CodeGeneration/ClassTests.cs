@@ -49,7 +49,6 @@ namespace IceRpc.Tests.CodeGeneration
             };
 
             _prx = ClassOperationsPrx.FromConnection(_connection);
-            _prx.Proxy.Encoding = Encoding.Ice11;
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
             _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
         }
@@ -121,12 +120,16 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual("a3", d1!.A3!.Name);
             Assert.AreEqual("a4", d1!.A4!.Name);
 
-            MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
-                async () => await _prx.ThrowMyDerivedExceptionAsync());
-            Assert.AreEqual("a1", ex!.A1!.Name);
-            Assert.AreEqual("a2", ex!.A2!.Name);
-            Assert.AreEqual("a3", ex!.A3!.Name);
-            Assert.AreEqual("a4", ex!.A4!.Name);
+            if (_prx.Proxy.Encoding == Encoding.Ice11)
+            {
+                MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
+                    async () => await _prx.ThrowMyDerivedExceptionAsync());
+                Assert.AreEqual("a1", ex!.A1!.Name);
+                Assert.AreEqual("a2", ex!.A2!.Name);
+                Assert.AreEqual("a3", ex!.A3!.Name);
+                Assert.AreEqual("a4", ex!.A4!.Name);
+            }
+            // TODO: can we encode this exception with 1.1 when the request is encoded with 2.0?
 
             (MyClassE e1, MyClassE e2) =
                 await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);
