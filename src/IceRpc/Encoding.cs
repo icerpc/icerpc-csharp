@@ -53,18 +53,6 @@ namespace IceRpc
         /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
         public static bool operator !=(Encoding? lhs, Encoding? rhs) => !(lhs == rhs);
 
-        /// <inheritdoc/>
-        public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
-
-        /// <summary>Checks if this encoding is equal to another encoding.</summary>
-        /// <param name="other">The other encoding.</param>
-        /// <returns><c>true</c>when the two encodings have the same name; otherwise, <c>false</c>.</returns>
-        public bool Equals(Encoding? other) => Name == other?.Name;
-
-        /// <summary>Computes the hash code for this encoding.</summary>
-        /// <returns>The hash code.</returns>
-        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
-
         /// <summary>Returns an Encoding with the given name. This method always succeeds.</summary>
         /// <param name="name">The name of the encoding.</param>
         /// <returns>One of the well-known Encoding instance (Ice11, Ice20 etc.) when the name matches; otherwise, a new
@@ -78,6 +66,23 @@ namespace IceRpc
                 UnknownName => Unknown,
                 _ => new Encoding(name)
             };
+
+        /// <summary>Creates an empty payload encoded with this encoding.</summary>
+        /// <returns>A new empty payload.</returns>
+        public virtual ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() =>
+            throw new NotSupportedException($"encoding '{this}' is not a supported by this IceRPC runtime");
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
+
+        /// <summary>Checks if this encoding is equal to another encoding.</summary>
+        /// <param name="other">The other encoding.</param>
+        /// <returns><c>true</c>when the two encodings have the same name; otherwise, <c>false</c>.</returns>
+        public bool Equals(Encoding? other) => Name == other?.Name;
+
+        /// <summary>Computes the hash code for this encoding.</summary>
+        /// <returns>The hash code.</returns>
+        public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
 
         /// <summary>Converts this encoding into a string.</summary>
         /// <returns>The name of the encoding.</returns>
@@ -93,9 +98,6 @@ namespace IceRpc
                 (2, 0) => Ice20,
                 _ => new Encoding($"{major}.{minor}")
             };
-
-        internal virtual void CheckSupportedIceEncoding() =>
-            throw new NotSupportedException($"encoding '{this}' is not a supported by this IceRPC runtime");
 
         internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,

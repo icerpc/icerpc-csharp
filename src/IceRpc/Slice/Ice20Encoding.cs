@@ -10,10 +10,8 @@ namespace IceRpc.Slice
         /// <summary>The Ice 2.0 encoding singleton.</summary>
         internal static Ice20Encoding Instance { get; } = new();
 
-        internal override void CheckSupportedIceEncoding()
-        {
-            // supported
-        }
+        /// <inheritdoc/>
+        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
 

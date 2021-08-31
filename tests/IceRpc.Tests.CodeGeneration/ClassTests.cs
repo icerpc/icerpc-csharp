@@ -50,7 +50,6 @@ namespace IceRpc.Tests.CodeGeneration
 
             _prx = ClassOperationsPrx.FromConnection(_connection);
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
-            _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

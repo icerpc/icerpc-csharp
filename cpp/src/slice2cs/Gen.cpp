@@ -2971,7 +2971,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                 _out << nl << "return (";
                 _out.inc();
                 _out << nl << encoding << ",";
-                _out << nl << encoding << ".CreatePayloadFromVoidReturnValue(),";
+                _out << nl << encoding << ".CreateEmptyPayload(),";
 
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                     builtin && builtin->kind() == Builtin::KindByte)
@@ -2994,7 +2994,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             else
             {
                 _out << nl << "return (" << encoding << ", " << encoding
-                    << ".CreatePayloadFromVoidReturnValue(), null);";
+                    << ".CreateEmptyPayload(), null);";
             }
         }
         else if (streamReturnParam)

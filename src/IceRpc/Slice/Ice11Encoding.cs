@@ -10,6 +10,9 @@ namespace IceRpc.Slice
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();
 
+        /// <inheritdoc/>
+        public override ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() => default;
+
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
         /// <typeparam name="T">The type of the operation's parameters.</typeparam>
@@ -83,11 +86,6 @@ namespace IceRpc.Slice
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             encodeAction(encoder, returnValue);
             return bufferWriter.Finish();
-        }
-
-        internal override void CheckSupportedIceEncoding()
-        {
-            // supported
         }
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);

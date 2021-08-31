@@ -7,15 +7,6 @@ namespace IceRpc.Slice
     /// <summary>Provides extension methods for class Encoding.</summary>
     public static class EncodingExtensions
     {
-        /// <summary>Creates the payload of a request without parameter.</summary>
-        /// <param name="payloadEncoding">The payload encoding.</param>
-        /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload(this Encoding payloadEncoding)
-        {
-            payloadEncoding.CheckSupportedIceEncoding();
-            return default;
-        }
-
         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
@@ -90,16 +81,6 @@ namespace IceRpc.Slice
             IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
             encodeAction(encoder, returnValue);
             return bufferWriter.Finish();
-        }
-
-        /// <summary>Creates a payload representing a void return value.</summary>
-        /// <param name="payloadEncoding">The payload encoding.</param>
-        /// <returns>A new payload.</returns>
-        public static ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromVoidReturnValue(
-            this Encoding payloadEncoding)
-        {
-            payloadEncoding.CheckSupportedIceEncoding();
-            return default;
         }
     }
 }
