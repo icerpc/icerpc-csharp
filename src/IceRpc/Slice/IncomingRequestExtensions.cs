@@ -28,8 +28,9 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<IceDecoder, T> decodeFunc)
         {
-            var decoder = request.PayloadEncoding.GetIceDecoderFactory(request.Features, defaultIceDecoderFactories).
-                CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker);
+            IceDecoder decoder = request.PayloadEncoding.GetIceDecoderFactory(
+                request.Features,
+                defaultIceDecoderFactories).CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;

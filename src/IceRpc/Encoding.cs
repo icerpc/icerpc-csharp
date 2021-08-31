@@ -95,18 +95,18 @@ namespace IceRpc
             };
 
         internal virtual void CheckSupportedIceEncoding() =>
-            throw new NotSupportedException($"encoding {this} is not a supported by this IceRPC runtime");
+            throw new NotSupportedException($"encoding '{this}' is not a supported by this IceRPC runtime");
 
         internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
             FeatureCollection features,
             DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            throw new NotSupportedException($"cannot create an Ice decoder for encoding {this}");
+            throw new NotSupportedException($"cannot create an Ice decoder for encoding '{this}'");
 
         /// <summary>Creates an Ice encoder for this encoding.</summary>
         /// <param name="bufferWriter">The buffer writer.</param>
         /// <returns>A new encoder for the specified Ice encoding.</returns>
         internal virtual IceEncoder CreateIceEncoder(BufferWriter bufferWriter) =>
-            throw new NotSupportedException($"cannot create Ice encoder for encoding {this}");
+            throw new NotSupportedException($"cannot create Ice encoder for encoding '{this}'");
 
         /// <summary>Returns the major and minor byte versions of this encoding.</summary>
         /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.
