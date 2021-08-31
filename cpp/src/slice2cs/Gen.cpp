@@ -1216,7 +1216,7 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
     _out << sp;
     emitEditorBrowsableNeverAttribute();
     _out << nl << "public static " << (hasBaseClass ? "new " : "")
-        << " readonly string IceTypeId = typeof(" << name << ").GetIceTypeId()!;";
+        << "readonly string IceTypeId = typeof(" << name << ").GetIceTypeId()!;";
 
     if (p->compactId() >= 0)
     {
@@ -1343,9 +1343,8 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
             << nl << "Justification=\"Special constructor used for Ice decoding\")]";
         _out.dec();
     }
-    _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(Ice11Decoder? decoder)";
+    _out << nl << "public " << name << "(Ice11Decoder decoder)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
@@ -1572,7 +1571,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
 
     // public constructor used for Ice 1.1 decoding (always generated).
     _out << sp;
-    _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
     _out << nl << "public " << name << "(Ice11Decoder decoder)";
     _out.inc();
@@ -1586,7 +1584,6 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
     {
         // public constructor used for Ice 2.0 decoding
         _out << sp;
-        _out << nl << "/// <inherit-doc/>";
         emitEditorBrowsableNeverAttribute();
         _out << nl << "public " << name << "(Ice20Decoder decoder)";
         _out.inc();
