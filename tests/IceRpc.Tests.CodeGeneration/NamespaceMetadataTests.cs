@@ -12,7 +12,6 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly NamespaceMDOperationsPrx _prx;
 
         public NamespaceMetadataTests()
         {
@@ -26,21 +25,26 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = _server.Endpoint
             };
-            _prx = NamespaceMDOperationsPrx.FromConnection(_connection);
-            _prx.Proxy.Encoding = Encoding.Ice11; // because we use classes for this test
         }
 
         [Test]
         public async Task NamespaceMetadata_Definitions()
         {
-            C1 c1 = await _prx.GetWithNamespaceC2AsC1Async();
+            NamespaceMDOperationsPrx prx = NamespaceMDOperationsPrx.FromConnection(_connection);
+
+            C1 c1 = await prx.GetWithNamespaceC2AsC1Async();
             Assert.That(c1, Is.Not.Null);
             Assert.That(c1, Is.InstanceOf<C2>());
-            Assert.DoesNotThrowAsync(async () => await _prx.GetWithNamespaceC2AsC2Async());
-            Assert.DoesNotThrowAsync(async () => await _prx.GetWithNamespaceN1N2S1Async());
-            Assert.DoesNotThrowAsync(async () => await _prx.GetNestedM0M2M3S2Async());
-            Assert.ThrowsAsync<E1>(async () => await _prx.ThrowWithNamespaceE1Async());
-            Assert.ThrowsAsync<E2>(async () => await _prx.ThrowWithNamespaceE2Async());
+            Assert.DoesNotThrowAsync(async () => await prx.GetWithNamespaceC2AsC2Async());
+            Assert.DoesNotThrowAsync(async () => await prx.GetWithNamespaceN1N2S1Async());
+            Assert.DoesNotThrowAsync(async () => await prx.GetNestedM0M2M3S2Async());
+            Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE1Async());
+
+            Assert.AreEqual(Encoding.Ice20, prx.Proxy.Encoding);
+            Assert.ThrowsAsync<E1>(async () => await prx.ThrowWithNamespaceE2Async());
+
+            prx.Proxy.Encoding = Encoding.Ice11;
+            Assert.ThrowsAsync<E2>(async () => await prx.ThrowWithNamespaceE2Async());
         }
 
         [TearDown]
