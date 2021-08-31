@@ -2064,10 +2064,12 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     params.pop_back();
                 }
 
+                string encodingType = operation->sendsClasses(true) ? "Ice11Encoding" : "IceRpc.Encoding";
+
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
                     ".</summary>";
-                _out << nl << "/// <param name=\"prx\">Typed proxy to the target service.</param>";
+                _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
                 if (params.size() == 1)
                 {
                     _out << nl << "/// <param name=\"arg\">The request argument.</param>";
@@ -2076,10 +2078,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 {
                     _out << nl << "/// <param name=\"args\">The request arguments.</param>";
                 }
-                _out << nl << "/// <returns>The payload and its encoding.</returns>";
+                _out << nl << "/// <returns>The payload encoded with <paramref name=\"encoding\"/>.</returns>";
 
                 _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
-                    << fixId(operationName(operation)) << "(" << prxImpl << " prx, ";
+                    << fixId(operationName(operation)) << "(" << encodingType << " encoding, ";
 
                 if (params.size() == 1)
                 {
@@ -2091,15 +2093,13 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out.inc();
 
-                string encoding = operation->sendsClasses(true) ? "IceRpc.Encoding.Ice11" : "prx.Proxy.Encoding";
-
                 if (params.size() == 1)
                 {
-                    _out << nl << encoding << ".CreatePayloadFromSingleArg(";
+                    _out << nl << "encoding.CreatePayloadFromSingleArg(";
                 }
                 else
                 {
-                    _out << nl << encoding << ".CreatePayloadFromArgs(";
+                    _out << nl << "encoding.CreatePayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
@@ -2399,18 +2399,20 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar << " =>";
     _out.inc();
 
+    string encoding = operation->sendsClasses(true) ? "IceRpc.Encoding.Ice11" : "Proxy.Encoding";
+
     _out << nl << "Proxy.InvokeAsync(";
     _out.inc();
     _out << nl << "\"" << operation->name() << "\",";
-    _out << nl << "Proxy.Encoding,";
+    _out << nl << encoding << ",";
     if (params.size() == 0)
     {
-        _out << nl << "Proxy.Encoding.CreateEmptyPayload(),";
+        _out << nl << encoding << ".CreateEmptyPayload(),";
     }
     else
     {
         // can't use 'in' for tuple as it's an expression
-        _out << nl << "Request." << name << "(this, " << toTuple(params) << "),";
+        _out << nl << "Request." << name << "(" << encoding << ", " << toTuple(params) << "),";
     }
     if (voidOp && !streamReturnParam)
     {
