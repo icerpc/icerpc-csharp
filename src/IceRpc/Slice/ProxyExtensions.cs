@@ -22,6 +22,7 @@ namespace IceRpc.Slice
         /// <summary>Sends a request to a service and decodes the response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="payloadEncoding">The encoding of the request payload.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
@@ -38,6 +39,7 @@ namespace IceRpc.Slice
         public static Task<T> InvokeAsync<T>(
             this Proxy proxy,
             string operation,
+            Encoding payloadEncoding,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             IStreamParamSender? streamParamSender,
             ResponseDecodeFunc<T> responseDecodeFunc,
@@ -50,6 +52,7 @@ namespace IceRpc.Slice
             Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
                 proxy.InvokeAsync(
                     operation,
+                    payloadEncoding,
                     requestPayload,
                     streamParamSender,
                     invocation,
@@ -73,6 +76,7 @@ namespace IceRpc.Slice
         /// <summary>Sends a request to a service and decodes the "void" response.</summary>
         /// <param name="proxy">A proxy for the remote service.</param>
         /// <param name="operation">The name of the operation, as specified in Slice.</param>
+        /// <param name="payloadEncoding">The encoding of the request payload.</param>
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="streamParamSender">The stream param sender.</param>
@@ -89,6 +93,7 @@ namespace IceRpc.Slice
         public static Task InvokeAsync(
             this Proxy proxy,
             string operation,
+            Encoding payloadEncoding,
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             IStreamParamSender? streamParamSender,
@@ -101,6 +106,7 @@ namespace IceRpc.Slice
             Task<(IncomingResponse, StreamParamReceiver?)> responseTask =
                 proxy.InvokeAsync(
                     operation,
+                    payloadEncoding,
                     requestPayload,
                     streamParamSender,
                     invocation,

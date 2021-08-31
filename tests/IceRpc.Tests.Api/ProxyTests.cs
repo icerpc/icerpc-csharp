@@ -277,7 +277,7 @@ namespace IceRpc.Tests.Api
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await proxy.InvokeAsync("SayHello", requestPayload: default);
+                await proxy.InvokeAsync("SayHello", proxy.Encoding, requestPayload: default);
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 proxy.Invoker,

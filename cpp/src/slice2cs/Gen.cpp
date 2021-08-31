@@ -2402,6 +2402,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "Proxy.InvokeAsync(";
     _out.inc();
     _out << nl << "\"" << operation->name() << "\",";
+    _out << nl << "Proxy.Encoding,";
     if (params.size() == 0)
     {
         _out << nl << "Proxy.Encoding.CreateEmptyPayload(),";
@@ -2873,7 +2874,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "[IceRpc.Slice.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected static ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IStreamParamSender?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(IceRpc.Encoding, global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IStreamParamSender?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << fixId(interfaceName(interface)) << " target,"
@@ -2944,7 +2945,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch"
              << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return (returnValue.Payload, null);";
+        _out << nl << "return (dispatch.Encoding, returnValue.Payload, null);";
         _out << eb;
     }
     else
@@ -2972,6 +2973,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             {
                 _out << nl << "return (";
                 _out.inc();
+                _out << nl << "dispatch.Encoding,";
                 _out << nl << "dispatch.Encoding.CreatePayloadFromVoidReturnValue(),";
 
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
@@ -2994,7 +2996,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             }
             else
             {
-                _out << nl << "return (dispatch.Encoding.CreatePayloadFromVoidReturnValue(), null);";
+                _out << nl << "return (dispatch.Encoding, dispatch.Encoding.CreatePayloadFromVoidReturnValue(), null);";
             }
         }
         else if (streamReturnParam)
@@ -3004,6 +3006,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             names.pop_back();
             _out << nl << "return (";
             _out.inc();
+            _out << nl << "dispatch.Encoding,";
             _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
 
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
@@ -3026,7 +3029,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         else
         {
-            _out << nl << "return (Response." << fixId(opName) << "(dispatch, returnValue), null);";
+            _out << nl << "return (dispatch.Encoding, Response." << fixId(opName) << "(dispatch, returnValue), null);";
         }
         _out << eb;
     }

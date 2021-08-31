@@ -200,7 +200,7 @@ namespace IceRpc.Tests.CodeGeneration
                 });
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
+                await _prx.Proxy.InvokeAsync("opVoid", _prx.Proxy.Encoding, requestPayload);
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 _prx.Proxy.Invoker,
