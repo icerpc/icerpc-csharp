@@ -3,10 +3,6 @@
 using IceRpc.Features;
 using IceRpc.Internal;
 using IceRpc.Slice;
-using IceRpc.Transports.Internal;
-using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
 
 namespace IceRpc
 {
