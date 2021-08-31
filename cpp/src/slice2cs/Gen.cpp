@@ -2094,15 +2094,22 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out.inc();
 
-                string ice11 = operation->sendsClasses(true) ? "Ice11" : "";
-
-                if (params.size() == 1)
+                if (operation->sendsClasses(true))
                 {
-                    _out << nl << "prx.Proxy.Create" << ice11 << "PayloadFromSingleArg(";
+                    _out << nl << "Ice11Encoding.Instance";
                 }
                 else
                 {
-                    _out << nl << "prx.Proxy.Create" << ice11 << "PayloadFromArgs(";
+                    _out << nl << "prx.Proxy.Encoding";
+                }
+
+                if (params.size() == 1)
+                {
+                    _out << ".CreatePayloadFromSingleArg(";
+                }
+                else
+                {
+                    _out << ".CreatePayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
@@ -2407,7 +2414,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "\"" << operation->name() << "\",";
     if (params.size() == 0)
     {
-        _out << nl << "Proxy.CreateEmptyPayload(),";
+        _out << nl << "Proxy.Encoding.CreateEmptyPayload(),";
     }
     else
     {
@@ -2705,15 +2712,22 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 _out.inc();
 
-                string ice11 = operation->returnsClasses(true) ? "Ice11" : "";
-
-                if (returns.size() == 1)
+                if (operation->returnsClasses(true))
                 {
-                    _out << nl << "dispatch.Encoding.Create" << ice11 << "PayloadFromSingleReturnValue(";
+                    _out << nl << "Ice11Encoding.Instance";
                 }
                 else
                 {
-                    _out << nl << "dispatch.Encoding.Create" << ice11 << "PayloadFromReturnValueTuple(";
+                    _out << nl << "dispatch.Encoding";
+                }
+
+                if (returns.size() == 1)
+                {
+                    _out << nl << ".CreatePayloadFromSingleReturnValue(";
+                }
+                else
+                {
+                    _out << nl << ".CreatePayloadFromReturnValueTuple(";
                 }
 
                 _out.inc();

@@ -191,7 +191,7 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(multiTagged1.MAnotherStructDict, Is.Null);
 
             // Build a request payload with 2 tagged values
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = _prx.Proxy.CreatePayloadFromArgs(
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = _prx.Proxy.Encoding.CreatePayloadFromArgs(
                 (15, "test"),
                 (IceEncoder encoder, in (int n, string s) value) =>
                 {

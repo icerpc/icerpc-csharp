@@ -13,10 +13,10 @@ namespace IceRpc
         public static readonly Encoding Ice10 = new(Ice10Name);
 
         /// <summary>Version 1.1 of the Ice encoding, supported by IceRPC and Ice 3.5 or greater.</summary>
-        public static readonly Encoding Ice11 = new Ice11Encoding();
+        public static readonly Encoding Ice11 = Ice11Encoding.Instance;
 
         /// <summary>Version 2.0 of the Ice encoding, supported by IceRPC.</summary>
-        public static readonly Encoding Ice20 = new Ice20Encoding();
+        public static readonly Encoding Ice20 = Ice20Encoding.Instance;
 
         /// <summary>The name of this encoding, for example "2.0" for the Ice 2.0 encoding.</summary>
         public string Name { get; }
@@ -24,9 +24,9 @@ namespace IceRpc
         /// <summary>An unknown encoding, used as the default payload encoding for unsupported protocols.</summary>
         internal static readonly Encoding Unknown = new(UnknownName);
 
+        private protected const string Ice11Name = "1.1";
+        private protected const string Ice20Name = "2.0";
         private const string Ice10Name = "1.0";
-        private const string Ice11Name = "1.1";
-        private const string Ice20Name = "2.0";
         private const string UnknownName = "unknown";
 
         /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
@@ -144,37 +144,6 @@ namespace IceRpc
             }
         }
 
-        private Encoding(string name) => Name = name;
-
-        private class Ice11Encoding : Encoding
-        {
-            internal Ice11Encoding()
-                : base(Ice11Name)
-            {
-            }
-
-            internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice11Encoder(bufferWriter);
-
-            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-                FeatureCollection features,
-                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-                features.Get<IIceDecoderFactory<Ice11Decoder>>() ?? defaultIceDecoderFactories.Ice11DecoderFactory;
-
-        }
-
-        private class Ice20Encoding : Encoding
-        {
-            internal Ice20Encoding()
-                : base(Ice20Name)
-            {
-            }
-
-            internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
-
-            internal override IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-                FeatureCollection features,
-                DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-                features.Get<IIceDecoderFactory<Ice20Decoder>>() ?? defaultIceDecoderFactories.Ice20DecoderFactory;
-        }
+        private protected Encoding(string name) => Name = name;
     }
 }
