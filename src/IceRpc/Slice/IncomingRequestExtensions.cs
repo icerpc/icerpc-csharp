@@ -39,6 +39,11 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Computes the Ice encoding to use when encoding a Slice-generated response.</summary>
+        public static IceEncoding GetIceEncoding(this IncomingRequest request) =>
+            request.PayloadEncoding as IceEncoding ?? request.Protocol.GetIceEncoding() ??
+                throw new NotSupportedException($"unknown protocol {request.Protocol.GetName()}");
+
         /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
         /// doesn't specify a stream parameter.</summary>
         public static void StreamReadingComplete(this IncomingRequest request) =>

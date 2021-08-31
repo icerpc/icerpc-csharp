@@ -2952,7 +2952,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     else
     {
         encoding = "payloadEncoding";
-        _out << nl << "var " << encoding << " = dispatch.GetIceEncoding();";
+        _out << nl << "var " << encoding << " = request.GetIceEncoding();";
     }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, decoder etc.)
