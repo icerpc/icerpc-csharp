@@ -2766,6 +2766,14 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
 
     if (operation->hasMarshaledResult())
     {
+        bool dispatchParam = true;
+        string encoding = getEscapedParamName(operation, "dispatch") + ".GetIceEncoding()";
+        if (operation->returnsClasses(true))
+        {
+            dispatchParam = false;
+            encoding = "IceRpc.Encoding.Ice11";
+        }
+
         _out << sp;
         _out << nl << "/// <summary>Helper struct used to encode the return value of " << opName << " operation."
              << "</summary>";
@@ -2780,22 +2788,25 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         _out << nl << "/// <summary>Constructs a new <see cref=\"" << name  << "\"/> instance that";
         _out << nl << "/// immediately encodes the return value of operation " << opName << ".</summary>";
         _out << nl << "public " << name << spar
-             << getNames(returnType, [ns](const auto& p)
+            << getNames(returnType, [ns](const auto& p)
                                      {
                                          return paramTypeStr(p, ns) + " " + paramName(p);
-                                     })
-             << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"))
-             << epar;
+                                     });
+        if (dispatchParam)
+        {
+            _out << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"));
+        }
+        _out << epar;
         _out << sb;
         _out << nl << "Payload = ";
-        _out << getEscapedParamName(operation, "dispatch") << ".GetIceEncoding().";
+
         if (returnType.size() == 1)
         {
-            _out << "CreatePayloadFromSingleReturnValue(";
+            _out << encoding << ".CreatePayloadFromSingleReturnValue(";
         }
         else
         {
-            _out << "CreatePayloadFromReturnValueTuple(";
+            _out << encoding << ".CreatePayloadFromReturnValueTuple(";
         }
         _out.inc();
         _out << nl << toTuple(returnType) << ",";

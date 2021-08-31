@@ -123,6 +123,12 @@ namespace IceRpc.Tests.CodeGeneration
                 Dispatch dispatch,
                 CancellationToken cancel) =>
                 new(new IMarshaledResultOperations.OpStringDict2MarshaledReturnValue(p1, p1, dispatch));
+
+            public ValueTask<IMarshaledResultOperations.OpMyClassAMarshaledReturnValue> OpMyClassAAsync(
+                MyClassA p1,
+                Dispatch dispatch,
+                CancellationToken cancel) =>
+                new(new IMarshaledResultOperations.OpMyClassAMarshaledReturnValue(p1));
         }
     }
 }
