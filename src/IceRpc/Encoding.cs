@@ -67,11 +67,6 @@ namespace IceRpc
                 _ => new Encoding(name)
             };
 
-        /// <summary>Creates an empty payload encoded with this encoding.</summary>
-        /// <returns>A new empty payload.</returns>
-        public virtual ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload() =>
-            throw new NotSupportedException($"encoding '{this}' is not a supported by this IceRPC runtime");
-
         /// <inheritdoc/>
         public override bool Equals(object? obj) => obj is Encoding value && Equals(value);
 
@@ -96,19 +91,8 @@ namespace IceRpc
                 (1, 0) => Ice10,
                 (1, 1) => Ice11,
                 (2, 0) => Ice20,
-                _ => new Encoding($"{major}.{minor}")
+                _ => FromString($"{major}.{minor}")
             };
-
-        internal virtual IIceDecoderFactory<IceDecoder> GetIceDecoderFactory(
-            FeatureCollection features,
-            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            throw new NotSupportedException($"cannot create an Ice decoder for encoding '{this}'");
-
-        /// <summary>Creates an Ice encoder for this encoding.</summary>
-        /// <param name="bufferWriter">The buffer writer.</param>
-        /// <returns>A new encoder for the specified Ice encoding.</returns>
-        internal virtual IceEncoder CreateIceEncoder(BufferWriter bufferWriter) =>
-            throw new NotSupportedException($"cannot create Ice encoder for encoding '{this}'");
 
         /// <summary>Returns the major and minor byte versions of this encoding.</summary>
         /// <exception name="NotSupportedException">Thrown when this encoding's name is not in the major.minor format.

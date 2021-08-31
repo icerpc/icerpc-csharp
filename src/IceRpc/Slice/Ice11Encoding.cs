@@ -5,7 +5,7 @@ using IceRpc.Slice.Internal;
 namespace IceRpc.Slice
 {
     /// <summary>The Ice 1.1 encoding class.</summary>
-    public class Ice11Encoding : Encoding
+    public class Ice11Encoding : IceEncoding
     {
         /// <summary>The Ice 1.1 encoding singleton.</summary>
         internal static Ice11Encoding Instance { get; } = new();

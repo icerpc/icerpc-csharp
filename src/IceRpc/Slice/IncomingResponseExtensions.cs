@@ -17,17 +17,25 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             DefaultIceDecoderFactories defaultIceDecoderFactories)
         {
-            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
+            if (response.PayloadEncoding is IceEncoding payloadEncoding)
             {
-                throw response.ToRemoteException(decoder);
+                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                }
             }
             else
             {
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                throw new NotSupportedException(
+                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
             }
         }
 
@@ -44,19 +52,27 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<IceDecoder, T> decodeFunc)
         {
-            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
+            if (response.PayloadEncoding is IceEncoding payloadEncoding)
             {
-                throw response.ToRemoteException(decoder);
+                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    T result = decodeFunc(decoder);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                    return result;
+                }
             }
             else
             {
-                T result = decodeFunc(decoder);
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                return result;
+                throw new NotSupportedException(
+                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
             }
         }
 

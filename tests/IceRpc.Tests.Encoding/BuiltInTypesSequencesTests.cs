@@ -13,14 +13,14 @@ namespace IceRpc.Tests.Encoding
     [Parallelizable(scope: ParallelScope.All)]
     public class BuiltInTypesSequencesTests
     {
-        private readonly IceRpc.Encoding _encoding;
+        private readonly IceEncoding _encoding;
         private readonly BufferWriter _bufferWriter;
         private readonly IceEncoder _encoder;
         private readonly IceDecoder _decoder;
 
         public BuiltInTypesSequencesTests(string encoding)
         {
-            _encoding = IceRpc.Encoding.FromString(encoding);
+            _encoding = IceEncoding.FromString(encoding);
             var buffer = new byte[1024 * 1024];
             _bufferWriter = new BufferWriter(buffer);
             _encoder = _encoding.CreateIceEncoder(_bufferWriter);

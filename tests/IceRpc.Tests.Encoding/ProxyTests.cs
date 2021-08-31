@@ -39,7 +39,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase("1.1", "foo -f facet:tcp -h localhost -p 10000:udp -h localhost -p 10000")]
         public async Task Proxy_EncodingVersioning(string encodingStr, string str)
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
+            var encoding = IceEncoding.FromString(encodingStr);
             var encoder = encoding.CreateIceEncoder(_bufferWriter);
 
             var proxy = Proxy.Parse(str);
@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase("1.1")]
         public void Proxy_EndpointLess(string encodingStr)
         {
-            var encoding = IceRpc.Encoding.FromString(encodingStr);
+            var encoding =  IceEncoding.FromString(encodingStr);
 
             // Create an endpointless proxy
             var endpointLess = Proxy.FromPath("/foo", _server.Protocol);

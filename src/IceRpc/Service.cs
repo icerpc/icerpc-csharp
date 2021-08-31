@@ -13,7 +13,7 @@ namespace IceRpc
     {
         /// <summary>A delegate that matches the signature of the generated IceDXxx methods, the only difference is that
         /// for the generated methods <para>target</para> type is the type of the generated service interface.</summary>
-        private delegate ValueTask<(Encoding, ReadOnlyMemory<ReadOnlyMemory<byte>>, IStreamParamSender?)> IceDMethod(
+        private delegate ValueTask<(IceEncoding, ReadOnlyMemory<ReadOnlyMemory<byte>>, IStreamParamSender?)> IceDMethod(
             object target,
             IncomingRequest request,
             Dispatch dispatch,
@@ -98,7 +98,7 @@ namespace IceRpc
             {
                 if (_dispatchMethods.TryGetValue(dispatch.Operation, out IceDMethod? dispatchMethod))
                 {
-                    (Encoding payloadEncoding, ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
+                    (IceEncoding payloadEncoding, ReadOnlyMemory<ReadOnlyMemory<byte>> responsePayload, IStreamParamSender? streamParamSender) =
                         await dispatchMethod(this, request, dispatch, cancel).ConfigureAwait(false);
 
                     return new OutgoingResponse(request.Protocol, ResultType.Success)

@@ -8,8 +8,8 @@ namespace IceRpc.Slice
     /// <paramtype name="T">The Ice decoder class.</paramtype>
     public interface IIceDecoderFactory<out T> where T : IceDecoder
     {
-        /// <summary>Returns the encoding that this decoder factory supports.</summary>
-        Encoding Encoding { get; }
+        /// <summary>Returns the Ice encoding that this decoder factory supports.</summary>
+        IceEncoding Encoding { get; }
 
         /// <summary>Creates an Ice decoder.</summary>
         /// <param name="buffer">The buffer to decode.</param>
@@ -24,7 +24,7 @@ namespace IceRpc.Slice
     public class Ice11DecoderFactory : IIceDecoderFactory<Ice11Decoder>
     {
         /// <inheritdoc/>
-        public Encoding Encoding => Encoding.Ice11;
+        public IceEncoding Encoding => IceRpc.Encoding.Ice11;
 
         private readonly IActivator<Ice11Decoder> _activator;
         private readonly int _classGraphMaxDepth;
@@ -49,7 +49,7 @@ namespace IceRpc.Slice
     public class Ice20DecoderFactory : IIceDecoderFactory<Ice20Decoder>
     {
         /// <inheritdoc/>
-        public Encoding Encoding => Encoding.Ice20;
+        public IceEncoding Encoding => IceRpc.Encoding.Ice20;
 
         private readonly IActivator<Ice20Decoder> _activator;
 

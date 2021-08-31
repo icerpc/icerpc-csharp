@@ -27,7 +27,9 @@ namespace IceRpc.Slice
                 request.Stream,
                 request.Connection,
                 request.ProxyInvoker,
-                request.PayloadEncoding.GetIceDecoderFactory(request.Features, defaultIceDecoderFactories),
+                // TODO: rework cast
+                ((IceEncoding)request.PayloadEncoding).GetIceDecoderFactory(request.Features,
+                                                                            defaultIceDecoderFactories),
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
@@ -53,7 +55,8 @@ namespace IceRpc.Slice
                 _stream,
                 response.Connection,
                 invoker,
-                response.PayloadEncoding.GetIceDecoderFactory(response.Features, defaultIceDecoderFactories),
+                ((IceEncoding)response.PayloadEncoding).GetIceDecoderFactory(response.Features,
+                                                                             defaultIceDecoderFactories),
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an

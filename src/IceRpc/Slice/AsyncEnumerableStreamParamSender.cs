@@ -11,7 +11,7 @@ namespace IceRpc.Slice
     {
         private readonly IAsyncEnumerable<T> _inputStream;
         private readonly Action<IceEncoder, T> _encodeAction;
-        private readonly Encoding _encoding;
+        private readonly IceEncoding _encoding;
         private readonly Func<RpcStream, Task> _encoder;
 
         /// <summary>Constructs an async enumerable stream parameter sender from the given
@@ -21,7 +21,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">The action to encode each element.</param>
         public AsyncEnumerableStreamParamSender(
             IAsyncEnumerable<T> asyncEnumerable,
-            Encoding encoding,
+            IceEncoding encoding,
             Action<IceEncoder, T> encodeAction)
         {
             _inputStream = asyncEnumerable;
@@ -39,7 +39,7 @@ namespace IceRpc.Slice
         private static async Task SendAsync(
             RpcStream rpcStream,
             IAsyncEnumerable<T> asyncEnumerable,
-            Encoding encoding,
+            IceEncoding encoding,
             Action<IceEncoder, T> encodeAction)
         {
             using var cancelationSource = new CancellationTokenSource();

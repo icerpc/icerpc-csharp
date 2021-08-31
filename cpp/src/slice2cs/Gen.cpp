@@ -2064,7 +2064,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     params.pop_back();
                 }
 
-                string encodingType = operation->sendsClasses(true) ? "Ice11Encoding" : "IceRpc.Encoding";
+                string encodingType = operation->sendsClasses(true) ? "Ice11Encoding" : "IceEncoding";
 
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
@@ -2396,23 +2396,32 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     _out << sp;
     // TODO: it would be nice to output the parameters one per line, but this doesn't work with spar/epar.
     _out << nl << "public " << returnTaskStr(operation, ns, false) << " " << asyncName << spar
-        << getInvocationParams(operation, ns, true) << epar << " =>";
-    _out.inc();
+        << getInvocationParams(operation, ns, true) << epar;
+    _out << sb;
 
-    string encoding = operation->sendsClasses(true) ? "IceRpc.Encoding.Ice11" : "Proxy.Encoding";
+    string payloadEncoding;
+    if (operation->sendsClasses(true))
+    {
+        payloadEncoding = "IceRpc.Encoding.Ice11";
+    }
+    else
+    {
+        payloadEncoding = "payloadEncoding";
+        _out << nl << "var " << payloadEncoding << " = Proxy.GetIceEncoding();";
+    }
 
-    _out << nl << "Proxy.InvokeAsync(";
+    _out << nl << "return Proxy.InvokeAsync(";
     _out.inc();
     _out << nl << "\"" << operation->name() << "\",";
-    _out << nl << encoding << ",";
+    _out << nl << payloadEncoding << ",";
     if (params.size() == 0)
     {
-        _out << nl << encoding << ".CreateEmptyPayload(),";
+        _out << nl << payloadEncoding << ".CreateEmptyPayload(),";
     }
     else
     {
         // can't use 'in' for tuple as it's an expression
-        _out << nl << "Request." << name << "(" << encoding << ", " << toTuple(params) << "),";
+        _out << nl << "Request." << name << "(" << payloadEncoding << ", " << toTuple(params) << "),";
     }
     if (voidOp && !streamReturnParam)
     {
@@ -2433,7 +2442,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
             _out << "<" << typeToString(streamT, ns) << ">(";
             _out.inc();
             _out << nl << paramName(streamParam) << ","
-                 << nl << "Proxy.Encoding,"
+                 << nl << payloadEncoding << ","
                  << nl << encodeAction(streamT, ns, true, true) << "),";
             _out.dec();
         }
@@ -2488,7 +2497,7 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
     _out << nl << "cancel: " << cancel << ");";
     _out.dec();
-    _out.dec();
+    _out << eb;
 
     // TODO: move this check to the Slice parser.
     if (oneway && !voidOp)
@@ -2675,7 +2684,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     returns.pop_back();
                 }
 
-                string encodingClass = operation->returnsClasses(true) ? "Ice11Encoding" : "IceRpc.Encoding";
+                string encodingClass = operation->returnsClasses(true) ? "Ice11Encoding" : "IceEncoding";
 
                 _out << sp;
                 _out << nl << "/// <summary>Creates a response payload for operation "
@@ -2779,7 +2788,7 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
              << epar;
         _out << sb;
         _out << nl << "Payload = ";
-        _out << getEscapedParamName(operation, "dispatch") << ".Encoding.";
+        _out << getEscapedParamName(operation, "dispatch") << ".GetIceEncoding().";
         if (returnType.size() == 1)
         {
             _out << "CreatePayloadFromSingleReturnValue(";
@@ -2869,7 +2878,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
     _out << nl << "[IceRpc.Slice.Operation(\"" << operation->name() << "\")]";
     _out << nl << "protected static ";
     _out << "async ";
-    _out << "global::System.Threading.Tasks.ValueTask<(IceRpc.Encoding, global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IStreamParamSender?)>";
+    _out << "global::System.Threading.Tasks.ValueTask<(IceEncoding, global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>>, IStreamParamSender?)>";
     _out << " " << internalName << "(";
     _out.inc();
     _out << nl << fixId(interfaceName(interface)) << " target,"
@@ -2924,7 +2933,16 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
              << " = Request." << fixId(opName) << "(request);";
     }
 
-    string encoding = operation->returnsClasses(true) ? "IceRpc.Encoding.Ice11" : "dispatch.Encoding";
+    string encoding;
+    if (operation->returnsClasses(true))
+    {
+        encoding = "IceRpc.Encoding.Ice11";
+    }
+    else
+    {
+        encoding = "payloadEncoding";
+        _out << nl << "var " << encoding << " = dispatch.GetIceEncoding();";
+    }
 
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, decoder etc.)
     if (operation->hasMarshaledResult())

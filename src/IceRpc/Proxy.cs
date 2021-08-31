@@ -384,7 +384,7 @@ namespace IceRpc
             Protocol = protocol;
             IceUriParser.CheckPath(path, nameof(path));
             Path = path;
-            Encoding = Protocol.GetEncoding();
+            Encoding = Protocol.GetIceEncoding() ?? Encoding.Unknown;
         }
     }
 }

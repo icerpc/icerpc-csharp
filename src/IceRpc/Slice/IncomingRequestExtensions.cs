@@ -11,10 +11,20 @@ namespace IceRpc.Slice
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         public static void CheckEmptyArgs(
             this IncomingRequest request,
-            DefaultIceDecoderFactories defaultIceDecoderFactories) =>
-            request.PayloadEncoding.GetIceDecoderFactory(request.Features, defaultIceDecoderFactories).
-                CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker).
-                    CheckEndOfBuffer(skipTaggedParams: true);
+            DefaultIceDecoderFactories defaultIceDecoderFactories)
+        {
+            if (request.PayloadEncoding is IceEncoding payloadEncoding)
+            {
+                payloadEncoding.GetIceDecoderFactory(request.Features, defaultIceDecoderFactories).
+                    CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker).
+                        CheckEndOfBuffer(skipTaggedParams: true);
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    $"cannot decode payload of request {request.Operation} encoded with {request.PayloadEncoding}");
+            }
+        }
 
         /// <summary>Decodes the request's payload into a list of arguments. The payload can be encoded using any Ice
         /// encoding.</summary>
@@ -28,12 +38,22 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             DecodeFunc<IceDecoder, T> decodeFunc)
         {
-            IceDecoder decoder = request.PayloadEncoding.GetIceDecoderFactory(
-                request.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(request.Payload, request.Connection, request.ProxyInvoker);
-            T result = decodeFunc(decoder);
-            decoder.CheckEndOfBuffer(skipTaggedParams: true);
-            return result;
+            if (request.PayloadEncoding is IceEncoding payloadEncoding)
+            {
+                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
+                    request.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(request.Payload,
+                                                                 request.Connection,
+                                                                 request.ProxyInvoker);
+                T result = decodeFunc(decoder);
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                return result;
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    $"cannot decode payload of request {request.Operation} encoded with {request.PayloadEncoding}");
+            }
         }
 
         /// <summary>Decodes the request's payload into a list of arguments. The payload must be encoded with a specific
@@ -51,7 +71,8 @@ namespace IceRpc.Slice
         {
             if (request.PayloadEncoding != defaultIceDecoderFactory.Encoding)
             {
-                throw new InvalidDataException(@$"cannot decode request payload encoded with {request.PayloadEncoding
+                throw new InvalidDataException(@$"cannot decode payload of request {request.Operation
+                    } encoded with {request.PayloadEncoding
                     }; expected a payload encoded with {defaultIceDecoderFactory.Encoding}");
             }
 
