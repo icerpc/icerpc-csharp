@@ -2767,18 +2767,18 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
     if (operation->hasMarshaledResult())
     {
         _out << sp;
-        _out << nl << "/// <summary>Helper struct used to marshal the return value of " << opName << " operation."
+        _out << nl << "/// <summary>Helper struct used to encode the return value of " << opName << " operation."
              << "</summary>";
         _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
         _out << sb;
-        _out << nl << "/// <summary>The payload holding the marshaled response.</summary>";
+        _out << nl << "/// <summary>The payload holding the encoded response.</summary>";
         _out << nl << "public global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload { get; }";
 
         emitEqualityOperators(name);
         _out << sp;
 
         _out << nl << "/// <summary>Constructs a new <see cref=\"" << name  << "\"/> instance that";
-        _out << nl << "/// immediately marshals the return value of operation " << opName << ".</summary>";
+        _out << nl << "/// immediately encodes the return value of operation " << opName << ".</summary>";
         _out << nl << "public " << name << spar
              << getNames(returnType, [ns](const auto& p)
                                      {
@@ -2890,11 +2890,11 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (!streamParam)
     {
-        _out << nl << "dispatch.StreamReadingComplete();";
+        _out << nl << "request.StreamReadingComplete();";
     }
     if (!isIdempotent(operation))
     {
-         _out << nl << "dispatch.CheckNonIdempotent();";
+         _out << nl << "request.CheckNonIdempotent();";
     }
 
     if (opCompressReturn(operation))

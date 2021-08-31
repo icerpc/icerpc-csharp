@@ -26,6 +26,24 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>The generated code calls this method to ensure that when an operation is _not_ declared
+        /// idempotent, the request is not marked idempotent. If the request is marked idempotent, it means the caller
+        /// incorrectly believes this operation is idempotent.</summary>
+        public static void CheckNonIdempotent(this IncomingRequest request)
+        {
+            if (request.IsIdempotent)
+            {
+                throw new InvalidDataException(
+                    $@"idempotent mismatch for operation '{request.Operation
+                    }': received request marked idempotent for a non-idempotent operation");
+            }
+        }
+
+        /// <summary>The generated code calls this method to ensure that streaming is aborted if the operation
+        /// doesn't specify a stream parameter.</summary>
+        public static void StreamReadingComplete(this IncomingRequest request) =>
+            request.Stream.AbortRead(IceRpc.Transports.RpcStreamError.UnexpectedStreamData);
+
         /// <summary>Decodes the request's payload into a list of arguments. The payload can be encoded using any Ice
         /// encoding.</summary>
         /// <paramtype name="T">The type of the request parameters.</paramtype>
