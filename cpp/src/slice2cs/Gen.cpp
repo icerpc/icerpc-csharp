@@ -2076,7 +2076,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 {
                     _out << nl << "/// <param name=\"args\">The request arguments.</param>";
                 }
-                _out << nl << "/// <returns>The payload.</returns>";
+                _out << nl << "/// <returns>The payload and its encoding.</returns>";
 
                 _out << nl << "public static global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> "
                     << fixId(operationName(operation)) << "(" << prxImpl << " prx, ";
@@ -2091,22 +2091,15 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 }
                 _out.inc();
 
-                if (operation->sendsClasses(true))
-                {
-                    _out << nl << "IceRpc.Encoding.Ice11";
-                }
-                else
-                {
-                    _out << nl << "prx.Proxy.Encoding";
-                }
+                string encoding = operation->sendsClasses(true) ? "IceRpc.Encoding.Ice11" : "prx.Proxy.Encoding";
 
                 if (params.size() == 1)
                 {
-                    _out << ".CreatePayloadFromSingleArg(";
+                    _out << nl << encoding << ".CreatePayloadFromSingleArg(";
                 }
                 else
                 {
-                    _out << ".CreatePayloadFromArgs(";
+                    _out << nl << encoding << ".CreatePayloadFromArgs(";
                 }
                 _out.inc();
                 _out << nl << (params.size() == 1 ? "arg," : "in args,");
