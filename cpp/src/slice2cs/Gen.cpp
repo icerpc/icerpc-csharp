@@ -1340,12 +1340,12 @@ Slice::Gen::TypesVisitor::visitClassDefEnd(const ClassDefPtr& p)
         _out.inc();
         _out << nl << "\"Microsoft.Performance\","
             << nl << "\"CA1801: Review unused parameters\","
-            << nl << "Justification=\"Special constructor used for Ice unmarshaling\")]";
+            << nl << "Justification=\"Special constructor used for Ice decoding\")]";
         _out.dec();
     }
     _out << nl << "/// <inherit-doc/>";
     emitEditorBrowsableNeverAttribute();
-    _out << nl << "public " << name << "(IceDecoder? decoder)";
+    _out << nl << "public " << name << "(Ice11Decoder? decoder)";
     if (hasBaseClass)
     {
         // We call the base class constructor to initialize the base class fields.
