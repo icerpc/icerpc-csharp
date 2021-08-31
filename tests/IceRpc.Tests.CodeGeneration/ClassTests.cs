@@ -27,7 +27,7 @@ namespace IceRpc.Tests.CodeGeneration
                     {
                         var response = OutgoingResponse.ForPayload(
                             request,
-                            Ice11Encoding.Instance.CreatePayloadFromSingleReturnValue(
+                            Encoding.Ice11.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
                                 (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);

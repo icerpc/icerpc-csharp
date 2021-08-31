@@ -8,25 +8,7 @@ namespace IceRpc.Slice
     public class Ice11Encoding : Encoding
     {
         /// <summary>The Ice 1.1 encoding singleton.</summary>
-        public static Ice11Encoding Instance { get; } = new();
-
-        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
-        /// takes a single parameter.</summary>
-        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
-        /// <param name="arg">The argument to write into the payload.</param>
-        /// <param name="encodeAction">A delegate that encodes the argument into the payload.</param>
-        /// <param name="classFormat">The class format.</param>
-        /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
-        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
-            T arg,
-            Action<Ice11Encoder, T> encodeAction,
-            FormatType classFormat = default)
-        {
-            var bufferWriter = new BufferWriter();
-            var encoder = new Ice11Encoder(bufferWriter, classFormat);
-            encodeAction(encoder, arg);
-            return bufferWriter.Finish();
-        }
+        internal static Ice11Encoding Instance { get; } = new();
 
         /// <summary>Creates the payload of a request from the request's arguments. Use this method is for operations
         /// with multiple parameters.</summary>
@@ -44,6 +26,24 @@ namespace IceRpc.Slice
             var bufferWriter = new BufferWriter();
             var encoder = new Ice11Encoder(bufferWriter, classFormat);
             encodeAction(encoder, in args);
+            return bufferWriter.Finish();
+        }
+
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
+        /// takes a single parameter.</summary>
+        /// <typeparam name="T">The type of the operation's parameter.</typeparam>
+        /// <param name="arg">The argument to write into the payload.</param>
+        /// <param name="encodeAction">A delegate that encodes the argument into the payload.</param>
+        /// <param name="classFormat">The class format.</param>
+        /// <returns>A new payload encoded with encoding Ice 1.1.</returns>
+        public ReadOnlyMemory<ReadOnlyMemory<byte>> CreatePayloadFromSingleArg<T>(
+            T arg,
+            Action<Ice11Encoder, T> encodeAction,
+            FormatType classFormat = default)
+        {
+            var bufferWriter = new BufferWriter();
+            var encoder = new Ice11Encoder(bufferWriter, classFormat);
+            encodeAction(encoder, arg);
             return bufferWriter.Finish();
         }
 

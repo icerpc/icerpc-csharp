@@ -2096,7 +2096,7 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (operation->sendsClasses(true))
                 {
-                    _out << nl << "Ice11Encoding.Instance";
+                    _out << nl << "IceRpc.Encoding.Ice11";
                 }
                 else
                 {
@@ -2714,7 +2714,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 if (operation->returnsClasses(true))
                 {
-                    _out << nl << "Ice11Encoding.Instance";
+                    _out << nl << "IceRpc.Encoding.Ice11";
                 }
                 else
                 {

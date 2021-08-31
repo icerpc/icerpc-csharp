@@ -8,7 +8,7 @@ namespace IceRpc.Slice
     public class Ice20Encoding : Encoding
     {
         /// <summary>The Ice 2.0 encoding singleton.</summary>
-        public static Ice20Encoding Instance { get; } = new();
+        internal static Ice20Encoding Instance { get; } = new();
 
         internal override IceEncoder CreateIceEncoder(BufferWriter bufferWriter) => new Ice20Encoder(bufferWriter);
 
