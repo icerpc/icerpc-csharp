@@ -146,13 +146,7 @@ namespace IceRpc.Slice
 
                     if (endpoints.Any())
                     {
-                        // Encode sequence by hand
-                        EncodeSize(endpoints.Count());
-
-                        foreach (Endpoint endpoint in endpoints)
-                        {
-                            EncodeEndpoint(endpoint);
-                        }
+                        this.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint(endpoint));
                     }
                     else // encoded as an endpointless proxy
                     {

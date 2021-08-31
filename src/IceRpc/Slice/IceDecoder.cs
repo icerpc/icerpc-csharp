@@ -673,6 +673,14 @@ namespace IceRpc.Slice
             return sz;
         }
 
+        internal ReadOnlyMemory<byte> DecodeBitSequenceMemory(int bitSequenceSize)
+        {
+            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+            int startPos = Pos;
+            Pos += size;
+            return _buffer.Slice(startPos, size);
+        }
+
         /// <summary>Determines if a tagged parameter or data member is available.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
@@ -765,14 +773,6 @@ namespace IceRpc.Slice
                 }
                 SkipTagged(format);
             }
-        }
-
-        internal ReadOnlyMemory<byte> DecodeBitSequenceMemory(int bitSequenceSize)
-        {
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            int startPos = Pos;
-            Pos += size;
-            return _buffer.Slice(startPos, size);
         }
     }
 }
