@@ -2675,10 +2675,12 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                     returns.pop_back();
                 }
 
+                string encodingClass = operation->returnsClasses(true) ? "Ice11Encoding" : "IceRpc.Encoding";
+
                 _out << sp;
                 _out << nl << "/// <summary>Creates a response payload for operation "
                      << fixId(operationName(operation)) << ".</summary>";
-                _out << nl << "/// <param name=\"dispatch\">The dispatch properties.</param>";
+                _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
                 if (returns.size() == 1)
                 {
                     _out << nl << "/// <param name=\"returnValue\">The return value to write into the new response payload.</param>";
@@ -2692,7 +2694,7 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                      << fixId(operationName(operation))
                      << "(";
                 _out.inc();
-                _out << nl << "IceRpc.Dispatch dispatch,";
+                _out << nl << encodingClass << " encoding,";
 
                 if (returns.size() == 1)
                 {
@@ -2705,22 +2707,13 @@ Slice::Gen::DispatcherVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
 
                 _out.inc();
 
-                if (operation->returnsClasses(true))
-                {
-                    _out << nl << "IceRpc.Encoding.Ice11";
-                }
-                else
-                {
-                    _out << nl << "dispatch.Encoding";
-                }
-
                 if (returns.size() == 1)
                 {
-                    _out << nl << ".CreatePayloadFromSingleReturnValue(";
+                    _out << nl << "encoding.CreatePayloadFromSingleReturnValue(";
                 }
                 else
                 {
-                    _out << nl << ".CreatePayloadFromReturnValueTuple(";
+                    _out << nl << "encoding.CreatePayloadFromReturnValueTuple(";
                 }
 
                 _out.inc();
@@ -2931,6 +2924,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
              << " = Request." << fixId(opName) << "(request);";
     }
 
+    string encoding = operation->returnsClasses(true) ? "IceRpc.Encoding.Ice11" : "dispatch.Encoding";
+
     // The 'this.' is necessary only when the operation name matches one of our local variable (dispatch, decoder etc.)
     if (operation->hasMarshaledResult())
     {
@@ -2947,7 +2942,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         _out << "dispatch"
              << "cancel" << epar << ".ConfigureAwait(false);";
-        _out << nl << "return (dispatch.Encoding, returnValue.Payload, null);";
+        _out << nl << "return (" << encoding << ", returnValue.Payload, null);";
         _out << eb;
     }
     else
@@ -2975,8 +2970,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             {
                 _out << nl << "return (";
                 _out.inc();
-                _out << nl << "dispatch.Encoding,";
-                _out << nl << "dispatch.Encoding.CreatePayloadFromVoidReturnValue(),";
+                _out << nl << encoding << ",";
+                _out << nl << encoding << ".CreatePayloadFromVoidReturnValue(),";
 
                 if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                     builtin && builtin->kind() == Builtin::KindByte)
@@ -2989,7 +2984,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                     _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
                     _out.inc();
                     _out << nl << "returnValue,"
-                         << nl << "dispatch.Encoding,"
+                         << nl << encoding << ","
                          << nl << encodeAction(streamReturnParam->type(), ns, true, true) << ")";
                     _out.dec();
                 }
@@ -2998,7 +2993,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             }
             else
             {
-                _out << nl << "return (dispatch.Encoding, dispatch.Encoding.CreatePayloadFromVoidReturnValue(), null);";
+                _out << nl << "return (" << encoding << ", " << encoding
+                    << ".CreatePayloadFromVoidReturnValue(), null);";
             }
         }
         else if (streamReturnParam)
@@ -3008,8 +3004,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
             names.pop_back();
             _out << nl << "return (";
             _out.inc();
-            _out << nl << "dispatch.Encoding,";
-            _out << nl << "Response." << fixId(opName) << "(dispatch, " << spar << names << epar << "),";
+            _out << nl << encoding << ",";
+            _out << nl << "Response." << fixId(opName) << "(" << encoding << ", " << spar << names << epar << "),";
 
             if (auto builtin = BuiltinPtr::dynamicCast(streamReturnParam->type());
                 builtin && builtin->kind() == Builtin::KindByte)
@@ -3022,7 +3018,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
                 _out << "<" << typeToString(streamReturnParam->type(), ns) << ">(";
                 _out.inc();
                 _out << nl << streamName << ","
-                     << nl << "dispatch.Encoding,"
+                     << nl << encoding << ","
                      << nl << encodeAction(streamReturnParam->type(), ns, true, true) << ")";
                 _out.dec();
             }
@@ -3031,7 +3027,8 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
         }
         else
         {
-            _out << nl << "return (dispatch.Encoding, Response." << fixId(opName) << "(dispatch, returnValue), null);";
+            _out << nl << "return (" << encoding << ", Response." << fixId(opName)
+                << "(" << encoding << ", returnValue), null);";
         }
         _out << eb;
     }
