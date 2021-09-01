@@ -85,11 +85,7 @@ namespace IceRpc.Slice
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
         /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
         /// </remarks>
-        internal static int GetSizeLength(long size)
-        {
-            Debug.Assert(size >= 0);
-            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
-        }
+        internal static int GetSizeLength(long size) => GetVarULongEncodedSize(checked((ulong)size));
 
         /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
         internal Ice20Encoder(BufferWriter bufferWriter)

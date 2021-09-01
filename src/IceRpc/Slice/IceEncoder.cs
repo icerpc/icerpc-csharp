@@ -256,47 +256,19 @@ namespace IceRpc.Slice
 
         // Other methods
 
-        /// <summary>Computes the minimum number of bytes required to encode a long value using Ice's variable-length
-        /// int encoding.</summary>
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding
+        /// variable-size encoded representation.</summary>
         /// <param name="value">The long value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
         /// </returns>
-        public static int GetVarIntEncodedSizeLength(long value)
-        {
-            if (value < EncodingDefinitions.VarLongMinValue || value > EncodingDefinitions.VarLongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
-            }
+        public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
 
-            return (value << 2) switch
-            {
-                long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 1,
-                long s when s >= short.MinValue && s <= short.MaxValue => 2,
-                long i when i >= int.MinValue && i <= int.MaxValue => 4,
-                _ => 8
-            };
-        }
-
-        /// <summary>Computes the minimum number of bytes required to encode a ulong value using Ice's variable-length
-        /// int encoding.</summary>
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding
+        /// variable-size encoded representation.</summary>
         /// <param name="value">The ulong value.</param>
         /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
         /// </returns>
-        public static int GetVarIntEncodedSizeLength(ulong value)
-        {
-            if (value > EncodingDefinitions.VarULongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
-            }
-
-            return (value << 2) switch
-            {
-                ulong b when b <= byte.MaxValue => 1,
-                ulong s when s <= ushort.MaxValue => 2,
-                ulong i when i <= uint.MaxValue => 4,
-                _ => 8
-            };
-        }
+        public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
 
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
