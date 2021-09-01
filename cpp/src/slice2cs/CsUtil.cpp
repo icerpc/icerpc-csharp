@@ -724,6 +724,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
         // We generate the sequence encoder inline, so this function must not be called when the top-level object is
         // not cached.
         out << "(encoder, value) => " << sequenceMarshalCode(seq, scope, value, readOnly, param);
+
     }
     else
     {
@@ -1095,11 +1096,11 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             {
                 // param is an IEnumerable<T>
                 string tagFormat = elementType->minWireSize() == 1 ?
-                "IceRpc.Slice.TagFormat.OVSize" : "IceRpc.Slice.TagFormat.VSize";
+                    "IceRpc.Slice.TagFormat.OVSize" : "IceRpc.Slice.TagFormat.VSize";
 
                 out << nl << "encoder.EncodeTagged(" << tag << ", size: "
                     << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0), "
-                    << param << ", " << encodeAction(optionalType, scope) << ", " << tagFormat << ");";
+                    << param << ", " << encodeAction(optionalType, scope, !isDataMember) << ", " << tagFormat << ");";
             }
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())

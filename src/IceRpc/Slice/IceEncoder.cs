@@ -168,13 +168,13 @@ namespace IceRpc.Slice
 
         // Encode methods for tagged basic types
 
-        public void EncodeTagged<T>(int tag, T value, EncodeAction<IceEncoder, T> encodeAction)
+        public void EncodeTagged<T>(int tag, T v, EncodeAction<IceEncoder, T> encodeAction)
         {
-            if (value != null)
+            if (v != null)
             {
                 EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                encodeAction(this, value);
+                encodeAction(this, v);
                 EndFixedLengthSize(pos);
             }
         }
@@ -182,13 +182,13 @@ namespace IceRpc.Slice
         public void EncodeTagged<T>(
             int tag,
             int size,
-            T value,
+            T v,
             EncodeAction<IceEncoder, T> encodeAction,
             TagFormat tagFormat)
         {
             Debug.Assert(tagFormat != TagFormat.FSize);
 
-            if (value != null)
+            if (v != null)
             {
                 EncodeTaggedParamHeader(tag, GetEncodedTagFormat(tagFormat, size));
 
@@ -196,7 +196,7 @@ namespace IceRpc.Slice
                 {
                     EncodeSize(size);
                 }
-                encodeAction(this, value);
+                encodeAction(this, v);
             }
 
             static TagFormat GetEncodedTagFormat(TagFormat tagFormat, int size) =>
