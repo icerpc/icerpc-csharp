@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 2.0 encoding.</summary>
-    public class Ice20Encoder : IceEncoder
+    public sealed class Ice20Encoder : IceEncoder
     {
         /// <inheritdoc/>
         public override void EncodeException(RemoteException v) => v.Encode(this);

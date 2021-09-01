@@ -10,7 +10,7 @@ using System.Globalization;
 namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
-    public class Ice11Encoder : IceEncoder
+    public sealed class Ice11Encoder : IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
         private FormatType _classFormat;

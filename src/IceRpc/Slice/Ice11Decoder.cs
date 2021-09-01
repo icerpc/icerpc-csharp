@@ -12,7 +12,7 @@ using System.Reflection;
 namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
-    public class Ice11Decoder : IceDecoder
+    public sealed class Ice11Decoder : IceDecoder
     {
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal ImmutableList<SliceInfo> UnknownSlices

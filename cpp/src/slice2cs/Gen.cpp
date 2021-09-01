@@ -2070,7 +2070,10 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
                 _out << sp;
                 _out << nl << "/// <summary>Creates the request payload for operation " << operation->name() <<
                     ".</summary>";
-                _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
+                if (!sendsClasses)
+                {
+                    _out << nl << "/// <param name=\"encoding\">The encoding of the payload.</param>";
+                }
                 if (params.size() == 1)
                 {
                     _out << nl << "/// <param name=\"arg\">The request argument.</param>";

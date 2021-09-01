@@ -189,7 +189,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
-                ((IceEncoding)_prx.Proxy.Encoding).CreatePayloadFromArgs(
+                _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
                     (IceEncoder encoder, in (int n, string s) value) =>
                     {

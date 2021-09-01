@@ -59,7 +59,7 @@ namespace IceRpc.Tests.Encoding
         [TestCase("1.1")]
         public void Proxy_EndpointLess(string encodingStr)
         {
-            var encoding =  IceEncoding.FromString(encodingStr);
+            var encoding = IceEncoding.FromString(encodingStr);
 
             // Create an endpointless proxy
             var endpointLess = Proxy.FromPath("/foo", _server.Protocol);

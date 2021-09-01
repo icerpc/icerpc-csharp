@@ -7,7 +7,7 @@ using System.Reflection;
 namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
-    public class Ice20Decoder : IceDecoder
+    public sealed class Ice20Decoder : IceDecoder
     {
         private static readonly ActivatorFactory<Ice20Decoder> _activatorFactory =
             new ActivatorFactory<Ice20Decoder>(
