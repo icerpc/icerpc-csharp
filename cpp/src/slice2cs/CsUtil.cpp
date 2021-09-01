@@ -1022,18 +1022,28 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
     if (type->isInterfaceType())
     {
-        out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
+        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
+            << ");";
     }
     else if (builtin)
     {
         if (builtin->isVariableLength())
         {
-            auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
-            out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
+            if (builtin->kind() == Builtin::KindString)
+            {
+                out << nl << "encoder.EncodeTagged(" << tag << ", size: " << param << "?.Length ?? 0, " << param << ","
+                    << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.OVSize);";
+            }
+            else
+            {
+                // varulong etc.
+                out << nl << "encoder.EncodeTagged(" << tag << ", size: " << param << "?.GetIceSizeLength() ?? 0, "
+                    << param << "," << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.VInt);";
+            }
         }
         else
         {
-            out << nl << "encoder.EncodeTagged("  << tag << ", size: " << builtin->minWireSize() << ", " << param << ","
+            out << nl << "encoder.EncodeTagged(" << tag << ", size: " << builtin->minWireSize() << ", " << param << ","
                 << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
         }
     }

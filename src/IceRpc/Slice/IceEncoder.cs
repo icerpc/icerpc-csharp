@@ -242,42 +242,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged int using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to encode.</param>
-        public void EncodeTaggedVarInt(int tag, int? v) => EncodeTaggedVarLong(tag, v);
-
-        /// <summary>Encodes a tagged long using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to encode.</param>
-        public void EncodeTaggedVarLong(int tag, long? v)
-        {
-            if (v is long value)
-            {
-                var format = (TagFormat)GetVarLongEncodedSizeExponent(value);
-                EncodeTaggedParamHeader(tag, format);
-                EncodeVarLong(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged uint using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to encode.</param>
-        public void EncodeTaggedVarUInt(int tag, uint? v) => EncodeTaggedVarULong(tag, v);
-
-        /// <summary>Encodes a tagged ulong using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to encode.</param>
-        public void EncodeTaggedVarULong(int tag, ulong? v)
-        {
-            if (v is ulong value)
-            {
-                var format = (TagFormat)GetVarULongEncodedSizeExponent(value);
-                EncodeTaggedParamHeader(tag, format);
-                EncodeVarULong(value);
-            }
-        }
-
         // Encode methods for tagged constructed types except class
 
         /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>
