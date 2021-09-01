@@ -188,27 +188,27 @@ namespace IceRpc.Slice
         // With Ice 2.0, all sizes use the same variable-length encoding:
         private protected override void SkipFixedLengthSize() => SkipSize();
 
-        private protected override void SkipTagged(EncodingDefinitions.TagFormat format)
+        private protected override void SkipTagged(TagFormat format)
         {
             switch (format)
             {
-                case EncodingDefinitions.TagFormat.F1:
+                case TagFormat.F1:
                     Skip(1);
                     break;
-                case EncodingDefinitions.TagFormat.F2:
+                case TagFormat.F2:
                     Skip(2);
                     break;
-                case EncodingDefinitions.TagFormat.F4:
+                case TagFormat.F4:
                     Skip(4);
                     break;
-                case EncodingDefinitions.TagFormat.F8:
+                case TagFormat.F8:
                     Skip(8);
                     break;
-                case EncodingDefinitions.TagFormat.Size:
+                case TagFormat.Size:
                     SkipSize();
                     break;
-                case EncodingDefinitions.TagFormat.VSize:
-                case EncodingDefinitions.TagFormat.FSize:
+                case TagFormat.VSize:
+                case TagFormat.FSize:
                     Skip(DecodeSize());
                     break;
                 default:

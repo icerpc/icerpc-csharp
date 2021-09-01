@@ -175,7 +175,7 @@ namespace IceRpc.Slice
         {
             if (v is bool value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
+                EncodeTaggedParamHeader(tag, TagFormat.F1);
                 EncodeBool(value);
             }
         }
@@ -187,7 +187,7 @@ namespace IceRpc.Slice
         {
             if (v is byte value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
+                EncodeTaggedParamHeader(tag, TagFormat.F1);
                 EncodeByte(value);
             }
         }
@@ -199,7 +199,7 @@ namespace IceRpc.Slice
         {
             if (v is double value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeTaggedParamHeader(tag, TagFormat.F8);
                 EncodeDouble(value);
             }
         }
@@ -211,7 +211,7 @@ namespace IceRpc.Slice
         {
             if (v is float value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeTaggedParamHeader(tag, TagFormat.F4);
                 EncodeFloat(value);
             }
         }
@@ -223,7 +223,7 @@ namespace IceRpc.Slice
         {
             if (v is int value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeTaggedParamHeader(tag, TagFormat.F4);
                 EncodeInt(value);
             }
         }
@@ -235,7 +235,7 @@ namespace IceRpc.Slice
         {
             if (v is long value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeTaggedParamHeader(tag, TagFormat.F8);
                 EncodeLong(value);
             }
         }
@@ -247,7 +247,7 @@ namespace IceRpc.Slice
         {
             if (v is int value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size);
+                EncodeTaggedParamHeader(tag, TagFormat.Size);
                 EncodeSize(value);
             }
         }
@@ -259,7 +259,7 @@ namespace IceRpc.Slice
         {
             if (v is short value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
+                EncodeTaggedParamHeader(tag, TagFormat.F2);
                 EncodeShort(value);
             }
         }
@@ -271,7 +271,7 @@ namespace IceRpc.Slice
         {
             if (v is string value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 EncodeString(value);
             }
         }
@@ -283,7 +283,7 @@ namespace IceRpc.Slice
         {
             if (v is uint value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
+                EncodeTaggedParamHeader(tag, TagFormat.F4);
                 EncodeUInt(value);
             }
         }
@@ -295,7 +295,7 @@ namespace IceRpc.Slice
         {
             if (v is ulong value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
+                EncodeTaggedParamHeader(tag, TagFormat.F8);
                 EncodeULong(value);
             }
         }
@@ -307,7 +307,7 @@ namespace IceRpc.Slice
         {
             if (v is ushort value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
+                EncodeTaggedParamHeader(tag, TagFormat.F2);
                 EncodeUShort(value);
             }
         }
@@ -324,7 +324,7 @@ namespace IceRpc.Slice
         {
             if (v is long value)
             {
-                var format = (EncodingDefinitions.TagFormat)GetVarLongEncodedSizeExponent(value);
+                var format = (TagFormat)GetVarLongEncodedSizeExponent(value);
                 EncodeTaggedParamHeader(tag, format);
                 EncodeVarLong(value);
             }
@@ -342,7 +342,7 @@ namespace IceRpc.Slice
         {
             if (v is ulong value)
             {
-                var format = (EncodingDefinitions.TagFormat)GetVarULongEncodedSizeExponent(value);
+                var format = (TagFormat)GetVarULongEncodedSizeExponent(value);
                 EncodeTaggedParamHeader(tag, format);
                 EncodeVarULong(value);
             }
@@ -367,7 +367,7 @@ namespace IceRpc.Slice
             Debug.Assert(entrySize > 1);
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 int count = dict.Count();
                 EncodeSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
                 this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
@@ -388,7 +388,7 @@ namespace IceRpc.Slice
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
@@ -409,7 +409,7 @@ namespace IceRpc.Slice
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 this.EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
@@ -423,7 +423,7 @@ namespace IceRpc.Slice
         {
             if (proxy != null)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 EncodeProxy(proxy);
                 EndFixedLengthSize(pos);
@@ -440,7 +440,7 @@ namespace IceRpc.Slice
             // is distinct from the span of an empty sequence. This is why the "v != null" below works correctly.
             if (v != null)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 int elementSize = Unsafe.SizeOf<T>();
                 if (elementSize > 1)
                 {
@@ -458,7 +458,7 @@ namespace IceRpc.Slice
         {
             if (v is IEnumerable<T> value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
 
                 int elementSize = Unsafe.SizeOf<T>();
                 if (elementSize > 1)
@@ -481,7 +481,7 @@ namespace IceRpc.Slice
         {
             if (v is IEnumerable<T> value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 this.EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
@@ -499,7 +499,7 @@ namespace IceRpc.Slice
             Debug.Assert(elementSize > 0);
             if (v is IEnumerable<T> value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
 
                 int count = value.Count(); // potentially slow Linq Count()
 
@@ -525,7 +525,7 @@ namespace IceRpc.Slice
         {
             if (v is IEnumerable<T> value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 this.EncodeSequenceWithBitSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
@@ -541,7 +541,7 @@ namespace IceRpc.Slice
         {
             if (v is T value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 EncodeSize(fixedSize);
                 encodeAction(this, value);
             }
@@ -555,7 +555,7 @@ namespace IceRpc.Slice
         {
             if (v is T value)
             {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
+                EncodeTaggedParamHeader(tag, TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 encodeAction(this, value);
                 EndFixedLengthSize(pos);
@@ -634,7 +634,7 @@ namespace IceRpc.Slice
         /// <summary>Encodes the header for a tagged parameter or data member.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
-        private protected abstract void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format);
+        private protected abstract void EncodeTaggedParamHeader(int tag, TagFormat format);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>

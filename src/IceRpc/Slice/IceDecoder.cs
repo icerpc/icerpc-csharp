@@ -234,97 +234,97 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <returns>The bool decoded by this decoder, or null.</returns>
         public bool? DecodeTaggedBool(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1) ? DecodeBool() : (bool?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F1) ? DecodeBool() : (bool?)null;
 
         /// <summary>Decodes a tagged byte.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The byte decoded by this decoder, or null.</returns>
         public byte? DecodeTaggedByte(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1) ? DecodeByte() : (byte?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F1) ? DecodeByte() : (byte?)null;
 
         /// <summary>Decodes a tagged double.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The double decoded by this decoder, or null.</returns>
         public double? DecodeTaggedDouble(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeDouble() : (double?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeDouble() : (double?)null;
 
         /// <summary>Decodes a tagged float.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The float decoded by this decoder, or null.</returns>
         public float? DecodeTaggedFloat(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeFloat() : (float?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeFloat() : (float?)null;
 
         /// <summary>Decodes a tagged int.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The int decoded by this decoder, or null.</returns>
         public int? DecodeTaggedInt(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeInt() : (int?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeInt() : (int?)null;
 
         /// <summary>Decodes a tagged long.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The long decoded by this decoder, or null.</returns>
         public long? DecodeTaggedLong(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeLong() : (long?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeLong() : (long?)null;
 
         /// <summary>Decodes a tagged short.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The short decoded by this decoder, or null.</returns>
         public short? DecodeTaggedShort(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2) ? DecodeShort() : (short?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F2) ? DecodeShort() : (short?)null;
 
         /// <summary>Decodes a tagged size.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The size decoded by this decoder, or null.</returns>
         public int? DecodeTaggedSize(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size) ? DecodeSize() : (int?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.Size) ? DecodeSize() : (int?)null;
 
         /// <summary>Decodes a tagged string.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The string decoded by this decoder, or null.</returns>
         public string? DecodeTaggedString(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize) ? DecodeString() : null;
+            DecodeTaggedParamHeader(tag, TagFormat.VSize) ? DecodeString() : null;
 
         /// <summary>Decodes a tagged uint.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The uint decoded by this decoder, or null.</returns>
         public uint? DecodeTaggedUInt(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4) ? DecodeUInt() : (uint?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeUInt() : (uint?)null;
 
         /// <summary>Decodes a tagged ulong.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The ulong decoded by this decoder, or null.</returns>
         public ulong? DecodeTaggedULong(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8) ? DecodeULong() : (ulong?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeULong() : (ulong?)null;
 
         /// <summary>Decodes a tagged ushort.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The ushort decoded by this decoder, or null.</returns>
         public ushort? DecodeTaggedUShort(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2) ? DecodeUShort() : (ushort?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.F2) ? DecodeUShort() : (ushort?)null;
 
         /// <summary>Decodes a tagged varint.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The int decoded by this decoder, or null.</returns>
         public int? DecodeTaggedVarInt(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarInt() : (int?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarInt() : (int?)null;
 
         /// <summary>Decodes a tagged varlong.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The long decoded by this decoder, or null.</returns>
         public long? DecodeTaggedVarLong(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarLong() : (long?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarLong() : (long?)null;
 
         /// <summary>Decodes a tagged varuint.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The uint decoded by this decoder, or null.</returns>
         public uint? DecodeTaggedVarUInt(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarUInt() : (uint?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarUInt() : (uint?)null;
 
         /// <summary>Decodes a tagged varulong.</summary>
         /// <param name="tag">The tag.</param>
         /// <returns>The ulong decoded by this decoder, or null.</returns>
         public ulong? DecodeTaggedVarULong(int tag) =>
-            DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VInt) ? DecodeVarULong() : (ulong?)null;
+            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarULong() : (ulong?)null;
 
         // Decode methods for tagged constructed types except class
 
@@ -335,7 +335,7 @@ namespace IceRpc.Slice
         public T[]? DecodeTaggedArray<T>(int tag, Action<T>? checkElement = null) where T : struct
         {
             int elementSize = Unsafe.SizeOf<T>();
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize))
+            if (DecodeTaggedParamHeader(tag, TagFormat.VSize))
             {
                 if (elementSize > 1)
                 {
@@ -370,7 +370,7 @@ namespace IceRpc.Slice
         {
             if (DecodeTaggedParamHeader(
                 tag,
-                fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+                fixedSize ? TagFormat.VSize : TagFormat.FSize))
             {
                 if (fixedSize)
                 {
@@ -398,7 +398,7 @@ namespace IceRpc.Slice
             DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull
         {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
             {
                 SkipFixedLengthSize();
                 return this.DecodeDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
@@ -426,7 +426,7 @@ namespace IceRpc.Slice
         {
             if (DecodeTaggedParamHeader(
                     tag,
-                    fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+                    fixedSize ? TagFormat.VSize : TagFormat.FSize))
             {
                 if (!fixedSize || minElementSize > 1) // the size is optimized out for a fixed element size of 1
                 {
@@ -450,7 +450,7 @@ namespace IceRpc.Slice
         /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
         public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<IceDecoder, T> decodeFunc)
         {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
             {
                 SkipFixedLengthSize();
                 return this.DecodeSequenceWithBitSequence(decodeFunc);
@@ -479,7 +479,7 @@ namespace IceRpc.Slice
         {
             if (DecodeTaggedParamHeader(
                     tag,
-                    fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+                    fixedSize ? TagFormat.VSize : TagFormat.FSize))
             {
                 if (fixedSize)
                 {
@@ -507,7 +507,7 @@ namespace IceRpc.Slice
             DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
             where TKey : notnull
         {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
             {
                 SkipFixedLengthSize();
                 return this.DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
@@ -524,7 +524,7 @@ namespace IceRpc.Slice
         {
             if (DecodeTaggedParamHeader(
                 tag,
-                fixedSize ? EncodingDefinitions.TagFormat.VSize : EncodingDefinitions.TagFormat.FSize))
+                fixedSize ? TagFormat.VSize : TagFormat.FSize))
             {
                 if (fixedSize)
                 {
@@ -614,7 +614,7 @@ namespace IceRpc.Slice
         /// <returns>True when the next bytes correspond to the proxy; otherwise, false.</returns>
         internal bool DecodeTaggedProxyHeader(int tag)
         {
-            if (DecodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize))
+            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
             {
                 SkipFixedLengthSize();
                 return true;
@@ -684,7 +684,7 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
-        private protected virtual bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
+        private protected virtual bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
             int requestedTag = tag;
 
@@ -704,7 +704,7 @@ namespace IceRpc.Slice
                     return false;
                 }
 
-                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // First 3 bits.
+                var format = (TagFormat)(v & 0x07); // First 3 bits.
                 tag = v >> 3;
                 if (tag == 30)
                 {
@@ -724,8 +724,8 @@ namespace IceRpc.Slice
                 {
                     // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
                     // received does not matter in this case.
-                    if (format != expectedFormat && (expectedFormat != EncodingDefinitions.TagFormat.VInt ||
-                            (int)format > (int)EncodingDefinitions.TagFormat.F8))
+                    if (format != expectedFormat && (expectedFormat != TagFormat.VInt ||
+                            (int)format > (int)TagFormat.F8))
                     {
                         throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
                     }
@@ -748,7 +748,7 @@ namespace IceRpc.Slice
         /// <summary>Skips over a size value encoded on a variable number of bytes.</summary>
         private protected abstract void SkipSize();
 
-        private protected abstract void SkipTagged(EncodingDefinitions.TagFormat format);
+        private protected abstract void SkipTagged(TagFormat format);
 
         private protected void SkipTaggedParams()
         {
@@ -765,7 +765,7 @@ namespace IceRpc.Slice
                     break;
                 }
 
-                var format = (EncodingDefinitions.TagFormat)(v & 0x07); // Read first 3 bits.
+                var format = (TagFormat)(v & 0x07); // Read first 3 bits.
                 if ((v >> 3) == 30)
                 {
                     SkipSize();

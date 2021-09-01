@@ -347,7 +347,7 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
-        private protected override bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
+        private protected override bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
             // The current slice has no tagged parameter.
             if (_current.InstanceType != InstanceType.None &&
@@ -370,29 +370,29 @@ namespace IceRpc.Slice
             }
         }
 
-        private protected override void SkipTagged(EncodingDefinitions.TagFormat format)
+        private protected override void SkipTagged(TagFormat format)
         {
             switch (format)
             {
-                case EncodingDefinitions.TagFormat.F1:
+                case TagFormat.F1:
                     Skip(1);
                     break;
-                case EncodingDefinitions.TagFormat.F2:
+                case TagFormat.F2:
                     Skip(2);
                     break;
-                case EncodingDefinitions.TagFormat.F4:
+                case TagFormat.F4:
                     Skip(4);
                     break;
-                case EncodingDefinitions.TagFormat.F8:
+                case TagFormat.F8:
                     Skip(8);
                     break;
-                case EncodingDefinitions.TagFormat.Size:
+                case TagFormat.Size:
                     SkipSize();
                     break;
-                case EncodingDefinitions.TagFormat.VSize:
+                case TagFormat.VSize:
                     Skip(DecodeSize());
                     break;
-                case EncodingDefinitions.TagFormat.FSize:
+                case TagFormat.FSize:
                     int size = DecodeInt();
                     if (size < 0)
                     {

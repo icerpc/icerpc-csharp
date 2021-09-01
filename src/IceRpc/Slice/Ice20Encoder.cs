@@ -140,11 +140,11 @@ namespace IceRpc.Slice
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeFixedLengthSize(size, into);
 
-        private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
+        private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
         {
             // TODO: merge FSize and VSize
 
-            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
+            Debug.Assert(format != TagFormat.VInt); // VInt cannot be encoded
 
             int v = (int)format;
             if (tag < 30)
