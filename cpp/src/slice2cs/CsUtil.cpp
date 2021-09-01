@@ -1094,7 +1094,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (isFixedSizeNumericSequence(seq) && readOnly && !hasCustomType)
         {
-            out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param << ".Span" << ");";
+            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ".Span" << ");";
         }
         else
         {

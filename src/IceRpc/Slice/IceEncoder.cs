@@ -221,7 +221,7 @@ namespace IceRpc.Slice
         /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
-        public void EncodeTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
+        public void EncodeTagged<T>(int tag, ReadOnlySpan<T> v) where T : struct
         {
             // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
             // ReadOnlySpan<T>. Furthermore, the span of a default ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which
