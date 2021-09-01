@@ -1038,12 +1038,12 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             {
                 // varulong etc.
                 out << nl << "encoder.EncodeTagged(" << tag << ", size: " << param << "?.GetIceSizeLength() ?? 0, "
-                    << param << "," << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.VInt);";
+                    << param << ", " << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.VInt);";
             }
         }
         else
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", size: " << builtin->minWireSize() << ", " << param << ","
+            out << nl << "encoder.EncodeTagged(" << tag << ", size: " << builtin->minWireSize() << ", " << param << ", "
                 << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
         }
     }
@@ -1063,10 +1063,19 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
-        string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
-        string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
-        out << nl << "encoder.EncodeTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
-            << param << ");";
+        TypePtr underlying = en->underlying();
+        if (underlying)
+        {
+            out << nl << "encoder.EncodeTagged(" << tag << ", size: " << underlying->minWireSize() << ", "
+                << param << ", " << encodeAction(optionalType, scope)
+                << ", IceRpc.Slice.TagFormat." << underlying->getTagFormat() << ");";
+        }
+        else
+        {
+            out << nl << "encoder.EncodeTagged(" << tag << ", size: ((int?)" << param << ")?.GetIceSizeLength() ?? 0, "
+                << param << ", " << encodeAction(optionalType, scope)
+                << ", IceRpc.Slice.TagFormat.Size);";
+        }
     }
     else if(seq)
     {

@@ -218,18 +218,6 @@ namespace IceRpc.Slice
                 };
         }
 
-        /// <summary>Encodes a tagged size.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The size.</param>
-        public void EncodeTaggedSize(int tag, int? v)
-        {
-            if (v is int value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.Size);
-                EncodeSize(value);
-            }
-        }
-
         // Encode methods for tagged constructed types except class
 
         /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>
