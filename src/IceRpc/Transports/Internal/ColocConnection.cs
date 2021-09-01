@@ -2,7 +2,6 @@
 
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net.Security;
 using System.Threading.Channels;
 
 namespace IceRpc.Transports.Internal

@@ -10,8 +10,7 @@ namespace IceRpc.Slice
     public class Ice20Decoder : IceDecoder
     {
         private static readonly ActivatorFactory<Ice20Decoder> _activatorFactory =
-            new ActivatorFactory<Ice20Decoder>(
-                type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
+            new(type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
 
         private readonly IActivator<Ice20Decoder>? _activator;
 

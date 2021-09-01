@@ -14,7 +14,7 @@ namespace IceRpc.Slice.Internal
         internal static Activator<T> Empty { get; } =
             new Activator<T>(ImmutableDictionary<string, Lazy<Func<T, object>>>.Empty);
 
-        private IReadOnlyDictionary<string, Lazy<Func<T, object>>> _dict;
+        private readonly IReadOnlyDictionary<string, Lazy<Func<T, object>>> _dict;
 
         object? IActivator<T>.CreateInstance(string typeId, T decoder) =>
             _dict.TryGetValue(typeId, out Lazy<Func<T, object>>? factory) ? factory.Value(decoder) : null;

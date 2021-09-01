@@ -57,21 +57,21 @@ namespace IceRpc.Tests.Internal
             IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
             _clientAuthenticationOptions = new()
-                {
-                    RemoteCertificateValidationCallback =
+            {
+                RemoteCertificateValidationCallback =
                             CertificateValidaton.GetServerCertificateValidationCallback(
                                 certificateAuthorities: new X509Certificate2Collection()
                                 {
                                     new X509Certificate2("../../../certs/cacert.pem")
                                 }),
-                    TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
-                };
+                TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
+            };
 
             _serverAuthenticationOptions = new()
-                {
-                    ClientCertificateRequired = false,
-                    ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
-                };
+            {
+                ClientCertificateRequired = false,
+                ServerCertificate = new X509Certificate2("../../../certs/server.p12", "password")
+            };
 
             Logger = LogAttributeLoggerFactory.Instance.CreateLogger("IceRpc");
 

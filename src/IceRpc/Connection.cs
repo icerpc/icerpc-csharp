@@ -251,7 +251,7 @@ namespace IceRpc
                     // TODO: resume the connection if it's resumable
                     throw new ConnectionClosedException();
                 }
-                else  if (_state == ConnectionState.NotConnected)
+                else if (_state == ConnectionState.NotConnected)
                 {
                     if (!IsServer)
                     {

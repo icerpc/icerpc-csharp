@@ -25,8 +25,7 @@ namespace IceRpc.Slice
         }
 
         private static readonly ActivatorFactory<Ice11Decoder> _activatorFactory =
-            new ActivatorFactory<Ice11Decoder>(
-                type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
+            new(type => typeof(RemoteException).IsAssignableFrom(type) || typeof(AnyClass).IsAssignableFrom(type));
 
         private readonly IActivator<Ice11Decoder>? _activator;
 

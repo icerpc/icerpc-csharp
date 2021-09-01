@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Security;
 using System.Text;
 
 namespace IceRpc.Transports

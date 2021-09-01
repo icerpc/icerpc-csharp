@@ -183,7 +183,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                ClientTransport = new TcpClientTransport(authenticationOptions: new() {}),
+                ClientTransport = new TcpClientTransport(authenticationOptions: new() { }),
                 RemoteEndpoint = server.Endpoint
             };
             var prx = ServicePrx.FromConnection(connection);

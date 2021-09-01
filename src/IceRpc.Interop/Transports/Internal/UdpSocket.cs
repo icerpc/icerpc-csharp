@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
 
@@ -43,10 +42,10 @@ namespace IceRpc.Transports.Internal
                     await _socket.ConnectAsync(_addr, cancel).ConfigureAwait(false);
                     var ipEndPoint = (IPEndPoint)_socket.LocalEndPoint!;
                     return endpoint with
-                        {
-                            Host = ipEndPoint.Address.ToString(),
-                            Port = checked((ushort)ipEndPoint.Port)
-                        };
+                    {
+                        Host = ipEndPoint.Address.ToString(),
+                        Port = checked((ushort)ipEndPoint.Port)
+                    };
                 }
                 catch (Exception ex)
                 {

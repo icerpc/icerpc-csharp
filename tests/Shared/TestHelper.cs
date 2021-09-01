@@ -89,7 +89,7 @@ namespace IceRpc.Tests
             Endpoint endpoint,
             object? options = null,
             MultiStreamOptions? multiStreamOptions = null,
-            SslClientAuthenticationOptions ? authenticationOptions = null) =>
+            SslClientAuthenticationOptions? authenticationOptions = null) =>
             endpoint.Transport switch
             {
                 "tcp" => new TcpClientTransport(

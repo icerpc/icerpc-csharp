@@ -343,7 +343,7 @@ namespace IceRpc.Transports.Internal
                 // If a secure connection is needed, create and authentication the SslStream.
                 if (secure)
                 {
-                    Debug.Assert (_authenticationOptions != null);
+                    Debug.Assert(_authenticationOptions != null);
 
                     // This can only be created with a connected socket.
                     SslStream = new SslStream(new NetworkStream(Socket, false), false);

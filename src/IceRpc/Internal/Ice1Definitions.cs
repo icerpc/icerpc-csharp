@@ -59,7 +59,7 @@ namespace IceRpc.Internal
                 }
             };
 
-        private static readonly HashSet<string> _systemExceptionTypeIds = new HashSet<string>
+        private static readonly HashSet<string> _systemExceptionTypeIds = new()
         {
             typeof(ServiceNotFoundException).GetIceTypeId()!,
             typeof(OperationNotFoundException).GetIceTypeId()!,
