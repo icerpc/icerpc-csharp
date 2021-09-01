@@ -1028,25 +1028,26 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     }
     else if (builtin)
     {
+        out << nl << "encoder.EncodeTagged(" << tag << ", size: ";
+
         if (builtin->isVariableLength())
         {
             if (builtin->kind() == Builtin::KindString)
             {
-                out << nl << "encoder.EncodeTagged(" << tag << ", size: " << param << "?.Length ?? 0, " << param << ","
-                    << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.OVSize);";
+                out << param << "?.Length ?? 0";
             }
             else
             {
                 // varulong etc.
-                out << nl << "encoder.EncodeTagged(" << tag << ", size: " << param << "?.GetIceSizeLength() ?? 0, "
-                    << param << ", " << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat.VInt);";
+                out << param << "?.GetIceSizeLength() ?? 0";
             }
         }
         else
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", size: " << builtin->minWireSize() << ", " << param << ", "
-                << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
+            out << builtin->minWireSize();
         }
+        out << ", " << param << ", " << encodeAction(optionalType, scope)
+            << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
     }
     else if(st)
     {
