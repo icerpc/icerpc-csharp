@@ -218,32 +218,6 @@ namespace IceRpc.Slice
                 };
         }
 
-        // Encode methods for tagged constructed types except class
-
-        /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="entrySize">The size of each entry (key + value), in bytes.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            int entrySize,
-            EncodeAction<IceEncoder, TKey> keyEncodeAction,
-            EncodeAction<IceEncoder, TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            Debug.Assert(entrySize > 1);
-            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                int count = dict.Count();
-                EncodeSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
-                this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
-            }
-        }
-
         /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
@@ -262,72 +236,6 @@ namespace IceRpc.Slice
                     EncodeSize(v.IsEmpty ? 1 : (v.Length * elementSize) + GetSizeLength(v.Length));
                 }
                 EncodeSequence(v);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
-        {
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-
-                int elementSize = Unsafe.SizeOf<T>();
-                if (elementSize > 1)
-                {
-                    int count = value.Count(); // potentially slow Linq Count()
-
-                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
-                    // when elementSize is 1.
-                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
-                }
-                EncodeSequence(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<IceEncoder, T> encodeAction)
-            where T : struct
-        {
-            Debug.Assert(elementSize > 0);
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-
-                int count = value.Count(); // potentially slow Linq Count()
-
-                if (elementSize > 1)
-                {
-                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
-                    // when elementSize is 1.
-                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
-                }
-                EncodeSize(count);
-                foreach (T item in value)
-                {
-                    encodeAction(this, item);
-                }
-            }
-        }
-
-        /// <summary>Encodes a tagged fixed-size struct.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to encode.</param>
-        /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<IceEncoder, T> encodeAction) where T : struct
-        {
-            if (v is T value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                EncodeSize(fixedSize);
-                encodeAction(this, value);
             }
         }
 
