@@ -168,6 +168,12 @@ namespace IceRpc.Slice
 
         // Encode methods for tagged basic types
 
+        /// <summary>Encodes a tagged value. When the value is not null, the number of bytes needed to encode the value
+        /// is not known before encoding the value.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">A delegate that encodes <paramref name="v"/>. It's called only when
+        /// <paramref name="v"/> is not null.</param>
         public void EncodeTagged<T>(int tag, T v, EncodeAction<IceEncoder, T> encodeAction)
         {
             if (v != null)
@@ -179,6 +185,14 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is known before encoding the
+        /// value.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">A delegate that encodes <paramref name="v"/>. It's called only when
+        /// <paramref name="v"/> is not null.</param>
+        /// <param name="size"/>The number of bytes needed to encode the value.</param>
+        /// <param name="tagFormat"/>The tag format.</param>
         public void EncodeTagged<T>(
             int tag,
             T v,

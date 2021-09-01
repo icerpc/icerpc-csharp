@@ -1021,15 +1021,15 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
-    out << nl << "encoder.EncodeTagged(" << tag << ", " << param;
-
     if (seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic"))
     {
-        out << ".Span"; // special API, that's why we it first
+        // special ReadOnlySpan API, that's why we check it first
+        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ".Span);";
     }
     else
     {
-        out << ", " << encodeAction(optionalType, scope, !isDataMember);
+        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
+            << encodeAction(optionalType, scope, !isDataMember);
 
         if (builtin)
         {
@@ -1069,7 +1069,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             }
             else
             {
-                out << "((int?)" << param << ")?.GetIceSizeLength() ?? 0, IceRpc.Slice.TagFormat.Size";
+                out << "encoder.GetSizeLength((int?)" << param << " ?? 0), IceRpc.Slice.TagFormat.Size";
             }
         }
         else if (seq)
@@ -1096,9 +1096,9 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             }
         }
         // else interface type, which does not use extra param
-    }
 
-    out << ");";
+        out << ");";
+    }
 }
 
 void
