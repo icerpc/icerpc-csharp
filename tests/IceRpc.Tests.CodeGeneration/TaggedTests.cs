@@ -26,9 +26,6 @@ namespace IceRpc.Tests.CodeGeneration
                 RemoteEndpoint = _server.Endpoint
             };
             _prx = TaggedOperationsPrx.FromConnection(_connection);
-
-            // TODO: should test without classes too
-            _prx.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]
@@ -191,16 +188,17 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(multiTagged1.MAnotherStructDict, Is.Null);
 
             // Build a request payload with 2 tagged values
-            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload = _prx.Proxy.CreatePayloadFromArgs(
-                (15, "test"),
-                (IceEncoder encoder, in (int n, string s) value) =>
-                {
-                    encoder.EncodeTaggedInt(1, value.n);
-                    encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
-                });
+            ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
+                _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
+                    (15, "test"),
+                    (IceEncoder encoder, in (int n, string s) value) =>
+                    {
+                        encoder.EncodeTaggedInt(1, value.n);
+                        encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
+                    });
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await _prx.Proxy.InvokeAsync("opVoid", requestPayload);
+                await _prx.Proxy.InvokeAsync("opVoid", _prx.Proxy.Encoding, requestPayload);
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 _prx.Proxy.Invoker,

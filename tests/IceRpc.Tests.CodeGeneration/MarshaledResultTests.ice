@@ -8,6 +8,7 @@
 #include <StructTests.ice>
 #include <SequenceTests.ice>
 #include <DictionaryTests.ice>
+#include <ClassTests.ice>
 
 module IceRpc::Tests::CodeGeneration
 {
@@ -21,5 +22,7 @@ module IceRpc::Tests::CodeGeneration
 
         [marshaled-result] StringDict opStringDict1(StringDict p1);
         [marshaled-result] (StringDict r1, StringDict r2) opStringDict2(StringDict p1);
+
+        [marshaled-result] MyClassA opMyClassA(MyClassA p1);
     }
 }

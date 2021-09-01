@@ -277,7 +277,7 @@ namespace IceRpc.Tests.Api
             var proxy = Proxy.FromConnection(connection, GreeterPrx.DefaultPath);
 
             (IncomingResponse response, StreamParamReceiver? _) =
-                await proxy.InvokeAsync("SayHello", requestPayload: default);
+                await proxy.InvokeAsync("SayHello", proxy.Encoding, requestPayload: default);
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 proxy.Invoker,
@@ -381,12 +381,23 @@ namespace IceRpc.Tests.Api
 
         [TestCase("1.3")]
         [TestCase("2.1")]
-        public void Proxy_NotSupportedEncoding(string encoding)
+        public async Task Proxy_NotSupportedEncoding(string encoding)
         {
-            var pipeline = new Pipeline();
-            var prx = GreeterPrx.Parse("/test", pipeline);
+            Endpoint serverEndpoint = TestHelper.GetUniqueColocEndpoint();
+            await using var server = new Server
+            {
+                Dispatcher = new Greeter(),
+                Endpoint = serverEndpoint
+            };
+            server.Listen();
+            await using var connection = new Connection
+            {
+                RemoteEndpoint = serverEndpoint
+            };
+
+            var prx = GreeterPrx.FromConnection(connection);
             prx.Proxy.Encoding = Encoding.FromString(encoding);
-            Assert.ThrowsAsync<NotSupportedException>(async () => await prx.IcePingAsync());
+            await prx.IcePingAsync(); // works fine, we use the protocol's encoding in this case
         }
 
         [TestCase("3")]

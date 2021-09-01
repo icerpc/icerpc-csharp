@@ -12,7 +12,7 @@ using System.Reflection;
 namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
-    public class Ice11Decoder : IceDecoder
+    public sealed class Ice11Decoder : IceDecoder
     {
         /// <summary>The sliced-off slices held by the current instance, if any.</summary>
         internal ImmutableList<SliceInfo> UnknownSlices
@@ -72,6 +72,12 @@ namespace IceRpc.Slice
         public static IActivator<Ice11Decoder> GetActivator(IEnumerable<Assembly> assemblies) =>
             Activator<Ice11Decoder>.Merge(assemblies.Select(assembly => _activatorFactory.Get(assembly)));
 
+        /// <summary>Decodes a class instance.</summary>
+        /// <returns>The decoded class instance.</returns>
+        public T DecodeClass<T>() where T : AnyClass =>
+            DecodeNullableClass<T>() ??
+               throw new InvalidDataException("decoded a null class instance, but expected a non-null instance");
+
         /// <inheritdoc/>
         public override RemoteException DecodeException()
         {
@@ -115,6 +121,26 @@ namespace IceRpc.Slice
 
             _current = default;
             return remoteEx;
+        }
+
+        /// <summary>Decodes a nullable class instance.</summary>
+        /// <returns>The class instance, or null.</returns>
+        public T? DecodeNullableClass<T>() where T : class
+        {
+            AnyClass? obj = DecodeAnyClass();
+            if (obj is T result)
+            {
+                return result;
+            }
+            else if (obj == null)
+            {
+                return null;
+            }
+            else
+            {
+                throw new InvalidDataException(@$"decoded instance of type '{obj.GetType().FullName
+                    }' but expected instance of type '{typeof(T).FullName}'");
+            }
         }
 
         /// <inheritdoc/>
@@ -321,40 +347,6 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
-        /// <inheritdoc/>
-        private protected override AnyClass? DecodeAnyClass()
-        {
-            int index = DecodeSize();
-            if (index < 0)
-            {
-                throw new InvalidDataException($"invalid index {index} while decoding a class");
-            }
-            else if (index == 0)
-            {
-                return null;
-            }
-            else if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
-            {
-                // When decoding an instance within a slice and there is an indirection table, we have an index within
-                // this indirection table.
-                // We need to decrement index since position 0 in the indirection table corresponds to index 1.
-                index--;
-                if (index < _current.IndirectionTable?.Length)
-                {
-                    return _current.IndirectionTable[index];
-                }
-                else
-                {
-                    throw new InvalidDataException("index too big for indirection table");
-                }
-            }
-            else
-            {
-                return DecodeInstance(index);
-            }
-        }
-
         private protected override bool DecodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat expectedFormat)
         {
             // The current slice has no tagged parameter.
@@ -411,6 +403,41 @@ namespace IceRpc.Slice
                 default:
                     throw new InvalidDataException(
                         $"cannot skip tagged parameter or data member with tag format '{format}'");
+            }
+        }
+
+        /// <summary>Decodes a class instance.</summary>
+        /// <returns>The class instance. Can be null.</returns>
+        private AnyClass? DecodeAnyClass()
+        {
+            int index = DecodeSize();
+            if (index < 0)
+            {
+                throw new InvalidDataException($"invalid index {index} while decoding a class");
+            }
+            else if (index == 0)
+            {
+                return null;
+            }
+            else if (_current.InstanceType != InstanceType.None &&
+                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+            {
+                // When decoding an instance within a slice and there is an indirection table, we have an index within
+                // this indirection table.
+                // We need to decrement index since position 0 in the indirection table corresponds to index 1.
+                index--;
+                if (index < _current.IndirectionTable?.Length)
+                {
+                    return _current.IndirectionTable[index];
+                }
+                else
+                {
+                    throw new InvalidDataException("index too big for indirection table");
+                }
+            }
+            else
+            {
+                return DecodeInstance(index);
             }
         }
 

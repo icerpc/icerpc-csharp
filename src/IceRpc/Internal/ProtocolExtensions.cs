@@ -91,7 +91,7 @@ namespace IceRpc.Internal
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }
 
-            return protocol.CreateResponseFromRemoteException(remoteException, request.PayloadEncoding);
+            return protocol.CreateResponseFromRemoteException(remoteException, request.GetIceEncoding()!);
         }
 
         internal static OutgoingRequest ToOutgoingRequest(
@@ -197,7 +197,7 @@ namespace IceRpc.Internal
         private static OutgoingResponse CreateResponseFromRemoteException(
             this Protocol protocol,
             RemoteException remoteException,
-            Encoding payloadEncoding)
+            IceEncoding payloadEncoding)
         {
             FeatureCollection features = FeatureCollection.Empty;
             var bufferWriter = new BufferWriter();
@@ -206,7 +206,7 @@ namespace IceRpc.Internal
             {
                 features = new FeatureCollection();
 
-                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
 
                 if (payloadEncoding == Encoding.Ice11 && remoteException.IsIce1SystemException())
                 {
@@ -229,7 +229,7 @@ namespace IceRpc.Internal
                     payloadEncoding = Encoding.Ice20;
                 }
 
-                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter, classFormat: FormatType.Sliced);
+                IceEncoder encoder = payloadEncoding.CreateIceEncoder(bufferWriter);
                 encoder.EncodeException(remoteException);
             }
 

@@ -124,64 +124,9 @@ namespace IceRpc.Slice
         /// <param name="v">The array of numeric values.</param>
         public void EncodeArray<T>(T[] v) where T : struct => EncodeSequence(new ReadOnlySpan<T>(v));
 
-        /// <summary>Encodes a class instance.</summary>
-        /// <param name="v">The class instance to encode.</param>
-        public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
-
-        /// <summary>Encodes a dictionary.</summary>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeDictionary<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue>> v,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            EncodeSize(v.Count());
-            foreach ((TKey key, TValue value) in v)
-            {
-                keyEncodeAction(this, key);
-                valueEncodeAction(this, value);
-            }
-        }
-
-        /// <summary>Encodes a dictionary with null values encoded using a bit sequence.</summary>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeDictionaryWithBitSequence<TKey, TValue>(
-            IEnumerable<KeyValuePair<TKey, TValue>> v,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            int count = v.Count();
-            EncodeSize(count);
-            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-            int index = 0;
-            foreach ((TKey key, TValue value) in v)
-            {
-                keyEncodeAction(this, key);
-                if (value == null)
-                {
-                    bitSequence[index] = false;
-                }
-                else
-                {
-                    valueEncodeAction(this, value);
-                }
-                index++;
-            }
-        }
-
         /// <summary>Encodes a remote exception.</summary>
         /// <param name="v">The remote exception to encode.</param>
         public abstract void EncodeException(RemoteException v);
-
-        /// <summary>Encodes a class instance, or null.</summary>
-        /// <param name="v">The class instance to encode, or null.</param>
-        public abstract void EncodeNullableClass(AnyClass? v);
 
         /// <summary>Encodes a nullable proxy.</summary>
         /// <param name="proxy">The proxy to encode, or null.</param>
@@ -217,46 +162,7 @@ namespace IceRpc.Slice
             }
             else
             {
-                EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
-            }
-        }
-
-        /// <summary>Encodes a sequence.</summary>
-        /// <paramtype name="T">The type of the sequence elements. It is non-nullable except for nullable class and
-        /// proxy types.</paramtype>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
-        {
-            EncodeSize(v.Count()); // potentially slow Linq Count()
-            foreach (T item in v)
-            {
-                encodeAction(this, item);
-            }
-        }
-
-        /// <summary>Encodes a sequence with null values encoded using a bit sequence.</summary>
-        /// <paramtype name="T">The nullable type of the sequence elements.</paramtype>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for a non-null value.</param>
-        /// <remarks>This method always encodes a bit sequence.</remarks>
-        public void EncodeSequenceWithBitSequence<T>(IEnumerable<T> v, EncodeAction<T> encodeAction)
-        {
-            int count = v.Count(); // potentially slow Linq Count()
-            EncodeSize(count);
-            BitSequence bitSequence = BufferWriter.WriteBitSequence(count);
-            int index = 0;
-            foreach (T item in v)
-            {
-                if (item == null)
-                {
-                    bitSequence[index] = false;
-                }
-                else
-                {
-                    encodeAction(this, item);
-                }
-                index++;
+                this.EncodeSequence(v, (encoder, element) => encoder.EncodeFixedSizeNumeric(element));
             }
         }
 
@@ -454,8 +360,8 @@ namespace IceRpc.Slice
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
             int entrySize,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
+            EncodeAction<IceEncoder, TKey> keyEncodeAction,
+            EncodeAction<IceEncoder, TValue> valueEncodeAction)
             where TKey : notnull
         {
             Debug.Assert(entrySize > 1);
@@ -464,7 +370,7 @@ namespace IceRpc.Slice
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
                 int count = dict.Count();
                 EncodeSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
-                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
+                this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
             }
         }
 
@@ -476,15 +382,15 @@ namespace IceRpc.Slice
         public void EncodeTaggedDictionary<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
+            EncodeAction<IceEncoder, TKey> keyEncodeAction,
+            EncodeAction<IceEncoder, TValue> valueEncodeAction)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
+                this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -497,15 +403,15 @@ namespace IceRpc.Slice
         public void EncodeTaggedDictionaryWithBitSequence<TKey, TValue>(
             int tag,
             IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            EncodeAction<TKey> keyEncodeAction,
-            EncodeAction<TValue> valueEncodeAction)
+            EncodeAction<IceEncoder, TKey> keyEncodeAction,
+            EncodeAction<IceEncoder, TValue> valueEncodeAction)
             where TKey : notnull
         {
             if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
+                this.EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -571,13 +477,13 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<IceEncoder, T> encodeAction)
         {
             if (v is IEnumerable<T> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequence(value, encodeAction);
+                this.EncodeSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -587,7 +493,7 @@ namespace IceRpc.Slice
         /// <param name="v">The sequence to encode.</param>
         /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
         /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<T> encodeAction)
+        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<IceEncoder, T> encodeAction)
             where T : struct
         {
             Debug.Assert(elementSize > 0);
@@ -615,13 +521,13 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <param name="v">The sequence to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null value.</param>
-        public void EncodeTaggedSequenceWithBitSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<T> encodeAction)
+        public void EncodeTaggedSequenceWithBitSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<IceEncoder, T> encodeAction)
         {
             if (v is IEnumerable<T> value)
             {
                 EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
                 BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeSequenceWithBitSequence(value, encodeAction);
+                this.EncodeSequenceWithBitSequence(value, encodeAction);
                 EndFixedLengthSize(pos);
             }
         }
@@ -631,7 +537,7 @@ namespace IceRpc.Slice
         /// <param name="v">The struct to encode.</param>
         /// <param name="fixedSize">The size of the struct, in bytes.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<T> encodeAction) where T : struct
+        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
             if (v is T value)
             {
@@ -645,7 +551,7 @@ namespace IceRpc.Slice
         /// <param name="tag">The tag.</param>
         /// <param name="v">The struct to encode.</param>
         /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<T> encodeAction) where T : struct
+        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<IceEncoder, T> encodeAction) where T : struct
         {
             if (v is T value)
             {

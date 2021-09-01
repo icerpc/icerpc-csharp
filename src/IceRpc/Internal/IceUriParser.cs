@@ -177,7 +177,8 @@ namespace IceRpc.Internal
             {
                 Endpoint = endpoint,
                 AltEndpoints = altEndpoints,
-                Encoding = encoding == null ? protocol.Value.GetEncoding() : Encoding.FromString(encoding)
+                Encoding = encoding == null ? (protocol.Value.GetIceEncoding() ?? Encoding.Unknown) :
+                    Encoding.FromString(encoding)
             };
         }
 

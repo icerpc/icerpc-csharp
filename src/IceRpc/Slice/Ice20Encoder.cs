@@ -8,14 +8,10 @@ using System.Runtime.InteropServices;
 namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 2.0 encoding.</summary>
-    public class Ice20Encoder : IceEncoder
+    public sealed class Ice20Encoder : IceEncoder
     {
         /// <inheritdoc/>
         public override void EncodeException(RemoteException v) => v.Encode(this);
-
-        /// <inheritdoc/>
-        public override void EncodeNullableClass(AnyClass? v) =>
-            throw new NotSupportedException("cannot encode a class with the Ice 2.0 encoding");
 
         /// <inheritdoc/>
         public override void EncodeNullableProxy(Proxy? proxy)
@@ -35,7 +31,7 @@ namespace IceRpc.Slice
                 var proxyData = new ProxyData20(
                     proxy.Path,
                     protocol: proxy.Protocol != Protocol.Ice2 ? proxy.Protocol : null,
-                    encoding: proxy.Encoding == proxy.Protocol.GetEncoding() ? null : proxy.Encoding.ToString(),
+                    encoding: proxy.Encoding == proxy.Protocol.GetIceEncoding() ? null : proxy.Encoding.ToString(),
                     endpoint: proxy.Endpoint is Endpoint endpoint && endpoint.Transport != TransportNames.Coloc ?
                         endpoint.ToEndpointData() : null,
                     altEndpoints:
@@ -109,7 +105,7 @@ namespace IceRpc.Slice
             BufferWriter.RewriteByteSpan(data, pos);
         }
 
-        internal void EncodeField<T>(int key, T value, EncodeAction<T> encodeAction)
+        internal void EncodeField<T>(int key, T value, EncodeAction<Ice20Encoder, T> encodeAction)
         {
             EncodeVarInt(key);
             BufferWriter.Position pos = StartFixedLengthSize(2); // 2-bytes size place holder

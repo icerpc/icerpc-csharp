@@ -31,18 +31,11 @@ namespace IceRpc.Tests.CodeGeneration
             };
             _server.Listen();
 
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
             _prx1 = Scope.OperationsPrx.FromConnection(_connection);
-            _prx1.Proxy.Encoding = Encoding.Ice11; // TODO: segregate use of classes
             _prx2 = Scope.Inner.OperationsPrx.FromConnection(_connection);
-            _prx2.Proxy.Encoding = Encoding.Ice11;
             _prx3 = Scope.Inner.Inner2.OperationsPrx.FromConnection(_connection);
-            _prx3.Proxy.Encoding = Encoding.Ice11;
             _prx4 = Scope.Inner.Test.Inner2.OperationsPrx.FromConnection(_connection);
-            _prx4.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]

@@ -17,21 +17,29 @@ namespace IceRpc.Slice
             IInvoker? invoker,
             DefaultIceDecoderFactories defaultIceDecoderFactories)
         {
-            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-            if (response.ResultType == ResultType.Failure)
+            if (response.PayloadEncoding is IceEncoding payloadEncoding)
             {
-                throw response.ToRemoteException(decoder);
+                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                }
             }
             else
             {
-                decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                throw new NotSupportedException(
+                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
             }
         }
 
-        /// <summary>Decodes a response.</summary>
+        /// <summary>Decodes a response encoded using any supported Ice encoding.</summary>
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
@@ -42,11 +50,54 @@ namespace IceRpc.Slice
             this IncomingResponse response,
             IInvoker? invoker,
             DefaultIceDecoderFactories defaultIceDecoderFactories,
-            DecodeFunc<T> decodeFunc)
+            DecodeFunc<IceDecoder, T> decodeFunc)
         {
-            IceDecoder decoder = response.PayloadEncoding.GetIceDecoderFactory(
-                response.Features,
-                defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+            if (response.PayloadEncoding is IceEncoding payloadEncoding)
+            {
+                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
+                    response.Features,
+                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+
+                if (response.ResultType == ResultType.Failure)
+                {
+                    throw response.ToRemoteException(decoder);
+                }
+                else
+                {
+                    T result = decodeFunc(decoder);
+                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
+                    return result;
+                }
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
+            }
+        }
+
+        /// <summary>Decodes a response; only a specific Ice encoding is expected/supported.</summary>
+        /// <paramtype name="TDecoder">The type of the Ice decoder.</paramtype>
+        /// <paramtype name="T">The type of the return value.</paramtype>
+        /// <param name="response">The incoming response.</param>
+        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
+        /// <param name="defaultIceDecoderFactory">The default Ice decoder factory.</param>
+        /// <param name="decodeFunc">The decode function for the return value.</param>
+        /// <returns>The return value.</returns>
+        public static T ToReturnValue<TDecoder, T>(
+            this IncomingResponse response,
+            IInvoker? invoker,
+            IIceDecoderFactory<TDecoder> defaultIceDecoderFactory,
+            DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
+        {
+            if (response.PayloadEncoding != defaultIceDecoderFactory.Encoding)
+            {
+                throw new InvalidDataException(@$"cannot decode response payload encoded with {response.PayloadEncoding
+                    }; expected a payload encoded with {defaultIceDecoderFactory.Encoding}");
+            }
+
+            TDecoder decoder = (response.Features.Get<IIceDecoderFactory<TDecoder>>() ?? defaultIceDecoderFactory).
+                CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {

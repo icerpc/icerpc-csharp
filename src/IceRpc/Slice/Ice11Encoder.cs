@@ -10,10 +10,10 @@ using System.Globalization;
 namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
-    public class Ice11Encoder : IceEncoder
+    public sealed class Ice11Encoder : IceEncoder
     {
         // The current class/exception format, can be either Compact or Sliced.
-        private readonly FormatType _classFormat;
+        private FormatType _classFormat;
 
         // Data for the class or exception instance that is currently getting encoded.
         private InstanceData _current;
@@ -28,19 +28,25 @@ namespace IceRpc.Slice
         // We assign a type ID index (starting with 1) to each type ID we write, in order.
         private Dictionary<string, int>? _typeIdMap;
 
+        /// <summary>Encodes a class instance.</summary>
+        /// <param name="v">The class instance to encode.</param>
+        public void EncodeClass(AnyClass v) => EncodeNullableClass(v);
+
         /// <inheritdoc/>
         public override void EncodeException(RemoteException v)
         {
             Debug.Assert(_current.InstanceType == InstanceType.None);
-            Debug.Assert(_classFormat == FormatType.Sliced);
+
+            _classFormat = FormatType.Sliced; // always encode exceptions in sliced format
             _current.InstanceType = InstanceType.Exception;
             _current.FirstSlice = true;
             v.Encode(this);
             _current = default;
         }
 
-        /// <inheritdoc/>
-        public override void EncodeNullableClass(AnyClass? v)
+        /// <summary>Encodes a class instance, or null.</summary>
+        /// <param name="v">The class instance to encode, or null.</param>
+        public void EncodeNullableClass(AnyClass? v)
         {
             if (v == null)
             {
@@ -140,13 +146,7 @@ namespace IceRpc.Slice
 
                     if (endpoints.Any())
                     {
-                        // Encode sequence by hand
-                        EncodeSize(endpoints.Count());
-
-                        foreach (Endpoint endpoint in endpoints)
-                        {
-                            EncodeEndpoint(endpoint);
-                        }
+                        this.EncodeSequence(endpoints, (encoder, endpoint) => encoder.EncodeEndpoint(endpoint));
                     }
                     else // encoded as an endpointless proxy
                     {

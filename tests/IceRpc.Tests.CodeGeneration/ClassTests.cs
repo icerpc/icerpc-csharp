@@ -27,7 +27,7 @@ namespace IceRpc.Tests.CodeGeneration
                     {
                         var response = OutgoingResponse.ForPayload(
                             request,
-                            request.PayloadEncoding.CreatePayloadFromSingleReturnValue(
+                            Encoding.Ice11.CreatePayloadFromSingleReturnValue(
                                 new MyClassAlsoEmpty(),
                                 (encoder, ae) => encoder.EncodeClass(ae)));
                         return new(response);
@@ -49,9 +49,7 @@ namespace IceRpc.Tests.CodeGeneration
             };
 
             _prx = ClassOperationsPrx.FromConnection(_connection);
-            _prx.Proxy.Encoding = Encoding.Ice11;
             _prxUnexpectedClass = ClassOperationsUnexpectedClassPrx.FromConnection(_connection);
-            _prxUnexpectedClass.Proxy.Encoding = Encoding.Ice11;
         }
 
         [OneTimeTearDown]
@@ -121,14 +119,24 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.AreEqual("a3", d1!.A3!.Name);
             Assert.AreEqual("a4", d1!.A4!.Name);
 
-            MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
-                async () => await _prx.ThrowMyDerivedExceptionAsync());
-            Assert.AreEqual("a1", ex!.A1!.Name);
-            Assert.AreEqual("a2", ex!.A2!.Name);
-            Assert.AreEqual("a3", ex!.A3!.Name);
-            Assert.AreEqual("a4", ex!.A4!.Name);
+            if (_prx.Proxy.Encoding == Encoding.Ice11)
+            {
+                MyDerivedException? ex = Assert.ThrowsAsync<MyDerivedException>(
+                    async () => await _prx.ThrowMyDerivedExceptionAsync());
+                Assert.AreEqual("a1", ex!.A1!.Name);
+                Assert.AreEqual("a2", ex!.A2!.Name);
+                Assert.AreEqual("a3", ex!.A3!.Name);
+                Assert.AreEqual("a4", ex!.A4!.Name);
+            }
+            else if (_prx.Proxy.Encoding == Encoding.Ice20)
+            {
+                // The method throws an exception with classes that gets sliced to the first 2.0-encodable base class,
+                // RemoteException.
+                Assert.ThrowsAsync<RemoteException>(async () => await _prx.ThrowMyDerivedExceptionAsync());
+            }
 
-            (MyClassE e1, MyClassE e2) = await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()));
+            (MyClassE e1, MyClassE e2) =
+                await _prx.OpEAsync(new MyClassE(theB: new MyClassB(), theC: new MyClassC()), 42);
             Assert.That(e1, Is.Not.Null);
             Assert.That(e1.TheB, Is.InstanceOf<MyClassB>());
             Assert.That(e1.TheC, Is.InstanceOf<MyClassC>());
@@ -307,6 +315,7 @@ namespace IceRpc.Tests.CodeGeneration
                 CancellationToken cancel) => new((p1, p1));
             public ValueTask<(MyClassE R1, MyClassE R2)> OpEAsync(
                 MyClassE p1,
+                int p2,
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p1));
 

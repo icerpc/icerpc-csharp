@@ -7,7 +7,7 @@ using System.Reflection;
 namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 2.0 encoding.</summary>
-    public class Ice20Decoder : IceDecoder
+    public sealed class Ice20Decoder : IceDecoder
     {
         private static readonly ActivatorFactory<Ice20Decoder> _activatorFactory =
             new(type => type == typeof(RemoteException) || type.BaseType == typeof(RemoteException));
@@ -43,7 +43,7 @@ namespace IceRpc.Slice
                 SkipTaggedParams(); // TODO: revisit
             }
             // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
-            // throwing "can't decode remote exception".
+            // "can't decode remote exception".
 
             return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
         }
@@ -113,7 +113,7 @@ namespace IceRpc.Slice
                 }
 
                 proxy.Encoding = proxyData.Encoding is string encoding ?
-                    Encoding.FromString(encoding) : proxy.Protocol.GetEncoding();
+                    Encoding.FromString(encoding) : (proxy.Protocol.GetIceEncoding() ?? Encoding.Unknown);
 
                 return proxy;
             }
@@ -182,9 +182,6 @@ namespace IceRpc.Slice
             Pos += entrySize;
             return (key, value);
         }
-
-        private protected override AnyClass? DecodeAnyClass() =>
-            throw new NotSupportedException("cannot decode a class with the Ice 2.0 encoding");
 
         private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
 
