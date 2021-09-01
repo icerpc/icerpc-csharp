@@ -1021,15 +1021,15 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
+    out << nl << "encoder.EncodeTagged(" << tag << ", " << param;
+
     if (type->isInterfaceType())
     {
-        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-            << ");";
+        out << ", " << encodeAction(optionalType, scope);
     }
     else if (builtin)
     {
-        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-            << ", size: ";
+        out << ", " << encodeAction(optionalType, scope) << ", size: ";
 
         if (builtin->isVariableLength())
         {
@@ -1047,53 +1047,41 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         {
             out << builtin->minWireSize();
         }
-        out << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
+        out << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat();
     }
-    else if(st)
+    else if (st)
     {
-        if (st->isVariableLength())
+        out << ", " << encodeAction(optionalType, scope, !isDataMember);
+        if (!st->isVariableLength())
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
-                << encodeAction(optionalType, scope, !isDataMember) << ");";
-        }
-        else
-        {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
-                << encodeAction(optionalType, scope, !isDataMember) << ", size: " << st->minWireSize()
-                << ", IceRpc.Slice.TagFormat.VSize);";
+            out << ", size: " << st->minWireSize() << ", IceRpc.Slice.TagFormat.VSize";
         }
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
-        TypePtr underlying = en->underlying();
-        if (underlying)
+        out << ", " << encodeAction(optionalType, scope) << ", size: ";
+        if (auto underlying = en->underlying())
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-                << ", size: " << underlying->minWireSize()
-                << ", IceRpc.Slice.TagFormat." << underlying->getTagFormat() << ");";
+            out << underlying->minWireSize() << ", IceRpc.Slice.TagFormat." << underlying->getTagFormat();
         }
         else
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-                << ", size: ((int?)" << param << ")?.GetIceSizeLength() ?? 0, IceRpc.Slice.TagFormat.Size);";
+            out << "((int?)" << param << ")?.GetIceSizeLength() ?? 0, IceRpc.Slice.TagFormat.Size";
         }
     }
-    else if(seq)
+    else if (seq)
     {
         const TypePtr elementType = seq->type();
-        builtin = BuiltinPtr::dynamicCast(elementType);
-
         bool hasCustomType = seq->hasMetadataWithPrefix("cs:generic");
         bool readOnly = !isDataMember;
 
         if (OptionalPtr::dynamicCast(elementType) || elementType->isVariableLength())
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " <<
-                encodeAction(optionalType, scope, readOnly) << ");";
+            out << ", " << encodeAction(optionalType, scope, readOnly);
         }
         else if (isFixedSizeNumericSequence(seq) && readOnly && !hasCustomType)
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ".Span" << ");";
+            out << ".Span";
         }
         else
         {
@@ -1101,10 +1089,8 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             string tagFormat = elementType->minWireSize() == 1 ?
                 "IceRpc.Slice.TagFormat.OVSize" : "IceRpc.Slice.TagFormat.VSize";
 
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
-                << encodeAction(optionalType, scope, readOnly)
-                << ", size: " << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0), "
-                << tagFormat << ");";
+            out << ", " << encodeAction(optionalType, scope, readOnly)
+                << ", size: " << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0), " << tagFormat;
         }
     }
     else
@@ -1114,19 +1100,14 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         TypePtr keyType = d->keyType();
         TypePtr valueType = d->valueType();
 
-        if (OptionalPtr::dynamicCast(valueType) || keyType->isVariableLength() || valueType->isVariableLength())
+        out << ", " << encodeAction(optionalType, scope);
+        if (!OptionalPtr::dynamicCast(valueType) && !keyType->isVariableLength() && !valueType->isVariableLength())
         {
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-                << ");";
-        }
-        else
-        {
-            // Fixed size
-            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
-                << ", size: " << keyType->minWireSize() + valueType->minWireSize()
-                << " * (" << param << "?.Count() ?? 0), IceRpc.Slice.TagFormat.VSize);";
+            out << ", size: " << keyType->minWireSize() + valueType->minWireSize()
+                << " * (" << param << "?.Count() ?? 0), IceRpc.Slice.TagFormat.VSize";
         }
     }
+    out << ");";
 }
 
 void
