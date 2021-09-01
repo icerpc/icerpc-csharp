@@ -230,18 +230,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged string.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The string to encode.</param>
-        public void EncodeTaggedString(int tag, string? v)
-        {
-            if (v is string value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                EncodeString(value);
-            }
-        }
-
         // Encode methods for tagged constructed types except class
 
         /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>

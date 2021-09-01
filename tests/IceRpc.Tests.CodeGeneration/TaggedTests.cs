@@ -194,7 +194,11 @@ namespace IceRpc.Tests.CodeGeneration
                     (IceEncoder encoder, in (int? N, string? S) value) =>
                     {
                         encoder.EncodeTagged(1, size: 4, value.N, (encoder, v) => encoder.EncodeInt(v!.Value), TagFormat.F4);
-                        encoder.EncodeTaggedString(1, value.S); // duplicate tag ignored by the server
+                        encoder.EncodeTagged(1,
+                                             size: value.S?.Length ?? 0,
+                                             value.S,
+                                             (encoder, v) => encoder.EncodeString(v!),
+                                             TagFormat.OVSize); // duplicate tag ignored by the server
                     });
 
             (IncomingResponse response, StreamParamReceiver? _) =
