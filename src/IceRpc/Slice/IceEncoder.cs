@@ -181,9 +181,9 @@ namespace IceRpc.Slice
 
         public void EncodeTagged<T>(
             int tag,
-            int size,
             T v,
             EncodeAction<IceEncoder, T> encodeAction,
+            int size,
             TagFormat tagFormat)
         {
             Debug.Assert(tagFormat != TagFormat.FSize);
