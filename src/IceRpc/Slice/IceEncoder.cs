@@ -218,78 +218,6 @@ namespace IceRpc.Slice
                 };
         }
 
-        /// <summary>Encodes a tagged boolean.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The boolean to encode.</param>
-        public void EncodeTaggedBool(int tag, bool? v)
-        {
-            if (v is bool value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F1);
-                EncodeBool(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged byte.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The byte to encode.</param>
-        public void EncodeTaggedByte(int tag, byte? v)
-        {
-            if (v is byte value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F1);
-                EncodeByte(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged double.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The double to encode.</param>
-        public void EncodeTaggedDouble(int tag, double? v)
-        {
-            if (v is double value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F8);
-                EncodeDouble(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged float.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The float to encode.</param>
-        public void EncodeTaggedFloat(int tag, float? v)
-        {
-            if (v is float value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F4);
-                EncodeFloat(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged int.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to encode.</param>
-        public void EncodeTaggedInt(int tag, int? v)
-        {
-            if (v is int value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F4);
-                EncodeInt(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged long.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to encode.</param>
-        public void EncodeTaggedLong(int tag, long? v)
-        {
-            if (v is long value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F8);
-                EncodeLong(value);
-            }
-        }
-
         /// <summary>Encodes a tagged size.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The size.</param>
@@ -302,18 +230,6 @@ namespace IceRpc.Slice
             }
         }
 
-        /// <summary>Encodes a tagged short.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The short to encode.</param>
-        public void EncodeTaggedShort(int tag, short? v)
-        {
-            if (v is short value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F2);
-                EncodeShort(value);
-            }
-        }
-
         /// <summary>Encodes a tagged string.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="v">The string to encode.</param>
@@ -323,42 +239,6 @@ namespace IceRpc.Slice
             {
                 EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 EncodeString(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged uint.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to encode.</param>
-        public void EncodeTaggedUInt(int tag, uint? v)
-        {
-            if (v is uint value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F4);
-                EncodeUInt(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged ulong.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to encode.</param>
-        public void EncodeTaggedULong(int tag, ulong? v)
-        {
-            if (v is ulong value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F8);
-                EncodeULong(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged ushort.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ushort to encode.</param>
-        public void EncodeTaggedUShort(int tag, ushort? v)
-        {
-            if (v is ushort value)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.F2);
-                EncodeUShort(value);
             }
         }
 

@@ -1024,10 +1024,18 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     {
         out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
     }
-    else if (builtin || type->isClassType())
+    else if (builtin)
     {
-        auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
-        out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
+        if (builtin->isVariableLength())
+        {
+            auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
+            out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
+        }
+        else
+        {
+            out << nl << "encoder.EncodeTagged("  << tag << ", size: " << builtin->minWireSize() << ", " << param << ","
+                << encodeAction(optionalType, scope) << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat() << ");";
+        }
     }
     else if(st)
     {

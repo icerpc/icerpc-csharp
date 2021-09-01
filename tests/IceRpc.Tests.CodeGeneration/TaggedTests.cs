@@ -191,10 +191,10 @@ namespace IceRpc.Tests.CodeGeneration
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
                 _prx.Proxy.GetIceEncoding().CreatePayloadFromArgs(
                     (15, "test"),
-                    (IceEncoder encoder, in (int n, string s) value) =>
+                    (IceEncoder encoder, in (int? N, string? S) value) =>
                     {
-                        encoder.EncodeTaggedInt(1, value.n);
-                        encoder.EncodeTaggedString(1, value.s); // duplicate tag ignored by the server
+                        encoder.EncodeTagged(1, size: 4, value.N, (encoder, v) => encoder.EncodeInt(v!.Value), TagFormat.F4);
+                        encoder.EncodeTaggedString(1, value.S); // duplicate tag ignored by the server
                     });
 
             (IncomingResponse response, StreamParamReceiver? _) =
