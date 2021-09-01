@@ -171,9 +171,9 @@ namespace IceRpc.Slice
         /// <summary>Encodes a tagged value. When the value is not null, the number of bytes needed to encode the value
         /// is not known before encoding the value.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The value to encode.</param>
-        /// <param name="encodeAction">A delegate that encodes <paramref name="v"/>. It's called only when
-        /// <paramref name="v"/> is not null.</param>
+        /// <param name="v">The value to encode. Can be null.</param>
+        /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
+        /// </param>
         public void EncodeTagged<T>(int tag, T v, EncodeAction<IceEncoder, T> encodeAction)
         {
             if (v != null)
@@ -188,11 +188,12 @@ namespace IceRpc.Slice
         /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is known before encoding the
         /// value.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="v">The value to encode.</param>
-        /// <param name="encodeAction">A delegate that encodes <paramref name="v"/>. It's called only when
-        /// <paramref name="v"/> is not null.</param>
-        /// <param name="size"/>The number of bytes needed to encode the value.</param>
-        /// <param name="tagFormat"/>The tag format.</param>
+        /// <param name="v">The value to encode. Can be null.</param>
+        /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
+        /// </param>
+        /// <param name="size">When <paramref name="v"/>is not null, the number of bytes needed to encode its value.
+        /// </param>
+        /// <param name="tagFormat">The tag format.</param>
         public void EncodeTagged<T>(
             int tag,
             T v,
@@ -254,6 +255,48 @@ namespace IceRpc.Slice
         }
 
         // Other methods
+
+        /// <summary>Computes the minimum number of bytes required to encode a long value using Ice's variable-length
+        /// int encoding.</summary>
+        /// <param name="value">The long value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarIntEncodedSizeLength(long value)
+        {
+            if (value < EncodingDefinitions.VarLongMinValue || value > EncodingDefinitions.VarLongMaxValue)
+            {
+                throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
+            }
+
+            return (value << 2) switch
+            {
+                long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 1,
+                long s when s >= short.MinValue && s <= short.MaxValue => 2,
+                long i when i >= int.MinValue && i <= int.MaxValue => 4,
+                _ => 8
+            };
+        }
+
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using Ice's variable-length
+        /// int encoding.</summary>
+        /// <param name="value">The ulong value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarIntEncodedSizeLength(ulong value)
+        {
+            if (value > EncodingDefinitions.VarULongMaxValue)
+            {
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+            }
+
+            return (value << 2) switch
+            {
+                ulong b when b <= byte.MaxValue => 1,
+                ulong s when s <= ushort.MaxValue => 2,
+                ulong i when i <= uint.MaxValue => 4,
+                _ => 8
+            };
+        }
 
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>

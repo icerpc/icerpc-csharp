@@ -1044,7 +1044,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
                 else if (builtin->kind() != Builtin::KindObject)
                 {
                     // varulong etc.
-                    out << param << "?.GetIceSizeLength() ?? 0";
+                    out << "IceEncoder.GetVarIntEncodedSizeLength(" << param << " ?? 0)";
                 }
             }
             else
