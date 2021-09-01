@@ -1031,12 +1031,17 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     }
     else if(st)
     {
-        out << nl << "encoder.EncodeTaggedStruct(" << tag << ", " << param;
-        if(!st->isVariableLength())
+        if (st->isVariableLength())
         {
-            out << ", fixedSize: " << st->minWireSize();
+            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
+                << encodeAction(optionalType, scope, !isDataMember) << ");";
         }
-        out << ", " << encodeAction(st, scope, !isDataMember) << ");";
+        else
+        {
+            out << nl << "encoder.EncodeTaggedStruct(" << tag << ", " << param;
+            out << ", fixedSize: " << st->minWireSize();
+            out << ", " << encodeAction(st, scope, !isDataMember) << ");";
+        }
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
@@ -1067,13 +1072,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         }
         else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
         {
-            out << nl << "encoder.EncodeTaggedSequenceWithBitSequence(" << tag << ", " << param << ", " <<
-                encodeAction(optional, scope, !isDataMember) << ");";
+            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " <<
+                encodeAction(optionalType, scope, !isDataMember) << ");";
         }
         else if (elementType->isVariableLength())
         {
-            out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param
-                << ", " << encodeAction(elementType, scope, !isDataMember) << ");";
+            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " <<
+                encodeAction(optionalType, scope, !isDataMember) << ");";;
         }
         else
         {
@@ -1097,16 +1102,19 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             withBitSequence = true;
         }
 
-        out << nl << "encoder.EncodeTaggedDictionary" << (withBitSequence ? "WithBitSequence" : "") << "("
-            << tag << ", " << param;
-
         if (!withBitSequence && !keyType->isVariableLength() && !valueType->isVariableLength())
         {
             // Both are fixed size
+            out << nl << "encoder.EncodeTaggedDictionary" << (withBitSequence ? "WithBitSequence" : "") << "("
+                << tag << ", " << param;
             out << ", entrySize: " << (keyType->minWireSize() + valueType->minWireSize());
+            out << ", " << encodeAction(keyType, scope) << ", " << encodeAction(valueType, scope) << ");";
         }
-
-        out << ", " << encodeAction(keyType, scope) << ", " << encodeAction(valueType, scope) << ");";
+        else
+        {
+            out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", " << encodeAction(optionalType, scope)
+                << ");";
+        }
     }
 }
 
