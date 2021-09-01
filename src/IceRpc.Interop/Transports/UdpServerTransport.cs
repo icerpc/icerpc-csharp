@@ -95,7 +95,9 @@ namespace IceRpc.Transports
                 throw;
             }
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
             var udpSocket = new UdpSocket(socket, logger, isServer: true, multicastAddress);
+#pragma warning restore CA2000 // Dispose objects before losing scope
             return (null,
                     NetworkSocketConnection.FromNetworkSocket(
                         udpSocket,

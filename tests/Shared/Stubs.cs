@@ -46,11 +46,13 @@ namespace IceRpc.Tests
         public static Connection Create(Endpoint localEndpoint, Endpoint remoteEndpoint, bool isServer)
         {
             return new Connection(
+#pragma warning disable CA2000 // Dispose objects before losing scope
                 new MultiStreamConnectionStub(
                     localEndpoint,
                     remoteEndpoint,
                     isServer,
                     NullLogger.Instance),
+#pragma warning restore CA2000 // Dispose objects before losing scope
                 dispatcher: null,
                 new(),
                 loggerFactory: null);
