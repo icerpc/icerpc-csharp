@@ -383,7 +383,7 @@ Slice::Builtin::getTagFormat() const
         case KindVarULong:
             return "VInt";
         case KindString:
-            return "VSize";
+            return "OVSize";
         case KindAnyClass:
             return "Class";
         case KindObject:
@@ -3156,7 +3156,7 @@ Slice::Optional::getTagFormat() const
 bool
 Slice::Optional::isVariableLength() const
 {
-    return _underlying->isVariableLength();
+    return true;
 }
 
 // ----------------------------------------------------------------------
@@ -3547,7 +3547,7 @@ Slice::Sequence::minWireSize() const
 string
 Slice::Sequence::getTagFormat() const
 {
-    return _type->isVariableLength() ? "FSize" : "VSize";
+    return _type->isVariableLength() ? "FSize" : (_type->minWireSize() == 1 ? "OVSize" : "VSize");
 }
 
 bool

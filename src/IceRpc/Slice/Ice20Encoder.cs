@@ -85,11 +85,7 @@ namespace IceRpc.Slice
         /// <remarks>The parameter is a long and not a varulong because sizes and size-like values are usually passed
         /// around as signed integers, even though sizes cannot be negative and are encoded like varulong values.
         /// </remarks>
-        internal static int GetSizeLength(long size)
-        {
-            Debug.Assert(size >= 0);
-            return 1 << GetVarULongEncodedSizeExponent((ulong)size);
-        }
+        internal static int GetSizeLength(long size) => GetVarULongEncodedSize(checked((ulong)size));
 
         /// <summary>Constructs an encoder for the Ice 2.0 encoding.</summary>
         internal Ice20Encoder(BufferWriter bufferWriter)
@@ -140,11 +136,11 @@ namespace IceRpc.Slice
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeFixedLengthSize(size, into);
 
-        private protected override void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format)
+        private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
         {
             // TODO: merge FSize and VSize
 
-            Debug.Assert(format != EncodingDefinitions.TagFormat.VInt); // VInt cannot be encoded
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
 
             int v = (int)format;
             if (tag < 30)

@@ -32,25 +32,6 @@ namespace IceRpc.Slice.Internal
             Index = 2,
             CompactId = 3,
         }
-
-        /// <summary>Each tagged parameter has a specific tag format. This tag format describes how the data is encoded
-        /// and how it can be skipped by the unmarshaling code if the tagged parameter is present in the buffer but is
-        /// not known to the receiver.</summary>
-        internal enum TagFormat
-        {
-            F1 = 0,
-            F2 = 1,
-            F4 = 2,
-            F8 = 3,
-            Size = 4,
-            VSize = 5,
-            FSize = 6,
-            Class = 7, // no longer written or accepted as of IceRPC
-
-            /// <summary>VInt is a special value that is never marshaled and that means "one of F1, F2, F4 or F8".
-            /// </summary>
-            VInt = 8
-        }
     }
 
     internal static class SliceFlagsExtensions
