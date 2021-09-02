@@ -166,11 +166,11 @@ namespace IceRpc.Slice
             }
         }
 
-        // Encode methods for tagged basic types
+        // EncodeTagged methods
 
         /// <summary>Encodes a tagged value. When the value is not null, the number of bytes needed to encode the value
         /// is not known before encoding the value.</summary>
-        /// <param name="tag">The tag.</param>
+        /// <param name="tag">The tag. Must be either FSize or VSize.</param>
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode. Can be null.</param>
         /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
@@ -189,8 +189,8 @@ namespace IceRpc.Slice
                 else
                 {
                     Debug.Assert(tagFormat == TagFormat.VSize);
-                    // Corresponds to a VSize where the size is optimized out because the element size is 1, e.g.
-                    // strings and sequence<byte>.
+
+                    // Corresponds to a VSize where the size is optimized out e.g. strings and sequence<byte>.
                     encodeAction(this, v);
                 }
             }
@@ -199,8 +199,8 @@ namespace IceRpc.Slice
         /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is known before encoding the
         /// value.</summary>
         /// <param name="tag">The tag.</param>
-        /// <param name="tagFormat">The tag format.</param>
-        /// <param name="size">When <paramref name="v"/>is not null, the number of bytes needed to encode its value.
+        /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>
+        /// <param name="size">When <paramref name="v"/> is not null, the number of bytes needed to encode its value.
         /// </param>
         /// <param name="v">The value to encode. Can be null.</param>
         /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
@@ -217,7 +217,19 @@ namespace IceRpc.Slice
 
             if (v != null)
             {
-                EncodeTaggedParamHeader(tag, GetEncodedTagFormat(tagFormat, size));
+                if (tagFormat == TagFormat.VInt)
+                {
+                    tagFormat = size switch
+                    {
+                        1 => TagFormat.F1,
+                        2 => TagFormat.F2,
+                        4 => TagFormat.F4,
+                        8 => TagFormat.F8,
+                        _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                    };
+                }
+
+                EncodeTaggedParamHeader(tag, tagFormat);
 
                 if (tagFormat == TagFormat.VSize)
                 {
@@ -233,22 +245,6 @@ namespace IceRpc.Slice
                                                 nameof(size));
                 }
             }
-
-            static TagFormat GetEncodedTagFormat(TagFormat tagFormat, int size) =>
-                tagFormat switch
-                {
-                    TagFormat.VInt =>
-                        size switch
-                        {
-                            1 => TagFormat.F1,
-                            2 => TagFormat.F2,
-                            4 => TagFormat.F4,
-                            8 => TagFormat.F8,
-                            _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                        },
-
-                    _ => tagFormat
-                };
         }
 
         /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
