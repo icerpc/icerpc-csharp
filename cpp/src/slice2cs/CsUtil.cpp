@@ -1021,7 +1021,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
-    if (seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic"))
+    bool rom =
+        seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic");
+
+    out << nl << "if (" << param << (rom ? ".Span" : "") << " != null)";
+    out << sb;
+
+    if (rom)
     {
         // special ReadOnlySpan API, that's why we check it first
         out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ".Span);";
@@ -1120,6 +1126,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
         out  << ", " << param << ", " << encodeAction(optionalType, scope, !isDataMember) << ");";
     }
+    out << eb;
 }
 
 void
