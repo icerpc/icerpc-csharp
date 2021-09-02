@@ -187,7 +187,7 @@ namespace IceRpc.Slice
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
         public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
 
-         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
         /// <param name="tagFormat">The tag format.</param>
@@ -205,9 +205,10 @@ namespace IceRpc.Slice
             }
             else
             {
+                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
                 Debug.Assert(tagFormat == TagFormat.OVSize);
 
-                // Corresponds to a VSize where the size is optimized out. Used here for strings.
                 EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(this, v);
             }
