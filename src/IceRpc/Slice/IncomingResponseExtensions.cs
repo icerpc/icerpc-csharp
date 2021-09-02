@@ -11,68 +11,21 @@ namespace IceRpc.Slice
         /// <summary>Decodes a response when the corresponding operation returns void.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         public static void CheckVoidReturnValue(
             this IncomingResponse response,
             IInvoker? invoker,
-            DefaultIceDecoderFactories defaultIceDecoderFactories)
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory)
         {
-            if (response.PayloadEncoding is IceEncoding payloadEncoding)
-            {
-                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
-                    response.Features,
-                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
+            IceDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
 
-                if (response.ResultType == ResultType.Failure)
-                {
-                    throw response.ToRemoteException(decoder);
-                }
-                else
-                {
-                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                }
+            if (response.ResultType == ResultType.Failure)
+            {
+                throw response.ToRemoteException(decoder);
             }
             else
             {
-                throw new NotSupportedException(
-                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
-            }
-        }
-
-        /// <summary>Decodes a response encoded using any supported Ice encoding.</summary>
-        /// <paramtype name="T">The type of the return value.</paramtype>
-        /// <param name="response">The incoming response.</param>
-        /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
-        /// <param name="decodeFunc">The decode function for the return value.</param>
-        /// <returns>The return value.</returns>
-        public static T ToReturnValue<T>(
-            this IncomingResponse response,
-            IInvoker? invoker,
-            DefaultIceDecoderFactories defaultIceDecoderFactories,
-            DecodeFunc<IceDecoder, T> decodeFunc)
-        {
-            if (response.PayloadEncoding is IceEncoding payloadEncoding)
-            {
-                IceDecoder decoder = payloadEncoding.GetIceDecoderFactory(
-                    response.Features,
-                    defaultIceDecoderFactories).CreateIceDecoder(response.Payload, response.Connection, invoker);
-
-                if (response.ResultType == ResultType.Failure)
-                {
-                    throw response.ToRemoteException(decoder);
-                }
-                else
-                {
-                    T result = decodeFunc(decoder);
-                    decoder.CheckEndOfBuffer(skipTaggedParams: true);
-                    return result;
-                }
-            }
-            else
-            {
-                throw new NotSupportedException(
-                    $"cannot decode payload of response encoded with {response.PayloadEncoding}");
+                decoder.CheckEndOfBuffer(skipTaggedParams: true);
             }
         }
 
@@ -81,23 +34,22 @@ namespace IceRpc.Slice
         /// <paramtype name="T">The type of the return value.</paramtype>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker of the proxy that sent the request.</param>
-        /// <param name="defaultIceDecoderFactory">The default Ice decoder factory.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeFunc">The decode function for the return value.</param>
         /// <returns>The return value.</returns>
         public static T ToReturnValue<TDecoder, T>(
             this IncomingResponse response,
             IInvoker? invoker,
-            IIceDecoderFactory<TDecoder> defaultIceDecoderFactory,
+            IIceDecoderFactory<TDecoder> iceDecoderFactory,
             DecodeFunc<TDecoder, T> decodeFunc) where TDecoder : IceDecoder
         {
-            if (response.PayloadEncoding != defaultIceDecoderFactory.Encoding)
+            if (response.PayloadEncoding != iceDecoderFactory.Encoding)
             {
                 throw new InvalidDataException(@$"cannot decode response payload encoded with {response.PayloadEncoding
-                    }; expected a payload encoded with {defaultIceDecoderFactory.Encoding}");
+                    }; expected a payload encoded with {iceDecoderFactory.Encoding}");
             }
 
-            TDecoder decoder = (response.Features.Get<IIceDecoderFactory<TDecoder>>() ?? defaultIceDecoderFactory).
-                CreateIceDecoder(response.Payload, response.Connection, invoker);
+            TDecoder decoder = iceDecoderFactory.CreateIceDecoder(response.Payload, response.Connection, invoker);
 
             if (response.ResultType == ResultType.Failure)
             {
