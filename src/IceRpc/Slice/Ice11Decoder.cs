@@ -293,6 +293,27 @@ namespace IceRpc.Slice
             return size;
         }
 
+        /// <inheritdoc/>
+        public override T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc)
+        {
+            if (DecodeTaggedParamHeader(tag, tagFormat))
+            {
+                if (tagFormat == TagFormat.VSize)
+                {
+                    SkipSize();
+                }
+                else if (tagFormat == TagFormat.FSize)
+                {
+                    Skip(4);
+                }
+                return decodeFunc(this);
+            }
+            else
+            {
+                return default!; // i.e. null
+            }
+        }
+
         /// <summary>Tells the decoder the end of a class or remote exception slice was reached.</summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public void IceEndSlice()
@@ -347,62 +368,27 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
-        private protected override bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
+        private protected override void SkipTaggedParams()
         {
-            // The current slice has no tagged parameter.
-            if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)
+            while (true)
             {
-                return false;
-            }
-
-            return base.DecodeTaggedParamHeader(tag, expectedFormat);
-        }
-
-        private protected override void SkipFixedLengthSize() => Skip(4);
-
-        private protected override void SkipSize()
-        {
-            byte b = DecodeByte();
-            if (b == 255)
-            {
-                Skip(4);
-            }
-        }
-
-        private protected override void SkipTagged(TagFormat format)
-        {
-            switch (format)
-            {
-                case TagFormat.F1:
-                    Skip(1);
+                if (_buffer.Length - Pos <= 0)
+                {
                     break;
-                case TagFormat.F2:
-                    Skip(2);
+                }
+
+                int v = DecodeByte();
+                if (v == EncodingDefinitions.TaggedEndMarker)
+                {
                     break;
-                case TagFormat.F4:
-                    Skip(4);
-                    break;
-                case TagFormat.F8:
-                    Skip(8);
-                    break;
-                case TagFormat.Size:
+                }
+
+                var format = (TagFormat)(v & 0x07); // Read first 3 bits.
+                if ((v >> 3) == 30)
+                {
                     SkipSize();
-                    break;
-                case TagFormat.VSize:
-                    Skip(DecodeSize());
-                    break;
-                case TagFormat.FSize:
-                    int size = DecodeInt();
-                    if (size < 0)
-                    {
-                        throw new InvalidDataException("invalid negative fixed-length size");
-                    }
-                    Skip(size);
-                    break;
-                default:
-                    throw new InvalidDataException(
-                        $"cannot skip tagged parameter or data member with tag format '{format}'");
+                }
+                SkipTagged(format);
             }
         }
 
@@ -766,6 +752,72 @@ namespace IceRpc.Slice
             return size - 4;
         }
 
+        /// <summary>Determines if a tagged parameter or data member is available.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
+        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
+        private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
+        {
+            // The current slice has no tagged parameter.
+            if (_current.InstanceType != InstanceType.None &&
+                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)
+            {
+                return false;
+            }
+
+            int requestedTag = tag;
+
+            while (true)
+            {
+                if (_buffer.Length - Pos <= 0)
+                {
+                    return false; // End of buffer also indicates end of tagged parameters.
+                }
+
+                int savedPos = Pos;
+
+                int v = DecodeByte();
+                if (v == EncodingDefinitions.TaggedEndMarker)
+                {
+                    Pos = savedPos; // rewind
+                    return false;
+                }
+
+                var format = (TagFormat)(v & 0x07); // First 3 bits.
+                tag = v >> 3;
+                if (tag == 30)
+                {
+                    tag = DecodeSize();
+                }
+
+                if (tag > requestedTag)
+                {
+                    Pos = savedPos; // rewind
+                    return false; // No tagged parameter with the requested tag.
+                }
+                else if (tag < requestedTag)
+                {
+                    SkipTagged(format);
+                }
+                else
+                {
+                    if (expectedFormat == TagFormat.OVSize)
+                    {
+                        expectedFormat = TagFormat.VSize; // fix virtual tag format
+                    }
+
+                    // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
+                    // received does not matter in this case.
+                    if (format != expectedFormat &&
+                        (expectedFormat != TagFormat.VInt || (int)format > (int)TagFormat.F8))
+                    {
+                        throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
+                    }
+                    return true;
+                }
+            }
+        }
+
         /// <summary>Decodes the type ID of a class instance.</summary>
         /// <param name="typeIdKind">The kind of type ID to decode.</param>
         /// <returns>The type ID or the compact ID, if any.</returns>
@@ -863,6 +915,15 @@ namespace IceRpc.Slice
             }
         }
 
+        private void SkipSize()
+        {
+            byte b = DecodeByte();
+            if (b == 255)
+            {
+                Skip(4);
+            }
+        }
+
         /// <summary>Skips and saves the body of the current slice; also skips and save the indirection table (if any).
         /// </summary>
         /// <param name="typeId">The type ID or compact ID of the current slice.</param>
@@ -940,6 +1001,42 @@ namespace IceRpc.Slice
             _current.IndirectionTable = null;
 
             return (_current.SliceFlags & EncodingDefinitions.SliceFlags.IsLastSlice) != 0;
+        }
+
+        private void SkipTagged(TagFormat format)
+        {
+            switch (format)
+            {
+                case TagFormat.F1:
+                    Skip(1);
+                    break;
+                case TagFormat.F2:
+                    Skip(2);
+                    break;
+                case TagFormat.F4:
+                    Skip(4);
+                    break;
+                case TagFormat.F8:
+                    Skip(8);
+                    break;
+                case TagFormat.Size:
+                    SkipSize();
+                    break;
+                case TagFormat.VSize:
+                    Skip(DecodeSize());
+                    break;
+                case TagFormat.FSize:
+                    int size = DecodeInt();
+                    if (size < 0)
+                    {
+                        throw new InvalidDataException("invalid negative fixed-length size");
+                    }
+                    Skip(size);
+                    break;
+                default:
+                    throw new InvalidDataException(
+                        $"cannot skip tagged parameter or data member with tag format '{format}'");
+            }
         }
 
         private struct InstanceData

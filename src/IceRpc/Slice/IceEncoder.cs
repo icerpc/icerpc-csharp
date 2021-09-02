@@ -193,26 +193,11 @@ namespace IceRpc.Slice
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public void EncodeTagged<T>(int tag, TagFormat tagFormat, T v, EncodeAction<IceEncoder, T> encodeAction)
-            where T : notnull
-        {
-            if (tagFormat == TagFormat.FSize)
-            {
-                EncodeTaggedParamHeader(tag, tagFormat);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                encodeAction(this, v);
-                EndFixedLengthSize(pos);
-            }
-            else
-            {
-                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
-                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                Debug.Assert(tagFormat == TagFormat.OVSize);
-
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                encodeAction(this, v);
-            }
-        }
+        public abstract void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
         /// encoding the value.</summary>
@@ -221,50 +206,12 @@ namespace IceRpc.Slice
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public void EncodeTagged<T>(
+        public abstract void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
             int size,
             T v,
-            EncodeAction<IceEncoder, T> encodeAction) where T : notnull
-        {
-            Debug.Assert(tagFormat != TagFormat.FSize);
-            Debug.Assert(size > 0);
-
-            bool encodeSize = tagFormat == TagFormat.VSize;
-
-            tagFormat = tagFormat switch
-            {
-                TagFormat.VInt => size switch
-                {
-                    1 => TagFormat.F1,
-                    2 => TagFormat.F2,
-                    4 => TagFormat.F4,
-                    8 => TagFormat.F8,
-                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                },
-
-                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
-
-                _ => tagFormat
-            };
-
-            EncodeTaggedParamHeader(tag, tagFormat);
-
-            if (encodeSize)
-            {
-                EncodeSize(size);
-            }
-
-            BufferWriter.Position startPos = BufferWriter.Tail;
-            encodeAction(this, v);
-            int actualSize = BufferWriter.Distance(startPos);
-            if (actualSize != size)
-            {
-                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                            nameof(size));
-            }
-        }
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
@@ -307,11 +254,6 @@ namespace IceRpc.Slice
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
 
         private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
-
-        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
-        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
-        /// <param name="format">The tag format.</param>
-        private protected abstract void EncodeTaggedParamHeader(int tag, TagFormat format);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>

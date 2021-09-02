@@ -172,6 +172,77 @@ namespace IceRpc.Slice
         }
 
         /// <inheritdoc/>
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            if (tagFormat == TagFormat.FSize)
+            {
+                EncodeTaggedParamHeader(tag, tagFormat);
+                BufferWriter.Position pos = StartFixedLengthSize();
+                encodeAction(this, v);
+                EndFixedLengthSize(pos);
+            }
+            else
+            {
+                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                Debug.Assert(tagFormat == TagFormat.OVSize);
+
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                encodeAction(this, v);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            int size,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            Debug.Assert(tagFormat != TagFormat.FSize);
+            Debug.Assert(size > 0);
+
+            bool encodeSize = tagFormat == TagFormat.VSize;
+
+            tagFormat = tagFormat switch
+            {
+                TagFormat.VInt => size switch
+                {
+                    1 => TagFormat.F1,
+                    2 => TagFormat.F2,
+                    4 => TagFormat.F4,
+                    8 => TagFormat.F8,
+                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                },
+
+                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                _ => tagFormat
+            };
+
+            EncodeTaggedParamHeader(tag, tagFormat);
+
+            if (encodeSize)
+            {
+                EncodeSize(size);
+            }
+
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            encodeAction(this, v);
+            int actualSize = BufferWriter.Distance(startPos);
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
+
+        /// <inheritdoc/>
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
@@ -315,29 +386,6 @@ namespace IceRpc.Slice
             IceEncoder.EncodeInt(size, into);
         }
 
-        private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
-        {
-            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-
-            if (_current.InstanceType != InstanceType.None)
-            {
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
-            }
-        }
-
         /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
         /// <param name="endpoint">The endpoint to encode.</param>
         private void EncodeEndpoint(Endpoint endpoint)
@@ -430,6 +478,32 @@ namespace IceRpc.Slice
 
                 // Restore previous _current.
                 _current = previousCurrent;
+            }
+        }
+
+        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
+        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+        /// <param name="format">The tag format.</param>
+        private void EncodeTaggedParamHeader(int tag, TagFormat format)
+        {
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
+
+            int v = (int)format;
+            if (tag < 30)
+            {
+                v |= tag << 3;
+                EncodeByte((byte)v);
+            }
+            else
+            {
+                v |= 0x0F0; // tag = 30
+                EncodeByte((byte)v);
+                EncodeSize(tag);
+            }
+
+            if (_current.InstanceType != InstanceType.None)
+            {
+                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
             }
         }
 

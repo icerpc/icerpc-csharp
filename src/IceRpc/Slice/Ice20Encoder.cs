@@ -46,6 +46,35 @@ namespace IceRpc.Slice
         public override void EncodeSize(int v) => EncodeVarULong((ulong)v);
 
         /// <inheritdoc/>
+        public override void EncodeTagged<T>(int tag, TagFormat _, T v, EncodeAction<IceEncoder, T> encodeAction)
+        {
+            EncodeVarInt(tag); // the key
+            BufferWriter.Position pos = StartFixedLengthSize(); // use the default (4 bytes)
+            encodeAction(this, v);
+            EndFixedLengthSize(pos);
+        }
+
+        /// <inheritdoc/>
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat _,
+            int size,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            EncodeVarInt(tag); // the key
+            EncodeSize(size);
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            encodeAction(this, v);
+            int actualSize = BufferWriter.Distance(startPos);
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
+
+        /// <inheritdoc/>
         public override int GetSizeLength(int size) => Ice20Encoder.GetSizeLength(size);
 
         /// <summary>Encodes a size into a span of bytes using a fixed number of bytes.</summary>
@@ -135,25 +164,5 @@ namespace IceRpc.Slice
 
         private protected override void EncodeFixedLengthSize(int size, Span<byte> into) =>
             Ice20Encoder.EncodeFixedLengthSize(size, into);
-
-        private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
-        {
-            // TODO: merge FSize and VSize
-
-            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-        }
     }
 }
