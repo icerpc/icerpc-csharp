@@ -140,7 +140,7 @@ namespace IceRpc.Slice
         {
             // TODO: merge FSize and VSize
 
-            Debug.Assert(format != TagFormat.VInt); // VInt cannot be encoded
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
 
             int v = (int)format;
             if (tag < 30)

@@ -317,7 +317,7 @@ namespace IceRpc.Slice
 
         private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
         {
-            Debug.Assert(format != TagFormat.VInt); // VInt cannot be encoded
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
 
             int v = (int)format;
             if (tag < 30)
