@@ -263,8 +263,7 @@ Slice::CsVisitor::writeUnmarshal(const OperationPtr& operation, bool returnType)
                                      OptionalPtr::dynamicCast(member->type()),
                                      ns,
                                      paramName(member, "iceP_"),
-                                     member->tag(),
-                                     nullptr);
+                                     member->tag());
         }
 
         if (streamParam)
@@ -415,7 +414,7 @@ Slice::CsVisitor::writeUnmarshalDataMembers(const MemberList& p, const string& n
     {
         _out << nl;
         writeTaggedUnmarshalCode(_out, OptionalPtr::dynamicCast(member->type()), ns,
-            "this." + fixId(fieldName(member), baseTypes), member->tag(), member);
+            "this." + fixId(fieldName(member), baseTypes), member->tag());
     }
 
     if (bitSequenceSize > 0)
