@@ -168,82 +168,74 @@ namespace IceRpc.Slice
 
         // EncodeTagged methods
 
-        /// <summary>Encodes a tagged value. When the value is not null, the number of bytes needed to encode the value
-        /// is not known before encoding the value.</summary>
+        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+        /// encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or VSize.</param>
         /// <param name="tagFormat">The tag format.</param>
-        /// <param name="v">The value to encode. Can be null.</param>
-        /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
-        /// </param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, TagFormat tagFormat, T v, EncodeAction<IceEncoder, T> encodeAction)
+            where T : notnull
         {
-            if (v != null)
+            EncodeTaggedParamHeader(tag, tagFormat);
+            if (tagFormat == TagFormat.FSize)
             {
-                EncodeTaggedParamHeader(tag, tagFormat);
-                if (tagFormat == TagFormat.FSize)
-                {
-                    BufferWriter.Position pos = StartFixedLengthSize();
-                    encodeAction(this, v);
-                    EndFixedLengthSize(pos);
-                }
-                else
-                {
-                    Debug.Assert(tagFormat == TagFormat.VSize);
+                BufferWriter.Position pos = StartFixedLengthSize();
+                encodeAction(this, v);
+                EndFixedLengthSize(pos);
+            }
+            else
+            {
+                Debug.Assert(tagFormat == TagFormat.VSize);
 
-                    // Corresponds to a VSize where the size is optimized out e.g. strings and sequence<byte>.
-                    encodeAction(this, v);
-                }
+                // Corresponds to a VSize where the size is optimized out e.g. strings and sequence<byte>.
+                encodeAction(this, v);
             }
         }
 
-        /// <summary>Encodes a tagged value. The number of bytes needed to encode the value is known before encoding the
-        /// value.</summary>
+        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
+        /// encoding the value.</summary>
         /// <param name="tag">The tag.</param>
         /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>
-        /// <param name="size">When <paramref name="v"/> is not null, the number of bytes needed to encode its value.
-        /// </param>
-        /// <param name="v">The value to encode. Can be null.</param>
-        /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
-        /// </param>
+        /// <param name="size">The number of bytes needed to encode the value.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
             int size,
             T v,
-            EncodeAction<IceEncoder, T> encodeAction)
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull
         {
             Debug.Assert(tagFormat != TagFormat.FSize);
-            Debug.Assert(size >= 0);
+            Debug.Assert(size > 0);
 
-            if (v != null)
+            if (tagFormat == TagFormat.VInt)
             {
-                if (tagFormat == TagFormat.VInt)
+                tagFormat = size switch
                 {
-                    tagFormat = size switch
-                    {
-                        1 => TagFormat.F1,
-                        2 => TagFormat.F2,
-                        4 => TagFormat.F4,
-                        8 => TagFormat.F8,
-                        _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                    };
-                }
+                    1 => TagFormat.F1,
+                    2 => TagFormat.F2,
+                    4 => TagFormat.F4,
+                    8 => TagFormat.F8,
+                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                };
+            }
 
-                EncodeTaggedParamHeader(tag, tagFormat);
+            EncodeTaggedParamHeader(tag, tagFormat);
 
-                if (tagFormat == TagFormat.VSize)
-                {
-                    EncodeSize(size);
-                }
+            if (tagFormat == TagFormat.VSize)
+            {
+                EncodeSize(size);
+            }
 
-                BufferWriter.Position startPos = BufferWriter.Tail;
-                encodeAction(this, v);
-                int actualSize = BufferWriter.Distance(startPos);
-                if (actualSize != size)
-                {
-                    throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                                nameof(size));
-                }
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            encodeAction(this, v);
+            int actualSize = BufferWriter.Distance(startPos);
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
             }
         }
 

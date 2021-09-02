@@ -1024,13 +1024,23 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     bool rom =
         seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic");
 
+    string value = param;
+    if (rom)
+    {
+        value += ".Span";
+    }
+    else if (isValueType(type))
+    {
+        value += ".Value";
+    }
+
     out << nl << "if (" << param << (rom ? ".Span" : "") << " != null)";
     out << sb;
 
     if (rom)
     {
         // special ReadOnlySpan API, that's why we check it first
-        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ".Span);";
+        out << nl << "encoder.EncodeTagged(" << tag << ", " << value << ");";
     }
     else
     {
@@ -1051,11 +1061,11 @@ Slice::CsGenerator::writeTaggedMarshalCode(
                     // varulong etc.
                     if (builtin->isUnsignedType())
                     {
-                        out << ", size: IceEncoder.GetVarULongEncodedSize(" << param << " ?? 0)";
+                        out << ", size: IceEncoder.GetVarULongEncodedSize(" << value << ")";
                     }
                     else
                     {
-                        out << ", size: IceEncoder.GetVarLongEncodedSize(" << param << " ?? 0)";
+                        out << ", size: IceEncoder.GetVarLongEncodedSize(" << value << ")";
                     }
                 }
                 // else no size
@@ -1085,7 +1095,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             }
             else
             {
-                out << ", IceRpc.Slice.TagFormat.Size, " << "size: encoder.GetSizeLength((int?)" << param << " ?? 0)";
+                out << ", IceRpc.Slice.TagFormat.Size, " << "size: encoder.GetSizeLength((int)" << value << ")";
             }
         }
         else if (seq)
@@ -1102,8 +1112,8 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
                 if (elementType->minWireSize() > 1)
                 {
-                    out << ", size: encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
-                        << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0)";
+                    out << ", size: encoder.GetSizeLength(" << value << ".Count()) + "
+                        << elementType->minWireSize() << " * (" << value << ".Count())";
                 }
             }
         }
@@ -1119,12 +1129,12 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             else
             {
                 out << ", IceRpc.Slice.TagFormat.VSize, size: encoder.GetSizeLength("
-                    << param << "?.Count() ?? 0) + " << keyType->minWireSize() + valueType->minWireSize()
-                     << " * (" << param << "?.Count() ?? 0)";
+                    << value << ".Count()) + " << keyType->minWireSize() + valueType->minWireSize()
+                     << " * (" << value << ".Count())";
             }
         }
 
-        out  << ", " << param << ", " << encodeAction(optionalType, scope, !isDataMember) << ");";
+        out  << ", " << value << ", " << encodeAction(type, scope, !isDataMember) << ");";
     }
     out << eb;
 }
