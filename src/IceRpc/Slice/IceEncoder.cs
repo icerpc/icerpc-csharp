@@ -192,7 +192,7 @@ namespace IceRpc.Slice
         /// <param name="encodeAction">When <paramref name="v"/> is not null, its value is encoded using this delegate.
         /// </param>
         /// <param name="size">When <paramref name="v"/>is not null, the number of bytes needed to encode its value.
-        /// </param>
+        /// Use `-1` for a value whose encoding starts with its size in bytes.</param>
         /// <param name="tagFormat">The tag format.</param>
         public void EncodeTagged<T>(
             int tag,
@@ -202,16 +202,28 @@ namespace IceRpc.Slice
             TagFormat tagFormat)
         {
             Debug.Assert(tagFormat != TagFormat.FSize);
+            if (size == -1)
+            {
+                Debug.Assert(tagFormat == TagFormat.VSize);
+            }
 
             if (v != null)
             {
                 EncodeTaggedParamHeader(tag, GetEncodedTagFormat(tagFormat, size));
 
-                if (tagFormat == TagFormat.VSize)
+                if (tagFormat == TagFormat.VSize && size != -1)
                 {
                     EncodeSize(size);
                 }
+
+                BufferWriter.Position startPos = BufferWriter.Tail;
                 encodeAction(this, v);
+                int actualSize = BufferWriter.Distance(startPos);
+                if (size != -1 && actualSize != size)
+                {
+                    throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                                nameof(size));
+                }
             }
 
             static TagFormat GetEncodedTagFormat(TagFormat tagFormat, int size) =>
@@ -226,8 +238,6 @@ namespace IceRpc.Slice
                             8 => TagFormat.F8,
                             _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
                         },
-
-                    TagFormat.OVSize => TagFormat.VSize,
 
                     _ => tagFormat
                 };

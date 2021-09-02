@@ -1039,7 +1039,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             {
                 if (builtin->kind() == Builtin::KindString)
                 {
-                    out << param << "?.Length ?? 0";
+                    out << "-1";
                 }
                 else if (builtin->kind() != Builtin::KindObject)
                 {
@@ -1085,10 +1085,17 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
             if (!OptionalPtr::dynamicCast(elementType) && !elementType->isVariableLength())
             {
-                // Fixed size = min-size
-                out << ", size: " << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0), "
-                    << (elementType->minWireSize() == 1 ?
-                        "IceRpc.Slice.TagFormat.OVSize" : "IceRpc.Slice.TagFormat.VSize");
+                out << ", size: ";
+                if (elementType->minWireSize() == 1)
+                {
+                    out << "-1";
+                }
+                else
+                {
+                    out << "encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
+                        << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0)";
+                }
+                out << ", IceRpc.Slice.TagFormat.VSize";
             }
         }
         else if (DictionaryPtr d = DictionaryPtr::dynamicCast(type))
@@ -1098,8 +1105,9 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
             if (!OptionalPtr::dynamicCast(valueType) && !keyType->isVariableLength() && !valueType->isVariableLength())
             {
-                out << ", size: " << keyType->minWireSize() + valueType->minWireSize()
-                    << " * (" << param << "?.Count() ?? 0), IceRpc.Slice.TagFormat.VSize";
+                out << ", size: encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
+                    << keyType->minWireSize() + valueType->minWireSize() << " * (" << param
+                    << "?.Count() ?? 0), IceRpc.Slice.TagFormat.VSize";
             }
         }
         // else interface type, which does not use extra param
