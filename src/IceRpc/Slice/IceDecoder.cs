@@ -228,8 +228,25 @@ namespace IceRpc.Slice
         public Proxy DecodeProxy() =>
             DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
 
-        // Decode methods for tagged parameters and data members
+        // Other methods
 
+        /// <summary>Decodes a bit sequence.</summary>
+        /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
+        /// <returns>The read-only bit sequence decoded by this decoder.</returns>
+        public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
+        {
+            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
+            int startPos = Pos;
+            Pos += size;
+            return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
+        }
+
+        /// <summary>Decodes a tagged parameter or data member.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="tagFormat">The expected tag format of this tag when found in the underlying buffer.</param>
+        /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
+        /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
+        /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
         public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc)
         {
             if (DecodeTaggedParamHeader(tag, tagFormat))
@@ -246,330 +263,8 @@ namespace IceRpc.Slice
             }
             else
             {
-                return default(T?);
+                return default(T?); // i.e. null
             }
-        }
-
-        /// <summary>Decodes a tagged bool.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The bool decoded by this decoder, or null.</returns>
-        public bool? DecodeTaggedBool(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F1) ? DecodeBool() : (bool?)null;
-
-        /// <summary>Decodes a tagged byte.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The byte decoded by this decoder, or null.</returns>
-        public byte? DecodeTaggedByte(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F1) ? DecodeByte() : (byte?)null;
-
-        /// <summary>Decodes a tagged double.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The double decoded by this decoder, or null.</returns>
-        public double? DecodeTaggedDouble(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeDouble() : (double?)null;
-
-        /// <summary>Decodes a tagged float.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The float decoded by this decoder, or null.</returns>
-        public float? DecodeTaggedFloat(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeFloat() : (float?)null;
-
-        /// <summary>Decodes a tagged int.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The int decoded by this decoder, or null.</returns>
-        public int? DecodeTaggedInt(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeInt() : (int?)null;
-
-        /// <summary>Decodes a tagged long.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The long decoded by this decoder, or null.</returns>
-        public long? DecodeTaggedLong(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeLong() : (long?)null;
-
-        /// <summary>Decodes a tagged short.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The short decoded by this decoder, or null.</returns>
-        public short? DecodeTaggedShort(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F2) ? DecodeShort() : (short?)null;
-
-        /// <summary>Decodes a tagged size.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The size decoded by this decoder, or null.</returns>
-        public int? DecodeTaggedSize(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.Size) ? DecodeSize() : (int?)null;
-
-        /// <summary>Decodes a tagged string.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The string decoded by this decoder, or null.</returns>
-        public string? DecodeTaggedString(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.VSize) ? DecodeString() : null;
-
-        /// <summary>Decodes a tagged uint.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The uint decoded by this decoder, or null.</returns>
-        public uint? DecodeTaggedUInt(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F4) ? DecodeUInt() : (uint?)null;
-
-        /// <summary>Decodes a tagged ulong.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The ulong decoded by this decoder, or null.</returns>
-        public ulong? DecodeTaggedULong(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F8) ? DecodeULong() : (ulong?)null;
-
-        /// <summary>Decodes a tagged ushort.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The ushort decoded by this decoder, or null.</returns>
-        public ushort? DecodeTaggedUShort(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.F2) ? DecodeUShort() : (ushort?)null;
-
-        /// <summary>Decodes a tagged varint.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The int decoded by this decoder, or null.</returns>
-        public int? DecodeTaggedVarInt(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarInt() : (int?)null;
-
-        /// <summary>Decodes a tagged varlong.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The long decoded by this decoder, or null.</returns>
-        public long? DecodeTaggedVarLong(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarLong() : (long?)null;
-
-        /// <summary>Decodes a tagged varuint.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The uint decoded by this decoder, or null.</returns>
-        public uint? DecodeTaggedVarUInt(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarUInt() : (uint?)null;
-
-        /// <summary>Decodes a tagged varulong.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The ulong decoded by this decoder, or null.</returns>
-        public ulong? DecodeTaggedVarULong(int tag) =>
-            DecodeTaggedParamHeader(tag, TagFormat.VInt) ? DecodeVarULong() : (ulong?)null;
-
-        // Decode methods for tagged constructed types except class
-
-        /// <summary>Decodes a tagged array of a fixed-size numeric type.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="checkElement">A delegate used to check each element of the array (optional).</param>
-        /// <returns>The sequence decoded by this decoder as an array, or null.</returns>
-        public T[]? DecodeTaggedArray<T>(int tag, Action<T>? checkElement = null) where T : struct
-        {
-            int elementSize = Unsafe.SizeOf<T>();
-            if (DecodeTaggedParamHeader(tag, TagFormat.VSize))
-            {
-                if (elementSize > 1)
-                {
-                    // For elements with size > 1, the encoding includes a size (number of bytes in the tagged
-                    // parameter) that we skip.
-                    SkipSize();
-                }
-                return DecodeArray<T>(checkElement);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Decodes a tagged dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
-        /// <param name="fixedSize">When true, the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public Dictionary<TKey, TValue>? DecodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            int minValueSize,
-            bool fixedSize,
-            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
-            DecodeFunc<IceDecoder, TValue> valueDecodeFunc)
-            where TKey : notnull
-        {
-            if (DecodeTaggedParamHeader(
-                tag,
-                fixedSize ? TagFormat.VSize : TagFormat.FSize))
-            {
-                if (fixedSize)
-                {
-                    SkipSize();
-                }
-                else
-                {
-                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
-                }
-                return this.DecodeDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged dictionary with null values encoded using a bit sequence.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public Dictionary<TKey, TValue?>? DecodeTaggedDictionaryWithBitSequence<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
-            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
-            where TKey : notnull
-        {
-            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return this.DecodeDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged proxy.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The decoded proxy (can be null).</returns>
-        public Proxy? DecodeTaggedProxy(int tag) => DecodeTaggedProxyHeader(tag) ? DecodeProxy() : null;
-
-        /// <summary>Decodes a tagged sequence. The element type can be nullable only if it corresponds to
-        /// a proxy class or mapped Slice class.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minElementSize">The minimum size of each element, in bytes.</param>
-        /// <param name="fixedSize">True when the element size is fixed; otherwise, false.</param>
-        /// <param name="decodeFunc">The decode function for each element of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
-        public ICollection<T>? DecodeTaggedSequence<T>(
-            int tag,
-            int minElementSize,
-            bool fixedSize,
-            DecodeFunc<IceDecoder, T> decodeFunc)
-        {
-            if (DecodeTaggedParamHeader(
-                    tag,
-                    fixedSize ? TagFormat.VSize : TagFormat.FSize))
-            {
-                if (!fixedSize || minElementSize > 1) // the size is optimized out for a fixed element size of 1
-                {
-                    if (fixedSize)
-                    {
-                        SkipSize();
-                    }
-                    else
-                    {
-                        SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
-                    }
-                }
-                return this.DecodeSequence(minElementSize, decodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged sequence that encodes null values using a bit sequence.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="decodeFunc">The decode function for each non-null value of the sequence.</param>
-        /// <returns>The sequence decoded by this decoder as an ICollection{T}, or null.</returns>
-        public ICollection<T>? DecodeTaggedSequenceWithBitSequence<T>(int tag, DecodeFunc<IceDecoder, T> decodeFunc)
-        {
-            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return this.DecodeSequenceWithBitSequence(decodeFunc);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        /// <summary>Decodes a tagged sorted dictionary.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="minValueSize">The minimum size of each value, in bytes.</param>
-        /// <param name="fixedSize">True when the entry size is fixed; otherwise, false.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each value of the dictionary.</param>
-        /// <returns>The sorted dictionary decoded by this decoder, or null.</returns>
-        public SortedDictionary<TKey, TValue>? DecodeTaggedSortedDictionary<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            int minValueSize,
-            bool fixedSize,
-            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
-            DecodeFunc<IceDecoder, TValue> valueDecodeFunc) where TKey : notnull
-        {
-            if (DecodeTaggedParamHeader(
-                    tag,
-                    fixedSize ? TagFormat.VSize : TagFormat.FSize))
-            {
-                if (fixedSize)
-                {
-                    SkipSize();
-                }
-                else
-                {
-                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
-                }
-                return this.DecodeSortedDictionary(minKeySize, minValueSize, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged sorted dictionary with null values encoded using a bit sequence.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="minKeySize">The minimum size of each key, in bytes.</param>
-        /// <param name="keyDecodeFunc">The decode function for each key of the dictionary.</param>
-        /// <param name="valueDecodeFunc">The decode function for each non-null value of the dictionary.</param>
-        /// <returns>The dictionary decoded by this decoder, or null.</returns>
-        public SortedDictionary<TKey, TValue?>? DecodeTaggedSortedDictionaryWithBitSequence<TKey, TValue>(
-            int tag,
-            int minKeySize,
-            DecodeFunc<IceDecoder, TKey> keyDecodeFunc,
-            DecodeFunc<IceDecoder, TValue?> valueDecodeFunc)
-            where TKey : notnull
-        {
-            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return this.DecodeSortedDictionaryWithBitSequence(minKeySize, keyDecodeFunc, valueDecodeFunc);
-            }
-            return null;
-        }
-
-        /// <summary>Decodes a tagged struct.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="fixedSize">True when the struct has a fixed size on the wire; otherwise, false.</param>
-        /// <param name="decodeFunc">The decode function used to create and decode the struct.</param>
-        /// <returns>The struct T decoded by this decoder, or null.</returns>
-        public T? DecodeTaggedStruct<T>(int tag, bool fixedSize, DecodeFunc<IceDecoder, T> decodeFunc) where T : struct
-        {
-            if (DecodeTaggedParamHeader(
-                tag,
-                fixedSize ? TagFormat.VSize : TagFormat.FSize))
-            {
-                if (fixedSize)
-                {
-                    SkipSize();
-                }
-                else
-                {
-                    SkipFixedLengthSize(); // the fixed length size is used for var-size elements.
-                }
-                return decodeFunc(this);
-            }
-            return null;
-        }
-
-        // Other methods
-
-        /// <summary>Decodes a bit sequence.</summary>
-        /// <param name="bitSequenceSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The read-only bit sequence decoded by this decoder.</returns>
-        public ReadOnlyBitSequence DecodeBitSequence(int bitSequenceSize)
-        {
-            int size = (bitSequenceSize >> 3) + ((bitSequenceSize & 0x07) != 0 ? 1 : 0);
-            int startPos = Pos;
-            Pos += size;
-            return new ReadOnlyBitSequence(_buffer.Span.Slice(startPos, size));
         }
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
@@ -625,23 +320,6 @@ namespace IceRpc.Slice
             if (Pos != _buffer.Length)
             {
                 throw new InvalidDataException($"{_buffer.Length - Pos} bytes remaining in the buffer");
-            }
-        }
-
-        /// <summary>Checks if the decoder holds a tagged proxy for the given tag, and when it does, skips the size
-        /// of this proxy.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <returns>True when the next bytes correspond to the proxy; otherwise, false.</returns>
-        internal bool DecodeTaggedProxyHeader(int tag)
-        {
-            if (DecodeTaggedParamHeader(tag, TagFormat.FSize))
-            {
-                SkipFixedLengthSize();
-                return true;
-            }
-            else
-            {
-                return false;
             }
         }
 

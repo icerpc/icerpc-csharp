@@ -166,9 +166,28 @@ namespace IceRpc.Slice
             }
         }
 
-        // EncodeTagged methods
+        // Other methods
 
-        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The long value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
+
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The ulong value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
+
+        /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
+        /// <param name="bitSize">The minimum number of bits in the sequence.</param>
+        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
+        public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
+
+         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
         /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
         /// <param name="tagFormat">The tag format.</param>
@@ -246,27 +265,6 @@ namespace IceRpc.Slice
             }
         }
 
-        // Other methods
-
-        /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The long value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
-
-        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding
-        /// variable-size encoded representation.</summary>
-        /// <param name="value">The ulong value.</param>
-        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
-        /// </returns>
-        public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
-
-        /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
-        /// <param name="bitSize">The minimum number of bits in the sequence.</param>
-        /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
-        public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
-
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
         /// <returns>The minimum number of bytes.</returns>
@@ -304,26 +302,6 @@ namespace IceRpc.Slice
             return pos;
         }
 
-        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
-        /// exponent of 2.</summary>
-        /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private protected static int GetVarULongEncodedSizeExponent(ulong value)
-        {
-            if (value > EncodingDefinitions.VarULongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
-            }
-
-            return (value << 2) switch
-            {
-                ulong b when b <= byte.MaxValue => 0,
-                ulong s when s <= ushort.MaxValue => 1,
-                ulong i when i <= uint.MaxValue => 2,
-                _ => 3
-            };
-        }
-
         // Constructs a Ice encoder
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
 
@@ -350,6 +328,26 @@ namespace IceRpc.Slice
                 long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 0,
                 long s when s >= short.MinValue && s <= short.MaxValue => 1,
                 long i when i >= int.MinValue && i <= int.MaxValue => 2,
+                _ => 3
+            };
+        }
+
+        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
+        /// exponent of 2.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
+        private static int GetVarULongEncodedSizeExponent(ulong value)
+        {
+            if (value > EncodingDefinitions.VarULongMaxValue)
+            {
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+            }
+
+            return (value << 2) switch
+            {
+                ulong b when b <= byte.MaxValue => 0,
+                ulong s when s <= ushort.MaxValue => 1,
+                ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
         }
