@@ -1227,6 +1227,11 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     {
         DictionaryPtr d = DictionaryPtr::dynamicCast(type);
         assert(d);
+
+         out << "decoder.DecodeTagged(" << tag << ", IceRpc.Slice.TagFormat." << type->getTagFormat() << ", "
+            << decodeFunc(type, scope) << ")";
+
+        /*
         TypePtr keyType = d->keyType();
         TypePtr valueType = d->valueType();
 
@@ -1248,6 +1253,7 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
             out << ", fixedSize: " << (fixedSize ? "true" : "false");
         }
         out << ", " << decodeFunc(keyType, scope) << ", " << decodeFunc(valueType, scope) << ")";
+        */
     }
     out << ";";
 }

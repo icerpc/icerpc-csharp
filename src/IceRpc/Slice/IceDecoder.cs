@@ -228,7 +228,27 @@ namespace IceRpc.Slice
         public Proxy DecodeProxy() =>
             DecodeNullableProxy() ?? throw new InvalidDataException("decoded null for a non-nullable proxy");
 
-        // Decode methods for tagged basic types
+        // Decode methods for tagged parameters and data members
+
+        public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc)
+        {
+            if (DecodeTaggedParamHeader(tag, tagFormat))
+            {
+                if (tagFormat == TagFormat.VSize)
+                {
+                    SkipSize();
+                }
+                else if (tagFormat == TagFormat.FSize)
+                {
+                    SkipFixedLengthSize();
+                }
+                return decodeFunc(this);
+            }
+            else
+            {
+                return default(T?);
+            }
+        }
 
         /// <summary>Decodes a tagged bool.</summary>
         /// <param name="tag">The tag.</param>
@@ -722,10 +742,15 @@ namespace IceRpc.Slice
                 }
                 else
                 {
+                    if (expectedFormat == TagFormat.OVSize)
+                    {
+                        expectedFormat = TagFormat.VSize; // fix virtual tag format
+                    }
+
                     // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
                     // received does not matter in this case.
-                    if (format != expectedFormat && (expectedFormat != TagFormat.VInt ||
-                            (int)format > (int)TagFormat.F8))
+                    if (format != expectedFormat &&
+                        (expectedFormat != TagFormat.VInt ||(int)format > (int)TagFormat.F8))
                     {
                         throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
                     }
