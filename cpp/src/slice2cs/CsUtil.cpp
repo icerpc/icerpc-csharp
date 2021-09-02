@@ -1025,11 +1025,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic");
 
     string value = param;
-    if (rom)
-    {
-        value += ".Span";
-    }
-    else if (isValueType(type))
+    if (isValueType(type) && !rom)
     {
         value += ".Value";
     }
@@ -1037,12 +1033,6 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     out << nl << "if (" << param << (rom ? ".Span" : "") << " != null)";
     out << sb;
 
-    if (rom)
-    {
-        // special ReadOnlySpan API, that's why we check it first
-        out << nl << "encoder.EncodeTagged(" << tag << ", " << value << ");";
-    }
-    else
     {
         out << nl << "encoder.EncodeTagged(" << tag;
 
@@ -1112,9 +1102,18 @@ Slice::CsGenerator::writeTaggedMarshalCode(
 
                 if (elementType->minWireSize() > 1)
                 {
-                    out << ", size: encoder.GetSizeLength(" << value << ".Count()) + "
-                        << elementType->minWireSize() << " * (" << value << ".Count())";
+                    if (rom)
+                    {
+                        out << ", size: encoder.GetSizeLength(" << value << ".Length) + "
+                            << elementType->minWireSize() << " * (" << value << ".Length)";
+                    }
+                    else
+                    {
+                        out << ", size: encoder.GetSizeLength(" << value << ".Count()) + "
+                            << elementType->minWireSize() << " * (" << value << ".Count())";
+                    }
                 }
+                // else, VSize with no size, i.e. size optimized out with 1.1
             }
         }
         else if (DictionaryPtr d = DictionaryPtr::dynamicCast(type))
@@ -1134,7 +1133,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             }
         }
 
-        out  << ", " << value << ", " << encodeAction(type, scope, !isDataMember) << ");";
+        out  << ", " << value << ", " << encodeAction(type, scope, !isDataMember, !isDataMember) << ");";
     }
     out << eb;
 }
