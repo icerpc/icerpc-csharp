@@ -170,25 +170,26 @@ namespace IceRpc.Slice
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
         /// encoding this value.</summary>
-        /// <param name="tag">The tag. Must be either FSize or VSize.</param>
+        /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
         public void EncodeTagged<T>(int tag, TagFormat tagFormat, T v, EncodeAction<IceEncoder, T> encodeAction)
             where T : notnull
         {
-            EncodeTaggedParamHeader(tag, tagFormat);
             if (tagFormat == TagFormat.FSize)
             {
+                EncodeTaggedParamHeader(tag, tagFormat);
                 BufferWriter.Position pos = StartFixedLengthSize();
                 encodeAction(this, v);
                 EndFixedLengthSize(pos);
             }
             else
             {
-                Debug.Assert(tagFormat == TagFormat.VSize);
+                Debug.Assert(tagFormat == TagFormat.OVSize);
 
-                // Corresponds to a VSize where the size is optimized out e.g. strings and sequence<byte>.
+                // Corresponds to a VSize where the size is optimized out. Used here for strings.
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
                 encodeAction(this, v);
             }
         }
@@ -210,21 +211,27 @@ namespace IceRpc.Slice
             Debug.Assert(tagFormat != TagFormat.FSize);
             Debug.Assert(size > 0);
 
-            if (tagFormat == TagFormat.VInt)
+            bool encodeSize = tagFormat == TagFormat.VSize;
+
+            tagFormat = tagFormat switch
             {
-                tagFormat = size switch
+                TagFormat.VInt => size switch
                 {
                     1 => TagFormat.F1,
                     2 => TagFormat.F2,
                     4 => TagFormat.F4,
                     8 => TagFormat.F8,
                     _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                };
-            }
+                },
+
+                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                _ => tagFormat
+            };
 
             EncodeTaggedParamHeader(tag, tagFormat);
 
-            if (tagFormat == TagFormat.VSize)
+            if (encodeSize)
             {
                 EncodeSize(size);
             }
@@ -236,27 +243,6 @@ namespace IceRpc.Slice
             {
                 throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
                                             nameof(size));
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        public void EncodeTagged<T>(int tag, ReadOnlySpan<T> v) where T : struct
-        {
-            // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
-            // ReadOnlySpan<T>. Furthermore, the span of a default ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which
-            // is distinct from the span of an empty sequence. This is why the "v != null" below works correctly.
-            if (v != null)
-            {
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                int elementSize = Unsafe.SizeOf<T>();
-                if (elementSize > 1)
-                {
-                    // This size is redundant and optimized out by the encoding when elementSize is 1.
-                    EncodeSize(v.IsEmpty ? 1 : (v.Length * elementSize) + GetSizeLength(v.Length));
-                }
-                EncodeSequence(v);
             }
         }
 

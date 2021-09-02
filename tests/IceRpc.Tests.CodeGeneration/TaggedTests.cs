@@ -200,8 +200,8 @@ namespace IceRpc.Tests.CodeGeneration
                         if (value.S != null)
                         {
                             encoder.EncodeTagged(1,
-                                                TagFormat.VSize,
-                                                value.S,
+                                                 TagFormat.OVSize,
+                                                 value.S,
                                                  (encoder, v) => encoder.EncodeString(v)); // duplicate tag ignored by the server
                         }
                     });

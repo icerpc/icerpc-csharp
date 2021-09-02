@@ -36,6 +36,9 @@ module IceRpc::Slice
         Class = 7,
 
         /// Pseudo non-encoded format that means one of F1, F2, F4 or F8.
-        VInt = 8
+        VInt = 8,
+
+        /// Pseudo non-encoded format: like VSize but the size is optimized out.
+        OVSize = 9
     }
 }

@@ -1098,22 +1098,25 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             }
             else
             {
-                out << ", IceRpc.Slice.TagFormat.VSize";
-
-                if (elementType->minWireSize() > 1)
+                if (elementType->minWireSize() == 1)
                 {
-                    if (rom)
-                    {
-                        out << ", size: encoder.GetSizeLength(" << value << ".Length) + "
-                            << elementType->minWireSize() << " * (" << value << ".Length)";
-                    }
-                    else
-                    {
-                        out << ", size: encoder.GetSizeLength(" << value << ".Count()) + "
-                            << elementType->minWireSize() << " * (" << value << ".Count())";
-                    }
+                    out << ", IceRpc.Slice.TagFormat.OVSize";
                 }
-                // else, VSize with no size, i.e. size optimized out with 1.1
+                else
+                {
+                    out << ", IceRpc.Slice.TagFormat.VSize";
+                }
+
+                if (rom)
+                {
+                    out << ", size: encoder.GetSizeLength(" << value << ".Length) + "
+                        << elementType->minWireSize() << " * (" << value << ".Length)";
+                }
+                else
+                {
+                    out << ", size: encoder.GetSizeLength(" << value << ".Count()) + "
+                        << elementType->minWireSize() << " * (" << value << ".Count())";
+                }
             }
         }
         else if (DictionaryPtr d = DictionaryPtr::dynamicCast(type))

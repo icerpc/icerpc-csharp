@@ -383,7 +383,7 @@ Slice::Builtin::getTagFormat() const
         case KindVarULong:
             return "VInt";
         case KindString:
-            return "VSize";
+            return "OVSize";
         case KindAnyClass:
             return "Class";
         case KindObject:
