@@ -90,7 +90,7 @@ namespace IceRpc.Slice
                 1 => (0x00u, 63), // 2^6 - 1
                 2 => (0x01u, 16_383), // 2^14 - 1
                 4 => (0x02u, 1_073_741_823), // 2^30 - 1
-                _ => (0x03u, (long)EncodingDefinitions.VarULongMaxValue)
+                _ => (0x03u, (long)VarULongMaxValue)
             };
 
             if (size < 0 || size > maxSize)

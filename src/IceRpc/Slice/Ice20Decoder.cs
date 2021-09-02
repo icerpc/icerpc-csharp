@@ -189,14 +189,11 @@ namespace IceRpc.Slice
             {
                 if (_buffer.Length - Pos <= 0)
                 {
-                    break; // end of buffer
+                    break; // end of buffer, done
                 }
 
-                int tag = DecodeVarInt();
-                if (tag == -1) // end marker
-                {
-                    break; // done
-                }
+                // Skip tag
+                _ = DecodeVarInt();
 
                 // Skip tagged value
                 Skip(DecodeSize());
@@ -219,29 +216,23 @@ namespace IceRpc.Slice
                 }
 
                 int savedPos = Pos;
-
                 tag = DecodeVarInt();
-                if (tag == -1) // end marker
-                {
-                    Pos = savedPos; // rewind
-                    return false;
-                }
 
-                if (tag > requestedTag)
-                {
-                    Pos = savedPos; // rewind
-                    return false; // No tagged parameter with the requested tag.
-                }
-                else if (tag < requestedTag)
-                {
-                    Skip(DecodeSize());
-                    // and loop back
-                }
-                else
+                if (tag == requestedTag)
                 {
                     // Found requested tag, so skip size:
                     Skip(DecodeSizeLength(_buffer.Span[Pos]));
                     return true;
+                }
+                else if (tag == Ice20Definitions.TagEndMarker || tag > requestedTag)
+                {
+                    Pos = savedPos; // rewind
+                    return false;
+                }
+                else
+                {
+                    Skip(DecodeSize());
+                    // and continue while loop
                 }
             }
         }

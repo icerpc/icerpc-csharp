@@ -2,6 +2,7 @@
 
 namespace IceRpc.Slice.Internal
 {
+    /// <summary>Enumerations and constants used by the Ice 1.1 encoding.</summary>
     internal static class Ice11Definitions
     {
         internal const byte TagEndMarker = 0xFF;
