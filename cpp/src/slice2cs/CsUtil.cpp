@@ -1033,13 +1033,14 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     out << nl << "if (" << param << (rom ? ".Span" : "") << " != null)";
     out << sb;
 
+    // For types with a known size, we provide a size parameter with the size of the tagged param/member:
     string sizeParam = "";
 
     if (builtin)
     {
         if (builtin->isVariableLength())
         {
-            if(builtin->kind() != Builtin::KindString && builtin->kind() != Builtin::KindObject)
+            if (builtin->kind() != Builtin::KindString && builtin->kind() != Builtin::KindObject)
             {
                 // varulong etc.
                 if(builtin->isUnsignedType())
@@ -1060,14 +1061,14 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     }
     else if (st)
     {
-        if(!st->isVariableLength())
+        if (!st->isVariableLength())
         {
             sizeParam = to_string(st->minWireSize());
         }
     }
     else if (auto en = EnumPtr::dynamicCast(type))
     {
-        if(auto underlying = en->underlying())
+        if (auto underlying = en->underlying())
         {
             sizeParam = to_string(underlying->minWireSize());
         }
@@ -1080,9 +1081,9 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     {
         const TypePtr elementType = seq->type();
 
-        if(!elementType->isVariableLength())
+        if (!elementType->isVariableLength())
         {
-            if(rom)
+            if (rom)
             {
                 sizeParam = "encoder.GetSizeLength(" + value + ".Length) + " + to_string(elementType->minWireSize()) +
                             " * (" + value + ".Length)";
@@ -1099,7 +1100,7 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         TypePtr keyType = d->keyType();
         TypePtr valueType = d->valueType();
 
-        if(!keyType->isVariableLength() && !valueType->isVariableLength())
+        if (!keyType->isVariableLength() && !valueType->isVariableLength())
         {
             out << nl << "int count = " << value << ".Count();";
 
@@ -1113,14 +1114,13 @@ Slice::CsGenerator::writeTaggedMarshalCode(
         // nothing
     }
 
-    out << nl << "encoder.EncodeTagged(" << tag << ", IceRpc.Slice.TagFormat." << type->getTagFormat();
+    out << nl << "encoder.EncodeTagged(" << tag << ", IceRpc.Slice.TagFormat." << type->getTagFormat() << ", ";
 
     if (!sizeParam.empty())
     {
-        out << ", size: " << sizeParam;
+        out << "size: " << sizeParam << ", ";
     }
-
-    out << ", " << value << ", " << encodeAction(type, scope, !isDataMember, !isDataMember) << ");";
+    out << value << ", " << encodeAction(type, scope, !isDataMember, !isDataMember) << ");";
     out << eb;
 }
 
