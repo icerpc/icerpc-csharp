@@ -61,7 +61,7 @@ namespace IceRpc.Slice
             TDecoder decoder = iceDecoderFactory.CreateIceDecoder(
                 request.Payload,
                 request.Connection,
-                 request.ProxyInvoker);
+                request.ProxyInvoker);
             T result = decodeFunc(decoder);
             decoder.CheckEndOfBuffer(skipTaggedParams: true);
             return result;
