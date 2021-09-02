@@ -1028,74 +1028,77 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     }
     else
     {
-        out << nl << "encoder.EncodeTagged(" << tag << ", " << param << ", "
-            << encodeAction(optionalType, scope, !isDataMember);
+        out << nl << "encoder.EncodeTagged(" << tag;
 
-        if (builtin)
+        if (type->isInterfaceType())
         {
-           out << ", size: ";
+            out << ", IceRpc.Slice.TagFormat.FSize";
+        }
+        else if (builtin)
+        {
+            out << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat();
 
             if (builtin->isVariableLength())
             {
-                if (builtin->kind() == Builtin::KindString)
-                {
-                    out << "-1";
-                }
-                else if (builtin->kind() != Builtin::KindObject)
+                if (builtin->kind() != Builtin::KindString)
                 {
                     // varulong etc.
                     if (builtin->isUnsignedType())
                     {
-                        out << "IceEncoder.GetVarULongEncodedSize(" << param << " ?? 0)";
+                        out << ", size: IceEncoder.GetVarULongEncodedSize(" << param << " ?? 0)";
                     }
                     else
                     {
-                        out << "IceEncoder.GetVarLongEncodedSize(" << param << " ?? 0)";
+                        out << ", size: IceEncoder.GetVarLongEncodedSize(" << param << " ?? 0)";
                     }
                 }
+                // else no size
             }
             else
             {
-                out << builtin->minWireSize();
+                out << ", size: " << builtin->minWireSize();
             }
-            out << ", IceRpc.Slice.TagFormat." << builtin->getTagFormat();
         }
         else if (st)
         {
-            if (!st->isVariableLength())
+            if (st->isVariableLength())
             {
-                out << ", size: " << st->minWireSize() << ", IceRpc.Slice.TagFormat.VSize";
+                out << ", IceRpc.Slice.TagFormat.FSize";
+            }
+            else
+            {
+                out << ", IceRpc.Slice.TagFormat.VSize" << ", size: " << st->minWireSize();
             }
         }
         else if (auto en = EnumPtr::dynamicCast(type))
         {
-            out << ", size: ";
             if (auto underlying = en->underlying())
             {
-                out << underlying->minWireSize() << ", IceRpc.Slice.TagFormat." << underlying->getTagFormat();
+                out << ", IceRpc.Slice.TagFormat." << underlying->getTagFormat()
+                    << ", size: " << underlying->minWireSize();
             }
             else
             {
-                out << "encoder.GetSizeLength((int?)" << param << " ?? 0), IceRpc.Slice.TagFormat.Size";
+                out << ", IceRpc.Slice.TagFormat.Size, " << "size: encoder.GetSizeLength((int?)" << param << " ?? 0)";
             }
         }
         else if (seq)
         {
             const TypePtr elementType = seq->type();
 
-            if (!OptionalPtr::dynamicCast(elementType) && !elementType->isVariableLength())
+            if (OptionalPtr::dynamicCast(elementType) || elementType->isVariableLength())
             {
-                out << ", size: ";
-                if (elementType->minWireSize() == 1)
+                out << ", IceRpc.Slice.TagFormat.FSize";
+            }
+            else
+            {
+                out << ", IceRpc.Slice.TagFormat.VSize";
+
+                if (elementType->minWireSize() > 1)
                 {
-                    out << "-1";
-                }
-                else
-                {
-                    out << "encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
+                    out << ", size: encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
                         << elementType->minWireSize() << " * (" << param << "?.Count() ?? 0)";
                 }
-                out << ", IceRpc.Slice.TagFormat.VSize";
             }
         }
         else if (DictionaryPtr d = DictionaryPtr::dynamicCast(type))
@@ -1103,16 +1106,19 @@ Slice::CsGenerator::writeTaggedMarshalCode(
             TypePtr keyType = d->keyType();
             TypePtr valueType = d->valueType();
 
-            if (!OptionalPtr::dynamicCast(valueType) && !keyType->isVariableLength() && !valueType->isVariableLength())
+            if (OptionalPtr::dynamicCast(valueType) || keyType->isVariableLength() || valueType->isVariableLength())
             {
-                out << ", size: encoder.GetSizeLength(" << param << "?.Count() ?? 0) + "
-                    << keyType->minWireSize() + valueType->minWireSize() << " * (" << param
-                    << "?.Count() ?? 0), IceRpc.Slice.TagFormat.VSize";
+                out << ", IceRpc.Slice.TagFormat.FSize";
+            }
+            else
+            {
+                out << ", IceRpc.Slice.TagFormat.VSize, size: encoder.GetSizeLength("
+                    << param << "?.Count() ?? 0) + " << keyType->minWireSize() + valueType->minWireSize()
+                     << " * (" << param << "?.Count() ?? 0)";
             }
         }
-        // else interface type, which does not use extra param
 
-        out << ");";
+        out  << ", " << param << ", " << encodeAction(optionalType, scope, !isDataMember) << ");";
     }
 }
 
