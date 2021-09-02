@@ -281,7 +281,7 @@ namespace IceRpc.Tests.Api
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 proxy.Invoker,
-                new DefaultIceDecoderFactories(typeof(ProxyTests).Assembly)));
+                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(ProxyTests).Assembly))));
         }
 
         [Test]
