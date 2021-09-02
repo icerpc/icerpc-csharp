@@ -9,6 +9,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 
+using static IceRpc.Slice.Internal.Ice11Definitions;
+
 namespace IceRpc.Slice
 {
     /// <summary>Decoder for the Ice 1.1 encoding.</summary>
@@ -321,11 +323,11 @@ namespace IceRpc.Slice
             // Note that IceEndSlice is not called when we call SkipSlice.
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
                 SkipTaggedParams();
             }
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
                 Debug.Assert(_current.PosAfterIndirectionTable != null && _current.IndirectionTable != null);
                 Pos = _current.PosAfterIndirectionTable.Value;
@@ -378,7 +380,7 @@ namespace IceRpc.Slice
                 }
 
                 int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
+                if (v == TagEndMarker)
                 {
                     break;
                 }
@@ -406,7 +408,7 @@ namespace IceRpc.Slice
                 return null;
             }
             else if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+                (_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
                 // When decoding an instance within a slice and there is an indirection table, we have an index within
                 // this indirection table.
@@ -590,9 +592,9 @@ namespace IceRpc.Slice
         private void DecodeIndirectionTableIntoCurrent()
         {
             Debug.Assert(_current.IndirectionTable == null);
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0)
             {
-                if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
+                if ((_current.SliceFlags & SliceFlags.HasSliceSize) == 0)
                 {
                     throw new InvalidDataException("slice has indirection table but does not have a size");
                 }
@@ -698,7 +700,7 @@ namespace IceRpc.Slice
         /// <returns>The type ID or the compact ID of the current slice.</returns>
         private string? DecodeSliceHeaderIntoCurrent()
         {
-            _current.SliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
+            _current.SliceFlags = (SliceFlags)DecodeByte();
 
             string? typeId;
             // Decode the type ID. For class slices, the type ID is encoded as a string or as an index or as a compact
@@ -709,7 +711,7 @@ namespace IceRpc.Slice
 
                 if (typeId == null)
                 {
-                    if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
+                    if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
                     {
                         // A slice in compact format cannot carry a size.
                         throw new InvalidDataException("inconsistent slice flags");
@@ -723,7 +725,7 @@ namespace IceRpc.Slice
             }
 
             // Decode the slice size if available.
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 _current.SliceSize = DecodeSliceSize();
             }
@@ -760,7 +762,7 @@ namespace IceRpc.Slice
         {
             // The current slice has no tagged parameter.
             if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) == 0)
+                (_current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
             {
                 return false;
             }
@@ -777,7 +779,7 @@ namespace IceRpc.Slice
                 int savedPos = Pos;
 
                 int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
+                if (v == TagEndMarker)
                 {
                     Pos = savedPos; // rewind
                     return false;
@@ -821,13 +823,13 @@ namespace IceRpc.Slice
         /// <summary>Decodes the type ID of a class instance.</summary>
         /// <param name="typeIdKind">The kind of type ID to decode.</param>
         /// <returns>The type ID or the compact ID, if any.</returns>
-        private string? DecodeTypeId(EncodingDefinitions.TypeIdKind typeIdKind)
+        private string? DecodeTypeId(TypeIdKind typeIdKind)
         {
             _typeIdMap ??= new List<string>();
 
             switch (typeIdKind)
             {
-                case EncodingDefinitions.TypeIdKind.Index:
+                case TypeIdKind.Index:
                     int index = DecodeSize();
                     if (index > 0 && index - 1 < _typeIdMap.Count)
                     {
@@ -836,7 +838,7 @@ namespace IceRpc.Slice
                     }
                     throw new InvalidDataException($"decoded invalid type ID index {index}");
 
-                case EncodingDefinitions.TypeIdKind.String:
+                case TypeIdKind.String:
                     string typeId = DecodeString();
 
                     // The typeIds of slices in indirection tables can be decoded several times: when we skip the
@@ -850,12 +852,12 @@ namespace IceRpc.Slice
                     }
                     return typeId;
 
-                case EncodingDefinitions.TypeIdKind.CompactId:
+                case TypeIdKind.CompactId:
                     return DecodeSize().ToString(CultureInfo.InvariantCulture);
 
                 default:
                     // TypeIdKind has only 4 possible values.
-                    Debug.Assert(typeIdKind == EncodingDefinitions.TypeIdKind.None);
+                    Debug.Assert(typeIdKind == TypeIdKind.None);
                     return null;
             }
         }
@@ -887,16 +889,16 @@ namespace IceRpc.Slice
                     }
 
                     // Decode/skip this instance
-                    EncodingDefinitions.SliceFlags sliceFlags;
+                    SliceFlags sliceFlags;
                     do
                     {
-                        sliceFlags = (EncodingDefinitions.SliceFlags)DecodeByte();
+                        sliceFlags = (SliceFlags)DecodeByte();
 
                         // Skip type ID - can update _typeIdMap
                         _ = DecodeTypeId(sliceFlags.GetTypeIdKind());
 
                         // Decode the slice size, then skip the slice
-                        if ((sliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
+                        if ((sliceFlags & SliceFlags.HasSliceSize) == 0)
                         {
                             throw new InvalidDataException("size of slice missing");
                         }
@@ -904,12 +906,12 @@ namespace IceRpc.Slice
                         Pos += sliceSize; // we need a temporary sliceSize because DecodeSliceSize updates _pos.
 
                         // If this slice has an indirection table, skip it too.
-                        if ((sliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0)
+                        if ((sliceFlags & SliceFlags.HasIndirectionTable) != 0)
                         {
                             SkipIndirectionTable();
                         }
                     }
-                    while ((sliceFlags & EncodingDefinitions.SliceFlags.IsLastSlice) == 0);
+                    while ((sliceFlags & SliceFlags.IsLastSlice) == 0);
                     _classGraphDepth--;
                 }
             }
@@ -935,14 +937,14 @@ namespace IceRpc.Slice
                 throw new InvalidDataException("cannot skip a class slice with no type ID");
             }
 
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) == 0)
+            if ((_current.SliceFlags & SliceFlags.HasSliceSize) == 0)
             {
                 string kind = _current.InstanceType.ToString().ToLowerInvariant();
                 throw new InvalidDataException(@$"no {kind} found for type ID '{typeId
                         }' and compact format prevents slicing (the sender should use the sliced format instead)");
             }
 
-            bool hasTaggedMembers = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0;
+            bool hasTaggedMembers = (_current.SliceFlags & SliceFlags.HasTaggedMembers) != 0;
             byte[] bytes;
             int bytesCopied;
             if (hasTaggedMembers)
@@ -964,7 +966,7 @@ namespace IceRpc.Slice
                 throw new InvalidDataException("the slice size extends beyond the end of the buffer");
             }
 
-            bool hasIndirectionTable = (_current.SliceFlags & EncodingDefinitions.SliceFlags.HasIndirectionTable) != 0;
+            bool hasIndirectionTable = (_current.SliceFlags & SliceFlags.HasIndirectionTable) != 0;
 
             // With the 1.1 encoding, SkipSlice for a class skips the indirection table and preserves its position in
             // _current.DeferredIndirectionTableList for later decoding.
@@ -1000,7 +1002,7 @@ namespace IceRpc.Slice
             // If we decoded the indirection table previously, we don't need it anymore since we're skipping this slice.
             _current.IndirectionTable = null;
 
-            return (_current.SliceFlags & EncodingDefinitions.SliceFlags.IsLastSlice) != 0;
+            return (_current.SliceFlags & SliceFlags.IsLastSlice) != 0;
         }
 
         private void SkipTagged(TagFormat format)
@@ -1053,7 +1055,7 @@ namespace IceRpc.Slice
             internal AnyClass[]? IndirectionTable; // Indirection table of the current slice
             internal int? PosAfterIndirectionTable;
 
-            internal EncodingDefinitions.SliceFlags SliceFlags;
+            internal SliceFlags SliceFlags;
             internal int SliceSize;
         }
 

@@ -38,11 +38,7 @@ namespace IceRpc.Slice
             string typeId = DecodeString();
             var remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
 
-            if (remoteEx != null)
-            {
-                SkipTaggedParams(); // TODO: revisit
-            }
-            // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
+            // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
             // "can't decode remote exception".
 
             return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
