@@ -3547,8 +3547,7 @@ Slice::Sequence::minWireSize() const
 string
 Slice::Sequence::getTagFormat() const
 {
-    return _type->isVariableLength() ? "FSize" :
-        (_type->minWireSize() == 1 ? "OVSize" : "VSize");
+    return _type->isVariableLength() ? "FSize" : (_type->minWireSize() == 1 ? "OVSize" : "VSize");
 }
 
 bool
