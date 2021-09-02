@@ -202,7 +202,7 @@ namespace IceRpc.Tests.CodeGeneration
 
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 _prx.Proxy.Invoker,
-                new DefaultIceDecoderFactories(typeof(TaggedTests).Assembly)));
+                response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(TaggedTests).Assembly))));
 
             var b = (B)await _prx.PingPongAsync(new B());
             Assert.That(b.MInt2.HasValue, Is.False);

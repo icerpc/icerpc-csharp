@@ -16,20 +16,18 @@ namespace IceRpc.Slice
         /// <summary>Construct an <see cref="IAsyncEnumerable{T}"/> to receive the streamed param from an incoming
         /// request.</summary>
         /// <param name="request">The incoming request.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeAction">The action used to decode the streamed param.</param>
         /// <returns>The <see cref="IAsyncEnumerable{T}"/> to receive the streamed param.</returns>
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             IncomingRequest request,
-            DefaultIceDecoderFactories defaultIceDecoderFactories,
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(
                 request.Stream,
                 request.Connection,
                 request.ProxyInvoker,
-                // TODO: rework cast
-                ((IceEncoding)request.PayloadEncoding).GetIceDecoderFactory(request.Features,
-                                                                            defaultIceDecoderFactories),
+                iceDecoderFactory,
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an
@@ -42,21 +40,20 @@ namespace IceRpc.Slice
         /// response.</summary>
         /// <param name="response">The incoming response.</param>
         /// <param name="invoker">The invoker.</param>
-        /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
+        /// <param name="iceDecoderFactory">The Ice decoder factory.</param>
         /// <param name="decodeAction">The action used to decode the streamed params.</param>
         /// <remarks>This method is used to read element of fixed size that are stream with an
         /// <see cref="Ice2FrameType.UnboundedData"/> frame.</remarks>
         public IAsyncEnumerable<T> ToAsyncEnumerable<T>(
             IncomingResponse response,
             IInvoker? invoker,
-            DefaultIceDecoderFactories defaultIceDecoderFactories,
+            IIceDecoderFactory<IceDecoder> iceDecoderFactory,
             Func<IceDecoder, T> decodeAction) =>
             new AsyncEnumerableStreamParamReceiver<T>(
                 _stream,
                 response.Connection,
                 invoker,
-                ((IceEncoding)response.PayloadEncoding).GetIceDecoderFactory(response.Features,
-                                                                             defaultIceDecoderFactories),
+                iceDecoderFactory,
                 decodeAction).ReadAsync();
 
         /// <summary>Constructs a read-only <see cref="System.IO.Stream"/> to receive the streamed param from an

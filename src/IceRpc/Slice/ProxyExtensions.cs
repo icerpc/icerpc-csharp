@@ -125,7 +125,7 @@ namespace IceRpc.Slice
             {
                 (IncomingResponse response, StreamParamReceiver? _) = await responseTask.ConfigureAwait(false);
 
-                response.CheckVoidReturnValue(proxy.Invoker, defaultIceDecoderFactories);
+                response.CheckVoidReturnValue(proxy.Invoker, response.GetIceDecoderFactory(defaultIceDecoderFactories));
             }
         }
     }
