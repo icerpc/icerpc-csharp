@@ -1018,16 +1018,13 @@ namespace IceRpc
                         // Abort the connection, all the streams have completed.
                         await AbortAsync(exception).ConfigureAwait(false);
                     }
-                    else
+                    else if (closing)
                     {
-                        if (closing)
-                        {
-                            // Send back a GoAway frame if we just switched to the closing state. If we were already
-                            // in the closing state, it has already been sent.
-                            await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
-                                                                       exception.Message,
-                                                                       cancel).ConfigureAwait(false);
-                        }
+                        // Send back a GoAway frame if we just switched to the closing state. If we were already
+                        // in the closing state, it has already been sent.
+                        await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
+                                                                    exception.Message,
+                                                                    cancel).ConfigureAwait(false);
 
                         // Wait for the GoAwayCanceled frame from the peer or the closure of the peer control stream.
                         Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(cancel);
