@@ -92,8 +92,10 @@ namespace IceRpc.Transports.Internal
 
             async Task SendResetFrameAndCompleteWritesAsync()
             {
-                // Mark the stream as completed for writes before sending the reset frame to prevent a race
-                // condition where the peer could receive the reset frame before.
+                // Mark the stream as completed for writes before sending the reset frame. Otherwise, the peer
+                // could receive the frame and terminate the connection before writes are marked as completed.
+                // This is an issue for the control stream where the connection code relies on this flag to
+                // figure out if the connection loss is expected or not.
                 TrySetWriteCompleted();
 
                 try

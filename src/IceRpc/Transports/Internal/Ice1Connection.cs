@@ -192,7 +192,11 @@ namespace IceRpc.Transports.Internal
         {
             cancel.ThrowIfCancellationRequested();
 
-            await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, false, cancel).ConfigureAwait(false);
+            await SendFrameAsync(
+                null,
+                Ice1Definitions.ValidateConnectionFrame,
+                endStream: false,
+                cancel).ConfigureAwait(false);
 
             Logger.LogSentInitializeFrame(this, 0);
         }
