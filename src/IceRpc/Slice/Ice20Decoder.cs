@@ -38,11 +38,7 @@ namespace IceRpc.Slice
             string typeId = DecodeString();
             var remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
 
-            if (remoteEx != null)
-            {
-                SkipTaggedParams(); // TODO: revisit
-            }
-            // else we can't decode this exception so we return an UnknownSlicedRemoteException instead of throwing
+            // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
             // "can't decode remote exception".
 
             return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
@@ -126,6 +122,10 @@ namespace IceRpc.Slice
         /// <inheritdoc/>
         public override int DecodeSize() => checked((int)DecodeVarULong());
 
+        /// <inheritdoc/>
+        public override T DecodeTagged<T>(int tag, TagFormat _, DecodeFunc<IceDecoder, T> decodeFunc) =>
+            DecodeTaggedParamHeader(tag) ? decodeFunc(this) : default!; // default! == null
+
         /// <summary>Decodes a buffer.</summary>
         /// <typeparam name="T">The decoded type.</typeparam>
         /// <param name="buffer">The byte buffer encoded with the Ice 2.0 encoding.</param>
@@ -183,37 +183,57 @@ namespace IceRpc.Slice
             return (key, value);
         }
 
-        private protected override void SkipSize() => Skip(DecodeSizeLength(_buffer.Span[Pos]));
-
-        // With Ice 2.0, all sizes use the same variable-length encoding:
-        private protected override void SkipFixedLengthSize() => SkipSize();
-
-        private protected override void SkipTagged(TagFormat format)
+        private protected override void SkipTaggedParams()
         {
-            switch (format)
+            while (true)
             {
-                case TagFormat.F1:
-                    Skip(1);
-                    break;
-                case TagFormat.F2:
-                    Skip(2);
-                    break;
-                case TagFormat.F4:
-                    Skip(4);
-                    break;
-                case TagFormat.F8:
-                    Skip(8);
-                    break;
-                case TagFormat.Size:
-                    SkipSize();
-                    break;
-                case TagFormat.VSize:
-                case TagFormat.FSize:
+                if (_buffer.Length - Pos <= 0)
+                {
+                    break; // end of buffer, done
+                }
+
+                // Skip tag
+                _ = DecodeVarInt();
+
+                // Skip tagged value
+                Skip(DecodeSize());
+            }
+        }
+
+        /// <summary>Determines if a tagged parameter or data member is available, and if yes, skips its size before
+        /// the caller decodes the value.</summary>
+        /// <param name="tag">The requested tag.</param>
+        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
+        private bool DecodeTaggedParamHeader(int tag)
+        {
+            int requestedTag = tag;
+
+            while (true)
+            {
+                if (_buffer.Length - Pos <= 0)
+                {
+                    return false; // End of buffer also indicates end of tagged parameters.
+                }
+
+                int savedPos = Pos;
+                tag = DecodeVarInt();
+
+                if (tag == requestedTag)
+                {
+                    // Found requested tag, so skip size:
+                    Skip(DecodeSizeLength(_buffer.Span[Pos]));
+                    return true;
+                }
+                else if (tag == Ice20Definitions.TagEndMarker || tag > requestedTag)
+                {
+                    Pos = savedPos; // rewind
+                    return false;
+                }
+                else
+                {
                     Skip(DecodeSize());
-                    break;
-                default:
-                    throw new InvalidDataException(
-                        $"cannot skip tagged parameter or data member with tag format '{format}'");
+                    // and continue while loop
+                }
             }
         }
     }

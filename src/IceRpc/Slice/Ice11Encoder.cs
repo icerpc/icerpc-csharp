@@ -7,6 +7,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
+using static IceRpc.Slice.Internal.Ice11Definitions;
+
 namespace IceRpc.Slice
 {
     /// <summary>Encoder for the Ice 1.1 encoding.</summary>
@@ -172,6 +174,77 @@ namespace IceRpc.Slice
         }
 
         /// <inheritdoc/>
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            if (tagFormat == TagFormat.FSize)
+            {
+                EncodeTaggedParamHeader(tag, tagFormat);
+                BufferWriter.Position pos = StartFixedLengthSize();
+                encodeAction(this, v);
+                EndFixedLengthSize(pos);
+            }
+            else
+            {
+                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                Debug.Assert(tagFormat == TagFormat.OVSize);
+
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                encodeAction(this, v);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            int size,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction)
+        {
+            Debug.Assert(tagFormat != TagFormat.FSize);
+            Debug.Assert(size > 0);
+
+            bool encodeSize = tagFormat == TagFormat.VSize;
+
+            tagFormat = tagFormat switch
+            {
+                TagFormat.VInt => size switch
+                {
+                    1 => TagFormat.F1,
+                    2 => TagFormat.F2,
+                    4 => TagFormat.F4,
+                    8 => TagFormat.F8,
+                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                },
+
+                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                _ => tagFormat
+            };
+
+            EncodeTaggedParamHeader(tag, tagFormat);
+
+            if (encodeSize)
+            {
+                EncodeSize(size);
+            }
+
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            encodeAction(this, v);
+            int actualSize = BufferWriter.Distance(startPos);
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
+
+        /// <inheritdoc/>
         public override int GetSizeLength(int size) => size < 255 ? 1 : 5;
 
         /// <summary>Marks the end of the encoding of a class or exception slice.</summary>
@@ -182,18 +255,18 @@ namespace IceRpc.Slice
 
             if (lastSlice)
             {
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.IsLastSlice;
+                _current.SliceFlags |= SliceFlags.IsLastSlice;
             }
 
             // Encodes the tagged end marker if some tagged members were encoded. Note that tagged members are encoded
             // before the indirection table and are included in the slice size.
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasTaggedMembers) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasTaggedMembers) != 0)
             {
-                EncodeByte(EncodingDefinitions.TaggedEndMarker);
+                EncodeByte(TagEndMarker);
             }
 
             // Encodes the slice size if necessary.
-            if ((_current.SliceFlags & EncodingDefinitions.SliceFlags.HasSliceSize) != 0)
+            if ((_current.SliceFlags & SliceFlags.HasSliceSize) != 0)
             {
                 // Size includes the size length.
                 EncodeFixedLengthSize(BufferWriter.Distance(_current.SliceSizePos), _current.SliceSizePos);
@@ -202,7 +275,7 @@ namespace IceRpc.Slice
             if (_current.IndirectionTable?.Count > 0)
             {
                 Debug.Assert(_classFormat == FormatType.Sliced);
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasIndirectionTable;
+                _current.SliceFlags |= SliceFlags.HasIndirectionTable;
 
                 EncodeSize(_current.IndirectionTable.Count);
                 foreach (AnyClass v in _current.IndirectionTable)
@@ -233,7 +306,7 @@ namespace IceRpc.Slice
             {
                 EncodeTypeId(typeId, compactId);
                 // Encode the slice size if using the sliced format.
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasSliceSize;
+                _current.SliceFlags |= SliceFlags.HasSliceSize;
                 _current.SliceSizePos = StartFixedLengthSize();
             }
             else if (_current.FirstSlice)
@@ -291,7 +364,7 @@ namespace IceRpc.Slice
 
                 if (sliceInfo.HasTaggedMembers)
                 {
-                    _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
+                    _current.SliceFlags |= SliceFlags.HasTaggedMembers;
                 }
 
                 // Make sure to also encode the instance indirection table.
@@ -313,29 +386,6 @@ namespace IceRpc.Slice
                 throw new ArgumentException($"into has {into.Length} bytes");
             }
             IceEncoder.EncodeInt(size, into);
-        }
-
-        private protected override void EncodeTaggedParamHeader(int tag, TagFormat format)
-        {
-            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
-
-            int v = (int)format;
-            if (tag < 30)
-            {
-                v |= tag << 3;
-                EncodeByte((byte)v);
-            }
-            else
-            {
-                v |= 0x0F0; // tag = 30
-                EncodeByte((byte)v);
-                EncodeSize(tag);
-            }
-
-            if (_current.InstanceType != InstanceType.None)
-            {
-                _current.SliceFlags |= EncodingDefinitions.SliceFlags.HasTaggedMembers;
-            }
         }
 
         /// <summary>Encodes an endpoint in a nested encapsulation.</summary>
@@ -433,6 +483,32 @@ namespace IceRpc.Slice
             }
         }
 
+        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
+        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
+        /// <param name="format">The tag format.</param>
+        private void EncodeTaggedParamHeader(int tag, TagFormat format)
+        {
+            Debug.Assert(format != TagFormat.VInt && format != TagFormat.OVSize); // VInt/OVSize cannot be encoded
+
+            int v = (int)format;
+            if (tag < 30)
+            {
+                v |= tag << 3;
+                EncodeByte((byte)v);
+            }
+            else
+            {
+                v |= 0x0F0; // tag = 30
+                EncodeByte((byte)v);
+                EncodeSize(tag);
+            }
+
+            if (_current.InstanceType != InstanceType.None)
+            {
+                _current.SliceFlags |= SliceFlags.HasTaggedMembers;
+            }
+        }
+
         /// <summary>Encodes the type ID or compact ID immediately after the slice flags byte, and updates the slice
         /// flags byte as needed.</summary>
         /// <param name="typeId">The type ID of the current slice.</param>
@@ -441,13 +517,13 @@ namespace IceRpc.Slice
         {
             Debug.Assert(_current.InstanceType != InstanceType.None);
 
-            EncodingDefinitions.TypeIdKind typeIdKind = EncodingDefinitions.TypeIdKind.None;
+            TypeIdKind typeIdKind = TypeIdKind.None;
 
             if (_current.InstanceType == InstanceType.Class)
             {
                 if (compactId is int compactIdValue)
                 {
-                    typeIdKind = EncodingDefinitions.TypeIdKind.CompactId;
+                    typeIdKind = TypeIdKind.CompactId;
                     EncodeSize(compactIdValue);
                 }
                 else
@@ -455,12 +531,12 @@ namespace IceRpc.Slice
                     int index = RegisterTypeId(typeId);
                     if (index < 0)
                     {
-                        typeIdKind = EncodingDefinitions.TypeIdKind.String;
+                        typeIdKind = TypeIdKind.String;
                         EncodeString(typeId);
                     }
                     else
                     {
-                        typeIdKind = EncodingDefinitions.TypeIdKind.Index;
+                        typeIdKind = TypeIdKind.Index;
                         EncodeSize(index);
                     }
                 }
@@ -472,7 +548,7 @@ namespace IceRpc.Slice
                 EncodeString(typeId);
             }
 
-            _current.SliceFlags |= (EncodingDefinitions.SliceFlags)typeIdKind;
+            _current.SliceFlags |= (SliceFlags)typeIdKind;
         }
 
         /// <summary>Registers or looks up a type ID in the the _typeIdMap.</summary>
@@ -508,7 +584,7 @@ namespace IceRpc.Slice
             internal Dictionary<AnyClass, int>? IndirectionMap;
             internal List<AnyClass>? IndirectionTable;
 
-            internal EncodingDefinitions.SliceFlags SliceFlags;
+            internal SliceFlags SliceFlags;
 
             // Position of the slice flags.
             internal BufferWriter.Position SliceFlagsPos;

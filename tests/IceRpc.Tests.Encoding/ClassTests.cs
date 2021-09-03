@@ -6,6 +6,8 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
+using static IceRpc.Slice.Internal.Ice11Definitions;
+
 namespace IceRpc.Tests.Encoding
 {
     [Timeout(30000)]
@@ -66,17 +68,17 @@ namespace IceRpc.Tests.Encoding
                 var decoder = new Ice11Decoder(data);
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                var sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
 
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 return response;
             }));
             await prx1.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -90,16 +92,16 @@ namespace IceRpc.Tests.Encoding
                 var decoder = new Ice11Decoder(data);
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                var sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 return response;
             }));
             await prx2.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -113,16 +115,16 @@ namespace IceRpc.Tests.Encoding
                 var decoder = new Ice11Decoder(data);
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                var sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice does not include a size when using the compact format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize), Is.False);
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize), Is.False);
                 return response;
             }));
             await prx3.OpMyClassAsync(new MyClassCustomFormat("foo"));
@@ -135,16 +137,16 @@ namespace IceRpc.Tests.Encoding
                 var decoder = new Ice11Decoder(data);
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                var sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                var sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 IncomingResponse response = await next.InvokeAsync(request, cancel);
                 decoder = new Ice11Decoder(await response.GetPayloadAsync(cancel));
                 // Read the instance marker
                 Assert.AreEqual(1, decoder.DecodeSize());
-                sliceFlags = (EncodingDefinitions.SliceFlags)decoder.DecodeByte();
+                sliceFlags = (SliceFlags)decoder.DecodeByte();
                 // The Slice includes a size for the sliced format
-                Assert.That(sliceFlags.HasFlag(EncodingDefinitions.SliceFlags.HasSliceSize));
+                Assert.That(sliceFlags.HasFlag(SliceFlags.HasSliceSize));
                 return response;
             }));
             await prx3.OpMyClassSlicedFormatAsync(new MyClassCustomFormat("foo"));

@@ -75,7 +75,12 @@ namespace IceRpc.Slice
                 replyStatus > ReplyStatus.UserException ?
                     decoder.DecodeIce1SystemException(replyStatus) : decoder.DecodeException();
 
-            decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            if (exception is not UnknownSlicedRemoteException)
+            {
+                decoder.CheckEndOfBuffer(skipTaggedParams: false);
+            }
+            // else, we did not decode the full exception from the buffer
+
             return exception;
         }
     }

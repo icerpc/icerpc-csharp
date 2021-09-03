@@ -11,9 +11,14 @@ namespace IceRpc.Slice
     /// <summary>Encodes data into one or more byte buffers using the Ice encoding.</summary>
     public abstract class IceEncoder
     {
-        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
+        internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
+        internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
+        internal const ulong VarULongMinValue = 0;
+        internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
 
         internal BufferWriter BufferWriter { get; }
+
+        private static readonly System.Text.UTF8Encoding _utf8 = new(false, true);
 
         // Encode methods for basic types
 
@@ -193,26 +198,11 @@ namespace IceRpc.Slice
         /// <param name="tagFormat">The tag format.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public void EncodeTagged<T>(int tag, TagFormat tagFormat, T v, EncodeAction<IceEncoder, T> encodeAction)
-            where T : notnull
-        {
-            if (tagFormat == TagFormat.FSize)
-            {
-                EncodeTaggedParamHeader(tag, tagFormat);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                encodeAction(this, v);
-                EndFixedLengthSize(pos);
-            }
-            else
-            {
-                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
-                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
-                Debug.Assert(tagFormat == TagFormat.OVSize);
-
-                EncodeTaggedParamHeader(tag, TagFormat.VSize);
-                encodeAction(this, v);
-            }
-        }
+        public abstract void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
 
         /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
         /// encoding the value.</summary>
@@ -221,50 +211,12 @@ namespace IceRpc.Slice
         /// <param name="size">The number of bytes needed to encode the value.</param>
         /// <param name="v">The value to encode.</param>
         /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
-        public void EncodeTagged<T>(
+        public abstract void EncodeTagged<T>(
             int tag,
             TagFormat tagFormat,
             int size,
             T v,
-            EncodeAction<IceEncoder, T> encodeAction) where T : notnull
-        {
-            Debug.Assert(tagFormat != TagFormat.FSize);
-            Debug.Assert(size > 0);
-
-            bool encodeSize = tagFormat == TagFormat.VSize;
-
-            tagFormat = tagFormat switch
-            {
-                TagFormat.VInt => size switch
-                {
-                    1 => TagFormat.F1,
-                    2 => TagFormat.F2,
-                    4 => TagFormat.F4,
-                    8 => TagFormat.F8,
-                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
-                },
-
-                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
-
-                _ => tagFormat
-            };
-
-            EncodeTaggedParamHeader(tag, tagFormat);
-
-            if (encodeSize)
-            {
-                EncodeSize(size);
-            }
-
-            BufferWriter.Position startPos = BufferWriter.Tail;
-            encodeAction(this, v);
-            int actualSize = BufferWriter.Distance(startPos);
-            if (actualSize != size)
-            {
-                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
-                                            nameof(size));
-            }
-        }
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull;
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
@@ -308,18 +260,13 @@ namespace IceRpc.Slice
 
         private protected abstract void EncodeFixedLengthSize(int size, Span<byte> into);
 
-        /// <summary>Encodes the header for a tagged parameter or data member.</summary>
-        /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
-        /// <param name="format">The tag format.</param>
-        private protected abstract void EncodeTaggedParamHeader(int tag, TagFormat format);
-
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
         /// <param name="value">The value to encode.</param>
         /// <returns>N where 2^N is the number of bytes needed to encode value with IceRPC's varlong encoding.</returns>
         private static int GetVarLongEncodedSizeExponent(long value)
         {
-            if (value < EncodingDefinitions.VarLongMinValue || value > EncodingDefinitions.VarLongMaxValue)
+            if (value < VarLongMinValue || value > VarLongMaxValue)
             {
                 throw new ArgumentOutOfRangeException($"varlong value '{value}' is out of range", nameof(value));
             }
@@ -339,7 +286,7 @@ namespace IceRpc.Slice
         /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
         private static int GetVarULongEncodedSizeExponent(ulong value)
         {
-            if (value > EncodingDefinitions.VarULongMaxValue)
+            if (value > VarULongMaxValue)
             {
                 throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
             }

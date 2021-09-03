@@ -247,25 +247,7 @@ namespace IceRpc.Slice
         /// <param name="decodeFunc">A decode function that decodes the value of this tag.</param>
         /// <returns>The decoded value of the tagged parameter or data member, or null if not found.</returns>
         /// <remarks>When T is a value type, it should be a nullable value type such as int?.</remarks>
-        public T? DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc)
-        {
-            if (DecodeTaggedParamHeader(tag, tagFormat))
-            {
-                if (tagFormat == TagFormat.VSize)
-                {
-                    SkipSize();
-                }
-                else if (tagFormat == TagFormat.FSize)
-                {
-                    SkipFixedLengthSize();
-                }
-                return decodeFunc(this);
-            }
-            else
-            {
-                return default(T?); // i.e. null
-            }
-        }
+        public abstract T DecodeTagged<T>(int tag, TagFormat tagFormat, DecodeFunc<IceDecoder, T> decodeFunc);
 
         /// <summary>Constructs a new Ice decoder over a byte buffer.</summary>
         /// <param name="buffer">The byte buffer.</param>
@@ -378,65 +360,6 @@ namespace IceRpc.Slice
             return _buffer.Slice(startPos, size);
         }
 
-        /// <summary>Determines if a tagged parameter or data member is available.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="expectedFormat">The expected format of the tagged parameter.</param>
-        /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
-        private protected virtual bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
-        {
-            int requestedTag = tag;
-
-            while (true)
-            {
-                if (_buffer.Length - Pos <= 0)
-                {
-                    return false; // End of buffer also indicates end of tagged parameters.
-                }
-
-                int savedPos = Pos;
-
-                int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
-                {
-                    Pos = savedPos; // rewind
-                    return false;
-                }
-
-                var format = (TagFormat)(v & 0x07); // First 3 bits.
-                tag = v >> 3;
-                if (tag == 30)
-                {
-                    tag = DecodeSize();
-                }
-
-                if (tag > requestedTag)
-                {
-                    Pos = savedPos; // rewind
-                    return false; // No tagged parameter with the requested tag.
-                }
-                else if (tag < requestedTag)
-                {
-                    SkipTagged(format);
-                }
-                else
-                {
-                    if (expectedFormat == TagFormat.OVSize)
-                    {
-                        expectedFormat = TagFormat.VSize; // fix virtual tag format
-                    }
-
-                    // When expected format is VInt, format can be any of F1 through F8. Note that the exact format
-                    // received does not matter in this case.
-                    if (format != expectedFormat &&
-                        (expectedFormat != TagFormat.VInt || (int)format > (int)TagFormat.F8))
-                    {
-                        throw new InvalidDataException($"invalid tagged parameter '{tag}': unexpected format");
-                    }
-                    return true;
-                }
-            }
-        }
-
         private protected int ReadSpan(Span<byte> span)
         {
             int length = Math.Min(span.Length, _buffer.Length - Pos);
@@ -445,36 +368,7 @@ namespace IceRpc.Slice
             return length;
         }
 
-        /// <summary>Skips over a size value encoded on a fixed number of bytes.</summary>
-        private protected abstract void SkipFixedLengthSize();
-
-        /// <summary>Skips over a size value encoded on a variable number of bytes.</summary>
-        private protected abstract void SkipSize();
-
-        private protected abstract void SkipTagged(TagFormat format);
-
-        private protected void SkipTaggedParams()
-        {
-            while (true)
-            {
-                if (_buffer.Length - Pos <= 0)
-                {
-                    break;
-                }
-
-                int v = DecodeByte();
-                if (v == EncodingDefinitions.TaggedEndMarker)
-                {
-                    break;
-                }
-
-                var format = (TagFormat)(v & 0x07); // Read first 3 bits.
-                if ((v >> 3) == 30)
-                {
-                    SkipSize();
-                }
-                SkipTagged(format);
-            }
-        }
+        /// <summary>Skips tagged parameters at the end of an request or response payload.</summary>
+        private protected abstract void SkipTaggedParams();
     }
 }
