@@ -68,6 +68,28 @@ namespace IceRpc.Configure
             return serverTransport;
         }
 
+        /// <summary>Adds the ssl server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseSsl(
+            this ServerTransport serverTransport,
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpServerTransport(authenticationOptions));
+
+        /// <summary>Adds the ssl server transport to this composite server transport.</summary>
+        /// <param name="serverTransport">The transport being configured.</param>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ServerTransport UseSsl(
+            this ServerTransport serverTransport,
+            TcpOptions tcpOptions,
+            SslServerAuthenticationOptions authenticationOptions) =>
+            serverTransport.Add(TransportNames.Ssl,
+                                Protocol.Ice1,
+                                new TcpServerTransport(tcpOptions, new(), authenticationOptions));
+
         /// <summary>Adds the tcp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
@@ -121,28 +143,6 @@ namespace IceRpc.Configure
             serverTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpServerTransport);
             return serverTransport;
         }
-
-        /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseSsl(
-            this ServerTransport serverTransport,
-            SslServerAuthenticationOptions authenticationOptions) =>
-            serverTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpServerTransport(authenticationOptions));
-
-        /// <summary>Adds the ssl server transport to this composite server transport.</summary>
-        /// <param name="serverTransport">The transport being configured.</param>
-        /// <param name="tcpOptions">The TCP transport options.</param>
-        /// <param name="authenticationOptions">The ssl authentication options.</param>
-        /// <returns>The transport being configured.</returns>
-        public static ServerTransport UseSsl(
-            this ServerTransport serverTransport,
-            TcpOptions tcpOptions,
-            SslServerAuthenticationOptions authenticationOptions) =>
-            serverTransport.Add(TransportNames.Ssl,
-                                Protocol.Ice1,
-                                new TcpServerTransport(tcpOptions, new(), authenticationOptions));
 
         /// <summary>Adds the udp server transport to this composite server transport.</summary>
         /// <param name="serverTransport">The server transport being configured.</param>

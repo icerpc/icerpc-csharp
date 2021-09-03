@@ -56,8 +56,7 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                RemoteEndpoint = server.Endpoint,
-                ClientTransport = TestHelper.CreateClientTransport(server.Endpoint)
+                RemoteEndpoint = server.Endpoint
             };
             var greeter = GreeterPrx.FromConnection(connection);
             greeter.Proxy.Invoker = pipeline;
