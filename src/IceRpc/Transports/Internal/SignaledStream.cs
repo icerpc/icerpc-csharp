@@ -92,6 +92,10 @@ namespace IceRpc.Transports.Internal
 
             async Task SendResetFrameAndCompleteWritesAsync()
             {
+                // Mark the stream as completed for writes before sending the reset frame to prevent a race
+                // condition where the peer could receive the reset frame before.
+                TrySetWriteCompleted();
+
                 try
                 {
                     await SendResetFrameAsync(errorCode).ConfigureAwait(false);
@@ -100,7 +104,6 @@ namespace IceRpc.Transports.Internal
                 {
                     // Ignore.
                 }
-                TrySetWriteCompleted();
             }
         }
 
