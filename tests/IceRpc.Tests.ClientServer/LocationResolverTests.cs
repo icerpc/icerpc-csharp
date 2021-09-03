@@ -70,8 +70,7 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
 
             _server.Listen();

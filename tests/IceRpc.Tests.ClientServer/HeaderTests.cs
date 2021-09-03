@@ -37,9 +37,7 @@ namespace IceRpc.Tests.ClientServer
             await using var server = new Server
             {
                 Dispatcher = router,
-                Endpoint = endpoint,
-                ServerTransport =
-                    new ServerTransport().UseColoc().UseTcp().UseUdp()
+                Endpoint = endpoint
             };
             server.Listen();
 

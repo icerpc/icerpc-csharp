@@ -17,10 +17,7 @@ namespace IceRpc.Tests.ClientServer
 
         public ProtocolBridgingTests()
         {
-            _pool = new ConnectionPool
-            {
-                ClientTransport = new ClientTransport().UseTcp().UseColoc()
-            };
+            _pool = new ConnectionPool();
         }
 
         [TearDown]
@@ -122,8 +119,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
-                        GetTestEndpoint(port: port, protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp().UseColoc(),
+                        GetTestEndpoint(port: port, protocol: protocol)
             };
         }
 

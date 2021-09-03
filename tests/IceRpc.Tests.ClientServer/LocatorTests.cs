@@ -16,10 +16,7 @@ namespace IceRpc.Tests.ClientServer
         private Identity GreeterIdentity => Identity.FromPath(_greeter.Proxy.Path);
 
         private bool _called;
-        private readonly ConnectionPool _pool = new()
-        {
-            ClientTransport = new ClientTransport().UseTcp()
-        };
+        private readonly ConnectionPool _pool = new();
         private readonly GreeterPrx _greeter;
 
         private readonly Pipeline _pipeline = new();
@@ -34,8 +31,7 @@ namespace IceRpc.Tests.ClientServer
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
 
             _server.Listen();

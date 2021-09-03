@@ -20,14 +20,12 @@ namespace IceRpc.Tests.Api
             await using var server = new Server
             {
                 Dispatcher = new Greeter(),
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
             server.Listen();
             await using var connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = serverEndpoint
             };
             await connection.ConnectAsync();
 
