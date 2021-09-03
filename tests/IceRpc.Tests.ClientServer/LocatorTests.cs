@@ -18,7 +18,7 @@ namespace IceRpc.Tests.ClientServer
         private bool _called;
         private readonly ConnectionPool _pool = new()
         {
-            ClientTransport = new ClientTransport().UseInteropTcp()
+            ClientTransport = new ClientTransport().UseTcp()
         };
         private readonly GreeterPrx _greeter;
 

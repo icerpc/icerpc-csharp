@@ -19,7 +19,7 @@ namespace IceRpc.Tests.ClientServer
         {
             _pool = new ConnectionPool
             {
-                ClientTransport = new ClientTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc()
+                ClientTransport = new ClientTransport().UseTcp().UseColoc()
             };
         }
 
@@ -123,7 +123,7 @@ namespace IceRpc.Tests.ClientServer
                 Endpoint = colocated ?
                         TestHelper.GetUniqueColocEndpoint(protocol) :
                         GetTestEndpoint(port: port, protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp().UseColoc().UseInteropColoc(),
+                ServerTransport = new ServerTransport().UseTcp().UseColoc(),
             };
         }
 
