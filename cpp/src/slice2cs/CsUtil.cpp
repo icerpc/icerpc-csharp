@@ -724,6 +724,7 @@ Slice::CsGenerator::encodeAction(const TypePtr& type, const string& scope, bool 
         // We generate the sequence encoder inline, so this function must not be called when the top-level object is
         // not cached.
         out << "(encoder, value) => " << sequenceMarshalCode(seq, scope, value, readOnly, param);
+
     }
     else
     {
@@ -1020,94 +1021,107 @@ Slice::CsGenerator::writeTaggedMarshalCode(
     StructPtr st = StructPtr::dynamicCast(type);
     SequencePtr seq = SequencePtr::dynamicCast(type);
 
-    if (type->isInterfaceType())
-    {
-        out << nl << "encoder.EncodeTaggedProxy(" << tag << ", " << param << "?.Proxy);";
-    }
-    else if (builtin || type->isClassType())
-    {
-        auto kind = builtin ? builtin->kind() : Builtin::KindAnyClass;
-        out << nl << "encoder.EncodeTagged" << builtinSuffixTable[kind] << "(" << tag << ", " << param << ");";
-    }
-    else if(st)
-    {
-        out << nl << "encoder.EncodeTaggedStruct(" << tag << ", " << param;
-        if(!st->isVariableLength())
-        {
-            out << ", fixedSize: " << st->minWireSize();
-        }
-        out << ", " << encodeAction(st, scope, !isDataMember) << ");";
-    }
-    else if (auto en = EnumPtr::dynamicCast(type))
-    {
-        string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
-        string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
-        out << nl << "encoder.EncodeTagged" << suffix << "(" << tag << ", (" << underlyingType << "?)"
-            << param << ");";
-    }
-    else if(seq)
-    {
-        const TypePtr elementType = seq->type();
-        builtin = BuiltinPtr::dynamicCast(elementType);
+    bool rom =
+        seq && isFixedSizeNumericSequence(seq) && !isDataMember && !seq->hasMetadataWithPrefix("cs:generic");
 
-        bool hasCustomType = seq->hasMetadataWithPrefix("cs:generic");
-        bool readOnly = !isDataMember;
+    string value = param;
+    if (isValueType(type) && !rom)
+    {
+        value += ".Value";
+    }
 
-        if (isFixedSizeNumericSequence(seq) && (readOnly || !hasCustomType))
+    out << nl << "if (" << param << (rom ? ".Span" : "") << " != null)";
+    out << sb;
+
+    // For types with a known size, we provide a size parameter with the size of the tagged param/member:
+    string sizeParam = "";
+
+    if (builtin)
+    {
+        if (builtin->isVariableLength())
         {
-            if (readOnly && !hasCustomType)
+            if (builtin->kind() != Builtin::KindString && builtin->kind() != Builtin::KindObject)
             {
-                out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param << ".Span" << ");";
+                // varulong etc.
+                if(builtin->isUnsignedType())
+                {
+                    sizeParam = "IceEncoder.GetVarULongEncodedSize(" + value + ")";
+                }
+                else
+                {
+                    sizeParam = "IceEncoder.GetVarLongEncodedSize(" + value + ")";
+                }
             }
-            else
-            {
-                // param is an IEnumerable<T>
-                out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param << ");";
-            }
-        }
-        else if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
-        {
-            out << nl << "encoder.EncodeTaggedSequenceWithBitSequence(" << tag << ", " << param << ", " <<
-                encodeAction(optional, scope, !isDataMember) << ");";
-        }
-        else if (elementType->isVariableLength())
-        {
-            out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param
-                << ", " << encodeAction(elementType, scope, !isDataMember) << ");";
+            // else no size
         }
         else
         {
-            // Fixed size = min-size
-            out << nl << "encoder.EncodeTaggedSequence(" << tag << ", " << param << ", "
-                << "elementSize: " << elementType->minWireSize()
-                << ", " << encodeAction(elementType, scope, !isDataMember) << ");";
+            sizeParam = to_string(builtin->minWireSize());
+        }
+    }
+    else if (st)
+    {
+        if (!st->isVariableLength())
+        {
+            sizeParam = to_string(st->minWireSize());
+        }
+    }
+    else if (auto en = EnumPtr::dynamicCast(type))
+    {
+        if (auto underlying = en->underlying())
+        {
+            sizeParam = to_string(underlying->minWireSize());
+        }
+        else
+        {
+            sizeParam = "encoder.GetSizeLength((int)" + value + ")";
+        }
+    }
+    else if (seq)
+    {
+        const TypePtr elementType = seq->type();
+
+        if (!elementType->isVariableLength())
+        {
+            if (rom)
+            {
+                sizeParam = "encoder.GetSizeLength(" + value + ".Length) + " + to_string(elementType->minWireSize()) +
+                            " * (" + value + ".Length)";
+            }
+            else
+            {
+                out << nl << "int count = " << value << ".Count();";
+                sizeParam = "encoder.GetSizeLength(count) + " + to_string(elementType->minWireSize()) + " * count";
+            }
+        }
+    }
+    else if (DictionaryPtr d = DictionaryPtr::dynamicCast(type))
+    {
+        TypePtr keyType = d->keyType();
+        TypePtr valueType = d->valueType();
+
+        if (!keyType->isVariableLength() && !valueType->isVariableLength())
+        {
+            out << nl << "int count = " << value << ".Count();";
+
+            sizeParam = "encoder.GetSizeLength(count) + " +
+                        to_string(keyType->minWireSize() + valueType->minWireSize()) + " * count";
         }
     }
     else
     {
-        DictionaryPtr d = DictionaryPtr::dynamicCast(type);
-        assert(d);
-        TypePtr keyType = d->keyType();
-        TypePtr valueType = d->valueType();
-
-        bool withBitSequence = false;
-
-        if (auto optional = OptionalPtr::dynamicCast(valueType); optional && optional->encodedUsingBitSequence())
-        {
-            withBitSequence = true;
-        }
-
-        out << nl << "encoder.EncodeTaggedDictionary" << (withBitSequence ? "WithBitSequence" : "") << "("
-            << tag << ", " << param;
-
-        if (!withBitSequence && !keyType->isVariableLength() && !valueType->isVariableLength())
-        {
-            // Both are fixed size
-            out << ", entrySize: " << (keyType->minWireSize() + valueType->minWireSize());
-        }
-
-        out << ", " << encodeAction(keyType, scope) << ", " << encodeAction(valueType, scope) << ");";
+        assert(type->isInterfaceType());
+        // nothing
     }
+
+    out << nl << "encoder.EncodeTagged(" << tag << ", IceRpc.Slice.TagFormat." << type->getTagFormat() << ", ";
+
+    if (!sizeParam.empty())
+    {
+        out << "size: " << sizeParam << ", ";
+    }
+    out << value << ", " << encodeAction(type, scope, !isDataMember, !isDataMember) << ");";
+    out << eb;
 }
 
 void
@@ -1116,126 +1130,10 @@ Slice::CsGenerator::writeTaggedUnmarshalCode(
     const OptionalPtr& optionalType,
     const string& scope,
     const string& param,
-    int tag,
-    const MemberPtr& dataMember)
+    int tag)
 {
-    assert(optionalType);
-    TypePtr type = optionalType->underlying();
-
-    BuiltinPtr builtin = BuiltinPtr::dynamicCast(type);
-    StructPtr st = StructPtr::dynamicCast(type);
-    SequencePtr seq = SequencePtr::dynamicCast(type);
-
-    out << param << " = ";
-
-    if (type->isClassType())
-    {
-        out << "decoder.DecodeTaggedClass<" << typeToString(type, scope) << ">(" << tag << ")";
-    }
-    else if (type->isInterfaceType())
-    {
-        out << "decoder.DecodeTaggedPrx<"<< typeToString(type, scope) << ">(" << tag << ");";
-    }
-    else if (builtin)
-    {
-        out << "decoder.DecodeTagged" << builtinSuffixTable[builtin->kind()] << "(" << tag << ")";
-    }
-    else if (st)
-    {
-        out << "decoder.DecodeTaggedStruct(" << tag << ", fixedSize: " << (st->isVariableLength() ? "false" : "true")
-            << ", " << decodeFunc(st, scope) << ")";
-    }
-    else if (auto en = EnumPtr::dynamicCast(type))
-    {
-        const string tmpName = (dataMember ? dataMember->name() : param) + "_";
-        string suffix = en->underlying() ? builtinSuffix(en->underlying()) : "Size";
-        string underlyingType = en->underlying() ? typeToString(en->underlying(), "") : "int";
-
-        out << "decoder.DecodeTagged" << suffix << "(" << tag << ") is " << underlyingType << " " << tmpName << " ? "
-            << helperName(en, scope) << ".As" << en->name() << "(" << tmpName << ") : ("
-            << typeToString(en, scope) << "?)null";
-    }
-    else if (seq)
-    {
-        const TypePtr elementType = seq->type();
-        if (isFixedSizeNumericSequence(seq) && !seq->hasMetadataWithPrefix("cs:generic"))
-        {
-            out << "decoder.DecodeTaggedArray";
-            if (auto enElement = EnumPtr::dynamicCast(elementType); enElement && !enElement->isUnchecked())
-            {
-                out << "(" << tag << ", (" << typeToString(enElement, scope) << " e) => _ = "
-                    << helperName(enElement, scope) << ".As" << enElement->name()
-                    << "((" << typeToString(enElement->underlying(), scope) << ")e))";
-            }
-            else
-            {
-                out << "<" << typeToString(elementType, scope) << ">(" << tag << ")";
-            }
-        }
-        else if (seq->hasMetadataWithPrefix("cs:generic:"))
-        {
-            const string tmpName = (dataMember ? dataMember->name() : param) + "_";
-            if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
-            {
-                out << "decoder.DecodeTaggedSequenceWithBitSequence(" << tag << ", "
-                    << decodeFunc(elementType, scope)
-                    << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
-                    << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
-                    << " : null";
-            }
-            else
-            {
-                out << "decoder.DecodeTaggedSequence("
-                    << tag << ", minElementSize: " << elementType->minWireSize() << ", fixedSize: "
-                    << (elementType->isVariableLength() ? "false" : "true")
-                    << ", " << decodeFunc(elementType, scope)
-                    << ") is global::System.Collections.Generic.ICollection<" << typeToString(elementType, scope)
-                    << "> " << tmpName << " ? new " << typeToString(seq, scope, false, true) << "(" << tmpName << ")"
-                    << " : null";
-            }
-        }
-        else
-        {
-            if (auto optional = OptionalPtr::dynamicCast(elementType); optional && optional->encodedUsingBitSequence())
-            {
-                out << "decoder.DecodeTaggedSequenceWithBitSequence(" << tag << ", "
-                    << decodeFunc(elementType, scope) << ")?.ToArray()";
-            }
-            else
-            {
-                out << "decoder.DecodeTaggedSequence(" << tag << ", minElementSize: " << elementType->minWireSize()
-                    << ", fixedSize: " << (elementType->isVariableLength() ? "false" : "true")
-                    << ", " << decodeFunc(elementType, scope) << ")?.ToArray()";
-            }
-        }
-    }
-    else
-    {
-        DictionaryPtr d = DictionaryPtr::dynamicCast(type);
-        assert(d);
-        TypePtr keyType = d->keyType();
-        TypePtr valueType = d->valueType();
-
-        bool withBitSequence = false;
-        if (auto optional = OptionalPtr::dynamicCast(valueType); optional && optional->encodedUsingBitSequence())
-        {
-            withBitSequence = true;
-        }
-
-        bool fixedSize = !keyType->isVariableLength() && !valueType->isVariableLength();
-        bool sorted = d->findMetadataWithPrefix("cs:generic:") == "SortedDictionary";
-
-        out << "decoder.DecodeTagged" << (sorted ? "Sorted" : "") << "Dictionary"
-            << (withBitSequence ? "WithBitSequence" : "") << "(" << tag << ", minKeySize: " << keyType->minWireSize();
-
-        if (!withBitSequence)
-        {
-            out << ", minValueSize: " << valueType->minWireSize();
-            out << ", fixedSize: " << (fixedSize ? "true" : "false");
-        }
-        out << ", " << decodeFunc(keyType, scope) << ", " << decodeFunc(valueType, scope) << ")";
-    }
-    out << ";";
+    out << param << " = decoder.DecodeTagged(" << tag << ", IceRpc.Slice.TagFormat." << optionalType->getTagFormat()
+        << ", " << decodeFunc(optionalType, scope) << ");";
 }
 
 string

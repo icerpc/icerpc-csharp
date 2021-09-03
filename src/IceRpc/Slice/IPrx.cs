@@ -37,12 +37,5 @@ namespace IceRpc.Slice
         /// <returns>The decoded proxy, or null.</returns>
         public static T? DecodeNullablePrx<T>(this IceDecoder decoder) where T : struct, IPrx =>
             decoder.DecodeNullableProxy() is Proxy proxy ? new T { Proxy = proxy } : null;
-
-        /// <summary>Decodes a tagged typed proxy.</summary>
-        /// <param name="decoder">The decoder.</param>
-        /// <param name="tag">The tag.</param>
-        /// <returns>The decoded proxy, or null.</returns>
-        public static T? DecodeTaggedPrx<T>(this IceDecoder decoder, int tag) where T : struct, IPrx =>
-            decoder.DecodeTaggedProxy(tag) is Proxy proxy ? new T { Proxy = proxy } : null;
     }
 }

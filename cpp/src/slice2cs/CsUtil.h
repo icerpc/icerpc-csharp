@@ -125,8 +125,7 @@ protected:
         const OptionalPtr& optionaType,
         const std::string& scope,
         const std::string& param,
-        int tag,
-        const MemberPtr& dataMember);
+        int tag);
 
     void writeConstantValue(
         ::IceUtilInternal::Output& out,

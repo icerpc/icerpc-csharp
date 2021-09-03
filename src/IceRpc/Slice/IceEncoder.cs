@@ -166,408 +166,105 @@ namespace IceRpc.Slice
             }
         }
 
-        // Encode methods for tagged basic types
-
-        /// <summary>Encodes a tagged boolean.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The boolean to encode.</param>
-        public void EncodeTaggedBool(int tag, bool? v)
-        {
-            if (v is bool value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
-                EncodeBool(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged byte.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The byte to encode.</param>
-        public void EncodeTaggedByte(int tag, byte? v)
-        {
-            if (v is byte value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F1);
-                EncodeByte(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged double.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The double to encode.</param>
-        public void EncodeTaggedDouble(int tag, double? v)
-        {
-            if (v is double value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                EncodeDouble(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged float.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The float to encode.</param>
-        public void EncodeTaggedFloat(int tag, float? v)
-        {
-            if (v is float value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                EncodeFloat(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged int.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to encode.</param>
-        public void EncodeTaggedInt(int tag, int? v)
-        {
-            if (v is int value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                EncodeInt(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged long.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to encode.</param>
-        public void EncodeTaggedLong(int tag, long? v)
-        {
-            if (v is long value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                EncodeLong(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged size.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The size.</param>
-        public void EncodeTaggedSize(int tag, int? v)
-        {
-            if (v is int value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.Size);
-                EncodeSize(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged short.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The short to encode.</param>
-        public void EncodeTaggedShort(int tag, short? v)
-        {
-            if (v is short value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
-                EncodeShort(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged string.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The string to encode.</param>
-        public void EncodeTaggedString(int tag, string? v)
-        {
-            if (v is string value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                EncodeString(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged uint.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to encode.</param>
-        public void EncodeTaggedUInt(int tag, uint? v)
-        {
-            if (v is uint value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F4);
-                EncodeUInt(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged ulong.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to encode.</param>
-        public void EncodeTaggedULong(int tag, ulong? v)
-        {
-            if (v is ulong value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F8);
-                EncodeULong(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged ushort.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ushort to encode.</param>
-        public void EncodeTaggedUShort(int tag, ushort? v)
-        {
-            if (v is ushort value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.F2);
-                EncodeUShort(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged int using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The int to encode.</param>
-        public void EncodeTaggedVarInt(int tag, int? v) => EncodeTaggedVarLong(tag, v);
-
-        /// <summary>Encodes a tagged long using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The long to encode.</param>
-        public void EncodeTaggedVarLong(int tag, long? v)
-        {
-            if (v is long value)
-            {
-                var format = (EncodingDefinitions.TagFormat)GetVarLongEncodedSizeExponent(value);
-                EncodeTaggedParamHeader(tag, format);
-                EncodeVarLong(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged uint using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The uint to encode.</param>
-        public void EncodeTaggedVarUInt(int tag, uint? v) => EncodeTaggedVarULong(tag, v);
-
-        /// <summary>Encodes a tagged ulong using IceRPC's variable-size integer encoding.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The ulong to encode.</param>
-        public void EncodeTaggedVarULong(int tag, ulong? v)
-        {
-            if (v is ulong value)
-            {
-                var format = (EncodingDefinitions.TagFormat)GetVarULongEncodedSizeExponent(value);
-                EncodeTaggedParamHeader(tag, format);
-                EncodeVarULong(value);
-            }
-        }
-
-        // Encode methods for tagged constructed types except class
-
-        /// <summary>Encodes a tagged dictionary with fixed-size entries.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="entrySize">The size of each entry (key + value), in bytes.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            int entrySize,
-            EncodeAction<IceEncoder, TKey> keyEncodeAction,
-            EncodeAction<IceEncoder, TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            Debug.Assert(entrySize > 1);
-            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                int count = dict.Count();
-                EncodeSize(count == 0 ? 1 : (count * entrySize) + GetSizeLength(count));
-                this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
-            }
-        }
-
-        /// <summary>Encodes a tagged dictionary with variable-size elements.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the values.</param>
-        public void EncodeTaggedDictionary<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            EncodeAction<IceEncoder, TKey> keyEncodeAction,
-            EncodeAction<IceEncoder, TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                this.EncodeDictionary(dict, keyEncodeAction, valueEncodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged dictionary with null values encoded using a bit sequence.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The dictionary to encode.</param>
-        /// <param name="keyEncodeAction">The encode action for the keys.</param>
-        /// <param name="valueEncodeAction">The encode action for the non-null values.</param>
-        public void EncodeTaggedDictionaryWithBitSequence<TKey, TValue>(
-            int tag,
-            IEnumerable<KeyValuePair<TKey, TValue>>? v,
-            EncodeAction<IceEncoder, TKey> keyEncodeAction,
-            EncodeAction<IceEncoder, TValue> valueEncodeAction)
-            where TKey : notnull
-        {
-            if (v is IEnumerable<KeyValuePair<TKey, TValue>> dict)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                this.EncodeDictionaryWithBitSequence(dict, keyEncodeAction, valueEncodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged proxy.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="proxy">The proxy to encode.</param>
-        public void EncodeTaggedProxy(int tag, Proxy? proxy)
-        {
-            if (proxy != null)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                EncodeProxy(proxy);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        public void EncodeTaggedSequence<T>(int tag, ReadOnlySpan<T> v) where T : struct
-        {
-            // A null T[]? or List<T>? is implicitly converted into a default aka null ReadOnlyMemory<T> or
-            // ReadOnlySpan<T>. Furthermore, the span of a default ReadOnlyMemory<T> is a default ReadOnlySpan<T>, which
-            // is distinct from the span of an empty sequence. This is why the "v != null" below works correctly.
-            if (v != null)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                int elementSize = Unsafe.SizeOf<T>();
-                if (elementSize > 1)
-                {
-                    // This size is redundant and optimized out by the encoding when elementSize is 1.
-                    EncodeSize(v.IsEmpty ? 1 : (v.Length * elementSize) + GetSizeLength(v.Length));
-                }
-                EncodeSequence(v);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size numeric values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v) where T : struct
-        {
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-
-                int elementSize = Unsafe.SizeOf<T>();
-                if (elementSize > 1)
-                {
-                    int count = value.Count(); // potentially slow Linq Count()
-
-                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
-                    // when elementSize is 1.
-                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
-                }
-                EncodeSequence(value);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of variable-size elements.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<IceEncoder, T> encodeAction)
-        {
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                this.EncodeSequence(value, encodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence of fixed-size values.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="elementSize">The fixed size of each element of the sequence, in bytes.</param>
-        /// <param name="encodeAction">The encode action for an element.</param>
-        public void EncodeTaggedSequence<T>(int tag, IEnumerable<T>? v, int elementSize, EncodeAction<IceEncoder, T> encodeAction)
-            where T : struct
-        {
-            Debug.Assert(elementSize > 0);
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-
-                int count = value.Count(); // potentially slow Linq Count()
-
-                if (elementSize > 1)
-                {
-                    // First write the size in bytes, so that the decoder can skip it. We optimize-out this byte size
-                    // when elementSize is 1.
-                    EncodeSize(count == 0 ? 1 : (count * elementSize) + GetSizeLength(count));
-                }
-                EncodeSize(count);
-                foreach (T item in value)
-                {
-                    encodeAction(this, item);
-                }
-            }
-        }
-
-        /// <summary>Encodes a tagged sequence with null values encoded using a bit sequence.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The sequence to encode.</param>
-        /// <param name="encodeAction">The encode action for a non-null value.</param>
-        public void EncodeTaggedSequenceWithBitSequence<T>(int tag, IEnumerable<T>? v, EncodeAction<IceEncoder, T> encodeAction)
-        {
-            if (v is IEnumerable<T> value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                this.EncodeSequenceWithBitSequence(value, encodeAction);
-                EndFixedLengthSize(pos);
-            }
-        }
-
-        /// <summary>Encodes a tagged fixed-size struct.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to encode.</param>
-        /// <param name="fixedSize">The size of the struct, in bytes.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, int fixedSize, EncodeAction<IceEncoder, T> encodeAction) where T : struct
-        {
-            if (v is T value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.VSize);
-                EncodeSize(fixedSize);
-                encodeAction(this, value);
-            }
-        }
-
-        /// <summary>Encodes a tagged variable-size struct.</summary>
-        /// <param name="tag">The tag.</param>
-        /// <param name="v">The struct to encode.</param>
-        /// <param name="encodeAction">The encode action for a non-null element.</param>
-        public void EncodeTaggedStruct<T>(int tag, T? v, EncodeAction<IceEncoder, T> encodeAction) where T : struct
-        {
-            if (v is T value)
-            {
-                EncodeTaggedParamHeader(tag, EncodingDefinitions.TagFormat.FSize);
-                BufferWriter.Position pos = StartFixedLengthSize();
-                encodeAction(this, value);
-                EndFixedLengthSize(pos);
-            }
-        }
-
         // Other methods
+
+        /// <summary>Computes the minimum number of bytes required to encode a long value using the Ice encoding
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The long value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarLongEncodedSize(long value) => 1 << GetVarLongEncodedSizeExponent(value);
+
+        /// <summary>Computes the minimum number of bytes required to encode a ulong value using the Ice encoding
+        /// variable-size encoded representation.</summary>
+        /// <param name="value">The ulong value.</param>
+        /// <returns>The minimum number of bytes required to encode <paramref name="value"/>. Can be 1, 2, 4 or 8.
+        /// </returns>
+        public static int GetVarULongEncodedSize(ulong value) => 1 << GetVarULongEncodedSizeExponent(value);
 
         /// <summary>Encodes a sequence of bits and returns this sequence backed by the buffer.</summary>
         /// <param name="bitSize">The minimum number of bits in the sequence.</param>
         /// <returns>The bit sequence, with all bits set. The actual size of the sequence is a multiple of 8.</returns>
         public BitSequence EncodeBitSequence(int bitSize) => BufferWriter.WriteBitSequence(bitSize);
+
+        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is not known before
+        /// encoding this value.</summary>
+        /// <param name="tag">The tag. Must be either FSize or OVSize.</param>
+        /// <param name="tagFormat">The tag format.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        public void EncodeTagged<T>(int tag, TagFormat tagFormat, T v, EncodeAction<IceEncoder, T> encodeAction)
+            where T : notnull
+        {
+            if (tagFormat == TagFormat.FSize)
+            {
+                EncodeTaggedParamHeader(tag, tagFormat);
+                BufferWriter.Position pos = StartFixedLengthSize();
+                encodeAction(this, v);
+                EndFixedLengthSize(pos);
+            }
+            else
+            {
+                // A VSize where the size is optimized out. Used here for strings (and only strings) because we cannot
+                // easily compute the number of UTF-8 bytes in a C# string before encoding it.
+                Debug.Assert(tagFormat == TagFormat.OVSize);
+
+                EncodeTaggedParamHeader(tag, TagFormat.VSize);
+                encodeAction(this, v);
+            }
+        }
+
+        /// <summary>Encodes a non-null tagged value. The number of bytes needed to encode the value is known before
+        /// encoding the value.</summary>
+        /// <param name="tag">The tag.</param>
+        /// <param name="tagFormat">The tag format. Can have any value except FSize.</param>
+        /// <param name="size">The number of bytes needed to encode the value.</param>
+        /// <param name="v">The value to encode.</param>
+        /// <param name="encodeAction">The delegate that encodes the value after the tag header.</param>
+        public void EncodeTagged<T>(
+            int tag,
+            TagFormat tagFormat,
+            int size,
+            T v,
+            EncodeAction<IceEncoder, T> encodeAction) where T : notnull
+        {
+            Debug.Assert(tagFormat != TagFormat.FSize);
+            Debug.Assert(size > 0);
+
+            bool encodeSize = tagFormat == TagFormat.VSize;
+
+            tagFormat = tagFormat switch
+            {
+                TagFormat.VInt => size switch
+                {
+                    1 => TagFormat.F1,
+                    2 => TagFormat.F2,
+                    4 => TagFormat.F4,
+                    8 => TagFormat.F8,
+                    _ => throw new ArgumentException($"invalid value for size: {size}", nameof(size))
+                },
+
+                TagFormat.OVSize => TagFormat.VSize, // size encoding is optimized out
+
+                _ => tagFormat
+            };
+
+            EncodeTaggedParamHeader(tag, tagFormat);
+
+            if (encodeSize)
+            {
+                EncodeSize(size);
+            }
+
+            BufferWriter.Position startPos = BufferWriter.Tail;
+            encodeAction(this, v);
+            int actualSize = BufferWriter.Distance(startPos);
+            if (actualSize != size)
+            {
+                throw new ArgumentException($"value of size ({size}) does not match encoded size ({actualSize})",
+                                            nameof(size));
+            }
+        }
 
         /// <summary>Computes the minimum number of bytes needed to encode a variable-length size.</summary>
         /// <param name="size">The size.</param>
@@ -606,26 +303,6 @@ namespace IceRpc.Slice
             return pos;
         }
 
-        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
-        /// exponent of 2.</summary>
-        /// <param name="value">The value to encode.</param>
-        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
-        private protected static int GetVarULongEncodedSizeExponent(ulong value)
-        {
-            if (value > EncodingDefinitions.VarULongMaxValue)
-            {
-                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
-            }
-
-            return (value << 2) switch
-            {
-                ulong b when b <= byte.MaxValue => 0,
-                ulong s when s <= ushort.MaxValue => 1,
-                ulong i when i <= uint.MaxValue => 2,
-                _ => 3
-            };
-        }
-
         // Constructs a Ice encoder
         private protected IceEncoder(BufferWriter bufferWriter) => BufferWriter = bufferWriter;
 
@@ -634,7 +311,7 @@ namespace IceRpc.Slice
         /// <summary>Encodes the header for a tagged parameter or data member.</summary>
         /// <param name="tag">The numeric tag associated with the parameter or data member.</param>
         /// <param name="format">The tag format.</param>
-        private protected abstract void EncodeTaggedParamHeader(int tag, EncodingDefinitions.TagFormat format);
+        private protected abstract void EncodeTaggedParamHeader(int tag, TagFormat format);
 
         /// <summary>Gets the minimum number of bytes needed to encode a long value with the varlong encoding as an
         /// exponent of 2.</summary>
@@ -652,6 +329,26 @@ namespace IceRpc.Slice
                 long b when b >= sbyte.MinValue && b <= sbyte.MaxValue => 0,
                 long s when s >= short.MinValue && s <= short.MaxValue => 1,
                 long i when i >= int.MinValue && i <= int.MaxValue => 2,
+                _ => 3
+            };
+        }
+
+        /// <summary>Gets the mimimum number of bytes needed to encode a long value with the varulong encoding as an
+        /// exponent of 2.</summary>
+        /// <param name="value">The value to encode.</param>
+        /// <returns>N where 2^N is the number of bytes needed to encode value with varulong encoding.</returns>
+        private static int GetVarULongEncodedSizeExponent(ulong value)
+        {
+            if (value > EncodingDefinitions.VarULongMaxValue)
+            {
+                throw new ArgumentOutOfRangeException($"varulong value '{value}' is out of range", nameof(value));
+            }
+
+            return (value << 2) switch
+            {
+                ulong b when b <= byte.MaxValue => 0,
+                ulong s when s <= ushort.MaxValue => 1,
+                ulong i when i <= uint.MaxValue => 2,
                 _ => 3
             };
         }
