@@ -48,6 +48,9 @@ dotnet_diagnostic.CA1711.severity = none
 # CA1716: Identifiers should not match keywords
 dotnet_diagnostic.CA1716.severity = none
 
+# CA1717: Only FlagsAttribute enums should have plural names
+dotnet_diagnostic.CA1717.severity = warning
+
 # CA1720: Identifier contains type name
 dotnet_diagnostic.CA1720.severity = none
 
