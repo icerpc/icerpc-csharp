@@ -447,8 +447,8 @@ namespace IceRpc.Internal
 
                 endpoint = new Endpoint(Protocol.Ice1,
                                         TransportNames.Loc,
-                                        Host: adapterId,
-                                        Port: 0,
+                                        host: adapterId,
+                                        port: 0,
                                         ImmutableList<EndpointParam>.Empty);
 
                 return new Proxy(new IdentityAndFacet(identity, facet).ToPath(), Protocol.Ice1)

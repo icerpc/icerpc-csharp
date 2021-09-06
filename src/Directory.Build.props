@@ -2,11 +2,12 @@
 <Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="$(MSBuildThisFileDirectory)../build/icerpc.props" />
     <PropertyGroup>
-        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)../build/CodeAnalysis.Base.ruleset</CodeAnalysisRuleSet>
         <!-- Include PDB in the built .nupkg -->
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)../build/stylecop.json" Link="stylecop.json" />
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.base.globalconfig" />
+        <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)../build/CodeAnalysis.src.globalconfig" />
     </ItemGroup>
 </Project>

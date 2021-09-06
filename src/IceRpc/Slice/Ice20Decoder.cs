@@ -38,10 +38,19 @@ namespace IceRpc.Slice
             string typeId = DecodeString();
             var remoteEx = _activator?.CreateInstance(typeId, this) as RemoteException;
 
-            // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
-            // "can't decode remote exception".
-
-            return remoteEx ?? new UnknownSlicedRemoteException(typeId, this);
+            if (remoteEx == null)
+            {
+                // If we can't decode this exception, we return an UnknownSlicedRemoteException instead of throwing
+                // "can't decode remote exception".
+                return new UnknownSlicedRemoteException(typeId, this);
+            }
+            else
+            {
+                // TODO: consider calling this Skip for the remaining exception tagged members from the generated code
+                // to make the exception decoding constructor usable directly. See protocol bridging code.
+                SkipTaggedParams();
+                return remoteEx;
+            }
         }
 
         /// <summary>Decodes fields.</summary>
@@ -183,6 +192,8 @@ namespace IceRpc.Slice
             return (key, value);
         }
 
+        // TODO: the current version is for paramaters, return values and exception data members. It relies on the
+        // end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
         private protected override void SkipTaggedParams()
         {
             while (true)
@@ -204,6 +215,8 @@ namespace IceRpc.Slice
         /// the caller decodes the value.</summary>
         /// <param name="tag">The requested tag.</param>
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
+        // TODO: the current version is for paramaters, return values and exception data members. It relies on the
+        // end of buffer to detect the end of the tag "dictionary", and does not use TagEndMarker.
         private bool DecodeTaggedParamHeader(int tag)
         {
             int requestedTag = tag;
@@ -212,7 +225,7 @@ namespace IceRpc.Slice
             {
                 if (_buffer.Length - Pos <= 0)
                 {
-                    return false; // End of buffer also indicates end of tagged parameters.
+                    return false; // End of buffer indicates end of tagged parameters.
                 }
 
                 int savedPos = Pos;
@@ -224,7 +237,7 @@ namespace IceRpc.Slice
                     Skip(DecodeSizeLength(_buffer.Span[Pos]));
                     return true;
                 }
-                else if (tag == Ice20Definitions.TagEndMarker || tag > requestedTag)
+                else if (tag > requestedTag)
                 {
                     Pos = savedPos; // rewind
                     return false;

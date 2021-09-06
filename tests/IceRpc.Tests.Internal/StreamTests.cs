@@ -360,7 +360,7 @@ namespace IceRpc.Tests.Internal
 
             if (cancelClientSide)
             {
-                sendStream.Exception = new ArgumentException();
+                sendStream.Exception = new InvalidOperationException();
                 sendStream.Semaphore.Release();
             }
             else

@@ -60,7 +60,7 @@ namespace IceRpc.Tests.Internal
             using var loggerFactory = new TestLoggerFactory();
 
             OutgoingRequest request = CreateOutgoingRequest(twoway);
-            IncomingResponse response = CreateIncomingResponse(request);
+            IncomingResponse response = CreateIncomingResponse();
 
             var pipeline = new Pipeline();
             pipeline.UseLogger(loggerFactory);
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.Internal
             using var loggerFactory = new TestLoggerFactory();
 
             IncomingRequest request = CreateIncomingRequest(twoway);
-            OutgoingResponse response = CreateOutgoingResponse(request);
+            OutgoingResponse response = CreateOutgoingResponse();
 
             var router = new Router();
             router.UseLogger(loggerFactory);
@@ -223,8 +223,8 @@ namespace IceRpc.Tests.Internal
             return request;
         }
 
-        private static IncomingResponse CreateIncomingResponse(OutgoingRequest outgoingRequest) =>
-            CreateOutgoingResponse(outgoingRequest.ToIncoming()).ToIncoming();
+        private static IncomingResponse CreateIncomingResponse() =>
+            CreateOutgoingResponse().ToIncoming();
 
         private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
             new(Protocol.Ice2, path: "/dummy", operation: "foo")
@@ -235,7 +235,7 @@ namespace IceRpc.Tests.Internal
                 PayloadEncoding = Encoding.Ice20
             };
 
-        private static OutgoingResponse CreateOutgoingResponse(IncomingRequest incomingRequest) =>
+        private static OutgoingResponse CreateOutgoingResponse() =>
             new(Protocol.Ice2, ResultType.Success)
             {
                 Payload = new ReadOnlyMemory<byte>[] { new byte[10] },

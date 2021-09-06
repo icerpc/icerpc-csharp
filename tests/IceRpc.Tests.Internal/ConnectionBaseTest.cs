@@ -79,8 +79,8 @@ namespace IceRpc.Tests.Internal
             {
                 ClientEndpoint = new Endpoint(Protocol.Ice2,
                                               transport,
-                                              Host: Guid.NewGuid().ToString(),
-                                              Port: 4062,
+                                              host: Guid.NewGuid().ToString(),
+                                              port: 4062,
                                               ImmutableList<EndpointParam>.Empty);
                 ServerEndpoint = ClientEndpoint;
             }
