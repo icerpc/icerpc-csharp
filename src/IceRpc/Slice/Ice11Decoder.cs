@@ -187,9 +187,9 @@ namespace IceRpc.Slice
                     {
                         endpoint = new Endpoint(Protocol.Ice1,
                                                 TransportNames.Loc,
-                                                Host: adapterId,
-                                                Port: Ice1Parser.DefaultPort,
-                                                Params: ImmutableList<EndpointParam>.Empty);
+                                                host: adapterId,
+                                                port: Ice1Parser.DefaultPort,
+                                                @params: ImmutableList<EndpointParam>.Empty);
                     }
                     else
                     {
@@ -534,8 +534,8 @@ namespace IceRpc.Slice
 
                             endpoint = new Endpoint(Protocol.Ice1,
                                                     TransportNames.Opaque,
-                                                    Host: "",
-                                                    Port: 0,
+                                                    host: "",
+                                                    port: 0,
                                                     endpointParams);
                             break;
                         }

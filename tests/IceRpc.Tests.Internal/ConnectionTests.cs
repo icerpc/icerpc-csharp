@@ -161,8 +161,8 @@ namespace IceRpc.Tests.Internal
                 {
                     Endpoint = new Endpoint(Protocol.Ice2,
                                             transport,
-                                            Host: Guid.NewGuid().ToString(),
-                                            Port: 4062,
+                                            host: Guid.NewGuid().ToString(),
+                                            port: 4062,
                                             ImmutableList<EndpointParam>.Empty);
                 }
                 else if (transport == "udp" || protocol == Protocol.Ice1)
