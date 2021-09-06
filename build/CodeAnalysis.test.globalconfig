@@ -1,0 +1,22 @@
+is_global = true
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = none
+
+# CA5394: Do not use insecure randomness
+dotnet_diagnostic.CA5394.severity = none
+
+# SA0001: XML comment analysis is disabled due to project configuration
+dotnet_diagnostic.SA0001.severity = none
+
+# NUnit2005: Consider using Assert.That(actual, Is.EqualTo(expected))
+dotnet_diagnostic.NUnit2005.severity = none
+
+# NUnit2006: Consider using Assert.That(actual, Is.Not.EqualTo(expected))
+dotnet_diagnostic.NUnit2006.severity = none
+
+# NUnit2031: Consider using Assert.That(actual, Is.Not.SameAs(expected))
+dotnet_diagnostic.NUnit2031.severity = none

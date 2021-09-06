@@ -228,3 +228,6 @@ dotnet_naming_style.begin_with__.required_prefix = _
 dotnet_naming_style.begin_with__.required_suffix =
 dotnet_naming_style.begin_with__.word_separator =
 dotnet_naming_style.begin_with__.capitalization = camel_case
+
+# License header
+file_header_template = Copyright (c) ZeroC, Inc. All rights reserved.
