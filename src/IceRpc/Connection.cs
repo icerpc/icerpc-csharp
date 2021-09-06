@@ -864,7 +864,6 @@ namespace IceRpc
                     Debug.Assert(_options!.CloseTimeout != TimeSpan.Zero);
                     using var cancelCloseSource = new CancellationTokenSource(_options.CloseTimeout);
                     CancellationToken cancel = cancelCloseSource.Token;
-
                     if (Protocol == Protocol.Ice1)
                     {
                         // Abort outgoing streams.
@@ -973,13 +972,13 @@ namespace IceRpc
                 if (_state == ConnectionState.Active)
                 {
                     _state = ConnectionState.Closing;
-                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, true);
+                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, alreadyClosing: false);
                 }
                 else if (_state == ConnectionState.Closing)
                 {
                     // We already initiated graceful connection closure. If the peer did as well, we can cancel
                     // incoming/outgoing streams.
-                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, false);
+                    shutdownTask = PerformShutdownAsync(lastOutgoingStreamIds, exception, alreadyClosing: true);
                 }
                 else
                 {
@@ -989,7 +988,10 @@ namespace IceRpc
 
             await shutdownTask.ConfigureAwait(false);
 
-            async Task PerformShutdownAsync((long, long) lastOutgoingStreamIds, Exception exception, bool closing)
+            async Task PerformShutdownAsync(
+                (long, long) lastOutgoingStreamIds,
+                Exception exception,
+                bool alreadyClosing)
             {
                 // Shutdown the multi-stream connection to prevent new streams from being created. This is done
                 // before the yield to ensure consistency between the connection shutdown state and the connection
@@ -1018,16 +1020,13 @@ namespace IceRpc
                         // Abort the connection, all the streams have completed.
                         await AbortAsync(exception).ConfigureAwait(false);
                     }
-                    else
+                    else if (!alreadyClosing)
                     {
-                        if (closing)
-                        {
-                            // Send back a GoAway frame if we just switched to the closing state. If we were already
-                            // in the closing state, it has already been sent.
-                            await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
-                                                                       exception.Message,
-                                                                       cancel).ConfigureAwait(false);
-                        }
+                        // Send back a GoAway frame if we just switched to the closing state. If we were already
+                        // in the closing state, it has already been sent.
+                        await _controlStream!.SendGoAwayFrameAsync(lastIncomingStreamIds,
+                                                                   exception.Message,
+                                                                   cancel).ConfigureAwait(false);
 
                         // Wait for the GoAwayCanceled frame from the peer or the closure of the peer control stream.
                         Task waitForGoAwayCanceledTask = WaitForGoAwayCanceledOrCloseAsync(cancel);
@@ -1041,6 +1040,8 @@ namespace IceRpc
                         // Abort the connection.
                         await AbortAsync(exception).ConfigureAwait(false);
                     }
+                    // else if already closing, there's nothing to do, ShutdownAsync will take care of the
+                    // connection closure.
                 }
                 catch (OperationCanceledException)
                 {
@@ -1067,7 +1068,7 @@ namespace IceRpc
                     // Wait for the peer control stream to be shutdown.
                     await _peerControlStream!.WaitForShutdownAsync(cancel).ConfigureAwait(false);
                 }
-                catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
+                catch (RpcStreamAbortedException)
                 {
                     // Expected if the connection is shutdown.
                 }

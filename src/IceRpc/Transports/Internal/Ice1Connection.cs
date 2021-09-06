@@ -192,7 +192,11 @@ namespace IceRpc.Transports.Internal
         {
             cancel.ThrowIfCancellationRequested();
 
-            await SendFrameAsync(null, Ice1Definitions.ValidateConnectionFrame, cancel).ConfigureAwait(false);
+            await SendFrameAsync(
+                null,
+                Ice1Definitions.ValidateConnectionFrame,
+                endStream: false,
+                cancel).ConfigureAwait(false);
 
             Logger.LogSentInitializeFrame(this, 0);
         }
@@ -256,6 +260,7 @@ namespace IceRpc.Transports.Internal
         internal async ValueTask SendFrameAsync(
             Ice1Stream? stream,
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
+            bool endStream,
             CancellationToken cancel)
         {
             // Wait for sending of other frames to complete. The semaphore is used as an asynchronous queue
@@ -267,6 +272,14 @@ namespace IceRpc.Transports.Internal
             {
                 _sendSemaphore.Release();
                 throw new RpcStreamAbortedException(RpcStreamError.StreamAborted);
+            }
+
+            // Set the write completed flag before sending to ensure that there's no race condition when sending the
+            // CloseConnection frame. The connection code checks if the control stream writes are completed to
+            // figure out if the connection loss is expected or not.
+            if (endStream)
+            {
+                stream?.TrySetWriteCompleted();
             }
 
             try

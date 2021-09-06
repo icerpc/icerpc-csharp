@@ -20,17 +20,11 @@ namespace IceRpc.Transports.Internal
             // This is never called because we override the default ReceiveFrameAsync implementation.
             throw new NotImplementedException();
 
-        public override async ValueTask SendAsync(
+        public override ValueTask SendAsync(
             ReadOnlyMemory<ReadOnlyMemory<byte>> buffers,
             bool endStream,
-            CancellationToken cancel)
-        {
-            await _connection.SendFrameAsync(this, buffers, cancel).ConfigureAwait(false);
-            if (endStream)
-            {
-                TrySetWriteCompleted();
-            }
-        }
+            CancellationToken cancel) =>
+            _connection.SendFrameAsync(this, buffers, endStream, cancel);
 
         protected override void Shutdown()
         {
