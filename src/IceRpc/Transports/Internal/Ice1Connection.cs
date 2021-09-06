@@ -275,7 +275,7 @@ namespace IceRpc.Transports.Internal
             }
 
             // Set the write completed flag before sending to ensure that there's no race condition when sending the
-            // CloseConnection frame. The connection code checks if the control stream writes are complicated to
+            // CloseConnection frame. The connection code checks if the control stream writes are completed to
             // figure out if the connection loss is expected or not.
             if (endStream)
             {
