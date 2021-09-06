@@ -63,7 +63,7 @@ namespace IceRpc.Tests.Encoding
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyMostDerivedClass>());
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             MyDerivedClass r1 = decoder.DecodeClass<MyDerivedClass>();
-            Assert.IsEmpty(r1.UnknownSlices);
+            Assert.That(r1.UnknownSlices, Is.Empty);
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
 
@@ -76,7 +76,7 @@ namespace IceRpc.Tests.Encoding
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyDerivedClass>());
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             MyBaseClass r2 = decoder.DecodeClass<MyBaseClass>();
-            Assert.IsEmpty(r2.UnknownSlices);
+            Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.AreEqual(p1.M1, r2.M1);
 
             // Repeat with an activator that also excludes 'MyBaseClass' type ID
@@ -127,7 +127,7 @@ namespace IceRpc.Tests.Encoding
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactMostDerivedClass>());
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             MyCompactDerivedClass r1 = decoder.DecodeClass<MyCompactDerivedClass>();
-            Assert.IsEmpty(r1.UnknownSlices);
+            Assert.That(r1.UnknownSlices, Is.Empty);
             Assert.AreEqual(p1.M1, r1.M1);
             Assert.AreEqual(p1.M2, r1.M2);
 
@@ -139,7 +139,7 @@ namespace IceRpc.Tests.Encoding
             Assert.Throws<InvalidDataException>(() => decoder.DecodeClass<MyCompactDerivedClass>());
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             MyCompactBaseClass r2 = decoder.DecodeClass<MyCompactBaseClass>();
-            Assert.IsEmpty(r2.UnknownSlices);
+            Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.AreEqual(p1.M1, r2.M1);
 
             // Repeat with an activator that also excludes 'MyCompactBaseClass' compact type ID (1)
@@ -260,7 +260,7 @@ namespace IceRpc.Tests.Encoding
 
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             MyBaseClass r1 = decoder.DecodeClass<MyBaseClass>();
-            Assert.IsNotEmpty(r1.UnknownSlices);
+            Assert.That(r1.UnknownSlices, Is.Not.Empty);
 
             // Marshal the sliced class
             bufferWriter = new BufferWriter(new byte[1024 * 1024]);
@@ -271,7 +271,7 @@ namespace IceRpc.Tests.Encoding
             // unmarshal again using the default factory, the unmarshaled class should contain the preserved Slices.
             decoder = new Ice11Decoder(data, activator: activator);
             MyPreservedDerivedClass1 r2 = decoder.DecodeClass<MyPreservedDerivedClass1>();
-            Assert.IsEmpty(r2.UnknownSlices);
+            Assert.That(r2.UnknownSlices, Is.Empty);
             Assert.AreEqual("p1-m1", r2.M1);
             Assert.AreEqual("p1-m2", r2.M2);
             Assert.That(r2.M3, Is.InstanceOf<MyPreservedDerivedClass1>());

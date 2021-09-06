@@ -95,7 +95,9 @@ namespace IceRpc.Transports
                 throw new TransportException(ex);
             }
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
             var udpSocket = new UdpSocket(socket, logger, isServer: false, netEndPoint, ttl, multicastInterface);
+#pragma warning restore CA2000 // Dispose objects before losing scope
             return NetworkSocketConnection.FromNetworkSocket(udpSocket, remoteEndpoint, isServer: false, new());
         }
     }

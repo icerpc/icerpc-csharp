@@ -11,6 +11,7 @@
         <DefineConstants>TRACE</DefineConstants>
         <Nullable>enable</Nullable>
         <LangVersion>10.0</LangVersion>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <!-- Import Ice version settings -->

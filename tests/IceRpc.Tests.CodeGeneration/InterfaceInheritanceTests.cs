@@ -63,6 +63,13 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.That(await _bPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D"),
                         Is.False);
 
+            Assert.That(await _cPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"),
+                        Is.True);
+            Assert.That(await _cPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::C"),
+                        Is.True);
+            Assert.That(await _cPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::D"),
+                        Is.False);
+
             Assert.That(await _dPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::A"),
                         Is.True);
             Assert.That(await _dPrx.IceIsAAsync("::IceRpc::Tests::CodeGeneration::InterfaceInheritance::B"),

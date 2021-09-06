@@ -2,14 +2,10 @@
 
 namespace IceRpc.Slice.Internal
 {
-    internal static class EncodingDefinitions
+    /// <summary>Enumerations and constants used by the Ice 1.1 encoding.</summary>
+    internal static class Ice11Definitions
     {
-        internal const long VarLongMinValue = -2_305_843_009_213_693_952; // -2^61
-        internal const long VarLongMaxValue = 2_305_843_009_213_693_951; // 2^61 - 1
-        internal const ulong VarULongMinValue = 0;
-        internal const ulong VarULongMaxValue = 4_611_686_018_427_387_903; // 2^62 - 1
-
-        internal const byte TaggedEndMarker = 0xFF;
+        internal const byte TagEndMarker = 0xFF;
 
         /// <summary>The first byte of each encoded class or exception slice.</summary>
         [Flags]
@@ -39,7 +35,7 @@ namespace IceRpc.Slice.Internal
         /// <summary>Extracts the TypeIdKind of a SliceFlags value.</summary>
         /// <param name="sliceFlags">The SliceFlags value.</param>
         /// <returns>The TypeIdKind encoded in sliceFlags.</returns>
-        internal static EncodingDefinitions.TypeIdKind GetTypeIdKind(this EncodingDefinitions.SliceFlags sliceFlags) =>
-            (EncodingDefinitions.TypeIdKind)(sliceFlags & EncodingDefinitions.SliceFlags.TypeIdMask);
+        internal static Ice11Definitions.TypeIdKind GetTypeIdKind(this Ice11Definitions.SliceFlags sliceFlags) =>
+            (Ice11Definitions.TypeIdKind)(sliceFlags & Ice11Definitions.SliceFlags.TypeIdMask);
     }
 }

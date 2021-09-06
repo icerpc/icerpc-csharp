@@ -131,8 +131,8 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
-        [TestCase(EncodingDefinitions.VarULongMinValue)]
-        [TestCase(EncodingDefinitions.VarULongMinValue)]
+        [TestCase(IceEncoder.VarULongMinValue)]
+        [TestCase(IceEncoder.VarULongMinValue)]
         public void Encoding_VarULong(ulong p1)
         {
             _encoder.EncodeVarULong(p1);
@@ -142,8 +142,8 @@ namespace IceRpc.Tests.Encoding
             Assert.AreEqual(0, _bufferWriter.Tail.Buffer);
         }
 
-        [TestCase(EncodingDefinitions.VarLongMinValue)]
-        [TestCase(EncodingDefinitions.VarLongMinValue)]
+        [TestCase(IceEncoder.VarLongMinValue)]
+        [TestCase(IceEncoder.VarLongMinValue)]
         public void Encoding_VarLong(long p1)
         {
             _encoder.EncodeVarLong(p1);

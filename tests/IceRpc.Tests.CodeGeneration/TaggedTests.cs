@@ -48,6 +48,12 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
+        public void Tagged_Exceptions()
+        {
+            Assert.ThrowsAsync<TaggedException>(async () => await _prx.OpTaggedExceptionAsync(null, "foo", null));
+        }
+
+        [Test]
         public async Task Tagged_Parameters()
         {
             var oneTagged = (OneTagged)await _prx.PingPongAsync(new OneTagged());
