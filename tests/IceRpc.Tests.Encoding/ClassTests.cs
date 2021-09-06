@@ -33,15 +33,13 @@ namespace IceRpc.Tests.Encoding
             _server = new Server()
             {
                 Dispatcher = router,
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
             _server.Listen();
 
             _connection = new Connection
             {
-                RemoteEndpoint = _server.Endpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = _server.Endpoint
             };
 
             _sliced = SlicedFormatOperationsPrx.FromConnection(_connection);

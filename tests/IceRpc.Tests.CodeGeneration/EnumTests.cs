@@ -125,14 +125,12 @@ namespace IceRpc.Tests.CodeGeneration
             await using var server = new Server
             {
                 Dispatcher = new EnumOperations(),
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
             server.Listen();
             await using var connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = serverEndpoint
             };
             var prx = EnumOperationsPrx.FromConnection(connection);
             Assert.AreEqual(protocol, prx.Proxy.Protocol);

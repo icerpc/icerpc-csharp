@@ -21,14 +21,12 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Dispatcher = new DictionaryOperations(),
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
             _server.Listen();
             _connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = serverEndpoint
             };
             _prx = DictionaryOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);

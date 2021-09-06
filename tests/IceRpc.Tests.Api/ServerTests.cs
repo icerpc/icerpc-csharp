@@ -260,16 +260,14 @@ namespace IceRpc.Tests.Api
                     await Task.Delay(-1, cancel);
                     return OutgoingResponse.ForPayload(request, default);
                 }),
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
 
             server.Listen();
 
             await using var connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = serverEndpoint
             };
 
             var proxy = GreeterPrx.FromConnection(connection);

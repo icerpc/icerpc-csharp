@@ -37,15 +37,13 @@ namespace IceRpc.Tests.CodeGeneration
             _server = new Server
             {
                 Dispatcher = router,
-                Endpoint = serverEndpoint,
-                ServerTransport = TestHelper.CreateServerTransport(serverEndpoint)
+                Endpoint = serverEndpoint
             };
             _server.Listen();
 
             _connection = new Connection
             {
-                RemoteEndpoint = serverEndpoint,
-                ClientTransport = TestHelper.CreateClientTransport(serverEndpoint)
+                RemoteEndpoint = serverEndpoint
             };
 
             _prx = ClassOperationsPrx.FromConnection(_connection);

@@ -60,14 +60,41 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseColoc(
             this ClientTransport clientTransport,
-            MultiStreamOptions options) =>
-            clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, new ColocClientTransport(options));
+            MultiStreamOptions options)
+        {
+            var colocClientTransport = new ColocClientTransport(options);
+            clientTransport.Add(TransportNames.Coloc, Protocol.Ice2, colocClientTransport);
+            clientTransport.Add(TransportNames.Coloc, Protocol.Ice1, colocClientTransport);
+            return clientTransport;
+        }
+
+        /// <summary>Adds the ssl client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseSsl(
+            this ClientTransport clientTransport,
+            SslClientAuthenticationOptions authenticationOptions) =>
+            clientTransport.Add(TransportNames.Ssl, Protocol.Ice1, new TcpClientTransport(authenticationOptions));
+
+        /// <summary>Adds the ssl client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The transport being configured.</param>
+        /// <param name="tcpOptions">The TCP transport options.</param>
+        /// <param name="authenticationOptions">The ssl authentication options.</param>
+        /// <returns>The transport being configured.</returns>
+        public static ClientTransport UseSsl(
+            this ClientTransport clientTransport,
+            TcpOptions tcpOptions,
+            SslClientAuthenticationOptions authenticationOptions) =>
+            clientTransport.Add(TransportNames.Ssl,
+                                Protocol.Ice1,
+                                new TcpClientTransport(tcpOptions, new SlicOptions(), authenticationOptions));
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseTcp(this ClientTransport clientTransport) =>
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpClientTransport());
+            clientTransport.UseTcp(new TcpOptions(), new SlicOptions());
 
         /// <summary>Adds the tcp client transport to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -77,10 +104,13 @@ namespace IceRpc.Configure
         public static ClientTransport UseTcp(
             this ClientTransport clientTransport,
             TcpOptions tcpOptions,
-            SlicOptions slicOptions) =>
-            clientTransport.Add(TransportNames.Tcp,
-                                Protocol.Ice2,
-                                new TcpClientTransport(tcpOptions, slicOptions, null));
+            SlicOptions slicOptions)
+            {
+                var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, null);
+                clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
+                clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+                return clientTransport;
+            }
 
         /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -88,8 +118,13 @@ namespace IceRpc.Configure
         /// <returns>The transport being configured.</returns>
         public static ClientTransport UseTcp(
             this ClientTransport clientTransport,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, new TcpClientTransport(authenticationOptions));
+            SslClientAuthenticationOptions authenticationOptions)
+        {
+            var tcpClientTransport = new TcpClientTransport(authenticationOptions);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            return clientTransport;
+        }
 
         /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>
@@ -101,9 +136,25 @@ namespace IceRpc.Configure
             this ClientTransport clientTransport,
             TcpOptions tcpOptions,
             SlicOptions slicOptions,
-            SslClientAuthenticationOptions authenticationOptions) =>
-            clientTransport.Add(TransportNames.Tcp,
-                                Protocol.Ice2,
-                                new TcpClientTransport(tcpOptions, slicOptions, authenticationOptions));
+            SslClientAuthenticationOptions authenticationOptions)
+        {
+            var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, authenticationOptions);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            return clientTransport;
+        }
+
+        /// <summary>Adds the udp client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The client transport being configured.</param>
+        /// <returns>The client transport being configured.</returns>
+        public static ClientTransport UseUdp(this ClientTransport clientTransport) =>
+            clientTransport.UseUdp(new UdpOptions());
+
+        /// <summary>Adds the udp client transport to this composite client transport.</summary>
+        /// <param name="clientTransport">The client transport being configured.</param>
+        /// <param name="udpOptions">The UDP transport options.</param>
+        /// <returns>The client transport being configured.</returns>
+        public static ClientTransport UseUdp(this ClientTransport clientTransport, UdpOptions udpOptions) =>
+            clientTransport.Add(TransportNames.Udp, Protocol.Ice1, new UdpClientTransport(udpOptions));
     }
 }

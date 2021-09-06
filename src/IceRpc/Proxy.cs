@@ -298,7 +298,7 @@ namespace IceRpc
         {
             if (Protocol == Protocol.Ice1)
             {
-                return InteropProxyExtensions.ToString(this, default);
+                return ToString(default);
             }
             else // >= ice2, use URI format
             {
@@ -357,6 +357,104 @@ namespace IceRpc
                     sb.Append('&');
                 }
             }
+        }
+
+        /// <summary>Converts a proxy into a string, using the format specified by ToStringMode.</summary>
+        /// <param name="mode">Specifies how non-printable ASCII characters are escaped in the resulting string. See
+        /// <see cref="ToStringMode"/>.</param>
+        /// <returns>The string representation of this proxy.</returns>
+        public string ToString(ToStringMode mode)
+        {
+            if (Protocol != Protocol.Ice1)
+            {
+                return ToString();
+            }
+
+            var identityAndFacet = IdentityAndFacet.FromPath(Path);
+
+            var sb = new StringBuilder();
+
+            // If the encoded identity string contains characters which the reference parser uses as separators,
+            // then we enclose the identity string in quotes.
+            string id = identityAndFacet.Identity.ToString(mode);
+            if (StringUtil.FindFirstOf(id, " :@") != -1)
+            {
+                sb.Append('"');
+                sb.Append(id);
+                sb.Append('"');
+            }
+            else
+            {
+                sb.Append(id);
+            }
+
+            if (identityAndFacet.Facet.Length > 0)
+            {
+                // If the encoded facet string contains characters which the reference parser uses as separators,
+                // then we enclose the facet string in quotes.
+                sb.Append(" -f ");
+                string fs = StringUtil.EscapeString(identityAndFacet.Facet, mode);
+                if (StringUtil.FindFirstOf(fs, " :@") != -1)
+                {
+                    sb.Append('"');
+                    sb.Append(fs);
+                    sb.Append('"');
+                }
+                else
+                {
+                    sb.Append(fs);
+                }
+            }
+
+            if (Endpoint?.Transport == TransportNames.Udp)
+            {
+                sb.Append(" -d");
+            }
+            else
+            {
+                sb.Append(" -t");
+            }
+
+            // Always print the encoding version to ensure a stringified proxy will convert back to a proxy with the
+            // same encoding with StringToProxy. (Only needed for backwards compatibility).
+            sb.Append(" -e ");
+            sb.Append(Encoding);
+
+            if (Endpoint != null)
+            {
+                if (Endpoint.Transport == TransportNames.Loc)
+                {
+                    string adapterId = Endpoint.Host;
+
+                    sb.Append(" @ ");
+
+                    // If the encoded adapter ID contains characters which the proxy parser uses as separators, then
+                    // we enclose the adapter ID string in double quotes.
+                    adapterId = StringUtil.EscapeString(adapterId, mode);
+                    if (StringUtil.FindFirstOf(adapterId, " :@") != -1)
+                    {
+                        sb.Append('"');
+                        sb.Append(adapterId);
+                        sb.Append('"');
+                    }
+                    else
+                    {
+                        sb.Append(adapterId);
+                    }
+                }
+                else
+                {
+                    sb.Append(':');
+                    sb.Append(Endpoint);
+
+                    foreach (Endpoint e in AltEndpoints)
+                    {
+                        sb.Append(':');
+                        sb.Append(e);
+                    }
+                }
+            }
+            return sb.ToString();
         }
 
         /// <summary>Creates a copy of this proxy with a new path.</summary>
