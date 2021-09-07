@@ -36,7 +36,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Tagged_Parameters()
+        public async Task Tagged_ParamReturn()
         {
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
@@ -46,14 +46,18 @@ namespace IceRpc.Tests.CodeGeneration
                     {
                         if (value.N != null)
                         {
-                            encoder.EncodeTagged(1, TagFormat.F4, size: 4, value.N.Value, (encoder, v) => encoder.EncodeInt(v));
+                            encoder.EncodeTagged(1,
+                                                 TagFormat.F4,
+                                                 size: 4,
+                                                 value.N.Value,
+                                                 (encoder, v) => encoder.EncodeInt(v));
                         }
                         if (value.S != null)
                         {
-                            encoder.EncodeTagged(1,
+                            encoder.EncodeTagged(1, // duplicate tag ignored by the server
                                                  TagFormat.OVSize,
                                                  value.S,
-                                                 (encoder, v) => encoder.EncodeString(v)); // duplicate tag ignored by the server
+                                                 (encoder, v) => encoder.EncodeString(v));
                         }
                     });
 
@@ -590,7 +594,8 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
-                (SortedDictionary<int, int?>? r1, SortedDictionary<int, int?>? r2) = await _prx.OpOptionalIntSortedDictAsync(null);
+                (SortedDictionary<int, int?>? r1, SortedDictionary<int, int?>? r2) =
+                    await _prx.OpOptionalIntSortedDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
@@ -633,7 +638,8 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
-                (Dictionary<string, string?>? r1, Dictionary<string, string?>? r2) = await _prx.OpOptionalStringDictAsync(null);
+                (Dictionary<string, string?>? r1, Dictionary<string, string?>? r2) =
+                    await _prx.OpOptionalStringDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
@@ -644,7 +650,8 @@ namespace IceRpc.Tests.CodeGeneration
             }
 
             {
-                (SortedDictionary<string, string?>? r1, SortedDictionary<string, string?>? r2) = await _prx.OpOptionalStringSortedDictAsync(null);
+                (SortedDictionary<string, string?>? r1, SortedDictionary<string, string?>? r2) =
+                    await _prx.OpOptionalStringSortedDictAsync(null);
                 Assert.That(r1, Is.Null);
                 Assert.That(r2, Is.Null);
 
@@ -654,7 +661,6 @@ namespace IceRpc.Tests.CodeGeneration
                 CollectionAssert.AreEqual(p1, r2);
             }
         }
-
     }
 
     public class OperationTag : Service, IOperationTag
@@ -718,13 +724,6 @@ namespace IceRpc.Tests.CodeGeneration
             byte?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
-
-        public ValueTask OpDerivedExceptionAsync(
-            int? p1,
-            string? p2,
-            AnotherStruct? p3,
-            Dispatch dispatch,
-            CancellationToken cancel) => throw new DerivedException(false, p1, p2, p3, p2, p3);
 
         public ValueTask<(double? R1, double? R2)> OpDoubleAsync(
             double? p1,
@@ -861,14 +860,6 @@ namespace IceRpc.Tests.CodeGeneration
             MyStruct?[]? p1,
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
-
-        public ValueTask OpRequiredExceptionAsync(
-            int? p1,
-            string? p2,
-            AnotherStruct? p3,
-            Dispatch dispatch,
-            CancellationToken cancel) =>
-            throw new RequiredException(false, p1, p2, p3, p2 ?? "test", p3 ?? new AnotherStruct());
 
         public ValueTask<(short? R1, short? R2)> OpShortAsync(
             short? p1,
