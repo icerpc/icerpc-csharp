@@ -107,11 +107,17 @@ module IceRpc::Tests::CodeGeneration
 
         (tag(1) OptionalIntDict? r1, tag(2) OptionalIntDict? r2) opOptionalIntDict(tag(1) OptionalIntDict? p1);
         (tag(1) OptionalStringDict? r1, tag(2) OptionalStringDict? r2) opOptionalStringDict(tag(1) OptionalStringDict? p1);
+    }
 
-        void opVoid();
-
+    interface OperationTagMarshaledResult
+    {
         [marshaled-result] tag(1) MyStruct? opMyStructMarshaledResult(tag(1) MyStruct? p1);
         [marshaled-result] tag(1) StringSeq? opStringSeqMarshaledResult(tag(1) StringSeq? p1);
         [marshaled-result] tag(1) IntDict? opIntDictMarshaledResult(tag(1) IntDict? p1);
+    }
+
+    interface OperationTag
+    {
+        void opVoid();
     }
 }
