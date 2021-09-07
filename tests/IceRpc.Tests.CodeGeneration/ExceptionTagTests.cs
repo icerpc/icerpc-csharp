@@ -11,7 +11,6 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly ExceptionTagPrx _prx;
 
         public ExceptionTagTests()
         {
@@ -25,7 +24,6 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = _server.Endpoint
             };
-            _prx = ExceptionTagPrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -35,10 +33,61 @@ namespace IceRpc.Tests.CodeGeneration
             await _connection.DisposeAsync();
         }
 
-        [Test]
-        public void ExceptionTag_Exceptions()
+        [TestCase("1.1")]
+        [TestCase("2.0")]
+        public void ExceptionTag_TopLevel(string encoding)
         {
-            Assert.ThrowsAsync<TaggedException>(async () => await _prx.OpTaggedExceptionAsync(null, "foo", null));
+            ExceptionTagPrx prx = GetPrx(encoding);
+
+            var ts = new TaggedExceptionStruct("bar", null);
+            TaggedException ex =
+                Assert.ThrowsAsync<TaggedException>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
+            Assert.AreEqual(false, ex.MBool);
+            Assert.That(ex.MInt, Is.Null);
+            Assert.AreEqual("foo", ex.MString);
+            Assert.That(ex.MStruct, Is.Not.Null);
+            Assert.AreEqual(ts, ex.MStruct.Value);
+        }
+
+        [TestCase("1.1")]
+        [TestCase("2.0")]
+        public void ExceptionTag_Derived(string encoding)
+        {
+            ExceptionTagPrx prx = GetPrx(encoding);
+
+            var ts = new TaggedExceptionStruct("bar", null);
+
+            TaggedException ex;
+
+            if (prx.Proxy.Encoding == Encoding.Ice11)
+            {
+                DerivedException derivedEx = Assert.ThrowsAsync<DerivedException>(
+                    async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
+                ex = derivedEx;
+
+                Assert.AreEqual("foo", derivedEx.MString1);
+                Assert.That(derivedEx.MStruct1, Is.Not.Null);
+                Assert.AreEqual(ts, derivedEx.MStruct1.Value);
+            }
+            else
+            {
+                ex = Assert.ThrowsAsync<TaggedException>(async () => await prx.OpTaggedExceptionAsync(null, "foo", ts));
+            }
+
+            Assert.That(ex, Is.Not.Null);
+
+            Assert.AreEqual(false, ex.MBool);
+            Assert.That(ex.MInt, Is.Null);
+            Assert.AreEqual("foo", ex.MString);
+            Assert.That(ex.MStruct, Is.Not.Null);
+            Assert.AreEqual(ts, ex.MStruct.Value);
+        }
+
+        private ExceptionTagPrx GetPrx(string encoding)
+        {
+            var prx = ExceptionTagPrx.FromConnection(_connection);
+            prx.Proxy.Encoding = Encoding.FromString(encoding);
+            return prx;
         }
     }
 
@@ -47,22 +96,22 @@ namespace IceRpc.Tests.CodeGeneration
         public ValueTask OpDerivedExceptionAsync(
             int? p1,
             string? p2,
-            AnotherStruct? p3,
+            TaggedExceptionStruct? p3,
             Dispatch dispatch,
             CancellationToken cancel) => throw new DerivedException(false, p1, p2, p3, p2, p3);
 
         public ValueTask OpRequiredExceptionAsync(
             int? p1,
             string? p2,
-            AnotherStruct? p3,
+            TaggedExceptionStruct? p3,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            throw new RequiredException(false, p1, p2, p3, p2 ?? "test", p3 ?? new AnotherStruct());
+            throw new RequiredException(false, p1, p2, p3, p2 ?? "test", p3 ?? new TaggedExceptionStruct());
 
         public ValueTask OpTaggedExceptionAsync(
             int? p1,
             string? p2,
-            AnotherStruct? p3,
+            TaggedExceptionStruct? p3,
             Dispatch dispatch,
             CancellationToken cancel) => throw new TaggedException(false, p1, p2, p3);
     }
