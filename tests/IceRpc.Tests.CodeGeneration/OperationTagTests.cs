@@ -11,13 +11,13 @@ namespace IceRpc.Tests.CodeGeneration
     {
         private readonly Connection _connection;
         private readonly Server _server;
-        private readonly OperationTagPrx _prx;
+        private readonly OperationTagDoublePrx _prx;
 
         public OperationTagTests()
         {
             _server = new Server
             {
-                Dispatcher = new OperationTag(),
+                Dispatcher = new OperationTagDouble(),
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
@@ -25,7 +25,7 @@ namespace IceRpc.Tests.CodeGeneration
             {
                 RemoteEndpoint = _server.Endpoint
             };
-            _prx = OperationTagPrx.FromConnection(_connection);
+            _prx = OperationTagDoublePrx.FromConnection(_connection);
         }
 
         [OneTimeTearDown]
@@ -36,7 +36,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Tagged_ParamReturn()
+        public async Task Tagged_Double()
         {
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
@@ -663,7 +663,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
     }
 
-    public class OperationTag : Service, IOperationTag
+    public class OperationTagDouble : Service, IOperationTagDouble
     {
         public ValueTask<(AnotherStruct? R1, AnotherStruct? R2)> OpAnotherStructAsync(
             AnotherStruct? p1,
@@ -790,10 +790,10 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IOperationTag.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
+        public ValueTask<IOperationTagDouble.OpIntDictMarshaledResultMarshaledReturnValue> OpIntDictMarshaledResultAsync(
             Dictionary<int, int>? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTag.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagDouble.OpIntDictMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<int>? R1, IEnumerable<int>? R2)> OpIntListAsync(
             List<int>? p1,
@@ -845,11 +845,11 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IOperationTag.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
+        public ValueTask<IOperationTagDouble.OpMyStructMarshaledResultMarshaledReturnValue> OpMyStructMarshaledResultAsync(
             MyStruct? p1,
             Dispatch dispatch,
             CancellationToken cancel) =>
-            new(new IOperationTag.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
+            new(new IOperationTagDouble.OpMyStructMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<MyStruct>? R1, IEnumerable<MyStruct>? R2)> OpMyStructSeqAsync(
             MyStruct[]? p1,
@@ -921,10 +921,10 @@ namespace IceRpc.Tests.CodeGeneration
             Dispatch dispatch,
             CancellationToken cancel) => new((p1, p1));
 
-        public ValueTask<IOperationTag.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
+        public ValueTask<IOperationTagDouble.OpStringSeqMarshaledResultMarshaledReturnValue> OpStringSeqMarshaledResultAsync(
             string[]? p1,
             Dispatch dispatch,
-            CancellationToken cancel) => new(new IOperationTag.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
+            CancellationToken cancel) => new(new IOperationTagDouble.OpStringSeqMarshaledResultMarshaledReturnValue(p1, dispatch));
 
         public ValueTask<(IEnumerable<MyEnum>? R1, IEnumerable<MyEnum>? R2)> OpMyEnumSeqAsync(
             MyEnum[]? p1,

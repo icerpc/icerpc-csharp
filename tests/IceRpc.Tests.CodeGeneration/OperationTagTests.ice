@@ -11,7 +11,8 @@
 
 module IceRpc::Tests::CodeGeneration
 {
-    interface OperationTag
+    // For each tagged param, return 2 tagged return values.
+    interface OperationTagDouble
     {
         (tag(1) byte? r1, tag(2) byte? r2) opByte(tag(1) byte? p1);
 
