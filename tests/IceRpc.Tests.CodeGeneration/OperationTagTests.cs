@@ -22,7 +22,7 @@ namespace IceRpc.Tests.CodeGeneration
             var router = new Router();
             router.Map<IOperationTagDouble>(new OperationTagDouble());
             router.Map<IOperationTagMarshaledResult>(new OperationTagMarshaledResult());
-             router.Map<IOperationTag>(new OperationTag());
+            router.Map<IOperationTag>(new OperationTag());
 
             _server = new Server
             {
@@ -47,7 +47,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Tagged_Double()
+        public async Task OperationTag_Double()
         {
             {
                 (byte? r1, byte? r2) = await _doublePrx.OpByteAsync(null);
@@ -617,7 +617,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Tagged_MarshaledResult()
+        public async Task OperationTag_MarshaledResult()
         {
             {
                 MyStruct? r1 = await _marshaledResultPrx.OpMyStructMarshaledResultAsync(null);
@@ -648,7 +648,7 @@ namespace IceRpc.Tests.CodeGeneration
         }
 
         [Test]
-        public async Task Tagged_DuplicateTag()
+        public async Task OperationTag_DuplicateTag()
         {
             // Build a request payload with 2 tagged values
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload =
@@ -679,6 +679,33 @@ namespace IceRpc.Tests.CodeGeneration
             Assert.DoesNotThrow(() => response.CheckVoidReturnValue(
                 _prx.Proxy.Invoker,
                 response.GetIceDecoderFactory(new DefaultIceDecoderFactories(typeof(OperationTagTests).Assembly))));
+        }
+
+        [Test]
+        public async Task OperationTag_MinusTag()
+        {
+            // We use a compatible interface with fewer tags:
+            var minusPrx = new OperationTagMinusPrx(_prx.Proxy);
+            int? r1 = await minusPrx.OpIntAsync();
+            Assert.That(r1, Is.Null);
+        }
+
+        [Test]
+        public async Task OperationTag_PlusTag()
+        {
+            // We use a compatible interface with more tags:
+            var plusPrx = new OperationTagPlusPrx(_prx.Proxy);
+
+            {
+                (int? r1, string? r2) = await plusPrx.OpIntAsync(42, "42");
+                Assert.AreEqual(42, r1);
+                Assert.That(r2, Is.Null);
+            }
+
+            {
+                string? r1 = await plusPrx.OpVoidAsync("42");
+                Assert.That(r1, Is.Null);
+            }
         }
     }
 
@@ -981,5 +1008,7 @@ namespace IceRpc.Tests.CodeGeneration
     public class OperationTag : Service, IOperationTag
     {
         public ValueTask OpVoidAsync(Dispatch dispatch, CancellationToken cancel) => default;
+
+        public ValueTask<int?> OpIntAsync(int? p1, Dispatch dispatch, CancellationToken cancel) => new(p1);
     }
 }

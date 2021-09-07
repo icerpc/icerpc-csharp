@@ -118,6 +118,22 @@ module IceRpc::Tests::CodeGeneration
 
     interface OperationTag
     {
+        tag(1) int? opInt(tag(0) int? p1);
+
         void opVoid();
+    }
+
+    // An interface compatible with OperationTag except with fewer tags.
+    interface OperationTagMinus
+    {
+        tag(1) int? opInt();
+    }
+
+    // An interface compatible with OperationTag except with more tags.
+    interface OperationTagPlus
+    {
+        (tag(1) int? r1, tag(2) string? r2) opInt(tag(0) int? p1, tag(1) string? p2);
+
+        tag(1) string? opVoid(tag(1) string? p1);
     }
 }
