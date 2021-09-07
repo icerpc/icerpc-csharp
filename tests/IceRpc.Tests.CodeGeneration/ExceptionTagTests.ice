@@ -2,12 +2,7 @@
 
 #pragma once
 
-#include <OperationsTests.ice>
-#include <EnumTests.ice>
 #include <StructTests.ice>
-#include <SequenceTests.ice>
-#include <ClassTests.ice>
-#include <DictionaryTests.ice>
 
 module IceRpc::Tests::CodeGeneration
 {

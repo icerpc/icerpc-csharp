@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <OperationsTests.ice>
 #include <EnumTests.ice>
 #include <StructTests.ice>
 #include <SequenceTests.ice>
