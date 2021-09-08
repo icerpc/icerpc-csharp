@@ -12,8 +12,24 @@ module IceRpc::Tests::CodeGeneration
 
     exception TaggedException
     {
-        bool mBool;
+        tag(50) TaggedExceptionStruct? mStruct;
         tag(1) int? mInt;
+        bool mBool;
+        tag(2) string? mString;
+    }
+
+    exception TaggedExceptionPlus
+    {
+        tag(3) float? mFloat;
+        tag(50) TaggedExceptionStruct? mStruct;
+        tag(1) int? mInt;
+        bool mBool;
+        tag(2) string? mString;
+    }
+
+    exception TaggedExceptionMinus
+    {
+        bool mBool;
         tag(2) string? mString;
         tag(50) TaggedExceptionStruct? mStruct;
     }
