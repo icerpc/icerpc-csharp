@@ -76,12 +76,6 @@ module IceRpc::Tests::CodeGeneration
         tag(890) string? mString2;
     }
 
-    class WD
-    {
-        tag(1) int? mInt;
-        tag(2) string? mString;
-    }
-
     class TaggedWithCustom
     {
         tag(1) MyStructList? mMyStructList;
