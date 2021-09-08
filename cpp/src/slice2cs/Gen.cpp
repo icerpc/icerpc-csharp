@@ -480,28 +480,6 @@ Slice::CsVisitor::emitEditorBrowsableNeverAttribute()
 }
 
 void
-Slice::CsVisitor::emitEqualityOperators(const string& name)
-{
-    _out << sp;
-    _out << nl << "/// <summary>The equality operator == returns true if its operands are equal, false otherwise."
-         << "</summary>";
-    _out << nl << "/// <param name=\"lhs\">The left hand side operand.</param>";
-    _out << nl << "/// <param name=\"rhs\">The right hand side operand.</param>";
-    _out << nl << "/// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>";
-    _out << nl << "public static bool operator ==(" << name << " lhs, " << name << " rhs)";
-    _out << " => lhs.Equals(rhs);";
-
-    _out << sp;
-    _out << nl << "/// <summary>The inequality operator != returns true if its operands are not equal, false otherwise."
-         << "</summary>";
-    _out << nl << "/// <param name=\"lhs\">The left hand side operand.</param>";
-    _out << nl << "/// <param name=\"rhs\">The right hand side operand.</param>";
-    _out << nl << "/// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>";
-    _out << nl << "public static bool operator !=(" << name << " lhs, " << name << " rhs)";
-    _out << " => !lhs.Equals(rhs);";
-}
-
-void
 Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 {
     StringList metadata = p->getAllMetadata();
