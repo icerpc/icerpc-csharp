@@ -1969,19 +1969,19 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << eb;
     _out << sp;
 
-    _out << nl << "/// <summary>Typed proxy struct. It implements <see cref=\"" << prxInterface << "\"/>"
+    _out << nl << "/// <summary>Typed proxy record struct. It implements <see cref=\"" << prxInterface << "\"/>"
         << " by sending requests to a remote IceRPC service.</summary>";
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public readonly partial struct " << prxImpl << " : " << prxInterface;
+    _out << nl << "public readonly partial record struct " << prxImpl << " : " << prxInterface;
 
     if (addServicePrx)
     {
         _out << ", IceRpc.IServicePrx";
     }
 
-    _out << ", IPrx, global::System.IEquatable<" << prxImpl << ">";
+    _out << ", IPrx";
 
     _out << sb;
 
@@ -2159,9 +2159,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             << " prx) => new(prx.Proxy);";
     }
 
-    // Equality operations
-    emitEqualityOperators(prxImpl);
-
     // Static methods
     _out << sp;
     _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
@@ -2233,20 +2230,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Constructs an instance of <see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "/// <param name=\"proxy\">The proxy to the remote service.</param>";
     _out << nl << "public " << prxImpl << "(IceRpc.Proxy proxy) => Proxy = proxy;";
-
-    // Equals + GetHashCode + ToString
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public bool Equals(" << prxImpl << " other) => Proxy.Equals(other.Proxy);";
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public override bool Equals(object? obj) => obj is " << prxImpl << " value && Equals(value);";
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public override int GetHashCode() => Proxy.GetHashCode();";
-
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
     _out << nl << "public override string ToString() => Proxy.ToString();";
