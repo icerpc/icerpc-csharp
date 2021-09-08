@@ -108,15 +108,11 @@ namespace IceRpc
         internal void Encode(Ice20Encoder encoder) => IceEncode(encoder);
     }
 
-    public partial struct RemoteExceptionOrigin
+    public readonly partial record struct RemoteExceptionOrigin
     {
         /// <summary>With the Ice 1.1 encoding, <c>Unknown</c> is used as the remote exception origin for exceptions
         /// other than <see cref="ServiceNotFoundException"/> and <see cref="OperationNotFoundException"/>.</summary>
         public static readonly RemoteExceptionOrigin Unknown = new("", "");
-
-        /// <inheritdoc/>
-        public override string ToString() =>
-            $"{nameof(RemoteExceptionOrigin)} = {{ Path = {Path}, Operation = {Operation} }}";
     }
 
     public partial class ServiceNotFoundException

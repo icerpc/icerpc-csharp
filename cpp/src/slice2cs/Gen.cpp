@@ -1657,7 +1657,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
+    _out << "partial record struct " << name;
     _out << sb;
     return true;
 }
@@ -1669,8 +1669,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     string scope = fixId(p->scope());
     string ns = getNamespace(p);
     MemberList dataMembers = p->dataMembers();
-
-    emitEqualityOperators(name);
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
@@ -1713,55 +1711,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sb;
     writeUnmarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public readonly override bool Equals(object? obj) => obj is " << name
-         << " value && this.Equals(value);";
-
-    if (!p->hasMetadata("cs:custom-equals"))
-    {
-        // Default implementation for Equals and GetHashCode
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly bool Equals(" << name << " other) =>";
-        _out.inc();
-        _out << nl;
-        for (auto q = dataMembers.begin(); q != dataMembers.end();)
-        {
-            string mName = fixId(fieldName(*q), Slice::ObjectType);
-            string lhs = "this." + mName;
-            string rhs = "other." + mName;
-
-            TypePtr mType = unwrapIfOptional((*q)->type());
-
-            _out << lhs << " == " << rhs;
-
-            if (++q != dataMembers.end())
-            {
-                _out << " &&" << nl;
-            }
-            else
-            {
-                _out << ";";
-            }
-        }
-        _out.dec();
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly override int GetHashCode()";
-        _out << sb;
-        _out << nl << "var hash = new global::System.HashCode();";
-        for (const auto& dataMember : dataMembers)
-        {
-            string obj = "this." + fixId(fieldName(dataMember), Slice::ObjectType);
-            TypePtr mType = unwrapIfOptional(dataMember->type());
-            _out << nl << "hash.Add(" << obj << ");";
-        }
-        _out << nl << "return hash.ToHashCode();";
-        _out << eb;
-    }
 
     _out << sp;
     _out << nl << "/// <summary>Encodes the fields of this struct.</summary>";
