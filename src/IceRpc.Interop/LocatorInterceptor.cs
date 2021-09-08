@@ -179,7 +179,7 @@ namespace IceRpc
     /// <summary>A location is either an adapter ID (string) or an <see cref="Identity"/> and corresponds to the
     /// argument of <see cref="ILocator"/>'s find operations. When <see cref="Category"/> is null, the location
     /// is an adapter ID; when it's not null, the location is an Identity.</summary>
-    public readonly struct Location : IEquatable<Location>
+    public readonly record struct Location
     {
         /// <summary>The adapter ID/identity name.</summary>
         public readonly string AdapterId;
@@ -189,18 +189,6 @@ namespace IceRpc
 
         /// <summary>A string that describes the location.</summary>
         public string Kind => Category == null ? "adapter ID" : "identity";
-
-        /// <summary>The equality operator == returns true if its operands are equal, false otherwise.</summary>
-        /// <param name="lhs">The left hand side operand.</param>
-        /// <param name="rhs">The right hand side operand.</param>
-        /// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>
-        public static bool operator ==(Location lhs, Location rhs) => lhs.Equals(rhs);
-
-        /// <summary>The inequality operator != returns true if its operands are not equal, false otherwise.</summary>
-        /// <param name="lhs">The left hand side operand.</param>
-        /// <param name="rhs">The right hand side operand.</param>
-        /// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>
-        public static bool operator !=(Location lhs, Location rhs) => !lhs.Equals(rhs);
 
         /// <summary>Constructs a location from an adapter ID.</summary>
         public Location(string adapterId)
@@ -215,15 +203,6 @@ namespace IceRpc
             AdapterId = identity.Name;
             Category = identity.Category;
         }
-
-        /// <inheritdoc/>
-        public override bool Equals(object? obj) => obj is Location value && Equals(value);
-
-        /// <inheritdoc/>
-        public bool Equals(Location other) => AdapterId == other.AdapterId && Category == other.Category;
-
-        /// <inheritdoc/>
-        public override int GetHashCode() => HashCode.Combine(AdapterId, Category);
 
         /// <summary>Converts a location into an Identity.</summary>
         /// <returns>The identity.</returns>
