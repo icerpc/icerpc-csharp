@@ -2759,15 +2759,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         }
 
         _out << sp;
-        _out << nl << "/// <summary>Helper struct used to encode the return value of " << opName << " operation."
+        _out << nl << "/// <summary>Helper record struct used to encode the return value of " << opName << " operation."
              << "</summary>";
-        _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
+        _out << nl << "public readonly record struct " << name
+            << "(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload)";
         _out << sb;
-        _out << nl << "/// <summary>The payload holding the encoded response.</summary>";
-        _out << nl << "public global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload { get; }";
-
-        emitEqualityOperators(name);
-        _out << sp;
 
         _out << nl << "/// <summary>Constructs a new <see cref=\"" << name  << "\"/> instance that";
         _out << nl << "/// immediately encodes the return value of operation " << opName << ".</summary>";
@@ -2781,9 +2777,8 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
             _out << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"));
         }
         _out << epar;
-        _out << sb;
-        _out << nl << "Payload = ";
-
+        _out.inc();
+        _out << nl << ": this(";
         if (returnType.size() == 1)
         {
             _out << encoding << ".CreatePayloadFromSingleReturnValue(";
@@ -2801,22 +2796,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         {
             _out << "," << nl << "classFormat: " << opFormatTypeToString(operation);
         }
-        _out << ");";
+        _out << "))";
         _out.dec();
+        _out.dec();
+        _out << sb;
         _out << eb;
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public bool Equals(" << name << " other) => Payload.Equals(other.Payload);";
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public override bool Equals(object? obj) => obj is " << name << " value && Equals(value);";
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public override int GetHashCode() => Payload.GetHashCode();";
-
         _out << eb;
     }
 }
