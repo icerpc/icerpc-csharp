@@ -22,10 +22,7 @@ namespace IceRpc.Tests.CodeGeneration
                 Endpoint = TestHelper.GetUniqueColocEndpoint()
             };
             _server.Listen();
-            _connection = new Connection
-            {
-                RemoteEndpoint = _server.Endpoint
-            };
+            _connection = new Connection { RemoteEndpoint = _server.Endpoint };
         }
 
         [OneTimeTearDown]
@@ -147,8 +144,8 @@ namespace IceRpc.Tests.CodeGeneration
             }
             else
             {
-                ex = Assert.ThrowsAsync<TaggedException>
-                    (async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
+                ex = Assert.ThrowsAsync<TaggedException>(
+                    async () => await prx.OpDerivedExceptionAsync(null, "foo", ts));
                 CheckException(ex);
 
                 ex = Assert.ThrowsAsync<TaggedException>(
