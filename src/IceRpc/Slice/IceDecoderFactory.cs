@@ -64,7 +64,7 @@ namespace IceRpc.Slice
     }
 
     /// <summary>A struct that holds default Ice decoder factories for all supported Ice encodings.</summary>
-    public readonly struct DefaultIceDecoderFactories
+    public readonly record struct DefaultIceDecoderFactories
     {
         /// <summary>The default Ice decoder factory for the Ice 1.1 encoding.</summary>
         public IIceDecoderFactory<Ice11Decoder> Ice11DecoderFactory { get; }
