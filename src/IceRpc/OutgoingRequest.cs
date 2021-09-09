@@ -54,10 +54,6 @@ namespace IceRpc
         /// decompress a stream return value.</summary>
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
-        /// <summary>The retry policy for the request. The policy is used by the retry invoker if the request fails
-        /// with a local exception. It is set by the connection code based on the context of the failure.</summary>
-        internal RetryPolicy RetryPolicy { get; set; } = RetryPolicy.NoRetry;
-
         /// <summary>The stream used to send the request.</summary>
         internal RpcStream Stream
         {

@@ -58,7 +58,7 @@ namespace IceRpc
                             return response;
                         }
 
-                        retryPolicy = response.Features.Get<RetryPolicy>();
+                        retryPolicy = response.Features.Get<RetryPolicy>(); // TODO, convert to RetryPolicyFeature
                     }
                     catch (OperationCanceledException)
                     {
@@ -74,7 +74,7 @@ namespace IceRpc
                     {
                         response = null;
                         exception = ex;
-                        retryPolicy = request.RetryPolicy;
+                        retryPolicy = request.Features.GetRetryPolicy();
                     }
 
                     // Compute retry policy based on the exception or response retry policy, whether or not the
@@ -132,7 +132,7 @@ namespace IceRpc
 
                         // Reset relevant request properties before trying again.
                         request.IsSent = false;
-                        request.RetryPolicy = RetryPolicy.NoRetry;
+                        request.Features = request.Features.WithRetryPolicy(RetryPolicy.NoRetry);
                     }
                 }
                 while (tryAgain);

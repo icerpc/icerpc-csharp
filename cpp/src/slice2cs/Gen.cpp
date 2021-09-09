@@ -2839,7 +2839,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (opCompressReturn(operation))
     {
-        _out << nl << "dispatch.ResponseFeatures = IceRpc.Features.CompressPayloadExtensions.CompressPayload(dispatch.ResponseFeatures);";
+        _out << nl << "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);";
     }
 
     // Even when the parameters are empty, we verify the payload is indeed empty (can contain tagged params

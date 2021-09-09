@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
             pipeline.UseRetry(new RetryOptions { MaxAttempts = 3, LoggerFactory = loggerFactory });
             pipeline.Use(next => new InlineInvoker((request, cancel) =>
                 {
-                    request.RetryPolicy = policy;
+                    request.Features = request.Features.WithRetryPolicy(policy);
                     throw exception;
                 }));
 
