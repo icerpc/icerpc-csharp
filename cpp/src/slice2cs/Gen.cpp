@@ -1471,7 +1471,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
             if (i == 0)
             {
                 // Add retryPolicy last
-                allParameters.push_back("IceRpc.RetryPolicy " + retryPolicyParamName + " = default");
+                allParameters.push_back("IceRpc.RetryPolicy? " + retryPolicyParamName + " = null");
                 baseParamNames.push_back(retryPolicyParamName);
             }
             _out << sp;
@@ -1527,7 +1527,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
             allParameters.push_back("global::System.Exception? " + innerExceptionParamName + " = null");
             baseParamNames.push_back(innerExceptionParamName);
 
-            allParameters.push_back("IceRpc.RetryPolicy " + retryPolicyParamName + " = default");
+            allParameters.push_back("IceRpc.RetryPolicy? " + retryPolicyParamName + " = null");
             baseParamNames.push_back(retryPolicyParamName);
         }
     }
@@ -1538,7 +1538,7 @@ Slice::Gen::TypesVisitor::visitExceptionEnd(const ExceptionPtr& p)
         _out << sp;
         _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
         _out << nl << "/// <param name=\"" << retryPolicyParamName << "\">The retry policy for the exception.</param>";
-        _out << nl << "public " << name << "(IceRpc.RetryPolicy retryPolicy = default)";
+        _out << nl << "public " << name << "(IceRpc.RetryPolicy? retryPolicy = null)";
         _out.inc();
         _out << nl << ": base(retryPolicy)";
         _out.dec();
