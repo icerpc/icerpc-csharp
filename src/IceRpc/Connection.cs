@@ -431,7 +431,7 @@ namespace IceRpc
             }
             catch
             {
-                request.Features = request.Features.WithRetryPolicy(RetryPolicy.Immediately);
+                request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw;
             }
 
@@ -504,7 +504,7 @@ namespace IceRpc
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
                 // always safe to retry since only streams not processed by the peer are aborted.
-                request.Features = request.Features.WithRetryPolicy(RetryPolicy.Immediately);
+                request.Features = request.Features.With(RetryPolicy.Immediately);
                 throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionAborted)
@@ -512,7 +512,7 @@ namespace IceRpc
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.Features = request.Features.WithRetryPolicy(RetryPolicy.Immediately);;
+                    request.Features = request.Features.With(RetryPolicy.Immediately);;
                 }
                 throw new ConnectionLostException(ex);
             }
@@ -532,7 +532,7 @@ namespace IceRpc
                 {
                     // If the connection is being shutdown, exceptions are expected since the request send or response
                     // receive can fail. If the request is idempotent or hasn't been sent it's safe to retry it.
-                    request.Features = request.Features.WithRetryPolicy(RetryPolicy.Immediately);
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
                 }
                 throw;
             }

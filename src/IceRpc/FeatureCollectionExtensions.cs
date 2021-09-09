@@ -12,18 +12,9 @@ namespace IceRpc
         /// this feature collection.</summary>
         /// <param name="features">The feature collection to update.</param>
         /// <returns>The updated feature collection.</returns>
-        public static FeatureCollection CompressPayload(this FeatureCollection features)
-        {
-            if (features[typeof(CompressPayload)] != Features.CompressPayload.Yes)
-            {
-                if (features.IsReadOnly)
-                {
-                    features = new FeatureCollection(features);
-                }
-                features.Set(Features.CompressPayload.Yes);
-            }
-            return features;
-        }
+        public static FeatureCollection CompressPayload(this FeatureCollection features) =>
+            features[typeof(CompressPayload)] != Features.CompressPayload.Yes ?
+                features.With(Features.CompressPayload.Yes) : features;
 
         /// <summary>Returns the value of <see cref="Context"/> in this feature collection.</summary>
         /// <param name="features">This feature collection.</param>
@@ -31,41 +22,29 @@ namespace IceRpc
         public static IDictionary<string, string> GetContext(this FeatureCollection features) =>
             features.Get<Context>()?.Value ?? ImmutableSortedDictionary<string, string>.Empty;
 
-        /// <summary>Returns the value of <see cref="RetryPolicyFeature"/> in this feature collection.</summary>
+        /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
+        /// and sets its T to the provided value.</summary>
+        /// <paramtype name="T">The type of the value to set in the feature collection.</paramtype>
         /// <param name="features">This feature collection.</param>
-        /// <returns>The value property of the RetryPolicyFeature if found; otherwise,
-        /// <see cref="RetryPolicy.NoRetry"/>.</returns>
-        public static RetryPolicy GetRetryPolicy(this FeatureCollection features) =>
-            features.Get<RetryPolicyFeature>()?.Value ?? RetryPolicy.NoRetry;
+        /// <param name="value">The new value.</param>
+        /// <returns>The updated feature collection.</returns>
+        public static FeatureCollection With<T>(this FeatureCollection features, T value)
+        {
+            if (features.IsReadOnly)
+            {
+                features = new FeatureCollection(features);
+            }
+            features.Set(value);
+            return features;
+        }
 
         /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
         /// and sets its <see cref="Context"/> feature to the provided value.</summary>
         /// <param name="features">This feature collection.</param>
         /// <param name="value">The new context value.</param>
         /// <returns>The updated feature collection.</returns>
-        public static FeatureCollection WithContext(this FeatureCollection features, IDictionary<string, string> value)
-        {
-            if (features.IsReadOnly)
-            {
-                features = new FeatureCollection(features);
-            }
-            features.Set(new Context { Value = value });
-            return features;
-        }
-
-        /// <summary>Updates this feature collection (if read-write) or creates a new feature collection (if read-only)
-        /// and sets its <see cref="RetryPolicyFeature"/> to the provided value.</summary>
-        /// <param name="features">This feature collection.</param>
-        /// <param name="value">The new retry policy value.</param>
-        /// <returns>The updated feature collection.</returns>
-        public static FeatureCollection WithRetryPolicy(this FeatureCollection features, RetryPolicy value)
-        {
-            if (features.IsReadOnly)
-            {
-                features = new FeatureCollection(features);
-            }
-            features.Set(RetryPolicyFeature.FromRetryPolicy(value));
-            return features;
-        }
+        public static FeatureCollection WithContext(
+            this FeatureCollection features,
+            IDictionary<string, string> value) => features.With(new Context { Value = value });
     }
 }
