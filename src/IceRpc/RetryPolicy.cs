@@ -11,15 +11,15 @@ namespace IceRpc
     public sealed record class RetryPolicy
     {
         /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
-        public static readonly RetryPolicy Immediately = new(Retryable.AfterDelay, TimeSpan.Zero);
+        public static RetryPolicy Immediately { get; } = new(Retryable.AfterDelay, TimeSpan.Zero);
 
         /// <summary>The NoRetry policy specifies that the exception cannot be retried. This is the default policy
         /// when no policy is specified.</summary>
-        public static readonly RetryPolicy NoRetry = new(Retryable.No);
+        public static RetryPolicy NoRetry { get; } = new(Retryable.No);
 
         /// <summary>The OtherReplica policy specifies that the exception can be retried on a different replica.
         /// </summary>
-        public static readonly RetryPolicy OtherReplica = new(Retryable.OtherReplica);
+        public static RetryPolicy OtherReplica { get; } = new(Retryable.OtherReplica);
 
         /// <summary>The retry policy ability for retrying.</summary>
         public Retryable Retryable { get; }

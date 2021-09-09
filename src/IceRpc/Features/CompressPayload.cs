@@ -8,11 +8,11 @@ namespace IceRpc.Features
     {
         /// <summary>A <see cref="CompressPayload"/> instance that specifies that the payload of a request or response
         /// must not be compressed.</summary>
-        public static CompressPayload No = new();
+        public static CompressPayload No { get; } = new();
 
         /// <summary>A <see cref="CompressPayload"/> instance that specifies that the payload of a request or response
         /// must be compressed.</summary>
-        public static CompressPayload Yes = new();
+        public static CompressPayload Yes { get; } = new();
 
         private CompressPayload()
         {

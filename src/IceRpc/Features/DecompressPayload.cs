@@ -8,11 +8,11 @@ namespace IceRpc.Features
     {
         /// <summary>A <see cref="DecompressPayload"/> instance that specifies that the 2.0 encoded payload of a
         /// request or response must not be decompressed.</summary>
-        public static DecompressPayload No = new();
+        public static DecompressPayload No { get; } = new();
 
         /// <summary>A <see cref="DecompressPayload"/> instance that specifies that the 2.0 encoded payload of a
         /// request or response must be decompressed.</summary>
-        public static DecompressPayload Yes = new();
+        public static DecompressPayload Yes { get; } = new();
 
         private DecompressPayload()
         {
