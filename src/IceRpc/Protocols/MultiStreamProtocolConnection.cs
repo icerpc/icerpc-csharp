@@ -21,7 +21,7 @@ namespace IceRpc.Protocols
 
         private TaskCompletionSource? _cancelGoAwaySource;
         private RpcStream? _controlStream;
-        private readonly int _incomingFrameSizeMax;
+        private readonly int _incomingFrameMaxSize;
         private RpcStream? _peerControlStream;
         private readonly Action? _pingReceived;
 
@@ -36,11 +36,12 @@ namespace IceRpc.Protocols
         {
             _transportConnection = transportConnection;
             IdleTimeout = idleTimeout;
-            _incomingFrameSizeMax = incomingFrameMaxSize;
+            _incomingFrameMaxSize = incomingFrameMaxSize;
             _pingReceived = pingReceived;
 
             // TODO: fix
-            _transportConnection.IncomingFrameMaxSize = incomingFrameMaxSize;
+            _transportConnection.PingReceived = _pingReceived;
+            _transportConnection.IncomingFrameMaxSize = _incomingFrameMaxSize;
         }
 
         /// <inheritdoc/>

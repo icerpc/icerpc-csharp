@@ -547,10 +547,10 @@ namespace IceRpc.Tests.Internal
                 async () => await factory.ServicePrx.IcePingAsync());
         }
 
-        // [TestCase(false, Protocol.Ice1)]
-        // [TestCase(true, Protocol.Ice1)]
+        [TestCase(false, Protocol.Ice1)]
+        [TestCase(true, Protocol.Ice1)]
         [TestCase(false, Protocol.Ice2)]
-        // [TestCase(true, Protocol.Ice2)]
+        [TestCase(true, Protocol.Ice2)]
         public async Task Connection_ShutdownCancellationAsync(bool closeClientSide, Protocol protocol)
         {
             using var waitForDispatchSemaphore = new SemaphoreSlim(0);
