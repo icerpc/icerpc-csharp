@@ -121,11 +121,7 @@ namespace IceRpc.Transports.Internal
                                 continue;
                             }
 
-                            if (stream.IsControl)
-                            {
-                                // We don't acquire stream count for the control stream.
-                            }
-                            else if (isBidirectional)
+                            if (isBidirectional)
                             {
                                 if (_bidirectionalStreamCount == _bidirectionalMaxStreams)
                                 {
@@ -146,7 +142,7 @@ namespace IceRpc.Transports.Internal
                             stream.ReceivedFrame(dataSize, endStream);
                             return stream;
                         }
-                        else if (!isBidirectional && endStream && streamId != 2 && streamId != 3)
+                        else if (!isBidirectional && endStream)
                         {
                             // Release the stream count for the unidirectional stream.
                             _unidirectionalStreamSemaphore!.Release();
@@ -213,7 +209,7 @@ namespace IceRpc.Transports.Internal
                             await ReceiveStreamIdAsync(frameSize, cancel).ConfigureAwait(false);
                         if (dataSize > 8)
                         {
-                            throw new InvalidDataException("stream reset frame too large");
+                            throw new InvalidDataException("stream stop sending frame too large");
                         }
 
                         using IDisposable? scope = Logger.StartStreamScope(streamId);
@@ -222,7 +218,7 @@ namespace IceRpc.Transports.Internal
                         await ReceiveDataAsync(data, cancel).ConfigureAwait(false);
 
                         var decoder = new Ice20Decoder(data);
-                        var streamReset = new StreamResetBody(decoder);
+                        var streamReset = new StreamStopSendingBody(decoder);
                         var errorCode = (RpcStreamError)streamReset.ApplicationProtocolErrorCode;
 
                         Logger.LogReceivedSlicStopSendingFrame(frameSize, errorCode);
@@ -242,14 +238,12 @@ namespace IceRpc.Transports.Internal
         }
 
         public override RpcStream CreateStream(bool bidirectional) =>
-            // The first unidirectional stream is always the control stream
-            new SlicStream(
-                this,
-                bidirectional,
-                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
+            new SlicStream(this, bidirectional);
 
-        public override async ValueTask InitializeAsync(CancellationToken cancel)
+        public override async ValueTask ConnectAsync(CancellationToken cancel)
         {
+            await base.ConnectAsync(cancel).ConfigureAwait(false);
+
             // Create a buffered receive single stream on top of the underlying connection.
             _bufferedConnection = new BufferedReceiveOverNetworkSocket(NetworkSocket);
 
@@ -490,28 +484,25 @@ namespace IceRpc.Transports.Internal
 
         internal void ReleaseStream(SlicStream stream)
         {
-            if (!stream.IsControl)
+            if (stream.IsIncoming)
             {
-                if (stream.IsIncoming)
+                if (stream.IsBidirectional)
                 {
-                    if (stream.IsBidirectional)
-                    {
-                        Interlocked.Decrement(ref _bidirectionalStreamCount);
-                    }
-                    else
-                    {
-                        Interlocked.Decrement(ref _unidirectionalStreamCount);
-                    }
-                }
-                else if (stream.IsBidirectional)
-                {
-                    _bidirectionalStreamSemaphore!.Release();
+                    Interlocked.Decrement(ref _bidirectionalStreamCount);
                 }
                 else
                 {
-                    // Don't release the semaphore for unidirectional streams. The semaphore will be released
-                    // by AcceptStreamAsync when the peer sends a StreamLast frame.
+                    Interlocked.Decrement(ref _unidirectionalStreamCount);
                 }
+            }
+            else if (stream.IsBidirectional)
+            {
+                _bidirectionalStreamSemaphore!.Release();
+            }
+            else
+            {
+                // Don't release the semaphore for unidirectional streams. The semaphore will be released
+                // by AcceptStreamAsync when the peer sends a StreamLast frame.
             }
         }
 
@@ -535,7 +526,7 @@ namespace IceRpc.Transports.Internal
                 _bidirectionalStreamSemaphore! :
                 _unidirectionalStreamSemaphore!;
 
-            if (!stream.IsStarted && !stream.IsControl)
+            if (!stream.IsStarted)
             {
                 // If the outgoing stream isn't started, we need to acquire the stream semaphore to ensure we
                 // don't open more streams than the peer allows.
@@ -571,7 +562,7 @@ namespace IceRpc.Transports.Internal
             }
             catch
             {
-                if (!stream.IsStarted && !stream.IsControl)
+                if (!stream.IsStarted)
                 {
                     streamSemaphore.Release();
                 }

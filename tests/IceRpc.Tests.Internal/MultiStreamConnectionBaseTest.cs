@@ -15,16 +15,6 @@ namespace IceRpc.Tests.Internal
     [Parallelizable(scope: ParallelScope.Fixtures)]
     public class MultiStreamConnectionBaseTest : ConnectionBaseTest
     {
-        protected static OutgoingRequest DummyRequest => new(Protocol.Ice2, path: "/dummy", operation: "foo")
-        {
-            PayloadEncoding = Encoding.Ice20
-        };
-
-        protected static OutgoingResponse DummyResponse => new(Protocol.Ice2, ResultType.Success)
-        {
-            PayloadEncoding = Encoding.Ice20
-        };
-
         protected MultiStreamConnection ClientConnection => _clientConnection!;
         protected MultiStreamConnection ServerConnection => _serverConnection!;
         protected MultiStreamConnectionType ConnectionType { get; }
@@ -42,16 +32,6 @@ namespace IceRpc.Tests.Internal
             Task<MultiStreamConnection> acceptTask = AcceptAsync();
             _clientConnection = await ConnectAsync();
             _serverConnection = await acceptTask;
-
-            ValueTask initializeTask = _serverConnection.InitializeAsync(default);
-            await _clientConnection.InitializeAsync(default);
-            await initializeTask;
-
-            _ = await ClientConnection.SendInitializeFrameAsync(default);
-            _ = await ServerConnection.SendInitializeFrameAsync(default);
-
-            _ = await ClientConnection.ReceiveInitializeFrameAsync(default);
-            _ = await ServerConnection.ReceiveInitializeFrameAsync(default);
         }
 
         public void TearDownConnections()
@@ -59,5 +39,14 @@ namespace IceRpc.Tests.Internal
             _clientConnection?.Dispose();
             _serverConnection?.Dispose();
         }
+
+        protected static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendPayload(RpcStream stream, int length = 10)
+        {
+            byte[] buffer = new byte[stream.TransportHeader.Length + length];
+            stream.TransportHeader.CopyTo(buffer);
+            return new ReadOnlyMemory<byte>[] { buffer };
+        }
+
+        protected static Memory<byte> CreateReceivePayload(int length = 10) => new byte[length];
     }
 }

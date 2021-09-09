@@ -23,6 +23,11 @@ namespace IceRpc.Tests
              bool tls = false,
              Protocol protocol = Protocol.Ice2)
         {
+            if (transport == "coloc" && host == "127.0.0.1" && port == 0)
+            {
+                return GetUniqueColocEndpoint(protocol);
+            }
+
             if (protocol == Protocol.Ice2)
             {
                 string endpoint = $"ice+{transport}://{EscapeIPv6Address(host, protocol)}:{port}";

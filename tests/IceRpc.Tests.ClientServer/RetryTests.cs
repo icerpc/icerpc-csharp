@@ -308,7 +308,7 @@ namespace IceRpc.Tests.ClientServer
                     routers[2].Use(next => new InlineDispatcher(
                         async (request, cancel) =>
                         {
-                            await request.Connection.AbortAsync("forcefully close connection!");
+                            await request.Connection.CloseAsync("forcefully close connection!");
                             return await next.DispatchAsync(request, cancel);
                         }));
 
@@ -507,7 +507,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        await dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.CloseAsync();
                     }
                     else
                     {
@@ -526,7 +526,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     if (killConnection)
                     {
-                        await dispatch.Connection.AbortAsync();
+                        await dispatch.Connection.CloseAsync();
                     }
                     else
                     {

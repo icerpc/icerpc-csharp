@@ -122,12 +122,10 @@ namespace IceRpc.Transports.Internal
                             // Except for the validate connection frame, subsequent validate connection messages are
                             // heartbeats sent by the peer. We just handle it here and don't pass it over the control
                             // stream which only expect the close frame at this point.
-                            Debug.Assert(stream.IsControl);
                             continue;
                         }
                         else if (frameType == Ice1FrameType.CloseConnection && IsDatagram)
                         {
-                            Debug.Assert(stream.IsControl);
                             Logger.LogDatagramConnectionReceiveCloseConnectionFrame();
                             continue;
                         }
@@ -167,7 +165,6 @@ namespace IceRpc.Transports.Internal
                         // If we received a connection validation frame and the stream is not known, it's the first
                         // received connection validation message, create the control stream and return it.
                         stream = new Ice1Stream(this, streamId);
-                        Debug.Assert(stream.IsControl);
                         stream.ReceivedFrame(frameType, frame);
                         return stream;
                     }
@@ -181,12 +178,7 @@ namespace IceRpc.Transports.Internal
 
         public override RpcStream CreateStream(bool bidirectional) =>
             // The first unidirectional stream is always the control stream
-            new Ice1Stream(
-                this,
-                bidirectional,
-                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
-
-        public override ValueTask InitializeAsync(CancellationToken cancel) => default;
+            new Ice1Stream(this, bidirectional);
 
         public override async Task PingAsync(CancellationToken cancel)
         {
@@ -227,24 +219,9 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel)
-        {
-            // With Ice1, the connection validation message is only sent by the server to the client. So here we
-            // only expect the connection validation message for a client connection and just return the
-            // control stream immediately for a server connection.
-            if (IsServer)
-            {
-                return new ValueTask<RpcStream>(new Ice1Stream(this, 2));
-            }
-            else
-            {
-                return base.ReceiveInitializeFrameAsync(cancel);
-            }
-        }
-
         internal void ReleaseStream(Ice1Stream stream)
         {
-            if (stream.IsIncoming && !stream.IsControl)
+            if (stream.IsIncoming)
             {
                 if (stream.IsBidirectional)
                 {
@@ -314,22 +291,7 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        internal override ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel)
-        {
-            // With Ice1, the connection validation message is only sent by the server to the client. So here
-            // we only expect the connection validation message for a server connection and just return the
-            // control stream immediately for a client connection.
-            if (IsServer)
-            {
-                return base.SendInitializeFrameAsync(cancel);
-            }
-            else
-            {
-                return new ValueTask<RpcStream>(new Ice1Stream(this, AllocateId(false)));
-            }
-        }
-
-        private long AllocateId(bool bidirectional)
+        internal long AllocateId(bool bidirectional)
         {
             // Allocate a new ID according to the Quic numbering scheme.
             long id;

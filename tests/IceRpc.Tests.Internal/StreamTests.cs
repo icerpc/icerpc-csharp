@@ -11,7 +11,6 @@ namespace IceRpc.Tests.Internal
     [Timeout(10000)]
     [TestFixture(MultiStreamConnectionType.Slic)]
     [TestFixture(MultiStreamConnectionType.Coloc)]
-    [TestFixture(MultiStreamConnectionType.Ice1)]
     public class StreamTests : MultiStreamConnectionBaseTest
     {
         public StreamTests(MultiStreamConnectionType connectionType)
@@ -40,7 +39,7 @@ namespace IceRpc.Tests.Internal
 
             // Create client stream and send one byte.
             RpcStream clientStream = ClientConnection.CreateStream(true);
-            await clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default);
+            await clientStream.SendAsync(CreateSendPayload(clientStream, 1), false, default);
 
             (int received, RpcStream serverStream) = await serverTask;
 
@@ -59,7 +58,7 @@ namespace IceRpc.Tests.Internal
 
             // Ensure we can still create a new stream after the cancellation
             RpcStream clientStream2 = ClientConnection.CreateStream(true);
-            await clientStream2.SendAsync(CreateSendBuffer(clientStream2, 1), true, default);
+            await clientStream2.SendAsync(CreateSendPayload(clientStream2, 1), true, default);
 
             async Task<(int, RpcStream)> ReceiveAsync()
             {
@@ -194,71 +193,45 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void Stream_SendRequestAsync_Cancellation()
+        public void Stream_SendAsync_Cancellation()
         {
             RpcStream stream = ClientConnection.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
 
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.SendRequestFrameAsync(DummyRequest, source.Token));
+                async () => await stream.SendAsync(CreateSendPayload(stream), true, source.Token));
         }
 
         [Test]
-        public async Task Stream_SendResponse_CancellationAsync()
-        {
-            RpcStream stream = ClientConnection.CreateStream(true);
-            await stream.SendRequestFrameAsync(DummyRequest);
-
-            RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
-
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await serverStream.SendResponseFrameAsync(DummyResponse, source.Token));
-        }
-
-        [Test]
-        public void Stream_ReceiveRequest_Cancellation()
+        public void Stream_ReceiveAsync_Cancellation()
         {
             RpcStream stream = ClientConnection.CreateStream(true);
             using var source = new CancellationTokenSource();
             source.Cancel();
             Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReceiveRequestFrameAsync(source.Token));
+                async () => await stream.ReceiveAsync(CreateReceivePayload(), source.Token));
         }
 
         [Test]
-        public async Task Stream_ReceiveResponse_Cancellation1Async()
-        {
-            RpcStream stream = ClientConnection.CreateStream(true);
-            await stream.SendRequestFrameAsync(DummyRequest);
-            using var source = new CancellationTokenSource();
-            source.Cancel();
-            Assert.CatchAsync<OperationCanceledException>(
-                async () => await stream.ReceiveResponseFrameAsync(DummyRequest, source.Token));
-        }
-
-        [Test]
-        public async Task Stream_ReceiveResponse_Cancellation2Async()
+        public async Task Stream_ReceiveAsync_Cancellation2Async()
         {
             RpcStream stream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
-            await stream.SendRequestFrameAsync(DummyRequest);
+            await stream.SendAsync(CreateSendPayload(stream), true, default);
 
             RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-            IncomingRequest request = await serverStream.ReceiveRequestFrameAsync();
+            await serverStream.ReceiveAsync(CreateReceivePayload(), default);
             _ = ServerConnection.AcceptStreamAsync(default).AsTask();
 
             var dispatchCanceled = new TaskCompletionSource();
             serverStream.CancelDispatchSource!.Token.Register(() => dispatchCanceled.SetResult());
 
             using var source = new CancellationTokenSource();
-            ValueTask<IncomingResponse> responseTask = stream.ReceiveResponseFrameAsync(DummyRequest, source.Token);
+            ValueTask<int> receiveTask = stream.ReceiveAsync(CreateReceivePayload(), source.Token);
             source.Cancel();
 
-            Assert.CatchAsync<OperationCanceledException>(async () => await responseTask);
+            Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
 
             if (ConnectionType != MultiStreamConnectionType.Ice1)
             {
@@ -288,7 +261,7 @@ namespace IceRpc.Tests.Internal
 
             RpcStream stream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
-            _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
+            _ = stream.SendAsync(CreateSendPayload(stream, 1), false, default).AsTask();
 
             RpcStream serverStream = await serverAcceptStream;
 
@@ -336,7 +309,7 @@ namespace IceRpc.Tests.Internal
 
             RpcStream stream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
-            _ = stream.SendAsync(CreateSendBuffer(stream, 1), false, default).AsTask();
+            _ = stream.SendAsync(CreateSendPayload(stream, 1), false, default).AsTask();
 
             RpcStream serverStream = await serverAcceptStream;
 
@@ -385,7 +358,7 @@ namespace IceRpc.Tests.Internal
 
             // Ensure the server can still send data to the client even if the client can no longer send data to
             // the server.
-            await serverStream.SendAsync(CreateSendBuffer(serverStream, 1), false, default);
+            await serverStream.SendAsync(CreateSendPayload(serverStream, 1), false, default);
             await stream.ReceiveAsync(new byte[1], default);
 
             async Task<RpcStream> AcceptServerStreamAsync()
@@ -412,7 +385,7 @@ namespace IceRpc.Tests.Internal
 
             RpcStream clientStream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
-            _ = clientStream.SendAsync(CreateSendBuffer(clientStream, 1), false, default).AsTask();
+            _ = clientStream.SendAsync(CreateSendPayload(clientStream, 1), false, default).AsTask();
 
             RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
             _ = ServerConnection.AcceptStreamAsync(default).AsTask();
@@ -459,13 +432,6 @@ namespace IceRpc.Tests.Internal
             Assert.That(decompressorCalled, Is.True);
             Assert.That(offset, Is.EqualTo(buffer.Length));
             Assert.That(readBuffer, Is.EqualTo(buffer));
-        }
-
-        private static ReadOnlyMemory<ReadOnlyMemory<byte>> CreateSendBuffer(RpcStream stream, int length)
-        {
-            byte[] buffer = new byte[stream.TransportHeader.Length + length];
-            stream.TransportHeader.CopyTo(buffer);
-            return new ReadOnlyMemory<byte>[] { buffer };
         }
 
         private class TestMemoryStream : MemoryStream

@@ -112,8 +112,8 @@ namespace IceRpc.Transports.Internal
         protected SignaledStream(MultiStreamConnection connection, long streamId)
             : base(connection, streamId) => _source.RunContinuationsAsynchronously = true;
 
-        protected SignaledStream(MultiStreamConnection connection, bool bidirectional, bool control)
-            : base(connection, bidirectional, control) => _source.RunContinuationsAsynchronously = true;
+        protected SignaledStream(MultiStreamConnection connection, bool bidirectional)
+            : base(connection, bidirectional) => _source.RunContinuationsAsynchronously = true;
 
         protected override void Shutdown()
         {
@@ -266,10 +266,6 @@ namespace IceRpc.Transports.Internal
             }
             return new ValueTask<T>(this, _source.Version);
         }
-
-        internal override Task WaitForShutdownAsync(CancellationToken cancel) =>
-            // Ignore the result, no result is expected when this is called, only an exception.
-            WaitAsync(cancel).AsTask();
 
         private protected abstract Task SendResetFrameAsync(RpcStreamError errorCode);
 

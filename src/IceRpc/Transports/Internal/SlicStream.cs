@@ -330,10 +330,10 @@ namespace IceRpc.Transports.Internal
             // Release connection stream count or semaphore for this stream.
             _connection.ReleaseStream(this);
 
-            // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is received.
-            // Since an incoming un-directional stream doesn't send stream frames, we have to send a stream last frame
-            // here to ensure the outgoing stream is released from the connection.
-            if (IsIncoming && !IsBidirectional && !IsControl)
+            // Outgoing streams are released from the connection when the StreamLast or StreamReset frame is
+            // received. Since an incoming un-directional stream doesn't send stream frames, we have to send a
+            // stream last frame here to ensure the outgoing stream is released from the connection.
+            if (IsIncoming && !IsBidirectional)
             {
                 // It's important to decrement the stream count before sending the StreamLast frame to prevent
                 // a race where the peer could start a new stream before the counter is decremented.
@@ -344,8 +344,8 @@ namespace IceRpc.Transports.Internal
         internal SlicStream(SlicConnection connection, long streamId)
             : base(connection, streamId) => _connection = connection;
 
-        internal SlicStream(SlicConnection connection, bool bidirectional, bool control)
-            : base(connection, bidirectional, control) => _connection = connection;
+        internal SlicStream(SlicConnection connection, bool bidirectional)
+            : base(connection, bidirectional) => _connection = connection;
 
         internal void ReceivedConsumed(int size)
         {
@@ -460,10 +460,10 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(RpcStreamError errorCode)
         {
-            if (!IsBidirectional && !IsIncoming)
-            {
-                throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
-            }
+            // if (!IsBidirectional && !IsIncoming)
+            // {
+            //     throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
+            // }
 
             // It's important to set the exception before completing the reads because ReceiveAsync expects the
             // exception to be set if reads are completed.

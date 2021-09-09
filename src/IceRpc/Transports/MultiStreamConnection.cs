@@ -10,14 +10,11 @@ using System.Text;
 
 namespace IceRpc.Transports
 {
-    /// <summary>A multi-stream connection represents a network connection that provides multiple independent streams of
-    /// binary data.</summary>
+    /// <summary>A multi-stream connection represents a network connection that provides multiple independent
+    /// streams of binary data.</summary>
     /// <seealso cref="RpcStream"/>
-    public abstract class MultiStreamConnection : IDisposable
+    public abstract class MultiStreamConnection : ITransportConnection
     {
-        /// <summary>Gets or set the idle timeout.</summary>
-        public TimeSpan IdleTimeout { get; set; }
-
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }
 
@@ -36,17 +33,14 @@ namespace IceRpc.Transports
         public Endpoint? LocalEndpoint { get; protected set; }
 
         /// <summary>The Ice protocol used by this connection.</summary>
+        // TODO: Remove
         public Protocol Protocol => _endpoint.Protocol;
 
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
         public Endpoint? RemoteEndpoint { get; protected set; }
 
-        /// <summary>The name of the transport.</summary>
-        public string Transport => _endpoint.Transport;
-
-        // TODO: refactor once we add a protocol abstraction. This setting has nothing to do here. It's there
-        // for now because the RpcStream class implements protocol framing.
+        // TODO: Remove
         internal int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
 
         internal int IncomingStreamCount
@@ -60,6 +54,10 @@ namespace IceRpc.Transports
             }
         }
 
+        // TODO: Remove
+        internal TimeSpan IdleTimeout { get; set; }
+
+        // TODO: Remove
         internal TimeSpan LastActivity { get; private set; }
 
         // The stream ID of the last received response with the Ice1 protocol. Keeping track of this stream ID is
@@ -85,14 +83,13 @@ namespace IceRpc.Transports
         // the remote endpoint otherwise.
         private readonly Endpoint _endpoint;
         private int _incomingStreamCount;
-        private TaskCompletionSource? _incomingStreamsEmptySource;
         private long _lastIncomingBidirectionalStreamId = -1;
         private long _lastIncomingUnidirectionalStreamId = -1;
         private readonly object _mutex = new();
         private int _outgoingStreamCount;
-        private TaskCompletionSource? _outgoingStreamsEmptySource;
         private readonly ConcurrentDictionary<long, RpcStream> _streams = new();
         private bool _shutdown;
+        private Action? _streamRemoved;
 
         /// <summary>Accepts an incoming stream.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
@@ -126,14 +123,6 @@ namespace IceRpc.Transports
         /// parameters of the provided endpoint; otherwise, <c>false</c>.</returns>
         public abstract bool HasCompatibleParams(Endpoint remoteEndpoint);
 
-        /// <summary>Initializes the transport.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract ValueTask InitializeAsync(CancellationToken cancel);
-
-        /// <summary>Sends a ping frame to defer the idle timeout.</summary>
-        /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>
-        public abstract Task PingAsync(CancellationToken cancel);
-
         /// <inheritdoc/>
         public override string ToString()
         {
@@ -152,10 +141,7 @@ namespace IceRpc.Transports
         /// <param name="endpoint">The endpoint that created the connection.</param>
         /// <param name="isServer">The connection is a server connection.</param>
         /// <param name="logger">The logger.</param>
-        protected MultiStreamConnection(
-            Endpoint endpoint,
-            bool isServer,
-            ILogger logger)
+        protected MultiStreamConnection(Endpoint endpoint, bool isServer, ILogger logger)
         {
             _endpoint = endpoint;
             IsServer = isServer;
@@ -297,6 +283,10 @@ namespace IceRpc.Transports
             return false;
         }
 
+        // TODO: Remove
+        /// <summary>Ping</summary>
+        public abstract Task PingAsync(CancellationToken cancel);
+
         internal virtual void AbortOutgoingStreams(
             RpcStreamError errorCode,
             (long Bidirectional, long Unidirectional)? ids = null)
@@ -305,7 +295,6 @@ namespace IceRpc.Transports
             foreach (RpcStream stream in _streams.Values)
             {
                 if (!stream.IsIncoming &&
-                    !stream.IsControl &&
                     (ids == null ||
                      stream.Id > (stream.IsBidirectional ? ids.Value.Bidirectional : ids.Value.Unidirectional)))
                 {
@@ -329,7 +318,7 @@ namespace IceRpc.Transports
             }
         }
 
-        internal void AddStream(long id, RpcStream stream, bool control, ref long streamId)
+        internal void AddStream(long id, RpcStream stream, ref long streamId)
         {
             lock (_mutex)
             {
@@ -345,16 +334,13 @@ namespace IceRpc.Transports
                 // the connection and the stream ID assignment are atomic.
                 streamId = id;
 
-                if (!control)
+                if (stream.IsIncoming)
                 {
-                    if (stream.IsIncoming)
-                    {
-                        ++_incomingStreamCount;
-                    }
-                    else
-                    {
-                        ++_outgoingStreamCount;
-                    }
+                    ++_incomingStreamCount;
+                }
+                else
+                {
+                    ++_outgoingStreamCount;
                 }
 
                 // Keep track of the last assigned stream ID. This is used for the shutdown logic to tell the peer
@@ -373,51 +359,27 @@ namespace IceRpc.Transports
             }
         }
 
-        internal virtual async ValueTask<RpcStream> ReceiveInitializeFrameAsync(CancellationToken cancel = default)
-        {
-            RpcStream stream = await AcceptStreamAsync(cancel).ConfigureAwait(false);
-            Debug.Assert(stream.IsControl); // The first stream is always the control stream
-            await stream.ReceiveInitializeFrameAsync(cancel).ConfigureAwait(false);
-            return stream;
-        }
-
         internal void RemoveStream(long id)
         {
             lock (_mutex)
             {
                 if (_streams.TryRemove(id, out RpcStream? stream))
                 {
-                    if (!stream.IsControl)
+                    if (stream.IsIncoming)
                     {
-                        if (stream.IsIncoming)
-                        {
-                            if (--_incomingStreamCount == 0)
-                            {
-                                _incomingStreamsEmptySource?.SetResult();
-                            }
-                        }
-                        else
-                        {
-                            if (--_outgoingStreamCount == 0)
-                            {
-                                _outgoingStreamsEmptySource?.SetResult();
-                            }
-                        }
+                        --_incomingStreamCount;
                     }
+                    else
+                    {
+                        --_outgoingStreamCount;
+                    }
+                    _streamRemoved?.Invoke();
                 }
                 else
                 {
                     Debug.Assert(false);
                 }
             }
-        }
-
-        internal virtual async ValueTask<RpcStream> SendInitializeFrameAsync(CancellationToken cancel = default)
-        {
-            RpcStream stream = CreateStream(bidirectional: false);
-            Debug.Assert(stream.IsControl); // The first stream is always the control stream
-            await stream.SendInitializeFrameAsync(cancel).ConfigureAwait(false);
-            return stream;
         }
 
         internal (long Bidirectional, long Unidirectional) Shutdown()
@@ -431,36 +393,33 @@ namespace IceRpc.Transports
             }
         }
 
-        internal async ValueTask WaitForEmptyIncomingStreamsAsync(CancellationToken cancel)
+        internal async ValueTask WaitForStreamCountAsync(
+            int outgoingStreamCount,
+            int incomingStreamCount,
+            CancellationToken cancel)
         {
+            TaskCompletionSource? taskSource = null;
             lock (_mutex)
             {
-                if (_incomingStreamCount == 0)
+                if (_outgoingStreamCount > outgoingStreamCount || _incomingStreamCount > incomingStreamCount)
                 {
-                    return;
+                    taskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _streamRemoved = () =>
+                        {
+                            if (_outgoingStreamCount <= outgoingStreamCount &&
+                                _incomingStreamCount <= incomingStreamCount)
+                            {
+                                taskSource.SetResult();
+                                _streamRemoved = null;
+                            }
+                        };
                 }
-                // Run the continuations asynchronously to ensure continuations are not ran from
-                // the code that aborts the last stream.
-                _incomingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
             }
-            await _incomingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
-        }
 
-        internal async Task WaitForEmptyStreamsAsync(CancellationToken cancel)
-        {
-            await WaitForEmptyIncomingStreamsAsync(cancel).ConfigureAwait(false);
-
-            lock (_mutex)
+            if (taskSource?.Task is Task task)
             {
-                if (_outgoingStreamCount == 0)
-                {
-                    return;
-                }
-                // Run the continuations asynchronously to ensure continuations are not ran from
-                // the code that aborts the last stream.
-                _outgoingStreamsEmptySource ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
+                await task.WaitAsync(cancel).ConfigureAwait(false);
             }
-            await _outgoingStreamsEmptySource.Task.WaitAsync(cancel).ConfigureAwait(false);
         }
     }
 }

@@ -72,7 +72,7 @@ namespace IceRpc.Transports
                 // First add the stream and then assign the ID. AddStream can throw if the connection is closed and
                 // in this case we want to make sure the id isn't assigned since the stream isn't considered
                 // allocated if not added to the connection.
-                _connection.AddStream(value, this, IsControl, ref _id);
+                _connection.AddStream(value, this, ref _id);
             }
         }
 
@@ -81,9 +81,6 @@ namespace IceRpc.Transports
 
         /// <summary>Returns <c>true</c> if the stream is a bidirectional stream, <c>false</c> otherwise.</summary>
         public bool IsBidirectional { get; }
-
-        /// <summary>Returns <c>true</c> if the stream is a control stream, <c>false</c> otherwise.</summary>
-        public bool IsControl { get; }
 
         /// <summary>Returns <c>true</c> if the stream is shutdown, <c>false</c> otherwise.</summary>
         public bool IsShutdown => (Thread.VolatileRead(ref _state) & (int)State.Shutdown) > 0;
@@ -173,39 +170,37 @@ namespace IceRpc.Transports
         {
             _connection = connection;
             IsBidirectional = streamId % 4 < 2;
-            IsControl = streamId == 2 || streamId == 3;
-            _connection.AddStream(streamId, this, IsControl, ref _id);
-            if (IsIncoming)
+            _connection.AddStream(streamId, this, ref _id);
+
+            if (IsBidirectional && IsIncoming)
             {
+                // TODO: XXX Move to protocol?
                 CancelDispatchSource = new CancellationTokenSource();
-                if (!IsBidirectional)
+            }
+            else
+            {
+                // Write-side or read-size of unidirectional stream is marked as completed.
+                if (IsIncoming)
                 {
-                    // Write-side of incoming unidirectional stream is marked as completed since there should be
-                    // no writes on the stream.
                     TrySetWriteCompleted();
                 }
-            }
-            else if (!IsBidirectional)
-            {
-                // Read-side of outgoing unidirectional stream is marked as completed since there should be
-                // no reads on the stream.
-                TrySetReadCompleted();
+                else
+                {
+                    TrySetReadCompleted();
+                }
             }
         }
 
         /// <summary>Constructs an outgoing stream.</summary>
         /// <param name="bidirectional"><c>true</c> to create a bidirectional stream, <c>false</c> otherwise.</param>
-        /// <param name="control"><c>true</c> to create a control stream, <c>false</c> otherwise.</param>
         /// <param name="connection">The parent connection.</param>
-        protected RpcStream(MultiStreamConnection connection, bool bidirectional, bool control)
+        protected RpcStream(MultiStreamConnection connection, bool bidirectional)
         {
             _connection = connection;
             IsBidirectional = bidirectional;
-            IsControl = control;
             if (!IsBidirectional)
             {
-                // Read-side of outgoing unidirectional stream is marked as completed since there should be
-                // no reads on the stream.
+                // Read-side of outgoing unidirectional stream is marked as completed.
                 TrySetReadCompleted();
             }
         }
@@ -244,7 +239,14 @@ namespace IceRpc.Transports
             // If both reads and writes are completed, the stream is started and not already shutdown, call shutdown.
             if (ReadCompleted && WriteCompleted && TrySetState(State.Shutdown, false) && IsStarted)
             {
-                Shutdown();
+                try
+                {
+                    Shutdown();
+                }
+                catch (Exception exception)
+                {
+                    Debug.Assert(false, $"unexpected exception {exception}");
+                }
             }
         }
 
@@ -257,7 +259,7 @@ namespace IceRpc.Transports
             AbortRead(errorCode);
         }
 
-        internal async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync()
+        internal async ValueTask<((long, long), string)> ReceiveGoAwayFrameAsync(CancellationToken cancel)
         {
             Debug.Assert(IsStarted);
 
@@ -268,7 +270,7 @@ namespace IceRpc.Transports
             {
                 ReadOnlyMemory<byte> buffer = await ReceiveIce1FrameAsync(
                     Ice1FrameType.CloseConnection,
-                    CancellationToken.None).ConfigureAwait(false);
+                    cancel).ConfigureAwait(false);
                 if (buffer.Length > 0)
                 {
                     throw new InvalidDataException(
@@ -287,7 +289,7 @@ namespace IceRpc.Transports
             {
                 ReadOnlyMemory<byte> buffer = await ReceiveIce2FrameAsync(
                     Ice2FrameType.GoAway,
-                    CancellationToken.None).ConfigureAwait(false);
+                    cancel).ConfigureAwait(false);
 
                 var goAwayFrame = new Ice2GoAwayBody(new Ice20Decoder(buffer));
                 lastBidirectionalId = goAwayFrame.LastBidirectionalStreamId;
@@ -872,11 +874,6 @@ namespace IceRpc.Transports
         }
 
         internal IDisposable? StartScope() => _connection.Logger.StartStreamScope(Id);
-
-        /// <summary>Wait for the stream to be shutdown. This should only be called once no more data is expected
-        /// over the stream. It will return when the peer closes the stream by either sending EOS, a stream reset
-        /// or by closing the connection.</summary>
-        internal abstract Task WaitForShutdownAsync(CancellationToken cancel);
 
         private protected virtual ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
             Ice1FrameType expectedFrameType,

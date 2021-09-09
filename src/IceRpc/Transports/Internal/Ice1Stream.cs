@@ -35,8 +35,8 @@ namespace IceRpc.Transports.Internal
         internal Ice1Stream(Ice1Connection connection, long streamId)
             : base(connection, streamId) => _connection = connection;
 
-        internal Ice1Stream(Ice1Connection connection, bool bidirectional, bool control)
-            : base(connection, bidirectional, control) => _connection = connection;
+        internal Ice1Stream(Ice1Connection connection, bool bidirectional)
+            : base(connection, bidirectional) => _connection = connection;
 
         internal void ReceivedFrame(Ice1FrameType frameType, ReadOnlyMemory<byte> frame)
         {
@@ -63,7 +63,7 @@ namespace IceRpc.Transports.Internal
 
             // An Ice1 stream can only receive a single frame, except if it's a control stream which can
             // receive multiple connection validation messages.
-            if (!IsControl)
+            if (Id != 2 && Id != 3)
             {
                 TrySetReadCompleted();
             }

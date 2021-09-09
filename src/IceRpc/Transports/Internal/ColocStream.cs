@@ -150,8 +150,8 @@ namespace IceRpc.Transports.Internal
             : base(connection, streamId) => _connection = connection;
 
         /// <summary>Constructor for outgoing colocated stream</summary>
-        internal ColocStream(ColocConnection connection, bool bidirectional, bool control)
-            : base(connection, bidirectional, control) => _connection = connection;
+        internal ColocStream(ColocConnection connection, bool bidirectional)
+            : base(connection, bidirectional) => _connection = connection;
 
         internal void ReceivedFrame(object frame, bool endStream)
         {

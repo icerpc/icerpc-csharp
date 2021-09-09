@@ -93,16 +93,10 @@ namespace IceRpc.Transports.Internal
             }
         }
 
-        public override ValueTask ConnectAsync(CancellationToken cancel) => default;
-
         public override RpcStream CreateStream(bool bidirectional) =>
-            // The first unidirectional stream is always the control stream
-            new ColocStream(
-                this,
-                bidirectional,
-                !bidirectional && (_nextUnidirectionalId == 2 || _nextUnidirectionalId == 3));
+            new ColocStream(this, bidirectional);
 
-        public override async ValueTask InitializeAsync(CancellationToken cancel)
+        public override async ValueTask ConnectAsync(CancellationToken cancel)
         {
             try
             {
@@ -208,7 +202,7 @@ namespace IceRpc.Transports.Internal
 
         internal void ReleaseStream(ColocStream stream)
         {
-            if (stream.IsIncoming && !stream.IsBidirectional && !stream.IsControl)
+            if (stream.IsIncoming && !stream.IsBidirectional)
             {
                 // This client side stream acquires the semaphore before opening an unidirectional stream. The
                 // semaphore is released when this server side stream is disposed.
@@ -232,7 +226,7 @@ namespace IceRpc.Transports.Internal
                 _bidirectionalStreamSemaphore! :
                 _unidirectionalStreamSemaphore!;
 
-            if (!stream.IsStarted && !stream.IsControl)
+            if (!stream.IsStarted)
             {
                 // Wait on the stream semaphore to ensure that we don't open more streams than the peer
                 // allows. The wait is done on the client side to ensure the sent callback for the request
@@ -245,7 +239,7 @@ namespace IceRpc.Transports.Internal
                 // If the stream is aborted, stop sending stream frames.
                 if (stream.WriteCompleted && (frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>))
                 {
-                    if (!stream.IsStarted && !stream.IsControl)
+                    if (!stream.IsStarted)
                     {
                         streamSemaphore.Release();
                     }
@@ -290,7 +284,7 @@ namespace IceRpc.Transports.Internal
             }
             catch
             {
-                if (!stream.IsStarted && !stream.IsControl)
+                if (!stream.IsStarted)
                 {
                     streamSemaphore.Release();
                 }
