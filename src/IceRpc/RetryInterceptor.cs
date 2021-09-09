@@ -58,7 +58,7 @@ namespace IceRpc
                             return response;
                         }
 
-                        retryPolicy = response.Features.Get<RetryPolicy>(); // TODO, convert to RetryPolicyFeature
+                        retryPolicy = response.Features.GetRetryPolicy();
                     }
                     catch (OperationCanceledException)
                     {

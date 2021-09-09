@@ -518,7 +518,7 @@ namespace IceRpc.Transports
                     replyStatus == ReplyStatus.ObjectNotExistException &&
                     (proxy.Endpoint == null || proxy.Endpoint.Transport == TransportNames.Loc)) // "indirect" proxy
                 {
-                    features.Set(RetryPolicy.OtherReplica);
+                    features.Set(RetryPolicyFeature.OtherReplica);
                 }
 
                 response = new IncomingResponse(
@@ -560,7 +560,7 @@ namespace IceRpc.Transports
                 if (retryPolicy != default)
                 {
                     features = new();
-                    features.Set(retryPolicy);
+                    features.Set(RetryPolicyFeature.FromRetryPolicy(retryPolicy));
                 }
 
                 response = new IncomingResponse(_connection.Protocol, responseHeaderBody.ResultType)
