@@ -2,6 +2,7 @@
 
 using IceRpc.Internal;
 using IceRpc.Slice;
+using System.Globalization;
 
 namespace IceRpc
 {
@@ -35,7 +36,7 @@ namespace IceRpc
         /// <inheritdoc/>
         public override string ToString() => Retryable switch
         {
-            Retryable.AfterDelay => $"after {Delay.ToPropertyValue()} delay",
+            Retryable.AfterDelay => $"after {DelayToString(Delay)} delay",
             Retryable.OtherReplica => "other replica",
             Retryable.No => "no retry",
             _ => "unknown"
@@ -55,6 +56,45 @@ namespace IceRpc
             {
                 encoder.EncodeVarUInt((uint)Delay.TotalMilliseconds);
             }
+        }
+
+        private static string DelayToString(TimeSpan ts)
+        {
+            FormattableString message;
+            if (ts == TimeSpan.Zero)
+            {
+                return "0ms";
+            }
+            else if (ts == Timeout.InfiniteTimeSpan)
+            {
+                return "infinite";
+            }
+            else if (ts.Milliseconds != 0)
+            {
+                message = $"{ts.TotalMilliseconds}ms";
+            }
+            else if (ts.Seconds != 0)
+            {
+                message = $"{ts.TotalSeconds}s";
+            }
+            else if (ts.Minutes != 0)
+            {
+                message = $"{ts.TotalMinutes}m";
+            }
+            else if (ts.Hours != 0)
+            {
+                message = $"{ts.TotalHours}h";
+            }
+            else if (ts.Days != 0)
+            {
+                message = $"{ts.TotalDays}d";
+            }
+            else
+            {
+                message = $"{ts.TotalMilliseconds}ms";
+            }
+
+            return message.ToString(CultureInfo.InvariantCulture);
         }
 
         private RetryPolicy(Retryable retryable, TimeSpan delay = default)
