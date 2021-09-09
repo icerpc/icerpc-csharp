@@ -480,28 +480,6 @@ Slice::CsVisitor::emitEditorBrowsableNeverAttribute()
 }
 
 void
-Slice::CsVisitor::emitEqualityOperators(const string& name)
-{
-    _out << sp;
-    _out << nl << "/// <summary>The equality operator == returns true if its operands are equal, false otherwise."
-         << "</summary>";
-    _out << nl << "/// <param name=\"lhs\">The left hand side operand.</param>";
-    _out << nl << "/// <param name=\"rhs\">The right hand side operand.</param>";
-    _out << nl << "/// <returns><c>true</c> if the operands are equal, otherwise <c>false</c>.</returns>";
-    _out << nl << "public static bool operator ==(" << name << " lhs, " << name << " rhs)";
-    _out << " => lhs.Equals(rhs);";
-
-    _out << sp;
-    _out << nl << "/// <summary>The inequality operator != returns true if its operands are not equal, false otherwise."
-         << "</summary>";
-    _out << nl << "/// <param name=\"lhs\">The left hand side operand.</param>";
-    _out << nl << "/// <param name=\"rhs\">The right hand side operand.</param>";
-    _out << nl << "/// <returns><c>true</c> if the operands are not equal, otherwise <c>false</c>.</returns>";
-    _out << nl << "public static bool operator !=(" << name << " lhs, " << name << " rhs)";
-    _out << " => !lhs.Equals(rhs);";
-}
-
-void
 Slice::CsVisitor::emitCustomAttributes(const ContainedPtr& p)
 {
     StringList metadata = p->getAllMetadata();
@@ -1657,7 +1635,7 @@ Slice::Gen::TypesVisitor::visitStructStart(const StructPtr& p)
         _out << "readonly ";
     }
 
-    _out << "partial struct " << name << " : global::System.IEquatable<" << name << ">";
+    _out << "partial record struct " << name;
     _out << sb;
     return true;
 }
@@ -1669,8 +1647,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     string scope = fixId(p->scope());
     string ns = getNamespace(p);
     MemberList dataMembers = p->dataMembers();
-
-    emitEqualityOperators(name);
 
     _out << sp;
     _out << nl << "/// <summary>Constructs a new instance of <see cref=\"" << name << "\"/>.</summary>";
@@ -1713,55 +1689,6 @@ Slice::Gen::TypesVisitor::visitStructEnd(const StructPtr& p)
     _out << sb;
     writeUnmarshalDataMembers(dataMembers, ns, 0);
     _out << eb;
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public readonly override bool Equals(object? obj) => obj is " << name
-         << " value && this.Equals(value);";
-
-    if (!p->hasMetadata("cs:custom-equals"))
-    {
-        // Default implementation for Equals and GetHashCode
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly bool Equals(" << name << " other) =>";
-        _out.inc();
-        _out << nl;
-        for (auto q = dataMembers.begin(); q != dataMembers.end();)
-        {
-            string mName = fixId(fieldName(*q), Slice::ObjectType);
-            string lhs = "this." + mName;
-            string rhs = "other." + mName;
-
-            TypePtr mType = unwrapIfOptional((*q)->type());
-
-            _out << lhs << " == " << rhs;
-
-            if (++q != dataMembers.end())
-            {
-                _out << " &&" << nl;
-            }
-            else
-            {
-                _out << ";";
-            }
-        }
-        _out.dec();
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public readonly override int GetHashCode()";
-        _out << sb;
-        _out << nl << "var hash = new global::System.HashCode();";
-        for (const auto& dataMember : dataMembers)
-        {
-            string obj = "this." + fixId(fieldName(dataMember), Slice::ObjectType);
-            TypePtr mType = unwrapIfOptional(dataMember->type());
-            _out << nl << "hash.Add(" << obj << ");";
-        }
-        _out << nl << "return hash.ToHashCode();";
-        _out << eb;
-    }
 
     _out << sp;
     _out << nl << "/// <summary>Encodes the fields of this struct.</summary>";
@@ -2020,19 +1947,19 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << eb;
     _out << sp;
 
-    _out << nl << "/// <summary>Typed proxy struct. It implements <see cref=\"" << prxInterface << "\"/>"
+    _out << nl << "/// <summary>Typed proxy record struct. It implements <see cref=\"" << prxInterface << "\"/>"
         << " by sending requests to a remote IceRPC service.</summary>";
     emitCommonAttributes();
     emitTypeIdAttribute(p->scoped());
     emitCustomAttributes(p);
-    _out << nl << "public readonly partial struct " << prxImpl << " : " << prxInterface;
+    _out << nl << "public readonly partial record struct " << prxImpl << " : " << prxInterface;
 
     if (addServicePrx)
     {
         _out << ", IceRpc.IServicePrx";
     }
 
-    _out << ", IPrx, global::System.IEquatable<" << prxImpl << ">";
+    _out << ", IPrx";
 
     _out << sb;
 
@@ -2210,9 +2137,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
             << " prx) => new(prx.Proxy);";
     }
 
-    // Equality operations
-    emitEqualityOperators(prxImpl);
-
     // Static methods
     _out << sp;
     _out << nl << "/// <summary>Creates a new <see cref=\"" << prxImpl
@@ -2284,20 +2208,6 @@ Slice::Gen::ProxyVisitor::visitInterfaceDefStart(const InterfaceDefPtr& p)
     _out << nl << "/// <summary>Constructs an instance of <see cref=\"" << prxImpl << "\"/>.</summary>";
     _out << nl << "/// <param name=\"proxy\">The proxy to the remote service.</param>";
     _out << nl << "public " << prxImpl << "(IceRpc.Proxy proxy) => Proxy = proxy;";
-
-    // Equals + GetHashCode + ToString
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public bool Equals(" << prxImpl << " other) => Proxy.Equals(other.Proxy);";
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public override bool Equals(object? obj) => obj is " << prxImpl << " value && Equals(value);";
-
-    _out << sp;
-    _out << nl << "/// <inheritdoc/>";
-    _out << nl << "public override int GetHashCode() => Proxy.GetHashCode();";
-
     _out << sp;
     _out << nl << "/// <inheritdoc/>";
     _out << nl << "public override string ToString() => Proxy.ToString();";
@@ -2810,15 +2720,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         }
 
         _out << sp;
-        _out << nl << "/// <summary>Helper struct used to encode the return value of " << opName << " operation."
+        _out << nl << "/// <summary>Helper record struct used to encode the return value of " << opName << " operation."
              << "</summary>";
-        _out << nl << "public struct " << name << " : global::System.IEquatable<" << name << ">";
+        _out << nl << "public readonly record struct " << name
+            << "(global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload)";
         _out << sb;
-        _out << nl << "/// <summary>The payload holding the encoded response.</summary>";
-        _out << nl << "public global::System.ReadOnlyMemory<global::System.ReadOnlyMemory<byte>> Payload { get; }";
-
-        emitEqualityOperators(name);
-        _out << sp;
 
         _out << nl << "/// <summary>Constructs a new <see cref=\"" << name  << "\"/> instance that";
         _out << nl << "/// immediately encodes the return value of operation " << opName << ".</summary>";
@@ -2832,9 +2738,8 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
             _out << ("IceRpc.Dispatch " + getEscapedParamName(operation, "dispatch"));
         }
         _out << epar;
-        _out << sb;
-        _out << nl << "Payload = ";
-
+        _out.inc();
+        _out << nl << ": this(";
         if (returnType.size() == 1)
         {
             _out << encoding << ".CreatePayloadFromSingleReturnValue(";
@@ -2852,22 +2757,11 @@ Slice::Gen::DispatcherVisitor::writeReturnValueStruct(const OperationPtr& operat
         {
             _out << "," << nl << "classFormat: " << opFormatTypeToString(operation);
         }
-        _out << ");";
+        _out << "))";
         _out.dec();
+        _out.dec();
+        _out << sb;
         _out << eb;
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public bool Equals(" << name << " other) => Payload.Equals(other.Payload);";
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public override bool Equals(object? obj) => obj is " << name << " value && Equals(value);";
-
-        _out << sp;
-        _out << nl << "/// <inheritdoc/>";
-        _out << nl << "public override int GetHashCode() => Payload.GetHashCode();";
-
         _out << eb;
     }
 }

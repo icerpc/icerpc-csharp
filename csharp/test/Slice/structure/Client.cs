@@ -37,14 +37,6 @@ namespace IceRpc.Slice.Test.Structure
 
             // Compare default-constructed structures.
             Assert(new S2() == new S2());
-
-            var s3 = new S3("foo", new int[] { 4, 7, 10 });
-            var s3Copy = s3;
-            Assert(s3 == s3Copy);
-            Assert(s3.GetHashCode() == s3Copy.GetHashCode());
-            s3Copy.IntList = new int[] { 4, 7, 10 }; // same values, different object
-            Assert(s3 != s3Copy);
-            Assert(s3.GetHashCode() != s3Copy.GetHashCode()); // can be the same, just unlikely
             Output.WriteLine("ok");
             return Task.CompletedTask;
         }
