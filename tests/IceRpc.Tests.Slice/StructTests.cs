@@ -30,6 +30,8 @@ namespace IceRpc.Tests.Slice
             };
             _prx = StructOperationsPrx.FromConnection(_connection);
             Assert.AreEqual(protocol, _prx.Proxy.Protocol);
+
+            Assert.AreEqual("12", new MyStruct(5, 7).ToString());
         }
 
         [TearDown]
@@ -76,5 +78,16 @@ namespace IceRpc.Tests.Slice
                 Dispatch dispatch,
                 CancellationToken cancel) => new((p1, p2));
         }
+    }
+
+    public partial record struct MyStruct
+    {
+        // Test overrides
+
+        public readonly bool Equals(MyStruct other) => I == other.I;
+
+        public override readonly int GetHashCode() => I.GetHashCode();
+
+        public override readonly string ToString() => $"{I + J}";
     }
 }

@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace IceRpc
 {
-    public readonly partial struct Identity
+    public readonly partial record struct Identity
     {
         /// <summary>The empty Identity.</summary>
         public static readonly Identity Empty = new("", "");
@@ -178,7 +178,7 @@ namespace IceRpc
         }
     }
 
-    public readonly partial struct IdentityAndFacet
+    public readonly partial record struct IdentityAndFacet
     {
         /// <summary>Gets the facet.</summary>
         public string Facet => OptionalFacet.Count == 0 ? "" : OptionalFacet[0];
@@ -222,7 +222,7 @@ namespace IceRpc
 
         /// <summary>Converts this identity + facet into a string.</summary>
         /// <returns>The URI path representation of this identity + facet.</returns>
-        public override string ToString() => ToPath();
+        public override readonly string ToString() => ToPath();
     }
 
     /// <summary>The output mode or format for <see cref="Identity.ToString(ToStringMode)"/>.</summary>
