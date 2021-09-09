@@ -8,7 +8,7 @@ using NUnit.Framework;
 
 using static IceRpc.Slice.Internal.Ice11Definitions;
 
-namespace IceRpc.Tests.Encoding
+namespace IceRpc.Tests.SliceInternal
 {
     [Timeout(30000)]
     [TestFixture(Protocol.Ice1)]

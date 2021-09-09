@@ -4,7 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Encoding
+namespace IceRpc.Tests.SliceInternal
 {
     [Parallelizable(scope: ParallelScope.All)]
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]

@@ -4,7 +4,7 @@ using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using NUnit.Framework;
 
-namespace IceRpc.Tests.Encoding
+namespace IceRpc.Tests.SliceInternal
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     [TestFixture("1.1")]

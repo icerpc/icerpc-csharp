@@ -2,7 +2,7 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::Encoding
+module IceRpc::Tests::SliceInternal
 {
     class MyClassCustomFormat
     {

@@ -6,7 +6,7 @@ using NUnit.Framework;
 using System.Collections.Immutable;
 using System.Reflection;
 
-namespace IceRpc.Tests.Encoding
+namespace IceRpc.Tests.SliceInternal
 {
     [Parallelizable(scope: ParallelScope.All)]
     public class SlicingTests
@@ -183,7 +183,7 @@ namespace IceRpc.Tests.Encoding
             // as 'MyDerivedException' which is the base type.
             var slicingActivator = new SlicingActivator(
                 activator,
-                slicedTypeIds: ImmutableList.Create("::IceRpc::Tests::Encoding::MyMostDerivedException"));
+                slicedTypeIds: ImmutableList.Create("::IceRpc::Tests::SliceInternal::MyMostDerivedException"));
 
             decoder = new Ice11Decoder(data, activator: slicingActivator);
 
@@ -198,8 +198,8 @@ namespace IceRpc.Tests.Encoding
             slicingActivator = new SlicingActivator(
                 activator,
                 slicedTypeIds: ImmutableList.Create(
-                    "::IceRpc::Tests::Encoding::MyMostDerivedException",
-                    "::IceRpc::Tests::Encoding::MyDerivedException"));
+                    "::IceRpc::Tests::SliceInternal::MyMostDerivedException",
+                    "::IceRpc::Tests::SliceInternal::MyDerivedException"));
 
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             r = decoder.DecodeException();
@@ -212,15 +212,15 @@ namespace IceRpc.Tests.Encoding
             slicingActivator = new SlicingActivator(
                 activator,
                 slicedTypeIds: ImmutableList.Create(
-                    "::IceRpc::Tests::Encoding::MyMostDerivedException",
-                    "::IceRpc::Tests::Encoding::MyDerivedException",
-                    "::IceRpc::Tests::Encoding::MyBaseException"));
+                    "::IceRpc::Tests::SliceInternal::MyMostDerivedException",
+                    "::IceRpc::Tests::SliceInternal::MyDerivedException",
+                    "::IceRpc::Tests::SliceInternal::MyBaseException"));
 
             decoder = new Ice11Decoder(data, activator: slicingActivator);
             r = decoder.DecodeException();
             Assert.That(r, Is.Not.InstanceOf<MyBaseException>());
             Assert.That(r, Is.InstanceOf<UnknownSlicedRemoteException>());
-            Assert.AreEqual("::IceRpc::Tests::Encoding::MyMostDerivedException",
+            Assert.AreEqual("::IceRpc::Tests::SliceInternal::MyMostDerivedException",
                             ((UnknownSlicedRemoteException)r).TypeId);
 
             // Marshal the exception again -- there is no Slice preservation for exceptions
