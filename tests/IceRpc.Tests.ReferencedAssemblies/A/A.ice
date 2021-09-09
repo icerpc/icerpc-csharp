@@ -2,19 +2,19 @@
 
 [[suppress-warning(reserved-identifier)]]
 
-module IceRpc::Tests::Api
+module IceRpc::Tests::ReferencedAssemblies
 {
-    class MyClassA
+    class ClassA
     {
         string aValue;
     }
 
-    class MyCompactClassA(1)
+    class CompactClassA(1)
     {
         string aValue;
     }
 
-    exception MyExceptionA
+    exception ExceptionA
     {
         string aValue;
     }
