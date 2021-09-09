@@ -132,7 +132,10 @@ namespace IceRpc
 
                         // Reset relevant request properties before trying again.
                         request.IsSent = false;
-                        request.Features = request.Features.With(RetryPolicy.NoRetry);
+                        if (!request.Features.IsReadOnly)
+                        {
+                            request.Features.Set<RetryPolicy>(null);
+                        }
                     }
                 }
                 while (tryAgain);
