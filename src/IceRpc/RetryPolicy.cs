@@ -5,7 +5,8 @@ using IceRpc.Slice;
 
 namespace IceRpc
 {
-    /// <summary>The retry policy that can be specified when constructing a <see cref="RemoteException"/>.</summary>
+    /// <summary>The retry policy can be specified when constructing a <see cref="RemoteException"/>. It's also used
+    /// as a request feature to retry (or not retry) when a local exception is thrown during an invocation.</summary>
     public sealed record class RetryPolicy
     {
         /// <summary>The Immediately policy specifies that the exception can be retried without any delay.</summary>
@@ -45,6 +46,15 @@ namespace IceRpc
             Retryable = decoder.DecodeRetryable();
             Delay = Retryable == Retryable.AfterDelay ?
                 TimeSpan.FromMilliseconds(decoder.DecodeVarULong()) : TimeSpan.Zero;
+        }
+
+        internal void Encode(IceEncoder encoder)
+        {
+            encoder.EncodeRetryable(Retryable);
+            if (Retryable == Retryable.AfterDelay)
+            {
+                encoder.EncodeVarUInt((uint)Delay.TotalMilliseconds);
+            }
         }
 
         private RetryPolicy(Retryable retryable, TimeSpan delay = default)
