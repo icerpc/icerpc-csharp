@@ -2846,6 +2846,7 @@ Slice::Gen::DispatcherVisitor::visitOperation(const OperationPtr& operation)
 
     if (opCompressReturn(operation))
     {
+        // At this point, Dispatch is just created and the application had no opportunity to set any response feature.
         _out << nl << "dispatch.ResponseFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload(dispatch.ResponseFeatures);";
     }
 
