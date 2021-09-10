@@ -244,20 +244,10 @@ namespace IceRpc.Internal
                 PayloadEncoding = payloadEncoding
             };
 
-            if (protocol == Protocol.Ice2 && remoteException.RetryPolicy.Retryable != Retryable.No)
+            if (protocol == Protocol.Ice2 && remoteException.RetryPolicy != RetryPolicy.NoRetry)
             {
                 var retryPolicy = remoteException.RetryPolicy;
-
-                response.Fields.Add(
-                    (int)FieldKey.RetryPolicy,
-                    fieldEncoder =>
-                    {
-                        fieldEncoder.EncodeRetryable(retryPolicy.Retryable);
-                        if (retryPolicy.Retryable == Retryable.AfterDelay)
-                        {
-                            fieldEncoder.EncodeVarUInt((uint)retryPolicy.Delay.TotalMilliseconds);
-                        }
-                    });
+                response.Fields.Add((int)FieldKey.RetryPolicy, encoder => retryPolicy.Encode(encoder));
             }
 
             return response;
