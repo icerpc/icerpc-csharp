@@ -460,10 +460,10 @@ namespace IceRpc.Transports.Internal
 
         internal void ReceivedReset(RpcStreamError errorCode)
         {
-            // if (!IsBidirectional && !IsIncoming)
-            // {
-            //     throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
-            // }
+            if (!IsBidirectional && !IsIncoming)
+            {
+                throw new InvalidDataException("received reset frame on outgoing unidirectional stream");
+            }
 
             // It's important to set the exception before completing the reads because ReceiveAsync expects the
             // exception to be set if reads are completed.
