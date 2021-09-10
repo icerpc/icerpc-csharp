@@ -31,7 +31,6 @@ namespace IceRpc.Slice
         /// <param name="responseDecodeFunc">The decode function for the response payload. It decodes and throws a
         /// <see cref="RemoteException"/> when the response payload contains a failure.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When <c>true</c>, the request payload should be compressed.</param>
         /// <param name="idempotent">When <c>true</c>, the request is idempotent.</param>
         /// <param name="returnStreamParamReceiver"><c>true</c> if the response has a stream value.</param>
         /// <param name="cancel">The cancellation token.</param>
@@ -47,7 +46,6 @@ namespace IceRpc.Slice
             IStreamParamSender? streamParamSender,
             ResponseDecodeFunc<T> responseDecodeFunc,
             Invocation? invocation,
-            bool compress = false,
             bool idempotent = false,
             bool returnStreamParamReceiver = false,
             CancellationToken cancel = default)
@@ -59,7 +57,6 @@ namespace IceRpc.Slice
                     requestPayload,
                     streamParamSender,
                     invocation,
-                    compress,
                     idempotent,
                     oneway: false,
                     returnStreamParamReceiver: returnStreamParamReceiver,
@@ -84,7 +81,6 @@ namespace IceRpc.Slice
         /// <param name="defaultIceDecoderFactories">The default Ice decoder factories.</param>
         /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
@@ -101,7 +97,6 @@ namespace IceRpc.Slice
             DefaultIceDecoderFactories defaultIceDecoderFactories,
             IStreamParamSender? streamParamSender,
             Invocation? invocation,
-            bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             CancellationToken cancel = default)
@@ -113,7 +108,6 @@ namespace IceRpc.Slice
                     requestPayload,
                     streamParamSender,
                     invocation,
-                    compress,
                     idempotent,
                     oneway,
                     returnStreamParamReceiver: false,

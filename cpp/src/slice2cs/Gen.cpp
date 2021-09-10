@@ -2323,6 +2323,17 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
         << getInvocationParams(operation, ns, true) << epar;
     _out << sb;
 
+    if (opCompressArgs(operation))
+    {
+        _out << nl << "if (" << invocation << "?.RequestFeatures.Get<IceRpc.Features.CompressPayload>() == null)";
+        _out << sb;
+        _out << nl << invocation << " ??= new IceRpc.Invocation();";
+        _out << nl << invocation << ".RequestFeatures = IceRpc.FeatureCollectionExtensions.CompressPayload("
+            << invocation << ".RequestFeatures);";
+        _out << eb;
+        // else keep the value set in Invocation
+    }
+
     bool sendsClasses = operation->sendsClasses(true);
     string payloadEncoding;
     if (sendsClasses)
@@ -2409,10 +2420,6 @@ Slice::Gen::ProxyVisitor::visitOperation(const OperationPtr& operation)
     }
 
     _out << nl << invocation << ",";
-    if (opCompressArgs(operation))
-    {
-        _out << nl << "compress: true,";
-    }
     if (isIdempotent(operation))
     {
         _out << nl << "idempotent: true,";
