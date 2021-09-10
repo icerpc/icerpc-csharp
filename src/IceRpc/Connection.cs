@@ -41,7 +41,7 @@ namespace IceRpc
     {
         /// <summary>The default value for <see cref="IClientTransport"/>.</summary>
         public static IClientTransport DefaultClientTransport { get; } =
-            new ClientTransport().UseTcp().UseColoc();
+            new ClientTransport().UseColoc().UseTcp().UseUdp();
 
         /// <summary>The <see cref="IClientTransport"/> used by this connection to create client connections.</summary>
         public IClientTransport ClientTransport { get; init; } = DefaultClientTransport;

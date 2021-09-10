@@ -52,7 +52,7 @@ namespace IceRpc.Tests.ClientServer
                 {
                     Dispatcher = new RetryTest(),
                     Endpoint = GetTestEndpoint(port: port, protocol: protocol),
-                    ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
+                    ServerTransport = new ServerTransport().UseTcp()
                 };
                 server.Listen();
                 Assert.DoesNotThrowAsync(async () => await prx1.IcePingAsync());
@@ -69,7 +69,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = new Bidir(),
                 Endpoint = GetTestEndpoint(),
-                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
+                ServerTransport = new ServerTransport().UseTcp()
             };
             server.Listen();
 
@@ -423,7 +423,7 @@ namespace IceRpc.Tests.ClientServer
         {
             var pool = new ConnectionPool()
             {
-                ClientTransport = new ClientTransport().UseTcp().UseInteropTcp()
+                ClientTransport = new ClientTransport().UseTcp()
             };
             return pool;
         }
@@ -434,7 +434,7 @@ namespace IceRpc.Tests.ClientServer
                 i => new Server
                 {
                     Endpoint = GetTestEndpoint(port: i),
-                    ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
+                    ServerTransport = new ServerTransport().UseTcp()
                 }).ToArray();
 
             Router[] routers = Enumerable.Range(0, replicas).Select(i => new Router()).ToArray();
@@ -476,7 +476,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Dispatcher = router,
                 Endpoint = GetTestEndpoint(protocol: protocol),
-                ServerTransport = new ServerTransport().UseTcp().UseInteropTcp()
+                ServerTransport = new ServerTransport().UseTcp()
             };
             server.Listen();
 

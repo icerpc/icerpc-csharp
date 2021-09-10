@@ -9,9 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Api", "tests\I
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8AC71827-78FD-4A6C-97C7-3E4378AFB568}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Encoding", "tests\IceRpc.Tests.Encoding\IceRpc.Tests.Encoding.csproj", "{181BEF33-340F-4D67-94A4-47ED0753F243}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.SliceInternal", "tests\IceRpc.Tests.SliceInternal\IceRpc.Tests.SliceInternal.csproj", "{181BEF33-340F-4D67-94A4-47ED0753F243}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.CodeGeneration", "tests\IceRpc.Tests.CodeGeneration\IceRpc.Tests.CodeGeneration.csproj", "{30B4F34B-F2DB-4355-BBCD-0E8EB449ACFE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IceRpc.Tests.Slice", "tests\IceRpc.Tests.Slice\IceRpc.Tests.Slice.csproj", "{30B4F34B-F2DB-4355-BBCD-0E8EB449ACFE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{14BE8958-5499-473F-A45E-46C47EACF7C1}"
 EndProject

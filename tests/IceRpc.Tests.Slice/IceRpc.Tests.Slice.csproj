@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <TargetFramework>net6.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\test.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <SliceCompile>
+      <IncludeDirectories>.</IncludeDirectories>
+    </SliceCompile>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\TestHelper.cs" Link="TestHelper.cs" />
+    <Compile Include="..\Shared\LogAttribute.cs" Link="LogAttribute.cs" />
+    <Compile Update="generated\SequenceMappingTests.cs">
+      <SliceCompileSource>SequenceMappingTests.ice</SliceCompileSource>
+    </Compile>
+    <Compile Update="generated\TaggedTests.cs">
+      <SliceCompileSource>TaggedTests.ice</SliceCompileSource>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="3.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0-preview.7.21377.19" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0-preview.7.21377.19" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="3.2.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+    <PackageReference Include="zeroc.icebuilder.msbuild" Version="5.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\IceRpc\IceRpc.csproj" />
+    <ProjectReference Include="..\..\src\IceRpc.Interop\IceRpc.Interop.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\A\A.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\B\B.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\C\C.csproj" />
+    <ProjectReference Include="..\IceRpc.Tests.ReferencedAssemblies\D\D.csproj" />
+  </ItemGroup>
+
+</Project>

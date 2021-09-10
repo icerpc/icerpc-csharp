@@ -149,8 +149,12 @@ namespace IceRpc.Internal
                     string typeId = decoder.DecodeString();
                     if (typeId.IsIce1SystemExceptionTypeId())
                     {
+                        // We use the activator directly because we can't rewind to call decoder.DecodeException
                         var systemException = (RemoteException)_activator20.CreateInstance(typeId, decoder)!;
-                        decoder.CheckEndOfBuffer(skipTaggedParams: false);
+
+                        // skipTaggedParams is true to skip the remaining exception tagged members (most likely none);
+                        // see Ice20Decoder.DecodeException.
+                        decoder.CheckEndOfBuffer(skipTaggedParams: true);
                         return targetProtocol.CreateResponseFromRemoteException(systemException, Encoding.Ice11);
                     }
                 }

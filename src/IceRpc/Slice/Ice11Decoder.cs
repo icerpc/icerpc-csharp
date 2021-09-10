@@ -187,9 +187,9 @@ namespace IceRpc.Slice
                     {
                         endpoint = new Endpoint(Protocol.Ice1,
                                                 TransportNames.Loc,
-                                                Host: adapterId,
-                                                Port: Ice1Parser.DefaultPort,
-                                                Params: ImmutableList<EndpointParam>.Empty);
+                                                host: adapterId,
+                                                port: Ice1Parser.DefaultPort,
+                                                @params: ImmutableList<EndpointParam>.Empty);
                     }
                     else
                     {
@@ -370,18 +370,25 @@ namespace IceRpc.Slice
             _classGraphMaxDepth = classGraphMaxDepth;
         }
 
+        /// <summary>Skips the remaining tagged parameters, return value _or_ data members.</summary>
         private protected override void SkipTaggedParams()
         {
+            bool withTagEndMarker = (_current.InstanceType != InstanceType.None);
+
             while (true)
             {
-                if (_buffer.Length - Pos <= 0)
+                if (!withTagEndMarker && _buffer.Length - Pos <= 0)
                 {
+                    // When we don't use an end marker, the end of the buffer indicates the end of the tagged params /
+                    // members.
                     break;
                 }
 
                 int v = DecodeByte();
-                if (v == TagEndMarker)
+                if (withTagEndMarker && v == TagEndMarker)
                 {
+                    // When we use an end marker, the end marker (and only the end marker) indicates the end of the
+                    // tagged params / member.
                     break;
                 }
 
@@ -390,7 +397,7 @@ namespace IceRpc.Slice
                 {
                     SkipSize();
                 }
-                SkipTagged(format);
+                SkipTaggedValue(format);
             }
         }
 
@@ -534,8 +541,8 @@ namespace IceRpc.Slice
 
                             endpoint = new Endpoint(Protocol.Ice1,
                                                     TransportNames.Opaque,
-                                                    Host: "",
-                                                    Port: 0,
+                                                    host: "",
+                                                    port: 0,
                                                     endpointParams);
                             break;
                         }
@@ -760,26 +767,31 @@ namespace IceRpc.Slice
         /// <returns>True if the tagged parameter is present; otherwise, false.</returns>
         private bool DecodeTaggedParamHeader(int tag, TagFormat expectedFormat)
         {
-            // The current slice has no tagged parameter.
-            if (_current.InstanceType != InstanceType.None &&
-                (_current.SliceFlags & SliceFlags.HasTaggedMembers) == 0)
+            bool withTagEndMarker = false;
+
+            if (_current.InstanceType != InstanceType.None)
             {
-                return false;
+                if ((_current.SliceFlags & SliceFlags.HasTaggedMembers) == 0) // tagged member of a class or exception
+                {
+                    // The current slice has no tagged parameter.
+                    return false;
+                }
+                withTagEndMarker = true;
             }
 
             int requestedTag = tag;
 
             while (true)
             {
-                if (_buffer.Length - Pos <= 0)
+                if (!withTagEndMarker && _buffer.Length - Pos <= 0)
                 {
-                    return false; // End of buffer also indicates end of tagged parameters.
+                    return false; // End of buffer indicates end of tagged parameters.
                 }
 
                 int savedPos = Pos;
 
                 int v = DecodeByte();
-                if (v == TagEndMarker)
+                if (withTagEndMarker && v == TagEndMarker)
                 {
                     Pos = savedPos; // rewind
                     return false;
@@ -799,7 +811,7 @@ namespace IceRpc.Slice
                 }
                 else if (tag < requestedTag)
                 {
-                    SkipTagged(format);
+                    SkipTaggedValue(format);
                 }
                 else
                 {
@@ -1005,7 +1017,7 @@ namespace IceRpc.Slice
             return (_current.SliceFlags & SliceFlags.IsLastSlice) != 0;
         }
 
-        private void SkipTagged(TagFormat format)
+        private void SkipTaggedValue(TagFormat format)
         {
             switch (format)
             {

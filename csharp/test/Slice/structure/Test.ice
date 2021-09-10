@@ -39,10 +39,4 @@ module IceRpc::Slice::Test::Structure
         C cls;
         Service? prx;
     }
-
-    [cs:custom-equals] struct S3
-    {
-        string s;
-        IntList intList;
-    }
 }

@@ -246,8 +246,6 @@ namespace IceRpc.Tests.ClientServer
             Assert.ThrowsAsync<ConnectionLostException>(async () => await prx.IcePingAsync());
         }
 
-        // TODO enable once https://github.com/dotnet/runtime/issues/53447 is fixed
-        /*
         // This must succeed, the target host matches the certificate DNS altName.
         [TestCase("s_rsa_ca1_cn1.p12", "localhost", OperatingSystem.All)]
         // This must fail, the target host does not match the certificate DNS altName.
@@ -282,19 +280,17 @@ namespace IceRpc.Tests.ClientServer
 
             await using var connection = new Connection
             {
-                Options = new ConnectionOptions()
+                ClientTransport = new TcpClientTransport(authenticationOptions: new()
                 {
-                    AuthenticationOptions = new()
-                    {
-                        RemoteCertificateValidationCallback =
-                            CertificateValidaton.GetServerCertificateValidationCallback(
-                                certificateAuthorities: new X509Certificate2Collection
-                                {
-                                    new X509Certificate2(GetCertificatePath("cacert1.der"))
-                                }),
-                    }
-                },
-                RemoteEndpoint = server.ProxyEndpoint
+                    RemoteCertificateValidationCallback =
+                    CertificateValidaton.GetServerCertificateValidationCallback(
+                        certificateAuthorities: new X509Certificate2Collection
+                        {
+                            new X509Certificate2(GetCertificatePath("cacert1.der"))
+                        })
+                }),
+                RemoteEndpoint =
+                    $"ice+tcp://{TestHelper.EscapeIPv6Address(targetHost, server.Protocol)}:{server.Endpoint.Port}"
             };
             var prx = ServicePrx.FromConnection(connection);
 
@@ -307,7 +303,7 @@ namespace IceRpc.Tests.ClientServer
             {
                 Assert.ThrowsAsync<TransportException>(async () => await prx.IcePingAsync());
             }
-        }*/
+        }
 
         [Test]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
@@ -435,7 +431,7 @@ namespace IceRpc.Tests.ClientServer
             All = Linux | Windows | MacOS | Other
         }
 
-        /*static internal OperatingSystem GetOperatingSystem()
+        static internal OperatingSystem GetOperatingSystem()
         {
             if (System.OperatingSystem.IsMacOS())
             {
@@ -453,6 +449,6 @@ namespace IceRpc.Tests.ClientServer
             {
                 return OperatingSystem.Other;
             }
-        }*/
+        }
     }
 }

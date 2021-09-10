@@ -4,19 +4,19 @@
 
 #include <B.ice>
 
-module IceRpc::Tests::Api
+module IceRpc::Tests::ReferencedAssemblies
 {
-    class MyClassC : MyClassB
+    class ClassC : ClassB
     {
         string cValue;
     }
 
-    class MyCompactClassC(3) : MyCompactClassB
+    class CompactClassC(3) : CompactClassB
     {
         string cValue;
     }
 
-    exception MyExceptionC : MyExceptionB
+    exception ExceptionC : ExceptionB
     {
         string cValue;
     }
