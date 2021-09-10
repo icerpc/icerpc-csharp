@@ -32,16 +32,9 @@ namespace IceRpc.Transports
         /// </summary>
         public Endpoint? LocalEndpoint { get; protected set; }
 
-        /// <summary>The Ice protocol used by this connection.</summary>
-        // TODO: Remove
-        public Protocol Protocol => _endpoint.Protocol;
-
         /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
         /// </summary>
         public Endpoint? RemoteEndpoint { get; protected set; }
-
-        // TODO: Remove
-        internal int IncomingFrameMaxSize { get; set; } = 1024 * 1024;
 
         internal int IncomingStreamCount
         {
@@ -54,16 +47,10 @@ namespace IceRpc.Transports
             }
         }
 
-        // TODO: Remove
         internal TimeSpan IdleTimeout { get; set; }
 
-        // TODO: Remove
         internal TimeSpan LastActivity { get; private set; }
 
-        // The stream ID of the last received response with the Ice1 protocol. Keeping track of this stream ID is
-        // necessary to avoid a race condition with the GoAway frame which could be received and processed before
-        // the response is delivered to the stream.
-        internal long LastResponseStreamId { get; set; }
         internal int OutgoingStreamCount
         {
             get
@@ -75,8 +62,8 @@ namespace IceRpc.Transports
             }
         }
 
-        internal int? PeerIncomingFrameMaxSize { get; set; }
         internal ILogger Logger { get; }
+
         internal Action? PingReceived;
 
         // The endpoint which created the connection. If it's a server connection, it's the local endpoint or
@@ -210,7 +197,7 @@ namespace IceRpc.Transports
         /// <summary>Traces the given received amount of data. Transport implementations should call this method
         /// to trace the received data.</summary>
         /// <param name="buffer">The received data.</param>
-        protected void Received(ReadOnlyMemory<byte> buffer)
+        internal void Received(ReadOnlyMemory<byte> buffer)
         {
             lock (_mutex)
             {
@@ -235,7 +222,7 @@ namespace IceRpc.Transports
         /// <summary>Traces the given sent amount of data. Transport implementations should call this method to
         /// trace the data sent.</summary>
         /// <param name="buffers">The buffers sent.</param>
-        protected void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
+        internal void Sent(ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
         {
             lock (_mutex)
             {
@@ -283,20 +270,17 @@ namespace IceRpc.Transports
             return false;
         }
 
-        // TODO: Remove
         /// <summary>Ping</summary>
         public abstract Task PingAsync(CancellationToken cancel);
 
-        internal virtual void AbortOutgoingStreams(
+        internal void AbortOutgoingStreams(
             RpcStreamError errorCode,
-            (long Bidirectional, long Unidirectional)? ids = null)
+            (long Bidirectional, long Unidirectional) ids)
         {
             // Abort outgoing streams with IDs larger than the given IDs, they haven't been dispatch by the peer.
             foreach (RpcStream stream in _streams.Values)
             {
-                if (!stream.IsIncoming &&
-                    (ids == null ||
-                     stream.Id > (stream.IsBidirectional ? ids.Value.Bidirectional : ids.Value.Unidirectional)))
+                if (!stream.IsIncoming && stream.Id > (stream.IsBidirectional ? ids.Bidirectional : ids.Unidirectional))
                 {
                     stream.Abort(errorCode);
                 }

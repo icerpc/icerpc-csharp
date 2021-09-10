@@ -3,7 +3,7 @@
 using IceRpc.Slice;
 using System.Diagnostics;
 
-namespace IceRpc.Internal
+namespace IceRpc.Protocols
 {
     // Definitions for the ice1 protocol.
     internal static class Ice1Definitions

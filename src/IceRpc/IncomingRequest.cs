@@ -38,11 +38,14 @@ namespace IceRpc
         /// parameter.</summary>
         public Func<CompressionFormat, System.IO.Stream, System.IO.Stream>? StreamDecompressor { get; set; }
 
+        /// <summary>Get the cancellation dispatch source.</summary>
+        internal CancellationTokenSource? CancelDispatchSource { get; init; }
+
         /// <summary>The stream used to receive the request.</summary>
         internal RpcStream Stream
         {
             get => _stream ?? throw new InvalidOperationException("stream not set");
-            set => _stream = value;
+            init => _stream = value;
         }
 
         private RpcStream? _stream;

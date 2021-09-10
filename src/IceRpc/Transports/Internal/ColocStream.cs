@@ -37,8 +37,8 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<int> ReceiveAsync(Memory<byte> buffer, CancellationToken cancel)
         {
-            // If we couldn't get data from the previously received buffers, wait for additional data to be received
-            // and fill the buffer with the received data.
+            // If we couldn't get data from the previously received buffers, wait for additional data to be
+            // received and fill the buffer with the received data.
             if (_receivedPos.BufferIndex == _receivedBuffers.Length)
             {
                 (object frame, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
@@ -189,111 +189,16 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                // Stream frame, queue it for ReceiveAsync / ReceivedFrameAsync.
-                Debug.Assert(frame is IncomingFrame || frame is ReadOnlyMemory<ReadOnlyMemory<byte>>);
+                // Stream frame, queue it for ReceiveAsync
+                Debug.Assert(frame is ReadOnlyMemory<ReadOnlyMemory<byte>>);
                 QueueResult((frame, endStream));
             }
         }
-
-        internal override async ValueTask<IncomingRequest> ReceiveRequestFrameAsync(CancellationToken cancel)
-        {
-            (object frame, bool _) = await WaitFrameAsync(cancel).ConfigureAwait(false);
-            return (IncomingRequest)frame;
-        }
-
-        internal override async ValueTask<IncomingResponse> ReceiveResponseFrameAsync(
-            OutgoingRequest request,
-            CancellationToken cancel)
-        {
-            (object frame, bool _) = await WaitFrameAsync(cancel).ConfigureAwait(false);
-            return (IncomingResponse)frame;
-        }
-
-        internal override async ValueTask SendRequestFrameAsync(OutgoingRequest request, CancellationToken cancel)
-        {
-            await _connection.SendFrameAsync(
-                this,
-                request.ToIncoming(),
-                endStream: request.StreamParamSender == null,
-                cancel).ConfigureAwait(false);
-
-            // If there's a stream param sender, we can start sending the data.
-            if (request.StreamParamSender != null)
-            {
-                request.SendStreamParam(this);
-            }
-        }
-
-        internal override async ValueTask SendResponseFrameAsync(OutgoingResponse response, CancellationToken cancel)
-        {
-            await _connection.SendFrameAsync(
-                this,
-                response.ToIncoming(),
-                endStream: response.StreamParamSender == null,
-                cancel).ConfigureAwait(false);
-
-            // If there's a stream param sender, we can start sending the data.
-            if (response.StreamParamSender != null)
-            {
-                response.SendStreamParam(this);
-            }
-        }
-
-        private protected override ValueTask<ReadOnlyMemory<byte>> ReceiveIce1FrameAsync(
-            Ice1FrameType expectedFrameType,
-            CancellationToken cancel) =>
-            ReceiveFrameAsync((byte)expectedFrameType, cancel);
-
-        private protected override ValueTask<ReadOnlyMemory<byte>> ReceiveIce2FrameAsync(
-            Ice2FrameType expectedFrameType,
-            CancellationToken cancel) =>
-            ReceiveFrameAsync((byte)expectedFrameType, cancel);
 
         private protected override Task SendResetFrameAsync(RpcStreamError errorCode) =>
             _ = _connection.SendFrameAsync(this, frame: errorCode, endStream: true, default).AsTask();
 
         private protected override Task SendStopSendingFrameAsync(RpcStreamError errorCode) =>
             _ = _connection.SendFrameAsync(this, frame: _stopSendingFrame, endStream: false, default).AsTask();
-
-        private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
-            byte expectedFrameType,
-            CancellationToken cancel)
-        {
-            // This is called for receiving the Initialize or GoAway frame.
-            (object frame, bool endStream) = await WaitFrameAsync(cancel).ConfigureAwait(false);
-
-            if (frame is ReadOnlyMemory<ReadOnlyMemory<byte>> buffers)
-            {
-                Debug.Assert(buffers.Length == 1);
-                ReadOnlyMemory<byte> buffer = buffers.Span[0];
-                if (_connection.Protocol == Protocol.Ice1)
-                {
-                    Debug.Assert(expectedFrameType == buffer.Span[8]);
-                    // The connection validation or close frames don't carry any data.
-                    return Memory<byte>.Empty;
-                }
-                else
-                {
-                    Debug.Assert(expectedFrameType == buffer.Span[0]);
-                    (int size, int sizeLength) = Ice20Decoder.DecodeSize(buffer.Span[1..]);
-                    return buffer.Slice(1 + sizeLength, size);
-                }
-            }
-            else
-            {
-                Debug.Assert(false, $"unexpected frame {frame}");
-                return Memory<byte>.Empty;
-            }
-        }
-
-        private async ValueTask<(object frameObject, bool endStream)> WaitFrameAsync(CancellationToken cancel)
-        {
-            (object frameObject, bool endStream) = await WaitAsync(cancel).ConfigureAwait(false);
-            if (endStream)
-            {
-                TrySetReadCompleted();
-            }
-            return (frameObject, endStream);
-        }
     }
 }

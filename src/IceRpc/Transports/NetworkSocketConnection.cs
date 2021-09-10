@@ -4,36 +4,33 @@ using IceRpc.Transports.Internal;
 
 namespace IceRpc.Transports
 {
-    /// <summary>Base class for multi-stream connection implementations that use <see cref="NetworkSocket"/>.</summary>
-    public abstract class NetworkSocketConnection : MultiStreamConnection
+    /// <summary>A transport connection based on a <see cref="NetworkSocket"/>.</summary>
+    public sealed class NetworkSocketConnection : ITransportConnection
     {
         /// <inheritdoc/>
-        public override bool IsDatagram => NetworkSocket.IsDatagram;
+        public bool IsDatagram => NetworkSocket.IsDatagram;
 
         /// <inheritdoc/>
-        public override bool IsSecure => NetworkSocket.SslStream != null;
-
-        /// <summary>Creates a network socket connection from a network socket.</summary>
-        /// <param name="networkSocket">The network socket.</param>
-        /// <param name="isServer"><c>true</c> if the connection is a server connection, <c>false</c> otherwise.</param>
-        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
-        /// the server is listening on.</param>
-        /// <param name="options">The transport options.</param>
-        /// <returns>A new network socket connection.</returns>
-        public static NetworkSocketConnection FromNetworkSocket(
-            NetworkSocket networkSocket,
-            Endpoint endpoint,
-            bool isServer,
-            MultiStreamOptions options) =>
-            endpoint.Protocol == Protocol.Ice1 ?
-                new Ice1Connection(networkSocket, endpoint, isServer, options) :
-                new SlicConnection(networkSocket, endpoint, isServer, options);
+        public bool IsSecure => NetworkSocket.SslStream != null;
 
         /// <summary>The underlying network socket.</summary>
         public NetworkSocket NetworkSocket { get; private set; }
 
+        /// <summary><c>true</c> for server connections; otherwise, <c>false</c>. A server connection is created
+        /// by a server-side listener while a client connection is created from the endpoint by the client-side.
+        /// </summary>
+        public bool IsServer { get; }
+
+        /// <summary>The local endpoint. The endpoint may not be available until the connection is connected.
+        /// </summary>
+        public Endpoint? LocalEndpoint { get; private set; }
+
+        /// <summary>The remote endpoint. This endpoint may not be available until the connection is accepted.
+        /// </summary>
+        public Endpoint? RemoteEndpoint { get; private set; }
+
         /// <inheritdoc/>
-        public override async ValueTask ConnectAsync(CancellationToken cancel)
+        public async ValueTask ConnectAsync(CancellationToken cancel)
         {
             if (IsServer)
             {
@@ -46,7 +43,14 @@ namespace IceRpc.Transports
         }
 
         /// <inheritdoc/>
-        public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
+        public void Dispose()
+        {
+            NetworkSocket.Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        /// <inheritdoc/>
+        public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
@@ -57,22 +61,12 @@ namespace IceRpc.Transports
         /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
         /// the server is listening on.</param>
         /// <param name="isServer">The connection is a server connection.</param>
-        protected NetworkSocketConnection(
-            NetworkSocket networkSocket,
-            Endpoint endpoint,
-            bool isServer)
-            : base(endpoint, isServer, networkSocket.Logger) => NetworkSocket = networkSocket;
-
-        /// <inheritdoc/>
-        protected override void Dispose(bool disposing)
+        public NetworkSocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer)
         {
-            // First dispose of the underlying connection otherwise base.Dispose() which releases the stream can trigger
-            // additional data to be sent of the stream release sends data (which is the case for SlicStream).
-            if (disposing)
-            {
-                NetworkSocket.Dispose();
-            }
-            base.Dispose(disposing);
+            IsServer = isServer;
+            LocalEndpoint = IsServer ? endpoint : null;
+            RemoteEndpoint = IsServer ? null : endpoint;
+            NetworkSocket = networkSocket;
         }
     }
 }

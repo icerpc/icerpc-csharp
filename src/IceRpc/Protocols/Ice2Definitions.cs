@@ -3,7 +3,7 @@
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 
-namespace IceRpc.Internal
+namespace IceRpc.Protocols
 {
     // Definitions for the ice2 protocol.
 

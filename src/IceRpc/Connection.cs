@@ -273,11 +273,7 @@ namespace IceRpc
                 {
                     await Task.Yield();
 
-                    _protocolConnection = new MultiStreamProtocolConnection(
-                        (MultiStreamConnection)TransportConnection, // TODO: remove cast
-                        _options.IdleTimeout,
-                        _options.IncomingFrameMaxSize,
-                        () =>
+                    Action pingAction = () =>
                         {
                             Task.Run(() =>
                             {
@@ -290,7 +286,27 @@ namespace IceRpc
                                     _logger.LogConnectionEventHandlerException("ping", ex);
                                 }
                             });
-                        });
+                        };
+
+                    if (TransportConnection is NetworkSocketConnection networkSocketConnection)
+                    {
+                        _protocolConnection = new Ice1ProtocolConnection(
+                            networkSocketConnection,
+                            _options.IdleTimeout,
+                            _options.IncomingFrameMaxSize,
+                            IsServer,
+                            pingAction,
+                            _loggerFactory ?? NullLoggerFactory.Instance);
+                    }
+                    else
+                    {
+                        _protocolConnection = new Ice2ProtocolConnection(
+                            (MultiStreamConnection)TransportConnection, // TODO: remove cast
+                            _options.IdleTimeout,
+                            _options.IncomingFrameMaxSize,
+                            pingAction,
+                            _loggerFactory ?? NullLoggerFactory.Instance);
+                    }
 
                     await _protocolConnection.InitializeAsync(connectCancellationSource.Token).ConfigureAwait(false);
 
@@ -398,8 +414,10 @@ namespace IceRpc
 
             try
             {
+                // Send the request.
                 await _protocolConnection!.SendRequestAsync(request, cancel).ConfigureAwait(false);
 
+                // Wait for the response if two-way request, otherwise return a response with an empty payload.
                 IncomingResponse response;
                 if (request.IsOneway)
                 {
@@ -416,20 +434,20 @@ namespace IceRpc
                 response.Connection = this;
                 return response;
             }
-            catch (OperationCanceledException) when (cancel.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
-                request.Stream.Abort(RpcStreamError.InvocationCanceled);
+                request.Stream?.Abort(RpcStreamError.InvocationCanceled);
                 throw;
             }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.DispatchCanceled)
             {
                 throw new OperationCanceledException("dispatch canceled by peer", ex);
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
-            {
-                // Invocations are canceled immediately when Shutdown is called on the connection.
-                throw new OperationCanceledException("connection shutdown", ex);
-            }
+            // catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdown)
+            // {
+            //     // Invocations are canceled immediately when Shutdown is called on the connection.
+            //     throw new OperationCanceledException("connection shutdown", ex);
+            // }
             catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionShutdownByPeer)
             {
                 // If the peer shuts down the connection, streams which are aborted with this error code are
@@ -437,15 +455,15 @@ namespace IceRpc
                 request.RetryPolicy = RetryPolicy.Immediately;
                 throw new ConnectionClosedException("connection shutdown by peer", ex);
             }
-            catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionAborted)
-            {
-                if (request.IsIdempotent || !request.IsSent)
-                {
-                    // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.RetryPolicy = RetryPolicy.Immediately;
-                }
-                throw new ConnectionLostException(ex);
-            }
+            // catch (RpcStreamAbortedException ex) when (ex.ErrorCode == RpcStreamError.ConnectionAborted)
+            // {
+            //     if (request.IsIdempotent || !request.IsSent)
+            //     {
+            //         // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
+            //         request.RetryPolicy = RetryPolicy.Immediately;
+            //     }
+            //     throw new ConnectionLostException(ex);
+            // }
             catch (RpcStreamAbortedException ex)
             {
                 // Unexpected stream abort. This shouldn't occur unless the peer sends bogus data.
@@ -460,8 +478,9 @@ namespace IceRpc
                 }
                 if (request.IsIdempotent || !request.IsSent)
                 {
-                    // If the connection is being shutdown, exceptions are expected since the request send or response
-                    // receive can fail. If the request is idempotent or hasn't been sent it's safe to retry it.
+                    // If the connection is being shutdown, exceptions are expected since the request send or
+                    // response receive can fail. If the request is idempotent or hasn't been sent it's safe
+                    // to retry it.
                     request.RetryPolicy = RetryPolicy.Immediately;
                 }
                 throw;
@@ -566,7 +585,7 @@ namespace IceRpc
 
             try
             {
-                CancellationToken cancel = request.Stream.CancelDispatchSource?.Token ?? default;
+                CancellationToken cancel = request.CancelDispatchSource?.Token ?? default;
                 request.Connection = this;
 
                 // Dispatch the request and get the response.
@@ -579,23 +598,22 @@ namespace IceRpc
                 {
                     if (!request.IsOneway)
                     {
-                        response = OutgoingResponse.ForException(request, exception);
+                        response = OutgoingResponse.FromException(exception);
                     }
                 }
 
-                if (!request.IsOneway)
+                if (response != null)
                 {
-                    Debug.Assert(response != null);
                     await _protocolConnection.SendResponseAsync(request, response, cancel).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException exception)
             {
-                request.Stream.Abort(RpcStreamError.DispatchCanceled);
+                request.Stream?.Abort(RpcStreamErrorCode.DispatchCanceled);
             }
             catch (RpcStreamAbortedException exception)
             {
-                request.Stream.Abort(exception.ErrorCode);
+                request.Stream!.Abort(exception.ErrorCode);
             }
             catch (Exception exception)
             {
