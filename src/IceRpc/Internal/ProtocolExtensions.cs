@@ -91,14 +91,7 @@ namespace IceRpc.Internal
                 remoteException.Origin = new RemoteExceptionOrigin(request.Path, request.Operation);
             }
 
-            if (request.PayloadEncoding is not IceEncoding encoding)
-            {
-                // If the encoding of the request payload is not an Ice encoding, we encode the exception with
-                // the protocol encoding.
-                encoding = request.Protocol.Encoding;
-            }
-
-            return protocol.CreateResponseFromRemoteException(remoteException, encoding);
+            return protocol.CreateResponseFromRemoteException(remoteException, request.GetIceEncoding());
         }
 
         internal static OutgoingRequest ToOutgoingRequest(

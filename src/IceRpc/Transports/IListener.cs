@@ -13,6 +13,6 @@ namespace IceRpc.Transports
 
         /// <summary>Accepts a new connection.</summary>
         /// <return>The accepted connection.</return>
-        ValueTask<MultiStreamConnection> AcceptAsync();
+        ValueTask<ITransportConnection> AcceptAsync();
     }
 }

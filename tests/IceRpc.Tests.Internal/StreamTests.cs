@@ -29,12 +29,6 @@ namespace IceRpc.Tests.Internal
         [TestCase((RpcStreamError)10)]
         public async Task Stream_Abort(RpcStreamError errorCode)
         {
-            if (ConnectionType == MultiStreamConnectionType.Ice1)
-            {
-                // Not supported with Ice1
-                return;
-            }
-
             Task<(int, RpcStream)> serverTask = ReceiveAsync();
 
             // Create client stream and send one byte.
@@ -82,12 +76,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(false, 3, 1024, 1024 * 1024)]
         public async Task Stream_StreamSendReceiveAsync(bool flowControl, int bufferCount, int sendSize, int recvSize)
         {
-            if (ConnectionType == MultiStreamConnectionType.Ice1)
-            {
-                // Not supported with Ice1
-                return;
-            }
-
             RpcStream clientStream = ClientConnection.CreateStream(true);
             Memory<ReadOnlyMemory<byte>> sendBuffers = new ReadOnlyMemory<byte>[bufferCount];
             byte[] buffer;
@@ -165,33 +153,6 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        [TestCase(64)]
-        [TestCase(1024)]
-        [TestCase(32 * 1024)]
-        [TestCase(128 * 1024)]
-        [TestCase(512 * 1024)]
-        public async Task Stream_SendReceiveRequestAsync(int size)
-        {
-            var request = new OutgoingRequest(Protocol.Ice2, path: "/dummy", operation: "op")
-            {
-                Payload = new ReadOnlyMemory<byte>[] { new byte[size] },
-                PayloadEncoding = Encoding.Ice20,
-            };
-            ValueTask receiveTask = PerformReceiveAsync();
-
-            RpcStream stream = ClientConnection.CreateStream(false);
-            await stream.SendRequestFrameAsync(request);
-
-            await receiveTask;
-
-            async ValueTask PerformReceiveAsync()
-            {
-                RpcStream serverStream = await ServerConnection.AcceptStreamAsync(default);
-                ValueTask<RpcStream> _ = ServerConnection.AcceptStreamAsync(default);
-                await serverStream.ReceiveRequestFrameAsync();
-            }
-        }
-
         [Test]
         public void Stream_SendAsync_Cancellation()
         {
@@ -232,14 +193,6 @@ namespace IceRpc.Tests.Internal
             source.Cancel();
 
             Assert.CatchAsync<OperationCanceledException>(async () => await receiveTask);
-
-            if (ConnectionType != MultiStreamConnectionType.Ice1)
-            {
-                stream.Abort(RpcStreamError.InvocationCanceled);
-
-                // Ensure the stream cancel dispatch source is canceled
-                await dispatchCanceled.Task;
-            }
         }
 
         [TestCase(256, 256)]
@@ -251,12 +204,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(1024, 1024 * 1024)]
         public async Task Stream_StreamReaderWriterAsync(int sendSize, int recvSize)
         {
-            if (ConnectionType == MultiStreamConnectionType.Ice1)
-            {
-                // Not supported with Ice1
-                return;
-            }
-
             Task<RpcStream> serverAcceptStream = AcceptServerStreamAsync();
 
             RpcStream stream = ClientConnection.CreateStream(true);
@@ -299,12 +246,6 @@ namespace IceRpc.Tests.Internal
         [TestCase(true)]
         public async Task Stream_StreamReaderWriterCancelationAsync(bool cancelClientSide)
         {
-            if (ConnectionType == MultiStreamConnectionType.Ice1)
-            {
-                // Not supported with Ice1
-                return;
-            }
-
             Task<RpcStream> serverAcceptStream = AcceptServerStreamAsync();
 
             RpcStream stream = ClientConnection.CreateStream(true);
@@ -377,12 +318,6 @@ namespace IceRpc.Tests.Internal
         [Test]
         public async Task Stream_StreamReaderWriterCompressorAsync()
         {
-            if (ConnectionType == MultiStreamConnectionType.Ice1)
-            {
-                // Not supported with Ice1
-                return;
-            }
-
             RpcStream clientStream = ClientConnection.CreateStream(true);
             _ = ClientConnection.AcceptStreamAsync(default).AsTask();
             _ = clientStream.SendAsync(CreateSendPayload(clientStream, 1), false, default).AsTask();

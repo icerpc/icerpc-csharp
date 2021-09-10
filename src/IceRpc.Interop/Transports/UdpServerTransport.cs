@@ -22,7 +22,7 @@ namespace IceRpc.Transports
         /// </summary>
         public UdpServerTransport(UdpOptions options) => _options = options;
 
-        (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        (IListener?, NetworkSocketConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a udp endpoint regardless of its actual transport name.
@@ -98,12 +98,7 @@ namespace IceRpc.Transports
 #pragma warning disable CA2000 // Dispose objects before losing scope
             var udpSocket = new UdpSocket(socket, logger, isServer: true, multicastAddress);
 #pragma warning restore CA2000 // Dispose objects before losing scope
-            return (null,
-                    NetworkSocketConnection.FromNetworkSocket(
-                        udpSocket,
-                        endpoint with { Port = port },
-                        isServer: true,
-                        new()));
+            return (null, new NetworkSocketConnection(udpSocket, endpoint with { Port = port }, isServer: false));
         }
     }
 }

@@ -29,7 +29,7 @@ namespace IceRpc.Configure
             return this;
         }
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        ITransportConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(

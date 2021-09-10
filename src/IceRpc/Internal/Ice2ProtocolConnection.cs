@@ -1,23 +1,25 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
 using Microsoft.Extensions.Logging;
 
-namespace IceRpc.Protocols
+namespace IceRpc.Internal
 {
     internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
+        /// <inheritdoc/>
+        public bool HasDispatchInProgress => _transportConnection.IncomingStreamCount > 1; // Ignore control stream
+        /// <inheritdoc/>
+        public bool HasInvocationsInProgress => _transportConnection.OutgoingStreamCount > 1; // Ignore control stream
+
         /// <inheritdoc/>
         public TimeSpan IdleTimeout => _transportConnection.IdleTimeout;
 
         /// <inheritdoc/>
         public TimeSpan LastActivity => _transportConnection.LastActivity;
-
-        public ITransportConnection TransportConnection => _transportConnection;
 
         private TaskCompletionSource? _cancelGoAwaySource;
         private RpcStream? _controlStream;
@@ -504,7 +506,7 @@ namespace IceRpc.Protocols
             return goAwayFrame.Message;
         }
 
-        private protected virtual async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
+        private async ValueTask<ReadOnlyMemory<byte>> ReceiveFrameAsync(
             RpcStream stream,
             Ice2FrameType expectedFrameType,
             CancellationToken cancel)

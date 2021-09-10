@@ -12,7 +12,7 @@ namespace IceRpc.Transports
     {
         private readonly MultiStreamOptions _multiStreamOptions;
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        ITransportConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             if (remoteEndpoint.Params.Count > 0)
             {

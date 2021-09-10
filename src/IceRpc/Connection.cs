@@ -2,7 +2,6 @@
 
 using IceRpc.Configure;
 using IceRpc.Internal;
-using IceRpc.Protocols;
 using IceRpc.Transports;
 using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
@@ -288,10 +287,11 @@ namespace IceRpc
                             });
                         };
 
-                    if (TransportConnection is NetworkSocketConnection networkSocketConnection)
+                    // TODO: Add protocol connection factories to avoid the nasty casts here.
+                    if (Protocol == Protocol.Ice1)
                     {
                         _protocolConnection = new Ice1ProtocolConnection(
-                            networkSocketConnection,
+                            (NetworkSocketConnection)TransportConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             IsServer,
@@ -301,7 +301,7 @@ namespace IceRpc
                     else
                     {
                         _protocolConnection = new Ice2ProtocolConnection(
-                            (MultiStreamConnection)TransportConnection, // TODO: remove cast
+                            (MultiStreamConnection)TransportConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             pingAction,
@@ -503,7 +503,7 @@ namespace IceRpc
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(
-            MultiStreamConnection connection,
+            ITransportConnection connection,
             IDispatcher? dispatcher,
             ConnectionOptions options,
             ILoggerFactory? loggerFactory)
@@ -526,7 +526,7 @@ namespace IceRpc
                 Debug.Assert(_protocolConnection != null);
                 TimeSpan idleTime = Time.Elapsed - _protocolConnection!.LastActivity;
                 if (idleTime > _protocolConnection.IdleTimeout / 4 &&
-                    (_options.KeepAlive || ((MultiStreamConnection)TransportConnection!).IncomingStreamCount > 1))
+                    (_options.KeepAlive || _protocolConnection.HasDispatchInProgress))
                 {
                     // We send a ping if there was no activity in the last (IdleTimeout / 4) period. Sending a
                     // ping sooner than really needed is safer to ensure that the receiver will receive the
@@ -540,7 +540,7 @@ namespace IceRpc
                 }
                 else if (idleTime > _protocolConnection.IdleTimeout)
                 {
-                    if (((MultiStreamConnection)TransportConnection!).OutgoingStreamCount > 1)
+                    if (_protocolConnection.HasInvocationsInProgress)
                     {
                         // Close the connection if we didn't receive a heartbeat and the connection is idle.
                         // The server is supposed to send heartbeats when dispatch are in progress.                        Console.Error.WriteLine("XXXXX");
@@ -598,7 +598,7 @@ namespace IceRpc
                 {
                     if (!request.IsOneway)
                     {
-                        response = OutgoingResponse.FromException(exception);
+                        response = OutgoingResponse.ForException(request, exception);
                     }
                 }
 
@@ -607,9 +607,9 @@ namespace IceRpc
                     await _protocolConnection.SendResponseAsync(request, response, cancel).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException exception)
+            catch (OperationCanceledException)
             {
-                request.Stream?.Abort(RpcStreamErrorCode.DispatchCanceled);
+                request.Stream?.Abort(RpcStreamError.DispatchCanceled);
             }
             catch (RpcStreamAbortedException exception)
             {

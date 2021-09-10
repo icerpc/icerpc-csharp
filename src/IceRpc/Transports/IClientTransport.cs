@@ -14,6 +14,6 @@ namespace IceRpc.Transports
         /// <returns>The new connection. This connection is not yet connected.</returns>
         /// <exception name="UnknownTransportException">Thrown if this client transport does not support the remote
         /// endpoint's transport.</exception>
-        MultiStreamConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory);
+        ITransportConnection CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory);
     }
 }

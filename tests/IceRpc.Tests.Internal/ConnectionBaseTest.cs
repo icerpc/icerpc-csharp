@@ -116,9 +116,9 @@ namespace IceRpc.Tests.Internal
         public void Shutdown() => _listener?.Dispose();
 
         protected static async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
-            Task<MultiStreamConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
+            Task<ITransportConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
 
-        protected async Task<MultiStreamConnection> AcceptAsync()
+        protected async Task<ITransportConnection> AcceptAsync()
         {
             lock (_mutex)
             {
@@ -128,19 +128,19 @@ namespace IceRpc.Tests.Internal
             await _acceptSemaphore.EnterAsync();
             try
             {
-                MultiStreamConnection multiStreamConnection = await _listener.AcceptAsync();
-                await multiStreamConnection.ConnectAsync(default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !multiStreamConnection.IsSecure)
+                ITransportConnection transportConnection = await _listener.AcceptAsync();
+                await transportConnection.ConnectAsync(default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !transportConnection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
-                    if (multiStreamConnection is NetworkSocketConnection connection)
+                    if (transportConnection is NetworkSocketConnection connection)
                     {
                         Memory<byte> buffer = new byte[1];
                         await connection.NetworkSocket.ReceiveAsync(buffer, default);
                     }
                 }
-                return multiStreamConnection;
+                return transportConnection;
             }
             catch (Exception ex)
             {
@@ -153,7 +153,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<MultiStreamConnection> ConnectAsync()
+        protected async Task<ITransportConnection> ConnectAsync()
         {
             if (ClientEndpoint.Transport != "udp")
             {
@@ -167,28 +167,28 @@ namespace IceRpc.Tests.Internal
                 ClientEndpoint,
                 authenticationOptions: _clientAuthenticationOptions);
 
-            MultiStreamConnection multiStreamConnection = clientTransport.CreateConnection(
+            ITransportConnection transportConnection = clientTransport.CreateConnection(
                     ClientEndpoint,
                     LogAttributeLoggerFactory.Instance);
-            await multiStreamConnection.ConnectAsync(default);
+            await transportConnection.ConnectAsync(default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
                 // a single byte over the connection to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (multiStreamConnection is NetworkSocketConnection connection)
+                if (transportConnection is NetworkSocketConnection connection)
                 {
                     await connection.NetworkSocket.SendAsync(new byte[1] { 0 }, default);
                 }
             }
 
-            if (multiStreamConnection.RemoteEndpoint!.Transport != TransportName)
+            if (transportConnection.RemoteEndpoint!.Transport != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(multiStreamConnection is ColocConnection);
+                Debug.Assert(transportConnection is ColocConnection);
             }
-            return multiStreamConnection;
+            return transportConnection;
         }
 
         protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
@@ -200,7 +200,7 @@ namespace IceRpc.Tests.Internal
                     serverEndpoint ?? ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-        protected MultiStreamConnection CreateServerConnection() =>
+        protected ITransportConnection CreateServerConnection() =>
             TestHelper.CreateServerTransport(
                 ServerEndpoint,
                 options: null,
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Connection!;
 
-        protected MultiStreamConnection CreateClientConnection() =>
+        protected ITransportConnection CreateClientConnection() =>
             TestHelper.CreateClientTransport(
                 ClientEndpoint,
                 options: null,

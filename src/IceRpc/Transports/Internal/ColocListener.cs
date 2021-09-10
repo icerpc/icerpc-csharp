@@ -24,7 +24,7 @@ namespace IceRpc.Transports.Internal
         private long _nextId;
         private readonly MultiStreamOptions _options;
 
-        public async ValueTask<MultiStreamConnection> AcceptAsync()
+        public async ValueTask<ITransportConnection> AcceptAsync()
         {
             (long id, ColocChannelWriter writer, ColocChannelReader reader) =
                 await _channel.Reader.ReadAsync().ConfigureAwait(false);

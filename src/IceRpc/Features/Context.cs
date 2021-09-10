@@ -8,7 +8,7 @@ namespace IceRpc.Features
     public sealed class Context
     {
         /// <summary>The value of this context feature.</summary>
-        public IDictionary<string, string> Value { get; set; } = ImmutableSortedDictionary<string, string>.Empty;
+        public IDictionary<string, string> Value { get; init; } = ImmutableSortedDictionary<string, string>.Empty;
     }
 
     /// <summary>Provides extension methods for FeatureCollection to read and write the <see cref="Context"/> feature.

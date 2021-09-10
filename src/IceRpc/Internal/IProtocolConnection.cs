@@ -2,20 +2,23 @@
 
 using IceRpc.Transports;
 
-namespace IceRpc.Protocols
+namespace IceRpc.Internal
 {
     /// <summary>A protocol connection represents a layer 7 network connection in the OSI model. It enables
     /// communications using an Ice protocol (Ice1, Ice2 or Coloc).</summary>
     public interface IProtocolConnection : IDisposable
     {
+        /// <summary>Returns <c>true</c> if dispatch are in progress, <c>false</c> otherwise.</summary>
+        bool HasDispatchInProgress { get; }
+
+        /// <summary>Returns <c>true</c> if invocations are in progress, <c>false</c> otherwise.</summary>
+        bool HasInvocationsInProgress { get; }
+
         /// <summary>Gets or set the idle timeout.</summary>
         TimeSpan IdleTimeout { get; }
 
         /// <summary>The time of the connection's last activity.</summary>
         TimeSpan LastActivity { get; }
-
-        /// <summary>The transport connection used by the protocol connection to send/receive binary data.</summary>
-        ITransportConnection TransportConnection { get; }
 
         /// <summary>Initializes the connection.</summary>
         /// <param name="cancel">A cancellation token that receives the cancellation requests.</param>

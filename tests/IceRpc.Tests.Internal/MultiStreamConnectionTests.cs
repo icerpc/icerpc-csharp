@@ -387,7 +387,6 @@ namespace IceRpc.Tests.Internal
                 Assert.That(connection.LocalEndpoint, Is.Not.Null);
                 Assert.That(connection.ToString(), Is.Not.Empty);
                 Assert.AreNotEqual(connection.LastActivity, TimeSpan.Zero);
-                Assert.AreEqual(0, connection.LastResponseStreamId);
                 Assert.AreEqual(0, connection.IncomingStreamCount);
                 Assert.AreEqual(0, connection.OutgoingStreamCount);
             }

@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
 
-        public async ValueTask<MultiStreamConnection> AcceptAsync()
+        public async ValueTask<ITransportConnection> AcceptAsync()
         {
             TcpSocket tcpSocket;
             try
@@ -32,11 +32,14 @@ namespace IceRpc.Transports.Internal
                 throw ExceptionUtil.Throw(ex.ToTransportException(default));
             }
 
-            return NetworkSocketConnection.FromNetworkSocket(
-                tcpSocket,
-                Endpoint,
-                isServer: true,
-                _slicOptions);
+            if (Endpoint.Protocol == Protocol.Ice2)
+            {
+                return new SlicConnection(tcpSocket, Endpoint, isServer: true, _logger, _slicOptions);
+            }
+            else
+            {
+                return new NetworkSocketConnection(tcpSocket, Endpoint, isServer: true);
+            }
         }
 
         public void Dispose() => _socket.Dispose();

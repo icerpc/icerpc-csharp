@@ -7,7 +7,6 @@ namespace IceRpc.Tests.Internal
 {
     public enum MultiStreamConnectionType
     {
-        Ice1,
         Coloc,
         Slic
     }
@@ -22,16 +21,14 @@ namespace IceRpc.Tests.Internal
         private MultiStreamConnection? _serverConnection;
 
         public MultiStreamConnectionBaseTest(MultiStreamConnectionType connectionType)
-            : base(connectionType == MultiStreamConnectionType.Ice1 ? Protocol.Ice1 : Protocol.Ice2,
-                   connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp",
-                   tls: false) =>
+            : base(Protocol.Ice2, connectionType == MultiStreamConnectionType.Coloc ? "coloc" : "tcp", tls: false) =>
             ConnectionType = connectionType;
 
         public async Task SetUpConnectionsAsync()
         {
-            Task<MultiStreamConnection> acceptTask = AcceptAsync();
-            _clientConnection = await ConnectAsync();
-            _serverConnection = await acceptTask;
+            Task<ITransportConnection> acceptTask = AcceptAsync();
+            _clientConnection = (await ConnectAsync() as MultiStreamConnection)!;
+            _serverConnection = (await acceptTask as MultiStreamConnection)!;
         }
 
         public void TearDownConnections()

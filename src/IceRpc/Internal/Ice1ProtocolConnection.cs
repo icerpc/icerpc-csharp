@@ -1,7 +1,6 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
 using IceRpc.Features;
-using IceRpc.Internal;
 using IceRpc.Slice;
 using IceRpc.Slice.Internal;
 using IceRpc.Transports;
@@ -9,19 +8,22 @@ using IceRpc.Transports.Internal;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace IceRpc.Protocols
+namespace IceRpc.Internal
 {
     internal sealed class Ice1ProtocolConnection : IProtocolConnection
     {
+        /// <inheritdoc/>
+        public bool HasDispatchInProgress => !_dispatchCancellationTokenSources.IsEmpty;
+        /// <inheritdoc/>
+        public bool HasInvocationsInProgress => !_pendingIncomingResponses.IsEmpty;
+
         /// <inheritdoc/>
         public TimeSpan IdleTimeout { get; private set; }
 
         /// <inheritdoc/>
         public TimeSpan LastActivity { get; private set; }
 
-        public ITransportConnection TransportConnection { get; }
-
-        private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
+//        private readonly AsyncSemaphore? _bidirectionalStreamSemaphore;
         private TaskCompletionSource? _dispatchEmptyTaskCompletionSource;
         private readonly int _incomingFrameMaxSize;
         private readonly bool _isServer;
@@ -32,9 +34,10 @@ namespace IceRpc.Protocols
         private readonly TaskCompletionSource _pendingCloseConnection = new();
         private readonly Action? _pingReceived;
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
+//        private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private volatile bool _shutdown;
         private readonly NetworkSocket _socket;
+        private ITransportConnection _transportConnection;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
@@ -45,7 +48,7 @@ namespace IceRpc.Protocols
             Action? pingReceived,
             ILoggerFactory loggerFactory)
         {
-            TransportConnection = transportConnection;
+            _transportConnection = transportConnection;
             IdleTimeout = idleTimeout;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _isServer = isServer;
@@ -57,6 +60,8 @@ namespace IceRpc.Protocols
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
+            await _transportConnection.ConnectAsync(cancel).ConfigureAwait(false);
+
             if (!_socket.IsDatagram)
             {
                 if (_isServer)

@@ -29,7 +29,7 @@ namespace IceRpc.Configure
             return this;
         }
 
-        (IListener?, MultiStreamConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        (IListener?, NetworkSocketConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             _transports ??= _builder;
             if (_transports.TryGetValue(

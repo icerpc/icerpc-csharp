@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        MultiStreamConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        ITransportConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
@@ -81,7 +81,14 @@ namespace IceRpc.Transports
             }
 
             var tcpSocket = new TcpClientSocket(socket, logger, _authenticationOptions, netEndPoint);
-            return NetworkSocketConnection.FromNetworkSocket(tcpSocket, remoteEndpoint, isServer: false, _slicOptions);
+            if (remoteEndpoint.Protocol == Protocol.Ice2)
+            {
+                return new SlicConnection(tcpSocket, remoteEndpoint, isServer: false, logger, _slicOptions);
+            }
+            else
+            {
+                return new NetworkSocketConnection(tcpSocket, remoteEndpoint, isServer: false);
+            }
         }
     }
 }
