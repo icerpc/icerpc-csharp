@@ -12,13 +12,8 @@ namespace IceRpc.Tests.Internal
     public class MultiStreamConnectionTests : MultiStreamConnectionBaseTest
     {
         public MultiStreamConnectionTests(MultiStreamConnectionType type)
-            : base(type)
+            : base(type, bidirectionalStreamMaxCount: 15, unidirectionalStreamMaxCount: 10)
         {
-            ServerMultiStreamOptions = type == MultiStreamConnectionType.Coloc ?
-                 new MultiStreamOptions() :
-                 new SlicOptions();
-            ServerMultiStreamOptions.BidirectionalStreamMaxCount = 15;
-            ServerMultiStreamOptions.UnidirectionalStreamMaxCount = 10;
         }
 
         [Test]

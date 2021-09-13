@@ -19,8 +19,9 @@ namespace IceRpc.Transports.Internal
         public override bool IsDatagram => false;
 
         /// <inheritdoc/>
-        public override bool IsSecure => _socket.SslStream != null;
+        public override bool IsSecure => NetworkSocket.SslStream != null;
 
+        internal NetworkSocket NetworkSocket { get; }
         internal int PacketMaxSize { get; }
         internal int PeerPacketMaxSize { get; private set; }
         internal int PeerStreamBufferMaxSize { get; private set; }
@@ -34,7 +35,6 @@ namespace IceRpc.Transports.Internal
         private long _nextUnidirectionalId;
         private readonly ManualResetValueTaskCompletionSource<int> _receiveStreamCompletionTaskSource = new();
         private readonly AsyncSemaphore _sendSemaphore = new(1);
-        private readonly NetworkSocket _socket;
         private Memory<byte>? _streamConsumedBuffer;
         private readonly int _unidirectionalMaxStreams;
         private int _unidirectionalStreamCount;
@@ -252,15 +252,15 @@ namespace IceRpc.Transports.Internal
         {
             if (IsServer)
             {
-                RemoteEndpoint = await _socket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
+                RemoteEndpoint = await NetworkSocket.ConnectAsync(LocalEndpoint!, cancel).ConfigureAwait(false);
             }
             else
             {
-                LocalEndpoint = await _socket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
+                LocalEndpoint = await NetworkSocket.ConnectAsync(RemoteEndpoint!, cancel).ConfigureAwait(false);
             }
 
             // Create a buffered receive single stream on top of the underlying connection.
-            _bufferedSocket = new BufferedReceiveOverNetworkSocket(_socket);
+            _bufferedSocket = new BufferedReceiveOverNetworkSocket(NetworkSocket);
 
             if (IsServer)
             {
@@ -383,7 +383,7 @@ namespace IceRpc.Transports.Internal
         public override bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             !IsServer &&
             EndpointComparer.ParameterLess.Equals(remoteEndpoint, RemoteEndpoint) &&
-            _socket.HasCompatibleParams(remoteEndpoint);
+            NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         public override Task PingAsync(CancellationToken cancel) =>
             // TODO: shall we set a timer for expecting the Pong frame? or should we return only once
@@ -413,7 +413,7 @@ namespace IceRpc.Transports.Internal
             MultiStreamOptions options)
             : base(endpoint, isServer, logger)
         {
-            _socket = socket;
+            NetworkSocket = socket;
 
             _receiveStreamCompletionTaskSource.SetResult(0);
 

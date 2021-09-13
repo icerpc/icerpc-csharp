@@ -216,15 +216,21 @@ namespace IceRpc.Tests.Internal
             Assert.That(entry.Exception, Is.EqualTo(exception));
         }
 
-        private static IncomingRequest CreateIncomingRequest(bool twoway)
-        {
-            var request = CreateOutgoingRequest(twoway).ToIncoming();
-            request.Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", true);
-            return request;
-        }
+        private static IncomingRequest CreateIncomingRequest(bool twoway) =>
+            new(Protocol.Ice2, path: "/dummy", operation: "foo")
+            {
+                Connection = ConnectionStub.Create("ice+tcp://local:4500", "ice+tcp://remote:4500", true),
+                IsOneway = !twoway,
+                Payload = new byte[15],
+                PayloadEncoding = Encoding.Ice20
+            };
 
         private static IncomingResponse CreateIncomingResponse() =>
-            CreateOutgoingResponse().ToIncoming();
+            new(Protocol.Ice2, ResultType.Success)
+            {
+                Payload = new byte[10],
+                PayloadEncoding = Encoding.Ice20
+            };
 
         private static OutgoingRequest CreateOutgoingRequest(bool twoway) =>
             new(Protocol.Ice2, path: "/dummy", operation: "foo")
@@ -239,7 +245,7 @@ namespace IceRpc.Tests.Internal
             new(Protocol.Ice2, ResultType.Success)
             {
                 Payload = new ReadOnlyMemory<byte>[] { new byte[10] },
-                PayloadEncoding = Encoding.Ice20,
+                PayloadEncoding = Encoding.Ice20
             };
     }
 }
