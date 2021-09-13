@@ -207,9 +207,9 @@ namespace IceRpc.Tests.Internal
 
             (TestHelper.CreateClientTransport(endpoint ?? ClientEndpoint, options).CreateConnection(
                 endpoint ?? ClientEndpoint,
-                LogAttributeLoggerFactory.Instance) as NetworkSocketConnection)!.NetworkSocket;
+                LogAttributeLoggerFactory.Instance) as SocketConnection)!.NetworkSocket;
 
         private static async ValueTask<NetworkSocket> CreateServerConnectionAsync(IListener listener) =>
-            ((await listener.AcceptAsync()) as NetworkSocketConnection)!.NetworkSocket;
+            ((await listener.AcceptAsync()) as SocketConnection)!.NetworkSocket;
     }
 }

@@ -37,32 +37,32 @@ namespace IceRpc.Internal
 //        private readonly AsyncSemaphore? _unidirectionalStreamSemaphore;
         private volatile bool _shutdown;
         private readonly NetworkSocket _socket;
-        private ITransportConnection _transportConnection;
+        private INetworkConnection _networkConnection;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice1ProtocolConnection(
-            NetworkSocketConnection transportConnection,
+            SocketConnection networkConnection,
             TimeSpan idleTimeout,
             int incomingFrameMaxSize,
             bool isServer,
             Action? pingReceived,
             ILoggerFactory loggerFactory)
         {
-            _transportConnection = transportConnection;
+            _networkConnection = networkConnection;
             IdleTimeout = idleTimeout;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _isServer = isServer;
             _pingReceived = pingReceived;
             _logger = loggerFactory.CreateLogger("IceRpc.Protocol");
-            _socket = transportConnection.NetworkSocket;
+            _socket = networkConnection.NetworkSocket;
         }
 
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
-            await _transportConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            if (!_socket.IsDatagram)
+            if (!_networkConnection.IsDatagram)
             {
                 if (_isServer)
                 {
@@ -95,7 +95,7 @@ namespace IceRpc.Internal
         /// <inheritdoc/>
         public void Dispose()
         {
-            _socket.Dispose();
+            _networkConnection.Dispose();
             foreach (CancellationTokenSource cancellationTokenSource in _dispatchCancellationTokenSources.Values)
             {
                 cancellationTokenSource.Cancel();
@@ -245,7 +245,6 @@ namespace IceRpc.Internal
             try
             {
                 var bufferWriter = new BufferWriter();
-                bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
                 var encoder = new Ice11Encoder(bufferWriter);
 
                 // Write the Ice1 request header.
@@ -438,7 +437,7 @@ namespace IceRpc.Internal
             {
                 // Receive the Ice1 frame header.
                 Memory<byte> buffer;
-                if (_socket.IsDatagram)
+                if (_networkConnection.IsDatagram)
                 {
                     buffer = new byte[_socket.DatagramMaxReceiveSize];
                     int received = await _socket.ReceiveAsync(buffer, cancel).ConfigureAwait(false);
@@ -461,7 +460,7 @@ namespace IceRpc.Internal
                 int frameSize = IceDecoder.DecodeInt(buffer.AsReadOnlySpan().Slice(10, 4));
                 if (frameSize < Ice1Definitions.HeaderSize)
                 {
-                    if (_socket.IsDatagram)
+                    if (_networkConnection.IsDatagram)
                     {
                         _logger.LogReceivedInvalidDatagram(frameSize);
                     }
@@ -473,7 +472,7 @@ namespace IceRpc.Internal
                 }
                 if (frameSize > _incomingFrameMaxSize)
                 {
-                    if (_socket.IsDatagram)
+                    if (_networkConnection.IsDatagram)
                     {
                         _logger.LogDatagramSizeExceededIncomingFrameMaxSize(frameSize);
                         continue;
@@ -488,7 +487,7 @@ namespace IceRpc.Internal
                 // Read the remainder of the frame if needed.
                 if (frameSize > buffer.Length)
                 {
-                    if (_socket.IsDatagram)
+                    if (_networkConnection.IsDatagram)
                     {
                         _logger.LogDatagramMaximumSizeExceeded(frameSize);
                         continue;
@@ -498,12 +497,12 @@ namespace IceRpc.Internal
                     buffer[0..Ice1Definitions.HeaderSize].CopyTo(newBuffer[0..Ice1Definitions.HeaderSize]);
                     buffer = newBuffer;
                 }
-                else if (!_socket.IsDatagram)
+                else if (!_networkConnection.IsDatagram)
                 {
                     buffer = buffer[0..frameSize];
                 }
 
-                if (!_socket.IsDatagram && frameSize > Ice1Definitions.HeaderSize)
+                if (!_networkConnection.IsDatagram && frameSize > Ice1Definitions.HeaderSize)
                 {
                     await ReceiveUntilFullAsync(buffer[Ice1Definitions.HeaderSize..], cancel).ConfigureAwait(false);
                 }

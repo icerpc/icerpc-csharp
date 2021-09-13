@@ -11,15 +11,15 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", true)]
     [TestFixture("udp", false)]
     [Timeout(10000)]
-    public class NetworkSocketConnectionTests : NetworkSocketConnectionBaseTest
+    public class SocketConnectionTests : SocketConnectionBaseTest
     {
-        public NetworkSocketConnectionTests(string transport, bool tls)
+        public SocketConnectionTests(string transport, bool tls)
             : base(transport == "udp" ? Protocol.Ice1 : Protocol.Ice2, transport, tls)
         {
         }
 
         [Test]
-        public void NetworkSocketConnection_Dispose()
+        public void SocketConnection_Dispose()
         {
             ClientConnection.Dispose();
             ServerConnection.Dispose();
@@ -28,7 +28,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void NetworkSocketConnection_Properties()
+        public void SocketConnection_Properties()
         {
             Test(ClientConnection);
             Test(ServerConnection);

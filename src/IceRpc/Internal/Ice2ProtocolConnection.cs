@@ -11,15 +11,15 @@ namespace IceRpc.Internal
     internal sealed class Ice2ProtocolConnection : IProtocolConnection
     {
         /// <inheritdoc/>
-        public bool HasDispatchInProgress => _transportConnection.IncomingStreamCount > 1; // Ignore control stream
+        public bool HasDispatchInProgress => _networkConnection.IncomingStreamCount > 1; // Ignore control stream
         /// <inheritdoc/>
-        public bool HasInvocationsInProgress => _transportConnection.OutgoingStreamCount > 1; // Ignore control stream
+        public bool HasInvocationsInProgress => _networkConnection.OutgoingStreamCount > 1; // Ignore control stream
 
         /// <inheritdoc/>
-        public TimeSpan IdleTimeout => _transportConnection.IdleTimeout;
+        public TimeSpan IdleTimeout => _networkConnection.IdleTimeout;
 
         /// <inheritdoc/>
-        public TimeSpan LastActivity => _transportConnection.LastActivity;
+        public TimeSpan LastActivity => _networkConnection.LastActivity;
 
         private TaskCompletionSource? _cancelGoAwaySource;
         private RpcStream? _controlStream;
@@ -28,34 +28,34 @@ namespace IceRpc.Internal
         private RpcStream? _peerControlStream;
         private int? _peerIncomingFrameMaxSize;
 
-        private readonly MultiStreamConnection _transportConnection;
+        private readonly MultiStreamConnection _networkConnection;
 
         /// <summary>Creates a multi-stream protocol connection.</summary>
         public Ice2ProtocolConnection(
-            MultiStreamConnection transportConnection,
+            MultiStreamConnection networkConnection,
             TimeSpan idleTimeout,
             int incomingFrameMaxSize,
             Action? pingReceived,
             ILoggerFactory loggerFactory)
         {
-            _transportConnection = transportConnection;
+            _networkConnection = networkConnection;
             _incomingFrameMaxSize = incomingFrameMaxSize;
             _logger = loggerFactory.CreateLogger("IceRpc.Protocol");
 
             // The multi-stream transport is responsible for ping/idle timeout.
-            _transportConnection.PingReceived = pingReceived;
-            _transportConnection.IdleTimeout = idleTimeout;
+            _networkConnection.PingReceived = pingReceived;
+            _networkConnection.IdleTimeout = idleTimeout;
         }
 
         /// <inheritdoc/>
         public async Task InitializeAsync(CancellationToken cancel)
         {
-            await _transportConnection.ConnectAsync(cancel).ConfigureAwait(false);
+            await _networkConnection.ConnectAsync(cancel).ConfigureAwait(false);
 
-            if (!_transportConnection.IsDatagram)
+            if (!_networkConnection.IsDatagram)
             {
                 // Create the control stream and send the protocol initialize frame
-                _controlStream = _transportConnection.CreateStream(false);
+                _controlStream = _networkConnection.CreateStream(false);
 
                 await SendControlFrameAsync(
                     Ice2FrameType.Initialize,
@@ -72,7 +72,7 @@ namespace IceRpc.Internal
                     cancel).ConfigureAwait(false);
 
                 // Wait for the peer control stream to be accepted and read the protocol initialize frame
-                _peerControlStream = await _transportConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
+                _peerControlStream = await _networkConnection.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
                 ReadOnlyMemory<byte> buffer = await ReceiveFrameAsync(
                     _peerControlStream,
@@ -121,16 +121,16 @@ namespace IceRpc.Internal
         public void Dispose()
         {
             _cancelGoAwaySource?.TrySetCanceled();
-            _transportConnection.Dispose();
+            _networkConnection.Dispose();
         }
 
-        public Task PingAsync(CancellationToken cancel) => _transportConnection.PingAsync(cancel);
+        public Task PingAsync(CancellationToken cancel) => _networkConnection.PingAsync(cancel);
 
         /// <inheritdoc/>
         public async Task<IncomingRequest?> ReceiveRequestAsync(CancellationToken cancel)
         {
             // Accepts a new stream.
-            RpcStream stream = await _transportConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
+            RpcStream stream = await _networkConnection!.AcceptStreamAsync(cancel).ConfigureAwait(false);
 
             // Receives the request frame from the stream. TODO: Only read the request header, the payload
             // should be received by calling IProtocolStream.ReceivePayloadAsync from the incoming frame
@@ -271,7 +271,7 @@ namespace IceRpc.Internal
         public async Task SendRequestAsync(OutgoingRequest request, CancellationToken cancel)
         {
             // Creates the stream.
-            request.Stream = _transportConnection!.CreateStream(!request.IsOneway);
+            request.Stream = _networkConnection!.CreateStream(!request.IsOneway);
 
             var bufferWriter = new BufferWriter();
             bufferWriter.WriteByteSpan(request.Stream.TransportHeader.Span);
@@ -410,7 +410,7 @@ namespace IceRpc.Internal
             // Shutdown the multi-stream connection to prevent new streams from being created. This is done
             // before the yield to ensure consistency between the connection shutdown state and the connection
             // closing State.
-            (long lastBidirectionalId, long lastUnidirectionalId) = _transportConnection.Shutdown();
+            (long lastBidirectionalId, long lastUnidirectionalId) = _networkConnection.Shutdown();
 
             if (!shutdownByPeer)
             {
@@ -436,13 +436,13 @@ namespace IceRpc.Internal
 
             // Wait for all the streams to complete (expect the local control streams which are closed
             // once all the other streams are closed).
-            await _transportConnection.WaitForStreamCountAsync(1, 1, cancel).ConfigureAwait(false);
+            await _networkConnection.WaitForStreamCountAsync(1, 1, cancel).ConfigureAwait(false);
 
             // Abort the control stream.
             _controlStream!.AbortWrite(RpcStreamError.ConnectionShutdown);
 
             // Wait for the streams to be closed.
-            await _transportConnection.WaitForStreamCountAsync(0, 0, cancel).ConfigureAwait(false);
+            await _networkConnection.WaitForStreamCountAsync(0, 0, cancel).ConfigureAwait(false);
 
             async Task SendGoAwayCancelIfShutdownCanceledAsync()
             {
@@ -452,7 +452,7 @@ namespace IceRpc.Internal
                     await _cancelGoAwaySource!.Task.ConfigureAwait(false);
 
                     // Cancel dispatch if shutdown is canceled.
-                    _transportConnection!.CancelDispatch();
+                    _networkConnection!.CancelDispatch();
 
                     // Write the GoAwayCanceled frame to the peer's streams.
                     await SendControlFrameAsync(Ice2FrameType.GoAwayCanceled, null, default).ConfigureAwait(false);
@@ -478,7 +478,7 @@ namespace IceRpc.Internal
                     }
 
                     // Cancel the dispatch if the peer canceled the shutdown.
-                    _transportConnection!.CancelDispatch();
+                    _networkConnection!.CancelDispatch();
                 }
                 catch (RpcStreamAbortedException)
                 {
@@ -499,7 +499,7 @@ namespace IceRpc.Internal
 
             // Abort non-processed outgoing streams before closing the connection to ensure the invocations
             // will fail with a retryable exception.
-            _transportConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer,
+            _networkConnection.AbortOutgoingStreams(RpcStreamError.ConnectionShutdownByPeer,
                                                       (goAwayFrame.LastBidirectionalStreamId,
                                                        goAwayFrame.LastUnidirectionalStreamId));
 

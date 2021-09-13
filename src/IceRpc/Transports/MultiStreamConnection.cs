@@ -13,7 +13,7 @@ namespace IceRpc.Transports
     /// <summary>A multi-stream connection represents a network connection that provides multiple independent
     /// streams of binary data.</summary>
     /// <seealso cref="RpcStream"/>
-    public abstract class MultiStreamConnection : ITransportConnection
+    public abstract class MultiStreamConnection : INetworkConnection
     {
         /// <summary><c>true</c> for datagram connection; <c>false</c> otherwise.</summary>
         public abstract bool IsDatagram { get; }

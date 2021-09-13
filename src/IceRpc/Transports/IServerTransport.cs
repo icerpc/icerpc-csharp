@@ -16,7 +16,7 @@ namespace IceRpc.Transports
         /// name="endpoint"/>.</returns>
         /// <exception name="UnknownTransportException">Thrown if this server transport does not support the
         /// endpoint's transport.</exception>
-        (IListener? Listener, NetworkSocketConnection? Connection) Listen(
+        (IListener? Listener, SocketConnection? Connection) Listen(
             Endpoint endpoint,
             ILoggerFactory loggerFactory);
     }

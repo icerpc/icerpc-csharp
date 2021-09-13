@@ -115,10 +115,10 @@ namespace IceRpc.Tests.Internal
         [OneTimeTearDown]
         public void Shutdown() => _listener?.Dispose();
 
-        protected static async ValueTask<NetworkSocket> NetworkSocketConnectionAsync(
-            Task<ITransportConnection> connection) => (await connection as NetworkSocketConnection)!.NetworkSocket;
+        protected static async ValueTask<NetworkSocket> SocketConnectionAsync(
+            Task<INetworkConnection> connection) => (await connection as SocketConnection)!.NetworkSocket;
 
-        protected async Task<ITransportConnection> AcceptAsync()
+        protected async Task<INetworkConnection> AcceptAsync()
         {
             lock (_mutex)
             {
@@ -128,19 +128,19 @@ namespace IceRpc.Tests.Internal
             await _acceptSemaphore.EnterAsync();
             try
             {
-                ITransportConnection transportConnection = await _listener.AcceptAsync();
-                await transportConnection.ConnectAsync(default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !transportConnection.IsSecure)
+                INetworkConnection networkConnection = await _listener.AcceptAsync();
+                await networkConnection.ConnectAsync(default);
+                if (ClientEndpoint.Protocol == Protocol.Ice2 && !networkConnection.IsSecure)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
-                    if (transportConnection is NetworkSocketConnection connection)
+                    if (networkConnection is SocketConnection connection)
                     {
                         Memory<byte> buffer = new byte[1];
                         await connection.NetworkSocket.ReceiveAsync(buffer, default);
                     }
                 }
-                return transportConnection;
+                return networkConnection;
             }
             catch (Exception ex)
             {
@@ -153,7 +153,7 @@ namespace IceRpc.Tests.Internal
             }
         }
 
-        protected async Task<ITransportConnection> ConnectAsync()
+        protected async Task<INetworkConnection> ConnectAsync()
         {
             if (ClientEndpoint.Transport != "udp")
             {
@@ -167,28 +167,28 @@ namespace IceRpc.Tests.Internal
                 ClientEndpoint,
                 authenticationOptions: _clientAuthenticationOptions);
 
-            ITransportConnection transportConnection = clientTransport.CreateConnection(
+            INetworkConnection networkConnection = clientTransport.CreateConnection(
                     ClientEndpoint,
                     LogAttributeLoggerFactory.Instance);
-            await transportConnection.ConnectAsync(default);
+            await networkConnection.ConnectAsync(default);
             if (ClientEndpoint.Protocol == Protocol.Ice2 && !IsSecure)
             {
                 // If establishing a non-secure Ice2 connection, we need to send a single byte. The peer peeks
                 // a single byte over the connection to figure out if the client establishes a secure/non-secure
                 // connection. If we were not providing this byte, the AcceptAsync from the peer would hang
                 // indefinitely.
-                if (transportConnection is NetworkSocketConnection connection)
+                if (networkConnection is SocketConnection connection)
                 {
                     await connection.NetworkSocket.SendAsync(new byte[1] { 0 }, default);
                 }
             }
 
-            if (transportConnection.RemoteEndpoint!.Transport != TransportName)
+            if (networkConnection.RemoteEndpoint!.Transport != TransportName)
             {
                 Debug.Assert(TransportName == "coloc");
-                Debug.Assert(transportConnection is ColocConnection);
+                Debug.Assert(networkConnection is ColocConnection);
             }
-            return transportConnection;
+            return networkConnection;
         }
 
         protected IListener CreateListener(TcpOptions? options = null, Endpoint? serverEndpoint = null) =>
@@ -200,7 +200,7 @@ namespace IceRpc.Tests.Internal
                     serverEndpoint ?? ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
 
-        protected ITransportConnection CreateServerConnection() =>
+        protected INetworkConnection CreateServerConnection() =>
             TestHelper.CreateServerTransport(
                 ServerEndpoint,
                 options: null,
@@ -209,7 +209,7 @@ namespace IceRpc.Tests.Internal
                     ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Connection!;
 
-        protected ITransportConnection CreateClientConnection() =>
+        protected INetworkConnection CreateClientConnection() =>
             TestHelper.CreateClientTransport(
                 ClientEndpoint,
                 options: null,

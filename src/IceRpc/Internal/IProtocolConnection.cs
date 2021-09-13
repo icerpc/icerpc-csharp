@@ -4,8 +4,8 @@ using IceRpc.Transports;
 
 namespace IceRpc.Internal
 {
-    /// <summary>A protocol connection represents a layer 7 network connection in the OSI model. It enables
-    /// communications using an Ice protocol (Ice1, Ice2 or Coloc).</summary>
+    /// <summary>A protocol connection enables communication over a network connection using either the Ice1
+    /// or Ice2 protocol.</summary>
     public interface IProtocolConnection : IDisposable
     {
         /// <summary>Returns <c>true</c> if dispatch are in progress, <c>false</c> otherwise.</summary>

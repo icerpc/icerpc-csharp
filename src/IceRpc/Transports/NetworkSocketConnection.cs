@@ -1,11 +1,10 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Transports.Internal;
-
 namespace IceRpc.Transports
 {
-    /// <summary>A transport connection based on a <see cref="NetworkSocket"/>.</summary>
-    public sealed class NetworkSocketConnection : ITransportConnection
+    /// <summary>A network socket connection represents a network connection based on a <see
+    /// cref="NetworkSocket"/>.</summary>
+    public sealed class SocketConnection : INetworkConnection
     {
         /// <inheritdoc/>
         public bool IsDatagram => NetworkSocket.IsDatagram;
@@ -56,12 +55,12 @@ namespace IceRpc.Transports
             NetworkSocket.HasCompatibleParams(remoteEndpoint);
 
         /// <summary>Constructs a connection.</summary>
-        /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and the
-        /// resulting connection will be likewise a client or server connection.</param>
-        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the endpoint
-        /// the server is listening on.</param>
+        /// <param name="networkSocket">The network socket. It can be a client socket or server socket, and
+        /// the resulting connection will be likewise a client or server network connection.</param>
+        /// <param name="endpoint">For a client connection, the remote endpoint; for a server connection, the
+        /// endpoint the server is listening on.</param>
         /// <param name="isServer">The connection is a server connection.</param>
-        public NetworkSocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer)
+        public SocketConnection(NetworkSocket networkSocket, Endpoint endpoint, bool isServer)
         {
             IsServer = isServer;
             LocalEndpoint = IsServer ? endpoint : null;

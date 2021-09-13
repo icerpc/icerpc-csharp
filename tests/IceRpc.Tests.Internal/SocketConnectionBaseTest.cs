@@ -7,14 +7,14 @@ using System.Net.Sockets;
 namespace IceRpc.Tests.Internal
 {
     [Parallelizable(scope: ParallelScope.Fixtures)]
-    public class NetworkSocketConnectionBaseTest : ConnectionBaseTest
+    public class SocketConnectionBaseTest : ConnectionBaseTest
     {
         protected NetworkSocket ClientConnection => _clientConnection!;
         protected NetworkSocket ServerConnection => _serverConnection!;
         private NetworkSocket? _clientConnection;
         private NetworkSocket? _serverConnection;
 
-        public NetworkSocketConnectionBaseTest(
+        public SocketConnectionBaseTest(
             Protocol protocol,
             string transport,
             bool tls,
@@ -28,14 +28,14 @@ namespace IceRpc.Tests.Internal
         {
             if (ClientEndpoint.Transport == "udp")
             {
-                _serverConnection = ((NetworkSocketConnection)CreateServerConnection()).NetworkSocket;
-                ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
+                _serverConnection = ((SocketConnection)CreateServerConnection()).NetworkSocket;
+                ValueTask<NetworkSocket> connectTask = SocketConnectionAsync(ConnectAsync());
                 _clientConnection = await connectTask;
             }
             else
             {
-                ValueTask<NetworkSocket> connectTask = NetworkSocketConnectionAsync(ConnectAsync());
-                ValueTask<NetworkSocket> acceptTask = NetworkSocketConnectionAsync(AcceptAsync());
+                ValueTask<NetworkSocket> connectTask = SocketConnectionAsync(ConnectAsync());
+                ValueTask<NetworkSocket> acceptTask = SocketConnectionAsync(AcceptAsync());
 
                 _clientConnection = await connectTask;
                 _serverConnection = await acceptTask;

@@ -339,7 +339,7 @@ namespace IceRpc.Tests.ClientServer
             Assert.DoesNotThrowAsync(async () => await prx.IcePingAsync());
 
             SslStream? sslStream =
-                (prx.Proxy.Connection!.TransportConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                (prx.Proxy.Connection!.NetworkConnection as SocketConnection)?.NetworkSocket.SslStream;
 
             Assert.That(prx.Proxy.Connection.IsSecure, Is.True);
             Assert.That(sslStream, Is.Not.Null);

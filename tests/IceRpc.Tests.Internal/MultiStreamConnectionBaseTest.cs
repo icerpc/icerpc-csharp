@@ -26,7 +26,7 @@ namespace IceRpc.Tests.Internal
 
         public async Task SetUpConnectionsAsync()
         {
-            Task<ITransportConnection> acceptTask = AcceptAsync();
+            Task<INetworkConnection> acceptTask = AcceptAsync();
             _clientConnection = (await ConnectAsync() as MultiStreamConnection)!;
             _serverConnection = (await acceptTask as MultiStreamConnection)!;
         }

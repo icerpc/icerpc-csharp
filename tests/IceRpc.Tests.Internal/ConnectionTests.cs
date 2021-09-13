@@ -296,11 +296,11 @@ namespace IceRpc.Tests.Internal
             Assert.That(factory.ServerConnection.IsSecure, Is.EqualTo(secure));
 
             Socket? clientSocket =
-                (factory.ClientConnection.TransportConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
+                (factory.ClientConnection.NetworkConnection as SocketConnection)?.NetworkSocket.Socket;
             Assert.That(clientSocket, Is.Not.Null);
 
             Socket? serverSocket =
-                (factory.ServerConnection.TransportConnection as NetworkSocketConnection)?.NetworkSocket.Socket;
+                (factory.ServerConnection.NetworkConnection as SocketConnection)?.NetworkSocket.Socket;
             Assert.That(serverSocket, Is.Not.Null);
 
             Assert.That(clientSocket!.RemoteEndPoint, Is.Not.Null);
@@ -331,8 +331,8 @@ namespace IceRpc.Tests.Internal
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.LocalEndPoint).Address.ToString());
             Assert.AreEqual("127.0.0.1", ((IPEndPoint)clientSocket.RemoteEndPoint).Address.ToString());
 
-            Assert.That($"{factory.ClientConnection}", Does.StartWith(factory.ClientConnection.TransportConnection!.GetType().Name));
-            Assert.That($"{factory.ServerConnection}", Does.StartWith(factory.ServerConnection.TransportConnection!.GetType().Name));
+            Assert.That($"{factory.ClientConnection}", Does.StartWith(factory.ClientConnection.NetworkConnection!.GetType().Name));
+            Assert.That($"{factory.ServerConnection}", Does.StartWith(factory.ServerConnection.NetworkConnection!.GetType().Name));
 
             if (transport == "udp")
             {
@@ -347,12 +347,12 @@ namespace IceRpc.Tests.Internal
             {
                 Assert.AreEqual("tcp", transport);
                 SslStream? clientSslStream =
-                    (factory.ClientConnection.TransportConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                    (factory.ClientConnection.NetworkConnection as SocketConnection)?.NetworkSocket.SslStream;
 
                 Assert.That(clientSslStream, Is.Not.Null);
 
                 SslStream? serverSslStream =
-                    (factory.ServerConnection.TransportConnection as NetworkSocketConnection)?.NetworkSocket.SslStream;
+                    (factory.ServerConnection.NetworkConnection as SocketConnection)?.NetworkSocket.SslStream;
 
                 Assert.That(serverSslStream, Is.Not.Null);
 

@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        (IListener?, NetworkSocketConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
+        (IListener?, SocketConnection?) IServerTransport.Listen(Endpoint endpoint, ILoggerFactory loggerFactory)
         {
             // We are not checking endpoint.Transport. The caller decided to give us this endpoint and we assume it's
             // a tcp or ssl endpoint regardless of its actual transport name.

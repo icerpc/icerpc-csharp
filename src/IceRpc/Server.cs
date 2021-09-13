@@ -112,7 +112,7 @@ namespace IceRpc
                     throw new ObjectDisposedException($"{typeof(Server).FullName}:{this}");
                 }
 
-                NetworkSocketConnection? networkSocketConnection;
+                SocketConnection? networkSocketConnection;
                 (_listener, networkSocketConnection) = ServerTransport.Listen(
                     _endpoint,
                     _loggerFactory ?? NullLoggerFactory.Instance);
@@ -232,10 +232,10 @@ namespace IceRpc
 
             while (true)
             {
-                ITransportConnection transportConnection;
+                INetworkConnection networkConnection;
                 try
                 {
-                    transportConnection = await listener.AcceptAsync().ConfigureAwait(false);
+                    networkConnection = await listener.AcceptAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -258,7 +258,7 @@ namespace IceRpc
                 // Dispose objects before losing scope, the connection is disposed from ShutdownAsync.
 #pragma warning disable CA2000
                 var connection = new Connection(
-                        transportConnection,
+                        networkConnection,
                         Dispatcher,
                         ConnectionOptions,
                         LoggerFactory);

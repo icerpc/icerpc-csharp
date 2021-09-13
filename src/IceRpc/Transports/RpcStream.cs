@@ -49,8 +49,9 @@ namespace IceRpc.Transports
         StreamAborted
     }
 
-    /// <summary>The RpcStream abstract base class to be overridden by multi-stream transport implementations.
-    /// There's an instance of this class for each active stream managed by the multi-stream connection.</summary>
+    /// <summary>The NetworkStream abstract base class to be overridden by multi-stream network connection
+    /// implementations. There's an instance of this class for each active stream managed by the multi-stream
+    /// network connection.</summary>
     public abstract class RpcStream
     {
         /// <summary>The stream ID. If the stream ID hasn't been assigned yet, an exception is thrown. Assigning the

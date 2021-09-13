@@ -10,7 +10,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture("tcp", true, AddressFamily.InterNetwork)]
     [TestFixture("tcp", false, AddressFamily.InterNetworkV6)]
     [Timeout(30000)]
-    public class NonDatagramTests : NetworkSocketConnectionBaseTest
+    public class NonDatagramTests : SocketConnectionBaseTest
     {
         public NonDatagramTests(string transport, bool tls, AddressFamily addressFamily)
             : base(Protocol.Ice2, transport, tls, addressFamily)

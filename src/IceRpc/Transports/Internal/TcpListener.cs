@@ -17,7 +17,7 @@ namespace IceRpc.Transports.Internal
         private readonly Socket _socket;
         private readonly SlicOptions _slicOptions;
 
-        public async ValueTask<ITransportConnection> AcceptAsync()
+        public async ValueTask<INetworkConnection> AcceptAsync()
         {
             TcpSocket tcpSocket;
             try
@@ -38,7 +38,7 @@ namespace IceRpc.Transports.Internal
             }
             else
             {
-                return new NetworkSocketConnection(tcpSocket, Endpoint, isServer: true);
+                return new SocketConnection(tcpSocket, Endpoint, isServer: true);
             }
         }
 

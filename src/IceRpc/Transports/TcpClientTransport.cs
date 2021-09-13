@@ -42,7 +42,7 @@ namespace IceRpc.Transports
             _authenticationOptions = authenticationOptions;
         }
 
-        ITransportConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
+        INetworkConnection IClientTransport.CreateConnection(Endpoint remoteEndpoint, ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger("IceRpc");
 
@@ -87,7 +87,7 @@ namespace IceRpc.Transports
             }
             else
             {
-                return new NetworkSocketConnection(tcpSocket, remoteEndpoint, isServer: false);
+                return new SocketConnection(tcpSocket, remoteEndpoint, isServer: false);
             }
         }
     }

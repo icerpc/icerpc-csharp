@@ -96,7 +96,7 @@ namespace IceRpc
         /// <summary><c>true</c> if the connection uses a secure transport, <c>false</c> otherwise.</summary>
         /// <remarks><c>false</c> can mean the connection is not yet connected and its security will be determined
         /// during connection establishment.</remarks>
-        public bool IsSecure => TransportConnection?.IsSecure ?? false;
+        public bool IsSecure => NetworkConnection?.IsSecure ?? false;
 
         /// <summary><c>true</c> for a connection accepted by a server and <c>false</c> for a connection created by a
         /// client.</summary>
@@ -110,7 +110,7 @@ namespace IceRpc
 
         /// <summary>The connection local endpoint.</summary>
         /// <exception cref="InvalidOperationException">Thrown if the local endpoint is not available.</exception>
-        public Endpoint? LocalEndpoint => _localEndpoint ?? TransportConnection?.LocalEndpoint;
+        public Endpoint? LocalEndpoint => _localEndpoint ?? NetworkConnection?.LocalEndpoint;
 
         /// <summary>The logger factory to use for creating the connection logger.</summary>
         /// <exception cref="InvalidOperationException">Thrown by the setter if the state of the connection is not
@@ -136,7 +136,7 @@ namespace IceRpc
         /// <exception cref="InvalidOperationException">Thrown if the remote endpoint is not available.</exception>
         public Endpoint? RemoteEndpoint
         {
-            get => _remoteEndpoint ?? TransportConnection?.RemoteEndpoint;
+            get => _remoteEndpoint ?? NetworkConnection?.RemoteEndpoint;
             init
             {
                 Debug.Assert(!IsServer);
@@ -157,7 +157,7 @@ namespace IceRpc
         }
 
         /// <summary>The transport connection used by this connection.</summary>
-        public ITransportConnection? TransportConnection { get; private set; }
+        public INetworkConnection? NetworkConnection { get; private set; }
 
         // Delegate used to remove the connection once it has been closed.
         internal Action<Connection>? Remove
@@ -247,12 +247,12 @@ namespace IceRpc
                         {
                             throw new InvalidOperationException("client connection has no remote endpoint set");
                         }
-                        TransportConnection = ClientTransport.CreateConnection(
+                        NetworkConnection = ClientTransport.CreateConnection(
                             _remoteEndpoint,
                             _loggerFactory ?? NullLoggerFactory.Instance);
                     }
 
-                    Debug.Assert(TransportConnection != null);
+                    Debug.Assert(NetworkConnection != null);
                     _state = ConnectionState.Connecting;
 
                     // Perform connection establishment.
@@ -291,7 +291,7 @@ namespace IceRpc
                     if (Protocol == Protocol.Ice1)
                     {
                         _protocolConnection = new Ice1ProtocolConnection(
-                            (NetworkSocketConnection)TransportConnection,
+                            (SocketConnection)NetworkConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             IsServer,
@@ -301,7 +301,7 @@ namespace IceRpc
                     else
                     {
                         _protocolConnection = new Ice2ProtocolConnection(
-                            (MultiStreamConnection)TransportConnection,
+                            (MultiStreamConnection)NetworkConnection,
                             _options.IdleTimeout,
                             _options.IncomingFrameMaxSize,
                             pingAction,
@@ -334,7 +334,7 @@ namespace IceRpc
                         }
 
                         // Start a task to wait for graceful shutdown.
-                        if (!TransportConnection.IsDatagram)
+                        if (!NetworkConnection.IsDatagram)
                         {
                             _ = Task.Run(() => WaitForShutdownAsync(), CancellationToken.None);
                         }
@@ -346,7 +346,7 @@ namespace IceRpc
                             () => AcceptIncomingRequestAsync(Dispatcher ?? NullDispatcher.Instance),
                             CancellationToken.None);
 
-                        Action logSuccess = (IsServer, TransportConnection.IsDatagram) switch
+                        Action logSuccess = (IsServer, NetworkConnection.IsDatagram) switch
                         {
                             (false, false) => _logger.LogConnectionEstablished,
                             (false, true) => _logger.LogStartSendingDatagrams,
@@ -391,7 +391,7 @@ namespace IceRpc
         public bool HasCompatibleParams(Endpoint remoteEndpoint) =>
             IsServer == false &&
             State == ConnectionState.Active &&
-            TransportConnection!.HasCompatibleParams(remoteEndpoint);
+            NetworkConnection!.HasCompatibleParams(remoteEndpoint);
 
         /// <inheritdoc/>
         public async Task<IncomingResponse> InvokeAsync(OutgoingRequest request, CancellationToken cancel)
@@ -407,7 +407,7 @@ namespace IceRpc
                 throw;
             }
 
-            if (TransportConnection!.IsDatagram && !request.IsOneway)
+            if (NetworkConnection!.IsDatagram && !request.IsOneway)
             {
                 throw new InvalidOperationException("cannot send twoway request over datagram connection");
             }
@@ -499,16 +499,16 @@ namespace IceRpc
             ShutdownAsync(closedByPeer: false, message ?? "connection closed gracefully", cancel);
 
         /// <inheritdoc/>
-        public override string ToString() => TransportConnection?.ToString() ?? "";
+        public override string ToString() => NetworkConnection?.ToString() ?? "";
 
         /// <summary>Constructs a server connection from an accepted connection.</summary>
         internal Connection(
-            ITransportConnection connection,
+            INetworkConnection connection,
             IDispatcher? dispatcher,
             ConnectionOptions options,
             ILoggerFactory? loggerFactory)
         {
-            TransportConnection = connection;
+            NetworkConnection = connection;
             _localEndpoint = connection.LocalEndpoint!;
             _options = options;
             _logger = loggerFactory?.CreateLogger("IceRpc") ?? NullLogger.Instance;
@@ -654,7 +654,7 @@ namespace IceRpc
 
                     // Log the connection closure
                     using IDisposable? scope = _logger.StartConnectionScope(this);
-                    bool isDatagram = TransportConnection!.IsDatagram;
+                    bool isDatagram = NetworkConnection!.IsDatagram;
                     if (_state == ConnectionState.Connecting)
                     {
                         // If the connection is connecting but not active yet, we print a trace to show that
@@ -720,7 +720,7 @@ namespace IceRpc
             IProtocolConnection? protocolConnection = null;
             lock (_mutex)
             {
-                if (_state == ConnectionState.Active && !TransportConnection!.IsDatagram)
+                if (_state == ConnectionState.Active && !NetworkConnection!.IsDatagram)
                 {
                     _state = ConnectionState.Closing;
                     _closeTask ??= PerformShutdownAsync(message);

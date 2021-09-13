@@ -15,9 +15,9 @@ namespace IceRpc.Tests.Internal
     [TestFixture(Protocol.Ice1, "tcp", false, AddressFamily.InterNetworkV6)]
     [TestFixture(Protocol.Ice2, "tcp", true, AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class ConnectNetworkSocketConnectionTests : ConnectionBaseTest
+    public class ConnectSocketConnectionTests : ConnectionBaseTest
     {
-        public ConnectNetworkSocketConnectionTests(
+        public ConnectSocketConnectionTests(
             Protocol protocol,
             string transport,
             bool tls,
@@ -27,7 +27,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectNetworkSocketConnection_ConnectAsync_ConnectionRefusedException()
+        public void ConnectSocketConnection_ConnectAsync_ConnectionRefusedException()
         {
             using NetworkSocket clientSocket = CreateNetworkSocket();
             Assert.ThrowsAsync<ConnectionRefusedException>(
@@ -35,7 +35,7 @@ namespace IceRpc.Tests.Internal
         }
 
         [Test]
-        public void ConnectNetworkSocketConnection_ConnectAsync_OperationCanceledException()
+        public void ConnectSocketConnection_ConnectAsync_OperationCanceledException()
         {
             using IListener listener = CreateListener();
 
@@ -61,6 +61,6 @@ namespace IceRpc.Tests.Internal
         }
 
         private NetworkSocket CreateNetworkSocket() =>
-           ((NetworkSocketConnection)CreateClientConnection()).NetworkSocket;
+           ((SocketConnection)CreateClientConnection()).NetworkSocket;
     }
 }

@@ -9,7 +9,7 @@ namespace IceRpc.Tests.Internal
     [TestFixture(AddressFamily.InterNetwork)]
     [TestFixture(AddressFamily.InterNetworkV6)]
     [Timeout(5000)]
-    public class DatagramTests : NetworkSocketConnectionBaseTest
+    public class DatagramTests : SocketConnectionBaseTest
     {
         public DatagramTests(AddressFamily addressFamily)
             : base(Protocol.Ice1, "udp", tls: false, addressFamily)
@@ -30,7 +30,7 @@ namespace IceRpc.Tests.Internal
             clientConnections.Add(ClientConnection);
             for (int i = 0; i < clientConnectionCount; ++i)
             {
-                clientConnections.Add(await NetworkSocketConnectionAsync(ConnectAsync()));
+                clientConnections.Add(await SocketConnectionAsync(ConnectAsync()));
             }
 
             // Datagrams aren't reliable, try up to 5 times in case the datagram is lost.
