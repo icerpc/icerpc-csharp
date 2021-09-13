@@ -77,30 +77,5 @@ namespace IceRpc
             Path = path;
             Operation = operation;
         }
-
-        /// <summary>Returns a new incoming request built from this outgoing request. This method is
-        /// used for colocated calls.</summary>
-        internal IncomingRequest ToIncoming()
-        {
-            var request = new IncomingRequest(Protocol, path: Path, operation: Operation)
-            {
-                IsIdempotent = IsIdempotent,
-                IsOneway = IsOneway,
-                Fields = GetAllFields(),
-                Deadline = Deadline,
-                PayloadEncoding = PayloadEncoding,
-                Payload = Payload.ToSingleBuffer(),
-            };
-
-            // Copy the context from the request features.
-            IDictionary<string, string> context = Features.GetContext();
-            if (context.Count > 0)
-            {
-                request.Features = new FeatureCollection();
-                request.Features.Set(new Context { Value = context.ToImmutableSortedDictionary() }); // clone value
-            }
-
-            return request;
-        }
     }
 }

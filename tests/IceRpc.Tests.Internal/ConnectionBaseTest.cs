@@ -13,18 +13,14 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace IceRpc.Tests.Internal
 {
-    /// <summary>Test fixture for tests that need to test connections. The constructor initialize a communicator and an
-    /// Server and setup client/server endpoints for a configurable protocol/transport/security.</summary>
-    public class ConnectionBaseTest
+    /// <summary>Test fixture for tests that need to test socket connections.</summary>
+    public class SocketConnectionBaseTest
     {
         protected static readonly byte[] OneBSendBuffer = new byte[1];
         protected static readonly byte[] OneMBSendBuffer = new byte[1024 * 1024];
         private protected Endpoint ClientEndpoint { get; }
         private protected ILogger Logger { get; }
-        private protected bool IsIPv6 { get; }
-        private protected bool IsSecure { get; }
         private protected Endpoint ServerEndpoint { get; }
-        private protected MultiStreamOptions? ServerMultiStreamOptions { get; set; }
         private protected string TransportName { get; }
 
         private IListener? _listener;
@@ -36,10 +32,9 @@ namespace IceRpc.Tests.Internal
 
         private static int _nextBasePort;
 
-        public ConnectionBaseTest(
-            Protocol protocol,
+        public SocketConnectionBaseTest(
             string transport,
-            bool tls,
+            bool? tls,
             AddressFamily addressFamily = AddressFamily.InterNetwork,
             Func<string, int, string>? clientEndpoint = null,
             Func<string, int, string>? serverEndpoint = null)
@@ -53,8 +48,7 @@ namespace IceRpc.Tests.Internal
             port += Interlocked.Add(ref _nextBasePort, 1);
 
             TransportName = transport;
-            IsSecure = tls;
-            IsIPv6 = addressFamily == AddressFamily.InterNetworkV6;
+            bool isIPv6 = addressFamily == AddressFamily.InterNetworkV6;
 
             _clientAuthenticationOptions = new()
             {
@@ -64,7 +58,7 @@ namespace IceRpc.Tests.Internal
                                 {
                                     new X509Certificate2("../../../certs/cacert.pem")
                                 }),
-                TargetHost = IsIPv6 ? "[::1]" : "127.0.0.1"
+                TargetHost = isIPv6 ? "[::1]" : "127.0.0.1"
             };
 
             _serverAuthenticationOptions = new()
@@ -86,29 +80,16 @@ namespace IceRpc.Tests.Internal
             }
             else
             {
-                if (protocol == Protocol.Ice2)
+                string tlsOption = "";
+                if (transport == "tcp" && tls != null)
                 {
-                    string tlsOption = "";
-                    if (transport == "tcp" && !IsSecure)
-                    {
-                        tlsOption = "?tls=false";
-                    }
-
-                    string host = IsIPv6 ? "[::1]" : "127.0.0.1";
-                    string endpoint = serverEndpoint?.Invoke(host, port) ??
-                        $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ServerEndpoint = endpoint;
-                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
-                    ClientEndpoint = endpoint;
+                    tlsOption = $"?tls={tls}";
                 }
-                else
-                {
-                    string host = IsIPv6 ? "\"::1\"" : "127.0.0.1";
-                    string endpoint = serverEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ServerEndpoint = endpoint;
-                    endpoint = clientEndpoint?.Invoke(host, port) ?? $"{transport} -h {host} -p {port}";
-                    ClientEndpoint = endpoint;
-                }
+                string host = isIPv6 ? "[::1]" : "127.0.0.1";
+                string endpoint = serverEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
+                ServerEndpoint = endpoint;
+                endpoint = clientEndpoint?.Invoke(host, port) ?? $"ice+{transport}://{host}:{port}{tlsOption}";
+                ClientEndpoint = endpoint;
             }
         }
 
@@ -130,7 +111,7 @@ namespace IceRpc.Tests.Internal
             {
                 INetworkConnection networkConnection = await _listener.AcceptAsync();
                 await networkConnection.ConnectAsync(default);
-                if (ClientEndpoint.Protocol == Protocol.Ice2 && !networkConnection.IsSecure)
+                if (ClientEndpoint.ParseTcpParams().Tls == null)
                 {
                     // If the accepted connection is not secured, we need to read the first byte from the connection.
                     // See above for the reason.
@@ -195,7 +176,7 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateServerTransport(
                 serverEndpoint ?? ServerEndpoint,
                 options: options,
-                ServerMultiStreamOptions ?? null,
+                multiStreamOptions: null,
                 _serverAuthenticationOptions).Listen(
                     serverEndpoint ?? ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Listener!;
@@ -204,7 +185,7 @@ namespace IceRpc.Tests.Internal
             TestHelper.CreateServerTransport(
                 ServerEndpoint,
                 options: null,
-                ServerMultiStreamOptions ?? null,
+                multiStreamOptions: null,
                 authenticationOptions: _serverAuthenticationOptions).Listen(
                     ServerEndpoint,
                     LogAttributeLoggerFactory.Instance).Connection!;

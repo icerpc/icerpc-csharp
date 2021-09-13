@@ -186,13 +186,9 @@ namespace IceRpc.Transports.Internal
 
         public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
-            // First verify all parameters:
             bool? tls = endpoint.ParseTcpParams().Tls;
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-            else if (tls == null)
+
+            if (tls == null)
             {
                 // TODO: add ability to override this default tls=true through some options
                 tls = true;
@@ -298,11 +294,6 @@ namespace IceRpc.Transports.Internal
         public override async ValueTask<Endpoint> ConnectAsync(Endpoint endpoint, CancellationToken cancel)
         {
             bool? tls = endpoint.ParseTcpParams().Tls;
-            if (endpoint.Protocol == Protocol.Ice1)
-            {
-                tls = endpoint.Transport == TransportNames.Ssl;
-            }
-
             try
             {
                 bool secure;
@@ -313,10 +304,9 @@ namespace IceRpc.Transports.Internal
                 }
                 else if (_authenticationOptions != null)
                 {
-                    // On the server side, when accepting a new connection for an Ice2 endpoint and the tls
-                    // parameter is not set, the TCP socket checks the first byte sent by the peer to figure
-                    // out if the peer tries to establish a TLS connection.
-                    if (tls == null && endpoint.Protocol == Protocol.Ice2)
+                    // On the server side, if the tls parameter is not set, the TCP socket checks the first
+                    // byte sent by the peer to figure out if the peer tries to establish a TLS connection.
+                    if (tls == null)
                     {
                         // Peek one byte into the tcp stream to see if it contains the TLS handshake record
                         Memory<byte> buffer = new byte[1];
@@ -365,7 +355,7 @@ namespace IceRpc.Transports.Internal
                 }
 
                 ImmutableList<EndpointParam> endpointParams = endpoint.Params;
-                if (tls == null && endpoint.Protocol == Protocol.Ice2)
+                if (tls == null)
                 {
                     // the accepted endpoint gets a tls parameter
                     endpointParams = endpointParams.Add(new EndpointParam("tls", SslStream == null ? "false" : "true"));

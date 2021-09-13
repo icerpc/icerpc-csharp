@@ -35,23 +35,5 @@ namespace IceRpc
         /// <returns>The outgoing response.</returns>
         public static OutgoingResponse ForException(IncomingRequest request, Exception exception) =>
             request.Protocol.CreateResponseFromException(exception, request);
-
-        /// <summary>Returns a new incoming response built from this outgoing response. This method is
-        /// used for colocated calls.</summary>
-        internal IncomingResponse ToIncoming()
-        {
-            IncomingResponse response = new(Protocol, ResultType)
-            {
-                Fields = GetAllFields(),
-                PayloadEncoding = PayloadEncoding,
-                Payload = Payload.ToSingleBuffer(),
-            };
-            if (Protocol == Protocol.Ice1)
-            {
-                response.Features = new();
-                response.Features.Set(Features.Get<ReplyStatus>());
-            }
-            return response;
-        }
     }
 }

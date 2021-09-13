@@ -287,7 +287,8 @@ namespace IceRpc
                             });
                         };
 
-                    // TODO: Add protocol connection factories to avoid the nasty casts here.
+                    // TODO: Add protocol connection factories to avoid the protocol chck and the nasty casts
+                    // here.
                     if (Protocol == Protocol.Ice1)
                     {
                         _protocolConnection = new Ice1ProtocolConnection(
