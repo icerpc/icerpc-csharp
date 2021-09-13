@@ -1,11 +1,5 @@
 // Copyright (c) ZeroC, Inc. All rights reserved.
 
-using IceRpc.Slice.Internal;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
 namespace IceRpc.Slice
 {
     /// <summary>Provides extension methods for class IceEncoder.</summary>

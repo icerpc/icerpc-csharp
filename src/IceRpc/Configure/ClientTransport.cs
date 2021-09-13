@@ -105,12 +105,12 @@ namespace IceRpc.Configure
             this ClientTransport clientTransport,
             TcpOptions tcpOptions,
             SlicOptions slicOptions)
-            {
-                var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, null);
-                clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
-                clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
-                return clientTransport;
-            }
+        {
+            var tcpClientTransport = new TcpClientTransport(tcpOptions, slicOptions, null);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice2, tcpClientTransport);
+            clientTransport.Add(TransportNames.Tcp, Protocol.Ice1, tcpClientTransport);
+            return clientTransport;
+        }
 
         /// <summary>Adds the tcp client transport with ssl support to this composite client transport.</summary>
         /// <param name="clientTransport">The transport being configured.</param>

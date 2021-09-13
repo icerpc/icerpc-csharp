@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿// Copyright (c) ZeroC, Inc. All rights reserved.
+
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace IceRpc.Configure

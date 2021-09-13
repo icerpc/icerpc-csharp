@@ -22,7 +22,7 @@ namespace IceRpc.Slice
         /// <returns>A new empty payload.</returns>
         public abstract ReadOnlyMemory<ReadOnlyMemory<byte>> CreateEmptyPayload();
 
-         /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
+        /// <summary>Creates the payload of a request from the request's argument. Use this method when the operation
         /// takes a single parameter.</summary>
         /// <typeparam name="T">The type of the operation's parameter.</typeparam>
         /// <param name="arg">The argument to write into the payload.</param>

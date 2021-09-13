@@ -512,7 +512,7 @@ namespace IceRpc
                 if (request.IsIdempotent || !request.IsSent)
                 {
                     // Only retry if it's safe to retry: the request is idempotent or it hasn't been sent.
-                    request.Features = request.Features.With(RetryPolicy.Immediately);;
+                    request.Features = request.Features.With(RetryPolicy.Immediately);
                 }
                 throw new ConnectionLostException(ex);
             }
