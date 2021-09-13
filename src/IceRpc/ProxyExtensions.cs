@@ -21,7 +21,6 @@ namespace IceRpc
         /// <param name="requestPayload">The payload of the request.</param>
         /// <param name="streamParamSender">The stream param sender.</param>
         /// <param name="invocation">The invocation properties.</param>
-        /// <param name="compress">When true, the request payload should be compressed.</param>
         /// <param name="idempotent">When true, the request is idempotent.</param>
         /// <param name="oneway">When true, the request is sent oneway and an empty response is returned immediately
         /// after sending the request.</param>
@@ -37,7 +36,6 @@ namespace IceRpc
             ReadOnlyMemory<ReadOnlyMemory<byte>> requestPayload,
             IStreamParamSender? streamParamSender = null,
             Invocation? invocation = null,
-            bool compress = false,
             bool idempotent = false,
             bool oneway = false,
             bool returnStreamParamReceiver = false,
@@ -47,12 +45,6 @@ namespace IceRpc
 
             CancellationTokenSource? timeoutSource = null;
             CancellationTokenSource? combinedSource = null;
-
-            if (compress)
-            {
-                invocation ??= new Invocation();
-                invocation.RequestFeatures = invocation.RequestFeatures.CompressPayload();
-            }
 
             try
             {

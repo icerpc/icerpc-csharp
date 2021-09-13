@@ -18,7 +18,7 @@ namespace IceRpc
 
         /// <summary>Constructs a successful response that contains a payload.</summary>
         /// <param name="request">The incoming request for which this method creates a response.</param>
-        /// <param name="payload">The exception to store into the response's payload.</param>
+        /// <param name="payload">The response's payload.</param>
         /// <returns>The outgoing response.</returns>
         public static OutgoingResponse ForPayload(
             IncomingRequest request,
